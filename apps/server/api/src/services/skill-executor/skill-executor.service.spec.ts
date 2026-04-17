@@ -10,9 +10,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('SkillExecutorService', () => {
-  const orgId = new Types.ObjectId().toString();
-  const brandId = new Types.ObjectId().toString();
-  const runId = new Types.ObjectId().toString();
+  const orgId = 'test-object-id';
+  const brandId = 'test-object-id';
+  const runId = 'test-object-id';
 
   const baseContext = {
     brandId,

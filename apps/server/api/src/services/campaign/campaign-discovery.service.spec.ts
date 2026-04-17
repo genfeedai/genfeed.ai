@@ -38,8 +38,8 @@ describe('CampaignDiscoveryService', () => {
     targetExists: vi.fn(),
   };
 
-  const orgId = new Types.ObjectId();
-  const campaignId = new Types.ObjectId();
+  const orgId = 'test-object-id';
+  const campaignId = 'test-object-id';
 
   const makeConfig = (
     overrides: Partial<CampaignDiscoveryConfig> = {},

@@ -65,7 +65,7 @@ export class CreateIngredientDto {
   @ApiProperty({
     description: 'Source ingredient IDs (for tracking merged content)',
     required: false,
-    type: [Types.ObjectId],
+    type: [String],
   })
   readonly sources?: string[];
 
@@ -89,7 +89,7 @@ export class CreateIngredientDto {
   @ApiProperty({
     description: 'References to asset(s) or ingredient image(s) for generation',
     required: false,
-    type: [Types.ObjectId],
+    type: [String],
   })
   readonly references?: string[];
 
@@ -164,7 +164,7 @@ export class CreateIngredientDto {
   @ApiProperty({
     description: 'Array of tag IDs for this ingredient',
     required: false,
-    type: [Types.ObjectId],
+    type: [String],
   })
   readonly tags?: string[];
 

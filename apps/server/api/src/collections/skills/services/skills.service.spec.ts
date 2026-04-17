@@ -5,9 +5,9 @@ import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ByokProvider } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -21,8 +21,8 @@ function createQueryMock<T>(result: T) {
 }
 
 describe('SkillsService', () => {
-  const orgId = new Types.ObjectId().toString();
-  const brandId = new Types.ObjectId().toString();
+  const orgId = 'test-object-id'.toString();
+  const brandId = 'test-object-id'.toString();
 
   let service: SkillsService;
 
@@ -56,12 +56,8 @@ describe('SkillsService', () => {
       providers: [
         SkillsService,
         {
-          provide: getModelToken(Skill.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockSkillModel,
-        },
-        {
-          provide: getModelToken(Brand.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockBrandModel,
+          provide: PrismaService,
+          useValue: { ...mockSkillModel, ...mockBrandModel },
         },
         {
           provide: ByokProviderFactoryService,
@@ -98,7 +94,7 @@ describe('SkillsService', () => {
       expect.objectContaining({
         isBuiltIn: false,
         isDeleted: false,
-        organization: expect.any(Types.ObjectId),
+        organization: expect.any(string),
         source: 'custom',
         status: 'published',
       }),
@@ -131,7 +127,7 @@ describe('SkillsService', () => {
   });
 
   it('customizes an accessible base skill into an org variant', async () => {
-    const baseSkillId = new Types.ObjectId();
+    const baseSkillId = 'test-object-id';
     mockSkillModel.findOne.mockResolvedValue({
       _id: baseSkillId,
       category: 'copywriting',
@@ -153,7 +149,7 @@ describe('SkillsService', () => {
       expect.objectContaining({
         baseSkill: baseSkillId,
         isBuiltIn: false,
-        organization: expect.any(Types.ObjectId),
+        organization: expect.any(string),
         source: 'custom',
         status: 'draft',
       }),
@@ -171,7 +167,7 @@ describe('SkillsService', () => {
     expect(mockSkillModel.find).toHaveBeenCalledWith(
       expect.objectContaining({
         $or: expect.arrayContaining([
-          { organization: expect.any(Types.ObjectId) },
+          { organization: expect.any(string) },
           { organization: null },
         ]),
         isDeleted: false,
@@ -215,7 +211,7 @@ describe('SkillsService', () => {
       }),
     );
 
-    const skillId = new Types.ObjectId();
+    const skillId = 'test-object-id';
     mockSkillModel.find.mockReturnValue(
       createQueryMock([
         {

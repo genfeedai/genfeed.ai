@@ -1,8 +1,8 @@
 import { ContentPerformance } from '@api/collections/content-performance/schemas/content-performance.schema';
 import { AttributionService } from '@api/collections/content-performance/services/attribution.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 /**
@@ -39,10 +39,7 @@ describe('Attribution (Integration)', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AttributionService,
-        {
-          provide: getModelToken(ContentPerformance.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockModel,
-        },
+        { provide: PrismaService, useValue: mockModel },
         { provide: LoggerService, useValue: mockLogger },
       ],
     }).compile();

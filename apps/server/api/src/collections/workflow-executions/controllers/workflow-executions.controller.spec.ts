@@ -90,7 +90,7 @@ describe('WorkflowExecutionsController', () => {
       expect(aggregate[0]).toEqual({
         $match: {
           isDeleted: false,
-          organization: expect.any(Types.ObjectId),
+          organization: expect.any(String),
           status: 'completed',
         },
       });

@@ -21,7 +21,9 @@ import type { PopulateOption } from '@genfeedai/interfaces';
 import { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import type { PipelineStage } from 'mongoose';
+
+/** Mongo-style pipeline stage — plain record passed to BaseService aggregation helpers. */
+type MongoPipelineStage = Record<string, unknown>;
 
 @Injectable()
 export class IngredientsService extends BaseService<
@@ -376,7 +378,7 @@ export class IngredientsService extends BaseService<
    * Override findAll — delegates to super (BaseService Prisma migration pending)
    */
   async findAll(
-    aggregate: PipelineStage[],
+    aggregate: MongoPipelineStage[],
     options: AggregationOptions,
     enableCache: boolean = true,
   ): Promise<AggregatePaginateResult<IngredientDocument>> {

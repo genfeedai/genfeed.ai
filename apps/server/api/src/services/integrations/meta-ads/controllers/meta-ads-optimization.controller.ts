@@ -245,9 +245,9 @@ export class MetaAdsOptimizationController {
     const credential = await this.credentialsService.findOne({
       isConnected: true,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
       platform: CredentialPlatform.FACEBOOK,
-      user: new Types.ObjectId(userId),
+      user: userId,
     });
 
     if (!credential?.accessToken) {

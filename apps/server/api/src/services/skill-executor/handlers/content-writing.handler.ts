@@ -40,7 +40,7 @@ export class ContentWritingHandler implements SkillHandler {
     };
 
     const generated = await this.contentGeneratorService.generateContent(
-      new Types.ObjectId(context.organizationId),
+      context.organizationId,
       generationDto,
     );
 

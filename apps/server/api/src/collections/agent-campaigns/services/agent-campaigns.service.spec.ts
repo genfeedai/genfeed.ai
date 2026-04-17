@@ -1,7 +1,7 @@
 import { AgentCampaign } from '@api/collections/agent-campaigns/schemas/agent-campaign.schema';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { AgentCampaignsService } from './agent-campaigns.service';
 
@@ -63,10 +63,7 @@ describe('AgentCampaignsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AgentCampaignsService,
-        {
-          provide: getModelToken(AgentCampaign.name, DB_CONNECTIONS.AGENT),
-          useValue: mockModel,
-        },
+        { provide: PrismaService, useValue: mockModel },
         { provide: LoggerService, useValue: mockLogger },
       ],
     }).compile();
@@ -84,8 +81,8 @@ describe('AgentCampaignsService', () => {
 
   describe('findOneById', () => {
     it('should query with ObjectId _id and organization', async () => {
-      const id = new Types.ObjectId().toString();
-      const orgId = new Types.ObjectId().toString();
+      const id = 'test-object-id'.toString();
+      const orgId = 'test-object-id'.toString();
       const mockQuery = createMockQuery(null);
       mockModel.findOne.mockReturnValue(mockQuery);
 
@@ -93,16 +90,16 @@ describe('AgentCampaignsService', () => {
 
       expect(mockModel.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
-          _id: expect.any(Types.ObjectId),
+          _id: expect.any(string),
           isDeleted: false,
-          organization: expect.any(Types.ObjectId),
+          organization: expect.any(string),
         }),
       );
     });
 
     it('should return null when campaign is not found', async () => {
-      const id = new Types.ObjectId().toString();
-      const orgId = new Types.ObjectId().toString();
+      const id = 'test-object-id'.toString();
+      const orgId = 'test-object-id'.toString();
       const mockQuery = createMockQuery(null);
       mockModel.findOne.mockReturnValue(mockQuery);
 
@@ -112,8 +109,8 @@ describe('AgentCampaignsService', () => {
     });
 
     it('should return campaign document when found', async () => {
-      const id = new Types.ObjectId();
-      const orgId = new Types.ObjectId();
+      const id = 'test-object-id';
+      const orgId = 'test-object-id';
       const campaign = {
         _id: id,
         isDeleted: false,
@@ -129,21 +126,21 @@ describe('AgentCampaignsService', () => {
     });
 
     it('should convert string ids to ObjectId instances', async () => {
-      const id = new Types.ObjectId().toString();
-      const orgId = new Types.ObjectId().toString();
+      const id = 'test-object-id'.toString();
+      const orgId = 'test-object-id'.toString();
       const mockQuery = createMockQuery(null);
       mockModel.findOne.mockReturnValue(mockQuery);
 
       await service.findOneById(id, orgId);
 
       const callArg = mockModel.findOne.mock.calls[0][0];
-      expect(callArg._id).toBeInstanceOf(Types.ObjectId);
-      expect(callArg.organization).toBeInstanceOf(Types.ObjectId);
+      expect(callArg._id).toBeInstanceOf(string);
+      expect(callArg.organization).toBeInstanceOf(string);
     });
 
     it('should filter out deleted campaigns', async () => {
-      const id = new Types.ObjectId().toString();
-      const orgId = new Types.ObjectId().toString();
+      const id = 'test-object-id'.toString();
+      const orgId = 'test-object-id'.toString();
       const mockQuery = createMockQuery(null);
       mockModel.findOne.mockReturnValue(mockQuery);
 
@@ -154,8 +151,8 @@ describe('AgentCampaignsService', () => {
     });
 
     it('should propagate errors from the model', async () => {
-      const id = new Types.ObjectId().toString();
-      const orgId = new Types.ObjectId().toString();
+      const id = 'test-object-id'.toString();
+      const orgId = 'test-object-id'.toString();
       const error = new Error('Database connection failed');
       mockModel.findOne.mockReturnValue({
         exec: vi.fn().mockRejectedValue(error),
@@ -170,14 +167,13 @@ describe('AgentCampaignsService', () => {
 
     it('should use the correct DB connection (AGENT)', () => {
       // Verify the model token uses the agent connection
-      const token = getModelToken(AgentCampaign.name, DB_CONNECTIONS.AGENT);
       expect(token).toContain(DB_CONNECTIONS.AGENT);
     });
 
     it('should handle different organization IDs independently', async () => {
-      const id = new Types.ObjectId().toString();
-      const orgId1 = new Types.ObjectId().toString();
-      const orgId2 = new Types.ObjectId().toString();
+      const id = 'test-object-id'.toString();
+      const orgId1 = 'test-object-id'.toString();
+      const orgId2 = 'test-object-id'.toString();
 
       const mockQuery1 = createMockQuery({ _id: id, name: 'Campaign 1' });
       const mockQuery2 = createMockQuery(null);

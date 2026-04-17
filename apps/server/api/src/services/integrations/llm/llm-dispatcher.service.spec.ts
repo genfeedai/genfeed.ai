@@ -44,7 +44,7 @@ describe('LlmDispatcherService', () => {
     warn: ReturnType<typeof vi.fn>;
   };
 
-  const orgId = new Types.ObjectId().toHexString();
+  const orgId = 'test-object-id'.toHexString();
 
   const mockResponse: OpenRouterChatCompletionResponse = {
     choices: [

@@ -8,8 +8,8 @@ import { PerformanceSummaryService } from '@api/collections/content-performance/
 import { Post } from '@api/collections/posts/schemas/post.schema';
 import { PostAnalytics } from '@api/collections/posts/schemas/post-analytics.schema';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 /**
@@ -168,16 +168,12 @@ describe('Closed-Loop Flow (Integration)', () => {
         AttributionService,
         PerformanceSummaryService,
         {
-          provide: getModelToken(ContentPerformance.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockContentPerformanceModel,
-        },
-        {
-          provide: getModelToken(Post.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockContentPerformanceModel,
-        },
-        {
-          provide: getModelToken(PostAnalytics.name, DB_CONNECTIONS.ANALYTICS),
-          useValue: mockPostAnalyticsModel,
+          provide: PrismaService,
+          useValue: {
+            ...mockContentPerformanceModel,
+            ...mockContentPerformanceModel,
+            ...mockPostAnalyticsModel,
+          },
         },
         { provide: LoggerService, useValue: mockLogger },
       ],

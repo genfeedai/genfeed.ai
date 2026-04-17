@@ -49,7 +49,7 @@ describe('ElementsBlacklistsService', () => {
         exec: vi.fn().mockResolvedValue(null),
         populate: vi.fn().mockReturnThis(),
       } as never);
-      const result = await service.findOne({ _id: new Types.ObjectId() });
+      const result = await service.findOne({ _id: 'test-object-id' });
       expect(result).toBeNull();
     });
   });
@@ -60,10 +60,7 @@ describe('ElementsBlacklistsService', () => {
         exec: vi.fn().mockResolvedValue(null),
         populate: vi.fn().mockReturnThis(),
       } as never);
-      const result = await service.patch(
-        new Types.ObjectId().toString(),
-        {} as never,
-      );
+      const result = await service.patch('test-object-id', {} as never);
       expect(result).toBeNull();
     });
   });

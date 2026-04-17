@@ -1,9 +1,9 @@
 import { AgentMessageDoc } from '@api/collections/agent-messages/schemas/agent-message.schema';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { AgentMessageRole } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('AgentMessagesService', () => {
@@ -29,8 +29,8 @@ describe('AgentMessagesService', () => {
     warn: ReturnType<typeof vi.fn>;
   };
 
-  const orgId = new Types.ObjectId().toString();
-  const roomId = new Types.ObjectId().toString();
+  const orgId = 'test-object-id'.toString();
+  const roomId = 'test-object-id'.toString();
 
   const createChain = (returnValue: unknown): ChainableMock => {
     const chain: ChainableMock = {
@@ -71,10 +71,7 @@ describe('AgentMessagesService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AgentMessagesService,
-        {
-          provide: getModelToken(AgentMessageDoc.name, DB_CONNECTIONS.AGENT),
-          useValue: model,
-        },
+        { provide: PrismaService, useValue: model },
         { provide: LoggerService, useValue: loggerService },
       ],
     }).compile();
@@ -93,7 +90,7 @@ describe('AgentMessagesService', () => {
         organization: orgId,
         role: AgentMessageRole.USER,
         room: roomId,
-        user: new Types.ObjectId().toHexString(),
+        user: 'test-object-id'.toHexString(),
       };
 
       const result = await service.addMessage(dto);
@@ -108,7 +105,7 @@ describe('AgentMessagesService', () => {
         role: AgentMessageRole.ASSISTANT,
         room: roomId,
         toolCalls: [{ status: 'success', toolName: 'generateImage' }],
-        user: new Types.ObjectId().toHexString(),
+        user: 'test-object-id'.toHexString(),
       };
 
       const result = await service.addMessage(dto);
@@ -124,7 +121,7 @@ describe('AgentMessagesService', () => {
 
   describe('getMessagesByRoom', () => {
     it('should return messages for a room with default pagination', async () => {
-      const mockMessages = [{ _id: new Types.ObjectId(), content: 'msg1' }];
+      const mockMessages = [{ _id: 'test-object-id', content: 'msg1' }];
       const chain = createChain(mockMessages);
       model.find.mockReturnValue(chain);
 
@@ -132,8 +129,8 @@ describe('AgentMessagesService', () => {
 
       const filter = model.find.mock.calls[0][0] as {
         isDeleted: boolean;
-        organization: Types.ObjectId;
-        room: Types.ObjectId;
+        organization: string;
+        room: string;
       };
       expect(filter.isDeleted).toBe(false);
       expect(filter.organization.toHexString()).toBe(orgId);
@@ -163,8 +160,8 @@ describe('AgentMessagesService', () => {
 
   describe('getRecentMessages', () => {
     it('should return messages reversed to chronological order', async () => {
-      const msg1 = { _id: new Types.ObjectId(), content: 'first' };
-      const msg2 = { _id: new Types.ObjectId(), content: 'second' };
+      const msg1 = { _id: 'test-object-id', content: 'first' };
+      const msg2 = { _id: 'test-object-id', content: 'second' };
       // find returns [second, first] (desc), reversed to [first, second]
       const chain = createChain([msg2, msg1]);
       model.find.mockReturnValue(chain);
@@ -191,7 +188,7 @@ describe('AgentMessagesService', () => {
 
       const filter = model.find.mock.calls[0][0] as {
         isDeleted: boolean;
-        room: Types.ObjectId;
+        room: string;
       };
       expect(filter.isDeleted).toBe(false);
       expect(filter.room.toHexString()).toBe(roomId);
@@ -209,15 +206,15 @@ describe('AgentMessagesService', () => {
     });
 
     it('should insert cloned docs with new targetRoomId', async () => {
-      const targetRoomId = new Types.ObjectId().toString();
+      const targetRoomId = 'test-object-id'.toString();
       const sourceDoc = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         content: 'msg',
         createdAt: new Date('2026-01-01'),
         isDeleted: false,
         organization: orgId,
         role: AgentMessageRole.USER,
-        room: new Types.ObjectId(roomId),
+        room: new string(roomId),
         updatedAt: new Date('2026-01-01'),
         user: 'user-1',
       };
@@ -231,7 +228,7 @@ describe('AgentMessagesService', () => {
           expect.objectContaining({
             content: 'msg',
             isDeleted: false,
-            room: expect.any(Types.ObjectId),
+            room: expect.any(string),
           }),
         ]),
       );
@@ -242,15 +239,15 @@ describe('AgentMessagesService', () => {
     });
 
     it('should preserve all message fields during copy', async () => {
-      const targetRoomId = new Types.ObjectId().toString();
+      const targetRoomId = 'test-object-id'.toString();
       const sourceDoc = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         content: 'assistant reply',
         isDeleted: false,
         metadata: { key: 'val' },
         organization: orgId,
         role: AgentMessageRole.ASSISTANT,
-        room: new Types.ObjectId(roomId),
+        room: new string(roomId),
         toolCalls: [{ status: 'success', toolName: 'search' }],
         user: 'user-1',
       };

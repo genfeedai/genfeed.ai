@@ -46,8 +46,8 @@ export class HeyGenService {
     avatarId: string,
     voiceId: string,
     inputText: string,
-    _organizationId?: string | Types.ObjectId,
-    _userId?: string | Types.ObjectId,
+    _organizationId?: string,
+    _userId?: string,
     apiKeyOverride?: string,
   ): Promise<string> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
@@ -121,8 +121,8 @@ export class HeyGenService {
           inputText?: string;
           voiceId?: string;
         },
-    _organizationId?: string | Types.ObjectId,
-    _userId?: string | Types.ObjectId,
+    _organizationId?: string,
+    _userId?: string,
     apiKeyOverride?: string,
     aspectRatio: AvatarVideoAspectRatio = '9:16',
   ): Promise<string> {
@@ -214,8 +214,8 @@ export class HeyGenService {
   public async createAvatar(
     name: string,
     videoUrl: string,
-    _organizationId?: string | Types.ObjectId,
-    _userId?: string | Types.ObjectId,
+    _organizationId?: string,
+    _userId?: string,
     apiKeyOverride?: string,
   ): Promise<string> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
@@ -253,8 +253,8 @@ export class HeyGenService {
   }
 
   public async getVoices(
-    _organizationId?: string | Types.ObjectId,
-    _userId?: string | Types.ObjectId,
+    _organizationId?: string,
+    _userId?: string,
     apiKeyOverride?: string,
   ): Promise<
     Array<{ preview: string; name: string; index: number; voiceId: string }>
@@ -302,8 +302,8 @@ export class HeyGenService {
   }
 
   public async getAvatars(
-    _organizationId?: string | Types.ObjectId,
-    _userId?: string | Types.ObjectId,
+    _organizationId?: string,
+    _userId?: string,
     apiKeyOverride?: string,
   ): Promise<
     Array<{ preview: string; name: string; index: number; avatarId: string }>

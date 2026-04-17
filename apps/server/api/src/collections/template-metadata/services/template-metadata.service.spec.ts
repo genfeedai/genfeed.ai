@@ -3,9 +3,9 @@ import { TemplateMetadataService } from '@api/collections/template-metadata/serv
 import { Template } from '@api/collections/templates/schemas/template.schema';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { mockModel } from '@api/helpers/mocks/model.mock';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { NotFoundException } from '@nestjs/common';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('TemplateMetadataService', () => {
@@ -15,7 +15,7 @@ describe('TemplateMetadataService', () => {
   let templateModel: ReturnType<typeof createMockModel>;
 
   const mockTemplateMetadata = {
-    _id: new Types.ObjectId('507f1f77bcf86cd799439014'),
+    _id: '507f1f77bcf86cd799439014',
     author: 'Test Author',
     averageQuality: 8.5,
     compatiblePlatforms: ['youtube', 'tiktok'],
@@ -28,14 +28,14 @@ describe('TemplateMetadataService', () => {
     requiredFeatures: ['video'],
     save: vi.fn().mockResolvedValue(undefined),
     successRate: 85,
-    template: new Types.ObjectId('507f1f77bcf86cd799439015'),
+    template: '507f1f77bcf86cd799439015',
     toObject: vi.fn().mockReturnThis(),
     usageCount: 100,
     version: '1.0.0',
   };
 
   const mockTemplate = {
-    _id: new Types.ObjectId('507f1f77bcf86cd799439015'),
+    _id: '507f1f77bcf86cd799439015',
     key: 'test-template',
     label: 'Test Template',
   };
@@ -57,14 +57,7 @@ describe('TemplateMetadataService', () => {
     module = await Test.createTestingModule({
       providers: [
         TemplateMetadataService,
-        {
-          provide: getModelToken(TemplateMetadata.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockMetadataModel,
-        },
-        {
-          provide: getModelToken(Template.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockTemplateModelInstance,
-        },
+        { provide: PrismaService, useValue: mockMetadataModel },
         {
           provide: LoggerService,
           useValue: {
@@ -78,12 +71,8 @@ describe('TemplateMetadataService', () => {
     }).compile();
 
     service = module.get<TemplateMetadataService>(TemplateMetadataService);
-    metadataModel = module.get(
-      getModelToken(TemplateMetadata.name, DB_CONNECTIONS.CLOUD),
-    );
-    templateModel = module.get(
-      getModelToken(Template.name, DB_CONNECTIONS.CLOUD),
-    );
+    metadataModel = module.get(PrismaService);
+    templateModel = module.get(PrismaService);
   });
 
   afterEach(() => {

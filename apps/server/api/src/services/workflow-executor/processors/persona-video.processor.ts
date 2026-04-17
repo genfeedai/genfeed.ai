@@ -56,10 +56,10 @@ export class PersonaVideoProcessor {
 
     const result = await this.personaContentService.generateVideo({
       aspectRatio: input.aspectRatio,
-      organization: new Types.ObjectId(input.organizationId),
-      personaId: new Types.ObjectId(input.personaId),
+      organization: input.organizationId,
+      personaId: input.personaId,
       script: input.script,
-      user: new Types.ObjectId(input.userId),
+      user: input.userId,
     });
 
     // Generate a unique generationId for closed-loop attribution

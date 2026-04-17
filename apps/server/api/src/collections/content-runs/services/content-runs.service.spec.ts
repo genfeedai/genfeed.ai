@@ -2,16 +2,16 @@ import { ContentRun } from '@api/collections/content-runs/schemas/content-run.sc
 import { ContentRunsService } from '@api/collections/content-runs/services/content-runs.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ContentRunSource, ContentRunStatus } from '@genfeedai/enums';
 import type { CreateContentRunInput } from '@genfeedai/interfaces';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('ContentRunsService', () => {
-  const orgId = new Types.ObjectId().toString();
-  const brandId = new Types.ObjectId().toString();
-  const runId = new Types.ObjectId().toString();
+  const orgId = 'test-object-id'.toString();
+  const brandId = 'test-object-id'.toString();
+  const runId = 'test-object-id'.toString();
 
   let service: ContentRunsService;
 
@@ -28,10 +28,7 @@ describe('ContentRunsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ContentRunsService,
-        {
-          provide: getModelToken(ContentRun.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockModel,
-        },
+        { provide: PrismaService, useValue: mockModel },
       ],
     }).compile();
 
@@ -85,11 +82,11 @@ describe('ContentRunsService', () => {
 
       expect(mockModel.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          brand: expect.any(Types.ObjectId),
+          brand: expect.any(string),
           brief: input.brief,
           creditsUsed: 10,
           isDeleted: false,
-          organization: expect.any(Types.ObjectId),
+          organization: expect.any(string),
           publish: input.publish,
           recommendations: input.recommendations,
           skillSlug: 'content-writing',
@@ -126,9 +123,9 @@ describe('ContentRunsService', () => {
 
       expect(mockModel.findOneAndUpdate).toHaveBeenCalledWith(
         expect.objectContaining({
-          _id: expect.any(Types.ObjectId),
+          _id: expect.any(string),
           isDeleted: false,
-          organization: expect.any(Types.ObjectId),
+          organization: expect.any(string),
         }),
         { $set: { duration: 5000, status: ContentRunStatus.COMPLETED } },
         { new: true },
@@ -170,9 +167,9 @@ describe('ContentRunsService', () => {
 
       expect(mockModel.findOneAndUpdate).toHaveBeenCalledWith(
         expect.objectContaining({
-          _id: expect.any(Types.ObjectId),
+          _id: expect.any(string),
           isDeleted: false,
-          organization: expect.any(Types.ObjectId),
+          organization: expect.any(string),
         }),
         {
           $set: {
@@ -225,9 +222,9 @@ describe('ContentRunsService', () => {
 
       expect(mockModel.find).toHaveBeenCalledWith(
         expect.objectContaining({
-          brand: expect.any(Types.ObjectId),
+          brand: expect.any(string),
           isDeleted: false,
-          organization: expect.any(Types.ObjectId),
+          organization: expect.any(string),
         }),
       );
     });
@@ -303,9 +300,9 @@ describe('ContentRunsService', () => {
 
       expect(mockModel.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
-          _id: expect.any(Types.ObjectId),
+          _id: expect.any(string),
           isDeleted: false,
-          organization: expect.any(Types.ObjectId),
+          organization: expect.any(string),
         }),
       );
       expect(result?.status).toBe(ContentRunStatus.COMPLETED);

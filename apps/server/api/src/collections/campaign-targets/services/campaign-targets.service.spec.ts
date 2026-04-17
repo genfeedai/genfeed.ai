@@ -1,8 +1,8 @@
 import { CampaignTarget } from '@api/collections/campaign-targets/schemas/campaign-target.schema';
 import { CampaignTargetsService } from '@api/collections/campaign-targets/services/campaign-targets.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('CampaignTargetsService', () => {
@@ -10,8 +10,8 @@ describe('CampaignTargetsService', () => {
   let model: ReturnType<typeof createMockModel>;
 
   const mockTarget = {
-    _id: new Types.ObjectId(),
-    campaign: new Types.ObjectId(),
+    _id: 'test-object-id',
+    campaign: 'test-object-id',
     isDeleted: false,
     status: 'pending',
   };
@@ -39,10 +39,7 @@ describe('CampaignTargetsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CampaignTargetsService,
-        {
-          provide: getModelToken(CampaignTarget.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockModel,
-        },
+        { provide: PrismaService, useValue: mockModel },
         {
           provide: LoggerService,
           useValue: {
@@ -56,9 +53,7 @@ describe('CampaignTargetsService', () => {
     }).compile();
 
     service = module.get<CampaignTargetsService>(CampaignTargetsService);
-    model = module.get(
-      getModelToken(CampaignTarget.name, DB_CONNECTIONS.CLOUD),
-    );
+    model = module.get(PrismaService);
   });
 
   it('should be defined', () => {
@@ -67,7 +62,7 @@ describe('CampaignTargetsService', () => {
 
   describe('createMany', () => {
     it('should insert multiple targets', async () => {
-      const targets = [{ campaign: new Types.ObjectId() }] as any[];
+      const targets = [{ campaign: 'test-object-id' }] as any[];
       const result = await service.createMany(targets);
       expect(model.insertMany).toHaveBeenCalledWith(targets);
       expect(result).toHaveLength(1);

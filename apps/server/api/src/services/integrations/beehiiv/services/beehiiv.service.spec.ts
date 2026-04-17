@@ -267,8 +267,8 @@ describe('BeehiivService', () => {
   });
 
   describe('getDecryptedApiKey', () => {
-    const orgId = new Types.ObjectId().toString();
-    const brandId = new Types.ObjectId().toString();
+    const orgId = 'test-object-id';
+    const brandId = 'test-object-id';
 
     it('should return decrypted apiKey and publicationId', async () => {
       credentialsFindOneMock.mockResolvedValue({

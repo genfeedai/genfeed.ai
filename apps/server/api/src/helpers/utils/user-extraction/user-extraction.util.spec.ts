@@ -16,7 +16,7 @@ describe('UserExtractionUtil', () => {
       expect(result.userId).toBe(id);
     });
 
-    it('extracts dbUserId from a Types.ObjectId', () => {
+    it('extracts dbUserId from a string', () => {
       const oid = '507f191e810c19729de860ee';
       const result = UserExtractionUtil.extractUserIds(oid);
       expect(result.dbUserId).toBe(oid.toHexString());
@@ -66,7 +66,7 @@ describe('UserExtractionUtil', () => {
       expect(UserExtractionUtil.extractBrandId(id)).toBe(id);
     });
 
-    it('returns hex string when brandField is a Types.ObjectId', () => {
+    it('returns hex string when brandField is a string', () => {
       const oid = '507f191e810c19729de860ee';
       expect(UserExtractionUtil.extractBrandId(oid)).toBe(oid.toHexString());
     });

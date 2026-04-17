@@ -2,8 +2,8 @@ import { EmailDigestService } from '@api/collections/content-performance/service
 import type { WeeklySummary } from '@api/collections/content-performance/services/performance-summary.service';
 import { PerformanceSummaryService } from '@api/collections/content-performance/services/performance-summary.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test } from '@nestjs/testing';
 import { vi } from 'vitest';
 
@@ -20,9 +20,9 @@ describe('EmailDigestService', () => {
     warn: ReturnType<typeof vi.fn>;
   };
 
-  const orgId = new Types.ObjectId().toString();
-  const brandId = new Types.ObjectId().toString();
-  const userId = new Types.ObjectId();
+  const orgId = 'test-object-id'.toString();
+  const brandId = 'test-object-id'.toString();
+  const userId = 'test-object-id';
 
   const mockSummary: WeeklySummary = {
     avgEngagementByContentType: [
@@ -107,12 +107,8 @@ describe('EmailDigestService', () => {
           useValue: mockNotificationsService,
         },
         {
-          provide: getModelToken('Organization', 'auth'),
-          useValue: mockOrganizationModel,
-        },
-        {
-          provide: getModelToken('User', 'auth'),
-          useValue: mockUserModel,
+          provide: PrismaService,
+          useValue: { ...mockOrganizationModel, ...mockUserModel },
         },
         {
           provide: LoggerService,

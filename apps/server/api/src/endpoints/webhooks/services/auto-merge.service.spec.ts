@@ -29,7 +29,7 @@ describe('AutoMergeService', () => {
     warn: ReturnType<typeof vi.fn>;
   };
 
-  const mockObjectId = new Types.ObjectId();
+  const mockObjectId = 'test-object-id';
 
   beforeEach(() => {
     activitiesService = {
@@ -111,8 +111,8 @@ describe('AutoMergeService', () => {
     it('should skip when not all videos are completed', async () => {
       const groupId = 'group-1';
       const videos = [
-        { _id: new Types.ObjectId(), status: IngredientStatus.GENERATED },
-        { _id: new Types.ObjectId(), status: IngredientStatus.PROCESSING },
+        { _id: 'test-object-id', status: IngredientStatus.GENERATED },
+        { _id: 'test-object-id', status: IngredientStatus.PROCESSING },
       ];
 
       ingredientsService.findAll.mockResolvedValue({ docs: videos });
@@ -123,7 +123,7 @@ describe('AutoMergeService', () => {
         category: IngredientCategory.VIDEO,
         groupId,
         isMergeEnabled: true,
-        user: { _id: new Types.ObjectId(), clerkId: 'clerk_abc' },
+        user: { _id: 'test-object-id', clerkId: 'clerk_abc' },
       } as unknown as IngredientEntity;
 
       // Use private method access for testing
@@ -135,13 +135,13 @@ describe('AutoMergeService', () => {
     it('should skip when merge already exists', async () => {
       const groupId = 'group-1';
       const videos = [
-        { _id: new Types.ObjectId(), status: IngredientStatus.GENERATED },
-        { _id: new Types.ObjectId(), status: IngredientStatus.GENERATED },
+        { _id: 'test-object-id', status: IngredientStatus.GENERATED },
+        { _id: 'test-object-id', status: IngredientStatus.GENERATED },
       ];
 
       ingredientsService.findAll.mockResolvedValue({ docs: videos });
       ingredientsService.findOne.mockResolvedValue({
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         transformations: [TransformationCategory.MERGED],
       });
 
@@ -150,7 +150,7 @@ describe('AutoMergeService', () => {
         category: IngredientCategory.VIDEO,
         groupId,
         isMergeEnabled: true,
-        user: { _id: new Types.ObjectId(), clerkId: 'clerk_abc' },
+        user: { _id: 'test-object-id', clerkId: 'clerk_abc' },
       } as unknown as IngredientEntity;
 
       await (service as any).triggerAutoMergeAsync(ingredient);
@@ -161,7 +161,7 @@ describe('AutoMergeService', () => {
     it('should skip when no userId available', async () => {
       const groupId = 'group-1';
       const videos = [
-        { _id: new Types.ObjectId(), status: IngredientStatus.GENERATED },
+        { _id: 'test-object-id', status: IngredientStatus.GENERATED },
       ];
 
       ingredientsService.findAll.mockResolvedValue({ docs: videos });

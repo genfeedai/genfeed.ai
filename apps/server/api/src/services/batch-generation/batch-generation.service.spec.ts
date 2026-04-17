@@ -10,6 +10,7 @@ import {
   Batch,
   type BatchDocument,
 } from '@api/services/batch-generation/schemas/batch.schema';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   BatchItemStatus,
   BatchStatus,
@@ -18,7 +19,6 @@ import {
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { NotFoundException } from '@nestjs/common';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('BatchGenerationService', () => {
@@ -39,9 +39,9 @@ describe('BatchGenerationService', () => {
   >;
   let loggerService: vi.Mocked<LoggerService>;
 
-  const orgId = new Types.ObjectId().toString();
-  const userId = new Types.ObjectId().toString();
-  const brandId = new Types.ObjectId().toString();
+  const orgId = 'test-object-id'.toString();
+  const userId = 'test-object-id'.toString();
+  const brandId = 'test-object-id'.toString();
 
   const createDto: CreateBatchDto = {
     brandId,
@@ -54,10 +54,10 @@ describe('BatchGenerationService', () => {
   const createMockBatch = (
     overrides: Record<string, unknown> = {},
   ): Partial<BatchDocument> => {
-    const batchId = new Types.ObjectId();
+    const batchId = 'test-object-id';
     return {
       _id: batchId,
-      brand: new Types.ObjectId(brandId),
+      brand: new string(brandId),
       completedAt: undefined,
       completedCount: 0,
       contentMix: {
@@ -74,28 +74,28 @@ describe('BatchGenerationService', () => {
       isDeleted: false,
       items: [
         {
-          _id: new Types.ObjectId().toString(),
+          _id: 'test-object-id'.toString(),
           format: ContentFormat.IMAGE,
           platform: 'instagram',
           scheduledDate: new Date('2024-01-08'),
           status: BatchItemStatus.PENDING,
         },
         {
-          _id: new Types.ObjectId().toString(),
+          _id: 'test-object-id'.toString(),
           format: ContentFormat.VIDEO,
           platform: 'twitter',
           scheduledDate: new Date('2024-01-15'),
           status: BatchItemStatus.PENDING,
         },
       ],
-      organization: new Types.ObjectId(orgId),
+      organization: new string(orgId),
       platforms: ['instagram', 'twitter'],
       save: vi.fn().mockResolvedValue(undefined),
       status: BatchStatus.PENDING,
       style: undefined,
       topics: ['AI', 'Technology'],
       totalCount: 5,
-      user: new Types.ObjectId(userId),
+      user: new string(userId),
       ...overrides,
     } as unknown as Partial<BatchDocument>;
   };
@@ -151,14 +151,7 @@ describe('BatchGenerationService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BatchGenerationService,
-        {
-          provide: getModelToken(Batch.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockBatchModel,
-        },
-        {
-          provide: getModelToken(PostAnalytics.name, DB_CONNECTIONS.ANALYTICS),
-          useValue: postAnalyticsModel,
-        },
+        { provide: PrismaService, useValue: mockBatchModel },
         { provide: BrandsService, useValue: mockBrandsService },
         { provide: PostsService, useValue: mockPostsService },
         {
@@ -170,7 +163,7 @@ describe('BatchGenerationService', () => {
     }).compile();
 
     service = module.get<BatchGenerationService>(BatchGenerationService);
-    batchModel = module.get(getModelToken(Batch.name, DB_CONNECTIONS.CLOUD));
+    batchModel = module.get(PrismaService);
     brandsService = module.get(BrandsService);
     postsService = module.get(PostsService);
     contentGeneratorService = module.get(ContentGeneratorService);
@@ -188,7 +181,7 @@ describe('BatchGenerationService', () => {
   describe('createBatch', () => {
     it('should create a batch successfully', async () => {
       const mockBrand = {
-        _id: new Types.ObjectId(brandId),
+        _id: new string(brandId),
         name: 'Test Brand',
       };
 
@@ -204,18 +197,18 @@ describe('BatchGenerationService', () => {
       expect(result.status).toBe(BatchStatus.PENDING);
       expect(result.brandId).toBe(brandId);
       expect(brandsService.findOne).toHaveBeenCalledWith({
-        _id: new Types.ObjectId(brandId),
+        _id: new string(brandId),
         isDeleted: false,
-        organization: new Types.ObjectId(orgId),
+        organization: new string(orgId),
       });
       expect(batchModel.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          brand: new Types.ObjectId(brandId),
-          organization: new Types.ObjectId(orgId),
+          brand: new string(brandId),
+          organization: new string(orgId),
           platforms: ['instagram', 'twitter'],
           status: BatchStatus.PENDING,
           totalCount: 5,
-          user: new Types.ObjectId(userId),
+          user: new string(userId),
         }),
       );
       expect(loggerService.log).toHaveBeenCalled();
@@ -235,7 +228,7 @@ describe('BatchGenerationService', () => {
         contentMix: undefined,
       };
 
-      const mockBrand = { _id: new Types.ObjectId(brandId), name: 'Brand' };
+      const mockBrand = { _id: new string(brandId), name: 'Brand' };
       brandsService.findOne.mockResolvedValue(mockBrand as never);
 
       const mockBatch = createMockBatch();
@@ -268,7 +261,7 @@ describe('BatchGenerationService', () => {
         },
       };
 
-      const mockBrand = { _id: new Types.ObjectId(brandId), name: 'Brand' };
+      const mockBrand = { _id: new string(brandId), name: 'Brand' };
       brandsService.findOne.mockResolvedValue(mockBrand as never);
 
       const mockBatch = createMockBatch({
@@ -291,7 +284,7 @@ describe('BatchGenerationService', () => {
         topics: undefined,
       };
 
-      const mockBrand = { _id: new Types.ObjectId(brandId), name: 'Brand' };
+      const mockBrand = { _id: new string(brandId), name: 'Brand' };
       brandsService.findOne.mockResolvedValue(mockBrand as never);
 
       const mockBatch = createMockBatch({ topics: [] });
@@ -310,13 +303,13 @@ describe('BatchGenerationService', () => {
   describe('createManualReviewBatch', () => {
     it('should create draft posts and a completed manual review batch', async () => {
       const mockBrand = {
-        _id: new Types.ObjectId(brandId),
+        _id: new string(brandId),
         name: 'Test Brand',
       };
-      const ingredientId = new Types.ObjectId().toString();
-      const postId = new Types.ObjectId();
-      const batchId = new Types.ObjectId();
-      const contentRunId = new Types.ObjectId().toString();
+      const ingredientId = 'test-object-id'.toString();
+      const postId = 'test-object-id';
+      const batchId = 'test-object-id';
+      const contentRunId = 'test-object-id'.toString();
 
       brandsService.findOne.mockResolvedValue(mockBrand as never);
       postsService.create.mockResolvedValue({ _id: postId } as never);
@@ -334,9 +327,9 @@ describe('BatchGenerationService', () => {
           },
           items: [
             {
-              _id: new Types.ObjectId().toString(),
+              _id: 'test-object-id'.toString(),
               caption: 'Review this launch clip',
-              contentRunId: new Types.ObjectId(contentRunId),
+              contentRunId: new string(contentRunId),
               creativeVersion: 'creative-a',
               format: ContentFormat.VIDEO,
               hookVersion: 'hook-a',
@@ -387,29 +380,29 @@ describe('BatchGenerationService', () => {
 
       expect(postsService.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          brand: new Types.ObjectId(brandId),
-          contentRunId: new Types.ObjectId(contentRunId),
+          brand: new string(brandId),
+          contentRunId: new string(contentRunId),
           creativeVersion: 'creative-a',
           description: 'Review this launch clip',
           hookVersion: 'hook-a',
-          ingredients: [new Types.ObjectId(ingredientId)],
+          ingredients: [new string(ingredientId)],
           label: 'Launch clip',
-          organization: new Types.ObjectId(orgId),
+          organization: new string(orgId),
           platform: 'instagram',
           publishIntent: 'campaign-test',
           scheduleSlot: 'morning',
           status: PostStatus.DRAFT,
-          user: new Types.ObjectId(userId),
+          user: new string(userId),
           variantId: 'variant-a',
         }),
       );
       expect(batchModel.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          brand: new Types.ObjectId(brandId),
+          brand: new string(brandId),
           completedCount: 1,
           items: [
             expect.objectContaining({
-              contentRunId: new Types.ObjectId(contentRunId),
+              contentRunId: new string(contentRunId),
               creativeVersion: 'creative-a',
               gateOverallScore: 87,
               gateReasons: ['Draft cleared the autopilot quality gate.'],
@@ -450,11 +443,11 @@ describe('BatchGenerationService', () => {
 
     it('accepts post review items for non-visual publishing inbox handoff', async () => {
       const mockBrand = {
-        _id: new Types.ObjectId(brandId),
+        _id: new string(brandId),
         name: 'Test Brand',
       };
-      const postId = new Types.ObjectId();
-      const batchId = new Types.ObjectId();
+      const postId = 'test-object-id';
+      const batchId = 'test-object-id';
 
       brandsService.findOne.mockResolvedValue(mockBrand as never);
       postsService.create.mockResolvedValue({ _id: postId } as never);
@@ -465,7 +458,7 @@ describe('BatchGenerationService', () => {
           completedCount: 1,
           items: [
             {
-              _id: new Types.ObjectId().toString(),
+              _id: 'test-object-id'.toString(),
               caption: 'Review this thread draft',
               format: 'post',
               platform: 'twitter',
@@ -516,7 +509,7 @@ describe('BatchGenerationService', () => {
         { content: 'Generated content' },
       ] as never);
 
-      const mockPostId = new Types.ObjectId();
+      const mockPostId = 'test-object-id';
       postsService.create.mockResolvedValue({ _id: mockPostId } as never);
 
       const result = await service.processBatch(
@@ -534,7 +527,7 @@ describe('BatchGenerationService', () => {
       batchModel.findOne.mockResolvedValue(null);
 
       await expect(
-        service.processBatch(new Types.ObjectId().toString(), orgId),
+        service.processBatch('test-object-id'.toString(), orgId),
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -542,13 +535,13 @@ describe('BatchGenerationService', () => {
       const mockBatch = createMockBatch({
         items: [
           {
-            _id: new Types.ObjectId().toString(),
+            _id: 'test-object-id'.toString(),
             format: ContentFormat.IMAGE,
             platform: 'instagram',
             status: BatchItemStatus.COMPLETED,
           },
           {
-            _id: new Types.ObjectId().toString(),
+            _id: 'test-object-id'.toString(),
             format: ContentFormat.VIDEO,
             platform: 'twitter',
             status: BatchItemStatus.PENDING,
@@ -561,7 +554,7 @@ describe('BatchGenerationService', () => {
         { content: 'Content' },
       ] as never);
       postsService.create.mockResolvedValue({
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
       } as never);
 
       await service.processBatch(mockBatch._id!.toString(), orgId);
@@ -574,7 +567,7 @@ describe('BatchGenerationService', () => {
       const mockBatch = createMockBatch({
         items: [
           {
-            _id: new Types.ObjectId().toString(),
+            _id: 'test-object-id'.toString(),
             format: ContentFormat.IMAGE,
             platform: 'instagram',
             status: BatchItemStatus.PENDING,
@@ -607,7 +600,7 @@ describe('BatchGenerationService', () => {
       const mockBatch = createMockBatch({
         items: [
           {
-            _id: new Types.ObjectId().toString(),
+            _id: 'test-object-id'.toString(),
             format: ContentFormat.IMAGE,
             platform: 'instagram',
             status: BatchItemStatus.PENDING,
@@ -621,7 +614,7 @@ describe('BatchGenerationService', () => {
         { content: 'Content' },
       ] as never);
       postsService.create.mockResolvedValue({
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
       } as never);
 
       await service.processBatch(mockBatch._id!.toString(), orgId);
@@ -634,13 +627,13 @@ describe('BatchGenerationService', () => {
       const mockBatch = createMockBatch({
         items: [
           {
-            _id: new Types.ObjectId().toString(),
+            _id: 'test-object-id'.toString(),
             format: ContentFormat.IMAGE,
             platform: 'instagram',
             status: BatchItemStatus.PENDING,
           },
           {
-            _id: new Types.ObjectId().toString(),
+            _id: 'test-object-id'.toString(),
             format: ContentFormat.VIDEO,
             platform: 'twitter',
             status: BatchItemStatus.PENDING,
@@ -655,7 +648,7 @@ describe('BatchGenerationService', () => {
         .mockRejectedValueOnce(new Error('Failed'));
 
       postsService.create.mockResolvedValue({
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
       } as never);
 
       await service.processBatch(mockBatch._id!.toString(), orgId);
@@ -667,7 +660,7 @@ describe('BatchGenerationService', () => {
       const mockBatch = createMockBatch({
         items: [
           {
-            _id: new Types.ObjectId().toString(),
+            _id: 'test-object-id'.toString(),
             format: ContentFormat.IMAGE,
             platform: 'instagram',
             status: BatchItemStatus.PENDING,
@@ -703,19 +696,19 @@ describe('BatchGenerationService', () => {
       const mockBatch = createMockBatch({
         items: [
           {
-            _id: new Types.ObjectId().toString(),
+            _id: 'test-object-id'.toString(),
             format: ContentFormat.IMAGE,
             platform: 'instagram',
             status: BatchItemStatus.PENDING,
           },
           {
-            _id: new Types.ObjectId().toString(),
+            _id: 'test-object-id'.toString(),
             format: ContentFormat.VIDEO,
             platform: 'twitter',
             status: BatchItemStatus.PENDING,
           },
           {
-            _id: new Types.ObjectId().toString(),
+            _id: 'test-object-id'.toString(),
             format: ContentFormat.IMAGE,
             platform: 'instagram',
             status: BatchItemStatus.PENDING,
@@ -730,7 +723,7 @@ describe('BatchGenerationService', () => {
         { content: 'Content' },
       ] as never);
       postsService.create.mockResolvedValue({
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
       } as never);
 
       await service.processBatch(mockBatch._id!.toString(), orgId);
@@ -747,7 +740,7 @@ describe('BatchGenerationService', () => {
       const mockBatch = createMockBatch({
         items: [
           {
-            _id: new Types.ObjectId().toString(),
+            _id: 'test-object-id'.toString(),
             format: ContentFormat.IMAGE,
             platform: 'instagram',
             status: BatchItemStatus.PENDING,
@@ -762,13 +755,13 @@ describe('BatchGenerationService', () => {
         { content: 'Content' },
       ] as never);
       postsService.create.mockResolvedValue({
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
       } as never);
 
       await service.processBatch(mockBatch._id!.toString(), orgId);
 
       expect(contentGeneratorService.generateContent).toHaveBeenCalledWith(
-        expect.any(Types.ObjectId),
+        expect.any(string),
         expect.objectContaining({ topic: 'image content' }),
       );
     });
@@ -787,11 +780,11 @@ describe('BatchGenerationService', () => {
     });
 
     it('should enrich batch items with analytics snapshots from linked posts', async () => {
-      const postId = new Types.ObjectId();
+      const postId = 'test-object-id';
       const mockBatch = createMockBatch({
         items: [
           {
-            _id: new Types.ObjectId().toString(),
+            _id: 'test-object-id'.toString(),
             format: ContentFormat.VIDEO,
             platform: 'instagram',
             postId,
@@ -844,7 +837,7 @@ describe('BatchGenerationService', () => {
       batchModel.findOne.mockResolvedValue(null);
 
       await expect(
-        service.getBatch(new Types.ObjectId().toString(), orgId),
+        service.getBatch('test-object-id'.toString(), orgId),
       ).rejects.toThrow(NotFoundException);
     });
   });
@@ -927,8 +920,8 @@ describe('BatchGenerationService', () => {
 
   describe('approveItems', () => {
     it('should approve completed items and schedule posts', async () => {
-      const itemId = new Types.ObjectId().toString();
-      const postId = new Types.ObjectId();
+      const itemId = 'test-object-id'.toString();
+      const postId = 'test-object-id';
       const mockBatch = createMockBatch({
         items: [
           {
@@ -1005,8 +998,8 @@ describe('BatchGenerationService', () => {
     });
 
     it('should keep unscheduled draft review posts in draft state', async () => {
-      const itemId = new Types.ObjectId().toString();
-      const postId = new Types.ObjectId();
+      const itemId = 'test-object-id'.toString();
+      const postId = 'test-object-id';
       const mockBatch = createMockBatch({
         items: [
           {
@@ -1066,17 +1059,13 @@ describe('BatchGenerationService', () => {
       batchModel.findOne.mockResolvedValue(null);
 
       await expect(
-        service.approveItems(
-          new Types.ObjectId().toString(),
-          ['item-id'],
-          orgId,
-        ),
+        service.approveItems('test-object-id'.toString(), ['item-id'], orgId),
       ).rejects.toThrow(NotFoundException);
     });
 
     it('should not schedule posts for non-completed items', async () => {
-      const itemId = new Types.ObjectId().toString();
-      const postId = new Types.ObjectId();
+      const itemId = 'test-object-id'.toString();
+      const postId = 'test-object-id';
       const mockBatch = createMockBatch({
         items: [
           {
@@ -1107,8 +1096,8 @@ describe('BatchGenerationService', () => {
 
   describe('rejectItems', () => {
     it('should reject items and soft-delete posts', async () => {
-      const itemId = new Types.ObjectId().toString();
-      const postId = new Types.ObjectId();
+      const itemId = 'test-object-id'.toString();
+      const postId = 'test-object-id';
       const mockBatch = createMockBatch({
         items: [
           {
@@ -1189,19 +1178,15 @@ describe('BatchGenerationService', () => {
       batchModel.findOne.mockResolvedValue(null);
 
       await expect(
-        service.rejectItems(
-          new Types.ObjectId().toString(),
-          ['item-id'],
-          orgId,
-        ),
+        service.rejectItems('test-object-id'.toString(), ['item-id'], orgId),
       ).rejects.toThrow(NotFoundException);
     });
   });
 
   describe('requestChanges', () => {
     it('should persist request_changes feedback and keep linked posts in draft', async () => {
-      const itemId = new Types.ObjectId().toString();
-      const postId = new Types.ObjectId();
+      const itemId = 'test-object-id'.toString();
+      const postId = 'test-object-id';
       const mockBatch = createMockBatch({
         items: [
           {
@@ -1279,7 +1264,7 @@ describe('BatchGenerationService', () => {
 
       await expect(
         service.requestChanges(
-          new Types.ObjectId().toString(),
+          'test-object-id'.toString(),
           ['item-id'],
           orgId,
           'Missing proof point.',
@@ -1293,13 +1278,13 @@ describe('BatchGenerationService', () => {
       const mockBatch = createMockBatch({
         items: [
           {
-            _id: new Types.ObjectId().toString(),
+            _id: 'test-object-id'.toString(),
             format: ContentFormat.IMAGE,
             platform: 'instagram',
             status: BatchItemStatus.PENDING,
           },
           {
-            _id: new Types.ObjectId().toString(),
+            _id: 'test-object-id'.toString(),
             format: ContentFormat.VIDEO,
             platform: 'twitter',
             status: BatchItemStatus.COMPLETED,
@@ -1326,7 +1311,7 @@ describe('BatchGenerationService', () => {
       batchModel.findOne.mockResolvedValue(null);
 
       await expect(
-        service.cancelBatch(new Types.ObjectId().toString(), orgId),
+        service.cancelBatch('test-object-id'.toString(), orgId),
       ).rejects.toThrow(NotFoundException);
     });
   });
@@ -1335,8 +1320,8 @@ describe('BatchGenerationService', () => {
     it('should correctly map batch to summary format', async () => {
       const completedAt = new Date('2024-01-15');
       const createdAt = new Date('2024-01-01');
-      const itemId = new Types.ObjectId().toString();
-      const postId = new Types.ObjectId();
+      const itemId = 'test-object-id'.toString();
+      const postId = 'test-object-id';
 
       const mockBatch = createMockBatch({
         completedAt,
@@ -1406,17 +1391,17 @@ describe('BatchGenerationService', () => {
       const mockBatch = createMockBatch({
         items: [
           {
-            _id: new Types.ObjectId().toString(),
+            _id: 'test-object-id'.toString(),
             format: ContentFormat.IMAGE,
             status: BatchItemStatus.PENDING,
           },
           {
-            _id: new Types.ObjectId().toString(),
+            _id: 'test-object-id'.toString(),
             format: ContentFormat.VIDEO,
             status: BatchItemStatus.GENERATING,
           },
           {
-            _id: new Types.ObjectId().toString(),
+            _id: 'test-object-id'.toString(),
             format: ContentFormat.IMAGE,
             status: BatchItemStatus.COMPLETED,
           },

@@ -2,7 +2,7 @@ import { ContentPerformance } from '@api/collections/content-performance/schemas
 import { OptimizationCycleService } from '@api/collections/content-performance/services/optimization-cycle.service';
 import { PerformanceSummaryService } from '@api/collections/content-performance/services/performance-summary.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
-import { getModelToken } from '@nestjs/mongoose';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('OptimizationCycleService', () => {
@@ -75,10 +75,7 @@ describe('OptimizationCycleService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         OptimizationCycleService,
-        {
-          provide: getModelToken(ContentPerformance.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockModel,
-        },
+        { provide: PrismaService, useValue: mockModel },
         {
           provide: PerformanceSummaryService,
           useValue: mockSummaryService,

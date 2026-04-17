@@ -3,11 +3,11 @@ import { describe, expect, it, vi } from 'vitest';
 import { TriggerEvaluatorService } from './trigger-evaluator.service';
 
 describe('TriggerEvaluatorService', () => {
-  const campaignId = new Types.ObjectId().toHexString();
-  const organizationId = new Types.ObjectId().toHexString();
-  const userId = new Types.ObjectId().toHexString();
-  const brandId = new Types.ObjectId().toHexString();
-  const strategyId = new Types.ObjectId().toHexString();
+  const campaignId = 'test-object-id'.toHexString();
+  const organizationId = 'test-object-id'.toHexString();
+  const userId = 'test-object-id'.toHexString();
+  const brandId = 'test-object-id'.toHexString();
+  const strategyId = 'test-object-id'.toHexString();
 
   function createService() {
     const agentCampaignsService = {
@@ -70,17 +70,17 @@ describe('TriggerEvaluatorService', () => {
     } = createService();
 
     agentCampaignsService.findOneById.mockResolvedValue({
-      _id: new Types.ObjectId(campaignId),
-      agents: [new Types.ObjectId(strategyId)],
-      brand: new Types.ObjectId(brandId),
+      _id: campaignId,
+      agents: [strategyId],
+      brand: brandId,
       brief: 'Build AI marketing momentum',
       label: 'Spring Push',
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
       status: 'active',
-      user: new Types.ObjectId(userId),
+      user: userId,
     });
     agentStrategiesService.findOneById.mockResolvedValue({
-      _id: new Types.ObjectId(strategyId),
+      _id: strategyId,
       isActive: true,
       isEnabled: true,
       label: 'Trend Watcher',
@@ -174,16 +174,16 @@ describe('TriggerEvaluatorService', () => {
     } = createService();
 
     agentCampaignsService.findOneById.mockResolvedValue({
-      _id: new Types.ObjectId(campaignId),
-      agents: [new Types.ObjectId(strategyId)],
-      brand: new Types.ObjectId(brandId),
+      _id: campaignId,
+      agents: [strategyId],
+      brand: brandId,
       label: 'Spring Push',
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
       status: 'active',
-      user: new Types.ObjectId(userId),
+      user: userId,
     });
     agentStrategiesService.findOneById.mockResolvedValue({
-      _id: new Types.ObjectId(strategyId),
+      _id: strategyId,
       engagementEnabled: true,
       isActive: true,
       isEnabled: true,

@@ -30,7 +30,7 @@ describe('CreditsUtilsService', () => {
   };
 
   const mockBrandsService = {
-    findOne: vi.fn().mockResolvedValue({ _id: new Types.ObjectId() }),
+    findOne: vi.fn().mockResolvedValue({ _id: 'test-object-id' }),
   };
 
   const mockCreditBalanceService = {
@@ -108,7 +108,7 @@ describe('CreditsUtilsService', () => {
 
     beforeEach(() => {
       mockOrganizationsService.findOne.mockResolvedValue({
-        _id: new Types.ObjectId(orgId),
+        _id: orgId,
         label: 'Test Org',
       });
     });
@@ -226,7 +226,7 @@ describe('CreditsUtilsService', () => {
         balance: 100,
       });
       mockUsersService.findOne.mockResolvedValue({
-        _id: new Types.ObjectId(userId),
+        _id: userId,
         clerkId: 'clerk_abc',
       });
 
@@ -243,7 +243,7 @@ describe('CreditsUtilsService', () => {
         balance: 100,
       });
       mockUsersService.findOne.mockResolvedValue({
-        _id: new Types.ObjectId(userId),
+        _id: userId,
         clerkId: null,
       });
 
@@ -256,7 +256,7 @@ describe('CreditsUtilsService', () => {
       mockCreditBalanceService.findByOrganization.mockResolvedValue({
         balance: 100,
       });
-      const defaultBrand = { _id: new Types.ObjectId() };
+      const defaultBrand = { _id: 'test-object-id' };
       mockBrandsService.findOne.mockResolvedValue(defaultBrand);
 
       await service.deductCreditsFromOrganization(orgId, userId, 10, 'desc');
@@ -391,7 +391,7 @@ describe('CreditsUtilsService', () => {
 
     beforeEach(() => {
       mockOrganizationsService.findOne.mockResolvedValue({
-        _id: new Types.ObjectId(orgId),
+        _id: orgId,
       });
       mockCreditBalanceService.findByOrganization.mockResolvedValue({
         balance: 100,
@@ -461,7 +461,7 @@ describe('CreditsUtilsService', () => {
 
     beforeEach(() => {
       mockOrganizationsService.findOne.mockResolvedValue({
-        _id: new Types.ObjectId(orgId),
+        _id: orgId,
       });
       mockCreditBalanceService.findByOrganization.mockResolvedValue({
         balance: 100,
@@ -509,7 +509,7 @@ describe('CreditsUtilsService', () => {
 
     beforeEach(() => {
       mockOrganizationsService.findOne.mockResolvedValue({
-        _id: new Types.ObjectId(orgId),
+        _id: orgId,
       });
       mockCreditBalanceService.findByOrganization.mockResolvedValue({
         balance: 100,
@@ -542,7 +542,7 @@ describe('CreditsUtilsService', () => {
 
     beforeEach(() => {
       mockOrganizationsService.findOne.mockResolvedValue({
-        _id: new Types.ObjectId(orgId),
+        _id: orgId,
       });
       mockCreditBalanceService.findByOrganization.mockResolvedValue({
         balance: 500,

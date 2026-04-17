@@ -89,7 +89,7 @@ describe('TagsController', () => {
       const pipeline = controller.buildFindAllPipeline(mockUser, query);
 
       const matchStage = pipeline[0] as Record<string, Record<string, unknown>>;
-      expect(matchStage.$match.brand).toBeInstanceOf(Types.ObjectId);
+      expect(matchStage.$match.brand).toEqual(expect.any(String));
     });
 
     it('should add search condition with $and when search is provided', () => {

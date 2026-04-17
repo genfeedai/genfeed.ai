@@ -100,7 +100,7 @@ describe('GenerateController', () => {
       } as never);
 
       expect(contentGeneratorService.generateContent).toHaveBeenCalledWith(
-        expect.any(Types.ObjectId),
+        expect.any(String),
         expect.any(Object),
       );
     });

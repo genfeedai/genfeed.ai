@@ -15,7 +15,9 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import type { PipelineStage } from 'mongoose';
+
+/** Mongo-style pipeline stage — plain record passed to BaseService aggregation helpers. */
+type MongoPipelineStage = Record<string, unknown>;
 
 type TenantContext = {
   organizationId: string;
@@ -52,7 +54,7 @@ export class NewslettersService extends BaseService<
       sort?: string;
       status?: string[];
     },
-  ): PipelineStage[] {
+  ): MongoPipelineStage[] {
     const match: Record<string, unknown> = {
       brand: ctx.brandId,
       isDeleted: query.isDeleted ?? false,

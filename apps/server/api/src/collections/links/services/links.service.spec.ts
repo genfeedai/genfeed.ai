@@ -1,9 +1,9 @@
 import { Link } from '@api/collections/links/schemas/link.schema';
 import { LinksService } from '@api/collections/links/services/links.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('LinksService', () => {
@@ -14,10 +14,7 @@ describe('LinksService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         LinksService,
-        {
-          provide: getModelToken(Link.name, DB_CONNECTIONS.CLOUD),
-          useValue: model,
-        },
+        { provide: PrismaService, useValue: model },
         {
           provide: LoggerService,
           useValue: {

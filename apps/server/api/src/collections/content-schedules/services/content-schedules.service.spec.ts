@@ -2,15 +2,15 @@ import { ContentSchedule } from '@api/collections/content-schedules/schemas/cont
 import { ContentSchedulesService } from '@api/collections/content-schedules/services/content-schedules.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('ContentSchedulesService', () => {
-  const orgId = new Types.ObjectId().toString();
-  const brandId = new Types.ObjectId().toString();
-  const scheduleId = new Types.ObjectId().toString();
+  const orgId = 'test-object-id'.toString();
+  const brandId = 'test-object-id'.toString();
+  const scheduleId = 'test-object-id'.toString();
 
   let service: ContentSchedulesService;
   let model: {
@@ -44,10 +44,7 @@ describe('ContentSchedulesService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ContentSchedulesService,
-        {
-          provide: getModelToken(ContentSchedule.name, DB_CONNECTIONS.CLOUD),
-          useValue: modelMock,
-        },
+        { provide: PrismaService, useValue: modelMock },
         {
           provide: LoggerService,
           useValue: mockLogger,
@@ -56,9 +53,7 @@ describe('ContentSchedulesService', () => {
     }).compile();
 
     service = module.get(ContentSchedulesService);
-    model = module.get(
-      getModelToken(ContentSchedule.name, DB_CONNECTIONS.CLOUD),
-    );
+    model = module.get(PrismaService);
   });
 
   afterEach(() => {
@@ -81,13 +76,13 @@ describe('ContentSchedulesService', () => {
 
       expect(model.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          brand: expect.any(Types.ObjectId),
+          brand: expect.any(string),
           cronExpression: '*/5 * * * *',
           isDeleted: false,
           isEnabled: true,
           name: 'Every 5 min',
           nextRunAt: expect.any(Date),
-          organization: expect.any(Types.ObjectId),
+          organization: expect.any(string),
           skillSlugs: ['content-writing'],
         }),
       );
@@ -137,9 +132,9 @@ describe('ContentSchedulesService', () => {
 
       expect(model.find).toHaveBeenCalledWith(
         expect.objectContaining({
-          brand: expect.any(Types.ObjectId),
+          brand: expect.any(string),
           isDeleted: false,
-          organization: expect.any(Types.ObjectId),
+          organization: expect.any(string),
         }),
       );
     });
@@ -199,8 +194,8 @@ describe('ContentSchedulesService', () => {
 
       expect(model.findOneAndUpdate).toHaveBeenCalledWith(
         expect.objectContaining({
-          _id: expect.any(Types.ObjectId),
-          brand: expect.any(Types.ObjectId),
+          _id: expect.any(string),
+          brand: expect.any(string),
           isDeleted: false,
         }),
         { $set: { isDeleted: true } },
@@ -249,9 +244,9 @@ describe('ContentSchedulesService', () => {
 
       expect(model.updateOne).toHaveBeenCalledWith(
         expect.objectContaining({
-          _id: expect.any(Types.ObjectId),
+          _id: expect.any(string),
           isDeleted: false,
-          organization: expect.any(Types.ObjectId),
+          organization: expect.any(string),
         }),
         {
           $set: { lastRunAt, nextRunAt },

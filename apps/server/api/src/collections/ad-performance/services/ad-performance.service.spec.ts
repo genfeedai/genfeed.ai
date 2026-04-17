@@ -1,7 +1,7 @@
 import { AdPerformance } from '@api/collections/ad-performance/schemas/ad-performance.schema';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { AdPerformanceService } from './ad-performance.service';
 
@@ -65,10 +65,7 @@ describe('AdPerformanceService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AdPerformanceService,
-        {
-          provide: getModelToken(AdPerformance.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockModel,
-        },
+        { provide: PrismaService, useValue: mockModel },
         { provide: LoggerService, useValue: mockLogger },
       ],
     }).compile();
@@ -88,7 +85,7 @@ describe('AdPerformanceService', () => {
         externalAccountId: 'acc-123',
         granularity: 'account',
       };
-      const expected = { ...data, _id: new Types.ObjectId() };
+      const expected = { ...data, _id: 'test-object-id' };
       mockModel.findOneAndUpdate.mockResolvedValue(expected);
 
       const result = await service.upsert(data);
@@ -174,7 +171,7 @@ describe('AdPerformanceService', () => {
 
   describe('findByOrganization', () => {
     it('should query with organizationId and isDeleted filter', async () => {
-      const orgId = new Types.ObjectId().toString();
+      const orgId = 'test-object-id'.toString();
       const query = createMockQuery([]);
       mockModel.find.mockReturnValue(query);
 
@@ -186,7 +183,7 @@ describe('AdPerformanceService', () => {
     });
 
     it('should apply adPlatform filter when provided', async () => {
-      const orgId = new Types.ObjectId().toString();
+      const orgId = 'test-object-id'.toString();
       const query = createMockQuery([]);
       mockModel.find.mockReturnValue(query);
 
@@ -198,7 +195,7 @@ describe('AdPerformanceService', () => {
     });
 
     it('should apply date range filter when startDate and endDate are provided', async () => {
-      const orgId = new Types.ObjectId().toString();
+      const orgId = 'test-object-id'.toString();
       const startDate = new Date('2026-01-01');
       const endDate = new Date('2026-01-31');
       const query = createMockQuery([]);
@@ -214,7 +211,7 @@ describe('AdPerformanceService', () => {
     });
 
     it('should use default limit=50 and offset=0 when not provided', async () => {
-      const orgId = new Types.ObjectId().toString();
+      const orgId = 'test-object-id'.toString();
       const query = createMockQuery([]);
       mockModel.find.mockReturnValue(query);
 
@@ -264,7 +261,7 @@ describe('AdPerformanceService', () => {
     });
 
     it('should query by valid ObjectId with isDeleted false', async () => {
-      const id = new Types.ObjectId().toString();
+      const id = 'test-object-id'.toString();
       const mockQuery = createMockQuery(null);
       mockModel.findOne.mockReturnValue(mockQuery);
 
@@ -278,13 +275,13 @@ describe('AdPerformanceService', () => {
 
   describe('removeOrgFromAggregation', () => {
     it('should update scope to organization for all org records', async () => {
-      const orgId = new Types.ObjectId().toString();
+      const orgId = 'test-object-id'.toString();
       mockModel.updateMany.mockResolvedValue({ modifiedCount: 5 });
 
       const result = await service.removeOrgFromAggregation(orgId);
 
       expect(mockModel.updateMany).toHaveBeenCalledWith(
-        expect.objectContaining({ organization: expect.any(Types.ObjectId) }),
+        expect.objectContaining({ organization: expect.any(string) }),
         { $set: { scope: 'organization' } },
       );
       expect(result).toBe(5);

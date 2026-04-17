@@ -29,10 +29,10 @@ import { CacheService } from '@api/services/cache/services/cache.service';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ArticleCategory, ArticleScope, ArticleStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { NotFoundException } from '@nestjs/common';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 
 // Mock type helper
@@ -58,10 +58,10 @@ describe('ArticlesService', () => {
   let modelsService: MockType<ModelsService>;
 
   // Test data
-  const mockUserId = new Types.ObjectId();
-  const mockOrgId = new Types.ObjectId();
-  const mockBrandId = new Types.ObjectId();
-  const mockArticleId = new Types.ObjectId();
+  const mockUserId = 'test-object-id';
+  const mockOrgId = 'test-object-id';
+  const mockBrandId = 'test-object-id';
+  const mockArticleId = 'test-object-id';
 
   const mockArticle = {
     _id: mockArticleId,
@@ -221,7 +221,7 @@ describe('ArticlesService', () => {
       providers: [
         ArticlesService,
         {
-          provide: getModelToken(Article.name, DB_CONNECTIONS.CLOUD),
+          provide: PrismaService,
           useFactory: mockModelFactory,
         },
         {
@@ -280,7 +280,7 @@ describe('ArticlesService', () => {
     }).compile();
 
     service = module.get<ArticlesService>(ArticlesService);
-    model = module.get(getModelToken(Article.name, DB_CONNECTIONS.CLOUD));
+    model = module.get(PrismaService);
     logger = module.get(LoggerService);
     _configService = module.get(ConfigService);
     cacheService = module.get(CacheService);
@@ -817,7 +817,7 @@ describe('ArticlesService', () => {
     });
 
     it('should filter by tag', async () => {
-      const tagId = new Types.ObjectId();
+      const tagId = 'test-object-id';
       model.find.mockReturnValue({
         exec: vi.fn().mockResolvedValue([]),
         lean: vi.fn().mockReturnThis(),
@@ -930,7 +930,7 @@ describe('ArticlesService', () => {
     it('should handle article with valid banner ObjectId', async () => {
       const articleWithBanner = {
         ...mockArticle,
-        banner: new Types.ObjectId(),
+        banner: 'test-object-id',
         populate: vi.fn().mockResolvedValue(mockArticle),
       };
 
@@ -1082,7 +1082,7 @@ describe('ArticlesService', () => {
       promptsService.findAll?.mockResolvedValue({
         docs: [
           {
-            _id: new Types.ObjectId(),
+            _id: 'test-object-id',
             enhanced: '{"title": "Test", "content": "Content"}',
             original: 'Original prompt',
           },
@@ -1139,7 +1139,7 @@ describe('ArticlesService', () => {
 
   describe('restoreArticleVersion', () => {
     it('should restore article to specific version', async () => {
-      const promptId = new Types.ObjectId();
+      const promptId = 'test-object-id';
       const versionData = {
         content: 'Restored Content',
         summary: 'Restored Summary',
@@ -1184,7 +1184,7 @@ describe('ArticlesService', () => {
       await expect(
         service.restoreArticleVersion(
           mockArticleId.toString(),
-          new Types.ObjectId().toString(),
+          'test-object-id'.toString(),
           mockUserId.toString(),
           mockOrgId.toString(),
           mockBrandId.toString(),
@@ -1203,7 +1203,7 @@ describe('ArticlesService', () => {
       await expect(
         service.restoreArticleVersion(
           mockArticleId.toString(),
-          new Types.ObjectId().toString(),
+          'test-object-id'.toString(),
           mockUserId.toString(),
           mockOrgId.toString(),
           mockBrandId.toString(),
@@ -1212,7 +1212,7 @@ describe('ArticlesService', () => {
     });
 
     it('should throw error for corrupted version data', async () => {
-      const promptId = new Types.ObjectId();
+      const promptId = 'test-object-id';
 
       model.findOne.mockReturnValue({
         exec: vi.fn().mockResolvedValue(mockArticle),

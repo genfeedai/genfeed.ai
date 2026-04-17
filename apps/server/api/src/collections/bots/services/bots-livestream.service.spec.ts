@@ -11,17 +11,16 @@ import { BotsLivestreamService } from '@api/collections/bots/services/bots-lives
 import { ConfigService } from '@api/config/config.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 import { BotsLivestreamDeliveryService } from './bots-livestream-delivery.service';
 import { BotsLivestreamRuntimeService } from './bots-livestream-runtime.service';
 
 function makeBotDocument(overrides: Partial<BotDocument> = {}): BotDocument {
   return {
-    _id: new Types.ObjectId(),
+    _id: 'test-object-id',
     brand: 'brand-123',
     livestreamSettings: {
       manualOverrideTtlMinutes: 15,
@@ -42,8 +41,8 @@ function makeSessionDocument(
   overrides: Partial<LivestreamBotSessionDocument> = {},
 ): LivestreamBotSessionDocument {
   const session = {
-    _id: new Types.ObjectId(),
-    bot: new Types.ObjectId(),
+    _id: 'test-object-id',
+    bot: 'test-object-id',
     brand: 'brand-123',
     context: { source: 'none' },
     deliveryHistory: [],
@@ -146,17 +145,7 @@ describe('BotsLivestreamService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BotsLivestreamService,
-        {
-          provide: getModelToken(
-            LivestreamBotSession.name,
-            DB_CONNECTIONS.CLOUD,
-          ),
-          useValue: sessionModel,
-        },
-        {
-          provide: getModelToken(Bot.name, DB_CONNECTIONS.CLOUD),
-          useValue: botModel,
-        },
+        { provide: PrismaService, useValue: { ...sessionModel, ...botModel } },
         { provide: BotsLivestreamDeliveryService, useValue: deliveryService },
         { provide: ConfigService, useValue: configService },
         { provide: LoggerService, useValue: loggerService },
@@ -519,7 +508,7 @@ describe('BotsLivestreamService', () => {
 
     it('logs error and continues when a session fails to process', async () => {
       const fakeSession = makeSessionDocument({
-        bot: new Types.ObjectId(),
+        bot: 'test-object-id',
         status: 'active',
       });
       sessionModel.find.mockReturnValue({
@@ -539,7 +528,7 @@ describe('BotsLivestreamService', () => {
 
     it('skips a session whose bot is not found', async () => {
       const fakeSession = makeSessionDocument({
-        bot: new Types.ObjectId(),
+        bot: 'test-object-id',
         status: 'active',
       });
       sessionModel.find.mockReturnValue({

@@ -2,9 +2,9 @@ import { PatternPlaybook } from '@api/collections/content-intelligence/schemas/p
 import { PatternStoreService } from '@api/collections/content-intelligence/services/pattern-store.service';
 import { PlaybookBuilderService } from '@api/collections/content-intelligence/services/playbook-builder.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ContentPatternType } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('PlaybookBuilderService', () => {
@@ -28,9 +28,9 @@ describe('PlaybookBuilderService', () => {
 
   let model: MockModel;
 
-  const orgId = new Types.ObjectId();
-  const userId = new Types.ObjectId();
-  const playbookId = new Types.ObjectId();
+  const orgId = 'test-object-id';
+  const userId = 'test-object-id';
+  const playbookId = 'test-object-id';
 
   const makePlaybook = (overrides = {}) => ({
     _id: playbookId,
@@ -86,10 +86,7 @@ describe('PlaybookBuilderService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PlaybookBuilderService,
-        {
-          provide: getModelToken(PatternPlaybook.name, DB_CONNECTIONS.CLOUD),
-          useValue: model,
-        },
+        { provide: PrismaService, useValue: model },
         { provide: PatternStoreService, useValue: patternStoreService },
         { provide: LoggerService, useValue: loggerService },
       ],
@@ -141,7 +138,7 @@ describe('PlaybookBuilderService', () => {
     });
 
     it('should include sourceCreators when provided', async () => {
-      const creatorId = new Types.ObjectId();
+      const creatorId = 'test-object-id';
 
       await service.createPlaybook(orgId, userId, {
         name: 'With Creators',
@@ -236,12 +233,12 @@ describe('PlaybookBuilderService', () => {
       });
 
       await expect(
-        service.addCreatorToPlaybook(playbookId, new Types.ObjectId(), orgId),
+        service.addCreatorToPlaybook(playbookId, 'test-object-id', orgId),
       ).rejects.toThrow('Playbook not found');
     });
 
     it('should add creator to sourceCreators array', async () => {
-      const creatorId = new Types.ObjectId();
+      const creatorId = 'test-object-id';
       const mockPlaybook = makePlaybook({ sourceCreators: [] });
       model.findOne = vi.fn().mockReturnValue({
         exec: vi.fn().mockResolvedValue(mockPlaybook),
@@ -278,17 +275,13 @@ describe('PlaybookBuilderService', () => {
       });
 
       await expect(
-        service.removeCreatorFromPlaybook(
-          playbookId,
-          new Types.ObjectId(),
-          orgId,
-        ),
+        service.removeCreatorFromPlaybook(playbookId, 'test-object-id', orgId),
       ).rejects.toThrow('Playbook not found');
     });
 
     it('should remove the specified creator from sourceCreators', async () => {
-      const creatorToRemove = new Types.ObjectId();
-      const otherCreator = new Types.ObjectId();
+      const creatorToRemove = 'test-object-id';
+      const otherCreator = 'test-object-id';
       const mockPlaybook = makePlaybook({
         sourceCreators: [otherCreator, creatorToRemove],
       });

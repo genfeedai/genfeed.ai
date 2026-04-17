@@ -2,14 +2,14 @@ import { PostAnalytics } from '@api/collections/posts/schemas/post-analytics.sch
 import { AnalyticsAggregationService } from '@api/collections/posts/services/analytics-aggregation.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
-import { getModelToken } from '@nestjs/mongoose';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('AnalyticsAggregationService', () => {
   let service: AnalyticsAggregationService;
   let analyticsModel: Record<string, ReturnType<typeof vi.fn>>;
 
-  const mockOrgId = new Types.ObjectId().toString();
+  const mockOrgId = 'test-object-id'.toString();
 
   beforeEach(async () => {
     analyticsModel = {
@@ -22,10 +22,7 @@ describe('AnalyticsAggregationService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AnalyticsAggregationService,
-        {
-          provide: getModelToken(PostAnalytics.name, DB_CONNECTIONS.ANALYTICS),
-          useValue: analyticsModel,
-        },
+        { provide: PrismaService, useValue: analyticsModel },
         {
           provide: PostsService,
           useValue: {

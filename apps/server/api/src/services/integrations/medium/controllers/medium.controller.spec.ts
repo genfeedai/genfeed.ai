@@ -16,10 +16,10 @@ describe('MediumController', () => {
   const _mockUser = {
     id: 'user-123',
     publicMetadata: {
-      brand: new Types.ObjectId().toString(),
+      brand: 'test-object-id',
       isSuperAdmin: false,
-      organization: new Types.ObjectId().toString(),
-      user: new Types.ObjectId().toString(),
+      organization: 'test-object-id',
+      user: 'test-object-id',
     } as IClerkPublicMetadata,
   } as unknown as User;
 

@@ -114,7 +114,7 @@ describe('TasksController', () => {
       } as CreateTaskDto);
 
       expect(organizationsService.findOne).toHaveBeenCalledWith({
-        _id: expect.any(Types.ObjectId),
+        _id: expect.any(String),
         isDeleted: false,
       });
       expect(taskCountersService.getNextNumber).toHaveBeenCalledWith(
@@ -123,7 +123,7 @@ describe('TasksController', () => {
       expect(tasksService.create).toHaveBeenCalledWith(
         expect.objectContaining({
           identifier: 'GENA-18',
-          organization: expect.any(Types.ObjectId),
+          organization: expect.any(String),
           taskNumber: 18,
           title: 'Add task tests',
         }),
@@ -176,11 +176,11 @@ describe('TasksController', () => {
         projectId: 'project-1',
         status: 'todo',
       });
-      expect(matchStage.$match.organization).toBeInstanceOf(Types.ObjectId);
+      expect(matchStage.$match.organization).toEqual(expect.any(String));
       expect((matchStage.$match.organization as string).toString()).toBe(
         organizationId,
       );
-      expect(matchStage.$match.parentId).toBeInstanceOf(Types.ObjectId);
+      expect(matchStage.$match.parentId).toEqual(expect.any(String));
       expect((matchStage.$match.parentId as string).toString()).toBe(parentId);
     });
   });

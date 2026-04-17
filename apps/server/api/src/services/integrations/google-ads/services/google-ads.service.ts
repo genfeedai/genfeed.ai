@@ -205,9 +205,9 @@ export class GoogleAdsService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     const credential = await this.credentialsService.findOne({
-      brand: new Types.ObjectId(brandId),
+      brand: brandId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
       platform: CredentialPlatform.GOOGLE_ADS,
     });
 

@@ -132,9 +132,9 @@ export class TwitterService {
     brandId: string,
   ): Promise<unknown> {
     const queryCredentials = {
-      brand: new Types.ObjectId(brandId),
+      brand: brandId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
       platform: CredentialPlatform.TWITTER,
     };
 
@@ -190,11 +190,11 @@ export class TwitterService {
       // Create activity for social integration disconnection
       await this.activitiesService.create(
         new ActivityEntity({
-          brand: new Types.ObjectId(brandId),
+          brand: brandId,
           key: ActivityKey.SOCIAL_INTEGRATION_DISCONNECTED,
-          organization: new Types.ObjectId(organizationId),
+          organization: organizationId,
           source: ActivitySource.SOCIAL_INTEGRATION,
-          user: new Types.ObjectId(credentials.user),
+          user: credentials.user,
           value: `Twitter integration disconnected: ${(error as Error)?.message ?? 'Token refresh failed'}`,
         }),
       );

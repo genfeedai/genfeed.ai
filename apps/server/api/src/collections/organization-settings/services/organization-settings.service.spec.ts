@@ -1,10 +1,10 @@
 import { OrganizationSetting } from '@api/collections/organization-settings/schemas/organization-setting.schema';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { createMockModel } from '@api/shared/testing/mock-model.factory';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ModuleRef } from '@nestjs/core';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('OrganizationSettingsService', () => {
@@ -22,7 +22,7 @@ describe('OrganizationSettingsService', () => {
   beforeEach(async () => {
     mockModel = createMockModel({
       brandsLimit: 5,
-      organization: new Types.ObjectId(),
+      organization: 'test-object-id',
       seatsLimit: 3,
     });
 
@@ -33,10 +33,7 @@ describe('OrganizationSettingsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         OrganizationSettingsService,
-        {
-          provide: getModelToken(OrganizationSetting.name, DB_CONNECTIONS.AUTH),
-          useValue: mockModel,
-        },
+        { provide: PrismaService, useValue: mockModel },
         {
           provide: LoggerService,
           useValue: mockLogger,
@@ -63,7 +60,7 @@ describe('OrganizationSettingsService', () => {
 
   describe('updateBrandsLimit', () => {
     it('should update the brands limit and return updated document', async () => {
-      const settingId = new Types.ObjectId().toString();
+      const settingId = 'test-object-id'.toString();
       const updatedDoc = { _id: settingId, brandsLimit: 10 };
       mockModel.findByIdAndUpdate.mockReturnValue({
         exec: vi.fn().mockResolvedValue(updatedDoc),
@@ -92,7 +89,7 @@ describe('OrganizationSettingsService', () => {
 
   describe('updateSeatsLimit', () => {
     it('should update the seats limit and return updated document', async () => {
-      const settingId = new Types.ObjectId().toString();
+      const settingId = 'test-object-id'.toString();
       const updatedDoc = { _id: settingId, seatsLimit: 20 };
       mockModel.findByIdAndUpdate.mockReturnValue({
         exec: vi.fn().mockResolvedValue(updatedDoc),
@@ -132,10 +129,10 @@ describe('OrganizationSettingsService', () => {
     });
 
     it('should filter to latest major version models', async () => {
-      const modelV2 = { _id: new Types.ObjectId(), key: 'google/veo-2' };
-      const modelV3 = { _id: new Types.ObjectId(), key: 'google/veo-3' };
+      const modelV2 = { _id: 'test-object-id', key: 'google/veo-2' };
+      const modelV3 = { _id: 'test-object-id', key: 'google/veo-3' };
       const imageModel = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         key: 'google/imagen-4-fast',
       };
 
@@ -156,8 +153,8 @@ describe('OrganizationSettingsService', () => {
     });
 
     it('should handle models with minor versions', async () => {
-      const modelV3 = { _id: new Types.ObjectId(), key: 'google/veo-3' };
-      const modelV31 = { _id: new Types.ObjectId(), key: 'google/veo-3.1' };
+      const modelV3 = { _id: 'test-object-id', key: 'google/veo-3' };
+      const modelV31 = { _id: 'test-object-id', key: 'google/veo-3.1' };
 
       const mockModelsService = {
         findAllActive: vi.fn().mockResolvedValue([modelV3, modelV31]),
@@ -171,7 +168,7 @@ describe('OrganizationSettingsService', () => {
     });
 
     it('should handle models without version numbers', async () => {
-      const model = { _id: new Types.ObjectId(), key: 'openai/dalle' };
+      const model = { _id: 'test-object-id', key: 'openai/dalle' };
 
       const mockModelsService = {
         findAllActive: vi.fn().mockResolvedValue([model]),

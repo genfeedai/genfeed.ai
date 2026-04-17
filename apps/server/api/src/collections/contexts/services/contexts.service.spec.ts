@@ -6,8 +6,8 @@ import { Post } from '@api/collections/posts/schemas/post.schema';
 import { ConfigService } from '@api/config/config.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 
 // Mock OpenAI
@@ -86,18 +86,7 @@ describe('ContextsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ContextsService,
-        {
-          provide: getModelToken(ContextBase.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockContextBaseModel,
-        },
-        {
-          provide: getModelToken(ContextEntry.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockContextEntryModel,
-        },
-        {
-          provide: getModelToken(Post.name, DB_CONNECTIONS.CLOUD),
-          useValue: { find: vi.fn(), findOne: vi.fn() },
-        },
+        { provide: PrismaService, useValue: mockContextBaseModel },
         {
           provide: ConfigService,
           useValue: mockConfigService,

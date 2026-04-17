@@ -8,8 +8,8 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Test } from '@nestjs/testing';
 import { vi } from 'vitest';
 
-const ORG_ID = new Types.ObjectId();
-const PATTERN_ID = new Types.ObjectId();
+const ORG_ID = 'test-object-id';
+const PATTERN_ID = 'test-object-id';
 
 const BASE_DTO = {
   hashtags: undefined,
@@ -166,7 +166,7 @@ describe('ContentGeneratorService', () => {
     const results = await service.generateContent(ORG_ID, dto as any);
 
     expect(patternStoreService.findOne).toHaveBeenCalledWith(
-      expect.objectContaining({ _id: expect.any(Types.ObjectId) }),
+      expect.objectContaining({ _id: expect.any(String) }),
     );
     expect(results.length).toBeGreaterThanOrEqual(1);
   });
@@ -185,7 +185,7 @@ describe('ContentGeneratorService', () => {
   });
 
   it('fetches playbook insights when playbookId is provided', async () => {
-    const playbookId = new Types.ObjectId().toString();
+    const playbookId = 'test-object-id';
     playbookBuilderService.findOne.mockResolvedValue({
       insights: {
         contentMix: { educational: 0.6 },
@@ -199,7 +199,7 @@ describe('ContentGeneratorService', () => {
 
     expect(playbookBuilderService.findOne).toHaveBeenCalledWith(
       expect.objectContaining({
-        _id: expect.any(Types.ObjectId),
+        _id: expect.any(String),
         organization: ORG_ID,
       }),
     );

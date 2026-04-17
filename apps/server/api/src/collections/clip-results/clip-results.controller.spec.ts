@@ -78,8 +78,8 @@ describe('ClipResultsController', () => {
 
       expect(service.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          organization: expect.any(Types.ObjectId),
-          user: expect.any(Types.ObjectId),
+          organization: expect.any(String),
+          user: expect.any(String),
         }),
       );
       expect(result).toEqual({ data: created });
@@ -130,7 +130,7 @@ describe('ClipResultsController', () => {
         expect.objectContaining({
           _id: 'cr-1',
           isDeleted: false,
-          organization: expect.any(Types.ObjectId),
+          organization: expect.any(String),
         }),
       );
       expect(result).toEqual({ data: doc });
@@ -166,7 +166,7 @@ describe('ClipResultsController', () => {
         expect.objectContaining({
           _id: 'cr-1',
           isDeleted: false,
-          organization: expect.any(Types.ObjectId),
+          organization: expect.any(String),
         }),
       );
       expect(service.patch).toHaveBeenCalledWith('cr-1', {

@@ -63,7 +63,7 @@ describe('UserStripeController', () => {
   };
   let organizationsService: { findOne: ReturnType<typeof vi.fn> };
 
-  const dbUserId = new Types.ObjectId();
+  const dbUserId = 'test-object-id';
   const mockRequest = {
     headers: { origin: 'https://app.genfeed.ai' },
   } as unknown as Request;
@@ -112,7 +112,7 @@ describe('UserStripeController', () => {
     };
 
     organizationsService = {
-      findOne: vi.fn().mockResolvedValue({ _id: new Types.ObjectId() }),
+      findOne: vi.fn().mockResolvedValue({ _id: 'test-object-id' }),
     };
 
     const module: TestingModule = await Test.createTestingModule({

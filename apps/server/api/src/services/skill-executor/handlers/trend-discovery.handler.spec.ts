@@ -11,9 +11,9 @@ describe('TrendDiscoveryHandler', () => {
   };
 
   const baseContext = {
-    brandId: new Types.ObjectId().toString(),
+    brandId: 'test-object-id',
     brandVoice: 'Witty and informative',
-    organizationId: new Types.ObjectId().toString(),
+    organizationId: 'test-object-id',
     platforms: ['instagram'],
   };
 

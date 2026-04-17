@@ -14,7 +14,7 @@ describe('PollingService', () => {
   let mockIngredientsService: vi.Mocked<IngredientsService>;
   let mockLogger: vi.Mocked<LoggerService>;
 
-  const mockIngredientId = new Types.ObjectId().toHexString();
+  const mockIngredientId = 'test-object-id'.toHexString();
 
   const asIngredientDocument = (value: unknown): IngredientDocument =>
     value as IngredientDocument;
@@ -26,7 +26,7 @@ describe('PollingService', () => {
     id = mockIngredientId,
   ) =>
     ({
-      _id: new Types.ObjectId(id),
+      _id: id,
       isDeleted: false,
       name: 'Test Ingredient',
       status,
@@ -291,9 +291,9 @@ describe('PollingService', () => {
 
   describe('waitForMultipleIngredientsCompletion', () => {
     const mockIds = [
-      new Types.ObjectId().toHexString(),
-      new Types.ObjectId().toHexString(),
-      new Types.ObjectId().toHexString(),
+      'test-object-id'.toHexString(),
+      'test-object-id'.toHexString(),
+      'test-object-id'.toHexString(),
     ];
 
     it('should return all ingredients when all complete immediately', async () => {

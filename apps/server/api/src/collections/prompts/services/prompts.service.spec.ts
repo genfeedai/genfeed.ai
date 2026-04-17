@@ -1,13 +1,13 @@
 import { Prompt } from '@api/collections/prompts/schemas/prompt.schema';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 function createMockModel() {
   const savedDoc = {
-    _id: new Types.ObjectId(),
+    _id: 'test-object-id',
     category: 'presets-description-image',
     original: 'test prompt',
   };
@@ -59,10 +59,7 @@ describe('PromptsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PromptsService,
-        {
-          provide: getModelToken(Prompt.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockModelFn,
-        },
+        { provide: PrismaService, useValue: mockModelFn },
         {
           provide: LoggerService,
           useValue: {

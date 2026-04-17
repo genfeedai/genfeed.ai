@@ -961,7 +961,7 @@ describe('ImagesOperationsController', () => {
 
       expect(imagesService.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
-          _id: expect.any(Types.ObjectId),
+          _id: expect.any(String),
           isDeleted: false,
         }),
         expect.any(Array),
@@ -1123,7 +1123,7 @@ describe('ImagesOperationsController', () => {
       expect(sharedService.saveDocuments).toHaveBeenCalledWith(
         mockUser,
         expect.objectContaining({
-          parent: expect.any(Types.ObjectId),
+          parent: expect.any(String),
         }),
       );
     });
@@ -1140,10 +1140,9 @@ describe('ImagesOperationsController', () => {
         mockUser,
       );
 
-      expect(imagesService.patch).toHaveBeenCalledWith(
-        expect.any(Types.ObjectId),
-        { status: IngredientStatus.GENERATED },
-      );
+      expect(imagesService.patch).toHaveBeenCalledWith(expect.any(String), {
+        status: IngredientStatus.GENERATED,
+      });
     });
   });
 

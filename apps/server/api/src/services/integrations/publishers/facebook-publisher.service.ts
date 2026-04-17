@@ -52,9 +52,9 @@ export class FacebookPublisherService extends BasePublisherService {
     try {
       // Get Facebook credential with page access token
       const fbCredential = await this.credentialsService.findOne({
-        brand: new Types.ObjectId(brandId),
+        brand: brandId,
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
+        organization: organizationId,
         platform: CredentialPlatform.FACEBOOK,
       });
 

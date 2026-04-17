@@ -124,7 +124,7 @@ export class CreateCredentialDto {
   @ApiProperty({
     description: 'Array of tag IDs',
     required: false,
-    type: [Types.ObjectId],
+    type: [String],
   })
   readonly tags?: string[];
 

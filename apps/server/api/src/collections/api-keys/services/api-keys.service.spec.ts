@@ -6,10 +6,10 @@ import {
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { ConfigService } from '@api/config/config.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ApiKeyCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('ApiKeysService', () => {
@@ -31,12 +31,12 @@ describe('ApiKeysService', () => {
     isRevoked: false,
     key: 'hashed_key_value',
     label: 'Test API Key',
-    organization: new Types.ObjectId('507f1f77bcf86cd799439013'),
+    organization: '507f1f77bcf86cd799439013',
     rateLimit: 60,
     scopes: ['videos:create', 'videos:read'],
     updatedAt: new Date(),
     usageCount: 0,
-    user: new Types.ObjectId('507f1f77bcf86cd799439012'),
+    user: '507f1f77bcf86cd799439012',
   } as unknown as ApiKeyDocument;
 
   const cloneApiKey = (overrides: Partial<ApiKeyDocument> = {}) =>
@@ -104,10 +104,7 @@ describe('ApiKeysService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ApiKeysService,
-        {
-          provide: getModelToken(ApiKey.name, DB_CONNECTIONS.AUTH),
-          useValue: mockModel,
-        },
+        { provide: PrismaService, useValue: mockModel },
         {
           provide: LoggerService,
           useValue: mockLogger,
@@ -221,16 +218,16 @@ describe('ApiKeysService', () => {
   describe('createWithKey', () => {
     it('should create API key with generated key and fingerprint', async () => {
       const createDto: CreateApiKeyDto & {
-        user: Types.ObjectId;
-        organization: Types.ObjectId;
+        user: string;
+        organization: string;
       } = {
         category: ApiKeyCategory.GENFEEDAI,
         description: 'A test API key',
         label: 'Test API Key',
-        organization: new Types.ObjectId('507f1f77bcf86cd799439013'),
+        organization: '507f1f77bcf86cd799439013',
         rateLimit: 100,
         scopes: ['videos:create'],
-        user: new Types.ObjectId('507f1f77bcf86cd799439012'),
+        user: '507f1f77bcf86cd799439012',
       };
 
       // Mock the base `create` method directly on the service
@@ -259,13 +256,13 @@ describe('ApiKeysService', () => {
 
     it('should create API key with default scopes', async () => {
       const createDto: CreateApiKeyDto & {
-        user: Types.ObjectId;
-        organization: Types.ObjectId;
+        user: string;
+        organization: string;
       } = {
         category: ApiKeyCategory.GENFEEDAI,
         label: 'Test API Key',
-        organization: new Types.ObjectId('507f1f77bcf86cd799439013'),
-        user: new Types.ObjectId('507f1f77bcf86cd799439012'),
+        organization: '507f1f77bcf86cd799439013',
+        user: '507f1f77bcf86cd799439012',
       };
 
       const createSpy = vi
@@ -289,13 +286,13 @@ describe('ApiKeysService', () => {
 
     it('should create API key with default rate limit', async () => {
       const createDto: CreateApiKeyDto & {
-        user: Types.ObjectId;
-        organization: Types.ObjectId;
+        user: string;
+        organization: string;
       } = {
         category: ApiKeyCategory.GENFEEDAI,
         label: 'Test API Key',
-        organization: new Types.ObjectId('507f1f77bcf86cd799439013'),
-        user: new Types.ObjectId('507f1f77bcf86cd799439012'),
+        organization: '507f1f77bcf86cd799439013',
+        user: '507f1f77bcf86cd799439012',
       };
 
       const createSpy = vi
@@ -418,7 +415,7 @@ describe('ApiKeysService', () => {
       await service.updateLastUsed(keyId, ip);
 
       expect(patchAllSpy).toHaveBeenCalledWith(
-        { _id: expect.any(Types.ObjectId) },
+        { _id: expect.any(string) },
         expect.objectContaining({
           $inc: { usageCount: 1 },
           $set: expect.objectContaining({

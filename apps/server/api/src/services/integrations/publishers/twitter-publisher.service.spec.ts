@@ -46,12 +46,12 @@ describe('TwitterPublisherService', () => {
   let postsService: vi.Mocked<PostsService>;
 
   // Test IDs
-  const mockOrganizationId = new Types.ObjectId('507f1f77bcf86cd799439011');
-  const mockBrandId = new Types.ObjectId('507f1f77bcf86cd799439012');
-  const mockPostId = new Types.ObjectId('507f1f77bcf86cd799439013');
-  const mockUserId = new Types.ObjectId('507f1f77bcf86cd799439014');
-  const mockCredentialId = new Types.ObjectId('507f1f77bcf86cd799439015');
-  const mockIngredientId = new Types.ObjectId('507f1f77bcf86cd799439016');
+  const mockOrganizationId = '507f1f77bcf86cd799439011';
+  const mockBrandId = '507f1f77bcf86cd799439012';
+  const mockPostId = '507f1f77bcf86cd799439013';
+  const mockUserId = '507f1f77bcf86cd799439014';
+  const mockCredentialId = '507f1f77bcf86cd799439015';
+  const mockIngredientId = '507f1f77bcf86cd799439016';
 
   // Mock credential
   const mockCredential = {
@@ -121,9 +121,9 @@ describe('TwitterPublisherService', () => {
     category: PostCategory.IMAGE,
     description: '<p>Carousel tweet</p>',
     ingredients: [
-      new Types.ObjectId('507f1f77bcf86cd799439020'),
-      new Types.ObjectId('507f1f77bcf86cd799439021'),
-      new Types.ObjectId('507f1f77bcf86cd799439022'),
+      '507f1f77bcf86cd799439020',
+      '507f1f77bcf86cd799439021',
+      '507f1f77bcf86cd799439022',
     ],
     isDeleted: false,
     organization: mockOrganizationId,
@@ -510,14 +510,14 @@ describe('TwitterPublisherService', () => {
 
     const mockChildren = [
       {
-        _id: new Types.ObjectId('507f1f77bcf86cd799439030'),
+        _id: '507f1f77bcf86cd799439030',
         category: PostCategory.TEXT,
         description: '<p>Child 1</p>',
         ingredients: [],
         order: 1,
       },
       {
-        _id: new Types.ObjectId('507f1f77bcf86cd799439031'),
+        _id: '507f1f77bcf86cd799439031',
         category: PostCategory.IMAGE,
         description: '<p>Child 2</p>',
         ingredients: [mockIngredientId],

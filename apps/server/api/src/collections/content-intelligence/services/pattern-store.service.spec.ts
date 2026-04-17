@@ -1,12 +1,12 @@
 import { ContentPattern } from '@api/collections/content-intelligence/schemas/content-pattern.schema';
 import { PatternStoreService } from '@api/collections/content-intelligence/services/pattern-store.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ContentIntelligencePlatform,
   ContentPatternType,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -14,7 +14,7 @@ const makePatternDto = (overrides: Record<string, unknown> = {}) => ({
   description: 'A test pattern',
   embedding: [],
   extractedFormula: 'Hook + CTA',
-  organization: new Types.ObjectId(),
+  organization: 'test-object-id',
   patternType: ContentPatternType.HOOK,
   placeholders: ['topic'],
   platform: ContentIntelligencePlatform.TWITTER,
@@ -36,7 +36,7 @@ describe('PatternStoreService', () => {
   let model: Record<string, ReturnType<typeof vi.fn>>;
 
   const mockDoc = {
-    _id: new Types.ObjectId(),
+    _id: 'test-object-id',
     ...makePatternDto(),
     isDeleted: false,
     relevanceWeight: 1.0,
@@ -69,10 +69,7 @@ describe('PatternStoreService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PatternStoreService,
-        {
-          provide: getModelToken(ContentPattern.name, DB_CONNECTIONS.CLOUD),
-          useValue: callableModel,
-        },
+        { provide: PrismaService, useValue: callableModel },
         {
           provide: LoggerService,
           useValue: {
@@ -146,7 +143,7 @@ describe('PatternStoreService', () => {
       const findAllSpy = vi
         .spyOn(service, 'findAll')
         .mockResolvedValue({ docs: [mockDoc] } as never);
-      const orgId = new Types.ObjectId();
+      const orgId = 'test-object-id';
 
       await service.findByOrganization(orgId);
 
@@ -167,7 +164,7 @@ describe('PatternStoreService', () => {
       const findAllSpy = vi
         .spyOn(service, 'findAll')
         .mockResolvedValue({ docs: [] } as never);
-      const orgId = new Types.ObjectId();
+      const orgId = 'test-object-id';
 
       await service.findByOrganization(orgId, {
         platform: ContentIntelligencePlatform.TWITTER,
@@ -189,7 +186,7 @@ describe('PatternStoreService', () => {
       const findAllSpy = vi
         .spyOn(service, 'findAll')
         .mockResolvedValue({ docs: [] } as never);
-      const orgId = new Types.ObjectId();
+      const orgId = 'test-object-id';
 
       await service.findByOrganization(orgId, {
         patternType: ContentPatternType.HOOK,
@@ -211,7 +208,7 @@ describe('PatternStoreService', () => {
       const findAllSpy = vi
         .spyOn(service, 'findAll')
         .mockResolvedValue({ docs: [] } as never);
-      const orgId = new Types.ObjectId();
+      const orgId = 'test-object-id';
 
       await service.findByOrganization(orgId, { tags: ['viral', 'trending'] });
 
@@ -231,7 +228,7 @@ describe('PatternStoreService', () => {
       const findAllSpy = vi
         .spyOn(service, 'findAll')
         .mockResolvedValue({ docs: [] } as never);
-      const orgId = new Types.ObjectId();
+      const orgId = 'test-object-id';
 
       await service.findByOrganization(orgId, { minRelevanceWeight: 0.5 });
 
@@ -251,7 +248,7 @@ describe('PatternStoreService', () => {
       vi.spyOn(service, 'findAll').mockResolvedValue({
         docs: [mockDoc],
       } as never);
-      const orgId = new Types.ObjectId();
+      const orgId = 'test-object-id';
 
       const result = await service.findByOrganization(orgId);
       expect(result).toEqual([mockDoc]);
@@ -265,7 +262,7 @@ describe('PatternStoreService', () => {
       const findAllSpy = vi
         .spyOn(service, 'findAll')
         .mockResolvedValue({ docs: [] } as never);
-      const orgId = new Types.ObjectId();
+      const orgId = 'test-object-id';
 
       await service.findHooks(orgId);
 
@@ -287,7 +284,7 @@ describe('PatternStoreService', () => {
       const findAllSpy = vi
         .spyOn(service, 'findAll')
         .mockResolvedValue({ docs: [] } as never);
-      const orgId = new Types.ObjectId();
+      const orgId = 'test-object-id';
 
       await service.findHooks(orgId, ContentIntelligencePlatform.TWITTER);
 
@@ -307,7 +304,7 @@ describe('PatternStoreService', () => {
       const findAllSpy = vi
         .spyOn(service, 'findAll')
         .mockResolvedValue({ docs: [] } as never);
-      const orgId = new Types.ObjectId();
+      const orgId = 'test-object-id';
 
       await service.findHooks(orgId, undefined, 10);
 
@@ -325,12 +322,12 @@ describe('PatternStoreService', () => {
       const patchAllSpy = vi
         .spyOn(service, 'patchAll')
         .mockResolvedValue({ modifiedCount: 1 } as never);
-      const id = new Types.ObjectId();
+      const id = 'test-object-id';
 
       await service.incrementUsage(id);
 
       expect(patchAllSpy).toHaveBeenCalledWith(
-        { _id: new Types.ObjectId(id.toString()) },
+        { _id: new string(id.toString()) },
         { $inc: { usageCount: 1 } },
       );
     });
@@ -343,7 +340,7 @@ describe('PatternStoreService', () => {
       const patchSpy = vi
         .spyOn(service, 'patch')
         .mockResolvedValue(mockDoc as never);
-      const id = new Types.ObjectId();
+      const id = 'test-object-id';
 
       await service.updateRelevanceWeight(id, 1.5);
       expect(patchSpy).toHaveBeenCalledWith(id, { relevanceWeight: 1 });
@@ -363,7 +360,7 @@ describe('PatternStoreService', () => {
       const patchAllSpy = vi
         .spyOn(service, 'patchAll')
         .mockResolvedValue({ modifiedCount: 3 } as never);
-      const creatorId = new Types.ObjectId();
+      const creatorId = 'test-object-id';
 
       const result = await service.deleteByCreator(creatorId);
 

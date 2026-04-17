@@ -2,9 +2,9 @@ import { CreateWatchlistDto } from '@api/collections/watchlists/dto/create-watch
 import { Watchlist } from '@api/collections/watchlists/schemas/watchlist.schema';
 import { WatchlistsService } from '@api/collections/watchlists/services/watchlists.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WatchlistPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('WatchlistsService', () => {
@@ -13,8 +13,8 @@ describe('WatchlistsService', () => {
   let logger: LoggerService;
 
   const mockWatchlist = {
-    _id: new Types.ObjectId('507f1f77bcf86cd799439011'),
-    brand: new Types.ObjectId(),
+    _id: '507f1f77bcf86cd799439011',
+    brand: 'test-object-id',
     createdAt: new Date(),
     handle: 'testuser',
     isDeleted: false,
@@ -59,10 +59,7 @@ describe('WatchlistsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         WatchlistsService,
-        {
-          provide: getModelToken(Watchlist.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockModelFn,
-        },
+        { provide: PrismaService, useValue: mockModelFn },
         {
           provide: LoggerService,
           useValue: {
@@ -76,7 +73,7 @@ describe('WatchlistsService', () => {
     }).compile();
 
     service = module.get<WatchlistsService>(WatchlistsService);
-    model = module.get(getModelToken(Watchlist.name, DB_CONNECTIONS.CLOUD));
+    model = module.get(PrismaService);
     logger = module.get<LoggerService>(LoggerService);
 
     vi.clearAllMocks();
@@ -88,7 +85,7 @@ describe('WatchlistsService', () => {
 
   describe('findByHandle', () => {
     it('should find watchlist by brand, platform and handle', async () => {
-      const brandId = new Types.ObjectId().toString();
+      const brandId = 'test-object-id'.toString();
       const platform = WatchlistPlatform.INSTAGRAM;
       const handle = 'testuser';
 
@@ -107,7 +104,7 @@ describe('WatchlistsService', () => {
     });
 
     it('should remove @ symbol from handle', async () => {
-      const brandId = new Types.ObjectId().toString();
+      const brandId = 'test-object-id'.toString();
       const platform = WatchlistPlatform.TWITTER;
       const handle = '@testuser';
 
@@ -125,7 +122,7 @@ describe('WatchlistsService', () => {
     });
 
     it('should return null when not found', async () => {
-      const brandId = new Types.ObjectId().toString();
+      const brandId = 'test-object-id'.toString();
       const platform = WatchlistPlatform.YOUTUBE;
       const handle = 'nonexistent';
 
@@ -138,7 +135,7 @@ describe('WatchlistsService', () => {
     });
 
     it('should handle ObjectId as brandId', async () => {
-      const brandId = new Types.ObjectId();
+      const brandId = 'test-object-id';
       const platform = WatchlistPlatform.TIKTOK;
       const handle = 'testuser';
 
@@ -154,7 +151,7 @@ describe('WatchlistsService', () => {
 
   describe('updateMetrics', () => {
     it('should update watchlist metrics', async () => {
-      const id = new Types.ObjectId().toString();
+      const id = 'test-object-id'.toString();
       const metrics = {
         avgViews: 7000,
         engagementRate: 4.2,
@@ -177,7 +174,7 @@ describe('WatchlistsService', () => {
     });
 
     it('should update partial metrics', async () => {
-      const id = new Types.ObjectId().toString();
+      const id = 'test-object-id'.toString();
       const metrics = {
         followers: 20000,
       };
@@ -195,7 +192,7 @@ describe('WatchlistsService', () => {
     });
 
     it('should return null when watchlist not found', async () => {
-      const id = new Types.ObjectId().toString();
+      const id = 'test-object-id'.toString();
       const metrics = { followers: 15000 };
 
       mockModel.findByIdAndUpdate = vi.fn().mockResolvedValue(null);
@@ -207,7 +204,7 @@ describe('WatchlistsService', () => {
     });
 
     it('should handle ObjectId as id', async () => {
-      const id = new Types.ObjectId();
+      const id = 'test-object-id';
       const metrics = { avgViews: 8000 };
 
       mockModel.findByIdAndUpdate = vi.fn().mockResolvedValue(mockWatchlist);
@@ -222,7 +219,7 @@ describe('WatchlistsService', () => {
 
   describe('findAllByAccount', () => {
     it('should find all watchlists for a brand', async () => {
-      const brandId = new Types.ObjectId().toString();
+      const brandId = 'test-object-id'.toString();
       const mockWatchlists = [mockWatchlist, { ...mockWatchlist, _id: '2' }];
 
       mockModel.find = vi.fn().mockReturnValue({
@@ -243,7 +240,7 @@ describe('WatchlistsService', () => {
     });
 
     it('should return empty array when no watchlists found', async () => {
-      const brandId = new Types.ObjectId().toString();
+      const brandId = 'test-object-id'.toString();
 
       mockModel.find = vi.fn().mockReturnValue({
         sort: vi.fn().mockReturnValue({
@@ -258,7 +255,7 @@ describe('WatchlistsService', () => {
     });
 
     it('should sort results by createdAt descending', async () => {
-      const brandId = new Types.ObjectId().toString();
+      const brandId = 'test-object-id'.toString();
 
       const sortMock = vi.fn().mockReturnValue({
         exec: vi.fn().mockResolvedValue([mockWatchlist]),
@@ -275,7 +272,7 @@ describe('WatchlistsService', () => {
     });
 
     it('should handle ObjectId as brandId', async () => {
-      const brandId = new Types.ObjectId();
+      const brandId = 'test-object-id';
 
       mockModel.find = vi.fn().mockReturnValue({
         sort: vi.fn().mockReturnValue({
@@ -294,7 +291,7 @@ describe('WatchlistsService', () => {
   describe('create', () => {
     it('should create a watchlist', async () => {
       const createDto: CreateWatchlistDto = {
-        brand: new Types.ObjectId().toString(),
+        brand: 'test-object-id'.toString(),
         handle: 'newuser',
         platform: WatchlistPlatform.INSTAGRAM,
       } as CreateWatchlistDto;

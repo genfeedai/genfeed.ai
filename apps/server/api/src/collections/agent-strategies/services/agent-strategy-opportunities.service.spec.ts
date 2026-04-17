@@ -1,8 +1,8 @@
 import { AgentStrategyOpportunity } from '@api/collections/agent-strategies/schemas/agent-strategy-opportunity.schema';
 import { AgentStrategyOpportunitiesService } from '@api/collections/agent-strategies/services/agent-strategy-opportunities.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('AgentStrategyOpportunitiesService', () => {
@@ -21,13 +21,7 @@ describe('AgentStrategyOpportunitiesService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AgentStrategyOpportunitiesService,
-        {
-          provide: getModelToken(
-            AgentStrategyOpportunity.name,
-            DB_CONNECTIONS.AGENT,
-          ),
-          useValue: model,
-        },
+        { provide: PrismaService, useValue: model },
         {
           provide: LoggerService,
           useValue: {
@@ -44,7 +38,7 @@ describe('AgentStrategyOpportunitiesService', () => {
   });
 
   it('dedupes opportunity creation when a matching queued item exists', async () => {
-    const existing = { _id: new Types.ObjectId(), topic: 'AI hooks' };
+    const existing = { _id: 'test-object-id', topic: 'AI hooks' };
     model.findOne.mockReturnValue({
       exec: vi.fn().mockResolvedValue(existing),
     });
@@ -53,13 +47,13 @@ describe('AgentStrategyOpportunitiesService', () => {
       estimatedCreditCost: 10,
       expectedTrafficScore: 80,
       formatCandidates: ['text'],
-      organization: new Types.ObjectId(),
+      organization: 'test-object-id',
       platformCandidates: ['twitter'],
       priorityScore: 90,
       relevanceScore: 95,
       sourceRef: 'trend-1',
       sourceType: 'trend',
-      strategy: new Types.ObjectId(),
+      strategy: 'test-object-id',
       topic: 'AI hooks',
     });
 

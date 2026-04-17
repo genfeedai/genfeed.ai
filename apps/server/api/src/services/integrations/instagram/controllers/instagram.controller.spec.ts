@@ -110,12 +110,12 @@ describe('InstagramController', () => {
       protocol: 'http',
       url: '/services/instagram/connect',
     } as unknown as Request;
-    const brandOid = new Types.ObjectId('507f191e810c19729de860ea');
+    const brandOid = '507f191e810c19729de860ea';
 
     it('should generate Instagram OAuth URL for brand connection', async () => {
       const mockBrand = {
         _id: brandOid,
-        organization: new Types.ObjectId('507f191e810c19729de860eb'),
+        organization: '507f191e810c19729de860eb',
       };
       brandsFindOneMock.mockResolvedValue(mockBrand);
       credentialsSaveCredentialsMock.mockResolvedValue({});
@@ -127,7 +127,7 @@ describe('InstagramController', () => {
       expect(brandsFindOneMock).toHaveBeenCalledWith({
         _id: brandOid,
         isDeleted: false,
-        organization: new Types.ObjectId('507f191e810c19729de860eb'),
+        organization: '507f191e810c19729de860eb',
       });
       expect(credentialsSaveCredentialsMock).toHaveBeenCalled();
       expect(result).toHaveProperty('data');
@@ -151,7 +151,7 @@ describe('InstagramController', () => {
     it('should include correct scopes in auth URL', async () => {
       brandsFindOneMock.mockResolvedValue({
         _id: brandOid,
-        organization: new Types.ObjectId('507f191e810c19729de860eb'),
+        organization: '507f191e810c19729de860eb',
       });
       credentialsSaveCredentialsMock.mockResolvedValue({});
 
@@ -167,7 +167,7 @@ describe('InstagramController', () => {
     it('should include state with brand and org IDs', async () => {
       brandsFindOneMock.mockResolvedValue({
         _id: brandOid,
-        organization: new Types.ObjectId('507f191e810c19729de860eb'),
+        organization: '507f191e810c19729de860eb',
       });
       credentialsSaveCredentialsMock.mockResolvedValue({});
 
@@ -187,7 +187,7 @@ describe('InstagramController', () => {
     const mockRequest = {} as unknown as Request;
 
     it('should exchange code for long-lived token and update credential', async () => {
-      const credId = new Types.ObjectId();
+      const credId = 'test-object-id';
       httpPostMock.mockReturnValue(
         of({ data: { access_token: 'short-lived-token' } }),
       );

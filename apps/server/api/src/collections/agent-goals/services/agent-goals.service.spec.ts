@@ -1,8 +1,8 @@
 import { AgentGoal } from '@api/collections/agent-goals/schemas/agent-goal.schema';
 import { AgentGoalsService } from '@api/collections/agent-goals/services/agent-goals.service';
 import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('AgentGoalsService', () => {
@@ -29,10 +29,7 @@ describe('AgentGoalsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AgentGoalsService,
-        {
-          provide: getModelToken(AgentGoal.name, 'agent'),
-          useValue: model,
-        },
+        { provide: PrismaService, useValue: model },
         { provide: AnalyticsService, useValue: analyticsService },
         {
           provide: LoggerService,
@@ -45,7 +42,7 @@ describe('AgentGoalsService', () => {
   });
 
   it('should compute progress from analytics overview', async () => {
-    const goalId = new Types.ObjectId();
+    const goalId = 'test-object-id';
     const goal = {
       _id: goalId,
       brand: undefined,
@@ -53,7 +50,7 @@ describe('AgentGoalsService', () => {
       isDeleted: false,
       label: 'Reach 1000 views',
       metric: 'views',
-      organization: new Types.ObjectId(),
+      organization: 'test-object-id',
       startDate: undefined,
       targetValue: 1000,
     };

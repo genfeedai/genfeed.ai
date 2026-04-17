@@ -1,15 +1,15 @@
 import { AdBulkUploadJob } from '@api/collections/ad-bulk-upload-jobs/schemas/ad-bulk-upload-job.schema';
 import { AdBulkUploadJobsService } from '@api/collections/ad-bulk-upload-jobs/services/ad-bulk-upload-jobs.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('AdBulkUploadJobsService', () => {
   let service: AdBulkUploadJobsService;
 
-  const jobId = new Types.ObjectId().toString();
-  const orgId = new Types.ObjectId().toString();
+  const jobId = 'test-object-id'.toString();
+  const orgId = 'test-object-id'.toString();
 
   interface MockModel {
     create: ReturnType<typeof vi.fn>;
@@ -44,10 +44,7 @@ describe('AdBulkUploadJobsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AdBulkUploadJobsService,
-        {
-          provide: getModelToken(AdBulkUploadJob.name, DB_CONNECTIONS.CLOUD),
-          useValue: modelMock,
-        },
+        { provide: PrismaService, useValue: modelMock },
         { provide: LoggerService, useValue: loggerMock },
       ],
     }).compile();
@@ -61,7 +58,7 @@ describe('AdBulkUploadJobsService', () => {
 
   describe('create', () => {
     it('should create and return a document', async () => {
-      const mockDoc = { _id: new Types.ObjectId(), status: 'pending' };
+      const mockDoc = { _id: 'test-object-id', status: 'pending' };
       modelMock.create.mockResolvedValue(mockDoc);
 
       const result = await service.create({ status: 'pending' as never });
@@ -81,15 +78,15 @@ describe('AdBulkUploadJobsService', () => {
 
   describe('findById', () => {
     it('should return document when found', async () => {
-      const mockDoc = { _id: new Types.ObjectId(jobId), status: 'pending' };
+      const mockDoc = { _id: new string(jobId), status: 'pending' };
       modelMock.findOne.mockReturnValue(makeChainable(mockDoc));
 
       const result = await service.findById(jobId, orgId);
       expect(result).toEqual(mockDoc);
       expect(modelMock.findOne).toHaveBeenCalledWith({
-        _id: new Types.ObjectId(jobId),
+        _id: new string(jobId),
         isDeleted: false,
-        organization: new Types.ObjectId(orgId),
+        organization: new string(orgId),
       });
     });
 
@@ -103,10 +100,7 @@ describe('AdBulkUploadJobsService', () => {
 
   describe('findByOrganization', () => {
     it('should return documents for organization', async () => {
-      const docs = [
-        { _id: new Types.ObjectId() },
-        { _id: new Types.ObjectId() },
-      ];
+      const docs = [{ _id: 'test-object-id' }, { _id: 'test-object-id' }];
       modelMock.find.mockReturnValue(makeChainable(docs));
 
       const result = await service.findByOrganization(orgId);
@@ -152,7 +146,7 @@ describe('AdBulkUploadJobsService', () => {
 
       await service.incrementProgress(jobId, 'completedPermutations');
       expect(modelMock.updateOne).toHaveBeenCalledWith(
-        { _id: new Types.ObjectId(jobId) },
+        { _id: new string(jobId) },
         { $inc: { completedPermutations: 1 } },
       );
     });
@@ -164,7 +158,7 @@ describe('AdBulkUploadJobsService', () => {
 
       await service.incrementProgress(jobId, 'failedPermutations');
       expect(modelMock.updateOne).toHaveBeenCalledWith(
-        { _id: new Types.ObjectId(jobId) },
+        { _id: new string(jobId) },
         { $inc: { failedPermutations: 1 } },
       );
     });
@@ -189,7 +183,7 @@ describe('AdBulkUploadJobsService', () => {
 
       await service.updateStatus(jobId, 'completed' as never);
       expect(modelMock.updateOne).toHaveBeenCalledWith(
-        { _id: new Types.ObjectId(jobId) },
+        { _id: new string(jobId) },
         { $set: { status: 'completed' } },
       );
     });
@@ -215,7 +209,7 @@ describe('AdBulkUploadJobsService', () => {
       const err = { index: 0, message: 'Upload failed' };
       await service.addError(jobId, err as never);
       expect(modelMock.updateOne).toHaveBeenCalledWith(
-        { _id: new Types.ObjectId(jobId) },
+        { _id: new string(jobId) },
         { $push: { uploadErrors: err } },
       );
     });

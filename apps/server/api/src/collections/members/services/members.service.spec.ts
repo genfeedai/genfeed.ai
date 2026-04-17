@@ -1,9 +1,9 @@
 import { Member } from '@api/collections/members/schemas/member.schema';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { createMockModel } from '@api/shared/testing/mock-model.factory';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('MembersService', () => {
@@ -21,17 +21,14 @@ describe('MembersService', () => {
     mockModel = createMockModel({
       isActive: true,
       isDeleted: false,
-      organization: new Types.ObjectId(),
-      user: new Types.ObjectId(),
+      organization: 'test-object-id',
+      user: 'test-object-id',
     });
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         MembersService,
-        {
-          provide: getModelToken(Member.name, DB_CONNECTIONS.AUTH),
-          useValue: mockModel,
-        },
+        { provide: PrismaService, useValue: mockModel },
         {
           provide: LoggerService,
           useValue: mockLogger,
@@ -56,10 +53,10 @@ describe('MembersService', () => {
 
   describe('find', () => {
     it('should return members matching the filter', async () => {
-      const orgId = new Types.ObjectId();
+      const orgId = 'test-object-id';
       const members = [
-        { _id: new Types.ObjectId(), isActive: true, organization: orgId },
-        { _id: new Types.ObjectId(), isActive: true, organization: orgId },
+        { _id: 'test-object-id', isActive: true, organization: orgId },
+        { _id: 'test-object-id', isActive: true, organization: orgId },
       ];
       mockModel.find.mockReturnValue({
         exec: vi.fn().mockResolvedValue(members),
@@ -76,7 +73,7 @@ describe('MembersService', () => {
         exec: vi.fn().mockResolvedValue([]),
       });
 
-      const result = await service.find({ organization: new Types.ObjectId() });
+      const result = await service.find({ organization: 'test-object-id' });
 
       expect(result).toEqual([]);
     });
@@ -87,10 +84,10 @@ describe('MembersService', () => {
       const filter = {
         isActive: true,
         isDeleted: false,
-        organization: new Types.ObjectId(),
-        user: new Types.ObjectId(),
+        organization: 'test-object-id',
+        user: 'test-object-id',
       };
-      const brandId = new Types.ObjectId();
+      const brandId = 'test-object-id';
       mockModel.updateOne = vi.fn().mockResolvedValue({ modifiedCount: 1 });
 
       await service.setLastUsedBrand(filter, brandId);
@@ -104,17 +101,14 @@ describe('MembersService', () => {
       mockModel.updateOne = vi.fn().mockResolvedValue({ modifiedCount: 0 });
 
       await expect(
-        service.setLastUsedBrand(
-          { user: new Types.ObjectId() },
-          new Types.ObjectId(),
-        ),
+        service.setLastUsedBrand({ user: 'test-object-id' }, 'test-object-id'),
       ).resolves.not.toThrow();
     });
   });
 
   describe('inherited BaseService methods', () => {
     it('should call findOne via BaseService with processed params', async () => {
-      const memberId = new Types.ObjectId().toString();
+      const memberId = 'test-object-id'.toString();
       mockModel.findOne.mockReturnValue({
         exec: vi.fn().mockResolvedValue({ _id: memberId }),
         populate: vi.fn().mockReturnThis(),
@@ -133,7 +127,7 @@ describe('MembersService', () => {
       });
 
       const result = await service.findOne({
-        _id: new Types.ObjectId().toString(),
+        _id: 'test-object-id'.toString(),
       });
 
       expect(result).toBeNull();

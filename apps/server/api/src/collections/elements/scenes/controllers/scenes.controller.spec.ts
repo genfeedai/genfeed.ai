@@ -12,10 +12,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
 type SceneDocumentLike = {
-  _id: string | Types.ObjectId;
+  _id: string;
   name?: string;
-  organization?: string | Types.ObjectId;
-  user?: string | Types.ObjectId;
+  organization?: string;
+  user?: string;
   [key: string]: unknown;
 };
 

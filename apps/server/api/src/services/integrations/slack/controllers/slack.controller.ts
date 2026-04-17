@@ -26,9 +26,9 @@ export class SlackController {
     const { organization, user: userId } = getPublicMetadata(user);
 
     const brand = await this.brandsService.findOne({
-      _id: new Types.ObjectId(brandId),
+      _id: brandId,
       isDeleted: false,
-      organization: new Types.ObjectId(organization),
+      organization: organization,
     });
 
     if (!brand) {
@@ -41,11 +41,11 @@ export class SlackController {
       );
     }
 
-    const orgId = new Types.ObjectId(organization);
+    const orgId = organization;
     const state = Math.random().toString(36).substring(2, 15);
 
     const existingCredential = await this.credentialsService.findOne({
-      brand: new Types.ObjectId(brandId),
+      brand: brandId,
       organization: orgId,
       platform: CredentialPlatform.SLACK,
     });
@@ -58,14 +58,14 @@ export class SlackController {
       });
     } else {
       await this.credentialsService.create({
-        brand: new Types.ObjectId(brandId),
+        brand: brandId,
         isConnected: false,
         // @ts-expect-error TS2353
         isDeleted: false,
         oauthState: state,
         organization: orgId,
         platform: CredentialPlatform.SLACK,
-        user: new Types.ObjectId(userId),
+        user: userId,
       });
     }
 
@@ -87,9 +87,9 @@ export class SlackController {
     const { organization } = getPublicMetadata(user);
 
     const brand = await this.brandsService.findOne({
-      _id: new Types.ObjectId(brandId),
+      _id: brandId,
       isDeleted: false,
-      organization: new Types.ObjectId(organization),
+      organization: organization,
     });
 
     if (!brand) {
@@ -103,9 +103,9 @@ export class SlackController {
     }
 
     const credential = await this.credentialsService.findOne({
-      brand: new Types.ObjectId(brandId),
+      brand: brandId,
       oauthState: state,
-      organization: new Types.ObjectId(organization),
+      organization: organization,
       platform: CredentialPlatform.SLACK,
     });
 
@@ -149,9 +149,9 @@ export class SlackController {
     const { organization } = getPublicMetadata(user);
 
     const brand = await this.brandsService.findOne({
-      _id: new Types.ObjectId(brandId),
+      _id: brandId,
       isDeleted: false,
-      organization: new Types.ObjectId(organization),
+      organization: organization,
     });
 
     if (!brand) {

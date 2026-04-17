@@ -1,8 +1,8 @@
 import { MonitoredAccount } from '@api/collections/monitored-accounts/schemas/monitored-account.schema';
 import { MonitoredAccountsService } from '@api/collections/monitored-accounts/services/monitored-accounts.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 
 const MOCK_ORG_ID = '507f1f77bcf86cd799439011';
@@ -48,10 +48,7 @@ describe('MonitoredAccountsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         MonitoredAccountsService,
-        {
-          provide: getModelToken(MonitoredAccount.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockModel,
-        },
+        { provide: PrismaService, useValue: mockModel },
         {
           provide: LoggerService,
           useValue: {

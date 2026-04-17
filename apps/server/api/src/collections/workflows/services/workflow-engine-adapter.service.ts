@@ -81,14 +81,14 @@ import { Injectable, Optional } from '@nestjs/common';
  * Represents a minimal subset of WorkflowDocument needed for conversion.
  */
 interface WorkflowDocumentShape {
-  _id?: Types.ObjectId | { toString(): string };
-  brands?: Array<Types.ObjectId | { toString(): string }>;
+  _id?: string | { toString(): string };
+  brands?: Array<string | { toString(): string }>;
   id?: string;
   nodes?: WorkflowVisualNode[];
   edges?: WorkflowEdge[];
   lockedNodeIds?: string[];
-  organization?: Types.ObjectId | { toString(): string };
-  user?: Types.ObjectId | { toString(): string };
+  organization?: string | { toString(): string };
+  user?: string | { toString(): string };
 }
 
 interface WrappedEngineExecutor {
@@ -425,18 +425,15 @@ export class WorkflowEngineAdapterService {
 
     const executor = createBrandAssetExecutor(
       async ({ assetType, brandId, organizationId }) => {
-        if (
-          !Types.ObjectId.isValid(brandId) ||
-          !Types.ObjectId.isValid(organizationId)
-        ) {
+        if (!brandId || !organizationId) {
           return null;
         }
 
         const brand = await this.brandsService?.findOne(
           {
-            _id: new Types.ObjectId(brandId),
+            _id: brandId,
             isDeleted: false,
-            organization: new Types.ObjectId(organizationId),
+            organization: organizationId,
           },
           'detail',
         );
@@ -737,22 +734,22 @@ export class WorkflowEngineAdapterService {
           new CaptionEntity({
             content: captionContent,
             format: CaptionFormat.SRT,
-            ingredient: new Types.ObjectId(sourceIngredientId),
+            ingredient: sourceIngredientId,
             isDeleted: false,
             language: CaptionLanguage.EN,
-            user: new Types.ObjectId(context.userId),
+            user: context.userId,
           }),
         );
 
         const { ingredientData, metadataData } =
           await sharedService.saveDocumentsInternal({
-            brand: new Types.ObjectId(brandId),
+            brand: brandId,
             category: IngredientCategory.VIDEO,
             extension: MetadataExtension.MP4,
-            organization: new Types.ObjectId(context.organizationId),
-            parent: new Types.ObjectId(sourceIngredientId),
+            organization: context.organizationId,
+            parent: sourceIngredientId,
             status: IngredientStatus.PROCESSING,
-            user: new Types.ObjectId(context.userId),
+            user: context.userId,
           });
 
         const ingredientId = ingredientData._id.toString();
@@ -833,14 +830,14 @@ export class WorkflowEngineAdapterService {
         const brandId = this.getRequiredBrandId(node);
         const music =
           (await musicsService.findOne({
-            brand: new Types.ObjectId(brandId),
+            brand: brandId,
             isDeleted: false,
-            organization: new Types.ObjectId(context.organizationId),
+            organization: context.organizationId,
             status: IngredientStatus.GENERATED,
           })) ??
           (await musicsService.findOne({
             isDeleted: false,
-            organization: new Types.ObjectId(context.organizationId),
+            organization: context.organizationId,
             status: IngredientStatus.GENERATED,
           }));
 
@@ -934,14 +931,14 @@ export class WorkflowEngineAdapterService {
       const timezone = this.readConfigString(node.config, 'timezone') ?? 'UTC';
 
       const credentialQuery: Record<string, unknown> = {
-        brand: new Types.ObjectId(brandId),
+        brand: brandId,
         isConnected: true,
         isDeleted: false,
-        organization: new Types.ObjectId(context.organizationId),
+        organization: context.organizationId,
       };
 
       if (credentialId) {
-        credentialQuery._id = new Types.ObjectId(credentialId);
+        credentialQuery._id = credentialId;
       }
 
       const credential = await credentialsService.findOne(credentialQuery);
@@ -979,17 +976,17 @@ export class WorkflowEngineAdapterService {
         `Daily post draft for ${brandLabel}`;
 
       const post = await postsService.create({
-        brand: new Types.ObjectId(brandId),
+        brand: brandId,
         category: PostCategory.TEXT,
-        credential: credential._id as Types.ObjectId,
+        credential: credential._id,
         description,
         ingredients: [],
         label: this.buildPostLabel(description),
-        organization: new Types.ObjectId(context.organizationId),
+        organization: context.organizationId,
         platform: credential.platform as CredentialPlatform,
         status: PostStatus.DRAFT,
         timezone,
-        user: new Types.ObjectId(context.userId),
+        user: context.userId,
       });
 
       return {
@@ -1572,25 +1569,21 @@ export class WorkflowEngineAdapterService {
 
     const { ingredientData, metadataData } =
       await this.sharedService.saveDocumentsInternal({
-        brand: new Types.ObjectId(args.brandId),
+        brand: args.brandId,
         category: args.category,
         extension: args.extension,
         model: args.model,
-        organization: new Types.ObjectId(args.organizationId),
+        organization: args.organizationId,
         parent:
-          args.parentIngredientId &&
-          Types.ObjectId.isValid(args.parentIngredientId)
-            ? new Types.ObjectId(args.parentIngredientId)
-            : undefined,
+          args.parentIngredientId && true ? args.parentIngredientId : undefined,
         references: (args.references ?? [])
           .filter(
             (reference): reference is string =>
-              typeof reference === 'string' &&
-              Types.ObjectId.isValid(reference),
+              typeof reference === 'string' && true,
           )
-          .map((reference) => new Types.ObjectId(reference)),
+          .map((reference) => reference),
         status: IngredientStatus.PROCESSING,
-        user: new Types.ObjectId(args.userId),
+        user: args.userId,
       });
 
     const ingredientId = ingredientData._id.toString();
@@ -1640,7 +1633,7 @@ export class WorkflowEngineAdapterService {
     const sourceIngredientId = this.extractIngredientId(source);
     if (sourceIngredientId && this.ingredientsService) {
       const sourceIngredient = await this.ingredientsService.findOne({
-        _id: new Types.ObjectId(sourceIngredientId),
+        _id: sourceIngredientId,
         isDeleted: false,
       });
       const sourceBrandId =

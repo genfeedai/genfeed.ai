@@ -14,9 +14,9 @@ describe('TelegramController', () => {
     verifyAndSaveAuth: ReturnType<typeof vi.fn>;
   };
 
-  const orgId = new Types.ObjectId().toString();
-  const brandId = new Types.ObjectId().toString();
-  const userId = new Types.ObjectId();
+  const orgId = 'test-object-id';
+  const brandId = 'test-object-id';
+  const userId = 'test-object-id';
   const mockUser = { _id: userId } as Record<string, unknown>;
 
   const validAuthData: TelegramAuthData = {
@@ -30,7 +30,7 @@ describe('TelegramController', () => {
   };
 
   const mockCredential = {
-    _id: new Types.ObjectId(),
+    _id: 'test-object-id',
     externalHandle: 'johndoe',
     externalId: '123456789',
     isConnected: true,

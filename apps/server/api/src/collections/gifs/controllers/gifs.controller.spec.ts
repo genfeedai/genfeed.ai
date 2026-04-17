@@ -223,7 +223,7 @@ describe('GifsController', () => {
       await controller.findOne(mockRequest, gifId, mockUser);
       expect(votesService.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
-          entity: expect.any(Types.ObjectId),
+          entity: expect.any(String),
           entityModel: 'Ingredient',
         }),
       );

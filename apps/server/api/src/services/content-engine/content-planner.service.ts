@@ -62,9 +62,9 @@ export class ContentPlannerService {
     dto: GenerateContentPlanDto,
   ): Promise<{ plan: ContentPlanDocument; items: ContentPlanItemDocument[] }> {
     const brand = await this.brandsService.findOne({
-      _id: new Types.ObjectId(brandId),
+      _id: brandId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
     });
 
     if (!brand) {
@@ -95,13 +95,13 @@ export class ContentPlannerService {
     const parsed = this.parseLlmResponse(content, dto);
 
     const plan = await this.contentPlansService.createInternal({
-      brand: new Types.ObjectId(brandId),
-      createdBy: new Types.ObjectId(userId),
+      brand: brandId,
+      createdBy: userId,
       description: `AI-generated plan: ${parsed.name}`,
       isDeleted: false,
       itemCount: parsed.items.length,
       name: dto.name ?? parsed.name,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
       periodEnd: new Date(dto.periodEnd),
       periodStart: new Date(dto.periodStart),
       status: ContentPlanStatus.DRAFT,

@@ -27,13 +27,18 @@ export function findFiles(dir: string, pattern: RegExp): string[] {
 }
 
 /**
- * Parse a module file and extract all forFeature/forFeatureAsync calls,
+ * Parse a module file and extract all Mongoose forFeature/forFeatureAsync calls,
  * returning model names and their associated connection.
+ *
+ * NOTE: After the Prisma migration this function will return empty results for
+ * fully-migrated modules. It is retained for modules that still use Mongoose
+ * (e.g., agent-threading, analytics) until those are migrated.
  */
 export function extractForFeatureCalls(
   content: string,
 ): Array<{ connection: string; models: string[] }> {
   const results: Array<{ connection: string; models: string[] }> = [];
+  // Match both MongooseModule.forFeature and MongooseModule.forFeatureAsync
   const regex = /MongooseModule\.forFeature(?:Async)?\(/g;
   let match = regex.exec(content);
 

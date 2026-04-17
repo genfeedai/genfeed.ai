@@ -2,9 +2,9 @@ import { AvatarsService } from '@api/collections/avatars/services/avatars.servic
 import { Ingredient } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { createMockModel } from '@api/shared/testing/mock-model.factory';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -37,10 +37,7 @@ describe('AvatarsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AvatarsService,
-        {
-          provide: getModelToken(Ingredient.name, DB_CONNECTIONS.CLOUD),
-          useValue: model,
-        },
+        { provide: PrismaService, useValue: model },
         { provide: LoggerService, useValue: logger },
       ],
     }).compile();
@@ -66,7 +63,7 @@ describe('AvatarsService', () => {
 
   describe('findOne (inherited from IngredientsService)', () => {
     it('should return doc when aggregate pipeline finds one', async () => {
-      const doc = { _id: new Types.ObjectId(), name: 'Avatar 1' };
+      const doc = { _id: 'test-object-id', name: 'Avatar 1' };
       model.aggregate.mockReturnValue({
         exec: vi.fn().mockResolvedValue([doc]),
       });
@@ -82,7 +79,7 @@ describe('AvatarsService', () => {
       });
 
       const result = await service.findOne({
-        _id: new Types.ObjectId().toHexString(),
+        _id: 'test-object-id'.toHexString(),
       });
       expect(result).toBeNull();
     });
@@ -90,7 +87,7 @@ describe('AvatarsService', () => {
 
   describe('remove (inherited from BaseService)', () => {
     it('should soft-delete by setting isDeleted: true', async () => {
-      const id = new Types.ObjectId().toHexString();
+      const id = 'test-object-id'.toHexString();
       const deleted = { _id: id, isDeleted: true };
       model.findByIdAndUpdate.mockReturnValue({
         exec: vi.fn().mockResolvedValue(deleted),
@@ -112,16 +109,16 @@ describe('AvatarsService', () => {
         populate: vi.fn().mockReturnThis(),
       });
 
-      const result = await service.remove(new Types.ObjectId().toHexString());
+      const result = await service.remove('test-object-id'.toHexString());
       expect(result).toBeNull();
     });
   });
 
   describe('processSearchParams (inherited)', () => {
     it('should convert _id string to ObjectId', () => {
-      const id = new Types.ObjectId().toHexString();
+      const id = 'test-object-id'.toHexString();
       const result = service.processSearchParams({ _id: id });
-      expect(result._id).toBeInstanceOf(Types.ObjectId);
+      expect(result._id).toBeInstanceOf(string);
     });
 
     it('should leave non-id fields untouched', () => {

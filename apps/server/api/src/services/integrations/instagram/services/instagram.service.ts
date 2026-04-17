@@ -179,8 +179,8 @@ export class InstagramService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     const credential = await this.credentialsService.findOne({
-      brand: new Types.ObjectId(brandId),
-      organization: new Types.ObjectId(organizationId),
+      brand: brandId,
+      organization: organizationId,
       platform: CredentialPlatform.INSTAGRAM,
     });
 
@@ -271,8 +271,8 @@ export class InstagramService {
       if (organizationId && brandId) {
         try {
           const credential = await this.credentialsService.findOne({
-            brand: new Types.ObjectId(brandId),
-            organization: new Types.ObjectId(organizationId),
+            brand: brandId,
+            organization: organizationId,
             platform: CredentialPlatform.INSTAGRAM,
           });
 
@@ -411,8 +411,8 @@ export class InstagramService {
     await this.refreshToken(organizationId, brandId);
 
     const credential = await this.credentialsService.findOne({
-      brand: new Types.ObjectId(brandId),
-      organization: new Types.ObjectId(organizationId),
+      brand: brandId,
+      organization: organizationId,
       platform: CredentialPlatform.INSTAGRAM,
     });
 
@@ -486,8 +486,8 @@ export class InstagramService {
     await this.refreshToken(organizationId, brandId);
 
     const credential = await this.credentialsService.findOne({
-      brand: new Types.ObjectId(brandId),
-      organization: new Types.ObjectId(organizationId),
+      brand: brandId,
+      organization: organizationId,
       platform: CredentialPlatform.INSTAGRAM,
     });
 
@@ -561,8 +561,8 @@ export class InstagramService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     const credential = await this.credentialsService.findOne({
-      brand: new Types.ObjectId(brandId),
-      organization: new Types.ObjectId(organizationId),
+      brand: brandId,
+      organization: organizationId,
       platform: CredentialPlatform.INSTAGRAM,
     });
 
@@ -818,8 +818,8 @@ export class InstagramService {
 
     try {
       const credential = await this.credentialsService.findOne({
-        brand: new Types.ObjectId(brandId),
-        organization: new Types.ObjectId(organizationId),
+        brand: brandId,
+        organization: organizationId,
         platform: CredentialPlatform.INSTAGRAM,
       });
 

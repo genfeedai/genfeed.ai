@@ -178,11 +178,11 @@ describe('LinkedInService', () => {
   });
 
   describe('refreshToken', () => {
-    const orgId = new Types.ObjectId().toString();
-    const brandId = new Types.ObjectId().toString();
+    const orgId = 'test-object-id';
+    const brandId = 'test-object-id';
 
     it('should refresh token and update credential', async () => {
-      const credId = new Types.ObjectId();
+      const credId = 'test-object-id';
       mockCredentialsService.findOne.mockResolvedValue({
         _id: credId,
         refreshToken: 'encrypted-refresh-token',
@@ -221,7 +221,7 @@ describe('LinkedInService', () => {
 
     it('should return existing credentials when no refresh token', async () => {
       const cred = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         accessToken: 'existing-token',
         refreshToken: null,
       };
@@ -232,7 +232,7 @@ describe('LinkedInService', () => {
     });
 
     it('should mark credential as disconnected on refresh failure', async () => {
-      const credId = new Types.ObjectId();
+      const credId = 'test-object-id';
       mockCredentialsService.findOne.mockResolvedValue({
         _id: credId,
         refreshToken: 'encrypted-token',

@@ -7,8 +7,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 
 vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
   getPublicMetadata: vi.fn(() => ({
-    organization: new Types.ObjectId().toString(),
-    user: new Types.ObjectId().toString(),
+    organization: 'test-object-id',
+    user: 'test-object-id',
   })),
 }));
 
@@ -25,8 +25,8 @@ describe('WhatsappController', () => {
   let loggerService: vi.Mocked<LoggerService>;
 
   const mockUser = {} as User;
-  const mockBrandId = new Types.ObjectId().toString();
-  const mockBrand = { _id: new Types.ObjectId(), isDeleted: false };
+  const mockBrandId = 'test-object-id';
+  const mockBrand = { _id: 'test-object-id', isDeleted: false };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({

@@ -17,9 +17,9 @@ import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
 import { Analytic } from '@api/endpoints/analytics/schemas/analytic.schema';
 import { mockModel } from '@api/helpers/mocks/model.mock';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('TwitterService', () => {
@@ -44,8 +44,7 @@ describe('TwitterService', () => {
           provide: LoggerService,
           useValue: { error: vi.fn(), log: vi.fn() },
         },
-        { provide: getModelToken(Activity.name), useValue: mockModel },
-        { provide: getModelToken(Analytic.name), useValue: mockModel },
+        { provide: PrismaService, useValue: mockModel },
       ],
     }).compile();
 

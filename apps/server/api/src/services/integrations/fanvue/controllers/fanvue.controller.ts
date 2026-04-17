@@ -57,9 +57,9 @@ export class FanvueController {
     const publicMetadata = getPublicMetadata(user);
 
     const brand = await this.brandsService.findOne({
-      _id: new Types.ObjectId(createCredentialDto.brand),
+      _id: createCredentialDto.brand,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     });
 
     if (!brand) {
@@ -130,8 +130,8 @@ export class FanvueController {
 
       // Find the existing credential to retrieve the code_verifier
       const existingCredential = await this.credentialsService.findOne({
-        brand: new Types.ObjectId(brandId),
-        organization: new Types.ObjectId(organizationId),
+        brand: brandId,
+        organization: organizationId,
         platform: CredentialPlatform.FANVUE,
       });
 

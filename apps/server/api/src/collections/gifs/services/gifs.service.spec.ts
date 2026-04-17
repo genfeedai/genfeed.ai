@@ -1,8 +1,8 @@
 import { GifsService } from '@api/collections/gifs/services/gifs.service';
 import { Ingredient } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('GifsService', () => {
@@ -22,7 +22,7 @@ describe('GifsService', () => {
 
   let mockModel: MockModelType;
 
-  const gifId = new Types.ObjectId();
+  const gifId = 'test-object-id';
   const mockGif = {
     _id: gifId,
     category: 'gif',
@@ -71,10 +71,7 @@ describe('GifsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         GifsService,
-        {
-          provide: getModelToken(Ingredient.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockModel,
-        },
+        { provide: PrismaService, useValue: mockModel },
         {
           provide: LoggerService,
           useValue: {

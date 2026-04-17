@@ -2,26 +2,26 @@ import { TrackSubscriptionDto } from '@api/collections/subscription-attributions
 import { SubscriptionAttribution } from '@api/collections/subscription-attributions/schemas/subscription-attribution.schema';
 import { SubscriptionAttributionsService } from '@api/collections/subscription-attributions/services/subscription-attributions.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
-import { getModelToken } from '@nestjs/mongoose';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('SubscriptionAttributionsService', () => {
   let service: SubscriptionAttributionsService;
   let model: Record<string, ReturnType<typeof vi.fn>>;
 
-  const organizationId = new Types.ObjectId().toString();
+  const organizationId = 'test-object-id'.toString();
   const baseDto: TrackSubscriptionDto = {
     amount: 9900,
     currency: 'usd',
     email: 'user@example.com',
     plan: 'price_123',
     sessionId: 'session_1',
-    sourceContentId: new Types.ObjectId().toString(),
+    sourceContentId: 'test-object-id'.toString(),
     sourceContentType: 'video',
     sourcePlatform: 'youtube',
     stripeCustomerId: 'cus_1',
     stripeSubscriptionId: 'sub_1',
-    userId: new Types.ObjectId().toString(),
+    userId: 'test-object-id'.toString(),
     utm: {
       campaign: 'launch',
       medium: 'video',
@@ -41,13 +41,7 @@ describe('SubscriptionAttributionsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         SubscriptionAttributionsService,
-        {
-          provide: getModelToken(
-            SubscriptionAttribution.name,
-            DB_CONNECTIONS.AUTH,
-          ),
-          useValue: model,
-        },
+        { provide: PrismaService, useValue: model },
       ],
     }).compile();
 
@@ -108,7 +102,7 @@ describe('SubscriptionAttributionsService', () => {
 
   describe('getContentSubscriptionStats', () => {
     it('aggregates totals and includes currency', async () => {
-      const contentId = new Types.ObjectId().toString();
+      const contentId = 'test-object-id'.toString();
       const docs = [
         {
           amount: 9900,

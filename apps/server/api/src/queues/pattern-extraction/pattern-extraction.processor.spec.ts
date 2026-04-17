@@ -3,8 +3,8 @@ import { ContentPerformance } from '@api/collections/content-performance/schemas
 import { CreativePatternsService } from '@api/collections/creative-patterns/creative-patterns.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { PatternExtractionProcessor } from '@api/queues/pattern-extraction/pattern-extraction.processor';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Job } from 'bullmq';
 
@@ -42,12 +42,8 @@ describe('PatternExtractionProcessor', () => {
       providers: [
         PatternExtractionProcessor,
         {
-          provide: getModelToken(AdPerformance.name, DB_CONNECTIONS.CLOUD),
-          useValue: adPerformanceModel,
-        },
-        {
-          provide: getModelToken(ContentPerformance.name, DB_CONNECTIONS.CLOUD),
-          useValue: contentPerformanceModel,
+          provide: PrismaService,
+          useValue: { ...adPerformanceModel, ...contentPerformanceModel },
         },
         { provide: CreativePatternsService, useValue: creativePatternsService },
         { provide: LoggerService, useValue: logger },

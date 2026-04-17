@@ -572,7 +572,7 @@ export class VoicesController {
     )) as
       | (IngredientDocument & {
           _id: string;
-          metadata?: { _id?: string | string } | Types.ObjectId | string;
+          metadata?: { _id?: string | string } | string;
         })
       | null;
 

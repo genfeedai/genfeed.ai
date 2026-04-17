@@ -6,9 +6,9 @@ import { CreditBalanceService } from '@api/collections/credits/services/credit-b
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { CreditTransactionCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('CreditTransactionsService', () => {
@@ -45,7 +45,7 @@ describe('CreditTransactionsService', () => {
   ) {
     return {
       ...data,
-      save: vi.fn().mockResolvedValue({ _id: new Types.ObjectId(), ...data }),
+      save: vi.fn().mockResolvedValue({ _id: 'test-object-id', ...data }),
     };
   });
 
@@ -55,10 +55,7 @@ describe('CreditTransactionsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CreditTransactionsService,
-        {
-          provide: getModelToken(CreditTransactions.name, DB_CONNECTIONS.AUTH),
-          useValue: MockModelConstructor,
-        },
+        { provide: PrismaService, useValue: MockModelConstructor },
         {
           provide: LoggerService,
           useValue: mockLogger,
@@ -89,12 +86,12 @@ describe('CreditTransactionsService', () => {
     it('should create a deduction transaction entry', async () => {
       const orgId = '507f1f77bcf86cd799439011';
       const savedDoc = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         amount: 10,
         balanceAfter: 90,
         balanceBefore: 100,
         category: CreditTransactionCategory.DEDUCT,
-        organization: new Types.ObjectId(orgId),
+        organization: new string(orgId),
         source: 'test-source',
       };
 
@@ -127,12 +124,12 @@ describe('CreditTransactionsService', () => {
     it('should create an add transaction entry', async () => {
       const orgId = '507f1f77bcf86cd799439011';
       const savedDoc = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         amount: 500,
         balanceAfter: 600,
         balanceBefore: 100,
         category: CreditTransactionCategory.ADD,
-        organization: new Types.ObjectId(orgId),
+        organization: new string(orgId),
       };
 
       vi.spyOn(service, 'create').mockResolvedValue(
@@ -155,13 +152,13 @@ describe('CreditTransactionsService', () => {
       const orgId = '507f1f77bcf86cd799439011';
       const expiresAt = new Date('2027-01-01');
       const savedDoc = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         amount: 100,
         balanceAfter: 200,
         balanceBefore: 100,
         category: CreditTransactionCategory.ADD,
         expiresAt,
-        organization: new Types.ObjectId(orgId),
+        organization: new string(orgId),
       };
 
       const createSpy = vi
@@ -215,12 +212,12 @@ describe('CreditTransactionsService', () => {
       const orgId = '507f1f77bcf86cd799439011';
       const mockTransactions = [
         {
-          _id: new Types.ObjectId(),
+          _id: 'test-object-id',
           amount: 10,
           category: CreditTransactionCategory.DEDUCT,
         },
         {
-          _id: new Types.ObjectId(),
+          _id: 'test-object-id',
           amount: 500,
           category: CreditTransactionCategory.ADD,
         },
@@ -240,7 +237,7 @@ describe('CreditTransactionsService', () => {
       expect(result).toHaveLength(2);
       expect(mockModel.find).toHaveBeenCalledWith({
         isDeleted: { $ne: true },
-        organization: new Types.ObjectId(orgId),
+        organization: new string(orgId),
       });
       expect(sortMock).toHaveBeenCalledWith({ createdAt: -1 });
       expect(limitMock).toHaveBeenCalledWith(100);
@@ -281,7 +278,7 @@ describe('CreditTransactionsService', () => {
     it('should filter transactions by type', async () => {
       const orgId = '507f1f77bcf86cd799439011';
       const mockTransactions = [
-        { _id: new Types.ObjectId(), amount: 10, type: 'generation' },
+        { _id: 'test-object-id', amount: 10, type: 'generation' },
       ];
 
       const execMock = vi.fn().mockResolvedValue(mockTransactions);
@@ -296,7 +293,7 @@ describe('CreditTransactionsService', () => {
       expect(result).toBe(mockTransactions);
       expect(mockModel.find).toHaveBeenCalledWith(
         expect.objectContaining({
-          organization: new Types.ObjectId(orgId),
+          organization: new string(orgId),
           type: 'generation',
         }),
       );

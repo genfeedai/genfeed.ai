@@ -39,7 +39,7 @@ describe('buildUpdateOperations', () => {
     );
 
     expect(result.$set).toEqual({
-      folder: expect.any(Types.ObjectId),
+      folder: expect.any(String),
     });
     expect(result.$unset).toEqual({ parent: '' });
   });

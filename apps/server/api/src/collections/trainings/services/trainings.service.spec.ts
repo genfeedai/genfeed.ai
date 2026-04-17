@@ -1,16 +1,14 @@
 import fs from 'node:fs';
-import { Training } from '@api/collections/trainings/schemas/training.schema';
 import { TrainingsService } from '@api/collections/trainings/services/trainings.service';
 import { ConfigService } from '@api/config/config.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { MemoryMonitorService } from '@api/helpers/memory/monitor/memory-monitor.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { IngredientStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 import archiver from 'archiver';
 
@@ -19,7 +17,7 @@ vi.mock('fs');
 
 describe('TrainingsService', () => {
   let service: TrainingsService;
-  let mockModel: ReturnType<typeof createMockModel>;
+  let mockPrismaService: Partial<PrismaService>;
   let mockConfigService: vi.Mocked<ConfigService>;
   let mockLoggerService: vi.Mocked<LoggerService>;
   let mockFilesClientService: vi.Mocked<FilesClientService>;
@@ -29,33 +27,18 @@ describe('TrainingsService', () => {
   let mockNotificationsPublisherService: vi.Mocked<NotificationsPublisherService>;
 
   beforeEach(async () => {
-    mockModel = vi.fn().mockImplementation(function (
-      dto: Record<string, unknown>,
-    ) {
-      return {
-        ...dto,
-        save: vi.fn().mockResolvedValue({ _id: 'new-id', ...dto }),
-      };
-    });
-    mockModel.collection = { name: 'trainings' };
-    mockModel.modelName = 'Training';
-    mockModel.aggregate = vi.fn().mockReturnThis();
-    mockModel.aggregatePaginate = vi.fn();
-    mockModel.countDocuments = vi.fn();
-    mockModel.create = vi.fn();
-    mockModel.deleteOne = vi.fn();
-    mockModel.find = vi.fn().mockReturnThis();
-    mockModel.findById = vi.fn().mockReturnThis();
-    mockModel.findOne = vi.fn().mockReturnThis();
-    mockModel.findByIdAndUpdate = vi.fn().mockReturnValue({
-      exec: vi.fn().mockResolvedValue({ _id: '1' }),
-      populate: vi.fn().mockReturnThis(),
-    });
-    mockModel.limit = vi.fn().mockReturnThis();
-    mockModel.populate = vi.fn().mockReturnThis();
-    mockModel.skip = vi.fn().mockReturnThis();
-    mockModel.sort = vi.fn().mockReturnThis();
-    mockModel.updateOne = vi.fn();
+    mockPrismaService = {
+      training: {
+        count: vi.fn().mockResolvedValue(0),
+        create: vi.fn().mockResolvedValue({ id: 'new-id' }),
+        delete: vi.fn().mockResolvedValue(null),
+        findFirst: vi.fn().mockResolvedValue(null),
+        findMany: vi.fn().mockResolvedValue([]),
+        findUnique: vi.fn().mockResolvedValue(null),
+        update: vi.fn().mockResolvedValue(null),
+        updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+      },
+    } as unknown as Partial<PrismaService>;
 
     mockConfigService = {
       get: vi.fn((key: string) => {
@@ -69,7 +52,7 @@ describe('TrainingsService', () => {
         }
       }),
       ingredientsEndpoint: 'https://api.test.com/ingredients',
-    } as unknown as Model<TrainingDocument>;
+    } as unknown as vi.Mocked<ConfigService>;
 
     mockLoggerService = {
       debug: vi.fn(),
@@ -106,8 +89,8 @@ describe('TrainingsService', () => {
       providers: [
         TrainingsService,
         {
-          provide: getModelToken(Training.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockModel,
+          provide: PrismaService,
+          useValue: mockPrismaService,
         },
         { provide: ConfigService, useValue: mockConfigService },
         { provide: LoggerService, useValue: mockLoggerService },

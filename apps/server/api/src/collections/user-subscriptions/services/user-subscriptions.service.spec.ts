@@ -1,8 +1,8 @@
 import { UserSubscription } from '@api/collections/user-subscriptions/schemas/user-subscription.schema';
 import { UserSubscriptionsService } from '@api/collections/user-subscriptions/services/user-subscriptions.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('UserSubscriptionsService', () => {
@@ -20,10 +20,7 @@ describe('UserSubscriptionsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UserSubscriptionsService,
-        {
-          provide: getModelToken(UserSubscription.name, DB_CONNECTIONS.AUTH),
-          useValue: mockModel,
-        },
+        { provide: PrismaService, useValue: mockModel },
         {
           provide: LoggerService,
           useValue: {

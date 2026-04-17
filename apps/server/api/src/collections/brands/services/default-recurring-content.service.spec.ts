@@ -5,8 +5,8 @@ import { WorkflowExecution } from '@api/collections/workflow-executions/schemas/
 import { Workflow } from '@api/collections/workflows/schemas/workflow.schema';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('DefaultRecurringContentService', () => {
@@ -17,9 +17,9 @@ describe('DefaultRecurringContentService', () => {
   let credentialModel: Record<string, vi.Mock>;
   let workflowsService: Record<string, vi.Mock>;
 
-  const brandId = new Types.ObjectId().toString();
-  const organizationId = new Types.ObjectId().toString();
-  const userId = new Types.ObjectId().toString();
+  const brandId = 'test-object-id'.toString();
+  const organizationId = 'test-object-id'.toString();
+  const userId = 'test-object-id'.toString();
 
   const mockSortLean = <T>(value: T) => ({
     lean: vi.fn().mockResolvedValue(value),
@@ -49,20 +49,13 @@ describe('DefaultRecurringContentService', () => {
       providers: [
         DefaultRecurringContentService,
         {
-          provide: getModelToken(Brand.name, DB_CONNECTIONS.CLOUD),
-          useValue: brandModel,
-        },
-        {
-          provide: getModelToken(Workflow.name, DB_CONNECTIONS.CLOUD),
-          useValue: workflowModel,
-        },
-        {
-          provide: getModelToken(WorkflowExecution.name, DB_CONNECTIONS.CLOUD),
-          useValue: workflowExecutionModel,
-        },
-        {
-          provide: getModelToken(Credential.name, DB_CONNECTIONS.CLOUD),
-          useValue: credentialModel,
+          provide: PrismaService,
+          useValue: {
+            ...brandModel,
+            ...workflowModel,
+            ...workflowExecutionModel,
+            ...credentialModel,
+          },
         },
         {
           provide: WorkflowsService,
@@ -88,8 +81,8 @@ describe('DefaultRecurringContentService', () => {
   });
 
   it('should report partial bundle status when only some recurring workflows exist', async () => {
-    const postWorkflowId = new Types.ObjectId();
-    const newsletterWorkflowId = new Types.ObjectId();
+    const postWorkflowId = 'test-object-id';
+    const newsletterWorkflowId = 'test-object-id';
 
     workflowModel.find.mockReturnValue(
       mockSortLean([
@@ -113,7 +106,7 @@ describe('DefaultRecurringContentService', () => {
     workflowExecutionModel.find.mockReturnValue(
       mockSortLean([
         {
-          _id: new Types.ObjectId(),
+          _id: 'test-object-id',
           startedAt: new Date('2026-03-11T08:00:00.000Z'),
           status: 'pending',
           workflow: postWorkflowId,
@@ -140,14 +133,14 @@ describe('DefaultRecurringContentService', () => {
   });
 
   it('should create only missing recurring workflows when ensuring the default bundle', async () => {
-    const existingPostWorkflowId = new Types.ObjectId();
+    const existingPostWorkflowId = 'test-object-id';
     const createdWorkflowIds = [
-      new Types.ObjectId().toString(),
-      new Types.ObjectId().toString(),
+      'test-object-id'.toString(),
+      'test-object-id'.toString(),
     ];
 
     brandModel.findOne.mockResolvedValue({
-      _id: new Types.ObjectId(brandId),
+      _id: new string(brandId),
       agentConfig: { schedule: { timezone: 'Europe/Malta' } },
       label: 'Genfeed',
     });
@@ -174,14 +167,14 @@ describe('DefaultRecurringContentService', () => {
             },
           },
           {
-            _id: new Types.ObjectId(createdWorkflowIds[0]),
+            _id: new string(createdWorkflowIds[0]),
             isScheduleEnabled: true,
             metadata: {
               defaultRecurringContent: { contentType: 'newsletter' },
             },
           },
           {
-            _id: new Types.ObjectId(createdWorkflowIds[1]),
+            _id: new string(createdWorkflowIds[1]),
             isScheduleEnabled: true,
             metadata: {
               defaultRecurringContent: { contentType: 'image' },
@@ -193,7 +186,7 @@ describe('DefaultRecurringContentService', () => {
       .mockReturnValueOnce(mockSortLean([]))
       .mockReturnValueOnce(mockSortLean([]));
     credentialModel.findOne.mockResolvedValue({
-      _id: new Types.ObjectId(),
+      _id: 'test-object-id',
       platform: 'twitter',
     });
     workflowsService.createWorkflow

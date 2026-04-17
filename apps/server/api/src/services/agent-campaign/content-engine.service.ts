@@ -115,9 +115,9 @@ export class ContentEngineService {
     organizationId: string,
   ): Promise<ContentEngineCycleResult> {
     const campaign = await this.agentCampaignsService.findOne({
-      _id: new Types.ObjectId(campaignId),
+      _id: campaignId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
     });
 
     if (!campaign) {
@@ -225,10 +225,10 @@ export class ContentEngineService {
           reason,
         },
         objective,
-        organization: new Types.ObjectId(organizationId),
-        strategy: new Types.ObjectId(String(strategy._id)),
+        organization: organizationId,
+        strategy: String(strategy._id),
         trigger: AgentExecutionTrigger.CRON,
-        user: new Types.ObjectId(userId),
+        user: userId,
       });
 
       runRecords.push(run);
@@ -402,7 +402,7 @@ export class ContentEngineService {
         },
         objective,
         organization: campaign.organization,
-        strategy: strategy._id as unknown as Types.ObjectId,
+        strategy: strategy._id as unknown,
         trigger: AgentExecutionTrigger.CRON,
         user: campaign.user,
       });
@@ -491,7 +491,7 @@ export class ContentEngineService {
       ...new Set(
         strategies
           .map((strategy) => strategy.goalId)
-          .filter((goalId): goalId is Types.ObjectId => Boolean(goalId))
+          .filter((goalId): goalId is string => Boolean(goalId))
           .map((goalId) => String(goalId)),
       ),
     ];
@@ -753,9 +753,9 @@ export class ContentEngineService {
     organizationId: string,
   ): Promise<CampaignWinnerExtractionResult> {
     const campaign = await this.agentCampaignsService.findOne({
-      _id: new Types.ObjectId(campaignId),
+      _id: campaignId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
     });
 
     if (!campaign) {

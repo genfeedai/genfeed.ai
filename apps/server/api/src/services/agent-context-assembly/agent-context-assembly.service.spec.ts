@@ -12,11 +12,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 describe('AgentContextAssemblyService', () => {
   let service: AgentContextAssemblyService;
 
-  const orgId = new Types.ObjectId().toString();
-  const brandId = new Types.ObjectId().toString();
+  const orgId = 'test-object-id';
+  const brandId = 'test-object-id';
 
   const mockBrand = {
-    _id: new Types.ObjectId(brandId),
+    _id: brandId,
     agentConfig: {
       defaultModel: 'anthropic/claude-3.5-sonnet',
       persona: 'Be concise and technical',

@@ -77,7 +77,7 @@ describe('ModelsGuard', () => {
     expect(result).toBe(true);
     expect(modelRegistrationService.validateModelForOrg).toHaveBeenCalledWith(
       'stable-diffusion',
-      expect.any(Types.ObjectId),
+      expect.any(String),
     );
   });
 
@@ -184,7 +184,7 @@ describe('ModelsGuard', () => {
     expect(result).toBe(true);
     expect(modelRegistrationService.validateModelForOrg).toHaveBeenCalledWith(
       'stable-diffusion',
-      expect.any(Types.ObjectId),
+      expect.any(String),
     );
   });
 

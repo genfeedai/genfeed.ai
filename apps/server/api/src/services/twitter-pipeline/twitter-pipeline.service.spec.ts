@@ -40,8 +40,8 @@ describe('TwitterPipelineService', () => {
     findOne: vi.fn(),
   };
 
-  const orgId = new Types.ObjectId().toString();
-  const brandId = new Types.ObjectId().toString();
+  const orgId = 'test-object-id';
+  const brandId = 'test-object-id';
 
   const fakeTweet: ITwitterSearchResult = {
     authorName: 'Test User',
@@ -63,7 +63,7 @@ describe('TwitterPipelineService', () => {
   };
 
   const fakeCredential = {
-    _id: new Types.ObjectId(),
+    _id: 'test-object-id',
     accessToken: 'at',
     accessTokenSecret: 'ats',
     externalHandle: 'genfeedbot',

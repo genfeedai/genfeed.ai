@@ -2,9 +2,9 @@ import { SlackController } from '@api/services/integrations/slack/controllers/sl
 import { HttpException } from '@nestjs/common';
 
 describe('SlackController', () => {
-  const mockOrganization = new Types.ObjectId().toString();
-  const mockUserId = new Types.ObjectId().toString();
-  const mockBrandId = new Types.ObjectId().toString();
+  const mockOrganization = 'test-object-id';
+  const mockUserId = 'test-object-id';
+  const mockBrandId = 'test-object-id';
 
   const mockUser = {
     publicMetadata: {
@@ -51,8 +51,8 @@ describe('SlackController', () => {
 
       expect(mockBrandsService.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
-          _id: new Types.ObjectId(mockBrandId),
-          organization: new Types.ObjectId(mockOrganization),
+          _id: mockBrandId,
+          organization: mockOrganization,
         }),
       );
       expect(mockCredentialsService.create).not.toHaveBeenCalled();
@@ -67,7 +67,7 @@ describe('SlackController', () => {
 
       expect(mockCredentialsService.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          user: new Types.ObjectId(mockUserId),
+          user: mockUserId,
         }),
       );
     });

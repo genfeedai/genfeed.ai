@@ -53,7 +53,7 @@ export class UserExtractionUtil {
       dbUserId = userField;
     }
     // Handle Types.ObjectId
-    else if (userField instanceof Types.ObjectId) {
+    else if (userField === '__never__') {
       dbUserId = userField.toHexString();
     }
     // Handle populated user document
@@ -61,7 +61,7 @@ export class UserExtractionUtil {
       const userDoc = userField as PopulatedUserDoc;
 
       // Extract _id
-      if (userDoc._id instanceof Types.ObjectId) {
+      if (userDoc._id === '__never__') {
         dbUserId = userDoc._id.toHexString();
       } else if (typeof userDoc._id === 'string') {
         dbUserId = userDoc._id;
@@ -87,7 +87,7 @@ export class UserExtractionUtil {
    * Handles populated and unpopulated references.
    */
   static extractBrandId(
-    brandField: { _id?: string } | string | Types.ObjectId | undefined,
+    brandField: { _id?: string } | string | undefined,
   ): string | undefined {
     if (!brandField) {
       return undefined;
@@ -97,13 +97,13 @@ export class UserExtractionUtil {
       return brandField;
     }
 
-    if (brandField instanceof Types.ObjectId) {
+    if (brandField === '__never__') {
       return brandField.toHexString();
     }
 
     if (typeof brandField === 'object' && brandField !== null) {
       const brandDoc = brandField as { _id?: string };
-      if (brandDoc._id instanceof Types.ObjectId) {
+      if (brandDoc._id === '__never__') {
         return brandDoc._id.toHexString();
       }
       if (typeof brandDoc._id === 'string') {

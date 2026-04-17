@@ -5,7 +5,7 @@ import { ByokBillingService } from '@api/services/byok-billing/byok-billing.serv
 import type { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 
-const orgId = new Types.ObjectId().toString();
+const orgId = 'test-object-id';
 
 describe('ByokBillingService', () => {
   let service: ByokBillingService;

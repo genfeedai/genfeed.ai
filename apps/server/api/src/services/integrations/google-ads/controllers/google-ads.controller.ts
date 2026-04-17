@@ -57,9 +57,9 @@ export class GoogleAdsController {
 
     const publicMetadata = getPublicMetadata(user);
     const brand = await this.brandsService.findOne({
-      _id: new Types.ObjectId(createCredentialDto.brand),
+      _id: createCredentialDto.brand,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     });
 
     if (!brand) {
@@ -110,9 +110,9 @@ export class GoogleAdsController {
 
     const { brandId, organizationId } = JSON.parse(body.state);
     const credential = await this.credentialsService.findOne({
-      brand: new Types.ObjectId(brandId),
+      brand: brandId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
       platform: CredentialPlatform.GOOGLE_ADS,
     });
 
@@ -329,9 +329,9 @@ export class GoogleAdsController {
     const credential = await this.credentialsService.findOne({
       isConnected: true,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
       platform: CredentialPlatform.GOOGLE_ADS,
-      user: new Types.ObjectId(userId),
+      user: userId,
     });
 
     if (!credential?.accessToken) {

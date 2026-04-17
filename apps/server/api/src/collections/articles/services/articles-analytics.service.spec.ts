@@ -5,8 +5,8 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { ConfigService } from '@api/config/config.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('ArticlesAnalyticsService', () => {
@@ -15,7 +15,7 @@ describe('ArticlesAnalyticsService', () => {
   let configService: ConfigService;
 
   const mockArticle = {
-    _id: new Types.ObjectId(),
+    _id: 'test-object-id',
     content: 'Test content for analytics',
     isDeleted: false,
     slug: 'test-article',
@@ -42,7 +42,7 @@ describe('ArticlesAnalyticsService', () => {
           },
         },
         {
-          provide: getModelToken(Article.name, DB_CONNECTIONS.CLOUD),
+          provide: PrismaService,
           useValue: {
             findById: vi.fn(),
             findOne: vi.fn(),

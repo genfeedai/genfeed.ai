@@ -106,9 +106,9 @@ export class WordpressService {
       // WordPress.com tokens are long-lived and do not expire.
       // Verify the credential exists and is valid by making a test API call.
       const credential = await this.credentialsService.findOne({
-        brand: new Types.ObjectId(brandId),
+        brand: brandId,
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
+        organization: organizationId,
         platform: CredentialPlatform.WORDPRESS,
       });
 

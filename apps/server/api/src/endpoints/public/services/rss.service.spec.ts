@@ -10,7 +10,7 @@ describe('RssService', () => {
 
   const mockArticles = [
     {
-      _id: new Types.ObjectId(),
+      _id: 'test-object-id',
       content: 'Test content 1',
       createdAt: new Date('2024-01-01'),
       isDeleted: false,
@@ -22,7 +22,7 @@ describe('RssService', () => {
       summary: 'Test summary 1',
     },
     {
-      _id: new Types.ObjectId(),
+      _id: 'test-object-id',
       content: 'Test content 2',
       createdAt: new Date('2024-01-02'),
       isDeleted: false,

@@ -9,18 +9,18 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function createMocks() {
   const distributionDoc = {
-    _id: new Types.ObjectId(),
-    brand: new Types.ObjectId(),
+    _id: 'test-object-id',
+    brand: 'test-object-id',
     caption: undefined,
     chatId: '-1001234567890',
     contentType: DistributionContentType.TEXT,
     isDeleted: false,
     mediaUrl: undefined,
-    organization: new Types.ObjectId(),
+    organization: 'test-object-id',
     platform: DistributionPlatform.TELEGRAM,
     status: PublishStatus.PUBLISHING,
     text: 'Hello from Genfeed',
-    user: new Types.ObjectId(),
+    user: 'test-object-id',
   };
 
   const configService = {
@@ -93,9 +93,9 @@ describe('TelegramDistributionService', () => {
       const result = await service.sendImmediate({
         chatId: '-1001234567890',
         contentType: DistributionContentType.TEXT,
-        organizationId: new Types.ObjectId().toString(),
+        organizationId: 'test-object-id',
         text: 'Hello from Genfeed',
-        userId: new Types.ObjectId().toString(),
+        userId: 'test-object-id',
       });
 
       expect(result.distributionId).toBeDefined();
@@ -120,8 +120,8 @@ describe('TelegramDistributionService', () => {
         chatId: '-1001234567890',
         contentType: DistributionContentType.PHOTO,
         mediaUrl: 'https://example.com/photo.jpg',
-        organizationId: new Types.ObjectId().toString(),
-        userId: new Types.ObjectId().toString(),
+        organizationId: 'test-object-id',
+        userId: 'test-object-id',
       });
 
       expect(mocks.httpService.post).toHaveBeenCalledWith(
@@ -143,8 +143,8 @@ describe('TelegramDistributionService', () => {
         chatId: '-1001234567890',
         contentType: DistributionContentType.VIDEO,
         mediaUrl: 'https://example.com/video.mp4',
-        organizationId: new Types.ObjectId().toString(),
-        userId: new Types.ObjectId().toString(),
+        organizationId: 'test-object-id',
+        userId: 'test-object-id',
       });
 
       expect(mocks.httpService.post).toHaveBeenCalledWith(
@@ -171,9 +171,9 @@ describe('TelegramDistributionService', () => {
         service.sendImmediate({
           chatId: 'invalid-chat',
           contentType: DistributionContentType.TEXT,
-          organizationId: new Types.ObjectId().toString(),
+          organizationId: 'test-object-id',
           text: 'Hello',
-          userId: new Types.ObjectId().toString(),
+          userId: 'test-object-id',
         }),
       ).rejects.toThrow('Telegram API error: chat not found');
 
@@ -192,12 +192,12 @@ describe('TelegramDistributionService', () => {
         .mockResolvedValue(brandCredential);
 
       await service.sendImmediate({
-        brandId: new Types.ObjectId().toString(),
+        brandId: 'test-object-id',
         chatId: '-1001234567890',
         contentType: DistributionContentType.TEXT,
-        organizationId: new Types.ObjectId().toString(),
+        organizationId: 'test-object-id',
         text: 'Hello',
-        userId: new Types.ObjectId().toString(),
+        userId: 'test-object-id',
       });
 
       expect(mocks.httpService.post).toHaveBeenCalledWith(
@@ -215,10 +215,10 @@ describe('TelegramDistributionService', () => {
       const result = await service.schedule({
         chatId: '-1001234567890',
         contentType: DistributionContentType.TEXT,
-        organizationId: new Types.ObjectId().toString(),
+        organizationId: 'test-object-id',
         scheduledAt,
         text: 'Scheduled message',
-        userId: new Types.ObjectId().toString(),
+        userId: 'test-object-id',
       });
 
       expect(result.distributionId).toBeDefined();
@@ -270,8 +270,8 @@ describe('TelegramDistributionService', () => {
       mocks.distributionsService.findOne = vi.fn().mockResolvedValue(null);
 
       await service.processScheduled({
-        distributionId: new Types.ObjectId().toString(),
-        organizationId: new Types.ObjectId().toString(),
+        distributionId: 'test-object-id',
+        organizationId: 'test-object-id',
         platform: DistributionPlatform.TELEGRAM,
       });
 
@@ -310,9 +310,9 @@ describe('TelegramDistributionService', () => {
       await service.sendImmediate({
         chatId: '-1001234567890',
         contentType: DistributionContentType.TEXT,
-        organizationId: new Types.ObjectId().toString(),
+        organizationId: 'test-object-id',
         text: 'Hello',
-        userId: new Types.ObjectId().toString(),
+        userId: 'test-object-id',
       });
 
       expect(mocks.httpService.post).toHaveBeenCalledWith(
@@ -330,9 +330,9 @@ describe('TelegramDistributionService', () => {
         service.sendImmediate({
           chatId: '-1001234567890',
           contentType: DistributionContentType.TEXT,
-          organizationId: new Types.ObjectId().toString(),
+          organizationId: 'test-object-id',
           text: 'Hello',
-          userId: new Types.ObjectId().toString(),
+          userId: 'test-object-id',
         }),
       ).rejects.toThrow('No Telegram bot token found');
     });
@@ -340,19 +340,19 @@ describe('TelegramDistributionService', () => {
 
   describe('multi-tenancy isolation', () => {
     it('should use org-specific credential lookup', async () => {
-      const orgId = new Types.ObjectId().toString();
+      const orgId = 'test-object-id';
 
       await service.sendImmediate({
         chatId: '-1001234567890',
         contentType: DistributionContentType.TEXT,
         organizationId: orgId,
         text: 'Hello',
-        userId: new Types.ObjectId().toString(),
+        userId: 'test-object-id',
       });
 
       expect(mocks.credentialsService.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
-          organization: new Types.ObjectId(orgId),
+          organization: orgId,
         }),
       );
     });

@@ -1,9 +1,9 @@
 import { Caption } from '@api/collections/captions/schemas/caption.schema';
 import { CaptionsService } from '@api/collections/captions/services/captions.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { createMockModel } from '@api/shared/testing/mock-model.factory';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -33,10 +33,7 @@ describe('CaptionsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CaptionsService,
-        {
-          provide: getModelToken(Caption.name, DB_CONNECTIONS.CLOUD),
-          useValue: model,
-        },
+        { provide: PrismaService, useValue: model },
         { provide: LoggerService, useValue: logger },
       ],
     }).compile();
@@ -55,7 +52,7 @@ describe('CaptionsService', () => {
   describe('findOne (inherited from BaseService)', () => {
     it('should find a caption by id', async () => {
       const doc = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         content: 'Hello',
         format: 'srt',
       };
@@ -77,7 +74,7 @@ describe('CaptionsService', () => {
       });
 
       const result = await service.findOne({
-        _id: new Types.ObjectId().toHexString(),
+        _id: 'test-object-id'.toHexString(),
       });
       expect(result).toBeNull();
     });
@@ -89,14 +86,14 @@ describe('CaptionsService', () => {
       });
 
       await expect(
-        service.findOne({ _id: new Types.ObjectId().toHexString() }),
+        service.findOne({ _id: 'test-object-id'.toHexString() }),
       ).rejects.toThrow('DB error');
     });
   });
 
   describe('patch (inherited from BaseService)', () => {
     it('should update caption content', async () => {
-      const id = new Types.ObjectId();
+      const id = 'test-object-id';
       const updated = { _id: id, content: 'Updated caption' };
       model.findByIdAndUpdate.mockReturnValue({
         exec: vi.fn().mockResolvedValue(updated),
@@ -115,7 +112,7 @@ describe('CaptionsService', () => {
 
   describe('remove (inherited from BaseService)', () => {
     it('should soft-delete a caption', async () => {
-      const id = new Types.ObjectId().toHexString();
+      const id = 'test-object-id'.toHexString();
       const deleted = { _id: id, isDeleted: true };
       model.findByIdAndUpdate.mockReturnValue({
         exec: vi.fn().mockResolvedValue(deleted),
@@ -132,7 +129,7 @@ describe('CaptionsService', () => {
         populate: vi.fn().mockReturnThis(),
       });
 
-      const result = await service.remove(new Types.ObjectId().toHexString());
+      const result = await service.remove('test-object-id'.toHexString());
       expect(result).toBeNull();
     });
   });
@@ -152,8 +149,8 @@ describe('CaptionsService', () => {
   describe('findAll (inherited from BaseService)', () => {
     it('should return paginated results', async () => {
       const docs = [
-        { _id: new Types.ObjectId(), content: 'Caption 1' },
-        { _id: new Types.ObjectId(), content: 'Caption 2' },
+        { _id: 'test-object-id', content: 'Caption 1' },
+        { _id: 'test-object-id', content: 'Caption 2' },
       ];
       model.aggregatePaginate.mockResolvedValue({
         docs,

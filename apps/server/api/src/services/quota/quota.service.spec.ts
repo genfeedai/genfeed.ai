@@ -11,7 +11,7 @@ import { ModuleRef } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const objectId = () => new Types.ObjectId();
+const objectId = () => 'test-object-id';
 
 const makeCredential = (
   platform: CredentialPlatform = CredentialPlatform.TWITTER,

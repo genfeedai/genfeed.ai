@@ -33,8 +33,8 @@ export class DiscordController {
 
     // Create or update pending credential with state
     const existingCredential = await this.credentialsService.findOne({
-      brand: new Types.ObjectId(brandId),
-      organization: new Types.ObjectId(organizationId),
+      brand: brandId,
+      organization: organizationId,
       platform: CredentialPlatform.DISCORD,
     });
 
@@ -46,14 +46,14 @@ export class DiscordController {
       });
     } else {
       await this.credentialsService.create({
-        brand: new Types.ObjectId(brandId),
+        brand: brandId,
         isConnected: false,
         // @ts-expect-error TS2353
         isDeleted: false,
         oauthState: state,
-        organization: new Types.ObjectId(organizationId),
+        organization: organizationId,
         platform: CredentialPlatform.DISCORD,
-        user: new Types.ObjectId(user._id),
+        user: user._id,
       });
     }
 
@@ -81,9 +81,9 @@ export class DiscordController {
   ) {
     // Find pending credential with matching state
     const credential = await this.credentialsService.findOne({
-      brand: new Types.ObjectId(brandId),
+      brand: brandId,
       oauthState: state,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
       platform: CredentialPlatform.DISCORD,
     });
 

@@ -36,9 +36,8 @@ function toSessionBindingDocument(
     _id: snapshot.id as string,
     organizationId: snapshot.organizationId as string,
     threadId: snapshot.threadId as string,
-    organization:
-      snapshot.organizationId as unknown as import('mongoose').Types.ObjectId,
-    thread: snapshot.threadId as unknown as import('mongoose').Types.ObjectId,
+    organization: snapshot.organizationId as string,
+    thread: snapshot.threadId as string,
     runId: sb.runId as string | undefined,
     model: sb.model as string | undefined,
     status: (sb.status as AgentSessionBindingStatus) ?? 'idle',

@@ -351,11 +351,11 @@ export class NotificationsPublisherService {
     email: string | null;
     settings: Record<string, unknown> | null;
   }> {
-    if (!Types.ObjectId.isValid(userId)) {
+    if (!userId || typeof userId !== 'string') {
       return { email: null, settings: null };
     }
 
-    const userObjectId = new Types.ObjectId(userId);
+    const userObjectId = userId;
     const [user, settings] = await Promise.all([
       this.usersService.findOne({ _id: userObjectId, isDeleted: false }),
       this.settingsService.findOne({ isDeleted: false, user: userObjectId }),

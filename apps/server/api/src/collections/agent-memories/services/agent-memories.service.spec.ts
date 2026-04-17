@@ -5,27 +5,26 @@ import {
   AgentMemory,
 } from '@api/collections/agent-memories/schemas/agent-memory.schema';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
-
 import { AgentMemoriesService } from './agent-memories.service';
 
 const AGENT_CONN = DB_CONNECTIONS.AGENT;
 
 const makeMemory = (overrides: Record<string, unknown> = {}) => ({
-  _id: new Types.ObjectId(),
+  _id: 'test-object-id',
   brand: null,
   confidence: 0.5,
   content: 'default content',
   contentType: 'generic' as const,
   importance: 0.5,
   kind: 'instruction' as const,
-  organization: new Types.ObjectId(),
+  organization: 'test-object-id',
   scope: 'user' as const,
   tags: [],
-  user: new Types.ObjectId(),
+  user: 'test-object-id',
   ...overrides,
 });
 
@@ -38,9 +37,9 @@ describe('AgentMemoriesService', () => {
   };
   let logger: vi.Mocked<LoggerService>;
 
-  const orgId = new Types.ObjectId().toHexString();
-  const userId = new Types.ObjectId().toHexString();
-  const campaignId = new Types.ObjectId().toHexString();
+  const orgId = 'test-object-id'.toHexString();
+  const userId = 'test-object-id'.toHexString();
+  const campaignId = 'test-object-id'.toHexString();
 
   beforeEach(async () => {
     const chainMock = {
@@ -58,10 +57,7 @@ describe('AgentMemoriesService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AgentMemoriesService,
-        {
-          provide: getModelToken(AgentMemory.name, AGENT_CONN),
-          useValue: model,
-        },
+        { provide: PrismaService, useValue: model },
         {
           provide: LoggerService,
           useValue: {
@@ -98,9 +94,9 @@ describe('AgentMemoriesService', () => {
       const result = await service.listForUser(userId, orgId);
 
       const filter = model.find.mock.calls[0][0] as {
-        organization: Types.ObjectId;
+        organization: string;
         scope: { $ne: string };
-        user: Types.ObjectId;
+        user: string;
       };
       expect(filter.organization.toHexString()).toBe(orgId);
       expect(filter.scope).toEqual({ $ne: 'campaign' });
@@ -169,7 +165,7 @@ describe('AgentMemoriesService', () => {
         scope: 'campaign',
       });
 
-      const payload = spy.mock.calls[0][0] as Record<string, Types.ObjectId>;
+      const payload = spy.mock.calls[0][0] as Record<string, string>;
       expect(payload.campaignId.toHexString()).toBe(campaignId);
       expect(payload.scope).toBe('campaign');
     });
@@ -264,7 +260,7 @@ describe('AgentMemoriesService', () => {
     it('returns campaign-scoped memories for a campaign', async () => {
       const memories = [
         makeMemory({
-          campaignId: new Types.ObjectId(campaignId),
+          campaignId: new string(campaignId),
           scope: 'campaign',
         }),
       ];
@@ -278,8 +274,8 @@ describe('AgentMemoriesService', () => {
       const result = await service.getCampaignMemories(campaignId, orgId);
 
       const filter = model.find.mock.calls[0][0] as {
-        campaignId: Types.ObjectId;
-        organization: Types.ObjectId;
+        campaignId: string;
+        organization: string;
         scope: string;
       };
       expect(filter.campaignId.toHexString()).toBe(campaignId);
@@ -292,15 +288,15 @@ describe('AgentMemoriesService', () => {
   // ── removeMemory ─────────────────────────────────────────────────────────
   describe('removeMemory', () => {
     it('calls findOneAndDelete with correct filter', async () => {
-      const memoryId = new Types.ObjectId().toHexString();
+      const memoryId = 'test-object-id'.toHexString();
       model.findOneAndDelete.mockResolvedValue(makeMemory());
 
       await service.removeMemory(memoryId, userId, orgId);
 
       const filter = model.findOneAndDelete.mock.calls[0][0] as {
-        _id: Types.ObjectId;
-        organization: Types.ObjectId;
-        user: Types.ObjectId;
+        _id: string;
+        organization: string;
+        user: string;
       };
       expect(filter._id.toHexString()).toBe(memoryId);
       expect(filter.organization.toHexString()).toBe(orgId);
@@ -309,7 +305,7 @@ describe('AgentMemoriesService', () => {
 
     it('throws NotFoundException when memory not found', async () => {
       model.findOneAndDelete.mockResolvedValue(null);
-      const memoryId = new Types.ObjectId().toHexString();
+      const memoryId = 'test-object-id'.toHexString();
 
       await expect(
         service.removeMemory(memoryId, userId, orgId),
@@ -332,8 +328,8 @@ describe('AgentMemoriesService', () => {
     });
 
     it('boosts pinned memories to top', async () => {
-      const pinnedId = new Types.ObjectId();
-      const unpinnedId = new Types.ObjectId();
+      const pinnedId = 'test-object-id';
+      const unpinnedId = 'test-object-id';
 
       const memories = [
         makeMemory({ _id: unpinnedId, content: 'unpinned' }),
@@ -402,7 +398,7 @@ describe('AgentMemoriesService', () => {
           .mockResolvedValueOnce([makeMemory({ content: 'user memory' })])
           .mockResolvedValueOnce([
             makeMemory({
-              campaignId: new Types.ObjectId(campaignId),
+              campaignId: new string(campaignId),
               content: 'campaign memory',
               scope: 'campaign',
             }),

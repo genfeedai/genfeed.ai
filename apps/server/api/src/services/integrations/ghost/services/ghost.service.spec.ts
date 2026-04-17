@@ -36,8 +36,8 @@ describe('GhostService', () => {
     warn: ReturnType<typeof vi.fn>;
   };
 
-  const orgId = new Types.ObjectId().toHexString();
-  const brandId = new Types.ObjectId().toHexString();
+  const orgId = 'test-object-id'.toHexString();
+  const brandId = 'test-object-id'.toHexString();
 
   beforeEach(async () => {
     httpService = { get: vi.fn(), post: vi.fn() };
@@ -345,9 +345,9 @@ describe('GhostService', () => {
 
       expect(credentialsService.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
-          brand: expect.any(Types.ObjectId),
+          brand: expect.any(String),
           isDeleted: false,
-          organization: expect.any(Types.ObjectId),
+          organization: expect.any(String),
           platform: CredentialPlatform.GHOST,
         }),
       );

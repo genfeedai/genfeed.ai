@@ -14,7 +14,7 @@ const makeTrend = (
   viralityScore = 80,
 ): TrendEntity =>
   ({
-    _id: new Types.ObjectId(),
+    _id: 'test-object-id',
     expiresAt: new Date(),
     growthRate: 5,
     isCurrent: true,

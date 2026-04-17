@@ -1,8 +1,8 @@
 import { AgentStrategy } from '@api/collections/agent-strategies/schemas/agent-strategy.schema';
 import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('AgentStrategiesService', () => {
@@ -10,12 +10,12 @@ describe('AgentStrategiesService', () => {
   let _model: any;
 
   const mockStrategy = {
-    _id: new Types.ObjectId(),
+    _id: 'test-object-id',
     consecutiveFailures: 0,
     isActive: false,
     name: 'Test Strategy',
     nextRunAt: null,
-    organization: new Types.ObjectId(),
+    organization: 'test-object-id',
     platforms: ['twitter'],
   };
 
@@ -37,10 +37,7 @@ describe('AgentStrategiesService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AgentStrategiesService,
-        {
-          provide: getModelToken(AgentStrategy.name, DB_CONNECTIONS.AGENT),
-          useValue: mockModel,
-        },
+        { provide: PrismaService, useValue: mockModel },
         {
           provide: LoggerService,
           useValue: {
@@ -54,9 +51,7 @@ describe('AgentStrategiesService', () => {
     }).compile();
 
     service = module.get<AgentStrategiesService>(AgentStrategiesService);
-    _model = module.get(
-      getModelToken(AgentStrategy.name, DB_CONNECTIONS.AGENT),
-    );
+    _model = module.get(PrismaService);
   });
 
   it('should be defined', () => {
@@ -66,8 +61,8 @@ describe('AgentStrategiesService', () => {
   describe('findOneById', () => {
     it('should call findOne with objectId and organization', async () => {
       vi.spyOn(service, 'findOne').mockResolvedValue(mockStrategy as any);
-      const id = new Types.ObjectId().toString();
-      const orgId = new Types.ObjectId().toString();
+      const id = 'test-object-id'.toString();
+      const orgId = 'test-object-id'.toString();
       await service.findOneById(id, orgId);
       expect(service.findOne).toHaveBeenCalledWith(
         expect.objectContaining({ isDeleted: false }),
@@ -140,7 +135,7 @@ describe('AgentStrategiesService', () => {
 
     it('should pass additional filters to findEnabledStrategies', async () => {
       _model.find = vi.fn().mockResolvedValue([]);
-      const orgId = new Types.ObjectId();
+      const orgId = 'test-object-id';
       await service.findEnabledStrategies({
         isActive: true,
         organization: orgId,

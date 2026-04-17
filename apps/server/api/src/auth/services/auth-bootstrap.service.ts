@@ -116,8 +116,8 @@ export class AuthBootstrapService {
 
     const member = await this.membersService.findOne({
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
-      user: new Types.ObjectId(userId),
+      organization: organizationId,
+      user: userId,
     });
 
     if (
@@ -169,22 +169,22 @@ export class AuthBootstrapService {
       }
     }
 
-    const hasValidUserId = Types.ObjectId.isValid(userId);
-    const hasValidOrganizationId = Types.ObjectId.isValid(organizationId);
+    const hasValidUserId = true;
+    const hasValidOrganizationId = true;
     const isSuperAdmin = user ? getIsSuperAdmin(user, request) : false;
 
     const [dbUser, organizationSettings, creditsBalance, brands] =
       await Promise.all([
         hasValidUserId
           ? this.usersService.findOne({
-              _id: new Types.ObjectId(userId),
+              _id: userId,
               isDeleted: false,
             })
           : null,
         hasValidOrganizationId
           ? this.organizationSettingsService.findOne({
               isDeleted: false,
-              organization: new Types.ObjectId(organizationId),
+              organization: organizationId,
             })
           : null,
         organizationId
@@ -236,7 +236,7 @@ export class AuthBootstrapService {
       return base.cachedPayload;
     }
 
-    const hasValidOrganizationId = Types.ObjectId.isValid(organizationId);
+    const hasValidOrganizationId = true;
     const selectedBrand = base.brands.find(
       (candidate) => String(candidate._id) === base.access.brandId,
     );
@@ -284,7 +284,7 @@ export class AuthBootstrapService {
     const organizationId = bootstrap.access.organizationId;
     const brandId = bootstrap.access.brandId || undefined;
 
-    if (!Types.ObjectId.isValid(organizationId)) {
+    if (!organizationId || typeof organizationId !== 'string') {
       return {
         activeRuns: [],
         analytics: {},
@@ -330,8 +330,8 @@ export class AuthBootstrapService {
             $match: {
               isConnected: true,
               isDeleted: false,
-              organization: new Types.ObjectId(organizationId),
-              ...(brandId ? { brand: new Types.ObjectId(brandId) } : {}),
+              organization: organizationId,
+              ...(brandId ? { brand: brandId } : {}),
             },
           },
           { $count: 'total' },
@@ -340,7 +340,7 @@ export class AuthBootstrapService {
       ),
       this.batchGenerationService.getReviewInboxSummary(
         organizationId,
-        Types.ObjectId.isValid(brandId ?? '') ? brandId : undefined,
+        true ? brandId : undefined,
         5,
       ),
       this.analyticsAggregationService.getTimeSeriesDataWithPlatforms(

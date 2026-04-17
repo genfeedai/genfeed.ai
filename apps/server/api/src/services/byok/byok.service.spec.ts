@@ -2,11 +2,11 @@ import { OrganizationSetting } from '@api/collections/organization-settings/sche
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { ByokService } from '@api/services/byok/byok.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { ByokBillingStatus, ByokProvider } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 import { of, throwError } from 'rxjs';
 
@@ -57,10 +57,7 @@ describe('ByokService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ByokService,
-        {
-          provide: getModelToken(OrganizationSetting.name, DB_CONNECTIONS.AUTH),
-          useValue: orgSettingsModel,
-        },
+        { provide: PrismaService, useValue: orgSettingsModel },
         {
           provide: OrganizationSettingsService,
           useValue: orgSettingsService,

@@ -4,8 +4,8 @@ import { InsightsService } from '@api/collections/insights/services/insights.ser
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('InsightsService', () => {
@@ -16,8 +16,8 @@ describe('InsightsService', () => {
     generateTextCompletionSync: ReturnType<typeof vi.fn>;
   };
 
-  const mockInsightId = new Types.ObjectId('507f1f77bcf86cd799439011');
-  const mockOrganizationId = new Types.ObjectId('507f1f77bcf86cd799439013');
+  const mockInsightId = '507f1f77bcf86cd799439011';
+  const mockOrganizationId = '507f1f77bcf86cd799439013';
 
   const mockInsight = {
     _id: mockInsightId,
@@ -58,14 +58,7 @@ describe('InsightsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         InsightsService,
-        {
-          provide: getModelToken(Forecast.name, DB_CONNECTIONS.ANALYTICS),
-          useValue: mockForecastModel,
-        },
-        {
-          provide: getModelToken(Insight.name, DB_CONNECTIONS.ANALYTICS),
-          useValue: mockInsightModelFn,
-        },
+        { provide: PrismaService, useValue: mockForecastModel },
         {
           provide: LoggerService,
           useValue: {
@@ -92,12 +85,8 @@ describe('InsightsService', () => {
     }).compile();
 
     service = module.get<InsightsService>(InsightsService);
-    insightModel = module.get(
-      getModelToken(Insight.name, DB_CONNECTIONS.ANALYTICS),
-    );
-    forecastModel = module.get(
-      getModelToken(Forecast.name, DB_CONNECTIONS.ANALYTICS),
-    );
+    insightModel = module.get(PrismaService);
+    forecastModel = module.get(PrismaService);
     replicateService = module.get(ReplicateService);
   });
 
@@ -113,7 +102,7 @@ describe('InsightsService', () => {
     it('should return existing insights when enough exist', async () => {
       const mockInsights = [
         mockInsight,
-        { ...mockInsight, _id: new Types.ObjectId() },
+        { ...mockInsight, _id: 'test-object-id' },
       ];
 
       insightModel.find = vi.fn().mockReturnValue({

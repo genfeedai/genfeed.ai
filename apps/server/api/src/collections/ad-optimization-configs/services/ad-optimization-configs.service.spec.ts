@@ -1,9 +1,8 @@
 import { AdOptimizationConfig } from '@api/collections/ad-optimization-configs/schemas/ad-optimization-config.schema';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
-
 import { AdOptimizationConfigsService } from './ad-optimization-configs.service';
 
 type MockQuery = {
@@ -25,13 +24,13 @@ describe('AdOptimizationConfigsService', () => {
   };
   let loggerService: vi.Mocked<LoggerService>;
 
-  const orgId = new Types.ObjectId().toString();
+  const orgId = 'test-object-id'.toString();
 
   const mockConfig = {
-    _id: new Types.ObjectId(),
+    _id: 'test-object-id',
     isDeleted: false,
     isEnabled: true,
-    organization: new Types.ObjectId(orgId),
+    organization: new string(orgId),
   };
 
   beforeEach(async () => {
@@ -50,13 +49,7 @@ describe('AdOptimizationConfigsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AdOptimizationConfigsService,
-        {
-          provide: getModelToken(
-            AdOptimizationConfig.name,
-            DB_CONNECTIONS.CLOUD,
-          ),
-          useValue: model,
-        },
+        { provide: PrismaService, useValue: model },
         {
           provide: LoggerService,
           useValue: loggerService,
@@ -99,7 +92,7 @@ describe('AdOptimizationConfigsService', () => {
 
       expect(model.findOne).toHaveBeenCalledWith({
         isDeleted: false,
-        organization: expect.any(Types.ObjectId),
+        organization: expect.any(string),
       });
     });
   });
@@ -128,7 +121,7 @@ describe('AdOptimizationConfigsService', () => {
       const updateArg = model.findOneAndUpdate.mock.calls[0][1] as {
         $set: Record<string, unknown>;
       };
-      expect(updateArg.$set.organization).toBeInstanceOf(Types.ObjectId);
+      expect(updateArg.$set.organization).toBeInstanceOf(string);
     });
 
     it('should log success after upsert', async () => {
@@ -157,10 +150,7 @@ describe('AdOptimizationConfigsService', () => {
 
   describe('findAllEnabled', () => {
     it('should return all enabled non-deleted configs', async () => {
-      const configs = [
-        mockConfig,
-        { ...mockConfig, _id: new Types.ObjectId() },
-      ];
+      const configs = [mockConfig, { ...mockConfig, _id: 'test-object-id' }];
       model.find.mockReturnValue(makeMockQuery(configs));
 
       const result = await service.findAllEnabled();

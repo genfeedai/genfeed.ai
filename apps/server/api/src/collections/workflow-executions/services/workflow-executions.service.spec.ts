@@ -5,12 +5,12 @@ import {
 } from '@api/collections/workflow-executions/schemas/workflow-execution.schema';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   WorkflowExecutionStatus,
   WorkflowExecutionTrigger,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('WorkflowExecutionsService', () => {
@@ -18,20 +18,20 @@ describe('WorkflowExecutionsService', () => {
   let mockModel: Record<string, vi.Mock>;
   let mockLoggerService: Record<string, vi.Mock>;
 
-  const mockUserId = new Types.ObjectId().toString();
-  const mockOrgId = new Types.ObjectId().toString();
-  const mockWorkflowId = new Types.ObjectId().toString();
-  const mockExecutionId = new Types.ObjectId().toString();
+  const mockUserId = 'test-object-id'.toString();
+  const mockOrgId = 'test-object-id'.toString();
+  const mockWorkflowId = 'test-object-id'.toString();
+  const mockExecutionId = 'test-object-id'.toString();
 
   const createMockExecution = (overrides = {}) => ({
-    _id: new Types.ObjectId(mockExecutionId),
+    _id: new string(mockExecutionId),
     completedAt: null,
     durationMs: 0,
     inputValues: {},
     isDeleted: false,
     metadata: undefined,
     nodeResults: [],
-    organization: new Types.ObjectId(mockOrgId),
+    organization: new string(mockOrgId),
     progress: 0,
     save: vi.fn().mockImplementation(function (this: unknown) {
       return Promise.resolve(this);
@@ -39,8 +39,8 @@ describe('WorkflowExecutionsService', () => {
     startedAt: null,
     status: WorkflowExecutionStatus.PENDING,
     trigger: WorkflowExecutionTrigger.MANUAL,
-    user: new Types.ObjectId(mockUserId),
-    workflow: new Types.ObjectId(mockWorkflowId),
+    user: new string(mockUserId),
+    workflow: new string(mockWorkflowId),
     ...overrides,
   });
 
@@ -82,10 +82,7 @@ describe('WorkflowExecutionsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         WorkflowExecutionsService,
-        {
-          provide: getModelToken(WorkflowExecution.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockModel,
-        },
+        { provide: PrismaService, useValue: mockModel },
         {
           provide: LoggerService,
           useValue: mockLoggerService,
@@ -153,16 +150,16 @@ describe('WorkflowExecutionsService', () => {
       const dto: CreateWorkflowExecutionDto = {
         inputValues: { topic: 'AI' },
         trigger: WorkflowExecutionTrigger.MANUAL,
-        workflow: new Types.ObjectId(mockWorkflowId),
+        workflow: new string(mockWorkflowId),
       };
 
       const createdExecution = createMockExecution({
         ...dto,
         nodeResults: [],
-        organization: new Types.ObjectId(mockOrgId),
+        organization: new string(mockOrgId),
         progress: 0,
         status: WorkflowExecutionStatus.PENDING,
-        user: new Types.ObjectId(mockUserId),
+        user: new string(mockUserId),
       });
 
       // BaseService.create() uses new this.model(dto).save() — MockModelConstructor handles this
@@ -180,7 +177,7 @@ describe('WorkflowExecutionsService', () => {
       const dto: CreateWorkflowExecutionDto = {
         inputValues: {},
         trigger: WorkflowExecutionTrigger.SCHEDULED,
-        workflow: new Types.ObjectId(mockWorkflowId),
+        workflow: new string(mockWorkflowId),
       };
 
       const createdExecution = createMockExecution({ ...dto });
@@ -196,7 +193,7 @@ describe('WorkflowExecutionsService', () => {
     it('should convert string IDs to ObjectIds', async () => {
       const dto: CreateWorkflowExecutionDto = {
         trigger: WorkflowExecutionTrigger.MANUAL,
-        workflow: new Types.ObjectId(mockWorkflowId),
+        workflow: new string(mockWorkflowId),
       };
 
       let capturedData: Record<string, unknown> | undefined;
@@ -210,8 +207,8 @@ describe('WorkflowExecutionsService', () => {
       await service.createExecution(mockUserId, mockOrgId, dto);
 
       expect(capturedData).toMatchObject({
-        organization: expect.any(Types.ObjectId),
-        user: expect.any(Types.ObjectId),
+        organization: expect.any(string),
+        user: expect.any(string),
       });
     });
   });
@@ -602,7 +599,7 @@ describe('WorkflowExecutionsService', () => {
     it('should get executions for a workflow with pagination', async () => {
       const mockExecutions = [
         createMockExecution(),
-        createMockExecution({ _id: new Types.ObjectId() }),
+        createMockExecution({ _id: 'test-object-id' }),
       ];
 
       mockModel.find.mockReturnValue({
@@ -622,8 +619,8 @@ describe('WorkflowExecutionsService', () => {
 
       expect(mockModel.find).toHaveBeenCalledWith({
         isDeleted: false,
-        organization: expect.any(Types.ObjectId),
-        workflow: expect.any(Types.ObjectId),
+        organization: expect.any(string),
+        workflow: expect.any(string),
       });
       expect(result).toHaveLength(2);
     });
@@ -680,8 +677,8 @@ describe('WorkflowExecutionsService', () => {
         {
           $match: {
             isDeleted: false,
-            organization: expect.any(Types.ObjectId),
-            workflow: expect.any(Types.ObjectId),
+            organization: expect.any(string),
+            workflow: expect.any(string),
           },
         },
         {
@@ -726,8 +723,8 @@ describe('WorkflowExecutionsService', () => {
   describe('edge cases', () => {
     it('should handle ObjectId conversion for all methods', async () => {
       // Test that string IDs are properly converted to ObjectIds
-      const stringWorkflowId = new Types.ObjectId().toString();
-      const stringOrgId = new Types.ObjectId().toString();
+      const stringWorkflowId = 'test-object-id'.toString();
+      const stringOrgId = 'test-object-id'.toString();
 
       mockModel.find.mockReturnValue({
         exec: vi.fn().mockResolvedValue([]),
@@ -741,8 +738,8 @@ describe('WorkflowExecutionsService', () => {
 
       expect(mockModel.find).toHaveBeenCalledWith({
         isDeleted: false,
-        organization: expect.any(Types.ObjectId),
-        workflow: expect.any(Types.ObjectId),
+        organization: expect.any(string),
+        workflow: expect.any(string),
       });
     });
 

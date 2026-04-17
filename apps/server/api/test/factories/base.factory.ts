@@ -1,5 +1,3 @@
-import { Types } from 'mongoose';
-
 export abstract class BaseFactory<T> {
   protected abstract getDefaults(): Partial<T>;
 
@@ -26,24 +24,28 @@ export abstract class BaseFactory<T> {
   }
 }
 
+/**
+ * Factory for generating test string IDs (replaces MongoIdFactory).
+ * Prisma uses string IDs (cuid/ulid/uuid) — no ObjectId needed.
+ */
 export class MongoIdFactory {
-  static create(): Types.ObjectId {
-    return new Types.ObjectId();
+  static create(): string {
+    return 'test-id-' + Math.random().toString(36).slice(2, 9);
   }
 
   static createString(): string {
-    return new Types.ObjectId().toString();
+    return MongoIdFactory.create();
   }
 
-  static createMany(count: number): Types.ObjectId[] {
+  static createMany(count: number): string[] {
     return Array.from({ length: count }, () => MongoIdFactory.create());
   }
 
   static createManyStrings(count: number): string[] {
-    return Array.from({ length: count }, () => MongoIdFactory.createString());
+    return MongoIdFactory.createMany(count);
   }
 
-  static isValid(id: string | Types.ObjectId): boolean {
-    return Types.ObjectId.isValid(id);
+  static isValid(id: string): boolean {
+    return typeof id === 'string' && id.length > 0;
   }
 }

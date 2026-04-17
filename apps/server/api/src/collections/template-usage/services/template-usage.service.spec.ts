@@ -1,7 +1,7 @@
 import { TemplateUsage } from '@api/collections/template-usage/schemas/template-usage.schema';
 import { TemplateUsageService } from '@api/collections/template-usage/services/template-usage.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
-import { getModelToken } from '@nestjs/mongoose';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('TemplateUsageService', () => {
@@ -26,10 +26,7 @@ describe('TemplateUsageService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TemplateUsageService,
-        {
-          provide: getModelToken(TemplateUsage.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockModel,
-        },
+        { provide: PrismaService, useValue: mockModel },
       ],
     }).compile();
 

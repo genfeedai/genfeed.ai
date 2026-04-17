@@ -47,9 +47,9 @@ export class WordpressPublisherService extends BasePublisherService {
 
     try {
       const wordpressCredential = await this.credentialsService.findOne({
-        brand: new Types.ObjectId(brandId),
+        brand: brandId,
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
+        organization: organizationId,
         platform: CredentialPlatform.WORDPRESS,
       });
 

@@ -29,7 +29,7 @@ export class WebhookClientService {
     try {
       // Fetch organization settings
       const settings = await this.organizationSettingsService.findOne({
-        organization: new Types.ObjectId(organizationId),
+        organization: organizationId,
       });
 
       if (
@@ -112,7 +112,7 @@ export class WebhookClientService {
   ): Promise<void> {
     try {
       const settings = await this.organizationSettingsService.findOne({
-        organization: new Types.ObjectId(organizationId),
+        organization: organizationId,
       });
 
       if (

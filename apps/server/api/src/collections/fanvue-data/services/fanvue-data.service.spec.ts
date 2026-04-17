@@ -4,8 +4,8 @@ import { FanvueSchedule } from '@api/collections/fanvue-data/schemas/fanvue-sche
 import { FanvueSubscriber } from '@api/collections/fanvue-data/schemas/fanvue-subscriber.schema';
 import { FanvueSyncLog } from '@api/collections/fanvue-data/schemas/fanvue-sync-log.schema';
 import { FanvueDataService } from '@api/collections/fanvue-data/services/fanvue-data.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('FanvueDataService', () => {
@@ -57,26 +57,7 @@ describe('FanvueDataService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         FanvueDataService,
-        {
-          provide: getModelToken(FanvueSubscriber.name, 'fanvue'),
-          useValue: subscriberModel,
-        },
-        {
-          provide: getModelToken(FanvueContent.name, 'fanvue'),
-          useValue: contentModel,
-        },
-        {
-          provide: getModelToken(FanvueEarnings.name, 'fanvue'),
-          useValue: earningsModel,
-        },
-        {
-          provide: getModelToken(FanvueSchedule.name, 'fanvue'),
-          useValue: scheduleModel,
-        },
-        {
-          provide: getModelToken(FanvueSyncLog.name, 'fanvue'),
-          useValue: syncLogModel,
-        },
+        { provide: PrismaService, useValue: subscriberModel },
         {
           provide: LoggerService,
           useValue: loggerService,
@@ -142,26 +123,7 @@ describe('FanvueDataService', () => {
     const freshModule = await Test.createTestingModule({
       providers: [
         FanvueDataService,
-        {
-          provide: getModelToken(FanvueSubscriber.name, 'fanvue'),
-          useValue: createMockModel(),
-        },
-        {
-          provide: getModelToken(FanvueContent.name, 'fanvue'),
-          useValue: createMockModel(),
-        },
-        {
-          provide: getModelToken(FanvueEarnings.name, 'fanvue'),
-          useValue: createMockModel(),
-        },
-        {
-          provide: getModelToken(FanvueSchedule.name, 'fanvue'),
-          useValue: createMockModel(),
-        },
-        {
-          provide: getModelToken(FanvueSyncLog.name, 'fanvue'),
-          useValue: createMockModel(),
-        },
+        { provide: PrismaService, useValue: createMockModel() },
         { provide: LoggerService, useValue: loggerService },
       ],
     }).compile();

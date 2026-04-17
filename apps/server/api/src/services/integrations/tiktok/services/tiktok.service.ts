@@ -98,7 +98,7 @@ export class TiktokService {
    * Handle auth error by marking credential as disconnected
    */
   private async handleAuthError(
-    credentialId: Types.ObjectId,
+    credentialId: string,
     errorCode: string | undefined,
     context: string,
   ): Promise<void> {
@@ -244,8 +244,8 @@ export class TiktokService {
       const credential = credentialId
         ? await this.credentialsService.findOne({ _id: credentialId })
         : await this.credentialsService.findOne({
-            brand: new Types.ObjectId(brandId),
-            organization: new Types.ObjectId(organizationId),
+            brand: brandId,
+            organization: organizationId,
             platform: CredentialPlatform.TIKTOK,
           });
 
@@ -312,8 +312,8 @@ export class TiktokService {
         const credential = credentialId
           ? await this.credentialsService.findOne({ _id: credentialId })
           : await this.credentialsService.findOne({
-              brand: new Types.ObjectId(brandId),
-              organization: new Types.ObjectId(organizationId),
+              brand: brandId,
+              organization: organizationId,
               platform: CredentialPlatform.TIKTOK,
             });
         if (credential) {
@@ -371,8 +371,8 @@ export class TiktokService {
         let credential = null;
         try {
           credential = await this.credentialsService.findOne({
-            brand: new Types.ObjectId(brandId),
-            organization: new Types.ObjectId(organizationId),
+            brand: brandId,
+            organization: organizationId,
             platform: CredentialPlatform.TIKTOK,
           });
 
@@ -461,7 +461,7 @@ export class TiktokService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${url} started`);
 
-    let credential: { _id: Types.ObjectId; accessToken?: string } | null = null;
+    let credential: { _id: string; accessToken?: string } | null = null;
 
     try {
       let decryptedAccessToken: string;
@@ -471,8 +471,8 @@ export class TiktokService {
         decryptedAccessToken = EncryptionUtil.decrypt(accessToken);
       } else {
         credential = await this.credentialsService.findOne({
-          brand: new Types.ObjectId(brandId),
-          organization: new Types.ObjectId(organizationId),
+          brand: brandId,
+          organization: organizationId,
           platform: CredentialPlatform.TIKTOK,
         });
 
@@ -823,12 +823,12 @@ export class TiktokService {
     mediaId: string,
   ): Promise<ITikTokMediaAnalytics> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    let credential: { _id: Types.ObjectId; accessToken?: string } | null = null;
+    let credential: { _id: string; accessToken?: string } | null = null;
 
     try {
       credential = await this.credentialsService.findOne({
-        brand: new Types.ObjectId(brandId),
-        organization: new Types.ObjectId(organizationId),
+        brand: brandId,
+        organization: organizationId,
         platform: CredentialPlatform.TIKTOK,
       });
 

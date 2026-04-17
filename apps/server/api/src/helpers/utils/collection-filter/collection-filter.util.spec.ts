@@ -13,7 +13,7 @@ describe('CollectionFilterUtil', () => {
       const brandId = '507f191e810c19729de860ee'.toHexString();
       const result = CollectionFilterUtil.buildBrandFilter(brandId);
 
-      expect(result).toBeInstanceOf(Types.ObjectId);
+      expect(result).toEqual(expect.any(String));
       expect((result as string).toHexString()).toBe(brandId);
     });
 
@@ -22,7 +22,7 @@ describe('CollectionFilterUtil', () => {
       const result = CollectionFilterUtil.buildBrandFilter(undefined, {
         brand: userBrand,
       });
-      expect(result).toBeInstanceOf(Types.ObjectId);
+      expect(result).toEqual(expect.any(String));
       expect((result as string).toHexString()).toBe(userBrand);
     });
 
@@ -104,9 +104,9 @@ describe('CollectionFilterUtil', () => {
         { includeOrganization: false },
       );
       expect(result).toHaveProperty('user');
-      expect(
-        (result as Record<string, Types.ObjectId>).user.toHexString(),
-      ).toBe(userId);
+      expect((result as Record<string, string>).user.toHexString()).toBe(
+        userId,
+      );
     });
 
     it('returns empty filter when metadata empty', () => {

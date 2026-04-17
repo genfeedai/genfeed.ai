@@ -3,9 +3,9 @@ import { Profile } from '@api/collections/profiles/schemas/profile.schema';
 import { ProfilesService } from '@api/collections/profiles/services/profiles.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { NotFoundException } from '@nestjs/common';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('ProfilesService', () => {
@@ -22,9 +22,9 @@ describe('ProfilesService', () => {
     warn: vi.fn(),
   };
 
-  const orgId = new Types.ObjectId().toString();
-  const userId = new Types.ObjectId().toString();
-  const profileId = new Types.ObjectId().toString();
+  const orgId = 'test-object-id'.toString();
+  const userId = 'test-object-id'.toString();
+  const profileId = 'test-object-id'.toString();
 
   beforeEach(async () => {
     // Use a real constructor function so `new this.profileModel()` works
@@ -33,7 +33,7 @@ describe('ProfilesService', () => {
       data: Record<string, unknown>,
     ) {
       Object.assign(this, data);
-      this._id = new Types.ObjectId(profileId);
+      this._id = new string(profileId);
       this.save = vi.fn().mockResolvedValue(this);
       this.toObject = vi.fn().mockReturnValue({ ...data, _id: profileId });
     }
@@ -68,10 +68,7 @@ describe('ProfilesService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ProfilesService,
-        {
-          provide: getModelToken(Profile.name, DB_CONNECTIONS.AUTH),
-          useValue: mockProfileModel,
-        },
+        { provide: PrismaService, useValue: mockProfileModel },
         {
           provide: LoggerService,
           useValue: mockLoggerService,

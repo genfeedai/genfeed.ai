@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { resolveEffectiveBrandAgentConfig } from '@api/collections/brands/utils/brand-agent-config-resolution.util';
@@ -128,17 +129,17 @@ export class AvatarVideoGenerationService {
 
       const { ingredientData, metadataData } =
         await this.sharedService.saveDocumentsInternal({
-          brand: new Types.ObjectId(brand._id),
+          brand: brand._id,
           category: IngredientCategory.AVATAR,
           extension: MetadataExtension.MP4,
           model: MODEL_KEYS.HEYGEN_AVATAR,
-          organization: new Types.ObjectId(context.organizationId),
+          organization: context.organizationId,
           parent:
             resolvedIdentity.photoIngredientId != null
-              ? new Types.ObjectId(resolvedIdentity.photoIngredientId)
+              ? resolvedIdentity.photoIngredientId
               : undefined,
           status: IngredientStatus.PROCESSING,
-          user: new Types.ObjectId(context.userId),
+          user: context.userId,
         });
 
       ingredientId = String(ingredientData._id);
@@ -265,7 +266,7 @@ export class AvatarVideoGenerationService {
 
     const organizationSettings = await this.orgSettingsService.findOne({
       isDeleted: false,
-      organization: new Types.ObjectId(context.organizationId),
+      organization: context.organizationId,
     });
     const effectiveBrandAgentConfig = resolveEffectiveBrandAgentConfig({
       brand,
@@ -550,7 +551,7 @@ export class AvatarVideoGenerationService {
       const audioResult = await this.elevenlabsService.generateAndUploadAudio(
         resolvedIdentity.elevenlabsVoiceId,
         params.text,
-        new Types.ObjectId().toHexString(),
+        randomUUID(),
         context.organizationId,
         context.userId,
         elevenLabsByokKey?.apiKey,
@@ -682,9 +683,9 @@ export class AvatarVideoGenerationService {
     organizationId: string,
   ): Promise<VoiceDocument | null> {
     return (await this.voicesService.findOne({
-      _id: new Types.ObjectId(voiceId),
+      _id: voiceId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
     })) as VoiceDocument | null;
   }
 
@@ -694,16 +695,16 @@ export class AvatarVideoGenerationService {
     const brand = context.brandId
       ? await this.brandsService.findOne(
           {
-            _id: new Types.ObjectId(context.brandId),
+            _id: context.brandId,
             isDeleted: false,
-            organization: new Types.ObjectId(context.organizationId),
+            organization: context.organizationId,
           },
           'none',
         )
       : await this.brandsService.findOne(
           {
             isDeleted: false,
-            organization: new Types.ObjectId(context.organizationId),
+            organization: context.organizationId,
           },
           'none',
         );

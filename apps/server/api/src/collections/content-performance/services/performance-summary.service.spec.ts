@@ -1,7 +1,7 @@
 import { PerformanceSummaryService } from '@api/collections/content-performance/services/performance-summary.service';
 import { PostAnalytics } from '@api/collections/posts/schemas/post-analytics.schema';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
-import { getModelToken } from '@nestjs/mongoose';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('PerformanceSummaryService', () => {
@@ -16,10 +16,7 @@ describe('PerformanceSummaryService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PerformanceSummaryService,
-        {
-          provide: getModelToken(PostAnalytics.name, DB_CONNECTIONS.ANALYTICS),
-          useValue: mockPostAnalyticsModel,
-        },
+        { provide: PrismaService, useValue: mockPostAnalyticsModel },
       ],
     }).compile();
 

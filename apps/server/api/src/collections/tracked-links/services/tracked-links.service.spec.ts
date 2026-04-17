@@ -2,7 +2,7 @@ import { CreateTrackedLinkDto } from '@api/collections/tracked-links/dto/create-
 import { TrackedLink } from '@api/collections/tracked-links/schemas/tracked-link.schema';
 import { TrackedLinksService } from '@api/collections/tracked-links/services/tracked-links.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
-import { getModelToken } from '@nestjs/mongoose';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
 // Mock nanoid
@@ -15,14 +15,14 @@ describe('TrackedLinksService', () => {
   let trackedLinkModel: ReturnType<typeof createMockModel>;
 
   const mockOrganizationId = '507f1f77bcf86cd799439011';
-  const mockLinkId = new Types.ObjectId('507f1f77bcf86cd799439012');
+  const mockLinkId = '507f1f77bcf86cd799439012';
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TrackedLinksService,
         {
-          provide: getModelToken(TrackedLink.name, DB_CONNECTIONS.CLOUD),
+          provide: PrismaService,
           useValue: {
             aggregate: vi.fn(),
             create: vi.fn(),
@@ -32,21 +32,11 @@ describe('TrackedLinksService', () => {
             findOne: vi.fn(),
           },
         },
-        {
-          provide: getModelToken('LinkClick', DB_CONNECTIONS.CLOUD),
-          useValue: {
-            aggregate: vi.fn(),
-            create: vi.fn(),
-            find: vi.fn(),
-          },
-        },
       ],
     }).compile();
 
     service = module.get<TrackedLinksService>(TrackedLinksService);
-    trackedLinkModel = module.get(
-      getModelToken(TrackedLink.name, DB_CONNECTIONS.CLOUD),
-    );
+    trackedLinkModel = module.get(PrismaService);
 
     vi.clearAllMocks();
   });

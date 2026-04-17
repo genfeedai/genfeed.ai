@@ -21,6 +21,7 @@ import type {
   IProactivePreparationStatus,
   IScrapedBrandData,
 } from '@genfeedai/interfaces';
+import type { Lead } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -29,7 +30,6 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import type { Lead } from '@prisma/client';
 
 /** Credits seeded for proactive onboarding shadow orgs (same as normal signup) */
 const PROACTIVE_ONBOARDING_CREDITS = 100;

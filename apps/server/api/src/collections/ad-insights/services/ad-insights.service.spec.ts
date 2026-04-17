@@ -1,7 +1,7 @@
 import { AdInsights } from '@api/collections/ad-insights/schemas/ad-insights.schema';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { AdInsightsService } from './ad-insights.service';
 
@@ -51,10 +51,7 @@ describe('AdInsightsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AdInsightsService,
-        {
-          provide: getModelToken(AdInsights.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockModel,
-        },
+        { provide: PrismaService, useValue: mockModel },
         { provide: LoggerService, useValue: mockLogger },
       ],
     }).compile();

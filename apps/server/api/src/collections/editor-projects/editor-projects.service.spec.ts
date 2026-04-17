@@ -1,11 +1,10 @@
 import { EditorProject } from '@api/collections/editor-projects/schemas/editor-project.schema';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { EditorProjectStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConflictException, NotFoundException } from '@nestjs/common';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
-
 import { EditorProjectsService } from './editor-projects.service';
 
 const makeId = () => '507f191e810c19729de860ee';
@@ -53,10 +52,7 @@ describe('EditorProjectsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         EditorProjectsService,
-        {
-          provide: getModelToken(EditorProject.name, DB_CONNECTIONS.CLOUD),
-          useValue: model,
-        },
+        { provide: PrismaService, useValue: model },
         { provide: LoggerService, useValue: loggerService },
       ],
     }).compile();

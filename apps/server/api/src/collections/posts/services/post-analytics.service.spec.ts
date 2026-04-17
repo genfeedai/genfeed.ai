@@ -3,9 +3,9 @@ import { PostAnalytics } from '@api/collections/posts/schemas/post-analytics.sch
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('PostAnalyticsService', () => {
@@ -26,15 +26,15 @@ describe('PostAnalyticsService', () => {
     populate: ReturnType<typeof vi.fn>;
   };
 
-  const mockPostId = new Types.ObjectId().toString();
+  const mockPostId = 'test-object-id'.toString();
   const mockPlatform = CredentialPlatform.TWITTER;
 
   const mockAnalytics = {
-    _id: new Types.ObjectId(),
+    _id: 'test-object-id',
     date: new Date('2024-01-01'),
     engagementRate: 17,
     platform: mockPlatform,
-    post: new Types.ObjectId(mockPostId),
+    post: new string(mockPostId),
     totalComments: 5,
     totalCommentsIncrement: 1,
     totalLikes: 10,
@@ -65,10 +65,7 @@ describe('PostAnalyticsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PostAnalyticsService,
-        {
-          provide: getModelToken(PostAnalytics.name, DB_CONNECTIONS.ANALYTICS),
-          useValue: mockModel,
-        },
+        { provide: PrismaService, useValue: mockModel },
         {
           provide: LoggerService,
           useValue: {
@@ -82,11 +79,11 @@ describe('PostAnalyticsService', () => {
           provide: PostsService,
           useValue: {
             findOne: vi.fn().mockResolvedValue({
-              _id: new Types.ObjectId(),
-              brand: new Types.ObjectId(),
-              ingredients: [new Types.ObjectId()],
-              organization: new Types.ObjectId(),
-              user: new Types.ObjectId(),
+              _id: 'test-object-id',
+              brand: 'test-object-id',
+              ingredients: ['test-object-id'],
+              organization: 'test-object-id',
+              user: 'test-object-id',
             }),
           },
         },
@@ -124,13 +121,13 @@ describe('PostAnalyticsService', () => {
         {
           date: today,
           platform: mockPlatform,
-          post: new Types.ObjectId(mockPostId),
+          post: new string(mockPostId),
         },
         expect.objectContaining({
           $setOnInsert: expect.objectContaining({
             isDeleted: false,
             platform: mockPlatform,
-            post: new Types.ObjectId(mockPostId),
+            post: new string(mockPostId),
             totalComments: 0,
             totalLikes: 0,
             totalShares: 0,
@@ -200,7 +197,7 @@ describe('PostAnalyticsService', () => {
 
       const todayAnalytics = {
         ...mockAnalytics,
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         date: today,
       };
 
@@ -250,7 +247,7 @@ describe('PostAnalyticsService', () => {
         {
           date: today,
           platform: mockPlatform,
-          post: new Types.ObjectId(mockPostId),
+          post: new string(mockPostId),
         },
         expect.objectContaining({
           $set: expect.objectContaining({
@@ -277,7 +274,7 @@ describe('PostAnalyticsService', () => {
 
       const todayAnalytics = {
         ...mockAnalytics,
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         date: today,
       };
 

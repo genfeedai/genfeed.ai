@@ -190,11 +190,11 @@ describe('DiscordService', () => {
   });
 
   describe('refreshToken', () => {
-    const orgId = new Types.ObjectId().toString();
-    const brandId = new Types.ObjectId().toString();
+    const orgId = 'test-object-id';
+    const brandId = 'test-object-id';
 
     it('should refresh token and update credential', async () => {
-      const credentialId = new Types.ObjectId();
+      const credentialId = 'test-object-id';
       const existingCredential = {
         _id: credentialId,
         refreshToken: 'encrypted-refresh-token',
@@ -236,7 +236,7 @@ describe('DiscordService', () => {
     });
 
     it('should mark credential as disconnected on refresh failure', async () => {
-      const credentialId = new Types.ObjectId();
+      const credentialId = 'test-object-id';
       mockCredentialsService.findOne.mockResolvedValue({
         _id: credentialId,
         refreshToken: 'encrypted-token',
@@ -255,11 +255,11 @@ describe('DiscordService', () => {
   });
 
   describe('disconnect', () => {
-    const orgId = new Types.ObjectId().toString();
-    const brandId = new Types.ObjectId().toString();
+    const orgId = 'test-object-id';
+    const brandId = 'test-object-id';
 
     it('should disconnect and soft-delete credential', async () => {
-      const credentialId = new Types.ObjectId();
+      const credentialId = 'test-object-id';
       mockCredentialsService.findOne.mockResolvedValue({
         _id: credentialId,
       });

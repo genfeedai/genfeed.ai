@@ -24,7 +24,7 @@ interface LinkedInTrendTopic {
 }
 
 interface LinkedInCredential {
-  _id: string | Types.ObjectId;
+  _id: string;
   accessToken?: string;
   refreshToken?: string;
 }
@@ -147,9 +147,9 @@ export class LinkedInService {
     brandId: string,
   ): Promise<LinkedInCredential> {
     const queryCredentials = {
-      brand: new Types.ObjectId(brandId),
+      brand: brandId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
       platform: CredentialPlatform.LINKEDIN,
     };
 

@@ -843,7 +843,7 @@ describe('AgentOrchestratorService', () => {
   });
 
   it('should apply org agent policy defaults for strategy-driven runs', async () => {
-    const strategyBrandId = new Types.ObjectId();
+    const strategyBrandId = 'test-object-id';
     organizationsService.findOne.mockResolvedValue({
       onboardingCompleted: true,
     } as never);
@@ -861,7 +861,7 @@ describe('AgentOrchestratorService', () => {
       },
     } as never);
     agentStrategiesService.findOneById.mockResolvedValue({
-      _id: new Types.ObjectId(),
+      _id: 'test-object-id',
       autonomyMode: AgentAutonomyMode.SUPERVISED,
       brand: strategyBrandId,
       platforms: ['linkedin'],
@@ -965,7 +965,7 @@ describe('AgentOrchestratorService', () => {
       },
     } as never);
     agentStrategiesService.findOneById.mockResolvedValue({
-      _id: new Types.ObjectId(),
+      _id: 'test-object-id',
       autonomyMode: AgentAutonomyMode.SUPERVISED,
       model: 'deepseek/deepseek-chat',
       platforms: ['twitter'],

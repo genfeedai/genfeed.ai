@@ -179,9 +179,9 @@ export class DiscordService {
 
     try {
       const credential = await this.credentialsService.findOne({
-        brand: new Types.ObjectId(brandId),
+        brand: brandId,
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
+        organization: organizationId,
         platform: CredentialPlatform.DISCORD,
       });
 
@@ -245,9 +245,9 @@ export class DiscordService {
 
       // Mark credential as disconnected if refresh fails
       const credential = await this.credentialsService.findOne({
-        brand: new Types.ObjectId(brandId),
+        brand: brandId,
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
+        organization: organizationId,
         platform: CredentialPlatform.DISCORD,
       });
 
@@ -280,9 +280,9 @@ export class DiscordService {
 
     try {
       const credential = await this.credentialsService.findOne({
-        brand: new Types.ObjectId(brandId),
+        brand: brandId,
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
+        organization: organizationId,
         platform: CredentialPlatform.DISCORD,
       });
 

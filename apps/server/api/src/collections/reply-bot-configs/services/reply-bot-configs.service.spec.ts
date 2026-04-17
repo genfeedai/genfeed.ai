@@ -1,8 +1,8 @@
 import { ReplyBotConfig } from '@api/collections/reply-bot-configs/schemas/reply-bot-config.schema';
 import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/services/reply-bot-configs.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 
 const MOCK_ORG_ID = '507f1f77bcf86cd799439011';
@@ -45,10 +45,7 @@ describe('ReplyBotConfigsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ReplyBotConfigsService,
-        {
-          provide: getModelToken(ReplyBotConfig.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockModel,
-        },
+        { provide: PrismaService, useValue: mockModel },
         {
           provide: LoggerService,
           useValue: {
@@ -399,7 +396,7 @@ describe('ReplyBotConfigsService', () => {
 
     it('should remove account from monitoredAccounts array', async () => {
       const { Types } = await import('mongoose');
-      const accountId = new Types.ObjectId('507f1f77bcf86cd799439033');
+      const accountId = '507f1f77bcf86cd799439033';
       const mockConfig = {
         _id: MOCK_CONFIG_ID,
         monitoredAccounts: [accountId],

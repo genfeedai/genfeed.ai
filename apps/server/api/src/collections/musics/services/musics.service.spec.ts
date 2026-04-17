@@ -1,9 +1,9 @@
 import { Ingredient } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { MusicsService } from '@api/collections/musics/services/musics.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { createMockModel } from '@api/shared/testing/mock-model.factory';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -32,10 +32,7 @@ describe('MusicsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         MusicsService,
-        {
-          provide: getModelToken(Ingredient.name, DB_CONNECTIONS.CLOUD),
-          useValue: model,
-        },
+        { provide: PrismaService, useValue: model },
         { provide: LoggerService, useValue: logger },
       ],
     }).compile();
@@ -72,7 +69,7 @@ describe('MusicsService', () => {
   describe('findOne (inherited from BaseService)', () => {
     it('should find a music by id', async () => {
       const doc = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         category: 'music',
         status: 'generated',
       };
@@ -92,7 +89,7 @@ describe('MusicsService', () => {
       });
 
       const result = await service.findOne({
-        _id: new Types.ObjectId().toHexString(),
+        _id: 'test-object-id'.toHexString(),
       });
       expect(result).toBeNull();
     });
@@ -104,14 +101,14 @@ describe('MusicsService', () => {
       });
 
       await expect(
-        service.findOne({ _id: new Types.ObjectId().toHexString() }),
+        service.findOne({ _id: 'test-object-id'.toHexString() }),
       ).rejects.toThrow('Connection lost');
     });
   });
 
   describe('patch (inherited from BaseService)', () => {
     it('should update a music document', async () => {
-      const id = new Types.ObjectId();
+      const id = 'test-object-id';
       const updated = { _id: id, status: 'validated' };
       model.findByIdAndUpdate.mockReturnValue({
         exec: vi.fn().mockResolvedValue(updated),
@@ -130,7 +127,7 @@ describe('MusicsService', () => {
 
   describe('remove (inherited from BaseService)', () => {
     it('should soft-delete a music document', async () => {
-      const id = new Types.ObjectId().toHexString();
+      const id = 'test-object-id'.toHexString();
       const deleted = { _id: id, isDeleted: true };
       model.findByIdAndUpdate.mockReturnValue({
         exec: vi.fn().mockResolvedValue(deleted),
@@ -147,7 +144,7 @@ describe('MusicsService', () => {
         populate: vi.fn().mockReturnThis(),
       });
 
-      const result = await service.remove(new Types.ObjectId().toHexString());
+      const result = await service.remove('test-object-id'.toHexString());
       expect(result).toBeNull();
     });
   });
@@ -155,8 +152,8 @@ describe('MusicsService', () => {
   describe('findAll (inherited from BaseService)', () => {
     it('should return paginated music results', async () => {
       const docs = [
-        { _id: new Types.ObjectId(), category: 'music', status: 'generated' },
-        { _id: new Types.ObjectId(), category: 'music', status: 'validated' },
+        { _id: 'test-object-id', category: 'music', status: 'generated' },
+        { _id: 'test-object-id', category: 'music', status: 'validated' },
       ];
       model.aggregatePaginate.mockResolvedValue({
         docs,

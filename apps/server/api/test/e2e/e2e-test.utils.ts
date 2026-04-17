@@ -11,7 +11,7 @@ import {
 } from '@api-test/e2e-test.module';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
+
 import request from 'supertest';
 
 /**
@@ -32,12 +32,12 @@ export interface TestUserContext {
 export const createTestUserContext = (
   overrides: Partial<TestUserContext> = {},
 ): TestUserContext => ({
-  clerkUserId: `clerk_${new Types.ObjectId().toString()}`,
+  clerkUserId: `clerk_${generateIdString()}`,
   email: 'test@example.com',
   isOwner: true,
   isSuperAdmin: false,
-  organizationId: new Types.ObjectId().toString(),
-  userId: new Types.ObjectId().toString(),
+  organizationId: generateIdString(),
+  userId: generateIdString(),
   ...overrides,
 });
 
@@ -217,14 +217,14 @@ export const createE2ETestApp = async (
 export const createTestOrganization = (
   overrides: Record<string, unknown> = {},
 ) => ({
-  _id: new Types.ObjectId(),
+  _id: generateIdString(),
   category: 'business',
   createdAt: new Date(),
   isDeleted: false,
   isSelected: true,
   label: 'Test Organization',
   updatedAt: new Date(),
-  user: new Types.ObjectId(),
+  user: generateIdString(),
   ...overrides,
 });
 
@@ -232,7 +232,7 @@ export const createTestOrganization = (
  * Create test brand data
  */
 export const createTestBrand = (overrides: Record<string, unknown> = {}) => ({
-  _id: new Types.ObjectId(),
+  _id: generateIdString(),
   backgroundColor: 'transparent',
   createdAt: new Date(),
   description: 'Test brand description',
@@ -242,13 +242,13 @@ export const createTestBrand = (overrides: Record<string, unknown> = {}) => ({
   isHighlighted: false,
   isSelected: false,
   label: 'Test Brand',
-  organization: new Types.ObjectId(),
+  organization: generateIdString(),
   primaryColor: '#000000',
   scope: 'USER',
   secondaryColor: '#FFFFFF',
   slug: `brand-${Date.now()}`,
   updatedAt: new Date(),
-  user: new Types.ObjectId(),
+  user: generateIdString(),
   ...overrides,
 });
 
@@ -256,8 +256,8 @@ export const createTestBrand = (overrides: Record<string, unknown> = {}) => ({
  * Create test user data
  */
 export const createTestUser = (overrides: Record<string, unknown> = {}) => ({
-  _id: new Types.ObjectId(),
-  clerkId: `clerk_${new Types.ObjectId().toString()}`,
+  _id: generateIdString(),
+  clerkId: `clerk_${generateIdString()}`,
   createdAt: new Date(),
   email: `test-${Date.now()}@example.com`,
   firstName: 'Test',
@@ -273,14 +273,14 @@ export const createTestUser = (overrides: Record<string, unknown> = {}) => ({
  * Create test member data
  */
 export const createTestMember = (overrides: Record<string, unknown> = {}) => ({
-  _id: new Types.ObjectId(),
+  _id: generateIdString(),
   createdAt: new Date(),
   isActive: true,
   isDeleted: false,
-  organization: new Types.ObjectId(),
+  organization: generateIdString(),
   role: 'member',
   updatedAt: new Date(),
-  user: new Types.ObjectId(),
+  user: generateIdString(),
   ...overrides,
 });
 
@@ -290,20 +290,20 @@ export const createTestMember = (overrides: Record<string, unknown> = {}) => ({
 export const createTestCredential = (
   overrides: Record<string, unknown> = {},
 ) => ({
-  _id: new Types.ObjectId(),
+  _id: generateIdString(),
   accessToken: 'mock-access-token',
-  brand: new Types.ObjectId(),
+  brand: generateIdString(),
   createdAt: new Date(),
   externalHandle: '@testchannel',
   externalId: `ext-${Date.now()}`,
   isConnected: true,
   isDeleted: false,
-  organization: new Types.ObjectId(),
+  organization: generateIdString(),
   platform: 'youtube',
   refreshToken: 'mock-refresh-token',
   tokenExpiry: new Date(Date.now() + 3600000),
   updatedAt: new Date(),
-  user: new Types.ObjectId(),
+  user: generateIdString(),
   ...overrides,
 });
 
@@ -311,18 +311,18 @@ export const createTestCredential = (
  * Create test video data
  */
 export const createTestVideo = (overrides: Record<string, unknown> = {}) => ({
-  _id: new Types.ObjectId(),
-  brand: new Types.ObjectId(),
+  _id: generateIdString(),
+  brand: generateIdString(),
   createdAt: new Date(),
   description: 'Test video description',
   duration: 60,
   height: 1080,
   isDeleted: false,
   label: 'Test Video',
-  organization: new Types.ObjectId(),
+  organization: generateIdString(),
   status: 'draft',
   updatedAt: new Date(),
-  user: new Types.ObjectId(),
+  user: generateIdString(),
   width: 1920,
   ...overrides,
 });
@@ -331,19 +331,19 @@ export const createTestVideo = (overrides: Record<string, unknown> = {}) => ({
  * Create test post data
  */
 export const createTestPost = (overrides: Record<string, unknown> = {}) => ({
-  _id: new Types.ObjectId(),
-  brand: new Types.ObjectId(),
+  _id: generateIdString(),
+  brand: generateIdString(),
   caption: 'Test post caption',
   createdAt: new Date(),
-  credential: new Types.ObjectId(),
+  credential: generateIdString(),
   ingredients: [],
   isDeleted: false,
   label: 'Test Post',
-  organization: new Types.ObjectId(),
+  organization: generateIdString(),
   platform: 'youtube',
   status: 'draft',
   updatedAt: new Date(),
-  user: new Types.ObjectId(),
+  user: generateIdString(),
   ...overrides,
 });
 
@@ -353,18 +353,18 @@ export const createTestPost = (overrides: Record<string, unknown> = {}) => ({
 export const createTestIngredient = (
   overrides: Record<string, unknown> = {},
 ) => ({
-  _id: new Types.ObjectId(),
-  brand: new Types.ObjectId(),
+  _id: generateIdString(),
+  brand: generateIdString(),
   category: 'video',
   createdAt: new Date(),
   description: 'Test ingredient description',
   format: 'mp4',
   isDeleted: false,
   label: 'Test Ingredient',
-  organization: new Types.ObjectId(),
+  organization: generateIdString(),
   status: 'ready',
   updatedAt: new Date(),
-  user: new Types.ObjectId(),
+  user: generateIdString(),
   ...overrides,
 });
 
@@ -372,14 +372,14 @@ export const createTestIngredient = (
  * Create test tag data
  */
 export const createTestTag = (overrides: Record<string, unknown> = {}) => ({
-  _id: new Types.ObjectId(),
+  _id: generateIdString(),
   color: '#FF0000',
   createdAt: new Date(),
   isDeleted: false,
   label: 'Test Tag',
-  organization: new Types.ObjectId(),
+  organization: generateIdString(),
   updatedAt: new Date(),
-  user: new Types.ObjectId(),
+  user: generateIdString(),
   ...overrides,
 });
 
@@ -387,15 +387,15 @@ export const createTestTag = (overrides: Record<string, unknown> = {}) => ({
  * Create test asset data
  */
 export const createTestAsset = (overrides: Record<string, unknown> = {}) => ({
-  _id: new Types.ObjectId(),
+  _id: generateIdString(),
   category: 'image',
   createdAt: new Date(),
   isDeleted: false,
-  organization: new Types.ObjectId(),
+  organization: generateIdString(),
   type: 'logo',
   updatedAt: new Date(),
   url: 'https://example.com/asset.png',
-  user: new Types.ObjectId(),
+  user: generateIdString(),
   ...overrides,
 });
 
@@ -403,11 +403,11 @@ export const createTestAsset = (overrides: Record<string, unknown> = {}) => ({
  * Create test credit data
  */
 export const createTestCredit = (overrides: Record<string, unknown> = {}) => ({
-  _id: new Types.ObjectId(),
+  _id: generateIdString(),
   balance: 10000,
   createdAt: new Date(),
   isDeleted: false,
-  organization: new Types.ObjectId(),
+  organization: generateIdString(),
   updatedAt: new Date(),
   ...overrides,
 });
@@ -418,7 +418,7 @@ export const createTestCredit = (overrides: Record<string, unknown> = {}) => ({
 export const createTestOrganizationSetting = (
   overrides: Record<string, unknown> = {},
 ) => ({
-  _id: new Types.ObjectId(),
+  _id: generateIdString(),
   brandsLimit: 10,
   createdAt: new Date(),
   enabledModels: [],
@@ -437,7 +437,7 @@ export const createTestOrganizationSetting = (
   isWatermarkEnabled: true,
   isWebhookEnabled: false,
   isWhitelabelEnabled: false,
-  organization: new Types.ObjectId(),
+  organization: generateIdString(),
   quotaInstagram: 100,
   quotaTiktok: 100,
   quotaTwitter: 100,
@@ -456,12 +456,12 @@ export const createTestOrganizationSetting = (
 export const createTestIntegration = (
   overrides: Record<string, unknown> = {},
 ) => ({
-  _id: new Types.ObjectId(),
+  _id: generateIdString(),
   config: { allowedUserIds: [], defaultWorkflow: 'wf-test' },
   createdAt: new Date(),
   encryptedToken: 'encrypted:test-bot-token',
   isDeleted: false,
-  organization: new Types.ObjectId(),
+  organization: generateIdString(),
   platform: 'telegram',
   status: 'active',
   updatedAt: new Date(),
@@ -475,14 +475,15 @@ export const wait = (ms: number) =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
- * Generate a unique ObjectId
+ * Generate a unique test ID string
  */
-export const generateId = () => new Types.ObjectId();
+export const generateIdString = () =>
+  'test-id-' + Math.random().toString(36).slice(2, 9);
 
 /**
- * Generate a unique ObjectId string
+ * Generate a unique test ID string (alias for generateIdString)
  */
-export const generateIdString = () => new Types.ObjectId().toString();
+export const generateId = () => generateIdString();
 
 /**
  * E2E Test Suite Helper

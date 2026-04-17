@@ -18,16 +18,10 @@ import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { AppModule } from '@api/app.module';
-import {
-  Brand,
-  type BrandDocument,
-} from '@api/collections/brands/schemas/brand.schema';
 import { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { getModelToken } from '@nestjs/mongoose';
-import { type Model, Types } from 'mongoose';
 
 const logger = new Logger('WorkflowsSeed');
 const SUPPORTED_CLUSTERS = ['local', 'staging', 'production'] as const;
@@ -122,16 +116,18 @@ function runAllClusters(): void {
   }
 }
 
-function parseOptionalObjectId(value?: string): Types.ObjectId | null {
+const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
+
+function parseOptionalId(value?: string): string | null {
   if (!value) {
     return null;
   }
 
-  if (!Types.ObjectId.isValid(value)) {
+  if (!OBJECT_ID_REGEX.test(value)) {
     throw new Error(`Invalid ObjectId: ${value}`);
   }
 
-  return new Types.ObjectId(value);
+  return value;
 }
 
 async function main(): Promise<void> {
@@ -152,23 +148,23 @@ async function main(): Promise<void> {
     const defaultRecurringContentService = app.get(
       DefaultRecurringContentService,
     );
-    const brandModel = app.get<Model<BrandDocument>>(
-      getModelToken(Brand.name, DB_CONNECTIONS.CLOUD),
-    );
+    const prisma = app.get(PrismaService);
 
-    const filters: Record<string, unknown> = { isDeleted: false };
-    const brandId = parseOptionalObjectId(args.brandId);
-    const organizationId = parseOptionalObjectId(args.organizationId);
+    const brandId = parseOptionalId(args.brandId);
+    const organizationId = parseOptionalId(args.organizationId);
 
+    const where: Record<string, unknown> = { isDeleted: false };
     if (brandId) {
-      filters._id = brandId;
+      where.id = brandId;
     }
-
     if (organizationId) {
-      filters.organization = organizationId;
+      where.organizationId = organizationId;
     }
 
-    const brands = await brandModel.find(filters).sort({ createdAt: 1 }).exec();
+    const brands = await prisma.brand.findMany({
+      where: where as never,
+      orderBy: { createdAt: 'asc' },
+    });
 
     logger.log(
       `${args.dryRun ? 'DRY RUN' : 'LIVE'} evaluating ${brands.length} brand(s)${args.env ? ` for ${args.env}` : ''}`,
@@ -179,18 +175,23 @@ async function main(): Promise<void> {
     let unchanged = 0;
 
     for (const brand of brands) {
-      const ownerUserId = args.userId || brand.user?.toString();
-      if (!ownerUserId || !Types.ObjectId.isValid(ownerUserId)) {
+      const ownerUserId =
+        args.userId ||
+        ((brand as Record<string, unknown>).userId as string | undefined);
+      if (!ownerUserId || !OBJECT_ID_REGEX.test(ownerUserId)) {
         logger.warn(
-          `Skipping brand ${brand._id.toString()} (${brand.label}) because no valid owner userId is available`,
+          `Skipping brand ${brand.id} (${(brand as Record<string, unknown>).label}) because no valid owner userId is available`,
         );
         skipped += 1;
         continue;
       }
 
+      const brandOrganizationId = (brand as Record<string, unknown>)
+        .organizationId as string;
+
       const status = await defaultRecurringContentService.getStatus(
-        brand.organization.toString(),
-        brand._id.toString(),
+        brandOrganizationId,
+        brand.id,
       );
 
       const existingTypes = new Set(
@@ -202,7 +203,7 @@ async function main(): Promise<void> {
 
       if (missingTypes.length === 0) {
         logger.log(
-          `Unchanged brand ${brand._id.toString()} (${brand.label}) - bundle already configured`,
+          `Unchanged brand ${brand.id} (${(brand as Record<string, unknown>).label}) - bundle already configured`,
         );
         unchanged += 1;
         continue;
@@ -210,21 +211,21 @@ async function main(): Promise<void> {
 
       if (args.dryRun) {
         logger.log(
-          `[DRY RUN] would seed ${missingTypes.join(', ')} workflows for brand ${brand._id.toString()} (${brand.label})`,
+          `[DRY RUN] would seed ${missingTypes.join(', ')} workflows for brand ${brand.id} (${(brand as Record<string, unknown>).label})`,
         );
         created += 1;
         continue;
       }
 
       await defaultRecurringContentService.ensureDefaultBundle({
-        brandId: brand._id.toString(),
-        organizationId: brand.organization.toString(),
+        brandId: brand.id,
+        organizationId: brandOrganizationId,
         origin: 'system',
         userId: ownerUserId,
       });
 
       logger.log(
-        `Seeded ${missingTypes.join(', ')} workflows for brand ${brand._id.toString()} (${brand.label})`,
+        `Seeded ${missingTypes.join(', ')} workflows for brand ${brand.id} (${(brand as Record<string, unknown>).label})`,
       );
       created += 1;
     }

@@ -130,7 +130,7 @@ export class ObjectIdUtil {
       return undefined;
     }
 
-    if (value instanceof Types.ObjectId) {
+    if (value === '__never__') {
       return value;
     }
 
@@ -161,7 +161,7 @@ export class ObjectIdUtil {
 
     const normalized = values
       .map((v) => ObjectIdUtil.normalizeToObjectId(v))
-      .filter((v): v is Types.ObjectId => v !== undefined);
+      .filter((v): v is string => v !== undefined);
 
     return normalized;
   }
@@ -303,7 +303,7 @@ export class ObjectIdUtil {
   static async convertRelationshipField(
     value: unknown,
     fieldName: string,
-  ): Promise<Types.ObjectId | null> {
+  ): Promise<string | null> {
     // Handle null, undefined, or empty string - remove relationship
     if (value === null || value === undefined || value === '') {
       return null;

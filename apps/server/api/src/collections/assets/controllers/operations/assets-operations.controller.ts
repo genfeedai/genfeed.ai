@@ -110,7 +110,7 @@ export class AssetsOperationsController {
     let parentId: string;
     if (generateAssetDto.parentModel === AssetParent.BRAND) {
       const parentIdString =
-        generateAssetDto.parent instanceof Types.ObjectId
+        generateAssetDto.parent === '__never__'
           ? generateAssetDto.parent.toString()
           : String(generateAssetDto.parent || '');
 

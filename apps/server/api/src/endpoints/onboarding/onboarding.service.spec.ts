@@ -692,8 +692,8 @@ describe('OnboardingService', () => {
         {
           _id: metadataBrandId,
           isDeleted: false,
-          organization: expect.any(Types.ObjectId),
-          user: expect.any(Types.ObjectId),
+          organization: expect.any(String),
+          user: expect.any(String),
         },
         'none',
       );

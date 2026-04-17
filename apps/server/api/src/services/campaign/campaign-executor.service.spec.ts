@@ -61,10 +61,10 @@ describe('CampaignExecutorService', () => {
     postReply: vi.fn(),
   };
 
-  const campaignId = new Types.ObjectId();
-  const targetId = new Types.ObjectId();
-  const credentialId = new Types.ObjectId();
-  const orgId = new Types.ObjectId();
+  const campaignId = 'test-object-id';
+  const targetId = 'test-object-id';
+  const credentialId = 'test-object-id';
+  const orgId = 'test-object-id';
 
   const makeCampaign = (
     overrides: Partial<OutreachCampaignDocument> = {},
@@ -310,7 +310,7 @@ describe('CampaignExecutorService', () => {
   describe('processPendingTargets', () => {
     it('should process a batch of pending targets', async () => {
       const campaign = makeCampaign();
-      const targets = [makeTarget(), makeTarget({ _id: new Types.ObjectId() })];
+      const targets = [makeTarget(), makeTarget({ _id: 'test-object-id' })];
       mockCampaignTargetsService.getPendingTargets.mockResolvedValue(targets);
       mockOutreachCampaignsService.canReply.mockResolvedValue(true);
       mockCredentialsService.findOne.mockResolvedValue(fakeCredential);
@@ -330,8 +330,8 @@ describe('CampaignExecutorService', () => {
 
     it('should count skipped and failed separately', async () => {
       const campaign = makeCampaign();
-      const t1 = makeTarget({ _id: new Types.ObjectId() });
-      const t2 = makeTarget({ _id: new Types.ObjectId() });
+      const t1 = makeTarget({ _id: 'test-object-id' });
+      const t2 = makeTarget({ _id: 'test-object-id' });
       mockCampaignTargetsService.getPendingTargets.mockResolvedValue([t1, t2]);
       // First target: rate limited
       mockOutreachCampaignsService.canReply

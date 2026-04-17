@@ -89,7 +89,7 @@ export class StripeController {
 
       if (!subscription) {
         const organization = await this.organizationsService.findOne({
-          _id: new Types.ObjectId(publicMetadata.organization),
+          _id: publicMetadata.organization,
           isDeleted: false,
         });
 
@@ -185,7 +185,7 @@ export class StripeController {
 
       if (!subscription) {
         const organization = await this.organizationsService.findOne({
-          _id: new Types.ObjectId(publicMetadata.organization),
+          _id: publicMetadata.organization,
           isDeleted: false,
         });
 

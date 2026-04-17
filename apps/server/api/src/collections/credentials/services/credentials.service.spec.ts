@@ -2,9 +2,9 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { Credential } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('CredentialsService', () => {
@@ -45,10 +45,7 @@ describe('CredentialsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CredentialsService,
-        {
-          provide: getModelToken(Credential.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockCredentialModel,
-        },
+        { provide: PrismaService, useValue: mockCredentialModel },
         {
           provide: LoggerService,
           useValue: {

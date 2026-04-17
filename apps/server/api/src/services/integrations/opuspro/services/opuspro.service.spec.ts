@@ -25,8 +25,8 @@ describe('OpusProService', () => {
   let apiKeyHelperService: { getApiKey: ReturnType<typeof vi.fn> };
 
   const mockApiKey = 'test-api-key';
-  const mockOrgId = new Types.ObjectId();
-  const mockUserId = new Types.ObjectId();
+  const mockOrgId = 'test-object-id';
+  const mockUserId = 'test-object-id';
 
   beforeEach(async () => {
     httpService = { get: vi.fn(), post: vi.fn() };

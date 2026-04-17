@@ -42,9 +42,9 @@ export class PostsService extends BaseService<
 
   create(
     dto: CreatePostDto & {
-      user: Types.ObjectId;
-      organization: Types.ObjectId;
-      brand: Types.ObjectId;
+      user: string;
+      organization: string;
+      brand: string;
       platform: CredentialPlatform;
     },
     populate: PopulateOption[] = [
@@ -58,14 +58,14 @@ export class PostsService extends BaseService<
     const normalizedIngredients =
       dto.ingredients !== undefined
         ? ObjectIdUtil.normalizeArrayToObjectIds(
-            dto.ingredients as unknown as Array<Types.ObjectId | string>,
+            dto.ingredients as unknown as Array<string>,
           )
         : undefined;
     const normalizedCredential = ObjectIdUtil.normalizeToObjectId(
-      dto.credential as unknown as Types.ObjectId | string,
+      dto.credential as unknown as string,
     );
     const normalizedParent = ObjectIdUtil.normalizeToObjectId(
-      dto.parent as unknown as Types.ObjectId | string | undefined,
+      dto.parent as unknown as string | undefined,
     );
 
     // Build normalized DTO
@@ -113,8 +113,8 @@ export class PostsService extends BaseService<
    * Batch find posts by IDs with organization isolation.
    */
   async findByIds(
-    ids: (string | Types.ObjectId)[],
-    organizationId: string | Types.ObjectId,
+    ids: string[],
+    organizationId: string,
     populate: PopulateOption[] = [
       PopulatePatterns.ingredientsMinimal,
       PopulatePatterns.credentialMinimal,
@@ -169,17 +169,15 @@ export class PostsService extends BaseService<
     const normalizedIngredients =
       dto.ingredients !== undefined
         ? (ObjectIdUtil.normalizeArrayToObjectIds(
-            dto.ingredients as unknown as Array<Types.ObjectId | string>,
+            dto.ingredients as unknown as Array<string>,
           ) ?? [])
         : undefined;
     const normalizedCredential = ObjectIdUtil.normalizeToObjectId(
-      dto.credential as unknown as Types.ObjectId | string | undefined,
+      dto.credential as unknown as string | undefined,
     );
     const normalizedParent =
       dto.parent !== undefined
-        ? ObjectIdUtil.normalizeToObjectId(
-            dto.parent as unknown as Types.ObjectId | string,
-          )
+        ? ObjectIdUtil.normalizeToObjectId(dto.parent as unknown as string)
         : undefined;
 
     // Build normalized DTO
@@ -337,7 +335,7 @@ export class PostsService extends BaseService<
 
     const credential = post.credential as unknown as CredentialEntity;
     const ingredient = (
-      post.ingredients as Types.ObjectId[]
+      post.ingredients as string[]
     )[0] as unknown as IngredientEntity;
 
     if (credential.platform !== CredentialPlatform.YOUTUBE) {
@@ -350,7 +348,7 @@ export class PostsService extends BaseService<
     // Save original status before changing to PROCESSING
     const originalStatus = post.status;
     const postId: string = String(
-      (post._id as Types.ObjectId | undefined) ??
+      (post._id as string | undefined) ??
         (post as unknown as { id: string }).id,
     );
 
@@ -413,9 +411,9 @@ export class PostsService extends BaseService<
   async createThread(
     threadPosts: Array<
       CreatePostDto & {
-        user: Types.ObjectId;
-        organization: Types.ObjectId;
-        brand: Types.ObjectId;
+        user: string;
+        organization: string;
+        brand: string;
         platform: CredentialPlatform;
       }
     >,
@@ -442,7 +440,7 @@ export class PostsService extends BaseService<
 
     const rootPost = await this.create(rootPostDto, populate);
     createdPosts.push(rootPost);
-    const rootPostId = rootPost._id as Types.ObjectId;
+    const rootPostId = rootPost._id;
 
     for (let i = 1; i < threadPosts.length; i++) {
       const { parent: _parent, ...postWithoutParent } = threadPosts[i];
@@ -450,7 +448,7 @@ export class PostsService extends BaseService<
       const postDto = {
         ...postWithoutParent,
         order: i,
-        parent: new Types.ObjectId(rootPostId),
+        parent: rootPostId,
       };
 
       const createdPost = await this.create(postDto, populate);
@@ -551,9 +549,9 @@ export class PostsService extends BaseService<
   async addThreadReply(
     parentId: string,
     dto: CreatePostDto & {
-      user: Types.ObjectId;
-      organization: Types.ObjectId;
-      brand: Types.ObjectId;
+      user: string;
+      organization: string;
+      brand: string;
       platform: CredentialPlatform;
     },
     populate: PopulateOption[] = [
@@ -586,7 +584,7 @@ export class PostsService extends BaseService<
     const replyDto = {
       ...dtoWithoutParent,
       order: childrenCount + 1,
-      parent: new Types.ObjectId(rootPostId),
+      parent: rootPostId,
     };
 
     return this.create(replyDto, populate);
@@ -600,9 +598,9 @@ export class PostsService extends BaseService<
     originalPostId: string,
     newDescription: string,
     dto: {
-      user: Types.ObjectId;
-      organization: Types.ObjectId;
-      brand: Types.ObjectId;
+      user: string;
+      organization: string;
+      brand: string;
       label?: string;
     },
     populate: PopulateOption[] = [
@@ -621,19 +619,19 @@ export class PostsService extends BaseService<
       originalPost.ingredients as unknown as ({ _id?: string } | string)[]
     )?.map((ing) => {
       if (typeof ing === 'object' && ing._id) {
-        return new Types.ObjectId(ing._id);
+        return ing._id;
       }
-      return new Types.ObjectId(String(ing));
+      return String(ing);
     });
 
     const populatedCredential = originalPost.credential as unknown as {
-      _id?: string | Types.ObjectId;
+      _id?: string;
     };
     const credentialId = populatedCredential?._id
-      ? new Types.ObjectId(populatedCredential._id)
-      : originalPost.credential instanceof Types.ObjectId
+      ? populatedCredential._id
+      : originalPost.credential === '__never__'
         ? originalPost.credential
-        : new Types.ObjectId(String(originalPost.credential));
+        : String(originalPost.credential);
 
     const remixDto = {
       brand: dto.brand,
@@ -645,7 +643,7 @@ export class PostsService extends BaseService<
       isShareToFeedSelected: originalPost.isShareToFeedSelected,
       label: dto.label || `Remix: ${originalPost.label || 'Untitled'}`,
       organization: dto.organization,
-      originalPost: new Types.ObjectId(originalPostId),
+      originalPost: originalPostId,
       platform: originalPost.platform,
       status: PostStatus.DRAFT,
       tags: originalPost.tags,
@@ -655,9 +653,9 @@ export class PostsService extends BaseService<
 
     return this.create(
       remixDto as CreatePostDto & {
-        user: Types.ObjectId;
-        organization: Types.ObjectId;
-        brand: Types.ObjectId;
+        user: string;
+        organization: string;
+        brand: string;
         platform: CredentialPlatform;
       },
       populate,
@@ -700,7 +698,7 @@ export class PostsService extends BaseService<
       }
 
       const currentId = String(
-        (current._id as Types.ObjectId | undefined) ??
+        (current._id as string | undefined) ??
           (current as unknown as { id: string }).id,
       );
 

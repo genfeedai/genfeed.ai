@@ -2,7 +2,7 @@ import type { OrganizationSettingsService } from '@api/collections/organization-
 import { WebhookClientService } from '@api/services/webhook-client/webhook-client.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 
-const orgId = new Types.ObjectId().toString();
+const orgId = 'test-object-id';
 
 describe('WebhookClientService', () => {
   let service: WebhookClientService;
@@ -21,7 +21,7 @@ describe('WebhookClientService', () => {
   };
 
   const mockIngredient = {
-    _id: new Types.ObjectId().toString(),
+    _id: 'test-object-id',
     category: 'image',
     label: 'test ingredient',
     prompt: 'test prompt',

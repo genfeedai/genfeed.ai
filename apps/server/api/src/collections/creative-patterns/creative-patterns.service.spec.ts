@@ -1,6 +1,6 @@
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { PatternType } from '@genfeedai/interfaces';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CreativePatternsService } from './creative-patterns.service';
@@ -38,10 +38,7 @@ describe('CreativePatternsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CreativePatternsService,
-        {
-          provide: getModelToken(CreativePattern.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockModel,
-        },
+        { provide: PrismaService, useValue: mockModel },
       ],
     }).compile();
 

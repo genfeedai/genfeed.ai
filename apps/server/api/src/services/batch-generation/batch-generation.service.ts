@@ -17,9 +17,9 @@ import type {
   IBatchSummary,
   ManualReviewBatchItem,
 } from '@genfeedai/interfaces';
+import type { Batch } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
-import type { Batch } from '@prisma/client';
 
 interface BatchItem {
   format: ContentFormat;

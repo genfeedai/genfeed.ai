@@ -3,8 +3,8 @@ import { UpdateBookmarkDto } from '@api/collections/bookmarks/dto/update-bookmar
 import { Bookmark } from '@api/collections/bookmarks/schemas/bookmark.schema';
 import { BookmarksService } from '@api/collections/bookmarks/services/bookmarks.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('BookmarksService', () => {
@@ -13,7 +13,7 @@ describe('BookmarksService', () => {
   let _logger: LoggerService;
 
   const mockBookmark = {
-    _id: new Types.ObjectId('507f1f77bcf86cd799439011'),
+    _id: '507f1f77bcf86cd799439011',
     createdAt: new Date(),
     description: 'A test article',
     generatedIngredients: [],
@@ -63,10 +63,7 @@ describe('BookmarksService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BookmarksService,
-        {
-          provide: getModelToken(Bookmark.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockModel,
-        },
+        { provide: PrismaService, useValue: mockModel },
         {
           provide: LoggerService,
           useValue: {
@@ -87,7 +84,7 @@ describe('BookmarksService', () => {
     const module = await createTestingModule(mockModelInstance);
 
     service = module.get<BookmarksService>(BookmarksService);
-    model = module.get(getModelToken(Bookmark.name, DB_CONNECTIONS.CLOUD));
+    model = module.get(PrismaService);
     _logger = module.get<LoggerService>(LoggerService);
 
     vi.clearAllMocks();
@@ -127,8 +124,8 @@ describe('BookmarksService', () => {
 
   describe('addGeneratedIngredient', () => {
     it('should add a generated ingredient to bookmark', async () => {
-      const bookmarkId = new Types.ObjectId().toString();
-      const ingredientId = new Types.ObjectId().toString();
+      const bookmarkId = 'test-object-id'.toString();
+      const ingredientId = 'test-object-id'.toString();
 
       const findByIdAndUpdateMock = vi.fn().mockResolvedValue(mockBookmark);
       (model as Record<string, unknown>).findByIdAndUpdate =
@@ -151,8 +148,8 @@ describe('BookmarksService', () => {
     });
 
     it('should handle adding ingredient with ObjectId types', async () => {
-      const bookmarkId = new Types.ObjectId();
-      const ingredientId = new Types.ObjectId();
+      const bookmarkId = 'test-object-id';
+      const ingredientId = 'test-object-id';
 
       const findByIdAndUpdateMock = vi.fn().mockResolvedValue(mockBookmark);
       (model as Record<string, unknown>).findByIdAndUpdate =
@@ -168,8 +165,8 @@ describe('BookmarksService', () => {
     });
 
     it('should return null when bookmark not found', async () => {
-      const bookmarkId = new Types.ObjectId().toString();
-      const ingredientId = new Types.ObjectId().toString();
+      const bookmarkId = 'test-object-id'.toString();
+      const ingredientId = 'test-object-id'.toString();
 
       const findByIdAndUpdateMock = vi.fn().mockResolvedValue(null);
       (model as Record<string, unknown>).findByIdAndUpdate =

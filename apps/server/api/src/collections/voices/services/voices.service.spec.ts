@@ -1,9 +1,9 @@
 import { Ingredient } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { VoicesService } from '@api/collections/voices/services/voices.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { createMockModel } from '@api/shared/testing/mock-model.factory';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -32,10 +32,7 @@ describe('VoicesService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         VoicesService,
-        {
-          provide: getModelToken(Ingredient.name, DB_CONNECTIONS.CLOUD),
-          useValue: model,
-        },
+        { provide: PrismaService, useValue: model },
         { provide: LoggerService, useValue: logger },
       ],
     }).compile();
@@ -54,7 +51,7 @@ describe('VoicesService', () => {
   describe('create (inherited from IngredientsService)', () => {
     it('should create a new voice ingredient', async () => {
       const savedDoc = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         category: 'voice',
         type: 'voice',
       };
@@ -83,7 +80,7 @@ describe('VoicesService', () => {
   describe('findOne (overridden in IngredientsService)', () => {
     it('should find a voice by id using aggregation', async () => {
       const doc = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         category: 'voice',
         type: 'voice',
       };
@@ -102,14 +99,14 @@ describe('VoicesService', () => {
       });
 
       const result = await service.findOne({
-        _id: new Types.ObjectId().toHexString(),
+        _id: 'test-object-id'.toHexString(),
       });
       expect(result).toBeNull();
     });
 
     it('should populate when populate options are provided', async () => {
       const doc = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         category: 'voice',
         type: 'voice',
       };
@@ -131,14 +128,14 @@ describe('VoicesService', () => {
       });
 
       await expect(
-        service.findOne({ _id: new Types.ObjectId().toHexString() }),
+        service.findOne({ _id: 'test-object-id'.toHexString() }),
       ).rejects.toThrow('Connection lost');
     });
   });
 
   describe('patch (overridden in IngredientsService)', () => {
     it('should update a voice document', async () => {
-      const id = new Types.ObjectId();
+      const id = 'test-object-id';
       const updated = { _id: id, status: 'validated' };
       model.findByIdAndUpdate.mockReturnValue({
         exec: vi.fn().mockResolvedValue(updated),
@@ -158,7 +155,7 @@ describe('VoicesService', () => {
 
   describe('remove (inherited from BaseService)', () => {
     it('should soft-delete a voice', async () => {
-      const id = new Types.ObjectId().toHexString();
+      const id = 'test-object-id'.toHexString();
       const deleted = { _id: id, isDeleted: true };
       model.findByIdAndUpdate.mockReturnValue({
         exec: vi.fn().mockResolvedValue(deleted),
@@ -175,7 +172,7 @@ describe('VoicesService', () => {
         populate: vi.fn().mockReturnThis(),
       });
 
-      const result = await service.remove(new Types.ObjectId().toHexString());
+      const result = await service.remove('test-object-id'.toHexString());
       expect(result).toBeNull();
     });
   });
@@ -183,7 +180,7 @@ describe('VoicesService', () => {
   describe('findAll (overridden in IngredientsService)', () => {
     it('should return paginated voice results with model lookup', async () => {
       const docs = [
-        { _id: new Types.ObjectId(), category: 'voice', type: 'voice' },
+        { _id: 'test-object-id', category: 'voice', type: 'voice' },
       ];
       model.aggregatePaginate.mockResolvedValue({
         docs,

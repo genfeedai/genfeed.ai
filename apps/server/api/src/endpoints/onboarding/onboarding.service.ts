@@ -1111,10 +1111,15 @@ export class OnboardingService {
       );
     }
 
-    await this.brandsService.patchAll(
-      { _id: brand._id },
-      { $push: { referenceImages: { $each: images } } },
+    const brandId_str = String(
+      (brand as Record<string, unknown>).id ?? brand._id,
     );
+    const existingImages = Array.isArray(brand.referenceImages)
+      ? (brand.referenceImages as unknown[])
+      : [];
+    await this.brandsService.patch(brandId_str, {
+      referenceImages: [...existingImages, ...images],
+    });
 
     this.loggerService.log(`${caller} completed`, {
       brandId,

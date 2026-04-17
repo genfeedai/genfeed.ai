@@ -28,8 +28,8 @@ describe('ShopifyService', () => {
 
   const shop = 'test-store.myshopify.com';
   const accessToken = 'shpat_token123';
-  const orgId = new Types.ObjectId().toString();
-  const brandId = new Types.ObjectId().toString();
+  const orgId = 'test-object-id';
+  const brandId = 'test-object-id';
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -124,7 +124,7 @@ describe('ShopifyService', () => {
 
   describe('verifyToken', () => {
     const mockCredential = {
-      _id: new Types.ObjectId(),
+      _id: 'test-object-id',
       accessToken: 'encrypted_token',
       externalHandle: shop,
     };

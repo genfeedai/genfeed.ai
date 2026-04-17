@@ -1,8 +1,8 @@
 import { ProcessedTweet } from '@api/collections/processed-tweets/schemas/processed-tweet.schema';
 import { ProcessedTweetsService } from '@api/collections/processed-tweets/services/processed-tweets.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('ProcessedTweetsService', () => {
@@ -42,10 +42,7 @@ describe('ProcessedTweetsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ProcessedTweetsService,
-        {
-          provide: getModelToken(ProcessedTweet.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockModel,
-        },
+        { provide: PrismaService, useValue: mockModel },
         {
           provide: LoggerService,
           useValue: {

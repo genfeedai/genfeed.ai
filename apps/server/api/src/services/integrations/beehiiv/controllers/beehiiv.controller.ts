@@ -53,9 +53,9 @@ export class BeehiivController {
     }
 
     const brand = await this.brandsService.findOne({
-      _id: new Types.ObjectId(body.brandId),
+      _id: body.brandId,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     });
 
     if (!brand) {

@@ -3,21 +3,21 @@ import { AgentRunsService } from '@api/collections/agent-runs/services/agent-run
 import { Ingredient } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { Post } from '@api/collections/posts/schemas/post.schema';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { AgentExecutionStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('AgentRunsService', () => {
   let service: AgentRunsService;
 
-  const orgId = new Types.ObjectId().toString();
-  const runId = new Types.ObjectId().toString();
+  const orgId = 'test-object-id'.toString();
+  const runId = 'test-object-id'.toString();
 
   const makeRun = (overrides = {}) => ({
-    _id: new Types.ObjectId(runId),
+    _id: new string(runId),
     isDeleted: false,
-    organization: new Types.ObjectId(orgId),
+    organization: new string(orgId),
     startedAt: new Date(Date.now() - 5000),
     status: AgentExecutionStatus.RUNNING,
     ...overrides,
@@ -70,16 +70,8 @@ describe('AgentRunsService', () => {
       providers: [
         AgentRunsService,
         {
-          provide: getModelToken(AgentRun.name, DB_CONNECTIONS.AGENT),
-          useValue: model,
-        },
-        {
-          provide: getModelToken(Post.name, DB_CONNECTIONS.CLOUD),
-          useValue: postModel,
-        },
-        {
-          provide: getModelToken(Ingredient.name, DB_CONNECTIONS.CLOUD),
-          useValue: ingredientModel,
+          provide: PrismaService,
+          useValue: { ...model, ...postModel, ...ingredientModel },
         },
         { provide: LoggerService, useValue: logger },
       ],
@@ -102,7 +94,7 @@ describe('AgentRunsService', () => {
       const result = await service.start(runId, orgId);
 
       expect(model.findOneAndUpdate).toHaveBeenCalledWith(
-        expect.objectContaining({ _id: expect.any(Types.ObjectId) }),
+        expect.objectContaining({ _id: expect.any(string) }),
         expect.objectContaining({ status: AgentExecutionStatus.RUNNING }),
         expect.any(Object),
       );
@@ -341,8 +333,8 @@ describe('AgentRunsService', () => {
 
   describe('getRunContent', () => {
     it('should return posts and ingredients for a run', async () => {
-      const post = { _id: new Types.ObjectId(), label: 'p1' };
-      const ingredient = { _id: new Types.ObjectId(), label: 'i1' };
+      const post = { _id: 'test-object-id', label: 'p1' };
+      const ingredient = { _id: 'test-object-id', label: 'i1' };
 
       postModel.find.mockReturnValue(chainablePostMock([post]));
       ingredientModel.find.mockReturnValue(chainablePostMock([ingredient]));

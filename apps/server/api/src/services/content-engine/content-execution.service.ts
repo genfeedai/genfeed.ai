@@ -218,7 +218,7 @@ export class ContentExecutionService {
     );
 
     const draft = await this.contentDraftsService.createFromContentEngine({
-      brand: new Types.ObjectId(brandId),
+      brand: brandId,
       confidence: result.draft.confidence,
       content: result.draft.content,
       generatedBy: `content-engine:${skillSlug}`,
@@ -229,7 +229,7 @@ export class ContentExecutionService {
         contentPlanItemId: itemId,
         source: result.source,
       },
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
       platforms: item.platforms,
       skillSlug,
       status: ContentDraftStatus.PENDING,
@@ -333,7 +333,7 @@ export class ContentExecutionService {
     }
 
     const draft = await this.contentDraftsService.createFromContentEngine({
-      brand: new Types.ObjectId(brandId),
+      brand: brandId,
       content: item.prompt ?? item.topic,
       generatedBy: 'content-engine:media-pipeline',
       isDeleted: false,
@@ -346,7 +346,7 @@ export class ContentExecutionService {
         pipelineStatus: pipelineResult.status,
         postIds: pipelineResult.postIds,
       },
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
       platforms: item.platforms,
       skillSlug: 'media-pipeline',
       status: ContentDraftStatus.PENDING,

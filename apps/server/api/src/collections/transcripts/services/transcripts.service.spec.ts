@@ -4,9 +4,9 @@ import { Transcript } from '@api/collections/transcripts/schemas/transcript.sche
 import { TranscriptsService } from '@api/collections/transcripts/services/transcripts.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { TranscriptStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('TranscriptsService', () => {
@@ -16,14 +16,14 @@ describe('TranscriptsService', () => {
   let fileQueueService: FileQueueService;
 
   const mockTranscript = {
-    _id: new Types.ObjectId('507f1f77bcf86cd799439011'),
+    _id: '507f1f77bcf86cd799439011',
     createdAt: new Date(),
     isDeleted: false,
-    organization: new Types.ObjectId(),
+    organization: 'test-object-id',
     status: TranscriptStatus.PENDING,
     transcriptText: 'Test transcript text',
     updatedAt: new Date(),
-    user: new Types.ObjectId(),
+    user: 'test-object-id',
     youtubeId: 'dQw4w9WgXcQ',
     youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
   };
@@ -52,10 +52,7 @@ describe('TranscriptsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TranscriptsService,
-        {
-          provide: getModelToken(Transcript.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockModel,
-        },
+        { provide: PrismaService, useValue: mockModel },
         {
           provide: LoggerService,
           useValue: {
@@ -75,7 +72,7 @@ describe('TranscriptsService', () => {
     }).compile();
 
     service = module.get<TranscriptsService>(TranscriptsService);
-    model = module.get(getModelToken(Transcript.name, DB_CONNECTIONS.CLOUD));
+    model = module.get(PrismaService);
     _logger = module.get<LoggerService>(LoggerService);
     fileQueueService = module.get<FileQueueService>(FileQueueService);
 
@@ -92,8 +89,8 @@ describe('TranscriptsService', () => {
         youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
       } as CreateTranscriptDto;
 
-      const userId = new Types.ObjectId().toString();
-      const organizationId = new Types.ObjectId().toString();
+      const userId = 'test-object-id'.toString();
+      const organizationId = 'test-object-id'.toString();
 
       mockModel.create = vi.fn().mockResolvedValue(mockTranscript);
       model.create = mockModel.create;
@@ -106,10 +103,10 @@ describe('TranscriptsService', () => {
 
       expect(model.create).toHaveBeenCalledWith({
         isDeleted: false,
-        organization: expect.any(Types.ObjectId),
+        organization: expect.any(string),
         status: TranscriptStatus.PENDING,
         transcriptText: '',
-        user: expect.any(Types.ObjectId),
+        user: expect.any(string),
         youtubeId: 'dQw4w9WgXcQ',
         youtubeUrl: createDto.youtubeUrl,
       });
@@ -135,8 +132,8 @@ describe('TranscriptsService', () => {
         'https://www.youtube.com/v/dQw4w9WgXcQ',
       ];
 
-      const userId = new Types.ObjectId().toString();
-      const organizationId = new Types.ObjectId().toString();
+      const userId = 'test-object-id'.toString();
+      const organizationId = 'test-object-id'.toString();
 
       mockModel.create = vi.fn().mockResolvedValue(mockTranscript);
       model.create = mockModel.create;
@@ -157,8 +154,8 @@ describe('TranscriptsService', () => {
         youtubeUrl: 'https://invalid-url.com',
       } as CreateTranscriptDto;
 
-      const userId = new Types.ObjectId().toString();
-      const organizationId = new Types.ObjectId().toString();
+      const userId = 'test-object-id'.toString();
+      const organizationId = 'test-object-id'.toString();
 
       await expect(
         service.createTranscript(createDto, userId, organizationId),
@@ -168,8 +165,8 @@ describe('TranscriptsService', () => {
 
   describe('findTranscripts', () => {
     it('should find transcripts with pagination', async () => {
-      const userId = new Types.ObjectId().toString();
-      const organizationId = new Types.ObjectId().toString();
+      const userId = 'test-object-id'.toString();
+      const organizationId = 'test-object-id'.toString();
 
       const mockResult = {
         docs: [mockTranscript],
@@ -196,7 +193,7 @@ describe('TranscriptsService', () => {
         {
           $match: {
             isDeleted: false,
-            organization: expect.any(Types.ObjectId),
+            organization: expect.any(string),
           },
         },
         {
@@ -206,8 +203,8 @@ describe('TranscriptsService', () => {
     });
 
     it('should use default pagination values', async () => {
-      const userId = new Types.ObjectId().toString();
-      const organizationId = new Types.ObjectId().toString();
+      const userId = 'test-object-id'.toString();
+      const organizationId = 'test-object-id'.toString();
 
       const mockResult = {
         docs: [],
@@ -233,7 +230,7 @@ describe('TranscriptsService', () => {
 
   describe('updateStatus', () => {
     it('should update transcript status', async () => {
-      const transcriptId = new Types.ObjectId().toString();
+      const transcriptId = 'test-object-id'.toString();
       const newStatus = TranscriptStatus.GENERATED;
 
       mockModel.findByIdAndUpdate = vi.fn().mockReturnValue({
@@ -252,7 +249,7 @@ describe('TranscriptsService', () => {
     });
 
     it('should update status with error message', async () => {
-      const transcriptId = new Types.ObjectId().toString();
+      const transcriptId = 'test-object-id'.toString();
       const newStatus = TranscriptStatus.FAILED;
       const errorMessage = 'Download failed';
 
@@ -271,7 +268,7 @@ describe('TranscriptsService', () => {
     });
 
     it('should throw error when transcript not found', async () => {
-      const transcriptId = new Types.ObjectId().toString();
+      const transcriptId = 'test-object-id'.toString();
       const newStatus = TranscriptStatus.GENERATED;
 
       mockModel.findByIdAndUpdate = vi.fn().mockReturnValue({
@@ -287,7 +284,7 @@ describe('TranscriptsService', () => {
 
   describe('updateTranscriptText', () => {
     it('should update transcript text and status', async () => {
-      const transcriptId = new Types.ObjectId().toString();
+      const transcriptId = 'test-object-id'.toString();
       const transcriptText = 'Updated transcript text';
 
       mockModel.findByIdAndUpdate = vi.fn().mockReturnValue({
@@ -312,7 +309,7 @@ describe('TranscriptsService', () => {
     });
 
     it('should update transcript with language', async () => {
-      const transcriptId = new Types.ObjectId().toString();
+      const transcriptId = 'test-object-id'.toString();
       const transcriptText = 'Updated transcript text';
       const language = 'en';
 
@@ -339,7 +336,7 @@ describe('TranscriptsService', () => {
     });
 
     it('should throw error when transcript not found', async () => {
-      const transcriptId = new Types.ObjectId().toString();
+      const transcriptId = 'test-object-id'.toString();
       const transcriptText = 'Updated transcript text';
 
       mockModel.findByIdAndUpdate = vi.fn().mockReturnValue({
@@ -355,8 +352,8 @@ describe('TranscriptsService', () => {
 
   describe('linkArticle', () => {
     it('should link article to transcript', async () => {
-      const transcriptId = new Types.ObjectId().toString();
-      const articleId = new Types.ObjectId().toString();
+      const transcriptId = 'test-object-id'.toString();
+      const articleId = 'test-object-id'.toString();
 
       mockModel.findByIdAndUpdate = vi.fn().mockReturnValue({
         exec: vi.fn().mockResolvedValue(mockTranscript),
@@ -368,7 +365,7 @@ describe('TranscriptsService', () => {
       expect(model.findByIdAndUpdate).toHaveBeenCalledWith(
         transcriptId,
         {
-          article: expect.any(Types.ObjectId),
+          article: expect.any(string),
           status: TranscriptStatus.GENERATED,
         },
         { returnDocument: 'after' },
@@ -377,8 +374,8 @@ describe('TranscriptsService', () => {
     });
 
     it('should throw error when transcript not found', async () => {
-      const transcriptId = new Types.ObjectId().toString();
-      const articleId = new Types.ObjectId().toString();
+      const transcriptId = 'test-object-id'.toString();
+      const articleId = 'test-object-id'.toString();
 
       mockModel.findByIdAndUpdate = vi.fn().mockReturnValue({
         exec: vi.fn().mockResolvedValue(null),

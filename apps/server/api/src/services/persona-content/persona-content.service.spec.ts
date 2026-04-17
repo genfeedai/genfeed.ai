@@ -15,7 +15,7 @@ import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const objectId = () => new Types.ObjectId();
+const objectId = () => 'test-object-id';
 
 const makePersona = (
   overrides: Partial<PersonaDocument> = {},

@@ -40,12 +40,12 @@ describe('MastodonPublisherService', () => {
     warn: ReturnType<typeof vi.fn>;
   };
 
-  const orgId = new Types.ObjectId().toString();
-  const brandId = new Types.ObjectId().toString();
-  const postId = new Types.ObjectId().toString();
+  const orgId = 'test-object-id';
+  const brandId = 'test-object-id';
+  const postId = 'test-object-id';
 
   const mockCredential = {
-    _id: new Types.ObjectId(),
+    _id: 'test-object-id',
     accessToken: 'enc-token',
     description: 'https://mastodon.social',
     externalHandle: '@testuser@mastodon.social',
@@ -59,7 +59,7 @@ describe('MastodonPublisherService', () => {
     credential: mockCredential,
     organizationId: orgId,
     post: {
-      _id: new Types.ObjectId(postId),
+      _id: postId,
       category: PostCategory.TEXT,
       description: 'Hello Mastodon!',
       ingredients: [],
@@ -190,10 +190,10 @@ describe('MastodonPublisherService', () => {
     });
 
     it('should upload media and pass media IDs when post has ingredients', async () => {
-      const ingredientId = new Types.ObjectId();
+      const ingredientId = 'test-object-id';
       const context = makeContext({
         post: {
-          _id: new Types.ObjectId(postId),
+          _id: postId,
           category: PostCategory.IMAGE,
           description: 'Post with image',
           ingredients: [ingredientId],

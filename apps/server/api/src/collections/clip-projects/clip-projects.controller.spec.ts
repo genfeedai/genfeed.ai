@@ -135,12 +135,12 @@ describe('ClipProjectsController', () => {
       ).toHaveBeenCalledWith(organizationId, 12);
       expect(clipProjectsService.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          organization: expect.any(Types.ObjectId),
+          organization: expect.any(String),
           settings: expect.objectContaining({
             maxClips: 12,
           }),
           sourceVideoUrl: dto.youtubeUrl,
-          user: expect.any(Types.ObjectId),
+          user: expect.any(String),
         }),
       );
       expect(clipFactoryQueueService.enqueue).toHaveBeenCalledWith(

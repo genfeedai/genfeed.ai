@@ -664,7 +664,7 @@ Return ONLY the prompt text, no explanations.`;
     userId: string;
   }> {
     const organization = await this.organizationsService.findOne({
-      _id: new Types.ObjectId(organizationId),
+      _id: organizationId,
     });
 
     const userId = organization?.user?.toString();

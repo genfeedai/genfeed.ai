@@ -5,9 +5,9 @@ import {
 } from '@api/collections/workflows/schemas/batch-workflow-job.schema';
 import { BatchWorkflowService } from '@api/collections/workflows/services/batch-workflow.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 // =============================================================================
@@ -15,7 +15,7 @@ import { Test, type TestingModule } from '@nestjs/testing';
 // =============================================================================
 
 const mockBatchJobDoc = (overrides = {}) => {
-  const id = new Types.ObjectId();
+  const id = 'test-object-id';
   return {
     _id: id,
     completedCount: 0,
@@ -23,22 +23,22 @@ const mockBatchJobDoc = (overrides = {}) => {
     failedCount: 0,
     items: [
       {
-        _id: new Types.ObjectId(),
-        ingredientId: new Types.ObjectId(),
+        _id: 'test-object-id',
+        ingredientId: 'test-object-id',
         status: BatchWorkflowItemStatus.PENDING,
       },
       {
-        _id: new Types.ObjectId(),
-        ingredientId: new Types.ObjectId(),
+        _id: 'test-object-id',
+        ingredientId: 'test-object-id',
         status: BatchWorkflowItemStatus.PENDING,
       },
     ],
-    organization: new Types.ObjectId(),
+    organization: 'test-object-id',
     status: BatchWorkflowJobStatus.PENDING,
     totalCount: 2,
     updatedAt: new Date(),
-    user: new Types.ObjectId(),
-    workflowId: new Types.ObjectId(),
+    user: 'test-object-id',
+    workflowId: 'test-object-id',
     ...overrides,
   };
 };
@@ -68,10 +68,7 @@ describe('BatchWorkflowService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BatchWorkflowService,
-        {
-          provide: getModelToken(BatchWorkflowJob.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockModel,
-        },
+        { provide: PrismaService, useValue: mockModel },
         { provide: LoggerService, useValue: mockLogger },
       ],
     }).compile();
@@ -85,18 +82,18 @@ describe('BatchWorkflowService', () => {
   // ---------------------------------------------------------------------------
   it('should create a batch job with correct item count', async () => {
     const ingredientIds = [
-      new Types.ObjectId().toString(),
-      new Types.ObjectId().toString(),
-      new Types.ObjectId().toString(),
+      'test-object-id'.toString(),
+      'test-object-id'.toString(),
+      'test-object-id'.toString(),
     ];
     const doc = mockBatchJobDoc({ totalCount: 3 });
     mockModel.create.mockResolvedValue(doc);
 
     const result = await service.createBatchJob({
       ingredientIds,
-      organizationId: new Types.ObjectId().toString(),
-      userId: new Types.ObjectId().toString(),
-      workflowId: new Types.ObjectId().toString(),
+      organizationId: 'test-object-id'.toString(),
+      userId: 'test-object-id'.toString(),
+      workflowId: 'test-object-id'.toString(),
     });
 
     expect(mockModel.create).toHaveBeenCalledTimes(1);
@@ -114,23 +111,21 @@ describe('BatchWorkflowService', () => {
     await expect(
       service.createBatchJob({
         ingredientIds: [],
-        organizationId: new Types.ObjectId().toString(),
-        userId: new Types.ObjectId().toString(),
-        workflowId: new Types.ObjectId().toString(),
+        organizationId: 'test-object-id'.toString(),
+        userId: 'test-object-id'.toString(),
+        workflowId: 'test-object-id'.toString(),
       }),
     ).rejects.toThrow(BadRequestException);
   });
 
   it('should throw BadRequestException when exceeding 100 items', async () => {
-    const ids = Array.from({ length: 101 }, () =>
-      new Types.ObjectId().toString(),
-    );
+    const ids = Array.from({ length: 101 }, () => 'test-object-id'.toString());
     await expect(
       service.createBatchJob({
         ingredientIds: ids,
-        organizationId: new Types.ObjectId().toString(),
-        userId: new Types.ObjectId().toString(),
-        workflowId: new Types.ObjectId().toString(),
+        organizationId: 'test-object-id'.toString(),
+        userId: 'test-object-id'.toString(),
+        workflowId: 'test-object-id'.toString(),
       }),
     ).rejects.toThrow(BadRequestException);
   });
@@ -139,8 +134,8 @@ describe('BatchWorkflowService', () => {
   // 3. markItemCompleted updates correctly
   // ---------------------------------------------------------------------------
   it('should mark an item as completed and check finalization', async () => {
-    const batchJobId = new Types.ObjectId().toString();
-    const itemId = new Types.ObjectId().toString();
+    const batchJobId = 'test-object-id'.toString();
+    const itemId = 'test-object-id'.toString();
 
     mockModel.updateOne.mockResolvedValue({ modifiedCount: 1 });
     // For checkAndFinalizeJob
@@ -157,7 +152,7 @@ describe('BatchWorkflowService', () => {
     await service.markItemCompleted(batchJobId, itemId, {
       executionId: 'exec-123',
       outputCategory: 'video',
-      outputIngredientId: new Types.ObjectId().toString(),
+      outputIngredientId: 'test-object-id'.toString(),
       outputSummary: {
         category: 'video',
         id: 'summary-123',
@@ -188,8 +183,8 @@ describe('BatchWorkflowService', () => {
   // 4. markItemFailed handles failure without failing whole batch
   // ---------------------------------------------------------------------------
   it('should mark item as failed and not fail the whole batch when other items remain', async () => {
-    const batchJobId = new Types.ObjectId().toString();
-    const itemId = new Types.ObjectId().toString();
+    const batchJobId = 'test-object-id'.toString();
+    const itemId = 'test-object-id'.toString();
 
     mockModel.updateOne.mockResolvedValue({ modifiedCount: 1 });
     // After failure, 1 failed + 0 completed < 2 total, so no finalization
@@ -233,7 +228,7 @@ describe('BatchWorkflowService', () => {
     });
 
     await expect(
-      service.getBatchJob(new Types.ObjectId().toString()),
+      service.getBatchJob('test-object-id'.toString()),
     ).rejects.toThrow(NotFoundException);
   });
 
@@ -241,8 +236,8 @@ describe('BatchWorkflowService', () => {
   // 6. Finalization marks batch as completed when all items done
   // ---------------------------------------------------------------------------
   it('should finalize batch as completed when all items are done', async () => {
-    const batchJobId = new Types.ObjectId().toString();
-    const itemId = new Types.ObjectId().toString();
+    const batchJobId = 'test-object-id'.toString();
+    const itemId = 'test-object-id'.toString();
 
     mockModel.updateOne.mockResolvedValue({ modifiedCount: 1 });
     // After this completion: 2 completed + 0 failed = 2 total → finalize

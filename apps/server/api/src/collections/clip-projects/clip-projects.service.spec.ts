@@ -1,7 +1,7 @@
 import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
 import { ClipProject } from '@api/collections/clip-projects/schemas/clip-project.schema';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('ClipProjectsService', () => {
@@ -25,10 +25,7 @@ describe('ClipProjectsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ClipProjectsService,
-        {
-          provide: getModelToken(ClipProject.name, 'clips'),
-          useValue: mockModel,
-        },
+        { provide: PrismaService, useValue: mockModel },
         {
           provide: LoggerService,
           useValue: {

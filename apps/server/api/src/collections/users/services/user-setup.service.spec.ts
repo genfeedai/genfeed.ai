@@ -14,13 +14,13 @@ import { LoggerService } from '@libs/logger/logger.service';
 describe('UserSetupService', () => {
   let service: UserSetupService;
 
-  const userId = new Types.ObjectId();
-  const orgId = new Types.ObjectId();
-  const brandId = new Types.ObjectId();
-  const memberId = new Types.ObjectId();
-  const orgSettingsId = new Types.ObjectId();
-  const userSettingsId = new Types.ObjectId();
-  const roleId = new Types.ObjectId();
+  const userId = 'test-object-id';
+  const orgId = 'test-object-id';
+  const brandId = 'test-object-id';
+  const memberId = 'test-object-id';
+  const orgSettingsId = 'test-object-id';
+  const userSettingsId = 'test-object-id';
+  const roleId = 'test-object-id';
 
   const mockOrg = { _id: orgId, label: 'Default Organization', user: userId };
   const mockOrgSettings = { _id: orgSettingsId, organization: orgId };
@@ -216,7 +216,7 @@ describe('UserSetupService', () => {
     });
 
     it('should fallback to user role if admin role not found', async () => {
-      const userRole = { _id: new Types.ObjectId(), key: 'user' };
+      const userRole = { _id: 'test-object-id', key: 'user' };
       mockRolesService.findOne
         .mockResolvedValueOnce(null) // admin not found
         .mockResolvedValueOnce(userRole); // user role found

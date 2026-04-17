@@ -46,10 +46,10 @@ function createMockQueueService(
 function createMockBrandsService(
   overrides: Partial<BrandsService> = {},
 ): BrandsService {
-  const orgId = new Types.ObjectId('aaaaaaaaaaaaaaaaaaaaaaaa');
+  const orgId = 'aaaaaaaaaaaaaaaaaaaaaaaa';
   return {
     findOne: vi.fn().mockResolvedValue({
-      _id: new Types.ObjectId(),
+      _id: 'test-object-id',
       organization: orgId,
     }),
     ...overrides,
@@ -71,10 +71,10 @@ describe('BatchContentService', () => {
 
   describe('triggerBatch', () => {
     it('should validate brand ownership and enqueue batch', async () => {
-      const orgId = new Types.ObjectId(defaultRequest.organizationId);
+      const orgId = defaultRequest.organizationId;
       const brandsService = createMockBrandsService({
         findOne: vi.fn().mockResolvedValue({
-          _id: new Types.ObjectId(defaultRequest.brandId),
+          _id: defaultRequest.brandId,
           organization: orgId,
         }),
       } as unknown as Partial<BrandsService>);
@@ -111,10 +111,10 @@ describe('BatchContentService', () => {
     });
 
     it('should throw ForbiddenException when brand belongs to different org', async () => {
-      const differentOrgId = new Types.ObjectId('bbbbbbbbbbbbbbbbbbbbbbbb');
+      const differentOrgId = 'bbbbbbbbbbbbbbbbbbbbbbbb';
       const brandsService = createMockBrandsService({
         findOne: vi.fn().mockResolvedValue({
-          _id: new Types.ObjectId(defaultRequest.brandId),
+          _id: defaultRequest.brandId,
           organization: differentOrgId,
         }),
       } as unknown as Partial<BrandsService>);

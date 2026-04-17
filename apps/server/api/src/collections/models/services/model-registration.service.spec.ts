@@ -19,9 +19,9 @@ describe('ModelRegistrationService', () => {
     warn: vi.fn(),
   };
 
-  const orgId = new Types.ObjectId();
-  const otherOrgId = new Types.ObjectId();
-  const modelId = new Types.ObjectId();
+  const orgId = 'test-object-id';
+  const otherOrgId = 'test-object-id';
+  const modelId = 'test-object-id';
 
   const makeFindOne = (result: unknown) => ({
     lean: vi.fn().mockReturnValue({
@@ -94,7 +94,7 @@ describe('ModelRegistrationService', () => {
 
     // orgSettings with different model IDs — not including modelId
     mockOrgSettingsService.findOne = vi.fn().mockResolvedValue({
-      enabledModels: [new Types.ObjectId(), new Types.ObjectId()],
+      enabledModels: ['test-object-id', 'test-object-id'],
     });
 
     await expect(
@@ -161,8 +161,8 @@ describe('ModelRegistrationService', () => {
   });
 
   describe('createFromTraining', () => {
-    const trainingId = new Types.ObjectId();
-    const parentModelId = new Types.ObjectId();
+    const trainingId = 'test-object-id';
+    const parentModelId = 'test-object-id';
 
     const makeTraining = (overrides: Partial<TrainingDocument> = {}) =>
       ({
@@ -186,7 +186,7 @@ describe('ModelRegistrationService', () => {
         supportsFeatures: ['cfg-scale'],
       };
       const createdModel = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         key: `genfeed-ai/${orgId}/${trainingId}`,
       };
 
@@ -222,7 +222,7 @@ describe('ModelRegistrationService', () => {
     it('returns existing model if already created (idempotent)', async () => {
       const training = makeTraining();
       const existingModel = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         key: `genfeed-ai/${orgId}/${trainingId}`,
         training: trainingId,
       };
@@ -238,7 +238,7 @@ describe('ModelRegistrationService', () => {
     it('handles E11000 duplicate key error gracefully', async () => {
       const training = makeTraining();
       const raceWinnerModel = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         key: `genfeed-ai/${orgId}/${trainingId}`,
         training: trainingId,
       };
@@ -262,7 +262,7 @@ describe('ModelRegistrationService', () => {
     it('creates model without parent when base model not found', async () => {
       const training = makeTraining();
       const createdModel = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         key: `genfeed-ai/${orgId}/${trainingId}`,
       };
 
@@ -288,7 +288,7 @@ describe('ModelRegistrationService', () => {
 
   describe('reconcileTrainingModels', () => {
     it('calls createFromTraining for each orphaned training', async () => {
-      const trainingId = new Types.ObjectId();
+      const trainingId = 'test-object-id';
       const orphanedTraining = {
         _id: trainingId,
         organization: orgId,
@@ -304,7 +304,7 @@ describe('ModelRegistrationService', () => {
 
       const createFromTrainingSpy = vi
         .spyOn(service, 'createFromTraining')
-        .mockResolvedValue({ _id: new Types.ObjectId() } as never);
+        .mockResolvedValue({ _id: 'test-object-id' } as never);
 
       await service.reconcileTrainingModels();
 
@@ -327,7 +327,7 @@ describe('ModelRegistrationService', () => {
 
   describe('reconcileEnabledModels', () => {
     it('calls addEnabledModel for models missing from org enabledModels', async () => {
-      const modelId2 = new Types.ObjectId();
+      const modelId2 = 'test-object-id';
       const orgModel = {
         _id: modelId2,
         organization: orgId,
@@ -349,7 +349,7 @@ describe('ModelRegistrationService', () => {
       await service.reconcileEnabledModels();
 
       expect(mockOrgSettingsService.addEnabledModel).toHaveBeenCalledWith(
-        expect.any(Types.ObjectId),
+        expect.any(String),
         modelId2,
       );
       expect(mockOrgSettingsService.addEnabledModel).toHaveBeenCalledTimes(1);

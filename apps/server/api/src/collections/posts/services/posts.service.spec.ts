@@ -4,9 +4,9 @@ import { Post } from '@api/collections/posts/schemas/post.schema';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { mockModel } from '@api/helpers/mocks/model.mock';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { PostStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('PostsService', () => {
@@ -33,10 +33,7 @@ describe('PostsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PostsService,
-        {
-          provide: getModelToken(Post.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockModel,
-        },
+        { provide: PrismaService, useValue: mockModel },
         {
           provide: LoggerService,
           useValue: {
@@ -114,15 +111,15 @@ describe('PostsService', () => {
   });
 
   describe('patch publish journey completion', () => {
-    const organizationId = new Types.ObjectId().toString();
+    const organizationId = 'test-object-id'.toString();
     const currentPost = {
       _id: 'post-1',
-      organization: new Types.ObjectId(organizationId),
+      organization: new string(organizationId),
       status: PostStatus.DRAFT,
     } as never;
     const updatedPost = {
       _id: 'post-1',
-      organization: new Types.ObjectId(organizationId),
+      organization: new string(organizationId),
       status: PostStatus.PUBLIC,
     };
     const settings = {

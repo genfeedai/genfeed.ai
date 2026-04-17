@@ -81,9 +81,9 @@ export class ShopifyService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     try {
       const credential = await this.credentialsService.findOne({
-        brand: new Types.ObjectId(brandId),
+        brand: brandId,
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
+        organization: organizationId,
         platform: CredentialPlatform.SHOPIFY,
       });
 

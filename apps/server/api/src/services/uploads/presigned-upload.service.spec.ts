@@ -33,10 +33,10 @@ describe('PresignedUploadService', () => {
   let metadataService: vi.Mocked<MetadataService>;
   let loggerService: vi.Mocked<LoggerService>;
 
-  const mockUserId = new Types.ObjectId('507f1f77bcf86cd799439011');
-  const mockOrganizationId = new Types.ObjectId('507f1f77bcf86cd799439012');
-  const mockIngredientId = new Types.ObjectId('507f1f77bcf86cd799439013');
-  const mockMetadataId = new Types.ObjectId('507f1f77bcf86cd799439014');
+  const mockUserId = '507f1f77bcf86cd799439011';
+  const mockOrganizationId = '507f1f77bcf86cd799439012';
+  const mockIngredientId = '507f1f77bcf86cd799439013';
+  const mockMetadataId = '507f1f77bcf86cd799439014';
 
   const mockUser = {
     emailAddresses: [{ emailAddress: 'test@example.com' }],
@@ -49,7 +49,7 @@ describe('PresignedUploadService', () => {
   ): IngredientEntity =>
     ({
       _id: mockIngredientId,
-      brand: new Types.ObjectId(),
+      brand: 'test-object-id',
       category: IngredientCategory.IMAGE,
       extension: 'jpg',
       metadata: mockMetadataId,

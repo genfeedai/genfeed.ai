@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { performance } from 'node:perf_hooks';
@@ -42,7 +43,6 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import request from 'supertest';
 
 const BASELINE_FILE = path.resolve(
@@ -542,24 +542,24 @@ async function seedBenchmarkData(
   await dbHelper.clearDatabase();
 
   const user = createTestUser({
-    _id: new Types.ObjectId(SEED_USER_ID),
+    _id: randomUUID(SEED_USER_ID),
     clerkId: 'clerk_api_benchmark_user',
     email: 'api-benchmark@example.com',
   });
   const role = {
-    _id: new Types.ObjectId(SEED_ROLE_ID),
+    _id: randomUUID(SEED_ROLE_ID),
     isDeleted: false,
     key: 'owner',
     label: 'Owner',
     primaryColor: '#0f766e',
   } satisfies Role;
   const organization = createTestOrganization({
-    _id: new Types.ObjectId(SEED_ORGANIZATION_ID),
+    _id: randomUUID(SEED_ORGANIZATION_ID),
     label: 'API Benchmark Organization',
     user: user._id,
   });
   const member = createTestMember({
-    _id: new Types.ObjectId(SEED_MEMBER_ID),
+    _id: randomUUID(SEED_MEMBER_ID),
     organization: organization._id,
     role: role._id,
     user: user._id,
@@ -567,7 +567,7 @@ async function seedBenchmarkData(
 
   const brands = Array.from({ length: SEED_BRANDS }, (_, index) =>
     createTestBrand({
-      _id: new Types.ObjectId(),
+      _id: randomUUID(),
       handle: `benchmark-brand-${index + 1}`,
       label: `Benchmark Brand ${index + 1}`,
       organization: organization._id,
@@ -577,7 +577,7 @@ async function seedBenchmarkData(
 
   const credentials = Array.from({ length: SEED_CREDENTIALS }, (_, index) =>
     createTestCredential({
-      _id: new Types.ObjectId(),
+      _id: randomUUID(),
       brand: brands[index % brands.length]?._id,
       externalHandle: `@benchmark_${index + 1}`,
       externalId: `benchmark-credential-${index + 1}`,
@@ -586,13 +586,13 @@ async function seedBenchmarkData(
     }),
   );
 
-  const tags: Array<CreateTagDto & { _id: Types.ObjectId }> = [
+  const tags: Array<CreateTagDto & { _id: string }> = [
     ...Array.from({ length: SEED_TAGS_GLOBAL }, (_, index) => {
       const tag = createTestTag({
-        _id: new Types.ObjectId(),
+        _id: randomUUID(),
         color: '#334155',
         label: `Global Benchmark Tag ${index + 1}`,
-      }) as CreateTagDto & { _id: Types.ObjectId };
+      }) as CreateTagDto & { _id: string };
       delete (tag as Record<string, unknown>).organization;
       delete (tag as Record<string, unknown>).user;
       return tag;
@@ -601,28 +601,28 @@ async function seedBenchmarkData(
       { length: SEED_TAGS_ORGANIZATION },
       (_, index) =>
         createTestTag({
-          _id: new Types.ObjectId(),
+          _id: randomUUID(),
           color: '#0f766e',
           label: `Organization Benchmark Tag ${index + 1}`,
           organization: organization._id,
           user: user._id,
-        }) as CreateTagDto & { _id: Types.ObjectId },
+        }) as CreateTagDto & { _id: string },
     ),
     ...Array.from(
       { length: SEED_TAGS_USER },
       (_, index) =>
         createTestTag({
-          _id: new Types.ObjectId(),
+          _id: randomUUID(),
           color: '#7c3aed',
           label: `User Benchmark Tag ${index + 1}`,
           user: user._id,
-        }) as CreateTagDto & { _id: Types.ObjectId },
+        }) as CreateTagDto & { _id: string },
     ),
   ];
 
   const posts = Array.from({ length: SEED_POSTS }, (_, index) =>
     createTestPost({
-      _id: new Types.ObjectId(),
+      _id: randomUUID(),
       brand: brands[index % brands.length]?._id,
       caption: `Benchmark post ${index + 1}`,
       credential: credentials[index % credentials.length]?._id,

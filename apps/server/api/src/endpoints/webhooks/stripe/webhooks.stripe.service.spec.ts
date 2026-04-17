@@ -16,9 +16,9 @@ import { StripeWebhookService } from '@api/endpoints/webhooks/stripe/webhooks.st
 import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { ManagedStripeCheckoutService } from '@api/services/integrations/stripe/services/managed-stripe-checkout.service';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { SkillReceipt } from '@api/skills-pro/schemas/skill-receipt.schema';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 import Stripe from 'stripe';
 
@@ -218,7 +218,7 @@ describe('StripeWebhookService', () => {
           },
         },
         {
-          provide: getModelToken(SkillReceipt.name, DB_CONNECTIONS.CLOUD),
+          provide: PrismaService,
           useFactory: () => {
             function MockSkillReceiptModel(
               this: Record<string, unknown>,

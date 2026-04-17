@@ -14,13 +14,13 @@ import type {
 } from '@api/workflows/agent-workflows.types';
 import { CreateAgentWorkflowDto } from '@api/workflows/dto/create-agent-workflow.dto';
 import { UpdateAgentWorkflowStateDto } from '@api/workflows/dto/update-agent-workflow-state.dto';
+import type { AgentWorkflow } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import type { AgentWorkflow } from '@prisma/client';
 
 type WorkflowConfig = AgentWorkflowDocumentShape & {
   agentId: string;

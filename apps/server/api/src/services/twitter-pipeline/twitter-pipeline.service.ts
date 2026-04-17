@@ -107,9 +107,9 @@ export class TwitterPipelineService {
 
     try {
       const credential = await this.credentialsService.findOne({
-        brand: new Types.ObjectId(brandId),
+        brand: brandId,
         isDeleted: false,
-        organization: new Types.ObjectId(orgId),
+        organization: orgId,
         platform: CredentialPlatform.TWITTER,
       });
 

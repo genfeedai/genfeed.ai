@@ -32,7 +32,7 @@ function makeService() {
   );
 }
 
-const creatorId = new Types.ObjectId();
+const creatorId = 'test-object-id';
 
 function makeCreator(platform: ContentIntelligencePlatform) {
   return {

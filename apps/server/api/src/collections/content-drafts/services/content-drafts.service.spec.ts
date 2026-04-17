@@ -2,8 +2,8 @@ import { ContentDraft } from '@api/collections/content-drafts/schemas/content-dr
 import { ContentDraftsService } from '@api/collections/content-drafts/services/content-drafts.service';
 import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('ContentDraftsService', () => {
@@ -32,10 +32,7 @@ describe('ContentDraftsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ContentDraftsService,
-        {
-          provide: getModelToken(ContentDraft.name, DB_CONNECTIONS.CLOUD),
-          useValue: modelMock,
-        },
+        { provide: PrismaService, useValue: modelMock },
         {
           provide: LoggerService,
           useValue: {
@@ -53,7 +50,7 @@ describe('ContentDraftsService', () => {
     }).compile();
 
     service = module.get(ContentDraftsService);
-    model = module.get(getModelToken(ContentDraft.name, DB_CONNECTIONS.CLOUD));
+    model = module.get(PrismaService);
     trendReferenceCorpusService = module.get(TrendReferenceCorpusService);
   });
 

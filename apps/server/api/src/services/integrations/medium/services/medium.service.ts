@@ -134,10 +134,10 @@ export class MediumService {
     try {
       // Get Medium credentials
       const credential = await this.credentialsService.findOne({
-        brand: new Types.ObjectId(brandId),
+        brand: brandId,
         isConnected: true,
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
+        organization: organizationId,
         platform: CredentialPlatform.MEDIUM,
       });
 
@@ -185,15 +185,19 @@ export class MediumService {
       const mediumPost = response.data.data;
 
       // Store Medium post reference in article
+      const existingPosts = Array.isArray(article.posts)
+        ? (article.posts as unknown[])
+        : [];
       await this.articlesService.patch(articleId, {
-        $push: {
-          posts: {
+        posts: [
+          ...existingPosts,
+          {
             externalId: mediumPost.id,
             platform: 'medium',
             publishedAt: new Date(mediumPost.publishedAt),
             url: mediumPost.url,
           },
-        },
+        ],
       } as unknown as Record<string, unknown>);
 
       return mediumPost;
@@ -211,9 +215,9 @@ export class MediumService {
     brandId: string,
   ): Promise<unknown> {
     const queryCredentials = {
-      brand: new Types.ObjectId(brandId),
+      brand: brandId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
       platform: CredentialPlatform.MEDIUM,
     };
 

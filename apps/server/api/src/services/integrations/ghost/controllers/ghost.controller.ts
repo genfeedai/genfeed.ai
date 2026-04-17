@@ -59,9 +59,9 @@ export class GhostController {
     }
 
     const brand = await this.brandsService.findOne({
-      _id: new Types.ObjectId(body.brand),
+      _id: body.brand,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     });
 
     if (!brand) {

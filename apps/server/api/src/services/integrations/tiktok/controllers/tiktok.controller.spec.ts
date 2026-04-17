@@ -40,9 +40,9 @@ describe('TiktokController', () => {
 
   const mockRequest = {} as unknown as Request;
   const mockUser = { id: 'clerk_user_1' } as never;
-  const brandId = new Types.ObjectId();
-  const orgId = new Types.ObjectId('507f1f77bcf86cd799439011');
-  const credentialId = new Types.ObjectId();
+  const brandId = 'test-object-id';
+  const orgId = '507f1f77bcf86cd799439011';
+  const credentialId = 'test-object-id';
 
   const mockBrand = { _id: brandId, organization: orgId };
 
@@ -205,7 +205,7 @@ describe('TiktokController', () => {
     it('should set token expiry dates', async () => {
       await controller.verify(mockRequest, dto);
       const patchCall = credentialsService.patch.mock.calls[0] as [
-        Types.ObjectId,
+        string,
         Record<string, unknown>,
       ];
       expect(patchCall[1].accessTokenExpiry).toBeInstanceOf(Date);
@@ -215,7 +215,7 @@ describe('TiktokController', () => {
     it('should reactivate previously deleted credential', async () => {
       await controller.verify(mockRequest, dto);
       const patchCall = credentialsService.patch.mock.calls[0] as [
-        Types.ObjectId,
+        string,
         Record<string, unknown>,
       ];
       expect(patchCall[1].isDeleted).toBe(false);

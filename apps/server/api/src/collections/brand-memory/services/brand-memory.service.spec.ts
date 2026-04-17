@@ -4,8 +4,8 @@ import {
 } from '@api/collections/brand-memory/schemas/brand-memory.schema';
 import { BrandMemoryService } from '@api/collections/brand-memory/services/brand-memory.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { vi } from 'vitest';
 
@@ -31,8 +31,8 @@ describe('BrandMemoryService', () => {
     warn: vi.fn(),
   };
 
-  const orgId = new Types.ObjectId().toString();
-  const brandId = new Types.ObjectId().toString();
+  const orgId = 'test-object-id'.toString();
+  const brandId = 'test-object-id'.toString();
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -40,10 +40,7 @@ describe('BrandMemoryService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BrandMemoryService,
-        {
-          provide: getModelToken(BrandMemory.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockModel,
-        },
+        { provide: PrismaService, useValue: mockModel },
         {
           provide: LoggerService,
           useValue: mockLogger,
@@ -55,7 +52,7 @@ describe('BrandMemoryService', () => {
   });
 
   it('should append a log entry to today document', async () => {
-    mockModel.findOneAndUpdate.mockResolvedValue({ _id: new Types.ObjectId() });
+    mockModel.findOneAndUpdate.mockResolvedValue({ _id: 'test-object-id' });
 
     await service.logEntry(orgId, brandId, {
       content: 'Post published with strong retention',
@@ -64,9 +61,9 @@ describe('BrandMemoryService', () => {
 
     expect(mockModel.findOneAndUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
-        brand: new Types.ObjectId(brandId),
+        brand: new string(brandId),
         isDeleted: false,
-        organization: new Types.ObjectId(orgId),
+        organization: new string(orgId),
       }),
       expect.objectContaining({
         $push: expect.objectContaining({
@@ -113,9 +110,9 @@ describe('BrandMemoryService', () => {
     expect(insights).toEqual(expectedInsights);
     expect(mockModel.find).toHaveBeenCalledWith(
       expect.objectContaining({
-        brand: new Types.ObjectId(brandId),
+        brand: new string(brandId),
         isDeleted: false,
-        organization: new Types.ObjectId(orgId),
+        organization: new string(orgId),
       }),
     );
   });
@@ -128,7 +125,7 @@ describe('BrandMemoryService', () => {
         count: 8,
       },
     ]);
-    mockModel.findOneAndUpdate.mockResolvedValue({ _id: new Types.ObjectId() });
+    mockModel.findOneAndUpdate.mockResolvedValue({ _id: 'test-object-id' });
 
     const result = await service.distillLongTermMemory(orgId, brandId);
 

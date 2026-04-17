@@ -4,10 +4,10 @@ import { EvaluationsService } from '@api/collections/evaluations/services/evalua
 import { EvaluationsOperationsService } from '@api/collections/evaluations/services/evaluations-operations.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { EvaluationType, IngredientCategory, Status } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, NotFoundException } from '@nestjs/common';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('EvaluationsService', () => {
@@ -37,10 +37,7 @@ describe('EvaluationsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         EvaluationsService,
-        {
-          provide: getModelToken(Evaluation.name, DB_CONNECTIONS.CLOUD),
-          useValue: model,
-        },
+        { provide: PrismaService, useValue: model },
         { provide: LoggerService, useValue: mockServices.loggerService },
         {
           provide: EvaluationsOperationsService,
@@ -175,7 +172,7 @@ describe('EvaluationsService', () => {
     it('should return evaluations for content', async () => {
       const contentId = '507f1f77bcf86cd799439015';
       const organizationId = '507f1f77bcf86cd799439012';
-      const mockEvaluations = [{ _id: new Types.ObjectId(), score: 90 }];
+      const mockEvaluations = [{ _id: 'test-object-id', score: 90 }];
       model.find.mockReturnValue({
         sort: vi.fn().mockResolvedValue(mockEvaluations),
       });

@@ -47,11 +47,11 @@ describe('AiInfluencerService', () => {
   };
 
   // Test IDs
-  const mockOrganizationId = new Types.ObjectId('507f1f77bcf86cd799439011');
-  const mockBrandId = new Types.ObjectId('507f1f77bcf86cd799439012');
-  const mockUserId = new Types.ObjectId('507f1f77bcf86cd799439013');
-  const mockPersonaId = new Types.ObjectId('507f1f77bcf86cd799439014');
-  const mockIngredientId = new Types.ObjectId('507f1f77bcf86cd799439015');
+  const mockOrganizationId = '507f1f77bcf86cd799439011';
+  const mockBrandId = '507f1f77bcf86cd799439012';
+  const mockUserId = '507f1f77bcf86cd799439013';
+  const mockPersonaId = '507f1f77bcf86cd799439014';
+  const mockIngredientId = '507f1f77bcf86cd799439015';
 
   // Mock persona
   const createMockPersona = (
@@ -736,7 +736,7 @@ describe('AiInfluencerService', () => {
     it('should find all autopilot personas and generate posts', async () => {
       const persona1 = createMockPersona({ slug: 'persona-1' });
       const persona2 = createMockPersona({
-        _id: new Types.ObjectId('507f1f77bcf86cd799439099'),
+        _id: '507f1f77bcf86cd799439099',
         slug: 'persona-2',
       });
 
@@ -796,7 +796,7 @@ describe('AiInfluencerService', () => {
     it('should continue with other personas when one fails', async () => {
       const persona1 = createMockPersona({ slug: 'persona-fail' });
       const persona2 = createMockPersona({
-        _id: new Types.ObjectId('507f1f77bcf86cd799439099'),
+        _id: '507f1f77bcf86cd799439099',
         slug: 'persona-ok',
       });
 

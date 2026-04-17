@@ -2,10 +2,10 @@ import { Ingredient } from '@api/collections/ingredients/schemas/ingredient.sche
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('VideosService', () => {
@@ -14,8 +14,8 @@ describe('VideosService', () => {
   let mockLogger: vi.Mocked<LoggerService>;
 
   const mockVideoDocument = {
-    _id: new Types.ObjectId(),
-    brand: new Types.ObjectId(),
+    _id: 'test-object-id',
+    brand: 'test-object-id',
     category: IngredientCategory.VIDEO,
     createdAt: new Date(),
     duration: 120,
@@ -23,8 +23,8 @@ describe('VideosService', () => {
     fps: 30,
     height: 1080,
     isDeleted: false,
-    metadata: new Types.ObjectId(),
-    organization: new Types.ObjectId(),
+    metadata: 'test-object-id',
+    organization: 'test-object-id',
     populate: vi.fn().mockReturnThis(),
     save: vi.fn().mockResolvedValue(this),
     status: IngredientStatus.PROCESSING,
@@ -32,7 +32,7 @@ describe('VideosService', () => {
     thumbnail: 'https://example.com/video-thumb.jpg',
     updatedAt: new Date(),
     url: 'https://example.com/video.mp4',
-    user: new Types.ObjectId(),
+    user: 'test-object-id',
     version: 1,
     width: 1920,
   };
@@ -98,10 +98,7 @@ describe('VideosService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         VideosService,
-        {
-          provide: getModelToken(Ingredient.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockModel,
-        },
+        { provide: PrismaService, useValue: mockModel },
         {
           provide: LoggerService,
           useValue: mockLogger,
@@ -133,12 +130,12 @@ describe('VideosService', () => {
 
   describe('create', () => {
     const createDto = {
-      brand: new Types.ObjectId().toString(),
+      brand: 'test-object-id'.toString(),
       category: IngredientCategory.VIDEO,
       duration: 90,
-      organization: new Types.ObjectId().toString(),
+      organization: 'test-object-id'.toString(),
       url: 'https://example.com/new-video.mp4',
-      user: new Types.ObjectId().toString(),
+      user: 'test-object-id'.toString(),
     };
 
     it('should create a new video document successfully', async () => {
@@ -179,7 +176,7 @@ describe('VideosService', () => {
   describe('findLatest', () => {
     const params = {
       category: IngredientCategory.VIDEO,
-      user: new Types.ObjectId(),
+      user: 'test-object-id',
     };
 
     it('should find the latest video by version', async () => {
@@ -216,12 +213,12 @@ describe('VideosService', () => {
   });
 
   describe('findChildren', () => {
-    const parentId = new Types.ObjectId().toString();
+    const parentId = 'test-object-id'.toString();
 
     it('should find all child videos for a parent', async () => {
       const mockChildren = [
         mockVideoDocument,
-        { ...mockVideoDocument, _id: new Types.ObjectId() },
+        { ...mockVideoDocument, _id: 'test-object-id' },
       ];
       mockModel.find.mockReturnValue({
         exec: vi.fn().mockResolvedValue(mockChildren),
@@ -252,7 +249,7 @@ describe('VideosService', () => {
   });
 
   describe('findOne', () => {
-    const params = { _id: new Types.ObjectId() };
+    const params = { _id: 'test-object-id' };
 
     it('should find one video with default population', async () => {
       const result = await service.findOne(params);
@@ -287,7 +284,7 @@ describe('VideosService', () => {
   });
 
   describe('patch', () => {
-    const id = new Types.ObjectId().toString();
+    const id = 'test-object-id'.toString();
     const updateDto = {
       duration: 150,
       status: IngredientStatus.GENERATED,
@@ -359,7 +356,7 @@ describe('VideosService', () => {
 
   describe('Video-specific Operations', () => {
     it('should handle video processing status updates', async () => {
-      const id = new Types.ObjectId().toString();
+      const id = 'test-object-id'.toString();
       const statusUpdate = { status: IngredientStatus.PROCESSING };
 
       const result = await service.patch(id, statusUpdate);
@@ -373,7 +370,7 @@ describe('VideosService', () => {
     });
 
     it('should handle video metadata updates', async () => {
-      const id = new Types.ObjectId().toString();
+      const id = 'test-object-id'.toString();
       const metadataUpdate = {
         status: IngredientStatus.PROCESSING,
         url: 'https://example.com/processed-video.mp4',
@@ -427,7 +424,7 @@ describe('VideosService', () => {
 
   describe('Edge Cases', () => {
     it('should handle empty update object in patch', async () => {
-      const id = new Types.ObjectId().toString();
+      const id = 'test-object-id'.toString();
       const emptyUpdate = {};
 
       const result = await service.patch(id, emptyUpdate);
@@ -466,7 +463,7 @@ describe('VideosService', () => {
     });
 
     it('should handle concurrent patch operations', async () => {
-      const id = new Types.ObjectId().toString();
+      const id = 'test-object-id'.toString();
       const updates = [
         { status: IngredientStatus.PROCESSING },
         { status: IngredientStatus.GENERATED },
@@ -481,11 +478,11 @@ describe('VideosService', () => {
 
     it('should handle very long video durations', async () => {
       const createDto = {
-        brand: new Types.ObjectId().toString(),
+        brand: 'test-object-id'.toString(),
         category: IngredientCategory.VIDEO,
         duration: 36000, // 10 hours
         url: 'https://example.com/long-video.mp4',
-        user: new Types.ObjectId().toString(),
+        user: 'test-object-id'.toString(),
       };
 
       const longVideo = { ...mockVideoDocument, duration: 36000 };

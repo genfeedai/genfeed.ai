@@ -8,7 +8,7 @@ describe('AgentThreadProjectorService', () => {
   });
 
   it('tracks pending input requests and removes them when resolved', () => {
-    const threadId = new Types.ObjectId();
+    const threadId = 'test-object-id';
 
     const afterInputRequested = service.applyEvent(null, {
       commandId: 'cmd-1',
@@ -60,7 +60,7 @@ describe('AgentThreadProjectorService', () => {
   });
 
   it('stores the final assistant message and run completion state', () => {
-    const threadId = new Types.ObjectId();
+    const threadId = 'test-object-id';
 
     const afterRunStarted = service.applyEvent(null, {
       commandId: 'cmd-run',
@@ -129,7 +129,7 @@ describe('AgentThreadProjectorService', () => {
   });
 
   it('stores proposed plan review metadata from plan events', () => {
-    const threadId = new Types.ObjectId();
+    const threadId = 'test-object-id';
 
     const afterPlanUpserted = service.applyEvent(null, {
       commandId: 'cmd-plan',

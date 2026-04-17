@@ -4,8 +4,8 @@ import {
 } from '@api/collections/ad-creative-mappings/schemas/ad-creative-mapping.schema';
 import { AdCreativeMappingsService } from '@api/collections/ad-creative-mappings/services/ad-creative-mappings.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('AdCreativeMappingsService', () => {
@@ -13,20 +13,20 @@ describe('AdCreativeMappingsService', () => {
   let mockModel: Record<string, vi.Mock>;
   let loggerService: vi.Mocked<LoggerService>;
 
-  const mockOrgId = new Types.ObjectId().toString();
-  const mockBrandId = new Types.ObjectId().toString();
-  const mockMappingId = new Types.ObjectId().toString();
+  const mockOrgId = 'test-object-id'.toString();
+  const mockBrandId = 'test-object-id'.toString();
+  const mockMappingId = 'test-object-id'.toString();
 
   const mockMapping: Partial<AdCreativeMappingDocument> = {
-    _id: new Types.ObjectId(mockMappingId),
+    _id: new string(mockMappingId),
     adAccountId: 'act_123456789',
-    brand: new Types.ObjectId(mockBrandId),
+    brand: new string(mockBrandId),
     externalAdId: 'ad_001',
     externalCreativeId: 'creative_001',
     genfeedContentId: 'content_123',
     isDeleted: false,
     metadata: { source: 'pipeline' },
-    organization: new Types.ObjectId(mockOrgId),
+    organization: new string(mockOrgId),
     platform: 'meta',
     status: 'active',
   };
@@ -63,10 +63,7 @@ describe('AdCreativeMappingsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AdCreativeMappingsService,
-        {
-          provide: getModelToken(AdCreativeMapping.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockModel,
-        },
+        { provide: PrismaService, useValue: mockModel },
         { provide: LoggerService, useValue: mockLoggerService },
       ],
     }).compile();
@@ -135,7 +132,7 @@ describe('AdCreativeMappingsService', () => {
       });
 
       const calledWith = mockModel.create.mock.calls[0][0];
-      expect(calledWith.organization).toBeInstanceOf(Types.ObjectId);
+      expect(calledWith.organization).toBeInstanceOf(string);
     });
 
     it('should throw and log error on failure', async () => {
@@ -158,9 +155,9 @@ describe('AdCreativeMappingsService', () => {
 
       expect(mockModel.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
-          _id: expect.any(Types.ObjectId),
+          _id: expect.any(string),
           isDeleted: false,
-          organization: expect.any(Types.ObjectId),
+          organization: expect.any(string),
         }),
       );
       expect(result).toBeDefined();
@@ -171,7 +168,7 @@ describe('AdCreativeMappingsService', () => {
       mockModel.findOne.mockReturnValue(nullChain);
 
       const result = await service.findById(
-        new Types.ObjectId().toString(),
+        'test-object-id'.toString(),
         mockOrgId,
       );
 
@@ -187,7 +184,7 @@ describe('AdCreativeMappingsService', () => {
         expect.objectContaining({
           genfeedContentId: 'content_123',
           isDeleted: false,
-          organization: expect.any(Types.ObjectId),
+          organization: expect.any(string),
         }),
       );
       expect(result).toHaveLength(1);
@@ -202,7 +199,7 @@ describe('AdCreativeMappingsService', () => {
         expect.objectContaining({
           externalAdId: 'ad_001',
           isDeleted: false,
-          organization: expect.any(Types.ObjectId),
+          organization: expect.any(string),
         }),
       );
       expect(result).toBeDefined();
@@ -217,7 +214,7 @@ describe('AdCreativeMappingsService', () => {
         expect.objectContaining({
           adAccountId: 'act_123456789',
           isDeleted: false,
-          organization: expect.any(Types.ObjectId),
+          organization: expect.any(string),
         }),
       );
       expect(result).toHaveLength(1);
@@ -233,9 +230,9 @@ describe('AdCreativeMappingsService', () => {
 
       expect(mockModel.findOneAndUpdate).toHaveBeenCalledWith(
         expect.objectContaining({
-          _id: expect.any(Types.ObjectId),
+          _id: expect.any(string),
           isDeleted: false,
-          organization: expect.any(Types.ObjectId),
+          organization: expect.any(string),
         }),
         { $set: { externalAdId: 'ad_002', status: 'paused' } },
         { new: true },
@@ -249,7 +246,7 @@ describe('AdCreativeMappingsService', () => {
       mockModel.findOneAndUpdate.mockReturnValue(nullChain);
 
       const result = await service.update(
-        new Types.ObjectId().toString(),
+        'test-object-id'.toString(),
         mockOrgId,
         { status: 'archived' },
       );
@@ -278,9 +275,9 @@ describe('AdCreativeMappingsService', () => {
 
       expect(mockModel.findOneAndUpdate).toHaveBeenCalledWith(
         expect.objectContaining({
-          _id: expect.any(Types.ObjectId),
+          _id: expect.any(string),
           isDeleted: false,
-          organization: expect.any(Types.ObjectId),
+          organization: expect.any(string),
         }),
         { $set: { isDeleted: true } },
       );
@@ -293,7 +290,7 @@ describe('AdCreativeMappingsService', () => {
       mockModel.findOneAndUpdate.mockReturnValue({ exec: execMock });
 
       const result = await service.softDelete(
-        new Types.ObjectId().toString(),
+        'test-object-id'.toString(),
         mockOrgId,
       );
 

@@ -16,9 +16,9 @@ vi.mock('@api/helpers/utils/error-response/error-response.util', () => ({
 }));
 
 describe('Threading AgentThreadsController', () => {
-  const organizationId = new Types.ObjectId().toString();
-  const userId = new Types.ObjectId().toString();
-  const threadId = new Types.ObjectId().toString();
+  const organizationId = 'test-object-id';
+  const userId = 'test-object-id';
+  const threadId = 'test-object-id';
   const mockUser = {
     id: 'clerk_123',
     publicMetadata: {

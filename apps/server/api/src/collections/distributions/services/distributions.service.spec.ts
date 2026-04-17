@@ -10,16 +10,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function createMockModel() {
   const mockDoc = {
-    _id: new Types.ObjectId(),
+    _id: 'test-object-id',
     chatId: '-1001234567890',
     contentType: DistributionContentType.TEXT,
     isDeleted: false,
-    organization: new Types.ObjectId(),
+    organization: 'test-object-id',
     platform: DistributionPlatform.TELEGRAM,
     save: vi.fn(),
     status: PublishStatus.PUBLISHING,
     text: 'Hello from Genfeed',
-    user: new Types.ObjectId(),
+    user: 'test-object-id',
   };
 
   const model = vi.fn();
@@ -88,8 +88,8 @@ describe('DistributionsService', () => {
 
   describe('createDistribution', () => {
     it('should create a distribution with correct fields', async () => {
-      const orgId = new Types.ObjectId().toString();
-      const userId = new Types.ObjectId().toString();
+      const orgId = 'test-object-id';
+      const userId = 'test-object-id';
 
       const createSpy = vi
         .spyOn(service, 'create')
@@ -117,7 +117,7 @@ describe('DistributionsService', () => {
 
   describe('findByOrganization', () => {
     it('should query with organization filter', async () => {
-      const orgId = new Types.ObjectId().toString();
+      const orgId = 'test-object-id';
 
       const result = await service.findByOrganization(orgId);
 
@@ -126,7 +126,7 @@ describe('DistributionsService', () => {
     });
 
     it('should include platform filter when provided', async () => {
-      const orgId = new Types.ObjectId().toString();
+      const orgId = 'test-object-id';
 
       const result = await service.findByOrganization(orgId, {
         platform: DistributionPlatform.TELEGRAM,
@@ -138,8 +138,8 @@ describe('DistributionsService', () => {
 
   describe('findOneByOrganization', () => {
     it('should return distribution when found', async () => {
-      const id = new Types.ObjectId().toString();
-      const orgId = new Types.ObjectId().toString();
+      const id = 'test-object-id';
+      const orgId = 'test-object-id';
 
       const result = await service.findOneByOrganization(id, orgId);
 
@@ -147,8 +147,8 @@ describe('DistributionsService', () => {
     });
 
     it('should throw NotFoundException when not found', async () => {
-      const id = new Types.ObjectId().toString();
-      const orgId = new Types.ObjectId().toString();
+      const id = 'test-object-id';
+      const orgId = 'test-object-id';
 
       // Override findOne to return null
       mockModel.model.findOne = vi.fn().mockReturnValue({
@@ -163,7 +163,7 @@ describe('DistributionsService', () => {
 
   describe('markAsPublished', () => {
     it('should update status to PUBLISHED with timestamp', async () => {
-      const id = new Types.ObjectId().toString();
+      const id = 'test-object-id';
 
       const result = await service.markAsPublished(id, '12345');
 
@@ -174,7 +174,7 @@ describe('DistributionsService', () => {
 
   describe('markAsFailed', () => {
     it('should update status to FAILED with error message', async () => {
-      const id = new Types.ObjectId().toString();
+      const id = 'test-object-id';
 
       const result = await service.markAsFailed(id, 'Bot token revoked');
 
@@ -185,8 +185,8 @@ describe('DistributionsService', () => {
 
   describe('cancelScheduled', () => {
     it('should cancel a scheduled distribution', async () => {
-      const id = new Types.ObjectId().toString();
-      const orgId = new Types.ObjectId().toString();
+      const id = 'test-object-id';
+      const orgId = 'test-object-id';
 
       // Mock findOne to return a scheduled distribution
       mockModel.model.findOne = vi.fn().mockReturnValue({
@@ -202,8 +202,8 @@ describe('DistributionsService', () => {
     });
 
     it('should throw when distribution is not scheduled', async () => {
-      const id = new Types.ObjectId().toString();
-      const orgId = new Types.ObjectId().toString();
+      const id = 'test-object-id';
+      const orgId = 'test-object-id';
 
       // Mock findOne to return a published distribution
       mockModel.model.findOne = vi.fn().mockReturnValue({

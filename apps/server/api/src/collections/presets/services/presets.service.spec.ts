@@ -3,11 +3,10 @@ import { UpdatePresetDto } from '@api/collections/presets/dto/update-preset.dto'
 import { PresetsService } from '@api/collections/presets/services/presets.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConflictException, NotFoundException } from '@nestjs/common';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
-import { type PipelineStage, Types } from 'mongoose';
 
 type MockPresetModel = vi.Mock & {
   aggregate: ReturnType<typeof vi.fn>;
@@ -31,7 +30,7 @@ describe('PresetsService', () => {
   let model: MockPresetModel;
 
   const mockPreset = {
-    _id: new Types.ObjectId('507f1f77bcf86cd799439011'),
+    _id: '507f1f77bcf86cd799439011',
     category: 'video',
     createdAt: new Date(),
     description: 'Standard settings for video generation',
@@ -84,10 +83,7 @@ describe('PresetsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PresetsService,
-        {
-          provide: getModelToken('Preset', DB_CONNECTIONS.CLOUD),
-          useValue: MockPresetModel,
-        },
+        { provide: PrismaService, useValue: MockPresetModel },
         {
           provide: LoggerService,
           useValue: {
@@ -101,7 +97,7 @@ describe('PresetsService', () => {
     }).compile();
 
     service = module.get<PresetsService>(PresetsService);
-    model = module.get(getModelToken('Preset', DB_CONNECTIONS.CLOUD));
+    model = module.get(PrismaService);
 
     vi.clearAllMocks();
   });

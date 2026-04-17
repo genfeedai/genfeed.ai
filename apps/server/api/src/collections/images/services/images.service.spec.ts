@@ -2,10 +2,10 @@ import { ImagesService } from '@api/collections/images/services/images.service';
 import { Ingredient } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('ImagesService', () => {
@@ -14,15 +14,15 @@ describe('ImagesService', () => {
   let mockLogger: vi.Mocked<LoggerService>;
 
   const mockImageDocument = {
-    _id: new Types.ObjectId(),
-    brand: new Types.ObjectId(),
+    _id: 'test-object-id',
+    brand: 'test-object-id',
     category: IngredientCategory.IMAGE,
     createdAt: new Date(),
     exec: vi.fn().mockResolvedValue(this),
     height: 1080,
     isDeleted: false,
-    metadata: new Types.ObjectId(),
-    organization: new Types.ObjectId(),
+    metadata: 'test-object-id',
+    organization: 'test-object-id',
     populate: vi.fn().mockReturnThis(),
     save: vi.fn().mockResolvedValue(this),
     status: IngredientStatus.PROCESSING,
@@ -30,7 +30,7 @@ describe('ImagesService', () => {
     thumbnail: 'https://example.com/thumb.jpg',
     updatedAt: new Date(),
     url: 'https://example.com/image.jpg',
-    user: new Types.ObjectId(),
+    user: 'test-object-id',
     version: 1,
     width: 1920,
   };
@@ -96,10 +96,7 @@ describe('ImagesService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ImagesService,
-        {
-          provide: getModelToken(Ingredient.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockModel,
-        },
+        { provide: PrismaService, useValue: mockModel },
         {
           provide: LoggerService,
           useValue: mockLogger,
@@ -131,11 +128,11 @@ describe('ImagesService', () => {
 
   describe('create', () => {
     const createDto = {
-      brand: new Types.ObjectId().toString(),
+      brand: 'test-object-id'.toString(),
       category: IngredientCategory.IMAGE,
-      organization: new Types.ObjectId().toString(),
+      organization: 'test-object-id'.toString(),
       url: 'https://example.com/new-image.jpg',
-      user: new Types.ObjectId().toString(),
+      user: 'test-object-id'.toString(),
     };
 
     it('should create a new image document successfully', async () => {
@@ -180,7 +177,7 @@ describe('ImagesService', () => {
   describe('findLatest', () => {
     const params = {
       category: IngredientCategory.IMAGE,
-      user: new Types.ObjectId(),
+      user: 'test-object-id',
     };
 
     it('should find the latest image by version', async () => {
@@ -217,12 +214,12 @@ describe('ImagesService', () => {
   });
 
   describe('findChildren', () => {
-    const parentId = new Types.ObjectId().toString();
+    const parentId = 'test-object-id'.toString();
 
     it('should find all child images for a parent', async () => {
       const mockChildren = [
         mockImageDocument,
-        { ...mockImageDocument, _id: new Types.ObjectId() },
+        { ...mockImageDocument, _id: 'test-object-id' },
       ];
       mockModel.find.mockReturnValue({
         exec: vi.fn().mockResolvedValue(mockChildren),
@@ -265,7 +262,7 @@ describe('ImagesService', () => {
   });
 
   describe('findOne', () => {
-    const params = { _id: new Types.ObjectId() };
+    const params = { _id: 'test-object-id' };
 
     it('should find one image with default population', async () => {
       const result = await service.findOne(params);
@@ -295,7 +292,7 @@ describe('ImagesService', () => {
   });
 
   describe('patch', () => {
-    const id = new Types.ObjectId().toString();
+    const id = 'test-object-id'.toString();
     const updateDto = {
       status: IngredientStatus.GENERATED,
       url: 'https://example.com/updated.jpg',
@@ -373,14 +370,14 @@ describe('ImagesService', () => {
     });
 
     it('should use detailed population for detail context', async () => {
-      const params = { _id: new Types.ObjectId() };
+      const params = { _id: 'test-object-id' };
       await service.findOne(params);
 
       expect(mockModel.aggregate).toHaveBeenCalled();
     });
 
     it('should handle missing population gracefully', async () => {
-      const params = { _id: new Types.ObjectId() };
+      const params = { _id: 'test-object-id' };
       mockModel.aggregate = vi.fn().mockReturnValue({
         exec: vi.fn().mockResolvedValue([mockImageDocument]),
       });
@@ -424,7 +421,7 @@ describe('ImagesService', () => {
 
   describe('Edge Cases', () => {
     it('should handle empty update object in patch', async () => {
-      const id = new Types.ObjectId().toString();
+      const id = 'test-object-id'.toString();
       const emptyUpdate = {};
 
       const result = await service.patch(id, emptyUpdate);
@@ -463,7 +460,7 @@ describe('ImagesService', () => {
     });
 
     it('should handle concurrent patch operations', async () => {
-      const id = new Types.ObjectId().toString();
+      const id = 'test-object-id'.toString();
       const updates = [
         { status: IngredientStatus.PROCESSING },
         { status: IngredientStatus.GENERATED },

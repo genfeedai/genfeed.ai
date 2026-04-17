@@ -4,8 +4,8 @@ import { ArticlesContentService } from '@api/collections/articles/services/artic
 import { Prompt } from '@api/collections/prompts/schemas/prompt.schema';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { ConfigService } from '@api/config/config.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('ArticlesContentService', () => {
@@ -14,7 +14,7 @@ describe('ArticlesContentService', () => {
   let configService: ConfigService;
 
   const _mockArticle = {
-    _id: new Types.ObjectId(),
+    _id: 'test-object-id',
     content: 'Test content',
     isDeleted: false,
     slug: 'test-article',
@@ -41,15 +41,7 @@ describe('ArticlesContentService', () => {
           },
         },
         {
-          provide: getModelToken(Prompt.name),
-          useValue: {
-            create: vi.fn(),
-            findById: vi.fn(),
-            findByIdAndUpdate: vi.fn(),
-          },
-        },
-        {
-          provide: getModelToken(Article.name),
+          provide: PrismaService,
           useValue: {
             create: vi.fn(),
             findById: vi.fn(),

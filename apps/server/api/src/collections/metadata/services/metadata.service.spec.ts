@@ -1,9 +1,9 @@
 import { Metadata } from '@api/collections/metadata/schemas/metadata.schema';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { createMockModel } from '@api/shared/testing/mock-model.factory';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -28,10 +28,7 @@ describe('MetadataService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         MetadataService,
-        {
-          provide: getModelToken(Metadata.name, DB_CONNECTIONS.CLOUD),
-          useValue: model,
-        },
+        { provide: PrismaService, useValue: model },
         { provide: LoggerService, useValue: logger },
       ],
     }).compile();
@@ -45,12 +42,12 @@ describe('MetadataService', () => {
 
   describe('findOne (inherited from BaseService)', () => {
     it('should call model.findOne with processed params', async () => {
-      const id = new Types.ObjectId().toHexString();
+      const id = 'test-object-id'.toHexString();
       await service.findOne({ _id: id, isDeleted: false });
 
       expect(model.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
-          _id: expect.any(Types.ObjectId),
+          _id: expect.any(string),
           isDeleted: false,
         }),
       );
@@ -68,7 +65,7 @@ describe('MetadataService', () => {
 
     it('should return doc when found', async () => {
       const doc = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         result: 'https://cdn.test.com/file.mp4',
       };
       model.findOne.mockReturnValue({
@@ -83,7 +80,7 @@ describe('MetadataService', () => {
 
   describe('patch (inherited from BaseService)', () => {
     it('should call findByIdAndUpdate with $set wrapper', async () => {
-      const id = new Types.ObjectId();
+      const id = 'test-object-id';
       const doc = { _id: id, result: 'updated' };
       model.findByIdAndUpdate.mockReturnValue({
         exec: vi.fn().mockResolvedValue(doc),
@@ -100,7 +97,7 @@ describe('MetadataService', () => {
     });
 
     it('should pass $set/$unset directly without re-wrapping', async () => {
-      const id = new Types.ObjectId();
+      const id = 'test-object-id';
       model.findByIdAndUpdate.mockReturnValue({
         exec: vi.fn().mockResolvedValue({}),
         populate: vi.fn().mockReturnThis(),
@@ -134,9 +131,9 @@ describe('MetadataService', () => {
 
   describe('processSearchParams', () => {
     it('should convert string _id to ObjectId', () => {
-      const id = new Types.ObjectId().toHexString();
+      const id = 'test-object-id'.toHexString();
       const result = service.processSearchParams({ _id: id });
-      expect(result._id).toBeInstanceOf(Types.ObjectId);
+      expect(result._id).toBeInstanceOf(string);
     });
 
     it('should not convert non-ObjectId fields', () => {
@@ -149,9 +146,9 @@ describe('MetadataService', () => {
     });
 
     it('should convert metadata field to ObjectId', () => {
-      const id = new Types.ObjectId().toHexString();
+      const id = 'test-object-id'.toHexString();
       const result = service.processSearchParams({ metadata: id });
-      expect(result.metadata).toBeInstanceOf(Types.ObjectId);
+      expect(result.metadata).toBeInstanceOf(string);
     });
   });
 });

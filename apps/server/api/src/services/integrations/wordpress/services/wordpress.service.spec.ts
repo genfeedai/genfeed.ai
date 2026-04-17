@@ -182,12 +182,12 @@ describe('WordpressService', () => {
   });
 
   describe('refreshToken', () => {
-    const orgId = new Types.ObjectId().toString();
-    const brandId = new Types.ObjectId().toString();
+    const orgId = 'test-object-id';
+    const brandId = 'test-object-id';
 
     it('should validate token successfully by making a test API call', async () => {
       const mockCredential = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         accessToken: 'encrypted-access-token',
         platform: CredentialPlatform.WORDPRESS,
       };
@@ -207,9 +207,9 @@ describe('WordpressService', () => {
 
       expect(result).toEqual({ isValid: true });
       expect(credentialsService.findOne).toHaveBeenCalledWith({
-        brand: new Types.ObjectId(brandId),
+        brand: brandId,
         isDeleted: false,
-        organization: new Types.ObjectId(orgId),
+        organization: orgId,
         platform: CredentialPlatform.WORDPRESS,
       });
       expect(httpService.get).toHaveBeenCalledWith(
@@ -232,7 +232,7 @@ describe('WordpressService', () => {
 
     it('should throw when credential has no accessToken', async () => {
       const mockCredential = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         accessToken: undefined,
         platform: CredentialPlatform.WORDPRESS,
       };
@@ -246,7 +246,7 @@ describe('WordpressService', () => {
 
     it('should throw when validation API call fails', async () => {
       const mockCredential = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         accessToken: 'encrypted-token',
         platform: CredentialPlatform.WORDPRESS,
       };
@@ -547,8 +547,8 @@ describe('WordpressService', () => {
 
   describe('getMediaAnalytics', () => {
     it('should return zeroed analytics (not fully implemented)', async () => {
-      const orgId = new Types.ObjectId().toString();
-      const brandId = new Types.ObjectId().toString();
+      const orgId = 'test-object-id';
+      const brandId = 'test-object-id';
       const externalId = 'ext-123';
 
       const result = await service.getMediaAnalytics(

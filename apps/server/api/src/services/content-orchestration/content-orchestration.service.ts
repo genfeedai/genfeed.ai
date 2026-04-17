@@ -141,7 +141,7 @@ export class ContentOrchestrationService {
     const stepOutcomes: StepOutcome[] = [];
     const stepTimingsMs: number[] = [];
     let previousResult: StepResult | undefined;
-    const allIngredientIds: Types.ObjectId[] = [];
+    const allIngredientIds: string[] = [];
 
     for (let i = 0; i < config.steps.length; i++) {
       const step = config.steps[i];
@@ -173,12 +173,12 @@ export class ContentOrchestrationService {
 
         const { ingredientData, metadataData } =
           await this.sharedService.saveDocumentsInternal({
-            brand: new Types.ObjectId(config.brandId),
+            brand: config.brandId,
             category,
             extension,
-            organization: new Types.ObjectId(config.organizationId),
+            organization: config.organizationId,
             status: IngredientStatus.PROCESSING,
-            user: new Types.ObjectId(config.userId),
+            user: config.userId,
           });
 
         const s3Meta = await this.filesClientService.uploadToS3(
@@ -205,7 +205,7 @@ export class ContentOrchestrationService {
           status: IngredientStatus.UPLOADED,
         });
 
-        allIngredientIds.push(new Types.ObjectId(ingredientData._id));
+        allIngredientIds.push(ingredientData._id);
 
         stepOutcomes.push({
           ingredientId: ingredientData._id.toString(),
@@ -275,15 +275,15 @@ export class ContentOrchestrationService {
           },
           () =>
             this.personaPublisherService.publishToAll({
-              brand: new Types.ObjectId(config.brandId),
+              brand: config.brandId,
               category: PostCategory.POST,
               description: config.prompt ?? '',
               ingredientIds: ingredientIdsToPublish,
-              organization: new Types.ObjectId(config.organizationId),
-              personaId: new Types.ObjectId(config.personaId),
+              organization: config.organizationId,
+              personaId: config.personaId,
               platforms: config.platforms,
               scheduledDate: config.scheduledDate,
-              user: new Types.ObjectId(config.userId),
+              user: config.userId,
             }),
         );
         postIds = publishResult.postIds;
@@ -418,9 +418,9 @@ export class ContentOrchestrationService {
     organizationId: string,
   ): Promise<PersonaDocument> {
     const persona = await this.personasService.findOne({
-      _id: new Types.ObjectId(personaId),
+      _id: personaId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
     });
 
     if (!persona) {

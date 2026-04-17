@@ -97,9 +97,9 @@ export class PresignedUploadService {
     // Find and update the ingredient status
     const ingredient = await this.ingredientsService.findOne(
       {
-        _id: new Types.ObjectId(id),
+        _id: id,
         status: 'processing',
-        user: new Types.ObjectId(publicMetadata.user),
+        user: publicMetadata.user,
       },
       [{ path: 'metadata' }],
     );

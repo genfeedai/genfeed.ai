@@ -3,14 +3,14 @@ import {
   type AnnouncementDocument,
 } from '@api/collections/announcements/schemas/announcement.schema';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { AnnouncementsService } from './announcements.service';
 
 const makeDoc = (overrides: Partial<Announcement> = {}): AnnouncementDocument =>
   ({
-    _id: new Types.ObjectId(),
+    _id: 'test-object-id',
     authorId: 'author-1',
     body: 'Test announcement body',
     channels: ['discord'],
@@ -40,10 +40,7 @@ describe('AnnouncementsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AnnouncementsService,
-        {
-          provide: getModelToken(Announcement.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockModel,
-        },
+        { provide: PrismaService, useValue: mockModel },
         {
           provide: LoggerService,
           useValue: {

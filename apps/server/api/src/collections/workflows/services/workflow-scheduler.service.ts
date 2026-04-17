@@ -198,7 +198,7 @@ export class WorkflowSchedulerService implements OnModuleInit {
             workflow as unknown as WorkflowDocument,
           ),
           trigger: WorkflowExecutionTrigger.SCHEDULED,
-          workflow: workflowId as unknown as Types.ObjectId,
+          workflow: workflowId as unknown,
         });
       }
 

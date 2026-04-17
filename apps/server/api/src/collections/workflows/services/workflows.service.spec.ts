@@ -7,13 +7,13 @@ import { AVATAR_UGC_WORKFLOW_TEMPLATE } from '@api/collections/workflows/templat
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { TaskQueueClientService } from '@api/services/task-queue-client/task-queue-client.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   WorkflowExecutionTrigger,
   WorkflowStatus,
   WorkflowTrigger,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 
 // Valid 24-char hex strings for ObjectId construction
@@ -82,10 +82,7 @@ describe('WorkflowsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         WorkflowsService,
-        {
-          provide: getModelToken(Workflow.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockWorkflowModel,
-        },
+        { provide: PrismaService, useValue: mockWorkflowModel },
         {
           provide: LoggerService,
           useValue: mockLoggerService,
@@ -315,7 +312,7 @@ describe('WorkflowsService', () => {
       } as never);
       vi.spyOn(service, 'patch').mockResolvedValue({} as never);
       mockWorkflowExecutionsService.createExecution.mockResolvedValue({
-        _id: new Types.ObjectId(TEST_RUN_ID),
+        _id: new string(TEST_RUN_ID),
       });
       mockWorkflowExecutionsService.startExecution.mockResolvedValue({
         _id: TEST_RUN_ID,
@@ -344,7 +341,7 @@ describe('WorkflowsService', () => {
             selectedNodeIds: ['node-1'],
           },
           trigger: WorkflowExecutionTrigger.MANUAL,
-          workflow: expect.any(Types.ObjectId),
+          workflow: expect.any(string),
         }),
       );
       expect(mockWorkflowExecutionsService.startExecution).toHaveBeenCalledWith(
@@ -366,10 +363,10 @@ describe('WorkflowsService', () => {
   describe('triggerViaWebhook', () => {
     it('routes node workflows through the workflow executor service', async () => {
       const workflow = {
-        _id: new Types.ObjectId(TEST_WORKFLOW_ID),
+        _id: new string(TEST_WORKFLOW_ID),
         nodes: [{ id: 'node-1', type: 'ai-generate-image' }],
-        organization: new Types.ObjectId(TEST_ORG_ID),
-        user: new Types.ObjectId(TEST_USER_ID),
+        organization: new string(TEST_ORG_ID),
+        user: new string(TEST_USER_ID),
       };
 
       vi.spyOn(service, 'findByWebhookId').mockResolvedValue(workflow as never);

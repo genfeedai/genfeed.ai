@@ -27,9 +27,9 @@ describe('ImageGenerationHandler', () => {
   };
 
   const baseContext = {
-    brandId: new Types.ObjectId().toString(),
+    brandId: 'test-object-id',
     brandVoice: 'voice',
-    organizationId: new Types.ObjectId().toString(),
+    organizationId: 'test-object-id',
     platforms: ['instagram'],
   };
 

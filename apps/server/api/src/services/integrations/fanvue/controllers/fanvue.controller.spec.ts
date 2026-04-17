@@ -61,7 +61,7 @@ describe('FanvueController', () => {
   };
 
   const orgId = '507f1f77bcf86cd799439012';
-  const brandId = new Types.ObjectId().toString();
+  const brandId = 'test-object-id';
 
   const mockUser = {
     publicMetadata: { organization: orgId, user: '507f1f77bcf86cd799439011' },
@@ -91,8 +91,8 @@ describe('FanvueController', () => {
           provide: BrandsService,
           useValue: {
             findOne: vi.fn().mockResolvedValue({
-              _id: new Types.ObjectId(brandId),
-              organization: new Types.ObjectId(orgId),
+              _id: brandId,
+              organization: orgId,
             }),
           },
         },
@@ -161,9 +161,9 @@ describe('FanvueController', () => {
 
       expect(brandsService.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
-          _id: expect.any(Types.ObjectId),
+          _id: expect.any(String),
           isDeleted: false,
-          organization: expect.any(Types.ObjectId),
+          organization: expect.any(String),
         }),
       );
       expect(fanvueService.generatePkce).toHaveBeenCalled();
@@ -207,7 +207,7 @@ describe('FanvueController', () => {
       });
 
       credentialsService.findOne.mockResolvedValue({
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         oauthToken: 'encrypted-verifier',
       });
 
@@ -218,8 +218,8 @@ describe('FanvueController', () => {
 
       expect(credentialsService.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
-          brand: expect.any(Types.ObjectId),
-          organization: expect.any(Types.ObjectId),
+          brand: expect.any(String),
+          organization: expect.any(String),
           platform: CredentialPlatform.FANVUE,
         }),
       );
@@ -232,7 +232,7 @@ describe('FanvueController', () => {
         'fanvue-access-token',
       );
       expect(credentialsService.patch).toHaveBeenCalledWith(
-        expect.any(Types.ObjectId),
+        expect.any(String),
         expect.objectContaining({
           accessToken: 'fanvue-access-token',
           externalHandle: 'testcreator',
@@ -278,7 +278,7 @@ describe('FanvueController', () => {
 
     it('should return bad request when oauthToken (code_verifier) is missing', async () => {
       credentialsService.findOne.mockResolvedValue({
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         oauthToken: null,
       });
 
@@ -299,7 +299,7 @@ describe('FanvueController', () => {
 
     it('should return bad request on invalid_grant error', async () => {
       credentialsService.findOne.mockResolvedValue({
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         oauthToken: 'encrypted-verifier',
       });
       fanvueService.exchangeCodeForTokens.mockRejectedValue({
@@ -325,7 +325,7 @@ describe('FanvueController', () => {
 
     it('should return internal server error on unknown error', async () => {
       credentialsService.findOne.mockResolvedValue({
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         oauthToken: 'encrypted-verifier',
       });
       fanvueService.exchangeCodeForTokens.mockRejectedValue(

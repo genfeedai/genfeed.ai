@@ -3,10 +3,10 @@ import { AgentRun } from '@api/collections/agent-runs/schemas/agent-run.schema';
 import { AgentRoom } from '@api/collections/agent-threads/schemas/agent-thread.schema';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { AgentThreadSnapshot } from '@api/services/agent-threading/schemas/agent-thread-snapshot.schema';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { AgentExecutionStatus, AgentThreadStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('AgentThreadsService', () => {
@@ -20,10 +20,10 @@ describe('AgentThreadsService', () => {
   };
 
   const mockConversation = {
-    _id: new Types.ObjectId(),
-    organization: new Types.ObjectId(),
+    _id: 'test-object-id',
+    organization: 'test-object-id',
     title: 'Test Thread',
-    user: new Types.ObjectId().toString(),
+    user: 'test-object-id'.toString(),
   };
 
   function createMockModel() {
@@ -72,25 +72,12 @@ describe('AgentThreadsService', () => {
       providers: [
         AgentThreadsService,
         {
-          provide: getModelToken(AgentRoom.name, 'agent'),
-          useValue: mockModel,
-        },
-        {
-          provide: LoggerService,
+          provide: PrismaService,
           useValue: {
-            debug: vi.fn(),
-            error: vi.fn(),
-            log: vi.fn(),
-            warn: vi.fn(),
+            ...mockModel,
+            ...mockSnapshotModel,
+            ...mockAgentRunModel,
           },
-        },
-        {
-          provide: getModelToken(AgentThreadSnapshot.name, 'agent'),
-          useValue: mockSnapshotModel,
-        },
-        {
-          provide: getModelToken(AgentRun.name, 'agent'),
-          useValue: mockAgentRunModel,
         },
         {
           provide: AgentMessagesService,
@@ -110,8 +97,8 @@ describe('AgentThreadsService', () => {
 
   describe('getUserThreads', () => {
     it('should query with user filter and no status when status is not provided', async () => {
-      const userId = new Types.ObjectId().toString();
-      const organizationId = new Types.ObjectId().toString();
+      const userId = 'test-object-id'.toString();
+      const organizationId = 'test-object-id'.toString();
 
       const result = await service.getUserThreads(userId, organizationId);
 
@@ -119,9 +106,9 @@ describe('AgentThreadsService', () => {
       expect(mockModel.find).toHaveBeenCalledWith(
         expect.objectContaining({
           isDeleted: false,
-          organization: expect.any(Types.ObjectId),
+          organization: expect.any(string),
           user: expect.objectContaining({
-            $in: [expect.any(Types.ObjectId), userId],
+            $in: [expect.any(string), userId],
           }),
         }),
       );
@@ -132,8 +119,8 @@ describe('AgentThreadsService', () => {
     });
 
     it('should use $or filter for ACTIVE status to include threads missing status field', async () => {
-      const userId = new Types.ObjectId().toString();
-      const organizationId = new Types.ObjectId().toString();
+      const userId = 'test-object-id'.toString();
+      const organizationId = 'test-object-id'.toString();
 
       await service.getUserThreads(
         userId,
@@ -150,8 +137,8 @@ describe('AgentThreadsService', () => {
     });
 
     it('should use direct status filter for non-ACTIVE statuses', async () => {
-      const userId = new Types.ObjectId().toString();
-      const organizationId = new Types.ObjectId().toString();
+      const userId = 'test-object-id'.toString();
+      const organizationId = 'test-object-id'.toString();
 
       await service.getUserThreads(
         userId,
@@ -165,15 +152,15 @@ describe('AgentThreadsService', () => {
     });
 
     it('should merge snapshot-derived thread summary fields', async () => {
-      const userId = new Types.ObjectId().toString();
-      const organizationId = new Types.ObjectId().toString();
+      const userId = 'test-object-id'.toString();
+      const organizationId = 'test-object-id'.toString();
       const startedAt = '2026-03-11T09:00:00.000Z';
       const lastAssistantCreatedAt = '2026-03-11T09:05:00.000Z';
 
       mockSnapshotModel.find.mockReturnValue({
         lean: vi.fn().mockResolvedValue([
           {
-            _id: new Types.ObjectId(),
+            _id: 'test-object-id',
             activeRun: {
               startedAt,
               status: 'running',
@@ -183,7 +170,7 @@ describe('AgentThreadsService', () => {
               content: 'Latest assistant summary',
               createdAt: lastAssistantCreatedAt,
             },
-            organization: new Types.ObjectId(organizationId),
+            organization: new string(organizationId),
             pendingInputRequests: [{ requestId: 'request-1' }],
             thread: mockConversation._id,
           },
@@ -203,25 +190,25 @@ describe('AgentThreadsService', () => {
       ]);
       expect(mockSnapshotModel.find).toHaveBeenCalledWith({
         isDeleted: false,
-        organization: expect.any(Types.ObjectId),
+        organization: expect.any(string),
         thread: { $in: [mockConversation._id] },
       });
     });
 
     it('should prefer the latest persisted run status when a snapshot is stuck running', async () => {
-      const userId = new Types.ObjectId().toString();
-      const organizationId = new Types.ObjectId().toString();
+      const userId = 'test-object-id'.toString();
+      const organizationId = 'test-object-id'.toString();
 
       mockSnapshotModel.find.mockReturnValue({
         lean: vi.fn().mockResolvedValue([
           {
-            _id: new Types.ObjectId(),
+            _id: 'test-object-id',
             activeRun: {
               startedAt: '2026-03-11T09:00:00.000Z',
               status: 'running',
             },
             isDeleted: false,
-            organization: new Types.ObjectId(organizationId),
+            organization: new string(organizationId),
             pendingInputRequests: [],
             thread: mockConversation._id,
           },
@@ -236,7 +223,7 @@ describe('AgentThreadsService', () => {
         .sort()
         .lean.mockResolvedValue([
           {
-            _id: new Types.ObjectId(),
+            _id: 'test-object-id',
             status: AgentExecutionStatus.COMPLETED,
             thread: mockConversation._id,
           },
@@ -254,15 +241,15 @@ describe('AgentThreadsService', () => {
     });
 
     it('treats an awaiting-approval plan as attention needed', async () => {
-      const userId = new Types.ObjectId().toString();
-      const organizationId = new Types.ObjectId().toString();
+      const userId = 'test-object-id'.toString();
+      const organizationId = 'test-object-id'.toString();
 
       mockSnapshotModel.find.mockReturnValue({
         lean: vi.fn().mockResolvedValue([
           {
-            _id: new Types.ObjectId(),
+            _id: 'test-object-id',
             isDeleted: false,
-            organization: new Types.ObjectId(organizationId),
+            organization: new string(organizationId),
             pendingInputRequests: [{ id: 'request-1' }],
             thread: mockConversation._id,
           },
@@ -282,18 +269,15 @@ describe('AgentThreadsService', () => {
 
     it('should throw for invalid user id', () => {
       expect(() =>
-        service.getUserThreads(
-          'not-a-mongo-id',
-          new Types.ObjectId().toString(),
-        ),
+        service.getUserThreads('not-a-mongo-id', 'test-object-id'.toString()),
       ).toThrow(BadRequestException);
     });
   });
 
   describe('archiveAllThreads', () => {
     it('archives only the current user active threads in the organization', async () => {
-      const userId = new Types.ObjectId().toString();
-      const organizationId = new Types.ObjectId().toString();
+      const userId = 'test-object-id'.toString();
+      const organizationId = 'test-object-id'.toString();
       const updateMany = vi
         .spyOn(mockModel, 'updateMany')
         .mockResolvedValue({ modifiedCount: 3 } as never);
@@ -309,9 +293,9 @@ describe('AgentThreadsService', () => {
             { status: { $exists: false } },
           ],
           isDeleted: false,
-          organization: expect.any(Types.ObjectId),
+          organization: expect.any(string),
           user: expect.objectContaining({
-            $in: [expect.any(Types.ObjectId), userId],
+            $in: [expect.any(string), userId],
           }),
         },
         { $set: { status: AgentThreadStatus.ARCHIVED } },

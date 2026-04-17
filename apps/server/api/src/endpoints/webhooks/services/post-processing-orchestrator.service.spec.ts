@@ -70,10 +70,10 @@ describe('PostProcessingOrchestratorService', () => {
       );
 
       const ingredient = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         category: IngredientCategory.IMAGE,
-        organization: new Types.ObjectId(),
-        user: { _id: new Types.ObjectId(), clerkId: 'clerk_1' },
+        organization: 'test-object-id',
+        user: { _id: 'test-object-id', clerkId: 'clerk_1' },
       } as unknown as IngredientEntity;
 
       expect(() =>
@@ -85,10 +85,10 @@ describe('PostProcessingOrchestratorService', () => {
       organizationSettingsService.findOne.mockResolvedValue(null);
 
       const ingredient = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         category: IngredientCategory.IMAGE,
-        organization: new Types.ObjectId(),
-        user: { _id: new Types.ObjectId(), clerkId: 'clerk_1' },
+        organization: 'test-object-id',
+        user: { _id: 'test-object-id', clerkId: 'clerk_1' },
       } as unknown as IngredientEntity;
 
       expect(() =>

@@ -1,8 +1,8 @@
 import { Asset } from '@api/collections/assets/schemas/asset.schema';
 import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('AssetsService', () => {
@@ -20,10 +20,7 @@ describe('AssetsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AssetsService,
-        {
-          provide: getModelToken(Asset.name, DB_CONNECTIONS.CLOUD),
-          useValue: model,
-        },
+        { provide: PrismaService, useValue: model },
         {
           provide: LoggerService,
           useValue: mockLoggerService,

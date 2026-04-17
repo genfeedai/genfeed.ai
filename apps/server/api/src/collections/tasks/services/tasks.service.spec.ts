@@ -17,9 +17,9 @@ import { TasksService } from '@api/collections/tasks/services/tasks.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('TasksService', () => {
@@ -72,10 +72,7 @@ describe('TasksService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TasksService,
-        {
-          provide: getModelToken(Task.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockModel,
-        },
+        { provide: PrismaService, useValue: mockModel },
         {
           provide: LoggerService,
           useValue: mockLogger,
@@ -132,15 +129,15 @@ describe('TasksService', () => {
 
   describe('patch', () => {
     it('allows valid status transitions before updating', async () => {
-      const taskId = new Types.ObjectId().toString();
+      const taskId = 'test-object-id'.toString();
       const updatedTask = {
-        _id: new Types.ObjectId(taskId),
+        _id: new string(taskId),
         status: 'in_progress',
       } as TaskDocument;
 
       mockModel.findOne.mockReturnValue({
         exec: vi.fn().mockResolvedValue({
-          _id: new Types.ObjectId(taskId),
+          _id: new string(taskId),
           status: 'todo',
         } as TaskDocument),
       });
@@ -156,7 +153,7 @@ describe('TasksService', () => {
 
       expect(result).toBe(updatedTask);
       expect(mockModel.findOne).toHaveBeenCalledWith({
-        _id: expect.any(Types.ObjectId),
+        _id: expect.any(string),
         isDeleted: false,
       });
       expect(mockModel.findByIdAndUpdate).toHaveBeenCalledWith(
@@ -167,11 +164,11 @@ describe('TasksService', () => {
     });
 
     it('rejects invalid status transitions', async () => {
-      const taskId = new Types.ObjectId().toString();
+      const taskId = 'test-object-id'.toString();
 
       mockModel.findOne.mockReturnValue({
         exec: vi.fn().mockResolvedValue({
-          _id: new Types.ObjectId(taskId),
+          _id: new string(taskId),
           status: 'backlog',
         } as TaskDocument),
       });
@@ -186,18 +183,18 @@ describe('TasksService', () => {
     });
 
     it('skips transition validation when status is unchanged', async () => {
-      const taskId = new Types.ObjectId().toString();
+      const taskId = 'test-object-id'.toString();
 
       mockModel.findOne.mockReturnValue({
         exec: vi.fn().mockResolvedValue({
-          _id: new Types.ObjectId(taskId),
+          _id: new string(taskId),
           status: 'done',
         } as TaskDocument),
       });
       mockModel.findByIdAndUpdate.mockReturnValue({
         populate: vi.fn().mockReturnValue({
           exec: vi.fn().mockResolvedValue({
-            _id: new Types.ObjectId(taskId),
+            _id: new string(taskId),
             status: 'done',
           } as TaskDocument),
         }),
@@ -216,7 +213,7 @@ describe('TasksService', () => {
   describe('findByIdentifier', () => {
     it('filters to non-deleted tasks', async () => {
       const task = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         identifier: 'GENA-18',
       } as TaskDocument;
       mockModel.findOne.mockResolvedValue(task);
@@ -233,12 +230,12 @@ describe('TasksService', () => {
 
   describe('findChildren', () => {
     it('scopes child lookup by organization and parent task', async () => {
-      const taskId = new Types.ObjectId().toString();
-      const organizationId = new Types.ObjectId().toString();
+      const taskId = 'test-object-id'.toString();
+      const organizationId = 'test-object-id'.toString();
       const children = [
         {
-          _id: new Types.ObjectId(),
-          parentId: new Types.ObjectId(taskId),
+          _id: 'test-object-id',
+          parentId: new string(taskId),
         },
       ] as TaskDocument[];
 
@@ -249,13 +246,13 @@ describe('TasksService', () => {
       expect(result).toBe(children);
       expect(mockModel.find).toHaveBeenCalledWith({
         isDeleted: false,
-        organization: expect.any(Types.ObjectId),
-        parentId: expect.any(Types.ObjectId),
+        organization: expect.any(string),
+        parentId: expect.any(string),
       });
 
       const filter = mockModel.find.mock.calls[0]?.[0] as {
-        organization: Types.ObjectId;
-        parentId: Types.ObjectId;
+        organization: string;
+        parentId: string;
       };
       expect(filter.organization.toString()).toBe(organizationId);
       expect(filter.parentId.toString()).toBe(taskId);
@@ -268,8 +265,8 @@ describe('TasksService', () => {
 
       await expect(
         service.areAllChildrenDone(
-          new Types.ObjectId().toString(),
-          new Types.ObjectId().toString(),
+          'test-object-id'.toString(),
+          'test-object-id'.toString(),
         ),
       ).resolves.toBe(false);
     });
@@ -282,8 +279,8 @@ describe('TasksService', () => {
 
       await expect(
         service.areAllChildrenDone(
-          new Types.ObjectId().toString(),
-          new Types.ObjectId().toString(),
+          'test-object-id'.toString(),
+          'test-object-id'.toString(),
         ),
       ).resolves.toBe(true);
     });
@@ -296,8 +293,8 @@ describe('TasksService', () => {
 
       await expect(
         service.areAllChildrenDone(
-          new Types.ObjectId().toString(),
-          new Types.ObjectId().toString(),
+          'test-object-id'.toString(),
+          'test-object-id'.toString(),
         ),
       ).resolves.toBe(false);
     });
@@ -305,11 +302,11 @@ describe('TasksService', () => {
 
   describe('checkout', () => {
     it('sets checkout metadata and moves the task in progress', async () => {
-      const taskId = new Types.ObjectId().toString();
+      const taskId = 'test-object-id'.toString();
       const agentId = 'agent-1';
       const runId = 'run-1';
       const updatedTask = {
-        _id: new Types.ObjectId(taskId),
+        _id: new string(taskId),
         checkoutAgentId: agentId,
         checkoutRunId: runId,
         status: 'in_progress',
@@ -322,7 +319,7 @@ describe('TasksService', () => {
       expect(result).toBe(updatedTask);
       expect(mockModel.findOneAndUpdate).toHaveBeenCalledWith(
         {
-          _id: expect.any(Types.ObjectId),
+          _id: expect.any(string),
           $or: [
             { checkoutAgentId: null },
             { checkoutAgentId: { $exists: false } },
@@ -345,10 +342,10 @@ describe('TasksService', () => {
 
   describe('release', () => {
     it('clears checkout metadata for the current agent', async () => {
-      const taskId = new Types.ObjectId().toString();
+      const taskId = 'test-object-id'.toString();
       const agentId = 'agent-1';
       const releasedTask = {
-        _id: new Types.ObjectId(taskId),
+        _id: new string(taskId),
       } as TaskDocument;
 
       mockModel.findOneAndUpdate.mockResolvedValue(releasedTask);
@@ -358,7 +355,7 @@ describe('TasksService', () => {
       expect(result).toBe(releasedTask);
       expect(mockModel.findOneAndUpdate).toHaveBeenCalledWith(
         {
-          _id: expect.any(Types.ObjectId),
+          _id: expect.any(string),
           checkoutAgentId: agentId,
           isDeleted: false,
         },
@@ -377,7 +374,7 @@ describe('TasksService', () => {
       mockModel.findOneAndUpdate.mockResolvedValue(null);
 
       await expect(
-        service.release(new Types.ObjectId().toString(), 'agent-1'),
+        service.release('test-object-id'.toString(), 'agent-1'),
       ).rejects.toThrow(NotFoundException);
     });
   });
@@ -426,9 +423,9 @@ describe('TasksService', () => {
 
   describe('create — AI routing', () => {
     it('routes a tweet request to caption_generation when no skills are matched', async () => {
-      const organizationId = new Types.ObjectId().toString();
-      const brandId = new Types.ObjectId().toString();
-      const taskId = new Types.ObjectId();
+      const organizationId = 'test-object-id'.toString();
+      const brandId = 'test-object-id'.toString();
+      const taskId = 'test-object-id';
       const expectedTask = {
         _id: taskId,
         executionPathUsed: 'caption_generation',
@@ -470,15 +467,15 @@ describe('TasksService', () => {
 
   describe('status transitions — failed status', () => {
     it('allows in_progress → failed', async () => {
-      const taskId = new Types.ObjectId().toString();
+      const taskId = 'test-object-id'.toString();
       const updatedTask = {
-        _id: new Types.ObjectId(taskId),
+        _id: new string(taskId),
         status: 'failed',
       } as TaskDocument;
 
       mockModel.findOne.mockReturnValue({
         exec: vi.fn().mockResolvedValue({
-          _id: new Types.ObjectId(taskId),
+          _id: new string(taskId),
           status: 'in_progress',
         } as TaskDocument),
       });
@@ -494,15 +491,15 @@ describe('TasksService', () => {
     });
 
     it('allows failed → backlog', async () => {
-      const taskId = new Types.ObjectId().toString();
+      const taskId = 'test-object-id'.toString();
       const updatedTask = {
-        _id: new Types.ObjectId(taskId),
+        _id: new string(taskId),
         status: 'backlog',
       } as TaskDocument;
 
       mockModel.findOne.mockReturnValue({
         exec: vi.fn().mockResolvedValue({
-          _id: new Types.ObjectId(taskId),
+          _id: new string(taskId),
           status: 'failed',
         } as TaskDocument),
       });
@@ -518,15 +515,15 @@ describe('TasksService', () => {
     });
 
     it('allows failed → in_progress', async () => {
-      const taskId = new Types.ObjectId().toString();
+      const taskId = 'test-object-id'.toString();
       const updatedTask = {
-        _id: new Types.ObjectId(taskId),
+        _id: new string(taskId),
         status: 'in_progress',
       } as TaskDocument;
 
       mockModel.findOne.mockReturnValue({
         exec: vi.fn().mockResolvedValue({
-          _id: new Types.ObjectId(taskId),
+          _id: new string(taskId),
           status: 'failed',
         } as TaskDocument),
       });
@@ -542,11 +539,11 @@ describe('TasksService', () => {
     });
 
     it('rejects failed → done', async () => {
-      const taskId = new Types.ObjectId().toString();
+      const taskId = 'test-object-id'.toString();
 
       mockModel.findOne.mockReturnValue({
         exec: vi.fn().mockResolvedValue({
-          _id: new Types.ObjectId(taskId),
+          _id: new string(taskId),
           status: 'failed',
         } as TaskDocument),
       });

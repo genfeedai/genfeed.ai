@@ -76,9 +76,9 @@ describe('AvatarVideoGenerationService', () => {
   };
 
   const context = {
-    brandId: new Types.ObjectId().toString(),
-    organizationId: new Types.ObjectId().toString(),
-    userId: new Types.ObjectId().toString(),
+    brandId: 'test-object-id',
+    organizationId: 'test-object-id',
+    userId: 'test-object-id',
   };
 
   beforeEach(() => {

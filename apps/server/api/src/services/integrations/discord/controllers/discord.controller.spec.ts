@@ -53,9 +53,9 @@ describe('DiscordController', () => {
   });
 
   describe('connect', () => {
-    const user = { _id: new Types.ObjectId().toString() };
-    const orgId = new Types.ObjectId().toString();
-    const brandId = new Types.ObjectId().toString();
+    const user = { _id: 'test-object-id' };
+    const orgId = 'test-object-id';
+    const brandId = 'test-object-id';
 
     it('should create new credential and return auth URL when no existing credential', async () => {
       mockCredentialsService.findOne.mockResolvedValue(null);
@@ -77,7 +77,7 @@ describe('DiscordController', () => {
     });
 
     it('should update existing credential when one exists', async () => {
-      const existingId = new Types.ObjectId();
+      const existingId = 'test-object-id';
       mockCredentialsService.findOne.mockResolvedValue({
         _id: existingId,
       });
@@ -104,12 +104,12 @@ describe('DiscordController', () => {
   });
 
   describe('verify', () => {
-    const user = { _id: new Types.ObjectId().toString() };
-    const orgId = new Types.ObjectId().toString();
-    const brandId = new Types.ObjectId().toString();
+    const user = { _id: 'test-object-id' };
+    const orgId = 'test-object-id';
+    const brandId = 'test-object-id';
 
     it('should exchange code, get user info and update credential', async () => {
-      const credentialId = new Types.ObjectId();
+      const credentialId = 'test-object-id';
       mockCredentialsService.findOne.mockResolvedValue({
         _id: credentialId,
       });
@@ -170,7 +170,7 @@ describe('DiscordController', () => {
     });
 
     it('should set avatar URL correctly when user has avatar', async () => {
-      const credId = new Types.ObjectId();
+      const credId = 'test-object-id';
       mockCredentialsService.findOne.mockResolvedValue({ _id: credId });
       mockDiscordService.exchangeCodeForToken.mockResolvedValue({
         access_token: 'token',

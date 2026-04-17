@@ -1201,7 +1201,7 @@ describe('VideosController', () => {
       expect(sharedService.saveDocuments).toHaveBeenCalledWith(
         mockUser,
         expect.objectContaining({
-          references: [expect.any(Types.ObjectId)],
+          references: [expect.any(String)],
         }),
       );
     });

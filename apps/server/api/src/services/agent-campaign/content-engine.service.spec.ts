@@ -4,27 +4,27 @@ import { describe, expect, it, vi } from 'vitest';
 import { ContentEngineService } from './content-engine.service';
 
 describe('ContentEngineService', () => {
-  const campaignId = new Types.ObjectId().toHexString();
-  const organizationId = new Types.ObjectId().toHexString();
-  const userId = new Types.ObjectId().toHexString();
-  const brandId = new Types.ObjectId().toHexString();
+  const campaignId = 'test-object-id'.toHexString();
+  const organizationId = 'test-object-id'.toHexString();
+  const userId = 'test-object-id'.toHexString();
+  const brandId = 'test-object-id'.toHexString();
 
   function createCampaign(
     overrides: Record<string, unknown> = {},
   ): Record<string, unknown> {
     return {
-      _id: new Types.ObjectId(campaignId),
+      _id: campaignId,
       agents: [],
-      brand: new Types.ObjectId(brandId),
+      brand: brandId,
       brief: 'React to signal changes',
       creditsAllocated: 100,
       creditsUsed: 20,
       label: 'Spring Push',
       orchestrationEnabled: true,
       orchestrationIntervalHours: 6,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
       status: 'active',
-      user: new Types.ObjectId(userId),
+      user: userId,
       ...overrides,
     };
   }
@@ -33,7 +33,7 @@ describe('ContentEngineService', () => {
     overrides: Record<string, unknown> = {},
   ): Record<string, unknown> {
     return {
-      _id: new Types.ObjectId(),
+      _id: 'test-object-id',
       agentType: 'general',
       autonomyMode: 'supervised',
       dailyCreditBudget: 25,
@@ -219,10 +219,10 @@ describe('ContentEngineService', () => {
     } = createService();
     const strategy = createStrategy({
       dailyCreditBudget: 24,
-      goalId: new Types.ObjectId(),
+      goalId: 'test-object-id',
       topics: ['ai marketing', 'creator growth'],
     });
-    const runId = new Types.ObjectId().toHexString();
+    const runId = 'test-object-id'.toHexString();
     const campaign = createCampaign({ agents: [strategy._id] });
 
     agentCampaignsService.findOne.mockResolvedValue(campaign);
@@ -237,14 +237,14 @@ describe('ContentEngineService', () => {
       totalViews: 3200,
     });
     agentRunsService.create.mockResolvedValue({
-      _id: new Types.ObjectId(runId),
+      _id: runId,
       metadata: { existing: true },
     });
     agentRunsService.mergeMetadata.mockResolvedValue(undefined);
     agentRunsService.patch.mockResolvedValue(undefined);
     agentRunQueueService.queueRun.mockResolvedValue(undefined);
     agentMemoryCaptureService.capture.mockResolvedValue({
-      memory: { _id: new Types.ObjectId() },
+      memory: { _id: 'test-object-id' },
       wroteBrandInsight: false,
       wroteContextMemory: true,
     });
@@ -297,12 +297,12 @@ describe('ContentEngineService', () => {
       service,
     } = createService();
     agentCampaignsService.findOne.mockResolvedValue({
-      _id: new Types.ObjectId(campaignId),
-      brand: new Types.ObjectId(brandId),
+      _id: campaignId,
+      brand: brandId,
       label: 'Spring Push',
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
       status: 'active',
-      user: new Types.ObjectId(userId),
+      user: userId,
     });
     analyticsService.getTopContent.mockResolvedValue([
       {
@@ -325,7 +325,7 @@ describe('ContentEngineService', () => {
       },
     ]);
     agentMemoryCaptureService.capture.mockResolvedValue({
-      memory: { _id: new Types.ObjectId() },
+      memory: { _id: 'test-object-id' },
       wroteBrandInsight: false,
       wroteContextMemory: false,
     });
@@ -494,10 +494,10 @@ describe('ContentEngineService', () => {
       analyticsService,
       logger,
     } = createService();
-    const strategyId = new Types.ObjectId().toHexString();
-    const runId = new Types.ObjectId().toHexString();
+    const strategyId = 'test-object-id'.toHexString();
+    const runId = 'test-object-id'.toHexString();
     const strategy = {
-      _id: new Types.ObjectId(strategyId),
+      _id: strategyId,
       agentType: 'general',
       autonomyMode: 'supervised',
       dailyCreditBudget: 25,
@@ -507,14 +507,14 @@ describe('ContentEngineService', () => {
     };
 
     agentCampaignsService.findOneById.mockResolvedValue({
-      _id: new Types.ObjectId(campaignId),
-      brand: new Types.ObjectId(brandId),
+      _id: campaignId,
+      brand: brandId,
       brief: 'React to spikes',
       label: 'Spring Push',
       nextOrchestratedAt: new Date('2026-04-01T12:00:00.000Z'),
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
       status: 'active',
-      user: new Types.ObjectId(userId),
+      user: userId,
     });
     agentGoalsService.getGoalSummary.mockResolvedValue(
       'Increase qualified engagement',
@@ -526,12 +526,12 @@ describe('ContentEngineService', () => {
       totalViews: 3200,
     });
     agentMemoryCaptureService.capture.mockResolvedValue({
-      memory: { _id: new Types.ObjectId() },
+      memory: { _id: 'test-object-id' },
       wroteBrandInsight: false,
       wroteContextMemory: false,
     });
     agentRunsService.create.mockResolvedValue({
-      _id: new Types.ObjectId(runId),
+      _id: runId,
     });
     agentRunsService.mergeMetadata.mockResolvedValue(undefined);
     agentRunsService.patch.mockResolvedValue(undefined);

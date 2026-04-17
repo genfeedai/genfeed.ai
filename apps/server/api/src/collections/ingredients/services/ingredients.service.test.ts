@@ -2,12 +2,11 @@ import { CreateIngredientDto } from '@api/collections/ingredients/dto/create-ing
 import { UpdateIngredientDto } from '@api/collections/ingredients/dto/update-ingredient.dto';
 import { Ingredient } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { createMockModel } from '@api/shared/testing/mock-model.factory';
 import { IngredientStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
-import { type PipelineStage, Types } from 'mongoose';
 
 describe('IngredientsService', () => {
   let service: IngredientsService;
@@ -15,12 +14,12 @@ describe('IngredientsService', () => {
 
   const mockIngredient = {
     _id: 'test-id',
-    brand: new Types.ObjectId(),
+    brand: 'test-object-id',
     metadata: 'metadata-id',
-    organization: new Types.ObjectId(),
+    organization: 'test-object-id',
     save: vi.fn().mockResolvedValue({ _id: 'test-id' }),
     title: 'Test Ingredient',
-    user: new Types.ObjectId(),
+    user: 'test-object-id',
   };
 
   beforeEach(async () => {
@@ -55,10 +54,7 @@ describe('IngredientsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         IngredientsService,
-        {
-          provide: getModelToken(Ingredient.name),
-          useValue: mockModel,
-        },
+        { provide: PrismaService, useValue: mockModel },
         {
           provide: LoggerService,
           useValue: {
@@ -72,7 +68,7 @@ describe('IngredientsService', () => {
     }).compile();
 
     service = module.get<IngredientsService>(IngredientsService);
-    model = module.get(getModelToken(Ingredient.name));
+    model = module.get(PrismaService);
   });
 
   it('should be defined', () => {
@@ -82,7 +78,7 @@ describe('IngredientsService', () => {
   describe('create', () => {
     it('should create an ingredient successfully', async () => {
       const createDto: CreateIngredientDto = {
-        brand: new Types.ObjectId(),
+        brand: 'test-object-id',
         status: 'pending',
       };
 
@@ -94,7 +90,7 @@ describe('IngredientsService', () => {
 
     it('should handle creation errors', async () => {
       const createDto: CreateIngredientDto = {
-        brand: new Types.ObjectId(),
+        brand: 'test-object-id',
         status: 'pending',
       };
 

@@ -2,8 +2,8 @@ import { BotActivitiesQueryDto } from '@api/collections/bot-activities/dto/bot-a
 import { BotActivity } from '@api/collections/bot-activities/schemas/bot-activity.schema';
 import { BotActivitiesService } from '@api/collections/bot-activities/services/bot-activities.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 
 const MOCK_ORG_ID = '507f1f77bcf86cd799439011';
@@ -53,10 +53,7 @@ describe('BotActivitiesService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BotActivitiesService,
-        {
-          provide: getModelToken(BotActivity.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockModel,
-        },
+        { provide: PrismaService, useValue: mockModel },
         {
           provide: LoggerService,
           useValue: {
@@ -70,7 +67,7 @@ describe('BotActivitiesService', () => {
     }).compile();
 
     service = module.get<BotActivitiesService>(BotActivitiesService);
-    _model = module.get(getModelToken(BotActivity.name, DB_CONNECTIONS.CLOUD));
+    _model = module.get(PrismaService);
 
     vi.clearAllMocks();
   });

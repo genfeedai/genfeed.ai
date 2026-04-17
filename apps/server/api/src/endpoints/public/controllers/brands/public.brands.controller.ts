@@ -140,12 +140,6 @@ export class PublicBrandsController {
       return { data: null, message: 'Brand is not public' };
     }
 
-    // Ensure logo and banner are populated (findOneBySlug uses 'detail' context which should populate them)
-    // The virtual fields should be populated automatically, but ensure they're loaded
-    if (data && typeof data.populate === 'function') {
-      await data.populate([{ path: 'logo' }, { path: 'banner' }]);
-    }
-
     return serializeSingle(request, BrandSerializer, data);
   }
 
@@ -178,12 +172,6 @@ export class PublicBrandsController {
     // Check if brand is public
     if (data.scope !== AssetScope.PUBLIC) {
       return { data: null, message: 'Brand is not public' };
-    }
-
-    // Ensure logo and banner are populated (findOne uses 'detail' context which should populate them)
-    // The virtual fields should be populated automatically, but ensure they're loaded
-    if (data && typeof data.populate === 'function') {
-      await data.populate([{ path: 'logo' }, { path: 'banner' }]);
     }
 
     return serializeSingle(request, BrandSerializer, data);

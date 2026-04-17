@@ -4,8 +4,8 @@ import {
 } from '@api/collections/users/schemas/user.schema';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('UsersService', () => {
@@ -35,10 +35,7 @@ describe('UsersService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UsersService,
-        {
-          provide: getModelToken(User.name, DB_CONNECTIONS.AUTH),
-          useValue: mockModel,
-        },
+        { provide: PrismaService, useValue: mockModel },
         {
           provide: LoggerService,
           useValue: mockLogger,
@@ -64,7 +61,7 @@ describe('UsersService', () => {
   describe('findOne', () => {
     it('should find a user with default settings populate', async () => {
       const mockUser = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         email: 'test@example.com',
         firstName: 'John',
       } as unknown as UserDocument;
@@ -110,7 +107,7 @@ describe('UsersService', () => {
 
       expect(mockModel.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
-          _id: expect.any(Types.ObjectId),
+          _id: expect.any(string),
         }),
       );
     });
@@ -122,7 +119,7 @@ describe('UsersService', () => {
     });
 
     it('should accept custom populate options', async () => {
-      const mockUser = { _id: new Types.ObjectId() } as unknown as UserDocument;
+      const mockUser = { _id: 'test-object-id' } as unknown as UserDocument;
       const execMock = vi.fn().mockResolvedValue(mockUser);
       const populateMock = vi.fn().mockReturnValue({ exec: execMock });
       (mockModel.findOne as ReturnType<typeof vi.fn>).mockReturnValue({
@@ -130,13 +127,13 @@ describe('UsersService', () => {
       });
 
       const customPopulate = [{ path: 'organization', select: '_id label' }];
-      await service.findOne({ _id: new Types.ObjectId() }, customPopulate);
+      await service.findOne({ _id: 'test-object-id' }, customPopulate);
 
       expect(populateMock).toHaveBeenCalled();
     });
 
     it('should handle empty populate array', async () => {
-      const mockUser = { _id: new Types.ObjectId() } as unknown as UserDocument;
+      const mockUser = { _id: 'test-object-id' } as unknown as UserDocument;
       const execMock = vi.fn().mockResolvedValue(mockUser);
       (mockModel.findOne as ReturnType<typeof vi.fn>).mockReturnValue({
         exec: execMock,
@@ -152,7 +149,7 @@ describe('UsersService', () => {
     it('should update a user and populate settings', async () => {
       const userId = '507f1f77bcf86cd799439011';
       const updatedUser = {
-        _id: new Types.ObjectId(userId),
+        _id: new string(userId),
         firstName: 'Updated',
       } as unknown as UserDocument;
 
@@ -190,7 +187,7 @@ describe('UsersService', () => {
 
   describe('hasOnboardingField', () => {
     it('should return true when user has onboarding field', async () => {
-      const userId = new Types.ObjectId();
+      const userId = 'test-object-id';
       const mockUser = { _id: userId } as unknown as UserDocument;
       const execMock = vi.fn().mockResolvedValue(mockUser);
       (mockModel.findOne as ReturnType<typeof vi.fn>).mockReturnValue({
@@ -209,7 +206,7 @@ describe('UsersService', () => {
     });
 
     it('should return false when user does not have onboarding field', async () => {
-      const userId = new Types.ObjectId();
+      const userId = 'test-object-id';
       const execMock = vi.fn().mockResolvedValue(null);
       (mockModel.findOne as ReturnType<typeof vi.fn>).mockReturnValue({
         exec: execMock,
@@ -221,7 +218,7 @@ describe('UsersService', () => {
     });
 
     it('should pass empty populate array', async () => {
-      const userId = new Types.ObjectId();
+      const userId = 'test-object-id';
       const execMock = vi.fn().mockResolvedValue(null);
       (mockModel.findOne as ReturnType<typeof vi.fn>).mockReturnValue({
         exec: execMock,
@@ -239,7 +236,7 @@ describe('UsersService', () => {
       const params = { _id: '507f1f77bcf86cd799439011' };
       const processed = service.processSearchParams(params);
 
-      expect(processed._id).toBeInstanceOf(Types.ObjectId);
+      expect(processed._id).toBeInstanceOf(string);
     });
 
     it('should not convert non-ObjectId strings in _id', () => {
@@ -253,14 +250,14 @@ describe('UsersService', () => {
       const params = { user: '507f1f77bcf86cd799439011' };
       const processed = service.processSearchParams(params);
 
-      expect(processed.user).toBeInstanceOf(Types.ObjectId);
+      expect(processed.user).toBeInstanceOf(string);
     });
 
     it('should convert organization field string to ObjectId', () => {
       const params = { organization: '507f1f77bcf86cd799439011' };
       const processed = service.processSearchParams(params);
 
-      expect(processed.organization).toBeInstanceOf(Types.ObjectId);
+      expect(processed.organization).toBeInstanceOf(string);
     });
 
     it('should not convert non-ObjectId fields', () => {
@@ -282,10 +279,10 @@ describe('UsersService', () => {
       };
 
       const savedDoc = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         ...createDto,
         save: vi.fn().mockResolvedValue({
-          _id: new Types.ObjectId(),
+          _id: 'test-object-id',
           ...createDto,
         }),
       };
@@ -313,7 +310,7 @@ describe('UsersService', () => {
     it('should soft delete a user', async () => {
       const userId = '507f1f77bcf86cd799439011';
       const deletedUser = {
-        _id: new Types.ObjectId(userId),
+        _id: new string(userId),
         isDeleted: true,
       } as unknown as UserDocument;
 

@@ -2,8 +2,8 @@ import { ContentPerformance } from '@api/collections/content-performance/schemas
 import { ContentPerformanceService } from '@api/collections/content-performance/services/content-performance.service';
 import { Post } from '@api/collections/posts/schemas/post.schema';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('ContentPerformanceService', () => {
@@ -46,12 +46,8 @@ describe('ContentPerformanceService', () => {
       providers: [
         ContentPerformanceService,
         {
-          provide: getModelToken(ContentPerformance.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockModel,
-        },
-        {
-          provide: getModelToken(Post.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockPostModel,
+          provide: PrismaService,
+          useValue: { ...mockModel, ...mockPostModel },
         },
         { provide: LoggerService, useValue: mockLogger },
       ],

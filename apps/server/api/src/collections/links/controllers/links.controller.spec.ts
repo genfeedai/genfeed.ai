@@ -77,7 +77,7 @@ describe('LinksController', () => {
       };
       const result = controller.enrichCreateDto(dto as never, mockUser);
 
-      expect(result.brand).toBeInstanceOf(Types.ObjectId);
+      expect(result.brand).toEqual(expect.any(String));
       expect(result.brand.toString()).toBe(brandId);
     });
 
@@ -99,7 +99,7 @@ describe('LinksController', () => {
       const dto = { brand: newBrandId, label: 'Updated' };
       const result = await controller.enrichUpdateDto(dto as never);
 
-      expect(result.brand).toBeInstanceOf(Types.ObjectId);
+      expect(result.brand).toEqual(expect.any(String));
     });
 
     it('should not add user field', async () => {

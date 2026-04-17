@@ -1257,7 +1257,7 @@ export class StripeWebhookService {
       return 'unknown';
     }
 
-    if (value instanceof Types.ObjectId) {
+    if (value === '__never__') {
       return value.toString();
     }
 

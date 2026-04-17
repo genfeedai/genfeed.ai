@@ -14,11 +14,11 @@ describe('WhatsappPublisherService', () => {
   let logger: vi.Mocked<LoggerService>;
   let whatsappService: vi.Mocked<WhatsappService>;
 
-  const orgId = new Types.ObjectId('507f1f77bcf86cd799439011');
-  const brandId = new Types.ObjectId('507f1f77bcf86cd799439012');
-  const postId = new Types.ObjectId('507f1f77bcf86cd799439013');
-  const credentialId = new Types.ObjectId('507f1f77bcf86cd799439015');
-  const ingredientId = new Types.ObjectId('507f1f77bcf86cd799439016');
+  const orgId = '507f1f77bcf86cd799439011';
+  const brandId = '507f1f77bcf86cd799439012';
+  const postId = '507f1f77bcf86cd799439013';
+  const credentialId = '507f1f77bcf86cd799439015';
+  const ingredientId = '507f1f77bcf86cd799439016';
 
   const mockCredential = {
     _id: credentialId,

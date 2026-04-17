@@ -26,9 +26,9 @@ describe('NewslettersService', () => {
   };
 
   const tenantContext = {
-    brandId: new Types.ObjectId().toString(),
-    organizationId: new Types.ObjectId().toString(),
-    userId: new Types.ObjectId().toString(),
+    brandId: 'test-object-id',
+    organizationId: 'test-object-id',
+    userId: 'test-object-id',
   };
 
   beforeEach(() => {
@@ -55,9 +55,9 @@ describe('NewslettersService', () => {
             { topic: { $options: 'i', $regex: 'signal' } },
             { content: { $options: 'i', $regex: 'signal' } },
           ],
-          brand: new Types.ObjectId(tenantContext.brandId),
+          brand: tenantContext.brandId,
           isDeleted: false,
-          organization: new Types.ObjectId(tenantContext.organizationId),
+          organization: tenantContext.organizationId,
           status: { $in: ['published'] },
         },
       });
@@ -67,22 +67,19 @@ describe('NewslettersService', () => {
   describe('publishScoped', () => {
     it('marks the newsletter as published and preserves prior approval if present', async () => {
       const approvedAt = new Date('2026-03-01T10:00:00.000Z');
-      const approvedByUser = new Types.ObjectId();
+      const approvedByUser = 'test-object-id';
       const patchSpy = vi
         .spyOn(service, 'patch')
-        .mockResolvedValue({ _id: new Types.ObjectId() } as never);
+        .mockResolvedValue({ _id: 'test-object-id' } as never);
 
       vi.spyOn(service, 'findOneScoped').mockResolvedValue({
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         approvedAt,
         approvedByUser,
         content: '# Published issue',
       } as never);
 
-      await service.publishScoped(
-        new Types.ObjectId().toString(),
-        tenantContext,
-      );
+      await service.publishScoped('test-object-id', tenantContext);
 
       expect(patchSpy).toHaveBeenCalledWith(
         expect.any(String),
@@ -90,7 +87,7 @@ describe('NewslettersService', () => {
           approvedAt,
           approvedByUser,
           publishedAt: expect.any(Date),
-          publishedByUser: expect.any(Types.ObjectId),
+          publishedByUser: expect.any(String),
           status: 'published',
         }),
         ['organization', 'brand', 'user'],
@@ -99,23 +96,23 @@ describe('NewslettersService', () => {
 
     it('rejects publishing empty newsletters', async () => {
       vi.spyOn(service, 'findOneScoped').mockResolvedValue({
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         content: '   ',
       } as never);
 
       await expect(
-        service.publishScoped(new Types.ObjectId().toString(), tenantContext),
+        service.publishScoped('test-object-id', tenantContext),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
   });
 
   describe('getContextPreview', () => {
     it('returns selected context, brand voice, and newsletter source refs', async () => {
-      const contextNewsletterId = new Types.ObjectId();
-      const publishedNewsletterId = new Types.ObjectId();
+      const contextNewsletterId = 'test-object-id';
+      const publishedNewsletterId = 'test-object-id';
 
       vi.spyOn(service, 'findOneScoped').mockResolvedValue({
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         contextNewsletterIds: [contextNewsletterId],
         sourceRefs: [
           {
@@ -164,7 +161,7 @@ describe('NewslettersService', () => {
       ] as never);
 
       const preview = await service.getContextPreview(
-        new Types.ObjectId().toString(),
+        'test-object-id',
         tenantContext,
       );
 
@@ -172,9 +169,9 @@ describe('NewslettersService', () => {
         expect.arrayContaining([
           expect.objectContaining({
             $match: expect.objectContaining({
-              brand: new Types.ObjectId(tenantContext.brandId),
+              brand: tenantContext.brandId,
               isDeleted: false,
-              organization: new Types.ObjectId(tenantContext.organizationId),
+              organization: tenantContext.organizationId,
               status: 'published',
             }),
           }),
@@ -182,7 +179,7 @@ describe('NewslettersService', () => {
         { pagination: false },
       );
       expect(findSpy).toHaveBeenCalledWith({
-        _id: { $in: [new Types.ObjectId(contextNewsletterId)] },
+        _id: { $in: [contextNewsletterId] },
         brand: tenantContext.brandId,
         isDeleted: false,
         organization: tenantContext.organizationId,

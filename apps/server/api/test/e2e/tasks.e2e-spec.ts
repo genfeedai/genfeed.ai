@@ -6,6 +6,7 @@ import { TasksService } from '@api/collections/tasks/services/tasks.service';
 import {
   createTestOrganization,
   createTestUser,
+  generateIdString,
 } from '@api-test/e2e/e2e-test.utils';
 import {
   createTestDatabaseHelper,
@@ -20,7 +21,6 @@ import {
 } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import request from 'supertest';
 
 class TestCurrentUserGuard implements CanActivate {
@@ -42,10 +42,9 @@ class TestCurrentUserGuard implements CanActivate {
       publicMetadata: {
         organization:
           getHeaderValue(request.headers['x-organization-id']) ??
-          new Types.ObjectId().toString(),
+          generateIdString(),
         user:
-          getHeaderValue(request.headers['x-user-id']) ??
-          new Types.ObjectId().toString(),
+          getHeaderValue(request.headers['x-user-id']) ?? generateIdString(),
       },
     };
 
@@ -66,7 +65,7 @@ describe('Tasks E2E Tests', () => {
   let testUser: ReturnType<typeof createTestUser>;
   let testOrganization: ReturnType<typeof createTestOrganization>;
   let otherOrganization: ReturnType<typeof createTestOrganization>;
-  let scopedTaskId: Types.ObjectId;
+  let scopedTaskId: string;
 
   beforeAll(async () => {
     const moduleConfig = await E2ETestModule.forRoot({
@@ -121,24 +120,24 @@ describe('Tasks E2E Tests', () => {
     await dbHelper.clearDatabase();
 
     testUser = createTestUser({
-      _id: new Types.ObjectId(),
+      _id: generateIdString(),
       clerkId: 'clerk_task_test_user',
       email: 'tasks-test@example.com',
     });
 
     testOrganization = createTestOrganization({
-      _id: new Types.ObjectId(),
+      _id: generateIdString(),
       label: 'Tasks Test Organization',
       user: testUser._id,
     });
 
     otherOrganization = createTestOrganization({
-      _id: new Types.ObjectId(),
+      _id: generateIdString(),
       label: 'Other Tasks Organization',
-      user: new Types.ObjectId(),
+      user: generateIdString(),
     });
 
-    scopedTaskId = new Types.ObjectId();
+    scopedTaskId = generateIdString();
 
     await dbHelper.seedCollection('users', [testUser]);
     await dbHelper.seedCollection('organizations', [
@@ -161,7 +160,7 @@ describe('Tasks E2E Tests', () => {
         updatedAt: new Date('2026-04-01T10:00:00.000Z'),
       },
       {
-        _id: new Types.ObjectId(),
+        _id: generateIdString(),
         createdAt: new Date('2026-04-01T11:00:00.000Z'),
         identifier: 'GENA-99',
         isDeleted: false,

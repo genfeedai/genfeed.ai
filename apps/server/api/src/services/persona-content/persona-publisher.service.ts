@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
@@ -8,13 +9,13 @@ import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable, NotFoundException } from '@nestjs/common';
 
 export interface PublishInput {
-  personaId: Types.ObjectId;
-  organization: Types.ObjectId;
-  user: Types.ObjectId;
-  brand: Types.ObjectId;
+  personaId: string;
+  organization: string;
+  user: string;
+  brand: string;
   description: string;
   platforms?: string[];
-  ingredientIds?: Types.ObjectId[];
+  ingredientIds?: string[];
   category?: PostCategory;
   scheduledDate?: Date;
 }
@@ -47,7 +48,7 @@ export class PersonaPublisherService {
     const postIds: string[] = [];
     const failedCredentials: string[] = [];
 
-    const groupId = new Types.ObjectId().toHexString();
+    const groupId = randomUUID();
     const platformFilter =
       input.platforms && input.platforms.length > 0
         ? new Set(input.platforms.map((platform) => platform.toLowerCase()))
@@ -110,8 +111,8 @@ export class PersonaPublisherService {
   }
 
   private async getPersonaOrFail(
-    personaId: Types.ObjectId,
-    organization: Types.ObjectId,
+    personaId: string,
+    organization: string,
   ): Promise<PersonaDocument> {
     const persona = await this.personasService.findOne({
       _id: personaId,

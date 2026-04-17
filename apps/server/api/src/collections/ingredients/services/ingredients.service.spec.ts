@@ -4,8 +4,8 @@ import {
 } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('IngredientsService', () => {
@@ -38,7 +38,7 @@ describe('IngredientsService', () => {
     .fn()
     .mockImplementation((data: Record<string, unknown>) => ({
       ...data,
-      save: vi.fn().mockResolvedValue({ _id: new Types.ObjectId(), ...data }),
+      save: vi.fn().mockResolvedValue({ _id: 'test-object-id', ...data }),
     }));
 
   beforeEach(async () => {
@@ -47,10 +47,7 @@ describe('IngredientsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         IngredientsService,
-        {
-          provide: getModelToken(Ingredient.name, DB_CONNECTIONS.CLOUD),
-          useValue: MockModelConstructor,
-        },
+        { provide: PrismaService, useValue: MockModelConstructor },
         {
           provide: LoggerService,
           useValue: mockLogger,
@@ -74,12 +71,12 @@ describe('IngredientsService', () => {
       const createDto = {
         category: 'image',
         label: 'Test Ingredient',
-        organization: new Types.ObjectId(),
-        user: new Types.ObjectId(),
+        organization: 'test-object-id',
+        user: 'test-object-id',
       };
 
       const savedIngredient = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         ...createDto,
       } as unknown as IngredientDocument;
 
@@ -103,7 +100,7 @@ describe('IngredientsService', () => {
   describe('findLatest', () => {
     it('should find latest ingredient by version', async () => {
       const mockIngredient = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         label: 'Latest Ingredient',
         version: 3,
       } as unknown as IngredientDocument;
@@ -151,8 +148,8 @@ describe('IngredientsService', () => {
     it('should find children of parent ingredient', async () => {
       const parentId = '507f1f77bcf86cd799439011';
       const mockChildren = [
-        { _id: new Types.ObjectId(), parent: parentId },
-        { _id: new Types.ObjectId(), parent: parentId },
+        { _id: 'test-object-id', parent: parentId },
+        { _id: 'test-object-id', parent: parentId },
       ];
 
       const execMock = vi.fn().mockResolvedValue(mockChildren);
@@ -228,7 +225,7 @@ describe('IngredientsService', () => {
   describe('findByIds', () => {
     it('should find ingredients by multiple IDs', async () => {
       const orgId = '507f1f77bcf86cd799439011';
-      const ids = [new Types.ObjectId(), new Types.ObjectId()];
+      const ids = ['test-object-id', 'test-object-id'];
       const mockIngredients = ids.map((id) => ({
         _id: id,
         label: 'Test',
@@ -248,7 +245,7 @@ describe('IngredientsService', () => {
         expect.objectContaining({
           _id: { $in: expect.any(Array) },
           isDeleted: false,
-          organization: expect.any(Types.ObjectId),
+          organization: expect.any(string),
         }),
       );
     });
@@ -274,15 +271,15 @@ describe('IngredientsService', () => {
       expect(mockModel.find).toHaveBeenCalledWith(
         expect.objectContaining({
           _id: {
-            $in: expect.arrayContaining([expect.any(Types.ObjectId)]),
+            $in: expect.arrayContaining([expect.any(string)]),
           },
         }),
       );
     });
 
     it('should handle ObjectId organization param', async () => {
-      const orgId = new Types.ObjectId();
-      const ids = [new Types.ObjectId()];
+      const orgId = 'test-object-id';
+      const ids = ['test-object-id'];
 
       const execMock = vi.fn().mockResolvedValue([]);
       const populateMock = vi.fn().mockReturnValue({ exec: execMock });
@@ -306,7 +303,7 @@ describe('IngredientsService', () => {
       });
 
       await expect(
-        service.findByIds([new Types.ObjectId()], '507f1f77bcf86cd799439011'),
+        service.findByIds(['test-object-id'], '507f1f77bcf86cd799439011'),
       ).rejects.toThrow('DB error');
       expect(mockLogger.error).toHaveBeenCalled();
     });
@@ -318,8 +315,8 @@ describe('IngredientsService', () => {
       const brandId = '507f1f77bcf86cd799439012';
       const campaign = 'spring-drop';
       const mockIngredients = [
-        { _id: new Types.ObjectId(), campaign },
-        { _id: new Types.ObjectId(), campaign },
+        { _id: 'test-object-id', campaign },
+        { _id: 'test-object-id', campaign },
       ];
 
       const execMock = vi.fn().mockResolvedValue(mockIngredients);
@@ -338,11 +335,11 @@ describe('IngredientsService', () => {
       expect(result).toBe(mockIngredients);
       expect(mockModel.find).toHaveBeenCalledWith(
         expect.objectContaining({
-          brand: expect.any(Types.ObjectId),
+          brand: expect.any(string),
           campaign,
           category: 'image',
           isDeleted: false,
-          organization: expect.any(Types.ObjectId),
+          organization: expect.any(string),
           reviewStatus: 'approved',
           status: {
             $in: ['generated', 'validated'],
@@ -371,7 +368,7 @@ describe('IngredientsService', () => {
 
   describe('findOne', () => {
     it('should find ingredient with model lookup aggregation', async () => {
-      const ingredientId = new Types.ObjectId();
+      const ingredientId = 'test-object-id';
       const mockIngredient = {
         _id: ingredientId,
         category: 'image',
@@ -400,7 +397,7 @@ describe('IngredientsService', () => {
         exec: execMock,
       });
 
-      const result = await service.findOne({ _id: new Types.ObjectId() });
+      const result = await service.findOne({ _id: 'test-object-id' });
 
       expect(result).toBeNull();
     });
@@ -419,17 +416,17 @@ describe('IngredientsService', () => {
       const matchStage = pipeline.find(
         (s: Record<string, unknown>) => '$match' in s,
       );
-      expect(matchStage.$match._id).toBeInstanceOf(Types.ObjectId);
+      expect(matchStage.$match._id).toBeInstanceOf(string);
     });
 
     it('should populate when populate options are provided', async () => {
-      const mockDoc = { _id: new Types.ObjectId(), category: 'image' };
+      const mockDoc = { _id: 'test-object-id', category: 'image' };
       const execMock = vi.fn().mockResolvedValue([mockDoc]);
       (mockModel.aggregate as ReturnType<typeof vi.fn>).mockReturnValue({
         exec: execMock,
       });
 
-      const populatedDoc = { ...mockDoc, brand: { _id: new Types.ObjectId() } };
+      const populatedDoc = { ...mockDoc, brand: { _id: 'test-object-id' } };
       (mockModel.populate as ReturnType<typeof vi.fn>).mockResolvedValue(
         populatedDoc,
       );
@@ -450,7 +447,7 @@ describe('IngredientsService', () => {
 
       // Mock super.patch (findByIdAndUpdate)
       const updatedDoc = {
-        _id: new Types.ObjectId(id),
+        _id: new string(id),
         label: 'Updated',
       } as unknown as IngredientDocument;
 

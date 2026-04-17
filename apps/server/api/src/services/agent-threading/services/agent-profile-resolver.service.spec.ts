@@ -23,7 +23,7 @@ vi.mock('@api/helpers/utils/objectid/objectid.util', () => ({
   ObjectIdUtil: {
     normalizeToObjectId: vi.fn((id?: string) => {
       if (!id) return undefined;
-      return new Types.ObjectId(id);
+      return id;
     }),
   },
 }));
@@ -68,7 +68,7 @@ describe('AgentProfileResolverService', () => {
     });
 
     it('should include campaign ObjectId in routeKey when campaignId provided', () => {
-      const campaignId = new Types.ObjectId().toString();
+      const campaignId = 'test-object-id';
       const context: AgentProfileResolutionContext = { campaignId };
       const snapshot = service.resolve(context);
 
@@ -78,7 +78,7 @@ describe('AgentProfileResolverService', () => {
     });
 
     it('should include strategy ObjectId in snapshot when strategyId provided', () => {
-      const strategyId = new Types.ObjectId().toString();
+      const strategyId = 'test-object-id';
       const context: AgentProfileResolutionContext = { strategyId };
       const snapshot = service.resolve(context);
 
@@ -139,8 +139,8 @@ describe('AgentProfileResolverService', () => {
     });
 
     it('should build full routeKey from agentType, campaignId, strategyId', () => {
-      const campaignId = new Types.ObjectId().toString();
-      const strategyId = new Types.ObjectId().toString();
+      const campaignId = 'test-object-id';
+      const strategyId = 'test-object-id';
       const context: AgentProfileResolutionContext = {
         agentType: 'content' as AgentType,
         campaignId,

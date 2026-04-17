@@ -22,7 +22,6 @@ import {
   Optional,
 } from '@nestjs/common';
 import { Effect } from 'effect';
-import { Types } from 'mongoose';
 
 export interface AppendAgentThreadEventParams {
   threadId: string;
@@ -62,8 +61,8 @@ function toPrismaEventDocument(
     organizationId: row.organizationId as string,
     threadId: row.threadId as string,
     // Keep Mongoose-compatible reference fields for the projector
-    organization: row.organizationId as unknown as Types.ObjectId,
-    thread: row.threadId as unknown as Types.ObjectId,
+    organization: row.organizationId as unknown,
+    thread: row.threadId as unknown,
     sequence: row.sequence as number,
     commandId: row.commandId as string,
     type: row.type as AgentThreadEventType,
@@ -93,8 +92,8 @@ function toPrismaSnapshotDocument(
     id: row.id as string,
     organizationId: row.organizationId as string,
     threadId: row.threadId as string,
-    organization: row.organizationId as unknown as Types.ObjectId,
-    thread: row.threadId as unknown as Types.ObjectId,
+    organization: row.organizationId as unknown,
+    thread: row.threadId as unknown,
     lastSequence: (data.lastSequence as number) ?? 0,
     title: data.title as string | undefined,
     source: data.source as string | undefined,
@@ -139,8 +138,8 @@ function findInputRequestInSnapshot(
     id: `${snapshot.id as string}:${requestId}`,
     organizationId: snapshot.organizationId as string,
     threadId: snapshot.threadId as string,
-    organization: snapshot.organizationId as unknown as Types.ObjectId,
-    thread: snapshot.threadId as unknown as Types.ObjectId,
+    organization: snapshot.organizationId as unknown,
+    thread: snapshot.threadId as unknown,
     requestId: req.requestId as string,
     status: req.status as string,
     title: req.title as string,
@@ -521,8 +520,8 @@ export class AgentThreadEngineService {
           id: updated.id,
           organizationId,
           threadId,
-          organization: organizationId as unknown as Types.ObjectId,
-          thread: threadId as unknown as Types.ObjectId,
+          organization: organizationId as unknown,
+          thread: threadId as unknown,
           ...ps,
           isDeleted: false,
         } as unknown as AgentProfileSnapshotDocument;
@@ -546,8 +545,8 @@ export class AgentThreadEngineService {
         id: created.id,
         organizationId,
         threadId,
-        organization: organizationId as unknown as Types.ObjectId,
-        thread: threadId as unknown as Types.ObjectId,
+        organization: organizationId as unknown,
+        thread: threadId as unknown,
         ...ps,
         isDeleted: false,
       } as unknown as AgentProfileSnapshotDocument;
@@ -621,7 +620,7 @@ export class AgentThreadEngineService {
     threadId: string,
     organizationId: string,
   ): Promise<{
-    _id: Types.ObjectId;
+    id: string;
     source?: string;
     status?: string;
     title?: string;
@@ -634,9 +633,9 @@ export class AgentThreadEngineService {
     }
 
     const thread = await this.agentThreadsService.findOne({
-      _id: new Types.ObjectId(threadId),
+      _id: threadId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
     });
 
     if (!thread) {
@@ -644,7 +643,7 @@ export class AgentThreadEngineService {
     }
 
     return thread as {
-      _id: Types.ObjectId;
+      id: string;
       source?: string;
       status?: string;
       title?: string;

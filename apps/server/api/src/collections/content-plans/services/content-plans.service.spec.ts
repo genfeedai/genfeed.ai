@@ -2,9 +2,9 @@ import { ContentPlan } from '@api/collections/content-plans/schemas/content-plan
 import { ContentPlansService } from '@api/collections/content-plans/services/content-plans.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ContentPlanStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -12,20 +12,20 @@ describe('ContentPlansService', () => {
   let service: ContentPlansService;
   let model: Record<string, ReturnType<typeof vi.fn>>;
 
-  const orgId = new Types.ObjectId().toString();
-  const brandId = new Types.ObjectId().toString();
-  const planId = new Types.ObjectId().toString();
+  const orgId = 'test-object-id'.toString();
+  const brandId = 'test-object-id'.toString();
+  const planId = 'test-object-id'.toString();
 
   const mockPlan = {
-    _id: new Types.ObjectId(planId),
-    brand: new Types.ObjectId(brandId),
-    createdBy: new Types.ObjectId(),
+    _id: new string(planId),
+    brand: new string(brandId),
+    createdBy: 'test-object-id',
     description: 'Test plan',
     executedCount: 0,
     isDeleted: false,
     itemCount: 10,
     name: 'Q1 Content Plan',
-    organization: new Types.ObjectId(orgId),
+    organization: new string(orgId),
     periodEnd: new Date('2026-03-31'),
     periodStart: new Date('2026-01-01'),
     status: ContentPlanStatus.DRAFT,
@@ -59,10 +59,7 @@ describe('ContentPlansService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ContentPlansService,
-        {
-          provide: getModelToken(ContentPlan.name, DB_CONNECTIONS.CLOUD),
-          useValue: modelConstructor,
-        },
+        { provide: PrismaService, useValue: modelConstructor },
         {
           provide: LoggerService,
           useValue: {
@@ -85,13 +82,13 @@ describe('ContentPlansService', () => {
   describe('createInternal', () => {
     it('should create a content plan via model.create', async () => {
       const input = {
-        brand: new Types.ObjectId(brandId),
-        createdBy: new Types.ObjectId(),
+        brand: new string(brandId),
+        createdBy: 'test-object-id',
         description: 'Internal plan',
         isDeleted: false,
         itemCount: 5,
         name: 'Auto Plan',
-        organization: new Types.ObjectId(orgId),
+        organization: new string(orgId),
         periodEnd: new Date(),
         periodStart: new Date(),
         status: ContentPlanStatus.DRAFT,
@@ -104,12 +101,12 @@ describe('ContentPlansService', () => {
 
     it('should return the created document', async () => {
       const input = {
-        brand: new Types.ObjectId(brandId),
-        createdBy: new Types.ObjectId(),
+        brand: new string(brandId),
+        createdBy: 'test-object-id',
         isDeleted: false,
         itemCount: 3,
         name: 'Test',
-        organization: new Types.ObjectId(orgId),
+        organization: new string(orgId),
         periodEnd: new Date(),
         periodStart: new Date(),
         status: ContentPlanStatus.DRAFT,
@@ -127,9 +124,9 @@ describe('ContentPlansService', () => {
       await service.listByBrand(orgId, brandId);
 
       expect(service.find).toHaveBeenCalledWith({
-        brand: new Types.ObjectId(brandId),
+        brand: new string(brandId),
         isDeleted: false,
-        organization: new Types.ObjectId(orgId),
+        organization: new string(orgId),
       });
     });
 
@@ -148,9 +145,9 @@ describe('ContentPlansService', () => {
       const result = await service.getByIdOrFail(orgId, planId);
 
       expect(service.findOne).toHaveBeenCalledWith({
-        _id: new Types.ObjectId(planId),
+        _id: new string(planId),
         isDeleted: false,
-        organization: new Types.ObjectId(orgId),
+        organization: new string(orgId),
       });
       expect(result).toEqual(mockPlan);
     });
@@ -179,9 +176,9 @@ describe('ContentPlansService', () => {
 
       expect(model.findOneAndUpdate).toHaveBeenCalledWith(
         {
-          _id: new Types.ObjectId(planId),
+          _id: new string(planId),
           isDeleted: false,
-          organization: new Types.ObjectId(orgId),
+          organization: new string(orgId),
         },
         { $set: { status: ContentPlanStatus.ACTIVE } },
         { new: true },
@@ -206,9 +203,9 @@ describe('ContentPlansService', () => {
 
       expect(model.updateOne).toHaveBeenCalledWith(
         {
-          _id: new Types.ObjectId(planId),
+          _id: new string(planId),
           isDeleted: false,
-          organization: new Types.ObjectId(orgId),
+          organization: new string(orgId),
         },
         { $inc: { executedCount: 1 } },
       );
@@ -226,9 +223,9 @@ describe('ContentPlansService', () => {
 
       expect(model.findOneAndUpdate).toHaveBeenCalledWith(
         {
-          _id: new Types.ObjectId(planId),
+          _id: new string(planId),
           isDeleted: false,
-          organization: new Types.ObjectId(orgId),
+          organization: new string(orgId),
         },
         { $set: { isDeleted: true } },
         { new: true },

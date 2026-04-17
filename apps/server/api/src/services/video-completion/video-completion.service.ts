@@ -148,20 +148,18 @@ export class VideoCompletionService implements OnModuleInit {
     metadataUpdate: Record<string, number>,
   ): Promise<void> {
     const ingredient = await this.ingredientsService.findOne({
-      _id: new Types.ObjectId(ingredientId),
+      _id: ingredientId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
     });
 
     const metadataId =
-      ingredient?.metadata instanceof Types.ObjectId
-        ? ingredient.metadata.toString()
+      ingredient?.metadata && typeof ingredient.metadata === 'string'
+        ? ingredient.metadata
         : ingredient?.metadata &&
             typeof ingredient.metadata === 'object' &&
             '_id' in ingredient.metadata
-          ? String(
-              (ingredient.metadata as { _id: Types.ObjectId | string })._id,
-            )
+          ? String((ingredient.metadata as { _id: string })._id)
           : undefined;
 
     if (!metadataId) {

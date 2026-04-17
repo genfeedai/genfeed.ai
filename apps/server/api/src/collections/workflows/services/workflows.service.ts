@@ -136,11 +136,11 @@ export class WorkflowsService extends BaseService<
               ...(workflowData.metadata ?? {}),
             }
           : undefined,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
       progress: 0,
       status: workflowData.status ?? WorkflowStatus.ACTIVE,
       steps,
-      user: new Types.ObjectId(userId),
+      user: userId,
     });
 
     // If trigger is manual, start execution immediately
@@ -245,7 +245,7 @@ export class WorkflowsService extends BaseService<
 
               await this.updateWorkflowStep(workflowId, step.id, {
                 completedAt: new Date(),
-                output: output?._id as Types.ObjectId | undefined,
+                output: output?._id as string | undefined,
                 progress: 100,
                 status: WorkflowStepStatus.COMPLETED,
               });
@@ -351,8 +351,8 @@ export class WorkflowsService extends BaseService<
     const workflowDoc = await this.findOne({
       _id: workflowId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
-      user: new Types.ObjectId(userId),
+      organization: organizationId,
+      user: userId,
     });
 
     if (!workflowDoc) {
@@ -434,7 +434,7 @@ export class WorkflowsService extends BaseService<
   // Generic queue job executor for workflow steps
   private async executeQueuedJob(
     stepType: string,
-    assetId: Types.ObjectId,
+    assetId: string,
     config: Record<string, unknown>,
     queueMethod: keyof TaskQueueClientService,
     resultKey: string,
@@ -467,12 +467,12 @@ export class WorkflowsService extends BaseService<
 
   // Step execution methods (consolidated)
   private executeTransform(
-    assetId: Types.ObjectId | undefined,
+    assetId: string | undefined,
     config: Record<string, unknown>,
   ): Promise<Record<string, unknown>> {
     return this.executeQueuedJob(
       'transform',
-      assetId as Types.ObjectId,
+      assetId,
       config,
       'queueTransformJob',
       'transformed',
@@ -480,12 +480,12 @@ export class WorkflowsService extends BaseService<
   }
 
   private executeUpscale(
-    assetId: Types.ObjectId | undefined,
+    assetId: string | undefined,
     config: Record<string, unknown>,
   ): Promise<Record<string, unknown>> {
     return this.executeQueuedJob(
       'upscale',
-      assetId as Types.ObjectId,
+      assetId,
       config,
       'queueUpscaleJob',
       'upscaled',
@@ -493,12 +493,12 @@ export class WorkflowsService extends BaseService<
   }
 
   private executeCaptioning(
-    assetId: Types.ObjectId | undefined,
+    assetId: string | undefined,
     config: Record<string, unknown>,
   ): Promise<Record<string, unknown>> {
     return this.executeQueuedJob(
       'captioning',
-      assetId as Types.ObjectId,
+      assetId,
       config,
       'queueCaptionJob',
       'captioned',
@@ -506,7 +506,7 @@ export class WorkflowsService extends BaseService<
   }
 
   private async executePublish(
-    assetId: Types.ObjectId | undefined,
+    assetId: string | undefined,
     config: Record<string, unknown>,
     workflow: WorkflowEntity,
   ): Promise<Record<string, unknown>> {
@@ -519,19 +519,19 @@ export class WorkflowsService extends BaseService<
       const posts = await Promise.all(
         (platforms as string[]).map((platform: string) =>
           this.postsService?.create({
-            brand: workflow.brands?.[0] as Types.ObjectId,
-            credential: config.credential as Types.ObjectId,
+            brand: workflow.brands?.[0],
+            credential: config.credential,
             description: config.description as string,
-            ingredients: [assetId as Types.ObjectId],
+            ingredients: [assetId],
             label: config.label as string,
-            organization: workflow.organization as Types.ObjectId,
+            organization: workflow.organization,
             platform: platform as CredentialPlatform,
             scheduledDate:
               schedule === 'immediate'
                 ? new Date()
                 : (config.scheduledAt as Date),
             status: (visibility as PostStatus) || PostStatus.SCHEDULED,
-            user: workflow.user as Types.ObjectId,
+            user: workflow.user,
           } as unknown),
         ),
       );
@@ -542,12 +542,12 @@ export class WorkflowsService extends BaseService<
   }
 
   private executeResize(
-    assetId: Types.ObjectId | undefined,
+    assetId: string | undefined,
     config: Record<string, unknown>,
   ): Promise<Record<string, unknown>> {
     return this.executeQueuedJob(
       'resize',
-      assetId as Types.ObjectId,
+      assetId,
       config,
       'queueResizeJob',
       'resized',
@@ -555,12 +555,12 @@ export class WorkflowsService extends BaseService<
   }
 
   private executeClip(
-    assetId: Types.ObjectId | undefined,
+    assetId: string | undefined,
     config: Record<string, unknown>,
   ): Promise<Record<string, unknown>> {
     return this.executeQueuedJob(
       'clip',
-      assetId as Types.ObjectId,
+      assetId,
       config,
       'queueClipJob',
       'clipped',
@@ -568,7 +568,7 @@ export class WorkflowsService extends BaseService<
   }
 
   private async executeWebhook(
-    assetId: Types.ObjectId | undefined,
+    assetId: string | undefined,
     config: Record<string, unknown>,
     _workflow: WorkflowEntity,
   ): Promise<Record<string, unknown>> {
@@ -685,7 +685,7 @@ export class WorkflowsService extends BaseService<
     const workflowDoc = await this.findOne({
       _id: workflowId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
     });
     if (!workflowDoc) {
       throw new NotFoundException('Workflow not found');
@@ -698,12 +698,12 @@ export class WorkflowsService extends BaseService<
       executionCount: 0,
       label: `${workflow.label} (Copy)`,
       lastExecutedAt: undefined,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
       progress: 0,
       recurrence: undefined,
       startedAt: undefined,
       status: WorkflowStatus.DRAFT,
-      user: new Types.ObjectId(userId),
+      user: userId,
     });
 
     return EntityFactory.fromDocument(WorkflowEntity, clonedWorkflow);
@@ -720,8 +720,8 @@ export class WorkflowsService extends BaseService<
     const workflow = await this.findOne({
       _id: workflowId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
-      user: new Types.ObjectId(userId),
+      organization: organizationId,
+      user: userId,
     });
 
     if (!workflow) {
@@ -744,8 +744,8 @@ export class WorkflowsService extends BaseService<
       {
         $match: {
           isDeleted: false,
-          organization: new Types.ObjectId(organizationId),
-          user: new Types.ObjectId(userId),
+          organization: organizationId,
+          user: userId,
         },
       },
       {
@@ -780,7 +780,7 @@ export class WorkflowsService extends BaseService<
     const workflow = await this.findOne({
       _id: workflowId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
     });
 
     if (!workflow) {
@@ -820,7 +820,7 @@ export class WorkflowsService extends BaseService<
           selectedNodeIds: nodeIds,
         },
         trigger: WorkflowExecutionTrigger.MANUAL,
-        workflow: new Types.ObjectId(workflowId),
+        workflow: workflowId,
       },
     );
     const startedExecution =
@@ -986,7 +986,7 @@ export class WorkflowsService extends BaseService<
     const workflow = await this.findOne({
       _id: workflowId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
     });
 
     if (!workflow) {
@@ -997,8 +997,8 @@ export class WorkflowsService extends BaseService<
     const failedRun = await this.workflowExecutionsService?.findOne({
       _id: runId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
-      workflow: new Types.ObjectId(workflowId),
+      organization: organizationId,
+      workflow: workflowId,
     });
 
     if (!failedRun) {
@@ -1043,7 +1043,7 @@ export class WorkflowsService extends BaseService<
     const workflow = await this.findOne({
       _id: workflowId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
     });
 
     if (!workflow) {
@@ -1090,7 +1090,7 @@ export class WorkflowsService extends BaseService<
     const workflow = await this.findOne({
       _id: workflowId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
     });
 
     if (!workflow) {
@@ -1115,7 +1115,7 @@ export class WorkflowsService extends BaseService<
     const workflow = await this.findOne({
       _id: workflowId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
     });
 
     if (!workflow) {
@@ -1141,8 +1141,8 @@ export class WorkflowsService extends BaseService<
     const execution = await this.workflowExecutionsService?.findOne({
       _id: runId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
-      workflow: new Types.ObjectId(workflowId),
+      organization: organizationId,
+      workflow: workflowId,
     });
 
     if (!execution) {
@@ -1173,7 +1173,7 @@ export class WorkflowsService extends BaseService<
     const workflow = await this.findOne({
       _id: workflowId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
     });
 
     if (!workflow) {
@@ -1202,7 +1202,7 @@ export class WorkflowsService extends BaseService<
     const workflow = await this.findOne({
       _id: workflowId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
     });
 
     if (!workflow) {

@@ -10,24 +10,24 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AgentCampaignExecutionService } from './agent-campaign-execution.service';
 
-const orgId = new Types.ObjectId().toString();
-const userId = new Types.ObjectId().toString();
-const campaignId = new Types.ObjectId().toString();
-const strategyId = new Types.ObjectId().toString();
+const orgId = 'test-object-id';
+const userId = 'test-object-id';
+const campaignId = 'test-object-id';
+const strategyId = 'test-object-id';
 
 const makeCampaign = (
   overrides: Partial<AgentCampaignDocument> = {},
 ): AgentCampaignDocument =>
   ({
-    _id: new Types.ObjectId(campaignId),
-    agents: [new Types.ObjectId(strategyId)],
+    _id: campaignId,
+    agents: [strategyId],
     brief: 'Test campaign brief',
     contentQuota: 100,
     creditsAllocated: 1000,
     creditsUsed: 0,
     isDeleted: false,
     label: 'Test Campaign',
-    organization: new Types.ObjectId(orgId),
+    organization: orgId,
     status: 'draft',
     ...overrides,
   }) as unknown as AgentCampaignDocument;
@@ -122,12 +122,12 @@ describe('AgentCampaignExecutionService', () => {
       const campaign = makeCampaign({ status: 'draft' });
       const updatedCampaign = makeCampaign({ status: 'active' });
       const strategy = {
-        _id: new Types.ObjectId(strategyId),
+        _id: strategyId,
         agentType: 'research',
         isActive: false,
         label: 'Test Strategy',
       };
-      const run = { _id: new Types.ObjectId() };
+      const run = { _id: 'test-object-id' };
 
       mockAgentCampaignsService.findOneById.mockResolvedValue(campaign);
       mockAgentCampaignsService.patch.mockResolvedValue(updatedCampaign);
@@ -156,12 +156,12 @@ describe('AgentCampaignExecutionService', () => {
       const campaign = makeCampaign({ status: 'draft' });
       const updatedCampaign = makeCampaign({ status: 'active' });
       const strategy = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         agentType: 'research',
         isActive: false,
         label: 'S',
       };
-      const run = { _id: new Types.ObjectId() };
+      const run = { _id: 'test-object-id' };
 
       mockAgentCampaignsService.findOneById.mockResolvedValue(campaign);
       mockAgentCampaignsService.patch.mockResolvedValue(updatedCampaign);
@@ -179,12 +179,12 @@ describe('AgentCampaignExecutionService', () => {
       const campaign = makeCampaign({ status: 'draft' });
       const updatedCampaign = makeCampaign({ status: 'active' });
       const strategy = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         agentType: 'research',
         isActive: true,
         label: 'S',
       };
-      const run = { _id: new Types.ObjectId() };
+      const run = { _id: 'test-object-id' };
 
       mockAgentCampaignsService.findOneById.mockResolvedValue(campaign);
       mockAgentCampaignsService.patch.mockResolvedValue(updatedCampaign);
@@ -201,7 +201,7 @@ describe('AgentCampaignExecutionService', () => {
       const campaign = makeCampaign({ status: 'draft' });
       const updatedCampaign = makeCampaign({ status: 'active' });
       const strategy = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         agentType: 'orchestrator',
         isActive: true,
         label: 'Campaign Lead',

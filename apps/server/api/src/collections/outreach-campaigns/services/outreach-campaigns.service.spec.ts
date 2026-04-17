@@ -1,17 +1,17 @@
 import { OutreachCampaign } from '@api/collections/outreach-campaigns/schemas/outreach-campaign.schema';
 import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { CampaignStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { NotFoundException } from '@nestjs/common';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('OutreachCampaignsService', () => {
   let service: OutreachCampaignsService;
 
-  const orgId = new Types.ObjectId();
-  const campaignId = new Types.ObjectId();
+  const orgId = 'test-object-id';
+  const campaignId = 'test-object-id';
 
   const mockCampaign = {
     _id: campaignId,
@@ -40,7 +40,7 @@ describe('OutreachCampaignsService', () => {
   const mockModel: Record<string, any> = Object.assign(
     vi.fn().mockImplementation((dto: Record<string, unknown>) => ({
       ...dto,
-      save: vi.fn().mockResolvedValue({ _id: new Types.ObjectId(), ...dto }),
+      save: vi.fn().mockResolvedValue({ _id: 'test-object-id', ...dto }),
     })),
     {
       aggregate: vi
@@ -104,10 +104,7 @@ describe('OutreachCampaignsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         OutreachCampaignsService,
-        {
-          provide: getModelToken(OutreachCampaign.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockModel,
-        },
+        { provide: PrismaService, useValue: mockModel },
         { provide: LoggerService, useValue: mockLogger },
       ],
     }).compile();
@@ -135,15 +132,15 @@ describe('OutreachCampaignsService', () => {
       expect(result).toEqual(mockCampaign);
       expect(service.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
-          _id: expect.any(Types.ObjectId),
+          _id: expect.any(string),
           isDeleted: false,
-          organization: expect.any(Types.ObjectId),
+          organization: expect.any(string),
         }),
       );
     });
 
     it('should include brand filter when provided', async () => {
-      const brandId = new Types.ObjectId().toString();
+      const brandId = 'test-object-id'.toString();
       vi.spyOn(service, 'findOne').mockResolvedValue(mockCampaign as never);
 
       await service.findOneById(
@@ -154,7 +151,7 @@ describe('OutreachCampaignsService', () => {
 
       expect(service.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
-          brand: new Types.ObjectId(brandId),
+          brand: new string(brandId),
         }),
       );
     });
@@ -163,7 +160,7 @@ describe('OutreachCampaignsService', () => {
       vi.spyOn(service, 'findOne').mockResolvedValue(null);
 
       const result = await service.findOneById(
-        new Types.ObjectId().toString(),
+        'test-object-id'.toString(),
         orgId.toString(),
       );
 
@@ -179,7 +176,7 @@ describe('OutreachCampaignsService', () => {
       expect(mockModel.find).toHaveBeenCalledWith(
         expect.objectContaining({
           isDeleted: false,
-          organization: expect.any(Types.ObjectId),
+          organization: expect.any(string),
         }),
       );
     });
@@ -247,7 +244,7 @@ describe('OutreachCampaignsService', () => {
       vi.spyOn(service, 'findOneById').mockResolvedValue(null);
 
       await expect(
-        service.start(new Types.ObjectId().toString(), orgId.toString()),
+        service.start('test-object-id'.toString(), orgId.toString()),
       ).rejects.toThrow(NotFoundException);
     });
   });
@@ -284,7 +281,7 @@ describe('OutreachCampaignsService', () => {
       vi.spyOn(service, 'findOneById').mockResolvedValue(null);
 
       await expect(
-        service.pause(new Types.ObjectId().toString(), orgId.toString()),
+        service.pause('test-object-id'.toString(), orgId.toString()),
       ).rejects.toThrow(NotFoundException);
     });
   });
@@ -316,7 +313,7 @@ describe('OutreachCampaignsService', () => {
       await service.incrementReplyCounters(campaignId.toString());
 
       expect(mockModel.updateOne).toHaveBeenCalledWith(
-        { _id: expect.any(Types.ObjectId) },
+        { _id: expect.any(string) },
         expect.objectContaining({
           $inc: expect.objectContaining({
             'rateLimits.currentDayCount': 1,
@@ -334,7 +331,7 @@ describe('OutreachCampaignsService', () => {
       await service.incrementFailedCounter(campaignId.toString());
 
       expect(mockModel.updateOne).toHaveBeenCalledWith(
-        { _id: expect.any(Types.ObjectId) },
+        { _id: expect.any(string) },
         expect.objectContaining({
           $inc: expect.objectContaining({ totalFailed: 1 }),
         }),
@@ -347,7 +344,7 @@ describe('OutreachCampaignsService', () => {
       await service.incrementSkippedCounter(campaignId.toString());
 
       expect(mockModel.updateOne).toHaveBeenCalledWith(
-        { _id: expect.any(Types.ObjectId) },
+        { _id: expect.any(string) },
         expect.objectContaining({
           $inc: expect.objectContaining({ totalSkipped: 1 }),
         }),
@@ -360,7 +357,7 @@ describe('OutreachCampaignsService', () => {
       await service.incrementTargetsCount(campaignId.toString(), 5);
 
       expect(mockModel.updateOne).toHaveBeenCalledWith(
-        { _id: expect.any(Types.ObjectId) },
+        { _id: expect.any(string) },
         expect.objectContaining({
           $inc: expect.objectContaining({ totalTargets: 5 }),
         }),
@@ -371,7 +368,7 @@ describe('OutreachCampaignsService', () => {
       await service.incrementTargetsCount(campaignId.toString());
 
       expect(mockModel.updateOne).toHaveBeenCalledWith(
-        { _id: expect.any(Types.ObjectId) },
+        { _id: expect.any(string) },
         expect.objectContaining({
           $inc: expect.objectContaining({ totalTargets: 1 }),
         }),
@@ -422,7 +419,7 @@ describe('OutreachCampaignsService', () => {
       vi.spyOn(service, 'findOneById').mockResolvedValue(null);
 
       await expect(
-        service.getAnalytics(new Types.ObjectId().toString(), orgId.toString()),
+        service.getAnalytics('test-object-id'.toString(), orgId.toString()),
       ).rejects.toThrow(NotFoundException);
     });
   });

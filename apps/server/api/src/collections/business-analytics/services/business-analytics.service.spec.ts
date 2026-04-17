@@ -3,8 +3,8 @@ import { CreditTransactions } from '@api/collections/credits/schemas/credit-tran
 import { Ingredient } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('BusinessAnalyticsService', () => {
@@ -47,12 +47,8 @@ describe('BusinessAnalyticsService', () => {
         { provide: LoggerService, useValue: loggerService },
         { provide: StripeService, useValue: stripeService },
         {
-          provide: getModelToken(CreditTransactions.name, DB_CONNECTIONS.AUTH),
-          useValue: creditTransactionsModel,
-        },
-        {
-          provide: getModelToken(Ingredient.name, DB_CONNECTIONS.CLOUD),
-          useValue: ingredientModel,
+          provide: PrismaService,
+          useValue: { ...creditTransactionsModel, ...ingredientModel },
         },
       ],
     }).compile();

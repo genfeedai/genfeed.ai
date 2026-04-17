@@ -493,7 +493,7 @@ export class AiInfluencerService {
       generationSource: `ai-influencer-${persona.slug}`,
       isDeleted: false,
       organization: persona.organization,
-      persona: persona._id as Types.ObjectId,
+      persona: persona._id,
       personaSlug: persona.slug,
       reviewStatus: DarkroomReviewStatus.APPROVED,
       status: IngredientStatus.GENERATED,
@@ -663,7 +663,7 @@ export class AiInfluencerService {
   private async generateVideoPipeline(
     persona: PersonaDocument,
     script: string,
-    ingredientId: Types.ObjectId,
+    ingredientId: string,
   ): Promise<{
     voiceResult: GenerationResult;
     videoResult: GenerationResult;
@@ -671,7 +671,7 @@ export class AiInfluencerService {
     const voiceResult = await this.personaContentService.generateVoice({
       ingredientId,
       organization: persona.organization,
-      personaId: persona._id as Types.ObjectId,
+      personaId: persona._id,
       text: script,
       user: persona.user,
     });
@@ -679,7 +679,7 @@ export class AiInfluencerService {
     const videoResult = await this.personaContentService.generateVideo({
       aspectRatio: '9:16',
       organization: persona.organization,
-      personaId: persona._id as Types.ObjectId,
+      personaId: persona._id,
       script,
       user: persona.user,
     });

@@ -3,8 +3,8 @@ import { UpdateRoleDto } from '@api/collections/roles/dto/update-role.dto';
 import { Role } from '@api/collections/roles/schemas/role.schema';
 import { RolesService } from '@api/collections/roles/services/roles.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('RolesService', () => {
@@ -48,10 +48,7 @@ describe('RolesService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         RolesService,
-        {
-          provide: getModelToken(Role.name, DB_CONNECTIONS.AUTH),
-          useValue: mockRoleModel,
-        },
+        { provide: PrismaService, useValue: mockRoleModel },
         {
           provide: LoggerService,
           useValue: {

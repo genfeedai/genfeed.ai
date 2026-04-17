@@ -1,10 +1,10 @@
-import { Types } from 'mongoose';
 import { vi } from 'vitest';
 
 /**
  * Test data generators
  */
-export const generateTestId = () => new Types.ObjectId().toString();
+export const generateTestId = () =>
+  'test-id-' + Math.random().toString(36).slice(2, 9);
 
 export const generateTestEmail = (prefix = 'test') =>
   `${prefix}.${Date.now()}@example.com`;

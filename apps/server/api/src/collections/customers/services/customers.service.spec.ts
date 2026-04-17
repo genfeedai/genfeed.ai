@@ -48,14 +48,14 @@ describe('CustomersService', () => {
   });
 
   it('findByOrganizationId queries with ObjectId', async () => {
-    const orgId = new Types.ObjectId().toString();
+    const orgId = 'test-object-id';
     mockModel.findOne.mockReturnValue({
       exec: vi.fn().mockResolvedValue({ _id: 'cust-1', organization: orgId }),
     });
     const result = await service.findByOrganizationId(orgId);
     expect(mockModel.findOne).toHaveBeenCalledWith({
       isDeleted: false,
-      organization: expect.any(Types.ObjectId),
+      organization: expect.any(String),
     });
     expect(result).toBeDefined();
   });
@@ -64,9 +64,7 @@ describe('CustomersService', () => {
     mockModel.findOne.mockReturnValue({
       exec: vi.fn().mockResolvedValue(null),
     });
-    const result = await service.findByOrganizationId(
-      new Types.ObjectId().toString(),
-    );
+    const result = await service.findByOrganizationId('test-object-id');
     expect(result).toBeNull();
   });
 
@@ -106,7 +104,7 @@ describe('CustomersService', () => {
     });
     await service.findByOrganizationId(orgId);
     const callArg = mockModel.findOne.mock.calls[0][0];
-    expect(callArg.organization).toBeInstanceOf(Types.ObjectId);
+    expect(callArg.organization).toEqual(expect.any(String));
     expect(callArg.organization.toString()).toBe(orgId);
   });
 

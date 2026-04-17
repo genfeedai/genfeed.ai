@@ -258,8 +258,8 @@ describe('MastodonService', () => {
   });
 
   describe('getMediaAnalytics', () => {
-    const orgId = new Types.ObjectId().toString();
-    const brandId = new Types.ObjectId().toString();
+    const orgId = 'test-object-id';
+    const brandId = 'test-object-id';
 
     it('should return analytics data from status endpoint', async () => {
       credentialsService.findOne.mockResolvedValue({

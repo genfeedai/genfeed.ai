@@ -70,7 +70,7 @@ export class ReplyBotOrchestratorService {
    * Main entry point - process all active bots for an organization
    */
   async processOrganizationBots(
-    organizationId: string | Types.ObjectId,
+    organizationId: string,
     credential: IReplyBotCredentialData,
   ): Promise<ProcessingResult[]> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
@@ -119,7 +119,7 @@ export class ReplyBotOrchestratorService {
     credential: IReplyBotCredentialData,
   ): Promise<ProcessingResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const botConfigId = (botConfig._id as Types.ObjectId).toString();
+    const botConfigId = botConfig._id.toString();
     const platform = credential.platform || ReplyBotPlatform.TWITTER;
 
     const result: ProcessingResult = {
@@ -254,7 +254,7 @@ export class ReplyBotOrchestratorService {
     // Get all active monitored accounts for this bot
     const monitoredAccounts =
       await this.monitoredAccountsService.findByBotConfig(
-        (botConfig._id as Types.ObjectId).toString(),
+        botConfig._id.toString(),
         organizationId,
       );
 
@@ -287,7 +287,7 @@ export class ReplyBotOrchestratorService {
       if (unprocessed.length > 0) {
         const latestId = unprocessed[0].id;
         await this.monitoredAccountsService.updateLastProcessed(
-          (account._id as Types.ObjectId).toString(),
+          account._id.toString(),
           organizationId,
           latestId,
         );
@@ -404,7 +404,7 @@ export class ReplyBotOrchestratorService {
     dmSent?: boolean;
   }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const botConfigId = (botConfig._id as Types.ObjectId).toString();
+    const botConfigId = botConfig._id.toString();
 
     // Check rate limits
     const rateCheck = await this.rateLimitService.checkRateLimit(
@@ -416,9 +416,9 @@ export class ReplyBotOrchestratorService {
       // Log skipped activity
       await this.botActivitiesService.create({
         // @ts-expect-error TS2353
-        botConfig: botConfig._id as Types.ObjectId,
+        botConfig: botConfig._id,
         botType: botConfig.type,
-        organization: new Types.ObjectId(organizationId),
+        organization: organizationId,
         skipReason: BotActivitySkipReason.RATE_LIMITED,
         status: BotActivityStatus.SKIPPED,
         triggerTweetAuthorId: content.authorId,
@@ -436,9 +436,9 @@ export class ReplyBotOrchestratorService {
     // Create activity record in processing state
     const activity = await this.botActivitiesService.create({
       // @ts-expect-error TS2353
-      botConfig: botConfig._id as Types.ObjectId,
+      botConfig: botConfig._id,
       botType: botConfig.type,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
       status: BotActivityStatus.PROCESSING,
       triggerTweetAuthorId: content.authorId,
       triggerTweetAuthorUsername: content.authorUsername,
@@ -446,7 +446,7 @@ export class ReplyBotOrchestratorService {
       triggerTweetText: content.text,
     });
 
-    const activityId = (activity._id as Types.ObjectId).toString();
+    const activityId = activity._id.toString();
 
     try {
       // Generate AI reply

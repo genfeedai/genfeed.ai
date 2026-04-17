@@ -49,9 +49,9 @@ export class LinkedInController {
     this.loggerService.log(url, createCredentialDto);
 
     const brand = await this.brandsService.findOne({
-      _id: new Types.ObjectId(createCredentialDto.brand),
+      _id: createCredentialDto.brand,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     });
 
     if (!brand) {
@@ -122,8 +122,8 @@ export class LinkedInController {
 
       // Find and update the existing credential
       const existingCredential = await this.credentialsService.findOne({
-        brand: new Types.ObjectId(brandId),
-        organization: new Types.ObjectId(organizationId),
+        brand: brandId,
+        organization: organizationId,
         platform: CredentialPlatform.LINKEDIN,
       });
 

@@ -49,8 +49,8 @@ export class HedraService {
     audioUrl: string,
     imageUrl: string,
     aspectRatio: string = '16:9',
-    _organizationId?: string | Types.ObjectId,
-    _userId?: string | Types.ObjectId,
+    _organizationId?: string,
+    _userId?: string,
     apiKeyOverride?: string,
   ): Promise<string> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
@@ -99,8 +99,8 @@ export class HedraService {
     imageUrl: string,
     voiceId?: string,
     aspectRatio: string = '16:9',
-    _organizationId?: string | Types.ObjectId,
-    _userId?: string | Types.ObjectId,
+    _organizationId?: string,
+    _userId?: string,
     apiKeyOverride?: string,
   ): Promise<string> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
@@ -152,8 +152,8 @@ export class HedraService {
   }
 
   public async getVoices(
-    _organizationId?: string | Types.ObjectId,
-    _userId?: string | Types.ObjectId,
+    _organizationId?: string,
+    _userId?: string,
     apiKeyOverride?: string,
   ): Promise<
     Array<{
@@ -204,8 +204,8 @@ export class HedraService {
 
   public async getJobStatus(
     jobId: string,
-    _organizationId?: string | Types.ObjectId,
-    _userId?: string | Types.ObjectId,
+    _organizationId?: string,
+    _userId?: string,
     apiKeyOverride?: string,
   ): Promise<{
     status: string;
@@ -243,8 +243,8 @@ export class HedraService {
   public async createLiveAvatar(
     name: string,
     imageUrl: string,
-    _organizationId?: string | Types.ObjectId,
-    _userId?: string | Types.ObjectId,
+    _organizationId?: string,
+    _userId?: string,
     apiKeyOverride?: string,
   ): Promise<string> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
@@ -280,8 +280,8 @@ export class HedraService {
   }
 
   public async getAvatars(
-    _organizationId?: string | Types.ObjectId,
-    _userId?: string | Types.ObjectId,
+    _organizationId?: string,
+    _userId?: string,
     apiKeyOverride?: string,
   ): Promise<
     Array<{

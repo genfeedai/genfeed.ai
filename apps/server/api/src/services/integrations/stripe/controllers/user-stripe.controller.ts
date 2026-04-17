@@ -235,7 +235,7 @@ export class UserStripeController {
       const creatorOrg = await this.organizationsService.findOne({
         category: OrganizationCategory.CREATOR,
         isDeleted: false,
-        members: new Types.ObjectId(dbUser._id),
+        members: dbUser._id,
       });
 
       if (creatorOrg) {

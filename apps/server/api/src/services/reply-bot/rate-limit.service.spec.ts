@@ -1,8 +1,8 @@
 import { ReplyBotConfig } from '@api/collections/reply-bot-configs/schemas/reply-bot-config.schema';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { RateLimitService } from '@api/services/reply-bot/rate-limit.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('RateLimitService', () => {
@@ -25,10 +25,7 @@ describe('RateLimitService', () => {
       providers: [
         RateLimitService,
         { provide: LoggerService, useValue: mockLoggerService },
-        {
-          provide: getModelToken(ReplyBotConfig.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockReplyBotConfigModel,
-        },
+        { provide: PrismaService, useValue: mockReplyBotConfigModel },
       ],
     }).compile();
 

@@ -1,9 +1,9 @@
 import { Setting } from '@api/collections/settings/schemas/setting.schema';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { createMockModel } from '@api/shared/testing/mock-model.factory';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('SettingsService', () => {
@@ -20,16 +20,13 @@ describe('SettingsService', () => {
   beforeEach(async () => {
     mockModel = createMockModel({
       theme: 'dark',
-      user: new Types.ObjectId(),
+      user: 'test-object-id',
     });
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         SettingsService,
-        {
-          provide: getModelToken(Setting.name, DB_CONNECTIONS.AUTH),
-          useValue: mockModel,
-        },
+        { provide: PrismaService, useValue: mockModel },
         {
           provide: LoggerService,
           useValue: mockLogger,
@@ -60,7 +57,7 @@ describe('SettingsService', () => {
 
   describe('findOne', () => {
     it('should find a setting by filter', async () => {
-      const settingsId = new Types.ObjectId();
+      const settingsId = 'test-object-id';
       const settingsDoc = { _id: settingsId, theme: 'dark' };
       mockModel.findOne.mockReturnValue({
         exec: vi.fn().mockResolvedValue(settingsDoc),
@@ -80,7 +77,7 @@ describe('SettingsService', () => {
       });
 
       const result = await service.findOne({
-        _id: new Types.ObjectId().toString(),
+        _id: 'test-object-id'.toString(),
       });
 
       expect(result).toBeNull();
@@ -89,7 +86,7 @@ describe('SettingsService', () => {
 
   describe('patch', () => {
     it('should update a setting and return updated document', async () => {
-      const settingsId = new Types.ObjectId();
+      const settingsId = 'test-object-id';
       const updatedDoc = { _id: settingsId, theme: 'light' };
       mockModel.findByIdAndUpdate.mockReturnValue({
         exec: vi.fn().mockResolvedValue(updatedDoc),
@@ -110,7 +107,7 @@ describe('SettingsService', () => {
         populate: vi.fn().mockReturnThis(),
       });
 
-      const result = await service.patch(new Types.ObjectId(), {
+      const result = await service.patch('test-object-id', {
         theme: 'x',
       } as never);
 
@@ -120,7 +117,7 @@ describe('SettingsService', () => {
 
   describe('remove', () => {
     it('should soft delete a setting', async () => {
-      const settingsId = new Types.ObjectId().toString();
+      const settingsId = 'test-object-id'.toString();
       const deletedDoc = { _id: settingsId, isDeleted: true };
       mockModel.findByIdAndUpdate.mockReturnValue({
         exec: vi.fn().mockResolvedValue(deletedDoc),
@@ -145,7 +142,7 @@ describe('SettingsService', () => {
   describe('findAll', () => {
     it('should return paginated settings via aggregation', async () => {
       const aggResult = {
-        docs: [{ _id: new Types.ObjectId(), theme: 'dark' }],
+        docs: [{ _id: 'test-object-id', theme: 'dark' }],
         hasNextPage: false,
         hasPrevPage: false,
         limit: 10,
@@ -168,14 +165,14 @@ describe('SettingsService', () => {
 
   describe('processSearchParams', () => {
     it('should convert string IDs to ObjectId for known fields', () => {
-      const stringId = new Types.ObjectId().toString();
+      const stringId = 'test-object-id'.toString();
       const processed = service.processSearchParams({
         _id: stringId,
         user: stringId,
       });
 
-      expect(processed._id).toBeInstanceOf(Types.ObjectId);
-      expect(processed.user).toBeInstanceOf(Types.ObjectId);
+      expect(processed._id).toBeInstanceOf(string);
+      expect(processed.user).toBeInstanceOf(string);
     });
 
     it('should not convert non-ObjectId fields', () => {

@@ -49,20 +49,20 @@ describe('YoutubeUploadService', () => {
   };
 
   const mockAuth = { credentials: { access_token: 'test-token' } };
-  const orgId = new Types.ObjectId().toHexString();
-  const brandId = new Types.ObjectId().toHexString();
-  const videoId = new Types.ObjectId().toHexString();
+  const orgId = 'test-object-id'.toHexString();
+  const brandId = 'test-object-id'.toHexString();
+  const videoId = 'test-object-id'.toHexString();
 
   function createPost(
     overrides: Partial<PostEntity> & { status?: PostStatus | string } = {},
   ): PostEntity {
     const fixture = {
-      _id: new Types.ObjectId(),
+      _id: 'test-object-id',
       description: '<p>Test description</p>',
       label: 'Test Video',
       scheduledDate: null,
       status: PostStatus.PUBLIC,
-      tags: [new Types.ObjectId()],
+      tags: ['test-object-id'],
       ...overrides,
     };
     return new PostEntity(fixture);
@@ -135,7 +135,7 @@ describe('YoutubeUploadService', () => {
   });
 
   it('should resolve tag labels for the post tags', async () => {
-    const tags = [new Types.ObjectId(), new Types.ObjectId()];
+    const tags = ['test-object-id', 'test-object-id'];
     const post = createPost({ tags });
 
     await service.uploadVideo(orgId, brandId, videoId, post);

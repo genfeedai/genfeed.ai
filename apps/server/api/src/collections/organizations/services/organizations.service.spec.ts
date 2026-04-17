@@ -4,8 +4,8 @@ import {
 } from '@api/collections/organizations/schemas/organization.schema';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('OrganizationsService', () => {
@@ -37,7 +37,7 @@ describe('OrganizationsService', () => {
     .fn()
     .mockImplementation((data: Record<string, unknown>) => ({
       ...data,
-      save: vi.fn().mockResolvedValue({ _id: new Types.ObjectId(), ...data }),
+      save: vi.fn().mockResolvedValue({ _id: 'test-object-id', ...data }),
     }));
 
   beforeEach(async () => {
@@ -46,10 +46,7 @@ describe('OrganizationsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         OrganizationsService,
-        {
-          provide: getModelToken(Organization.name, DB_CONNECTIONS.AUTH),
-          useValue: MockModelConstructor,
-        },
+        { provide: PrismaService, useValue: MockModelConstructor },
         {
           provide: LoggerService,
           useValue: mockLogger,
@@ -70,7 +67,7 @@ describe('OrganizationsService', () => {
 
   describe('findOne', () => {
     it('should find organization with populate (settings and credits)', async () => {
-      const orgId = new Types.ObjectId();
+      const orgId = 'test-object-id';
       const mockOrg = {
         _id: orgId,
         label: 'Test Org',
@@ -102,14 +99,14 @@ describe('OrganizationsService', () => {
         populate: populateMock,
       });
 
-      const result = await service.findOne({ _id: new Types.ObjectId() });
+      const result = await service.findOne({ _id: 'test-object-id' });
 
       expect(result).toBeNull();
     });
 
     it('should find by label', async () => {
       const mockOrg = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         label: 'My Organization',
       } as unknown as OrganizationDocument;
 
@@ -136,7 +133,7 @@ describe('OrganizationsService', () => {
 
       expect(mockModel.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
-          _id: expect.any(Types.ObjectId),
+          _id: expect.any(string),
         }),
       );
     });
@@ -150,7 +147,7 @@ describe('OrganizationsService', () => {
       };
 
       const savedOrg = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         ...createDto,
       } as unknown as OrganizationDocument;
 
@@ -172,7 +169,7 @@ describe('OrganizationsService', () => {
       const updateDto = { label: 'Updated Org' };
 
       const updatedOrg = {
-        _id: new Types.ObjectId(orgId),
+        _id: new string(orgId),
         label: 'Updated Org',
       } as unknown as OrganizationDocument;
 
@@ -236,7 +233,7 @@ describe('OrganizationsService', () => {
   describe('getGetShareableOrganization', () => {
     it('should find the GetShareable organization', async () => {
       const mockOrg = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         label: 'GetShareable',
       } as unknown as OrganizationDocument;
 
@@ -274,7 +271,7 @@ describe('OrganizationsService', () => {
     it('should soft delete an organization', async () => {
       const orgId = '507f1f77bcf86cd799439011';
       const deletedOrg = {
-        _id: new Types.ObjectId(orgId),
+        _id: new string(orgId),
         isDeleted: true,
       } as unknown as OrganizationDocument;
 
@@ -314,7 +311,7 @@ describe('OrganizationsService', () => {
       const params = { organization: '507f1f77bcf86cd799439011' };
       const processed = service.processSearchParams(params);
 
-      expect(processed.organization).toBeInstanceOf(Types.ObjectId);
+      expect(processed.organization).toBeInstanceOf(string);
     });
 
     it('should not modify non-id fields', () => {
@@ -355,7 +352,7 @@ describe('OrganizationsService', () => {
   describe('findBySlug', () => {
     it('should find an organization by slug', async () => {
       const mockOrg = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         label: 'Genfeed AI',
         slug: 'genfeed-ai',
       } as unknown as OrganizationDocument;
@@ -403,7 +400,7 @@ describe('OrganizationsService', () => {
 
     it('should append a counter when the base slug is taken', async () => {
       (mockModel.exists as ReturnType<typeof vi.fn>)
-        .mockResolvedValueOnce({ _id: new Types.ObjectId() })
+        .mockResolvedValueOnce({ _id: 'test-object-id' })
         .mockResolvedValueOnce(null);
 
       const result = await service.generateUniqueSlug('Genfeed AI');
@@ -421,8 +418,8 @@ describe('OrganizationsService', () => {
 
     it('should increment counter until a unique slug is found', async () => {
       (mockModel.exists as ReturnType<typeof vi.fn>)
-        .mockResolvedValueOnce({ _id: new Types.ObjectId() })
-        .mockResolvedValueOnce({ _id: new Types.ObjectId() })
+        .mockResolvedValueOnce({ _id: 'test-object-id' })
+        .mockResolvedValueOnce({ _id: 'test-object-id' })
         .mockResolvedValueOnce(null);
 
       const result = await service.generateUniqueSlug('Genfeed AI');

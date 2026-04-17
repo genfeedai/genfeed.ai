@@ -174,9 +174,9 @@ describe('BaseIntegrationController', () => {
 
       expect(brandsService.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
-          _id: expect.any(Types.ObjectId),
+          _id: expect.any(String),
           isDeleted: false,
-          organization: expect.any(Types.ObjectId),
+          organization: expect.any(String),
         }),
       );
       expect(result).toHaveProperty('_id');
@@ -209,8 +209,8 @@ describe('BaseIntegrationController', () => {
 
       expect(credentialsService.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
-          brand: expect.any(Types.ObjectId),
-          organization: expect.any(Types.ObjectId),
+          brand: expect.any(String),
+          organization: expect.any(String),
           platform: CredentialPlatform.YOUTUBE,
         }),
       );

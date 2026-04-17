@@ -21,11 +21,11 @@ describe('SnapchatService', () => {
   let loggerService: vi.Mocked<LoggerService>;
   let httpService: vi.Mocked<HttpService>;
 
-  const orgId = new Types.ObjectId().toString();
-  const brandId = new Types.ObjectId().toString();
+  const orgId = 'test-object-id';
+  const brandId = 'test-object-id';
 
   const mockCredential = {
-    _id: new Types.ObjectId(),
+    _id: 'test-object-id',
     accessToken: 'encrypted-access',
     refreshToken: 'encrypted-refresh',
   };

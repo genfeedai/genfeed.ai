@@ -4,8 +4,8 @@ import {
 } from '@api/collections/credits/schemas/credit-balance.schema';
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('CreditBalanceService', () => {
@@ -28,7 +28,7 @@ describe('CreditBalanceService', () => {
     .fn()
     .mockImplementation((data: Record<string, unknown>) => ({
       ...data,
-      save: vi.fn().mockResolvedValue({ _id: new Types.ObjectId(), ...data }),
+      save: vi.fn().mockResolvedValue({ _id: 'test-object-id', ...data }),
     }));
 
   beforeEach(async () => {
@@ -38,10 +38,7 @@ describe('CreditBalanceService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CreditBalanceService,
-        {
-          provide: getModelToken(CreditBalance.name, DB_CONNECTIONS.AUTH),
-          useValue: MockModelConstructor,
-        },
+        { provide: PrismaService, useValue: MockModelConstructor },
         {
           provide: LoggerService,
           useValue: mockLogger,
@@ -62,7 +59,7 @@ describe('CreditBalanceService', () => {
 
   describe('create', () => {
     it('should create a new credit balance', async () => {
-      const orgId = new Types.ObjectId();
+      const orgId = 'test-object-id';
       const createData = {
         balance: 100,
         isDeleted: false,
@@ -70,7 +67,7 @@ describe('CreditBalanceService', () => {
       };
 
       const savedDoc = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         ...createData,
       };
 
@@ -88,7 +85,7 @@ describe('CreditBalanceService', () => {
     });
 
     it('should save with zero balance', async () => {
-      const orgId = new Types.ObjectId();
+      const orgId = 'test-object-id';
       const createData = {
         balance: 0,
         isDeleted: false,
@@ -96,7 +93,7 @@ describe('CreditBalanceService', () => {
       };
 
       const savedDoc = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         ...createData,
       };
 
@@ -116,9 +113,9 @@ describe('CreditBalanceService', () => {
     it('should find credit balance by organization ID', async () => {
       const orgId = '507f1f77bcf86cd799439011';
       const mockBalance = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         balance: 500,
-        organization: new Types.ObjectId(orgId),
+        organization: new string(orgId),
       };
 
       const execMock = vi.fn().mockResolvedValue(mockBalance);
@@ -131,7 +128,7 @@ describe('CreditBalanceService', () => {
       expect(result).toBe(mockBalance);
       expect(mockModel.findOne).toHaveBeenCalledWith({
         isDeleted: { $ne: true },
-        organization: new Types.ObjectId(orgId),
+        organization: new string(orgId),
       });
     });
 
@@ -172,9 +169,9 @@ describe('CreditBalanceService', () => {
     it('should return existing balance when found', async () => {
       const orgId = '507f1f77bcf86cd799439011';
       const existingBalance = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         balance: 200,
-        organization: new Types.ObjectId(orgId),
+        organization: new string(orgId),
       };
 
       const execMock = vi.fn().mockResolvedValue(existingBalance);
@@ -190,10 +187,10 @@ describe('CreditBalanceService', () => {
     it('should create a new balance when none exists', async () => {
       const orgId = '507f1f77bcf86cd799439011';
       const newBalance = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         balance: 0,
         isDeleted: false,
-        organization: new Types.ObjectId(orgId),
+        organization: new string(orgId),
       } as unknown as CreditBalanceDocument;
 
       // findByOrganization returns null (no existing balance)
@@ -228,9 +225,9 @@ describe('CreditBalanceService', () => {
     it('should update balance for existing organization', async () => {
       const orgId = '507f1f77bcf86cd799439011';
       const existingBalance = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         balance: 100,
-        organization: new Types.ObjectId(orgId),
+        organization: new string(orgId),
       };
 
       const updatedBalance = {
@@ -263,9 +260,9 @@ describe('CreditBalanceService', () => {
     it('should update balance to zero', async () => {
       const orgId = '507f1f77bcf86cd799439011';
       const existingBalance = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         balance: 100,
-        organization: new Types.ObjectId(orgId),
+        organization: new string(orgId),
       };
 
       const updatedBalance = { ...existingBalance, balance: 0 };

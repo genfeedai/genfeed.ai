@@ -3,10 +3,10 @@ import { UpdateBotDto } from '@api/collections/bots/dto/update-bot.dto';
 import { Bot } from '@api/collections/bots/schemas/bot.schema';
 import { BotsService } from '@api/collections/bots/services/bots.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BotStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { NotFoundException } from '@nestjs/common';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('BotsService', () => {
@@ -14,10 +14,10 @@ describe('BotsService', () => {
   let model: ReturnType<typeof createMockModel>;
   let logger: LoggerService;
 
-  const mockBotId = new Types.ObjectId('507f1f77bcf86cd799439011');
-  const mockUserId = new Types.ObjectId('507f1f77bcf86cd799439012');
-  const mockOrganizationId = new Types.ObjectId('507f1f77bcf86cd799439013');
-  const mockBrandId = new Types.ObjectId('507f1f77bcf86cd799439014');
+  const mockBotId = '507f1f77bcf86cd799439011';
+  const mockUserId = '507f1f77bcf86cd799439012';
+  const mockOrganizationId = '507f1f77bcf86cd799439013';
+  const mockBrandId = '507f1f77bcf86cd799439014';
 
   const mockBot = {
     _id: mockBotId,
@@ -52,10 +52,7 @@ describe('BotsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BotsService,
-        {
-          provide: getModelToken(Bot.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockModel,
-        },
+        { provide: PrismaService, useValue: mockModel },
         {
           provide: LoggerService,
           useValue: {
@@ -69,7 +66,7 @@ describe('BotsService', () => {
     }).compile();
 
     service = module.get<BotsService>(BotsService);
-    model = module.get(getModelToken(Bot.name, DB_CONNECTIONS.CLOUD));
+    model = module.get(PrismaService);
     logger = module.get<LoggerService>(LoggerService);
 
     logger.debug = vi.fn();

@@ -95,9 +95,9 @@ describe('FailedGenerationService', () => {
       expect(activitiesService.create).toHaveBeenCalledWith(
         expect.objectContaining({
           key: ActivityKey.VIDEO_FAILED,
-          organization: expect.any(Types.ObjectId),
+          organization: expect.any(String),
           source: ActivitySource.SCRIPT,
-          user: expect.any(Types.ObjectId),
+          user: expect.any(String),
         }),
       );
     });

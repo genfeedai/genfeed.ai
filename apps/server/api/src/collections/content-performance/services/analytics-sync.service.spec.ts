@@ -7,8 +7,8 @@ import { Post } from '@api/collections/posts/schemas/post.schema';
 import { PostAnalytics } from '@api/collections/posts/schemas/post-analytics.schema';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { BrandMemorySyncService } from '@api/services/brand-memory/brand-memory-sync.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test } from '@nestjs/testing';
 import { vi } from 'vitest';
 
@@ -28,10 +28,10 @@ describe('AnalyticsSyncService', () => {
     warn: ReturnType<typeof vi.fn>;
   };
 
-  const orgId = new Types.ObjectId().toString();
-  const brandId = new Types.ObjectId().toString();
-  const postId = new Types.ObjectId();
-  const userId = new Types.ObjectId();
+  const orgId = 'test-object-id'.toString();
+  const brandId = 'test-object-id'.toString();
+  const postId = 'test-object-id';
+  const userId = 'test-object-id';
 
   beforeEach(async () => {
     mockContentPerformanceModel = {
@@ -83,16 +83,12 @@ describe('AnalyticsSyncService', () => {
       providers: [
         AnalyticsSyncService,
         {
-          provide: getModelToken(ContentPerformance.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockContentPerformanceModel,
-        },
-        {
-          provide: getModelToken(PostAnalytics.name, DB_CONNECTIONS.ANALYTICS),
-          useValue: mockPostAnalyticsModel,
-        },
-        {
-          provide: getModelToken(Post.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockPostModel,
+          provide: PrismaService,
+          useValue: {
+            ...mockContentPerformanceModel,
+            ...mockPostAnalyticsModel,
+            ...mockPostModel,
+          },
         },
         {
           provide: LoggerService,
@@ -123,8 +119,8 @@ describe('AnalyticsSyncService', () => {
     it('should sync analytics and upsert into content performance', async () => {
       const analyticsData = [
         {
-          _id: new Types.ObjectId(),
-          brand: new Types.ObjectId(brandId),
+          _id: 'test-object-id',
+          brand: new string(brandId),
           date: new Date(),
           platform: 'instagram',
           post: postId,
@@ -140,9 +136,9 @@ describe('AnalyticsSyncService', () => {
       const postData = [
         {
           _id: postId,
-          brand: new Types.ObjectId(brandId),
+          brand: new string(brandId),
           category: 'image',
-          contentRunId: new Types.ObjectId(),
+          contentRunId: 'test-object-id',
           creativeVersion: 'creative-a',
           externalId: 'ext-123',
           generationId: 'wf-123-node-1',
@@ -220,8 +216,8 @@ describe('AnalyticsSyncService', () => {
     it('should handle errors gracefully and continue processing', async () => {
       const analyticsData = [
         {
-          _id: new Types.ObjectId(),
-          brand: new Types.ObjectId(brandId),
+          _id: 'test-object-id',
+          brand: new string(brandId),
           date: new Date(),
           platform: 'instagram',
           post: postId,
@@ -300,7 +296,7 @@ describe('AnalyticsSyncService', () => {
 
       expect(mockPostAnalyticsModel.find).toHaveBeenCalledWith(
         expect.objectContaining({
-          brand: new Types.ObjectId(brandId),
+          brand: new string(brandId),
         }),
       );
     });

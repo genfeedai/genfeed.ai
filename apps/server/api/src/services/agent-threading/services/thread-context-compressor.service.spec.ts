@@ -4,23 +4,22 @@ import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { ThreadContextState } from '@api/services/agent-threading/schemas/thread-context-state.schema';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test } from '@nestjs/testing';
-
 import { ThreadContextCompressorService } from './thread-context-compressor.service';
 
-const makeObjectId = () => new Types.ObjectId();
+const makeObjectId = () => 'test-object-id';
 const threadId = makeObjectId().toString();
 const orgId = makeObjectId().toString();
 
-const makeMessage = (role: string, content: string, id?: Types.ObjectId) =>
+const makeMessage = (role: string, content: string, id?: string) =>
   ({
     _id: id ?? makeObjectId(),
     content,
     isDeleted: false,
     role,
-    room: new Types.ObjectId(threadId),
+    room: new string(threadId),
   }) as never;
 
 const makeLlmResponse = (text: string) => ({
@@ -100,10 +99,7 @@ describe('ThreadContextCompressorService', () => {
     const module = await Test.createTestingModule({
       providers: [
         ThreadContextCompressorService,
-        {
-          provide: getModelToken(ThreadContextState.name, DB_CONNECTIONS.AGENT),
-          useValue: model,
-        },
+        { provide: PrismaService, useValue: model },
         { provide: AgentMessagesService, useValue: messagesService },
         { provide: LlmDispatcherService, useValue: llmDispatcher },
         { provide: CacheService, useValue: cacheService },

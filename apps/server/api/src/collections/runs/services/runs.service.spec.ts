@@ -7,6 +7,7 @@ import { RunsService } from '@api/collections/runs/services/runs.service';
 import { RunsMeteringService } from '@api/collections/runs/services/runs-metering.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   RunActionType,
   RunAuthType,
@@ -17,14 +18,13 @@ import {
   RunTrigger,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 function buildRunDocument(partial: Partial<RunDocument> = {}): RunDocument {
   const now = new Date('2026-02-10T12:00:00.000Z');
 
   return {
-    _id: partial._id || new Types.ObjectId(),
+    _id: partial._id || 'test-object-id',
     actionType: partial.actionType || RunActionType.GENERATE,
     authType: partial.authType || RunAuthType.CLERK,
     completedAt: partial.completedAt,
@@ -36,7 +36,7 @@ function buildRunDocument(partial: Partial<RunDocument> = {}): RunDocument {
     input: partial.input || {},
     isDeleted: false,
     metadata: partial.metadata || {},
-    organization: partial.organization || new Types.ObjectId(),
+    organization: partial.organization || 'test-object-id',
     output: partial.output,
     progress: partial.progress ?? 0,
     startedAt: partial.startedAt,
@@ -45,7 +45,7 @@ function buildRunDocument(partial: Partial<RunDocument> = {}): RunDocument {
     traceId: partial.traceId || 'trace-test',
     trigger: partial.trigger || RunTrigger.MANUAL,
     updatedAt: now,
-    user: partial.user || new Types.ObjectId(),
+    user: partial.user || 'test-object-id',
   } as unknown as RunDocument;
 }
 
@@ -78,10 +78,7 @@ describe('RunsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         RunsService,
-        {
-          provide: getModelToken(Run.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockModel,
-        },
+        { provide: PrismaService, useValue: mockModel },
         {
           provide: LoggerService,
           useValue: mockLoggerService,
@@ -137,16 +134,16 @@ describe('RunsService', () => {
       .spyOn(service, 'create')
       .mockImplementation(async (payload: Record<string, unknown>) =>
         buildRunDocument({
-          _id: new Types.ObjectId(),
+          _id: 'test-object-id',
           actionType: payload.actionType as RunActionType,
           authType: payload.authType as RunAuthType,
           events: payload.events as RunDocument['events'],
-          organization: payload.organization as Types.ObjectId,
+          organization: payload.organization as string,
           progress: Number(payload.progress ?? 0),
           status: payload.status as RunStatus,
           surface: payload.surface as RunSurface,
           traceId: String(payload.traceId),
-          user: payload.user as Types.ObjectId,
+          user: payload.user as string,
         }),
       );
 
@@ -208,7 +205,7 @@ describe('RunsService', () => {
 
   it('should add trace IDs when appending events and publish to stream', async () => {
     const run = buildRunDocument({
-      _id: new Types.ObjectId('507f1f77bcf86cd799439033'),
+      _id: '507f1f77bcf86cd799439033',
       traceId: 'trace-run-1',
     });
 
@@ -266,7 +263,7 @@ describe('RunsService', () => {
 
   it('should emit analytics snapshot and progress events on analytics/composite updates', async () => {
     const run = buildRunDocument({
-      _id: new Types.ObjectId('507f1f77bcf86cd799439034'),
+      _id: '507f1f77bcf86cd799439034',
       actionType: RunActionType.ANALYTICS,
       progress: 10,
       status: RunStatus.PENDING,
@@ -314,7 +311,7 @@ describe('RunsService', () => {
 
   it('should return stream envelopes sorted by createdAt', async () => {
     const run = buildRunDocument({
-      _id: new Types.ObjectId('507f1f77bcf86cd799439035'),
+      _id: '507f1f77bcf86cd799439035',
       events: [
         {
           createdAt: new Date('2026-02-10T12:00:05.000Z'),

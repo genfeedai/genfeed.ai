@@ -89,15 +89,15 @@ export class TelegramService {
 
       // Check if credential already exists
       const existingCredential = await this.credentialsService.findOne({
-        brand: new Types.ObjectId(brandId),
+        brand: brandId,
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
+        organization: organizationId,
         platform: CredentialPlatform.TELEGRAM,
       });
 
       // Prepare credential data
       const credentialData = {
-        brand: new Types.ObjectId(brandId),
+        brand: brandId,
         externalAvatar: authData.photo_url,
         externalHandle: authData.username || authData.first_name,
         externalId: authData.id.toString(),
@@ -106,9 +106,9 @@ export class TelegramService {
           : authData.first_name,
         isConnected: true,
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
+        organization: organizationId,
         platform: CredentialPlatform.TELEGRAM,
-        user: new Types.ObjectId(userId),
+        user: userId,
       };
 
       let credential;
@@ -160,9 +160,9 @@ export class TelegramService {
 
     try {
       const credential = await this.credentialsService.findOne({
-        brand: new Types.ObjectId(brandId),
+        brand: brandId,
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
+        organization: organizationId,
         platform: CredentialPlatform.TELEGRAM,
       });
 

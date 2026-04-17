@@ -56,9 +56,9 @@ describe('CredentialHelper', () => {
 
       expect(service.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
-          brand: expect.any(Types.ObjectId),
+          brand: expect.any(String),
           isDeleted: false,
-          organization: expect.any(Types.ObjectId),
+          organization: expect.any(String),
           platform,
         }),
       );
@@ -104,8 +104,8 @@ describe('CredentialHelper', () => {
     it('builds a query with ObjectId fields', () => {
       const query = CredentialHelper.buildQuery(baseOptions);
 
-      expect(query.brand).toBeInstanceOf(Types.ObjectId);
-      expect(query.organization).toBeInstanceOf(Types.ObjectId);
+      expect(query.brand).toEqual(expect.any(String));
+      expect(query.organization).toEqual(expect.any(String));
       expect(String(query.brand)).toBe(brandId);
       expect(String(query.organization)).toBe(orgId);
       expect(query.platform).toBe(platform);

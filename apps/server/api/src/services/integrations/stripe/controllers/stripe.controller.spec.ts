@@ -61,7 +61,7 @@ describe('StripeController', () => {
   } as unknown as Request;
   const mockRequestNoOrigin = { headers: {} } as unknown as Request;
   const orgId = '507f1f77bcf86cd799439011';
-  const userId = new Types.ObjectId();
+  const userId = 'test-object-id';
   const mockUser = {
     emailAddresses: [{ emailAddress: 'test@example.com' }],
     id: 'clerk_user_123',
@@ -69,7 +69,7 @@ describe('StripeController', () => {
   } as unknown as User;
 
   const mockSubscription = {
-    _id: new Types.ObjectId(),
+    _id: 'test-object-id',
     stripeCustomerId: 'cus_test123',
   };
 
@@ -98,7 +98,7 @@ describe('StripeController', () => {
     };
 
     organizationsService = {
-      findOne: vi.fn().mockResolvedValue({ _id: new Types.ObjectId(orgId) }),
+      findOne: vi.fn().mockResolvedValue({ _id: orgId }),
     };
 
     const module: TestingModule = await Test.createTestingModule({

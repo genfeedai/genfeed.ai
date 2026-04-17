@@ -116,7 +116,7 @@ describe('BrandCreditsGuard', () => {
     organizationSettingsService.findOne.mockResolvedValue(null);
     await guard.canActivate(createContext());
     expect(organizationSettingsService.findOne).toHaveBeenCalledWith({
-      organization: expect.any(Types.ObjectId),
+      organization: expect.any(String),
     });
   });
 
@@ -129,7 +129,7 @@ describe('BrandCreditsGuard', () => {
         {
           $match: {
             isDeleted: false,
-            organization: expect.any(Types.ObjectId),
+            organization: expect.any(String),
           },
         },
       ],

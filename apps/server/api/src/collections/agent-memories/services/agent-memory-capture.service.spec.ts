@@ -26,14 +26,14 @@ describe('AgentMemoryCaptureService', () => {
     warn: ReturnType<typeof vi.fn>;
   };
 
-  const userId = new Types.ObjectId().toHexString();
-  const orgId = new Types.ObjectId().toHexString();
-  const brandId = new Types.ObjectId().toHexString();
-  const campaignId = new Types.ObjectId().toHexString();
-  const memoryId = new Types.ObjectId().toHexString();
-  const contextId = new Types.ObjectId().toHexString();
+  const userId = 'test-object-id'.toHexString();
+  const orgId = 'test-object-id'.toHexString();
+  const brandId = 'test-object-id'.toHexString();
+  const campaignId = 'test-object-id'.toHexString();
+  const memoryId = 'test-object-id'.toHexString();
+  const contextId = 'test-object-id'.toHexString();
 
-  const mockMemory = { _id: new Types.ObjectId(memoryId) };
+  const mockMemory = { _id: memoryId };
 
   beforeEach(async () => {
     agentMemoriesService = {
@@ -41,7 +41,7 @@ describe('AgentMemoryCaptureService', () => {
     };
     contextsService = {
       addEntry: vi.fn().mockResolvedValue(undefined),
-      create: vi.fn().mockResolvedValue({ _id: new Types.ObjectId(contextId) }),
+      create: vi.fn().mockResolvedValue({ _id: contextId }),
       findAll: vi.fn().mockResolvedValue([]),
     };
     brandMemoryService = {
@@ -162,9 +162,9 @@ describe('AgentMemoryCaptureService', () => {
 
     it('reuses existing context base when one already exists for the brand', async () => {
       const existingContext = {
-        _id: new Types.ObjectId(contextId),
+        _id: contextId,
         isDeleted: false,
-        sourceBrand: new Types.ObjectId(brandId),
+        sourceBrand: brandId,
       };
       contextsService.findAll.mockResolvedValue([existingContext]);
 

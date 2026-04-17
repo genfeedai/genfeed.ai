@@ -41,12 +41,12 @@ const mockConfigService = {
 
 const createJob = (overrides: Partial<BatchWorkflowItemJobData> = {}) => ({
   data: {
-    batchJobId: new Types.ObjectId().toString(),
-    ingredientId: new Types.ObjectId().toString(),
-    itemId: new Types.ObjectId().toString(),
-    organizationId: new Types.ObjectId().toString(),
-    userId: new Types.ObjectId().toString(),
-    workflowId: new Types.ObjectId().toString(),
+    batchJobId: 'test-object-id',
+    ingredientId: 'test-object-id',
+    itemId: 'test-object-id',
+    organizationId: 'test-object-id',
+    userId: 'test-object-id',
+    workflowId: 'test-object-id',
     ...overrides,
   },
   id: 'test-job-1',

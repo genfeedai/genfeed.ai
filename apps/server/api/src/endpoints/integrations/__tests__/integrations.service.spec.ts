@@ -3,11 +3,11 @@ import { CreateIntegrationDto } from '@api/endpoints/integrations/dto/create-int
 import { UpdateIntegrationDto } from '@api/endpoints/integrations/dto/update-integration.dto';
 import { IntegrationsService } from '@api/endpoints/integrations/integrations.service';
 import { OrgIntegration } from '@api/endpoints/integrations/schemas/org-integration.schema';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { IntegrationPlatform, IntegrationStatus } from '@genfeedai/enums';
 import { REDIS_EVENTS } from '@genfeedai/integrations';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 
 // Valid 24-char hex ObjectIds for use as orgId / integrationId params
@@ -80,10 +80,7 @@ describe('IntegrationsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         IntegrationsService,
-        {
-          provide: getModelToken(OrgIntegration.name, DB_CONNECTIONS.CLOUD),
-          useValue: MockModel,
-        },
+        { provide: PrismaService, useValue: MockModel },
         {
           provide: EventEmitter2,
           useValue: mockEventEmitter,
@@ -96,9 +93,7 @@ describe('IntegrationsService', () => {
     }).compile();
 
     service = module.get<IntegrationsService>(IntegrationsService);
-    model = module.get(
-      getModelToken(OrgIntegration.name, DB_CONNECTIONS.CLOUD),
-    );
+    model = module.get(PrismaService);
     eventEmitter = module.get(EventEmitter2);
 
     // Reset mocks

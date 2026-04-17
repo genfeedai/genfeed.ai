@@ -3,17 +3,17 @@ import { UpdateFolderDto } from '@api/collections/folders/dto/update-folder.dto'
 import { Folder } from '@api/collections/folders/schemas/folder.schema';
 import { FoldersService } from '@api/collections/folders/services/folders.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('FoldersService', () => {
   let service: FoldersService;
   let model: any;
 
-  const mockFolderId = new Types.ObjectId('507f1f77bcf86cd799439011');
-  const mockUserId = new Types.ObjectId('507f1f77bcf86cd799439012');
-  const mockOrganizationId = new Types.ObjectId('507f1f77bcf86cd799439013');
+  const mockFolderId = '507f1f77bcf86cd799439011';
+  const mockUserId = '507f1f77bcf86cd799439012';
+  const mockOrganizationId = '507f1f77bcf86cd799439013';
 
   const mockFolder = {
     _id: mockFolderId,
@@ -77,10 +77,7 @@ describe('FoldersService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         FoldersService,
-        {
-          provide: getModelToken(Folder.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockModelFn,
-        },
+        { provide: PrismaService, useValue: mockModelFn },
         {
           provide: LoggerService,
           useValue: {
@@ -94,7 +91,7 @@ describe('FoldersService', () => {
     }).compile();
 
     service = module.get<FoldersService>(FoldersService);
-    model = module.get(getModelToken(Folder.name, DB_CONNECTIONS.CLOUD));
+    model = module.get(PrismaService);
 
     vi.clearAllMocks();
   });

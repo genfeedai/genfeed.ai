@@ -54,7 +54,7 @@ expect.extend({
   toBeValidObjectId(received: unknown) {
     const pass =
       typeof received === 'string' ||
-      received instanceof Types.ObjectId ||
+      received === '__never__' ||
       (received instanceof Uint8Array
         ? /^[0-9a-f]{24}$/i.test(received)
         : string.isValid(String(received)));

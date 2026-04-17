@@ -3,9 +3,9 @@ import { NotFoundException } from '@nestjs/common';
 
 describe('PersonasService', () => {
   describe('assignMembers', () => {
-    const personaId = new Types.ObjectId();
-    const organization = new Types.ObjectId();
-    const memberIds = [new Types.ObjectId(), new Types.ObjectId()];
+    const personaId = 'test-object-id';
+    const organization = 'test-object-id';
+    const memberIds = ['test-object-id', 'test-object-id'];
 
     it('filters by organization and personaId', async () => {
       const mockExec = vi
@@ -121,7 +121,7 @@ describe('PersonasService', () => {
     });
 
     it('handles empty memberIds array', async () => {
-      const emptyMembers: Types.ObjectId[] = [];
+      const emptyMembers: string[] = [];
       const mockExec = vi
         .fn()
         .mockResolvedValue({ _id: personaId, assignedMembers: [] });

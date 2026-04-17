@@ -5,17 +5,17 @@ import {
 } from '@api/collections/content-plan-items/services/content-plan-items.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ContentPlanItemStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('ContentPlanItemsService', () => {
-  const orgId = new Types.ObjectId().toString();
-  const planId = new Types.ObjectId().toString();
-  const brandId = new Types.ObjectId().toString();
-  const itemId = new Types.ObjectId().toString();
+  const orgId = 'test-object-id'.toString();
+  const planId = 'test-object-id'.toString();
+  const brandId = 'test-object-id'.toString();
+  const itemId = 'test-object-id'.toString();
 
   let service: ContentPlanItemsService;
   let model: {
@@ -50,10 +50,7 @@ describe('ContentPlanItemsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ContentPlanItemsService,
-        {
-          provide: getModelToken(ContentPlanItem.name, DB_CONNECTIONS.CLOUD),
-          useValue: modelMock,
-        },
+        { provide: PrismaService, useValue: modelMock },
         {
           provide: LoggerService,
           useValue: mockLogger,
@@ -62,9 +59,7 @@ describe('ContentPlanItemsService', () => {
     }).compile();
 
     service = module.get(ContentPlanItemsService);
-    model = module.get(
-      getModelToken(ContentPlanItem.name, DB_CONNECTIONS.CLOUD),
-    );
+    model = module.get(PrismaService);
   });
 
   afterEach(() => {
@@ -89,7 +84,7 @@ describe('ContentPlanItemsService', () => {
       ];
 
       const created = [
-        { _id: new Types.ObjectId(), status: ContentPlanItemStatus.PENDING },
+        { _id: 'test-object-id', status: ContentPlanItemStatus.PENDING },
       ];
       model.create.mockResolvedValue(created);
 

@@ -20,9 +20,9 @@ export class YoutubeAuthService {
     brandId: string,
   ): Promise<OAuth2Client> {
     const queryCredentials = {
-      brand: new Types.ObjectId(brandId),
+      brand: brandId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
       platform: CredentialPlatform.YOUTUBE,
     };
 

@@ -7,13 +7,13 @@ import { ContentPlanItemType, ContentPlanStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 
-const mockOrgId = new Types.ObjectId().toHexString();
-const mockBrandId = new Types.ObjectId().toHexString();
-const mockUserId = new Types.ObjectId().toHexString();
-const mockPlanId = new Types.ObjectId().toHexString();
+const mockOrgId = 'test-object-id'.toHexString();
+const mockBrandId = 'test-object-id'.toHexString();
+const mockUserId = 'test-object-id'.toHexString();
+const mockPlanId = 'test-object-id'.toHexString();
 
 const baseBrand = {
-  _id: new Types.ObjectId(mockBrandId),
+  _id: mockBrandId,
   agentConfig: {
     strategy: {
       contentTypes: ['short-video', 'image'],
@@ -144,7 +144,7 @@ describe('ContentPlannerService', () => {
       choices: [{ message: { content: llmSkillResponse } }],
     } as any);
     contentPlansService.createInternal.mockResolvedValue({
-      _id: new Types.ObjectId(mockPlanId),
+      _id: mockPlanId,
     } as any);
     contentPlanItemsService.createMany.mockResolvedValue([]);
 
@@ -169,7 +169,7 @@ describe('ContentPlannerService', () => {
       choices: [{ message: { content: llmSkillResponse } }],
     } as any);
     contentPlansService.createInternal.mockResolvedValue({
-      _id: new Types.ObjectId(mockPlanId),
+      _id: mockPlanId,
     } as any);
     contentPlanItemsService.createMany.mockResolvedValue([]);
 
@@ -194,7 +194,7 @@ describe('ContentPlannerService', () => {
       choices: [{ message: { content: llmSkillResponse } }],
     } as any);
     contentPlansService.createInternal.mockResolvedValue({
-      _id: new Types.ObjectId(mockPlanId),
+      _id: mockPlanId,
     } as any);
     contentPlanItemsService.createMany.mockResolvedValue([]);
 
@@ -222,7 +222,7 @@ describe('ContentPlannerService', () => {
       choices: [{ message: { content: llmSkillResponse } }],
     } as any);
     contentPlansService.createInternal.mockResolvedValue({
-      _id: new Types.ObjectId(mockPlanId),
+      _id: mockPlanId,
     } as any);
     contentPlanItemsService.createMany.mockResolvedValue([]);
 
@@ -239,7 +239,7 @@ describe('ContentPlannerService', () => {
       choices: [{ message: { content: llmSkillResponse } }],
     } as any);
     contentPlansService.createInternal.mockResolvedValue({
-      _id: new Types.ObjectId(mockPlanId),
+      _id: mockPlanId,
     } as any);
     contentPlanItemsService.createMany.mockResolvedValue([]);
 
@@ -256,7 +256,7 @@ describe('ContentPlannerService', () => {
       choices: [{ message: { content: llmSkillResponse } }],
     } as any);
     contentPlansService.createInternal.mockResolvedValue({
-      _id: new Types.ObjectId(mockPlanId),
+      _id: mockPlanId,
     } as any);
     contentPlanItemsService.createMany.mockResolvedValue([]);
 
@@ -269,7 +269,7 @@ describe('ContentPlannerService', () => {
   });
 
   it('should return plan and items from generatePlan', async () => {
-    const mockPlan = { _id: new Types.ObjectId(mockPlanId) };
+    const mockPlan = { _id: mockPlanId };
     const mockItems = [{ topic: 'AI trends' }, { topic: 'Product launch' }];
 
     brandsService.findOne.mockResolvedValue(baseBrand as any);
@@ -296,7 +296,7 @@ describe('ContentPlannerService', () => {
       choices: [{ message: { content: llmSkillResponse } }],
     } as any);
     contentPlansService.createInternal.mockResolvedValue({
-      _id: new Types.ObjectId(mockPlanId),
+      _id: mockPlanId,
     } as any);
     contentPlanItemsService.createMany.mockResolvedValue([]);
 
@@ -315,7 +315,7 @@ describe('ContentPlannerService', () => {
       choices: [{ message: { content: llmSkillResponse } }],
     } as any);
     contentPlansService.createInternal.mockResolvedValue({
-      _id: new Types.ObjectId(mockPlanId),
+      _id: mockPlanId,
     } as any);
     contentPlanItemsService.createMany.mockResolvedValue([]);
 
@@ -334,7 +334,7 @@ describe('ContentPlannerService', () => {
       choices: [{ message: { content: llmSkillResponse } }],
     } as any);
     contentPlansService.createInternal.mockResolvedValue({
-      _id: new Types.ObjectId(mockPlanId),
+      _id: mockPlanId,
     } as any);
     contentPlanItemsService.createMany.mockResolvedValue([]);
 
@@ -353,7 +353,7 @@ describe('ContentPlannerService', () => {
       choices: [{ message: { content: llmSkillResponse } }],
     } as any);
     contentPlansService.createInternal.mockResolvedValue({
-      _id: new Types.ObjectId(mockPlanId),
+      _id: mockPlanId,
     } as any);
     contentPlanItemsService.createMany.mockResolvedValue([
       { _id: '1' },
@@ -377,7 +377,7 @@ describe('ContentPlannerService', () => {
       choices: [{ message: { content: llmSkillResponse } }],
     } as any);
     contentPlansService.createInternal.mockResolvedValue({
-      _id: new Types.ObjectId(mockPlanId),
+      _id: mockPlanId,
     } as any);
     contentPlanItemsService.createMany.mockResolvedValue([]);
 
@@ -396,7 +396,7 @@ describe('ContentPlannerService', () => {
       choices: [{ message: { content: 'Sorry, I cannot help.' } }],
     } as any);
     contentPlansService.createInternal.mockResolvedValue({
-      _id: new Types.ObjectId(mockPlanId),
+      _id: mockPlanId,
     } as any);
     contentPlanItemsService.createMany.mockResolvedValue([]);
 
@@ -413,7 +413,7 @@ describe('ContentPlannerService', () => {
       choices: [{ message: { content: '{ bad json {{' } }],
     } as any);
     contentPlansService.createInternal.mockResolvedValue({
-      _id: new Types.ObjectId(mockPlanId),
+      _id: mockPlanId,
     } as any);
     contentPlanItemsService.createMany.mockResolvedValue([]);
 
@@ -429,7 +429,7 @@ describe('ContentPlannerService', () => {
       choices: [{ message: { content: '{"name":"Plan"}' } }],
     } as any);
     contentPlansService.createInternal.mockResolvedValue({
-      _id: new Types.ObjectId(mockPlanId),
+      _id: mockPlanId,
     } as any);
     contentPlanItemsService.createMany.mockResolvedValue([]);
 
@@ -445,7 +445,7 @@ describe('ContentPlannerService', () => {
       choices: [],
     } as any);
     contentPlansService.createInternal.mockResolvedValue({
-      _id: new Types.ObjectId(mockPlanId),
+      _id: mockPlanId,
     } as any);
     contentPlanItemsService.createMany.mockResolvedValue([]);
 
@@ -461,7 +461,7 @@ describe('ContentPlannerService', () => {
       choices: [{ message: { content: 'no json here' } }],
     } as any);
     contentPlansService.createInternal.mockResolvedValue({
-      _id: new Types.ObjectId(mockPlanId),
+      _id: mockPlanId,
     } as any);
     contentPlanItemsService.createMany.mockResolvedValue([]);
 
@@ -479,7 +479,7 @@ describe('ContentPlannerService', () => {
       choices: [{ message: { content: 'no json' } }],
     } as any);
     contentPlansService.createInternal.mockResolvedValue({
-      _id: new Types.ObjectId(mockPlanId),
+      _id: mockPlanId,
     } as any);
     contentPlanItemsService.createMany.mockResolvedValue([]);
 
@@ -497,7 +497,7 @@ describe('ContentPlannerService', () => {
       choices: [{ message: { content: 'no json' } }],
     } as any);
     contentPlansService.createInternal.mockResolvedValue({
-      _id: new Types.ObjectId(mockPlanId),
+      _id: mockPlanId,
     } as any);
     contentPlanItemsService.createMany.mockResolvedValue([]);
 
@@ -514,7 +514,7 @@ describe('ContentPlannerService', () => {
       choices: [{ message: { content: 'no json' } }],
     } as any);
     contentPlansService.createInternal.mockResolvedValue({
-      _id: new Types.ObjectId(mockPlanId),
+      _id: mockPlanId,
     } as any);
     contentPlanItemsService.createMany.mockResolvedValue([]);
 
@@ -532,14 +532,14 @@ describe('ContentPlannerService', () => {
 
   it('should handle brand with no agentConfig gracefully', async () => {
     brandsService.findOne.mockResolvedValue({
-      _id: new Types.ObjectId(mockBrandId),
+      _id: mockBrandId,
       agentConfig: null,
     } as any);
     llmDispatcherService.chatCompletion.mockResolvedValue({
       choices: [{ message: { content: llmSkillResponse } }],
     } as any);
     contentPlansService.createInternal.mockResolvedValue({
-      _id: new Types.ObjectId(mockPlanId),
+      _id: mockPlanId,
     } as any);
     contentPlanItemsService.createMany.mockResolvedValue([]);
 
@@ -547,7 +547,7 @@ describe('ContentPlannerService', () => {
       service.generatePlan(mockOrgId, mockBrandId, mockUserId, baseDto),
     ).resolves.toMatchObject({
       items: [],
-      plan: expect.objectContaining({ _id: expect.any(Types.ObjectId) }),
+      plan: expect.objectContaining({ _id: expect.any(String) }),
     });
 
     expect(llmDispatcherService.chatCompletion).toHaveBeenCalledWith(
@@ -577,7 +577,7 @@ describe('ContentPlannerService', () => {
       choices: [{ message: { content: weirdResponse } }],
     } as any);
     contentPlansService.createInternal.mockResolvedValue({
-      _id: new Types.ObjectId(mockPlanId),
+      _id: mockPlanId,
     } as any);
     contentPlanItemsService.createMany.mockResolvedValue([]);
 
@@ -597,7 +597,7 @@ describe('ContentPlannerService', () => {
       choices: [{ message: { content: noPlatformResponse } }],
     } as any);
     contentPlansService.createInternal.mockResolvedValue({
-      _id: new Types.ObjectId(mockPlanId),
+      _id: mockPlanId,
     } as any);
     contentPlanItemsService.createMany.mockResolvedValue([]);
 
@@ -613,7 +613,7 @@ describe('ContentPlannerService', () => {
       choices: [{ message: { content: llmSkillResponse } }],
     } as any);
     contentPlansService.createInternal.mockResolvedValue({
-      _id: new Types.ObjectId(mockPlanId),
+      _id: mockPlanId,
     } as any);
     contentPlanItemsService.createMany.mockResolvedValue([]);
 
@@ -634,7 +634,7 @@ describe('ContentPlannerService', () => {
       choices: [{ message: { content: wrappedJson } }],
     } as any);
     contentPlansService.createInternal.mockResolvedValue({
-      _id: new Types.ObjectId(mockPlanId),
+      _id: mockPlanId,
     } as any);
     contentPlanItemsService.createMany.mockResolvedValue([]);
 

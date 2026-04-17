@@ -5,9 +5,9 @@ import { WorkflowSchedulerService } from '@api/collections/workflows/services/wo
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { ConfigService } from '@api/config/config.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowExecutionTrigger, WorkflowStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { Test, TestingModule } from '@nestjs/testing';
 
@@ -20,12 +20,12 @@ describe('WorkflowSchedulerService', () => {
   let workflowExecutionsService: Record<string, vi.Mock>;
   let workflowExecutorService: Record<string, vi.Mock>;
 
-  const mockWorkflowId = new Types.ObjectId().toString();
-  const mockUserId = new Types.ObjectId().toString();
-  const mockOrgId = new Types.ObjectId().toString();
+  const mockWorkflowId = 'test-object-id'.toString();
+  const mockUserId = 'test-object-id'.toString();
+  const mockOrgId = 'test-object-id'.toString();
 
   const createMockWorkflow = (overrides = {}) => ({
-    _id: new Types.ObjectId(mockWorkflowId),
+    _id: new string(mockWorkflowId),
     inputVariables: [
       { defaultValue: 'default topic', key: 'topic' },
       { defaultValue: 5, key: 'count' },
@@ -34,11 +34,11 @@ describe('WorkflowSchedulerService', () => {
     isScheduleEnabled: true,
     name: 'Test Workflow',
     nodes: [],
-    organization: new Types.ObjectId(mockOrgId),
+    organization: new string(mockOrgId),
     schedule: '0 9 * * *',
     status: WorkflowStatus.ACTIVE,
     timezone: 'UTC',
-    user: new Types.ObjectId(mockUserId),
+    user: new string(mockUserId),
     ...overrides,
   });
 
@@ -78,10 +78,7 @@ describe('WorkflowSchedulerService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         WorkflowSchedulerService,
-        {
-          provide: getModelToken(Workflow.name, DB_CONNECTIONS.CLOUD),
-          useValue: workflowModel,
-        },
+        { provide: PrismaService, useValue: workflowModel },
         {
           provide: LoggerService,
           useValue: loggerService,
@@ -140,8 +137,8 @@ describe('WorkflowSchedulerService', () => {
   describe('loadScheduledWorkflows', () => {
     it('should load and schedule all enabled workflows', async () => {
       const mockWorkflows = [
-        createMockWorkflow({ _id: new Types.ObjectId() }),
-        createMockWorkflow({ _id: new Types.ObjectId() }),
+        createMockWorkflow({ _id: 'test-object-id' }),
+        createMockWorkflow({ _id: 'test-object-id' }),
       ];
 
       workflowModel.find.mockResolvedValue(mockWorkflows);
@@ -410,10 +407,10 @@ describe('WorkflowSchedulerService', () => {
   describe('getScheduledWorkflowsInfo', () => {
     it('should return info for all scheduled workflows', async () => {
       const mockWorkflow1 = createMockWorkflow({
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
       });
       const mockWorkflow2 = createMockWorkflow({
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         schedule: '0 12 * * *',
       });
 
@@ -471,7 +468,7 @@ describe('WorkflowSchedulerService', () => {
         expect.objectContaining({
           inputValues: { count: 5, topic: 'default topic' },
           trigger: WorkflowExecutionTrigger.SCHEDULED,
-          workflow: expect.any(Types.ObjectId),
+          workflow: expect.any(string),
         }),
       );
       expect(workflowsService.executeWorkflow).toHaveBeenCalledWith(
@@ -651,7 +648,7 @@ describe('WorkflowSchedulerService', () => {
 
       for (const tz of timezones) {
         const mockWorkflow = createMockWorkflow({
-          _id: new Types.ObjectId(),
+          _id: 'test-object-id',
           timezone: tz,
         });
 
@@ -672,7 +669,7 @@ describe('WorkflowSchedulerService', () => {
 
       for (let i = 0; i < cronExpressions.length; i++) {
         const mockWorkflow = createMockWorkflow({
-          _id: new Types.ObjectId(),
+          _id: 'test-object-id',
           schedule: cronExpressions[i],
         });
 

@@ -85,8 +85,8 @@ export class ThreadsService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     const credential = await this.credentialsService.findOne({
-      brand: new Types.ObjectId(brandId),
-      organization: new Types.ObjectId(organizationId),
+      brand: brandId,
+      organization: organizationId,
       platform: CredentialPlatform.THREADS,
     });
 
@@ -491,8 +491,8 @@ export class ThreadsService {
     brandId: string,
   ): Promise<unknown> {
     const credential = await this.credentialsService.findOne({
-      brand: new Types.ObjectId(brandId),
-      organization: new Types.ObjectId(organizationId),
+      brand: brandId,
+      organization: organizationId,
       platform: CredentialPlatform.THREADS,
     });
 

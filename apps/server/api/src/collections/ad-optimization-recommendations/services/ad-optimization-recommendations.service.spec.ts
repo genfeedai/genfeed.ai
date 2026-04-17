@@ -1,8 +1,8 @@
 import { AdOptimizationRecommendation } from '@api/collections/ad-optimization-recommendations/schemas/ad-optimization-recommendation.schema';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConflictException } from '@nestjs/common';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { AdOptimizationRecommendationsService } from './ad-optimization-recommendations.service';
 
@@ -58,13 +58,7 @@ describe('AdOptimizationRecommendationsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AdOptimizationRecommendationsService,
-        {
-          provide: getModelToken(
-            AdOptimizationRecommendation.name,
-            DB_CONNECTIONS.CLOUD,
-          ),
-          useValue: mockModel,
-        },
+        { provide: PrismaService, useValue: mockModel },
         { provide: LoggerService, useValue: mockLogger },
       ],
     }).compile();
@@ -115,7 +109,7 @@ describe('AdOptimizationRecommendationsService', () => {
 
   describe('findByOrganization', () => {
     it('should apply status filter when provided', async () => {
-      const orgId = new Types.ObjectId().toString();
+      const orgId = 'test-object-id'.toString();
       const query = createMockQuery([]);
       mockModel.find.mockReturnValue(query);
 
@@ -127,7 +121,7 @@ describe('AdOptimizationRecommendationsService', () => {
     });
 
     it('should default to limit 50 and offset 0', async () => {
-      const orgId = new Types.ObjectId().toString();
+      const orgId = 'test-object-id'.toString();
       const query = createMockQuery([]);
       mockModel.find.mockReturnValue(query);
 
@@ -138,7 +132,7 @@ describe('AdOptimizationRecommendationsService', () => {
     });
 
     it('should include isDeleted: false in query', async () => {
-      const orgId = new Types.ObjectId().toString();
+      const orgId = 'test-object-id'.toString();
       const query = createMockQuery([]);
       mockModel.find.mockReturnValue(query);
 
@@ -152,8 +146,8 @@ describe('AdOptimizationRecommendationsService', () => {
 
   describe('findById', () => {
     it('should query by id with organization isolation', async () => {
-      const id = new Types.ObjectId().toString();
-      const orgId = new Types.ObjectId().toString();
+      const id = 'test-object-id'.toString();
+      const orgId = 'test-object-id'.toString();
       const query = createMockQuery(null);
       mockModel.findOne.mockReturnValue(query);
 
@@ -161,9 +155,9 @@ describe('AdOptimizationRecommendationsService', () => {
 
       expect(mockModel.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
-          _id: expect.any(Types.ObjectId),
+          _id: expect.any(string),
           isDeleted: false,
-          organization: expect.any(Types.ObjectId),
+          organization: expect.any(string),
         }),
       );
     });
@@ -171,8 +165,8 @@ describe('AdOptimizationRecommendationsService', () => {
 
   describe('approve', () => {
     it('should update status to approved from pending', async () => {
-      const id = new Types.ObjectId().toString();
-      const orgId = new Types.ObjectId().toString();
+      const id = 'test-object-id'.toString();
+      const orgId = 'test-object-id'.toString();
       const approved = { _id: id, status: 'approved' };
       // findOneAndUpdate returns the updated doc
       mockModel.findOneAndUpdate.mockReturnValue(createMockQuery(approved));
@@ -188,8 +182,8 @@ describe('AdOptimizationRecommendationsService', () => {
     });
 
     it('should throw ConflictException if status is not pending', async () => {
-      const id = new Types.ObjectId().toString();
-      const orgId = new Types.ObjectId().toString();
+      const id = 'test-object-id'.toString();
+      const orgId = 'test-object-id'.toString();
       // findOneAndUpdate returns null (wrong state), findOne returns existing
       mockModel.findOneAndUpdate.mockReturnValue(createMockQuery(null));
       mockModel.findOne.mockReturnValue(
@@ -202,8 +196,8 @@ describe('AdOptimizationRecommendationsService', () => {
     });
 
     it('should return null if document does not exist', async () => {
-      const id = new Types.ObjectId().toString();
-      const orgId = new Types.ObjectId().toString();
+      const id = 'test-object-id'.toString();
+      const orgId = 'test-object-id'.toString();
       mockModel.findOneAndUpdate.mockReturnValue(createMockQuery(null));
       mockModel.findOne.mockReturnValue(createMockQuery(null));
 
@@ -214,8 +208,8 @@ describe('AdOptimizationRecommendationsService', () => {
 
   describe('reject', () => {
     it('should update status to rejected from pending', async () => {
-      const id = new Types.ObjectId().toString();
-      const orgId = new Types.ObjectId().toString();
+      const id = 'test-object-id'.toString();
+      const orgId = 'test-object-id'.toString();
       mockModel.findOneAndUpdate.mockReturnValue(
         createMockQuery({ _id: id, status: 'rejected' }),
       );
@@ -232,8 +226,8 @@ describe('AdOptimizationRecommendationsService', () => {
 
   describe('markExecuted', () => {
     it('should update status to executed from approved', async () => {
-      const id = new Types.ObjectId().toString();
-      const orgId = new Types.ObjectId().toString();
+      const id = 'test-object-id'.toString();
+      const orgId = 'test-object-id'.toString();
       mockModel.findOneAndUpdate.mockReturnValue(
         createMockQuery({ _id: id, status: 'executed' }),
       );
@@ -285,7 +279,7 @@ describe('AdOptimizationRecommendationsService', () => {
 
   describe('findExistingPending', () => {
     it('should query by entityId, recommendationType, and pending status', async () => {
-      const orgId = new Types.ObjectId().toString();
+      const orgId = 'test-object-id'.toString();
       const query = createMockQuery(null);
       mockModel.findOne.mockReturnValue(query);
 

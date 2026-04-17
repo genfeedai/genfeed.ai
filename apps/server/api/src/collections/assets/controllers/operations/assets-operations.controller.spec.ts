@@ -230,13 +230,13 @@ describe('AssetsOperationsController', () => {
         expect.objectContaining({
           _id: mockBrandId,
           isDeleted: false,
-          organization: expect.any(Types.ObjectId),
+          organization: expect.any(String),
         }),
       );
       expect(assetsService.patchAll).toHaveBeenCalledWith(
         expect.objectContaining({
           category: AssetCategory.BANNER,
-          parent: expect.any(Types.ObjectId),
+          parent: expect.any(String),
         }),
         { isDeleted: true },
       );
@@ -333,7 +333,7 @@ describe('AssetsOperationsController', () => {
         expect.objectContaining({
           category: AssetCategory.LOGO,
           isDeleted: false,
-          parent: expect.any(Types.ObjectId),
+          parent: expect.any(String),
           parentModel: AssetParent.BRAND,
         }),
         { isDeleted: true },
@@ -409,7 +409,7 @@ describe('AssetsOperationsController', () => {
         expect.objectContaining({
           _id: mockIngredientId.toString(),
           isDeleted: false,
-          user: expect.any(Types.ObjectId),
+          user: expect.any(String),
         }),
       );
       expect(metadataService.findOne).toHaveBeenCalledWith({

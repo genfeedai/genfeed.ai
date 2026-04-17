@@ -9,8 +9,8 @@ import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('BrandsService', () => {
@@ -63,7 +63,7 @@ describe('BrandsService', () => {
     .fn()
     .mockImplementation((data: Record<string, unknown>) => ({
       ...data,
-      save: vi.fn().mockResolvedValue({ _id: new Types.ObjectId(), ...data }),
+      save: vi.fn().mockResolvedValue({ _id: 'test-object-id', ...data }),
     }));
 
   beforeEach(async () => {
@@ -72,10 +72,7 @@ describe('BrandsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BrandsService,
-        {
-          provide: getModelToken(Brand.name, DB_CONNECTIONS.CLOUD),
-          useValue: MockModelConstructor,
-        },
+        { provide: PrismaService, useValue: MockModelConstructor },
         {
           provide: LoggerService,
           useValue: mockLogger,
@@ -112,7 +109,7 @@ describe('BrandsService', () => {
 
   describe('findOne', () => {
     it('should find a brand with detail populate by default', async () => {
-      const brandId = new Types.ObjectId();
+      const brandId = 'test-object-id';
       const mockBrand = {
         _id: brandId,
         label: 'Test Brand',
@@ -146,14 +143,14 @@ describe('BrandsService', () => {
         populate: populateMock,
       });
 
-      const result = await service.findOne({ _id: new Types.ObjectId() });
+      const result = await service.findOne({ _id: 'test-object-id' });
 
       expect(result).toBeNull();
     });
 
     it('should support "none" context with no populate', async () => {
       const mockBrand = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         label: 'Test',
       } as unknown as BrandDocument;
 
@@ -162,17 +159,14 @@ describe('BrandsService', () => {
         exec: execMock,
       });
 
-      const result = await service.findOne(
-        { _id: new Types.ObjectId() },
-        'none',
-      );
+      const result = await service.findOne({ _id: 'test-object-id' }, 'none');
 
       expect(result).toBe(mockBrand);
     });
 
     it('should use list context with minimal populate', async () => {
       const mockBrand = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         label: 'Test',
       } as unknown as BrandDocument;
 
@@ -182,7 +176,7 @@ describe('BrandsService', () => {
         populate: populateMock,
       });
 
-      await service.findOne({ _id: new Types.ObjectId() }, 'list');
+      await service.findOne({ _id: 'test-object-id' }, 'list');
 
       // List context should have only logo populate
       expect(populateMock).toHaveBeenCalledWith(
@@ -192,7 +186,7 @@ describe('BrandsService', () => {
 
     it('should use minimal context with basic populate', async () => {
       const mockBrand = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
       } as unknown as BrandDocument;
 
       const execMock = vi.fn().mockResolvedValue(mockBrand);
@@ -201,7 +195,7 @@ describe('BrandsService', () => {
         populate: populateMock,
       });
 
-      await service.findOne({ _id: new Types.ObjectId() }, 'minimal');
+      await service.findOne({ _id: 'test-object-id' }, 'minimal');
 
       expect(populateMock).toHaveBeenCalledWith(
         expect.arrayContaining([
@@ -214,7 +208,7 @@ describe('BrandsService', () => {
   describe('findOneBySlug', () => {
     it('should find brand by slug with public populate', async () => {
       const mockBrand = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         slug: 'my-brand',
       } as unknown as BrandDocument;
 
@@ -239,7 +233,7 @@ describe('BrandsService', () => {
       };
 
       const savedBrand = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         ...createDto,
       } as unknown as BrandDocument;
 
@@ -262,7 +256,7 @@ describe('BrandsService', () => {
         slug: 'dup-brand',
       };
       const savedBrand = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         ...createDto,
       } as unknown as BrandDocument;
 
@@ -286,7 +280,7 @@ describe('BrandsService', () => {
       };
 
       const savedBrand = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         ...createDto,
       } as unknown as BrandDocument;
 
@@ -309,7 +303,7 @@ describe('BrandsService', () => {
       const updateDto = { label: 'Updated Brand' };
 
       const updatedBrand = {
-        _id: new Types.ObjectId(brandId),
+        _id: new string(brandId),
         label: 'Updated Brand',
       } as unknown as BrandDocument;
 
@@ -343,10 +337,10 @@ describe('BrandsService', () => {
 
   describe('updateAgentConfig', () => {
     it('should merge partial agent config updates using dot-path $set', async () => {
-      const brandId = new Types.ObjectId().toString();
-      const orgId = new Types.ObjectId().toString();
+      const brandId = 'test-object-id'.toString();
+      const orgId = 'test-object-id'.toString();
       const updatedBrand = {
-        _id: new Types.ObjectId(brandId),
+        _id: new string(brandId),
       } as unknown as BrandDocument;
 
       (
@@ -354,8 +348,8 @@ describe('BrandsService', () => {
       ).mockResolvedValue(updatedBrand);
 
       const result = await service.updateAgentConfig(brandId, orgId, {
-        defaultAvatarIngredientId: new Types.ObjectId().toString(),
-        defaultVoiceId: new Types.ObjectId().toString(),
+        defaultAvatarIngredientId: 'test-object-id'.toString(),
+        defaultVoiceId: 'test-object-id'.toString(),
       } as Parameters<typeof service.updateAgentConfig>[2]);
 
       expect(result).toBe(updatedBrand);
@@ -376,9 +370,9 @@ describe('BrandsService', () => {
     });
 
     it('should return current brand when patch payload is empty', async () => {
-      const brandId = new Types.ObjectId().toString();
-      const orgId = new Types.ObjectId().toString();
-      const brand = { _id: new Types.ObjectId(brandId) } as BrandDocument;
+      const brandId = 'test-object-id'.toString();
+      const orgId = 'test-object-id'.toString();
+      const brand = { _id: new string(brandId) } as BrandDocument;
 
       (mockModel.findOne as ReturnType<typeof vi.fn>).mockResolvedValue(brand);
 
@@ -403,7 +397,7 @@ describe('BrandsService', () => {
     it('should soft delete a brand', async () => {
       const brandId = '507f1f77bcf86cd799439011';
       const deletedBrand = {
-        _id: new Types.ObjectId(brandId),
+        _id: new string(brandId),
         isDeleted: true,
       } as unknown as BrandDocument;
 
@@ -451,7 +445,7 @@ describe('BrandsService', () => {
         (mockModel.findOne as ReturnType<typeof vi.fn>).mockResolvedValue(null);
 
         const savedBrand = {
-          _id: new Types.ObjectId(),
+          _id: 'test-object-id',
           ...createDto,
         } as unknown as BrandDocument;
 
@@ -477,7 +471,7 @@ describe('BrandsService', () => {
         const updateDto = { label: 'Updated Brand' };
 
         const updatedBrand = {
-          _id: new Types.ObjectId(brandId),
+          _id: new string(brandId),
           label: 'Updated Brand',
         } as unknown as BrandDocument;
 
@@ -499,7 +493,7 @@ describe('BrandsService', () => {
       it('should invalidate brands single cache after soft delete', async () => {
         const brandId = '507f1f77bcf86cd799439011';
         const deletedBrand = {
-          _id: new Types.ObjectId(brandId),
+          _id: new string(brandId),
           isDeleted: true,
         } as unknown as BrandDocument;
 
@@ -546,7 +540,7 @@ describe('BrandsService', () => {
       const orgId = '507f1f77bcf86cd799439013';
 
       const selectedBrand = {
-        _id: new Types.ObjectId(brandId),
+        _id: new string(brandId),
         isSelected: true,
         label: 'Selected Brand',
       } as unknown as BrandDocument;

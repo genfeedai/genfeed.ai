@@ -86,7 +86,7 @@ export class BotUserResolverService {
       const brand = await this.brandsService.findOne({
         isDeleted: false,
         label: { $regex: new RegExp(`^${brandName}$`, 'i') },
-        organization: new Types.ObjectId(resolvedUser.organizationId),
+        organization: resolvedUser.organizationId,
       });
 
       if (!brand) {
@@ -124,7 +124,7 @@ export class BotUserResolverService {
     try {
       const brands = await this.brandsService.find({
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
+        organization: organizationId,
       });
 
       return brands.map((brand) => ({

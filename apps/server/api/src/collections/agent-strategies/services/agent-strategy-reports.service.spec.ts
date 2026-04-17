@@ -1,8 +1,8 @@
 import { AgentStrategyReport } from '@api/collections/agent-strategies/schemas/agent-strategy-report.schema';
 import { AgentStrategyReportsService } from '@api/collections/agent-strategies/services/agent-strategy-reports.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -14,18 +14,18 @@ describe('AgentStrategyReportsService', () => {
     findOne: ReturnType<typeof vi.fn>;
   };
 
-  const orgId = new Types.ObjectId().toString();
-  const strategyId = new Types.ObjectId().toString();
+  const orgId = 'test-object-id'.toString();
+  const strategyId = 'test-object-id'.toString();
 
   const mockReport = {
-    _id: new Types.ObjectId(),
+    _id: 'test-object-id',
     generatedCount: 5,
     isDeleted: false,
-    organization: new Types.ObjectId(orgId),
+    organization: new string(orgId),
     periodEnd: new Date(),
     periodStart: new Date(),
     reportType: 'weekly',
-    strategy: new Types.ObjectId(strategyId),
+    strategy: new string(strategyId),
   };
 
   beforeEach(async () => {
@@ -46,13 +46,7 @@ describe('AgentStrategyReportsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AgentStrategyReportsService,
-        {
-          provide: getModelToken(
-            AgentStrategyReport.name,
-            DB_CONNECTIONS.AGENT,
-          ),
-          useValue: model,
-        },
+        { provide: PrismaService, useValue: model },
         {
           provide: LoggerService,
           useValue: {
@@ -83,8 +77,8 @@ describe('AgentStrategyReportsService', () => {
       expect(model.find).toHaveBeenCalledWith(
         expect.objectContaining({
           isDeleted: false,
-          organization: new Types.ObjectId(orgId),
-          strategy: new Types.ObjectId(strategyId),
+          organization: new string(orgId),
+          strategy: new string(strategyId),
         }),
       );
     });
@@ -99,9 +93,9 @@ describe('AgentStrategyReportsService', () => {
       expect(model.find).toHaveBeenCalledWith(
         expect.objectContaining({
           isDeleted: false,
-          organization: new Types.ObjectId(orgId),
+          organization: new string(orgId),
           reportType: 'weekly',
-          strategy: new Types.ObjectId(strategyId),
+          strategy: new string(strategyId),
         }),
       );
     });
@@ -132,8 +126,8 @@ describe('AgentStrategyReportsService', () => {
       expect(model.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
           isDeleted: false,
-          organization: new Types.ObjectId(orgId),
-          strategy: new Types.ObjectId(strategyId),
+          organization: new string(orgId),
+          strategy: new string(strategyId),
         }),
       );
     });
@@ -181,11 +175,11 @@ describe('AgentStrategyReportsService', () => {
     it('should create a report with isDeleted: false', async () => {
       const input = {
         generatedCount: 10,
-        organization: new Types.ObjectId(orgId),
+        organization: new string(orgId),
         periodEnd: new Date(),
         periodStart: new Date(),
         reportType: 'weekly' as 'weekly' & string,
-        strategy: new Types.ObjectId(strategyId),
+        strategy: new string(strategyId),
       };
 
       await service.createReport(input as never);
@@ -201,11 +195,11 @@ describe('AgentStrategyReportsService', () => {
     it('should preserve provided metadata', async () => {
       const input = {
         metadata: { source: 'autopilot' },
-        organization: new Types.ObjectId(orgId),
+        organization: new string(orgId),
         periodEnd: new Date(),
         periodStart: new Date(),
         reportType: 'weekly' as 'weekly' & string,
-        strategy: new Types.ObjectId(strategyId),
+        strategy: new string(strategyId),
       };
 
       await service.createReport(input as never);
@@ -219,11 +213,11 @@ describe('AgentStrategyReportsService', () => {
 
     it('should return the created document', async () => {
       const result = await service.createReport({
-        organization: new Types.ObjectId(orgId),
+        organization: new string(orgId),
         periodEnd: new Date(),
         periodStart: new Date(),
         reportType: 'weekly' as 'weekly' & string,
-        strategy: new Types.ObjectId(strategyId),
+        strategy: new string(strategyId),
       } as never);
 
       expect(result).toBe(mockReport);

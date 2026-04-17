@@ -19,7 +19,7 @@ describe('ActivityUpdateService', () => {
     warn: ReturnType<typeof vi.fn>;
   };
 
-  const mockObjectId = new Types.ObjectId();
+  const mockObjectId = 'test-object-id';
 
   beforeEach(() => {
     activitiesService = {
@@ -46,11 +46,11 @@ describe('ActivityUpdateService', () => {
 
   describe('updateSuccessActivity', () => {
     const baseParams = {
-      brandId: new Types.ObjectId().toString(),
+      brandId: 'test-object-id',
       category: IngredientCategory.VIDEO,
-      dbUserId: new Types.ObjectId().toString(),
-      ingredientId: new Types.ObjectId().toString(),
-      organizationId: new Types.ObjectId().toString(),
+      dbUserId: 'test-object-id',
+      ingredientId: 'test-object-id',
+      organizationId: 'test-object-id',
       userId: 'clerk_abc',
       userRoom: 'user-clerk_abc',
     };
@@ -180,12 +180,12 @@ describe('ActivityUpdateService', () => {
 
   describe('updateFailureActivity', () => {
     const baseParams = {
-      brandId: new Types.ObjectId().toString(),
+      brandId: 'test-object-id',
       category: IngredientCategory.VIDEO,
-      dbUserId: new Types.ObjectId().toString(),
+      dbUserId: 'test-object-id',
       errorMessage: 'GPU timeout',
-      ingredientId: new Types.ObjectId().toString(),
-      organizationId: new Types.ObjectId().toString(),
+      ingredientId: 'test-object-id',
+      organizationId: 'test-object-id',
       userId: 'clerk_abc',
       userRoom: 'user-clerk_abc',
     };

@@ -27,12 +27,12 @@ describe('ShopifyPublisherService', () => {
   let credentialsService: vi.Mocked<CredentialsService>;
   let loggerService: vi.Mocked<LoggerService>;
 
-  const orgId = new Types.ObjectId('507f1f77bcf86cd799439011');
-  const brandId = new Types.ObjectId('507f1f77bcf86cd799439012');
-  const postId = new Types.ObjectId('507f1f77bcf86cd799439013');
+  const orgId = '507f1f77bcf86cd799439011';
+  const brandId = '507f1f77bcf86cd799439012';
+  const postId = '507f1f77bcf86cd799439013';
 
   const mockCredential = {
-    _id: new Types.ObjectId(),
+    _id: 'test-object-id',
     accessToken: 'encrypted-token',
     brand: brandId,
     externalHandle: 'mystore.myshopify.com',
@@ -50,7 +50,7 @@ describe('ShopifyPublisherService', () => {
     brand: brandId,
     category: PostCategory.IMAGE,
     description: '<p>Product description</p>',
-    ingredients: [new Types.ObjectId()],
+    ingredients: ['test-object-id'],
     label: 'My Product',
     organization: orgId,
     status: PostStatus.DRAFT,

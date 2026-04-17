@@ -14,9 +14,9 @@ import { LoggerService } from '@libs/logger/logger.service';
 // ---------------------------------------------------------------------------
 function makeItem(overrides: Record<string, unknown> = {}) {
   return {
-    _id: new Types.ObjectId(),
+    _id: 'test-object-id',
     pipelineSteps: [],
-    plan: new Types.ObjectId(),
+    plan: 'test-object-id',
     platforms: ['instagram'],
     prompt: 'Write about cats',
     skillSlug: 'content-writing',
@@ -35,12 +35,12 @@ describe('ContentExecutionService', () => {
   let mockContentOrchestrationService: Record<string, ReturnType<typeof vi.fn>>;
   let mockLogger: Record<string, ReturnType<typeof vi.fn>>;
 
-  const orgId = new Types.ObjectId().toString();
-  const brandId = new Types.ObjectId().toString();
-  const userId = new Types.ObjectId().toString();
-  const planId = new Types.ObjectId().toString();
+  const orgId = 'test-object-id';
+  const brandId = 'test-object-id';
+  const userId = 'test-object-id';
+  const planId = 'test-object-id';
 
-  const mockDraft = { _id: new Types.ObjectId() };
+  const mockDraft = { _id: 'test-object-id' };
 
   beforeEach(() => {
     mockContentPlansService = {
