@@ -46,6 +46,9 @@ jobs:
           node-version: "22.x"
           install-command: "bun install"
 
+      - name: Build workspace dependencies
+        run: bunx turbo build --filter="${{ matrix.package }}^..."
+
       - name: Run coverage
         run: cd ${{ matrix.package }} && npx vitest run --coverage
 
@@ -80,8 +83,8 @@ jobs:
           node-version: "22.x"
           install-command: "bun install"
 
-      - name: Build dependent packages
-        run: bunx turbo build --filter="@genfeedai/client" --filter="@genfeedai/serializers" --filter="@genfeedai/helpers"
+      - name: Build workspace dependencies
+        run: bunx turbo build --filter="packages/hooks^..."
 
       - name: Run coverage
         run: cd packages/hooks && npx vitest run --coverage --config vitest.config.mts
@@ -116,6 +119,9 @@ jobs:
         with:
           node-version: "22.x"
           install-command: "bun install"
+
+      - name: Build workspace dependencies
+        run: bunx turbo build --filter="apps/server/api^..."
 
       - name: Run coverage
         run: cd apps/server/api && npx vitest run --coverage
