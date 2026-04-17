@@ -263,7 +263,7 @@ export class TrendsService {
             $match: {
               isConnected: true,
               isDeleted: false,
-              organization: new Types.ObjectId(organizationId) as never,
+              organizationId: organizationId,
             },
           },
         ],

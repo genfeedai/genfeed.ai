@@ -132,9 +132,7 @@ export class CreatorScraperService {
     private readonly logger: LoggerService,
   ) {}
 
-  async scrapeCreator(
-    creatorId: Types.ObjectId | string,
-  ): Promise<ScrapeResult | null> {
+  async scrapeCreator(creatorId: string): Promise<ScrapeResult | null> {
     const creator = await this.contentIntelligenceService.findOne({
       _id: creatorId,
       isDeleted: false,

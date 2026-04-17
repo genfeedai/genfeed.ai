@@ -57,7 +57,7 @@ export class ContentGeneratorService {
   }
 
   async generateContent(
-    organizationId: Types.ObjectId,
+    organizationId: string,
     dto: GenerateContentDto,
   ): Promise<GeneratedContent[]> {
     const variationsCount = dto.variationsCount ?? 3;
@@ -106,7 +106,7 @@ export class ContentGeneratorService {
     let playbookInsights: PlaybookInsightsView | undefined;
     if (dto.playbookId) {
       const playbook = await this.playbookBuilderService.findOne({
-        _id: new Types.ObjectId(dto.playbookId),
+        id: dto.playbookId,
         isDeleted: false,
         organization: organizationId,
       });
@@ -149,13 +149,13 @@ export class ContentGeneratorService {
   }
 
   private async selectPatterns(
-    organizationId: Types.ObjectId,
+    organizationId: string,
     dto: GenerateContentDto,
   ): Promise<ContentPatternDocument[]> {
     // If specific pattern is requested
     if (dto.patternId) {
       const pattern = await this.patternStoreService.findOne({
-        _id: new Types.ObjectId(dto.patternId),
+        id: dto.patternId,
         isDeleted: false,
         organization: organizationId,
       });
@@ -171,7 +171,7 @@ export class ContentGeneratorService {
   }
 
   private async buildHarnessSystemPrompt(
-    organizationId: Types.ObjectId,
+    organizationId: string,
     dto: GenerateContentDto,
   ): Promise<string | undefined> {
     if (
@@ -186,7 +186,7 @@ export class ContentGeneratorService {
     try {
       const brand = await this.brandsService.findOne(
         {
-          _id: new Types.ObjectId(dto.brandId),
+          id: dto.brandId,
           isDeleted: false,
           organization: organizationId,
         },
@@ -198,7 +198,7 @@ export class ContentGeneratorService {
       }
 
       const persona = await this.personasService.findOne({
-        brand: new Types.ObjectId(dto.brandId),
+        brandId: dto.brandId,
         isDeleted: false,
         organization: organizationId,
       });

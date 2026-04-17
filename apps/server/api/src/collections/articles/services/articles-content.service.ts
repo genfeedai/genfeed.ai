@@ -806,12 +806,11 @@ export class ArticlesContentService {
       return { promptBuilder: {} };
     }
 
-    const organizationObjectId = new Types.ObjectId(params.organizationId);
     const brand = await this.brandsService.findOne(
       {
-        _id: new Types.ObjectId(params.brandId),
+        id: params.brandId,
         isDeleted: false,
-        organization: organizationObjectId,
+        organizationId: params.organizationId,
       },
       'none',
     );
@@ -821,9 +820,9 @@ export class ArticlesContentService {
     }
 
     const persona = await this.personasService.findOne({
-      brand: new Types.ObjectId(params.brandId),
+      brandId: params.brandId,
       isDeleted: false,
-      organization: organizationObjectId,
+      organizationId: params.organizationId,
     });
 
     const brief = await this.contentHarnessService.composeBrief(
@@ -1292,18 +1291,20 @@ Return strict JSON only:
       if (this.promptsService) {
         await this.promptsService.create(
           new PromptEntity({
-            article: new Types.ObjectId(article._id),
-            brand: new Types.ObjectId(brandId),
+            articleId: String(
+              (article as Record<string, unknown>).id ?? article._id,
+            ),
+            brandId: brandId,
             category: PromptCategory.ARTICLE,
             enhanced: JSON.stringify(response),
             isDeleted: false,
             isFavorite: false,
             isSkipEnhancement: false,
-            organization: new Types.ObjectId(organizationId),
+            organizationId: organizationId,
             original: prompt,
             scope: AssetScope.USER,
             status: PromptStatus.GENERATED,
-            user: new Types.ObjectId(userId),
+            userId: userId,
           }),
         );
       }
@@ -1351,13 +1352,15 @@ Return strict JSON only:
     errorMessage: string,
     userId: string,
   ): Promise<void> {
-    await this.articlesService?.patch(article._id, {
-      $set: {
-        'aiGeneration.completedAt': new Date(),
-        'aiGeneration.error': errorMessage,
+    await this.articlesService?.patch(
+      ((article as Record<string, unknown>).id as string) ??
+        String(article._id),
+      {
+        aiGenerationCompletedAt: new Date(),
+        aiGenerationError: errorMessage,
         status: ArticleStatus.DRAFT,
       } as unknown as Partial<UpdateArticleDto>,
-    });
+    );
 
     // Publish websocket event for article failure
     if (this.websocketService) {
@@ -1386,9 +1389,9 @@ Return strict JSON only:
     brandId: string,
   ): Promise<boolean> {
     const existing = await this.articlesService?.findOne({
-      brand: new Types.ObjectId(brandId),
+      brandId: brandId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organizationId: organizationId,
       slug,
     });
 

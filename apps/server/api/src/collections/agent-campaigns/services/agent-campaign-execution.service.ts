@@ -99,10 +99,10 @@ export class AgentCampaignExecutionService {
         // Create a run for this strategy
         const run = await this.agentRunsService.create({
           label: `Campaign run: ${campaign.label} - ${strategy.label}`,
-          organization: new Types.ObjectId(organizationId),
-          strategy: new Types.ObjectId(strategyId),
+          organization: organizationId,
+          strategy: strategyId,
           trigger: AgentExecutionTrigger.MANUAL,
-          user: new Types.ObjectId(userId),
+          user: userId,
         });
 
         // Queue the run
@@ -110,7 +110,7 @@ export class AgentCampaignExecutionService {
           campaignId,
           objective: campaign.brief || `Execute campaign: ${campaign.label}`,
           organizationId,
-          runId: String(run._id),
+          runId: (run as Record<string, unknown>).id as string,
           strategyId,
           userId,
         });
@@ -191,10 +191,17 @@ export class AgentCampaignExecutionService {
    * Increment creditsUsed on the campaign
    */
   async updateCreditsUsed(campaignId: string, credits: number): Promise<void> {
-    await this.agentCampaignsService.patchAll(
-      { _id: new Types.ObjectId(campaignId), isDeleted: false },
-      { $inc: { creditsUsed: credits } },
-    );
+    const current = await this.agentCampaignsService.findOne({
+      id: campaignId,
+      isDeleted: false,
+    });
+    if (current) {
+      const currentCredits =
+        ((current as Record<string, unknown>).creditsUsed as number) ?? 0;
+      await this.agentCampaignsService.patch(campaignId, {
+        creditsUsed: currentCredits + credits,
+      } as Record<string, unknown>);
+    }
 
     this.logger.log(
       `${this.constructorName} updated credits for campaign ${campaignId}`,
@@ -207,7 +214,7 @@ export class AgentCampaignExecutionService {
    */
   async checkQuota(campaignId: string): Promise<boolean> {
     const campaign = await this.agentCampaignsService.findOne({
-      _id: new Types.ObjectId(campaignId),
+      id: campaignId,
       isDeleted: false,
     });
 
@@ -273,7 +280,7 @@ export class AgentCampaignExecutionService {
     const runs = await this.agentRunsService.find({
       campaignId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organizationId,
     });
 
     const contentProduced = Array.isArray(runs)

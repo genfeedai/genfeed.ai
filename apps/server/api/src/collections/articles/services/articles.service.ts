@@ -955,11 +955,8 @@ export class ArticlesService extends BaseService<
     try {
       // Verify article exists
       const article = await this.findOne({
-        _id: new Types.ObjectId(articleId),
-        $or: [
-          { user: new Types.ObjectId(userId) },
-          { organization: new Types.ObjectId(organizationId) },
-        ],
+        id: articleId,
+        OR: [{ userId: userId }, { organizationId: organizationId }],
         isDeleted: false,
       });
 
@@ -1019,11 +1016,8 @@ export class ArticlesService extends BaseService<
     try {
       // Verify article exists
       const article = await this.findOne({
-        _id: new Types.ObjectId(articleId),
-        $or: [
-          { user: new Types.ObjectId(userId) },
-          { organization: new Types.ObjectId(organizationId) },
-        ],
+        id: articleId,
+        OR: [{ userId: userId }, { organizationId: organizationId }],
         isDeleted: false,
       });
 
@@ -1152,11 +1146,8 @@ export class ArticlesService extends BaseService<
 
       // Get the article
       const article = await this.findOne({
-        _id: new Types.ObjectId(articleId),
-        $or: [
-          { user: new Types.ObjectId(userId) },
-          { organization: new Types.ObjectId(organizationId) },
-        ],
+        id: articleId,
+        OR: [{ userId: userId }, { organizationId: organizationId }],
         isDeleted: false,
       });
 
@@ -1303,11 +1294,8 @@ export class ArticlesService extends BaseService<
 
       // Find article
       const article = await this.findOne({
-        _id: new Types.ObjectId(articleId),
-        $or: [
-          { user: new Types.ObjectId(userId) },
-          { organization: new Types.ObjectId(organizationId) },
-        ],
+        id: articleId,
+        OR: [{ userId: userId }, { organizationId: organizationId }],
         isDeleted: false,
       });
 

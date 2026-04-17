@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
@@ -21,10 +22,6 @@ import { BaseService } from '@api/shared/services/base/base.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
-/**
- * Valid status transitions for task lifecycle.
- * Key = current status, Value = set of allowed next statuses.
- */
 const STATUS_TRANSITIONS: Record<TaskStatus, readonly TaskStatus[]> = {
   backlog: ['todo', 'in_progress', 'cancelled'],
   blocked: ['todo', 'in_progress', 'cancelled'],
@@ -123,12 +120,6 @@ export class TasksService extends BaseService<
     super(prisma, 'task', logger);
   }
 
-  private get rawModel() {
-    return this.model as unknown as import('mongoose').Model<
-      Record<string, unknown>
-    >;
-  }
-
   override async create(createDto: CreateTaskDto): Promise<TaskDocument> {
     const extended = createDto as CreateTaskDtoExtended;
     const routing = extended.request
@@ -174,7 +165,7 @@ export class TasksService extends BaseService<
 
     if (newStatus) {
       const existing = await super.findOne({
-        _id: new Types.ObjectId(id),
+        id,
         isDeleted: false,
       });
 
@@ -187,7 +178,7 @@ export class TasksService extends BaseService<
   }
 
   async findByIdentifier(identifier: string): Promise<TaskDocument | null> {
-    return this.model.findOne({
+    return this.findOne({
       identifier,
       isDeleted: false,
     });
@@ -197,11 +188,13 @@ export class TasksService extends BaseService<
     taskId: string,
     organizationId: string,
   ): Promise<TaskDocument[]> {
-    return this.model.find({
-      isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
-      parentId: new Types.ObjectId(taskId),
-    });
+    return (await this.delegate.findMany({
+      where: {
+        isDeleted: false,
+        organizationId,
+        parentId: taskId,
+      },
+    })) as unknown as TaskDocument[];
   }
 
   async areAllChildrenDone(
@@ -220,95 +213,78 @@ export class TasksService extends BaseService<
     agentId: string,
     runId: string,
   ): Promise<TaskDocument | null> {
-    const filter = {
-      _id: new Types.ObjectId(taskId),
-      $or: [
-        { checkoutAgentId: null },
-        { checkoutAgentId: { $exists: false } },
-        { checkoutAgentId: agentId },
-      ],
-      isDeleted: false,
-    };
-    const update = {
-      $set: {
+    const existing = await this.delegate.findFirst({
+      where: {
+        id: taskId,
+        isDeleted: false,
+        OR: [{ checkoutAgentId: null }, { checkoutAgentId: agentId }],
+      },
+    });
+
+    if (!existing) return null;
+
+    return (await this.delegate.update({
+      data: {
         checkedOutAt: new Date(),
         checkoutAgentId: agentId,
         checkoutRunId: runId,
         status: 'in_progress',
       },
-    };
-
-    const updated = await this.rawModel.findOneAndUpdate(filter, update, {
-      new: true,
-    });
-
-    return updated as unknown as TaskDocument | null;
+      where: { id: taskId },
+    })) as unknown as TaskDocument;
   }
 
   async release(taskId: string, agentId: string): Promise<TaskDocument> {
-    const filter = {
-      _id: new Types.ObjectId(taskId),
-      checkoutAgentId: agentId,
-      isDeleted: false,
-    };
-    const update = {
-      $unset: {
-        checkedOutAt: '',
-        checkoutAgentId: '',
-        checkoutRunId: '',
+    const existing = await this.delegate.findFirst({
+      where: {
+        id: taskId,
+        checkoutAgentId: agentId,
+        isDeleted: false,
       },
-    };
-
-    const updated = await this.rawModel.findOneAndUpdate(filter, update, {
-      new: true,
     });
 
-    if (!updated) {
+    if (!existing) {
       throw new NotFoundException('Task', taskId);
     }
 
-    return updated as unknown as TaskDocument;
+    return (await this.delegate.update({
+      data: {
+        checkedOutAt: null,
+        checkoutAgentId: null,
+        checkoutRunId: null,
+      },
+      where: { id: taskId },
+    })) as unknown as TaskDocument;
   }
 
-  // ─── AI Task public methods ──────────────────────────────────────────────────
-
   async listInbox(organizationId: string, limit = 20): Promise<TaskDocument[]> {
-    return this.model
-      .find({
-        $or: [
-          { reviewState: { $in: ['pending_approval', 'changes_requested'] } },
-          { status: { $in: ['done', 'failed'] } },
-        ],
+    return (await this.delegate.findMany({
+      where: {
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-      })
-      .sort({ reviewState: 1, updatedAt: -1 })
-      .limit(limit)
-      .exec();
+        organizationId,
+        OR: [
+          { reviewState: { in: ['pending_approval', 'changes_requested'] } },
+          { status: { in: ['done', 'failed'] } },
+        ],
+      },
+      orderBy: [{ reviewState: 'asc' }, { updatedAt: 'desc' }],
+      take: limit,
+    })) as unknown as TaskDocument[];
   }
 
   async approve(id: string, organizationId: string): Promise<TaskDocument> {
     const task = await this.requireAiTask(id, organizationId);
-    const updated = (await this.rawModel.findOneAndUpdate(
-      {
-        _id: new Types.ObjectId(id),
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
+    const updated = (await this.delegate.update({
+      data: {
+        completedAt: new Date(),
+        reviewState: 'approved',
+        status: 'done',
+        dismissedReason: null,
+        failureReason: null,
+        requestedChangesReason: null,
       },
-      {
-        $set: {
-          completedAt: new Date(),
-          reviewState: 'approved',
-          status: 'done',
-        },
-        $unset: {
-          dismissedReason: '',
-          failureReason: '',
-          requestedChangesReason: '',
-        },
-      },
-      { new: true },
-    )) as TaskDocument | null;
+      where: { id },
+    })) as unknown as TaskDocument | null;
     if (!updated) throw new NotFoundException('Task', id);
     const userId = task.assigneeUserId ?? '';
     await this.appendEventAndBroadcast(updated, organizationId, userId, {
@@ -324,22 +300,15 @@ export class TasksService extends BaseService<
     reason: string,
   ): Promise<TaskDocument> {
     await this.requireAiTask(id, organizationId);
-    const updated = (await this.rawModel.findOneAndUpdate(
-      {
-        _id: new Types.ObjectId(id),
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
+    const updated = (await this.delegate.update({
+      data: {
+        requestedChangesReason: reason,
+        reviewState: 'changes_requested',
+        status: 'in_review',
+        dismissedReason: null,
       },
-      {
-        $set: {
-          requestedChangesReason: reason,
-          reviewState: 'changes_requested',
-          status: 'in_review',
-        },
-        $unset: { dismissedReason: '' },
-      },
-      { new: true },
-    )) as TaskDocument | null;
+      where: { id },
+    })) as unknown as TaskDocument | null;
     if (!updated) throw new NotFoundException('Task', id);
     await this.appendEventAndBroadcast(updated, organizationId, userId, {
       payload: { reason },
@@ -355,23 +324,17 @@ export class TasksService extends BaseService<
     reason?: string,
   ): Promise<TaskDocument> {
     await this.requireAiTask(id, organizationId);
-    const updated = (await this.rawModel.findOneAndUpdate(
-      {
-        _id: new Types.ObjectId(id),
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
+    const updated = (await this.delegate.update({
+      data: {
+        dismissedAt: new Date(),
+        dismissedReason: reason ?? null,
+        reviewState: 'dismissed',
+        status: 'cancelled',
+        failureReason: null,
+        requestedChangesReason: null,
       },
-      {
-        $set: {
-          dismissedAt: new Date(),
-          dismissedReason: reason,
-          reviewState: 'dismissed',
-          status: 'cancelled',
-        },
-        $unset: { failureReason: '', requestedChangesReason: '' },
-      },
-      { new: true },
-    )) as TaskDocument | null;
+      where: { id },
+    })) as unknown as TaskDocument | null;
     if (!updated) throw new NotFoundException('Task', id);
     await this.appendEventAndBroadcast(updated, organizationId, userId, {
       payload: reason ? { reason } : undefined,
@@ -390,15 +353,15 @@ export class TasksService extends BaseService<
       organizationId,
       outputId,
     );
-    const updated = (await this.rawModel.findOneAndUpdate(
-      {
-        _id: new Types.ObjectId(id),
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-      },
-      { $addToSet: { approvedOutputIds: new Types.ObjectId(outputId) } },
-      { new: true },
-    )) as TaskDocument | null;
+    const current = (await this.delegate.findFirst({
+      where: { id, isDeleted: false, organizationId },
+    })) as { approvedOutputIds?: string[] } | null;
+    const existingIds = current?.approvedOutputIds ?? [];
+    const deduped = Array.from(new Set([...existingIds, outputId]));
+    const updated = (await this.delegate.update({
+      data: { approvedOutputIds: deduped },
+      where: { id },
+    })) as unknown as TaskDocument | null;
     if (!updated) throw new NotFoundException('Task', id);
     const userId = task.assigneeUserId ?? '';
     await this.appendEventAndBroadcast(updated, organizationId, userId, {
@@ -418,15 +381,15 @@ export class TasksService extends BaseService<
       organizationId,
       outputId,
     );
-    const updated = (await this.rawModel.findOneAndUpdate(
-      {
-        _id: new Types.ObjectId(id),
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-      },
-      { $pull: { approvedOutputIds: new Types.ObjectId(outputId) } },
-      { new: true },
-    )) as TaskDocument | null;
+    const current = (await this.delegate.findFirst({
+      where: { id, isDeleted: false, organizationId },
+    })) as { approvedOutputIds?: string[] } | null;
+    const existingIds = current?.approvedOutputIds ?? [];
+    const filtered = existingIds.filter((oid) => oid !== outputId);
+    const updated = (await this.delegate.update({
+      data: { approvedOutputIds: filtered },
+      where: { id },
+    })) as unknown as TaskDocument | null;
     if (!updated) throw new NotFoundException('Task', id);
     const userId = task.assigneeUserId ?? '';
     await this.appendEventAndBroadcast(updated, organizationId, userId, {
@@ -447,21 +410,21 @@ export class TasksService extends BaseService<
       outputId,
     );
     const ingredient = await this.ingredientsService.findOne({
-      _id: new Types.ObjectId(outputId),
+      id: outputId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organizationId,
     });
     if (!ingredient) throw new NotFoundException('Ingredient', outputId);
     await this.ingredientsService.patch(outputId, { isDeleted: true });
-    const updated = (await this.rawModel.findOneAndUpdate(
-      {
-        _id: new Types.ObjectId(id),
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-      },
-      { $pull: { approvedOutputIds: new Types.ObjectId(outputId) } },
-      { new: true },
-    )) as TaskDocument | null;
+    const current = (await this.delegate.findFirst({
+      where: { id, isDeleted: false, organizationId },
+    })) as { approvedOutputIds?: string[] } | null;
+    const existingIds = current?.approvedOutputIds ?? [];
+    const filtered = existingIds.filter((oid) => oid !== outputId);
+    const updated = (await this.delegate.update({
+      data: { approvedOutputIds: filtered },
+      where: { id },
+    })) as unknown as TaskDocument | null;
     if (!updated) throw new NotFoundException('Task', id);
     const userId = task.assigneeUserId ?? '';
     await this.appendEventAndBroadcast(updated, organizationId, userId, {
@@ -477,16 +440,16 @@ export class TasksService extends BaseService<
     organizationId: string,
     userId: string,
   ): Promise<TaskDocument> {
-    const task = await this.requireAiTask(id, organizationId);
-    const updated = (await this.rawModel.findOneAndUpdate(
-      {
-        _id: new Types.ObjectId(id),
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-      },
-      { $addToSet: { linkedOutputIds: new Types.ObjectId(outputId) } },
-      { new: true },
-    )) as TaskDocument | null;
+    await this.requireAiTask(id, organizationId);
+    const current = (await this.delegate.findFirst({
+      where: { id, isDeleted: false, organizationId },
+    })) as { linkedOutputIds?: string[] } | null;
+    const existingIds = current?.linkedOutputIds ?? [];
+    const deduped = Array.from(new Set([...existingIds, outputId]));
+    const updated = (await this.delegate.update({
+      data: { linkedOutputIds: deduped },
+      where: { id },
+    })) as unknown as TaskDocument | null;
     if (!updated) throw new NotFoundException('Task', id);
     await this.appendEventAndBroadcast(updated, organizationId, userId, {
       payload: { outputId },
@@ -550,18 +513,19 @@ export class TasksService extends BaseService<
     }
 
     const thread = await this.agentThreadsService.create({
-      organization: new Types.ObjectId(organizationId),
+      organizationId,
       planModeEnabled: true,
       source: this.buildPlanningThreadSource(id),
       systemPrompt,
       title: this.buildPlanningThreadTitle(task.title),
-      user: new Types.ObjectId(userId),
+      userId,
     } as Record<string, unknown>);
 
-    const threadId = String(thread._id);
-    await this.patch(id, {
-      planningThreadId: new Types.ObjectId(threadId),
-    } as Record<string, unknown>);
+    const threadId = (thread as Record<string, unknown>).id as string;
+    await this.patch(id, { planningThreadId: threadId } as Record<
+      string,
+      unknown
+    >);
 
     return { created: true, seeded: true, threadId };
   }
@@ -601,9 +565,11 @@ export class TasksService extends BaseService<
       );
     }
 
-    const taskOrgId = task.organization?.toString() ?? organizationId;
+    const taskOrgId =
+      ((task as Record<string, unknown>).organizationId as string) ??
+      organizationId;
     const org = await this.organizationsService.findOne({
-      _id: new Types.ObjectId(taskOrgId),
+      id: taskOrgId,
       isDeleted: false,
     });
 
@@ -613,27 +579,25 @@ export class TasksService extends BaseService<
           await this.taskCountersService.getNextNumber(taskOrgId);
         const identifier = `${org?.prefix ?? 'TASK'}-${taskNumber}`;
         return this.create({
-          brand: task.brand?.toString(),
+          brandId: (task as Record<string, unknown>).brandId as string,
           identifier,
-          organization: taskOrgId,
+          organizationId: taskOrgId,
           outputType: step.outputType ?? task.outputType,
           platforms: task.platforms,
           priority: task.priority,
           request: step.request,
           taskNumber,
           title: step.title,
-          user: userId,
+          userId,
         } as CreateTaskDto & {
           identifier: string;
-          organization: string;
+          organizationId: string;
           taskNumber: number;
-          user: string;
+          userId: string;
         });
       }),
     );
   }
-
-  // ─── Private helpers ─────────────────────────────────────────────────────────
 
   private buildTaskTitle(createDto: CreateTaskDto): string {
     if (createDto.title?.trim()) {
@@ -874,32 +838,19 @@ export class TasksService extends BaseService<
     patch: Record<string, unknown>,
   ): Promise<TaskDocument | null> {
     if (Object.keys(patch).length === 0) {
-      return this.findOne({
-        _id: new Types.ObjectId(id),
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-      });
+      return this.findOne({ id, isDeleted: false, organizationId });
     }
-    return this.rawModel.findOneAndUpdate(
-      {
-        _id: new Types.ObjectId(id),
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-      },
-      { $set: patch },
-      { new: true },
-    ) as Promise<TaskDocument | null>;
+    return (await this.delegate.update({
+      data: patch,
+      where: { id },
+    })) as unknown as TaskDocument | null;
   }
 
   private async requireAiTask(
     id: string,
     organizationId: string,
   ): Promise<TaskDocument> {
-    const task = await this.findOne({
-      _id: new Types.ObjectId(id),
-      isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
-    });
+    const task = await this.findOne({ id, isDeleted: false, organizationId });
     if (!task) throw new NotFoundException('Task', id);
     return task;
   }
@@ -931,7 +882,7 @@ export class TasksService extends BaseService<
     const now = input.timestamp ?? new Date();
     return {
       createdAt: now,
-      id: new Types.ObjectId().toString(),
+      id: randomUUID(),
       payload: input.payload,
       timestamp: now,
       type: input.type,
@@ -961,10 +912,11 @@ export class TasksService extends BaseService<
     const linkedRunIds = task.linkedRunIds ?? [];
     const skillVariantIds = task.skillVariantIds ?? [];
     const eventStream = task.eventStream ?? [];
+    const taskRecord = task as Record<string, unknown>;
 
     return {
       approvedOutputIds: approvedOutputIds.map((id) => id.toString()),
-      brand: task.brand?.toString(),
+      brandId: taskRecord.brandId,
       chosenModel: task.chosenModel,
       chosenProvider: task.chosenProvider,
       completedAt: task.completedAt?.toISOString(),
@@ -983,11 +935,11 @@ export class TasksService extends BaseService<
       })),
       executionPathUsed: task.executionPathUsed,
       failureReason: task.failureReason,
-      id: task._id.toString(),
+      id: taskRecord.id,
       linkedApprovalIds: linkedApprovalIds.map((id) => id.toString()),
       linkedOutputIds: linkedOutputIds.map((id) => id.toString()),
       linkedRunIds: linkedRunIds.map((id) => id.toString()),
-      organization: task.organization?.toString(),
+      organizationId: taskRecord.organizationId,
       outputType: task.outputType,
       planningThreadId: task.planningThreadId?.toString(),
       platforms: task.platforms,
@@ -1015,7 +967,8 @@ export class TasksService extends BaseService<
     eventInput: TaskEventInput,
   ): Promise<void> {
     const entry = this.createTaskEventEntry(eventInput);
-    // Task eventStream uses { createdAt, type, payload, userId } shape
+    const taskId = (task as Record<string, unknown>).id as string;
+
     const eventDoc = {
       createdAt: entry.createdAt,
       payload: entry.payload,
@@ -1023,15 +976,16 @@ export class TasksService extends BaseService<
       userId: userId || undefined,
     };
 
-    const updated = (await this.rawModel.findOneAndUpdate(
-      {
-        _id: task._id,
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-      },
-      { $push: { eventStream: eventDoc } },
-      { new: true },
-    )) as TaskDocument | null;
+    const current = (await this.delegate.findFirst({
+      where: { id: taskId, isDeleted: false },
+    })) as { eventStream?: unknown[] } | null;
+    const currentStream = current?.eventStream ?? [];
+    const newStream = [...currentStream, eventDoc];
+
+    const updated = (await this.delegate.update({
+      data: { eventStream: newStream },
+      where: { id: taskId },
+    })) as unknown as TaskDocument | null;
 
     if (!updated) return;
 
@@ -1046,13 +1000,13 @@ export class TasksService extends BaseService<
       progress: this.serializeTaskProgress(updated.progress) as TaskProgress,
       room: `org-${organizationId}`,
       task: this.serializeTaskRealtimeSnapshot(updated),
-      taskId: updated._id.toString(),
+      taskId,
       userId,
     };
 
     await Promise.all([
       this.notificationsPublisher.emit(
-        WebSocketPaths.workspaceTask(updated._id.toString()),
+        WebSocketPaths.workspaceTask(taskId),
         payload,
       ),
       this.notificationsPublisher.emit(
@@ -1068,11 +1022,11 @@ export class TasksService extends BaseService<
   ): Promise<string | null> {
     if (!planningThreadId) return null;
     const thread = await this.agentThreadsService.findOne({
-      _id: planningThreadId,
+      id: planningThreadId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organizationId,
     });
-    return thread ? String(thread._id) : null;
+    return thread ? ((thread as Record<string, unknown>).id as string) : null;
   }
 
   private async shouldSeedPlanningThread(
@@ -1107,6 +1061,7 @@ export class TasksService extends BaseService<
     organizationId: string,
   ): Promise<string> {
     const linkedRuns = await this.buildLinkedRunSummaries(task, organizationId);
+    const taskId = (task as Record<string, unknown>).id as string;
     const bundle = {
       decomposition: task.decomposition ?? null,
       dismissedReason: task.dismissedReason ?? null,
@@ -1126,7 +1081,7 @@ export class TasksService extends BaseService<
       reviewTriggered: task.reviewTriggered,
       routingSummary: task.routingSummary ?? null,
       status: task.status,
-      taskId: task._id.toString(),
+      taskId,
       title: task.title,
       userRequest: task.request,
     };
@@ -1172,7 +1127,7 @@ export class TasksService extends BaseService<
         return {
           completedAt: run.completedAt?.toISOString(),
           error: run.error,
-          id: run._id.toString(),
+          id: (run as Record<string, unknown>).id as string,
           label: run.label,
           startedAt: run.startedAt?.toISOString(),
           status: run.status,
@@ -1230,6 +1185,7 @@ export class TasksService extends BaseService<
     task: TaskDocument,
   ): FollowUpPlanStep[] {
     const steps = Array.isArray(plan['steps']) ? plan['steps'] : [];
+    const taskId = (task as Record<string, unknown>).id as string;
 
     return steps.flatMap((step) => {
       if (!step || typeof step !== 'object' || Array.isArray(step)) return [];
@@ -1254,7 +1210,7 @@ export class TasksService extends BaseService<
         ]) ?? '';
       const request = [
         detail.length > 0 ? `${title}\n\n${detail}` : title,
-        `Source task: ${task.title} (${task._id.toString()})`,
+        `Source task: ${task.title} (${taskId})`,
         `Original task request: ${task.request}`,
       ].join('\n\n');
 

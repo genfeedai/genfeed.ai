@@ -65,8 +65,8 @@ export class EditorRenderService {
           category: IngredientCategory.VIDEO,
           extension: MetadataExtension.MP4,
           height: renderParams.height,
-          organization: new Types.ObjectId(orgId),
-          parent: new Types.ObjectId(renderParams.videoId),
+          organizationId: orgId,
+          parentId: renderParams.videoId,
           status: IngredientStatus.PROCESSING,
           width: renderParams.width,
         });
@@ -168,10 +168,10 @@ export class EditorRenderService {
 
     // Validate source video ownership
     const video = await this.ingredientsService.findOne({
-      _id: new Types.ObjectId(videoId),
+      id: videoId,
       category: IngredientCategory.VIDEO,
       isDeleted: false,
-      organization: new Types.ObjectId(orgId),
+      organizationId: orgId,
     });
 
     if (!video) {
@@ -236,9 +236,7 @@ export class EditorRenderService {
     }
 
     return {
-      brand: video.brand
-        ? new Types.ObjectId(video.brand.toString())
-        : undefined,
+      brandId: video.brand ? video.brand.toString() : undefined,
       hasTextOverlay,
       height,
       jobParams,
