@@ -242,9 +242,7 @@ export class CollectionFilterUtil {
 
     if (includeOrganization && publicMetadata.organization) {
       conditions.push({
-        [fieldNames.organization!]: 
-          publicMetadata.organization,
-        ,
+        [fieldNames.organization!]: publicMetadata.organization,
       });
     }
 

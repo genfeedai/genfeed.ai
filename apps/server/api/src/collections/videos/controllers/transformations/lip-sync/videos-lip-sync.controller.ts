@@ -185,19 +185,14 @@ export class VideosLipSyncController {
       // 4. Create video ingredient with metadata
       const { metadataData, ingredientData } =
         await this.sharedService.saveDocuments(user, {
-          brand: 
-            imageIngredient.brand || publicMetadata.brand,
-          ,
+          brand: imageIngredient.brand || publicMetadata.brand,
           category: IngredientCategory.VIDEO,
           extension: MetadataExtension.MP4,
           model: MODEL_KEYS.HEYGEN_AVATAR,
           organization: publicMetadata.organization,
           parent: createLipSyncDto.parent,
           // Store references for traceability
-          references: [
-            createLipSyncDto.parent,
-            createLipSyncDto.voice,
-          ],
+          references: [createLipSyncDto.parent, createLipSyncDto.voice],
           status: IngredientStatus.PROCESSING,
         });
 

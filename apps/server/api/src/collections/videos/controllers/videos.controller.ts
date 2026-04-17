@@ -1194,9 +1194,7 @@ export class VideosController {
                     entityId: addIngredient._id,
                     entityModel: ActivityEntityModel.INGREDIENT,
                     key: ActivityKey.VIDEO_PROCESSING,
-                    organization: 
-                      publicMetadata.organization,
-                    ,
+                    organization: publicMetadata.organization,
                     source: ActivitySource.VIDEO_GENERATION,
                     user: publicMetadata.user,
                     value: JSON.stringify({

@@ -1020,9 +1020,7 @@ export class ImagesOperationsController {
                       entityId: addIngredient._id,
                       entityModel: ActivityEntityModel.INGREDIENT,
                       key: ActivityKey.IMAGE_PROCESSING,
-                      organization: 
-                        publicMetadata.organization,
-                      ,
+                      organization: publicMetadata.organization,
                       source: ActivitySource.IMAGE_GENERATION,
                       user: publicMetadata.user,
                       value: JSON.stringify({

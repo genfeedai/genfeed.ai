@@ -217,9 +217,7 @@ export class ImagesController {
                           ? [
                               { user: publicMetadata.user },
                               {
-                                organization: 
-                                  publicMetadata.organization,
-                                ,
+                                organization: publicMetadata.organization,
                               },
                             ]
                           : []),
@@ -228,9 +226,7 @@ export class ImagesController {
                           ? [
                               {
                                 isPublic: true,
-                                organization: 
-                                  publicMetadata.organization,
-                                ,
+                                organization: publicMetadata.organization,
                               },
                             ]
                           : []),
@@ -409,10 +405,7 @@ export class ImagesController {
                           { $eq: ['$entity', '$$entityId'] },
                           { $eq: ['$isDeleted', false] },
                           {
-                            $eq: [
-                              '$user',
-                              publicMetadata.user,
-                            ],
+                            $eq: ['$user', publicMetadata.user],
                           },
                         ],
                       },
