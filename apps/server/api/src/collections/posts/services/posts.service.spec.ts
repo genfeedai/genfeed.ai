@@ -1,11 +1,11 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import { Post } from '@api/collections/posts/schemas/post.schema';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { mockModel } from '@api/helpers/mocks/model.mock';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { PostStatus } from '@genfeedai/enums';
+import { type Post } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 

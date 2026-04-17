@@ -1,6 +1,6 @@
-import { ContentDraftStatus } from '@api/collections/content-drafts/schemas/content-draft.schema';
 import { ContentExecutionService } from '@api/services/content-engine/content-execution.service';
 import {
+  ContentDraftStatus,
   ContentPlanItemStatus,
   ContentPlanItemType,
   ContentPlanStatus,

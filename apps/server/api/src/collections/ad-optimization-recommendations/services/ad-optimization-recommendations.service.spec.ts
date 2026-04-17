@@ -1,6 +1,6 @@
-import { AdOptimizationRecommendation } from '@api/collections/ad-optimization-recommendations/schemas/ad-optimization-recommendation.schema';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { type AdOptimizationRecommendation } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConflictException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';

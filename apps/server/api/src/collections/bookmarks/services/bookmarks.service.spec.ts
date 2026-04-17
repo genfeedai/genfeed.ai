@@ -1,9 +1,9 @@
 import { CreateBookmarkDto } from '@api/collections/bookmarks/dto/create-bookmark.dto';
 import { UpdateBookmarkDto } from '@api/collections/bookmarks/dto/update-bookmark.dto';
-import { Bookmark } from '@api/collections/bookmarks/schemas/bookmark.schema';
 import { BookmarksService } from '@api/collections/bookmarks/services/bookmarks.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { type Bookmark } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 

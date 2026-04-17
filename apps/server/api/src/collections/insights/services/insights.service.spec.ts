@@ -1,10 +1,9 @@
-import { Forecast } from '@api/collections/insights/schemas/forecast.schema';
-import { Insight } from '@api/collections/insights/schemas/insight.schema';
 import { InsightsService } from '@api/collections/insights/services/insights.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { type Forecast, type Insight } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 

@@ -1,5 +1,5 @@
-import { ContentDraftStatus } from '@api/collections/content-drafts/schemas/content-draft.schema';
 import { ContentReviewService } from '@api/services/content-engine/content-review.service';
+import { ContentDraftStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 
 describe('ContentReviewService', () => {

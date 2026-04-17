@@ -1,7 +1,7 @@
 import { CreateModelDto } from '@api/collections/models/dto/create-model.dto';
 import { ModelsQueryDto } from '@api/collections/models/dto/models-query.dto';
 import { UpdateModelDto } from '@api/collections/models/dto/update-model.dto';
-import { ModelDocument } from '@api/collections/models/schemas/model.schema';
+import { type ModelDocument } from '@api/collections/models/schemas/model.schema';
 // biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';

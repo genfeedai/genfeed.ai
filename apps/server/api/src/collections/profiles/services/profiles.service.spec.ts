@@ -1,9 +1,9 @@
 import { ModelsService } from '@api/collections/models/services/models.service';
-import { Profile } from '@api/collections/profiles/schemas/profile.schema';
 import { ProfilesService } from '@api/collections/profiles/services/profiles.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { type Profile } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { NotFoundException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';

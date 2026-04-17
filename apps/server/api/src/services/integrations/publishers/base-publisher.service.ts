@@ -1,4 +1,4 @@
-import { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
+import { type CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { PostEntity } from '@api/collections/posts/entities/post.entity';
 import { ConfigService } from '@api/config/config.service';
 import type {

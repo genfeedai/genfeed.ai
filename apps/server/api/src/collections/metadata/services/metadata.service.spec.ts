@@ -1,8 +1,8 @@
-import { Metadata } from '@api/collections/metadata/schemas/metadata.schema';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { createMockModel } from '@api/shared/testing/mock-model.factory';
+import { type Metadata } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

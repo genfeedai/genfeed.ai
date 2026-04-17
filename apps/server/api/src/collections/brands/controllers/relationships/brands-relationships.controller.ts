@@ -11,19 +11,19 @@
  * - Get brand activities
  * - Get brand analytics
  */
-import { ActivityDocument } from '@api/collections/activities/schemas/activity.schema';
+import { type ActivityDocument } from '@api/collections/activities/schemas/activity.schema';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { ArticlesQueryDto } from '@api/collections/articles/dto/articles-query.dto';
-import { ArticleDocument } from '@api/collections/articles/schemas/article.schema';
+import { type ArticleDocument } from '@api/collections/articles/schemas/article.schema';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
-import { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
+import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
+import { type CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ImagesQueryDto } from '@api/collections/images/dto/images-query.dto';
 import { ImagesService } from '@api/collections/images/services/images.service';
-import { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
-import { LinkDocument } from '@api/collections/links/schemas/link.schema';
+import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import { type LinkDocument } from '@api/collections/links/schemas/link.schema';
 import { LinksService } from '@api/collections/links/services/links.service';
 import { MusicsService } from '@api/collections/musics/services/musics.service';
 import {
@@ -31,7 +31,7 @@ import {
   TimeSeriesQueryDto,
 } from '@api/collections/posts/dto/analytics-query.dto';
 import { PostsQueryDto } from '@api/collections/posts/dto/posts-query.dto';
-import { PostDocument } from '@api/collections/posts/schemas/post.schema';
+import { type PostDocument } from '@api/collections/posts/schemas/post.schema';
 import { AnalyticsAggregationService } from '@api/collections/posts/services/analytics-aggregation.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { VideosQueryDto } from '@api/collections/videos/dto/videos-query.dto';

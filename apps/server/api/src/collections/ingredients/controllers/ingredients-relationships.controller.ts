@@ -1,4 +1,4 @@
-import { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { AssetAccessGuard } from '@api/guards/asset-access.guard';

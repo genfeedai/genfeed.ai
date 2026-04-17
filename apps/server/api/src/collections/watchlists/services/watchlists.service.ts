@@ -1,10 +1,10 @@
 import { CreateWatchlistDto } from '@api/collections/watchlists/dto/create-watchlist.dto';
 import { UpdateWatchlistDto } from '@api/collections/watchlists/dto/update-watchlist.dto';
-import { Watchlist } from '@api/collections/watchlists/schemas/watchlist.schema';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { WatchlistPlatform } from '@genfeedai/enums';
+import { type Watchlist } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

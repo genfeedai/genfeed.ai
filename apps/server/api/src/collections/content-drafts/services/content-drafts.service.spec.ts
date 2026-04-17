@@ -1,8 +1,8 @@
-import { ContentDraft } from '@api/collections/content-drafts/schemas/content-draft.schema';
 import { ContentDraftsService } from '@api/collections/content-drafts/services/content-drafts.service';
 import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { type ContentDraft } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 

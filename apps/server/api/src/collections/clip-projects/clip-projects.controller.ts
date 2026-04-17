@@ -8,7 +8,7 @@ import {
 } from '@api/collections/clip-projects/dto/generate-clips.dto';
 import { RewriteHighlightDto } from '@api/collections/clip-projects/dto/rewrite-highlight.dto';
 import { UpdateClipProjectDto } from '@api/collections/clip-projects/dto/update-clip-project.dto';
-import { ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
+import { type ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
 import { ClipGenerationService } from '@api/collections/clip-projects/services/clip-generation.service';
 import { HighlightRewriteService } from '@api/collections/clip-projects/services/highlight-rewrite.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';

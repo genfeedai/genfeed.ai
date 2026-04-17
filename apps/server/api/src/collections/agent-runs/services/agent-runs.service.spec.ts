@@ -1,10 +1,8 @@
-import { AgentRun } from '@api/collections/agent-runs/schemas/agent-run.schema';
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
-import { Ingredient } from '@api/collections/ingredients/schemas/ingredient.schema';
-import { Post } from '@api/collections/posts/schemas/post.schema';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { AgentExecutionStatus } from '@genfeedai/enums';
+import { type AgentRun, type Ingredient, type Post } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 

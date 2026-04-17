@@ -1,10 +1,10 @@
-import { Bookmark } from '@api/collections/bookmarks/schemas/bookmark.schema';
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
 import {
   BookmarkCategory,
   BookmarkIntent,
   BookmarkPlatform,
 } from '@genfeedai/enums';
+import { type Bookmark } from '@genfeedai/prisma';
 
 export class BookmarkEntity extends BaseEntity implements Bookmark {
   user!: string;

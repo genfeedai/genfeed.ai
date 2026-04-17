@@ -1,1 +1,4 @@
-export type { Ingredient as VideoDocument } from '@genfeedai/prisma';
+export type {
+  Ingredient as VideoDocument,
+  Ingredient as Video,
+} from '@genfeedai/prisma';

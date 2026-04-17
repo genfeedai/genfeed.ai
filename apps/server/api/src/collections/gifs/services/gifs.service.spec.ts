@@ -1,7 +1,7 @@
 import { GifsService } from '@api/collections/gifs/services/gifs.service';
-import { Ingredient } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { type Ingredient } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 

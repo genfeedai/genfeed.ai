@@ -1,4 +1,4 @@
-import { AgentMessageDocument } from '@api/collections/agent-messages/schemas/agent-message.schema';
+import { type AgentMessageDocument } from '@api/collections/agent-messages/schemas/agent-message.schema';
 // biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 // biome-ignore lint/style/useImportType: NestJS DI requires runtime imports

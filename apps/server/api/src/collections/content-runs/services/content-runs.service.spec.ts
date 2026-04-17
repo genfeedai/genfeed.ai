@@ -1,10 +1,10 @@
-import { ContentRun } from '@api/collections/content-runs/schemas/content-run.schema';
 import { ContentRunsService } from '@api/collections/content-runs/services/content-runs.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ContentRunSource, ContentRunStatus } from '@genfeedai/enums';
 import type { CreateContentRunInput } from '@genfeedai/interfaces';
+import { type ContentRun } from '@genfeedai/prisma';
 import { Test, TestingModule } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
 

@@ -1,7 +1,7 @@
-import { Prompt } from '@api/collections/prompts/schemas/prompt.schema';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { type Prompt } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 

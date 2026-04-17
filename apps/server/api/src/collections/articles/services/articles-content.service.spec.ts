@@ -1,10 +1,9 @@
 import type { GenerateArticlesDto } from '@api/collections/articles/dto/generate-articles.dto';
-import { Article } from '@api/collections/articles/schemas/article.schema';
 import { ArticlesContentService } from '@api/collections/articles/services/articles-content.service';
-import { Prompt } from '@api/collections/prompts/schemas/prompt.schema';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { ConfigService } from '@api/config/config.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { type Article, type Prompt } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 

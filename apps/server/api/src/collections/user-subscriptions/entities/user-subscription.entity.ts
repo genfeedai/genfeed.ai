@@ -1,6 +1,6 @@
-import { UserSubscription } from '@api/collections/user-subscriptions/schemas/user-subscription.schema';
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
 import { SubscriptionPlan, SubscriptionStatus } from '@genfeedai/enums';
+import { type UserSubscription } from '@genfeedai/prisma';
 
 export class UserSubscriptionEntity
   extends BaseEntity

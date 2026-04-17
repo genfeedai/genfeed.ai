@@ -1,11 +1,11 @@
 import { CreateTranscriptDto } from '@api/collections/transcripts/dto/create-transcript.dto';
 import { UpdateTranscriptDto } from '@api/collections/transcripts/dto/update-transcript.dto';
-import { Transcript } from '@api/collections/transcripts/schemas/transcript.schema';
 import { TranscriptsService } from '@api/collections/transcripts/services/transcripts.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { TranscriptStatus } from '@genfeedai/enums';
+import { type Transcript } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 

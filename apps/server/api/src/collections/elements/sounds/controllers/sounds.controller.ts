@@ -1,6 +1,5 @@
 import { CreateElementSoundDto } from '@api/collections/elements/sounds/dto/create-sound.dto';
 import { UpdateElementSoundDto } from '@api/collections/elements/sounds/dto/update-sound.dto';
-import { ElementSound } from '@api/collections/elements/sounds/schemas/sound.schema';
 import { ElementsSoundsService } from '@api/collections/elements/sounds/services/sounds.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -19,6 +18,7 @@ import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
 import type { User } from '@clerk/backend';
 import { MemberRole } from '@genfeedai/enums';
 import type { PopulateOption } from '@genfeedai/interfaces';
+import { type ElementSound } from '@genfeedai/prisma';
 import { SoundSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

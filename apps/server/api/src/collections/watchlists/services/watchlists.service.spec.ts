@@ -1,9 +1,9 @@
 import { CreateWatchlistDto } from '@api/collections/watchlists/dto/create-watchlist.dto';
-import { Watchlist } from '@api/collections/watchlists/schemas/watchlist.schema';
 import { WatchlistsService } from '@api/collections/watchlists/services/watchlists.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WatchlistPlatform } from '@genfeedai/enums';
+import { type Watchlist } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 

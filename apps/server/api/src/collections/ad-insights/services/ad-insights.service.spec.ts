@@ -1,6 +1,6 @@
-import { AdInsights } from '@api/collections/ad-insights/schemas/ad-insights.schema';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { type AdInsights } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { AdInsightsService } from './ad-insights.service';

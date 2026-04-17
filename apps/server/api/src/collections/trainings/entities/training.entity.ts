@@ -1,10 +1,10 @@
-import { Training } from '@api/collections/trainings/schemas/training.schema';
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
 import {
   TrainingCategory,
   TrainingProvider,
   TrainingStatus,
 } from '@genfeedai/enums';
+import { type Training } from '@genfeedai/prisma';
 
 export class TrainingEntity extends BaseEntity implements Training {
   declare readonly organization: string;

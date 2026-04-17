@@ -1,7 +1,7 @@
-import { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
+import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { MembersService } from '@api/collections/members/services/members.service';
-import { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
+import { type OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { UpdateSettingDto } from '@api/collections/settings/dto/update-setting.dto';
 import { SettingEntity } from '@api/collections/settings/entities/setting.entity';
@@ -10,7 +10,7 @@ import { SubscriptionsService } from '@api/collections/subscriptions/services/su
 import { UpdateUserDto } from '@api/collections/users/dto/update-user.dto';
 import { UpdateUserOnboardingDto } from '@api/collections/users/dto/update-user-onboarding.dto';
 import { UserEntity } from '@api/collections/users/entities/user.entity';
-import { UserDocument } from '@api/collections/users/schemas/user.schema';
+import { type UserDocument } from '@api/collections/users/schemas/user.schema';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';

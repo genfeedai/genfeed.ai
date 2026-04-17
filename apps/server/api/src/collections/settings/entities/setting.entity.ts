@@ -1,5 +1,5 @@
-import { Setting } from '@api/collections/settings/schemas/setting.schema';
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
+import { type Setting } from '@genfeedai/prisma';
 
 // @ts-expect-error - implements via BaseEntity + explicit fields
 export class SettingEntity extends BaseEntity implements Setting {

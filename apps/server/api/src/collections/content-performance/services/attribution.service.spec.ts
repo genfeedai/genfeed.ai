@@ -1,7 +1,7 @@
-import { ContentPerformance } from '@api/collections/content-performance/schemas/content-performance.schema';
 import { AttributionService } from '@api/collections/content-performance/services/attribution.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { type ContentPerformance } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 

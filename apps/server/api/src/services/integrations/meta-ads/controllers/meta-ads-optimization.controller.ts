@@ -1,5 +1,4 @@
 import { AdOptimizationAuditLogsService } from '@api/collections/ad-optimization-audit-logs/services/ad-optimization-audit-logs.service';
-import { AdOptimizationConfig } from '@api/collections/ad-optimization-configs/schemas/ad-optimization-config.schema';
 import { AdOptimizationConfigsService } from '@api/collections/ad-optimization-configs/services/ad-optimization-configs.service';
 import type {
   RecommendationStatus,
@@ -17,6 +16,7 @@ import { MetaAdsService } from '@api/services/integrations/meta-ads/services/met
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import type { User } from '@clerk/backend';
 import { CredentialPlatform } from '@genfeedai/enums';
+import { type AdOptimizationConfig } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {

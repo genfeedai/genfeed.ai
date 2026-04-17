@@ -1,8 +1,8 @@
 import { BotActivitiesQueryDto } from '@api/collections/bot-activities/dto/bot-activities-query.dto';
-import { BotActivity } from '@api/collections/bot-activities/schemas/bot-activity.schema';
 import { BotActivitiesService } from '@api/collections/bot-activities/services/bot-activities.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { type BotActivity } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 

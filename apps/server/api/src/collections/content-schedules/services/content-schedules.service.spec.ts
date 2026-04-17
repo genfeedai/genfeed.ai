@@ -1,8 +1,8 @@
-import { ContentSchedule } from '@api/collections/content-schedules/schemas/content-schedule.schema';
 import { ContentSchedulesService } from '@api/collections/content-schedules/services/content-schedules.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { type ContentSchedule } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';

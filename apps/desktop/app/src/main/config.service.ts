@@ -8,7 +8,7 @@ export class DesktopConfigService {
 
     this.environment = {
       apiEndpoint:
-        process.env.GENFEED_DESKTOP_API_URL || 'https://api.genfeed.ai/v1',
+        process.env.GENFEED_DESKTOP_API_URL || 'http://localhost:3010/v1',
       appEndpoint:
         process.env.GENFEED_DESKTOP_APP_URL || `http://127.0.0.1:${appPort}`,
       appName: 'desktop',

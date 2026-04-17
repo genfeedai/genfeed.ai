@@ -1,10 +1,10 @@
-import { ActivityDocument } from '@api/collections/activities/schemas/activity.schema';
+import { type ActivityDocument } from '@api/collections/activities/schemas/activity.schema';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { BrandEntity } from '@api/collections/brands/entities/brand.entity';
-import { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
+import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { IngredientsQueryDto } from '@api/collections/ingredients/dto/ingredients-query.dto';
-import { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MemberEntity } from '@api/collections/members/entities/member.entity';
 import { MembersService } from '@api/collections/members/services/members.service';
@@ -18,10 +18,10 @@ import {
   type OrganizationDocument,
 } from '@api/collections/organizations/schemas/organization.schema';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
-import { PostDocument } from '@api/collections/posts/schemas/post.schema';
+import { type PostDocument } from '@api/collections/posts/schemas/post.schema';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { RolesService } from '@api/collections/roles/services/roles.service';
-import { TagDocument } from '@api/collections/tags/schemas/tag.schema';
+import { type TagDocument } from '@api/collections/tags/schemas/tag.schema';
 import { TagsService } from '@api/collections/tags/services/tags.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { VideosQueryDto } from '@api/collections/videos/dto/videos-query.dto';

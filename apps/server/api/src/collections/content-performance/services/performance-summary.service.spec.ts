@@ -1,7 +1,7 @@
 import { PerformanceSummaryService } from '@api/collections/content-performance/services/performance-summary.service';
-import { PostAnalytics } from '@api/collections/posts/schemas/post-analytics.schema';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { type PostAnalytics } from '@genfeedai/prisma';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('PerformanceSummaryService', () => {

@@ -1,6 +1,6 @@
-import { Bot } from '@api/collections/bots/schemas/bot.schema';
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
 import { BotCategory, BotPlatform, BotStatus } from '@genfeedai/enums';
+import { type Bot } from '@genfeedai/prisma';
 
 export class BotTargetEntity {
   platform!: BotPlatform;

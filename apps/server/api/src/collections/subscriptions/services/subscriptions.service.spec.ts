@@ -1,5 +1,4 @@
 import { CustomersService } from '@api/collections/customers/services/customers.service';
-import { Subscription } from '@api/collections/subscriptions/schemas/subscription.schema';
 import { SubscriptionsService } from '@api/collections/subscriptions/services/subscriptions.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { ConfigService } from '@api/config/config.service';
@@ -7,6 +6,7 @@ import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { type Subscription } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 

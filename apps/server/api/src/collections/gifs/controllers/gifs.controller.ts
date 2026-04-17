@@ -203,9 +203,7 @@ export class GifsController {
                       $or: [
                         { user: publicMetadata.user },
                         {
-                          organization: 
-                            publicMetadata.organization,
-                          ,
+                          organization: publicMetadata.organization,
                         },
                       ],
                       brand,
@@ -373,10 +371,7 @@ export class GifsController {
                           { $eq: ['$entity', '$$entityId'] },
                           { $eq: ['$isDeleted', false] },
                           {
-                            $eq: [
-                              '$user',
-                              publicMetadata.user,
-                            ],
+                            $eq: ['$user', publicMetadata.user],
                           },
                         ],
                       },

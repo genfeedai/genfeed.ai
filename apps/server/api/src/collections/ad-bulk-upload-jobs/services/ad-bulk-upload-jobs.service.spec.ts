@@ -1,7 +1,7 @@
-import { AdBulkUploadJob } from '@api/collections/ad-bulk-upload-jobs/schemas/ad-bulk-upload-job.schema';
 import { AdBulkUploadJobsService } from '@api/collections/ad-bulk-upload-jobs/services/ad-bulk-upload-jobs.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { type AdBulkUploadJob } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 

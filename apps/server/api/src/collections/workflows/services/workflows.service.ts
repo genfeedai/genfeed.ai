@@ -1,6 +1,6 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
-import { WorkflowExecutionDocument } from '@api/collections/workflow-executions/schemas/workflow-execution.schema';
+import { type WorkflowExecutionDocument } from '@api/collections/workflow-executions/schemas/workflow-execution.schema';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import { CreateWorkflowDto } from '@api/collections/workflows/dto/create-workflow.dto';
 import { UpdateWorkflowDto } from '@api/collections/workflows/dto/update-workflow.dto';

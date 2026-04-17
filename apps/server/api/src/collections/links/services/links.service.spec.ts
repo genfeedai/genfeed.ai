@@ -1,8 +1,8 @@
-import { Link } from '@api/collections/links/schemas/link.schema';
 import { LinksService } from '@api/collections/links/services/links.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { CredentialPlatform } from '@genfeedai/enums';
+import { type Link } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 

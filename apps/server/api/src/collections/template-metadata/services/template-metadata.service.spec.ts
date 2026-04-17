@@ -1,9 +1,8 @@
-import { TemplateMetadata } from '@api/collections/template-metadata/schemas/template-metadata.schema';
 import { TemplateMetadataService } from '@api/collections/template-metadata/services/template-metadata.service';
-import { Template } from '@api/collections/templates/schemas/template.schema';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { mockModel } from '@api/helpers/mocks/model.mock';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { type Template, type TemplateMetadata } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';

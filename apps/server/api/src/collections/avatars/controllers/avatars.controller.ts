@@ -1,6 +1,6 @@
 import { AvatarsService } from '@api/collections/avatars/services/avatars.service';
 import { CreateAvatarDto } from '@api/collections/ingredients/dto/create-ingredient.dto';
-import { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';

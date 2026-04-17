@@ -1,10 +1,10 @@
 import { CreatePostAnalyticsDto } from '@api/collections/posts/dto/create-post-analytics.dto';
-import { PostAnalytics } from '@api/collections/posts/schemas/post-analytics.schema';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { CredentialPlatform } from '@genfeedai/enums';
+import { type PostAnalytics } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 

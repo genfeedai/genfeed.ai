@@ -4,7 +4,7 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { RolesService } from '@api/collections/roles/services/roles.service';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
 import { UserEntity } from '@api/collections/users/entities/user.entity';
-import { UserDocument } from '@api/collections/users/schemas/user.schema';
+import { type UserDocument } from '@api/collections/users/schemas/user.schema';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { TransactionUtil } from '@api/helpers/utils/transaction/transaction.util';
 import { ClerkService } from '@api/services/integrations/clerk/clerk.service';

@@ -1,7 +1,7 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { UpdateCredentialDto } from '@api/collections/credentials/dto/update-credential.dto';
 import { CredentialEntity } from '@api/collections/credentials/entities/credential.entity';
-import { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
+import { type CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { CreateTagDto } from '@api/collections/tags/dto/create-tag.dto';

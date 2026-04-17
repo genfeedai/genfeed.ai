@@ -1,4 +1,4 @@
-import { ContentDraftStatus } from '@api/collections/content-drafts/schemas/content-draft.schema';
+import { ContentDraftStatus } from '@genfeedai/enums';
 import {
   IsArray,
   IsEnum,

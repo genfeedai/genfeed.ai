@@ -1,9 +1,9 @@
-import { ContentPlan } from '@api/collections/content-plans/schemas/content-plan.schema';
 import { ContentPlansService } from '@api/collections/content-plans/services/content-plans.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ContentPlanStatus } from '@genfeedai/enums';
+import { type ContentPlan } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

@@ -1,8 +1,8 @@
 import { CreateTrackedLinkDto } from '@api/collections/tracked-links/dto/create-tracked-link.dto';
-import { TrackedLink } from '@api/collections/tracked-links/schemas/tracked-link.schema';
 import { TrackedLinksService } from '@api/collections/tracked-links/services/tracked-links.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { type TrackedLink } from '@genfeedai/prisma';
 import { Test, TestingModule } from '@nestjs/testing';
 
 // Mock nanoid

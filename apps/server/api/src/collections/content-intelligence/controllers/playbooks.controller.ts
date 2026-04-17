@@ -2,7 +2,6 @@ import {
   CreatePlaybookDto,
   UpdatePlaybookDto,
 } from '@api/collections/content-intelligence/dto/create-playbook.dto';
-import { PatternPlaybook } from '@api/collections/content-intelligence/schemas/pattern-playbook.schema';
 import { PlaybookBuilderService } from '@api/collections/content-intelligence/services/playbook-builder.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -18,6 +17,7 @@ import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/interfaces';
+import { type PatternPlaybook } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,

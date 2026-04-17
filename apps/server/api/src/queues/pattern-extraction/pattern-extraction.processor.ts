@@ -1,7 +1,7 @@
 import { CreativePatternsService } from '@api/collections/creative-patterns/creative-patterns.service';
-import { CreativePattern } from '@api/collections/creative-patterns/schemas/creative-pattern.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { PatternType } from '@genfeedai/interfaces';
+import { type CreativePattern } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';

@@ -1,6 +1,5 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
-import { PostAnalytics } from '@api/collections/posts/schemas/post-analytics.schema';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
@@ -17,6 +16,7 @@ import {
   ContentFormat,
   PostStatus,
 } from '@genfeedai/enums';
+import { type PostAnalytics } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';

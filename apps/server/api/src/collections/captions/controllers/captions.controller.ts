@@ -2,9 +2,9 @@ import { CaptionsQueryDto } from '@api/collections/captions/dto/captions-query.d
 import { CreateCaptionDto } from '@api/collections/captions/dto/create-caption.dto';
 import { UpdateCaptionDto } from '@api/collections/captions/dto/update-caption.dto';
 import { CaptionEntity } from '@api/collections/captions/entities/caption.entity';
-import { CaptionDocument } from '@api/collections/captions/schemas/caption.schema';
+import { type CaptionDocument } from '@api/collections/captions/schemas/caption.schema';
 import { CaptionsService } from '@api/collections/captions/services/captions.service';
-import { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';

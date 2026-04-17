@@ -1,10 +1,10 @@
-import { Activity } from '@api/collections/activities/schemas/activity.schema';
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
 import type {
   ActivityEntityModel,
   ActivityKey,
   ActivitySource,
 } from '@genfeedai/enums';
+import { type Activity } from '@genfeedai/prisma';
 
 export class ActivityEntity extends BaseEntity implements Activity {
   declare readonly user: string;

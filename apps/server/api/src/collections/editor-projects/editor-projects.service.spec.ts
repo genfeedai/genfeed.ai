@@ -1,7 +1,7 @@
-import { EditorProject } from '@api/collections/editor-projects/schemas/editor-project.schema';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { EditorProjectStatus } from '@genfeedai/enums';
+import { type EditorProject } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';

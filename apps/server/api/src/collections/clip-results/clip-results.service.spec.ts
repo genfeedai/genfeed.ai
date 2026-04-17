@@ -1,6 +1,6 @@
 import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
-import { ClipResult } from '@api/collections/clip-results/schemas/clip-result.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { type ClipResult } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 

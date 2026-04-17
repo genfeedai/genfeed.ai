@@ -1,7 +1,7 @@
 import { CreateEditorProjectDto } from '@api/collections/editor-projects/dto/create-editor-project.dto';
 import { UpdateEditorProjectDto } from '@api/collections/editor-projects/dto/update-editor-project.dto';
 import { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
-import { EditorProjectDocument } from '@api/collections/editor-projects/schemas/editor-project.schema';
+import { type EditorProjectDocument } from '@api/collections/editor-projects/schemas/editor-project.schema';
 import { EditorRenderService } from '@api/collections/editor-projects/services/editor-render.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';

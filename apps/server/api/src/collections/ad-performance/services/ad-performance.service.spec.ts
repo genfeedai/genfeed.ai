@@ -1,6 +1,6 @@
-import { AdPerformance } from '@api/collections/ad-performance/schemas/ad-performance.schema';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { type AdPerformance } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { AdPerformanceService } from './ad-performance.service';

@@ -1,10 +1,10 @@
-import { OrganizationSetting } from '@api/collections/organization-settings/schemas/organization-setting.schema';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { ByokService } from '@api/services/byok/byok.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { ByokBillingStatus, ByokProvider } from '@genfeedai/enums';
+import { type OrganizationSetting } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';

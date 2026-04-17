@@ -11,7 +11,7 @@ import { CreateFromIngredientDto } from '@api/collections/assets/dto/create-from
 import { GenerateAssetDto } from '@api/collections/assets/dto/generate-asset.dto';
 import { AssetEntity } from '@api/collections/assets/entities/asset.entity';
 import { AssetsService } from '@api/collections/assets/services/assets.service';
-import { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
+import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';

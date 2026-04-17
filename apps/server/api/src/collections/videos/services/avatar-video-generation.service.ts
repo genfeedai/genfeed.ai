@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
+import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { resolveEffectiveBrandAgentConfig } from '@api/collections/brands/utils/brand-agent-config-resolution.util';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
@@ -9,7 +9,7 @@ import { MetadataService } from '@api/collections/metadata/services/metadata.ser
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { AvatarVideoAspectRatio } from '@api/collections/videos/dto/create-avatar-video.dto';
 import { VideosService } from '@api/collections/videos/services/videos.service';
-import { VoiceDocument } from '@api/collections/voices/schemas/voice.schema';
+import { type VoiceDocument } from '@api/collections/voices/schemas/voice.schema';
 import { VoicesService } from '@api/collections/voices/services/voices.service';
 import { ConfigService } from '@api/config/config.service';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';

@@ -1,4 +1,3 @@
-import { ContentPattern } from '@api/collections/content-intelligence/schemas/content-pattern.schema';
 import { PatternStoreService } from '@api/collections/content-intelligence/services/pattern-store.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -6,6 +5,7 @@ import {
   ContentIntelligencePlatform,
   ContentPatternType,
 } from '@genfeedai/enums';
+import { type ContentPattern } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

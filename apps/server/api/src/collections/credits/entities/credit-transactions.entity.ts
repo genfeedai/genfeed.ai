@@ -1,6 +1,6 @@
-import { CreditTransactions } from '@api/collections/credits/schemas/credit-transactions.schema';
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
 import { CreditTransactionCategory } from '@genfeedai/enums';
+import { type CreditTransaction as CreditTransactions } from '@genfeedai/prisma';
 
 export class CreditTransactionsEntity
   extends BaseEntity

@@ -4,7 +4,6 @@ vi.mock('@api/collections/articles/services/articles.service', () => ({
 
 import type { ArticleEntity } from '@api/collections/articles/entities/article.entity';
 import { ArticleAnalyticsEntity } from '@api/collections/articles/entities/article-analytics.entity';
-import { Article } from '@api/collections/articles/schemas/article.schema';
 import {
   ArticleAnalytics,
   type ArticleAnalyticsDocument,
@@ -12,6 +11,7 @@ import {
 import { ArticleAnalyticsService } from '@api/collections/articles/services/article-analytics.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { type Article } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { NotFoundException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';

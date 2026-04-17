@@ -10,7 +10,7 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { InviteMemberDto } from '@api/collections/members/dto/invite-member.dto';
 import { UpdateMemberDto } from '@api/collections/members/dto/update-member.dto';
-import { MemberDocument } from '@api/collections/members/schemas/member.schema';
+import { type MemberDocument } from '@api/collections/members/schemas/member.schema';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';

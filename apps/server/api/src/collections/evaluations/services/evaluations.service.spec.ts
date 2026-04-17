@@ -1,11 +1,11 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { Evaluation } from '@api/collections/evaluations/schemas/evaluation.schema';
 import { EvaluationsService } from '@api/collections/evaluations/services/evaluations.service';
 import { EvaluationsOperationsService } from '@api/collections/evaluations/services/evaluations-operations.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { EvaluationType, IngredientCategory, Status } from '@genfeedai/enums';
+import { type Evaluation } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';

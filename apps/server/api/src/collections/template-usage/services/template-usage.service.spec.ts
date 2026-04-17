@@ -1,7 +1,7 @@
-import { TemplateUsage } from '@api/collections/template-usage/schemas/template-usage.schema';
 import { TemplateUsageService } from '@api/collections/template-usage/services/template-usage.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { type TemplateUsage } from '@genfeedai/prisma';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('TemplateUsageService', () => {

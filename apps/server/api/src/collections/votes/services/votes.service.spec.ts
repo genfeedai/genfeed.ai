@@ -1,7 +1,7 @@
-import { Vote } from '@api/collections/votes/schemas/vote.schema';
 import { VotesService } from '@api/collections/votes/services/votes.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { type Vote } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 

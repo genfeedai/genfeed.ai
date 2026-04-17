@@ -3,11 +3,10 @@ import {
   PerformanceSource,
 } from '@api/collections/content-performance/schemas/content-performance.schema';
 import { AnalyticsSyncService } from '@api/collections/content-performance/services/analytics-sync.service';
-import { Post } from '@api/collections/posts/schemas/post.schema';
-import { PostAnalytics } from '@api/collections/posts/schemas/post-analytics.schema';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { BrandMemorySyncService } from '@api/services/brand-memory/brand-memory-sync.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { type Post, type PostAnalytics } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test } from '@nestjs/testing';
 import { vi } from 'vitest';

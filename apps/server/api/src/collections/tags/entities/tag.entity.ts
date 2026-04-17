@@ -1,6 +1,6 @@
-import { Tag } from '@api/collections/tags/schemas/tag.schema';
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
 import { TagCategory } from '@genfeedai/enums';
+import { type Tag } from '@genfeedai/prisma';
 
 export class TagEntity extends BaseEntity implements Tag {
   declare readonly user?: string;

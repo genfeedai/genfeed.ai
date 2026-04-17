@@ -1,14 +1,12 @@
 import { CreateContentDraftDto } from '@api/collections/content-drafts/dto/create-content-draft.dto';
 import { UpdateContentDraftDto } from '@api/collections/content-drafts/dto/update-content-draft.dto';
-import {
-  type ContentDraftDocument,
-  ContentDraftStatus,
-} from '@api/collections/content-drafts/schemas/content-draft.schema';
+import type { ContentDraftDocument } from '@api/collections/content-drafts/schemas/content-draft.schema';
 import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { ContentDraftInput } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { ContentDraftStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

@@ -1,7 +1,7 @@
-import { UserSubscription } from '@api/collections/user-subscriptions/schemas/user-subscription.schema';
 import { UserSubscriptionsService } from '@api/collections/user-subscriptions/services/user-subscriptions.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { type UserSubscription } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 

@@ -1,6 +1,6 @@
-import { ElementCameraMovement } from '@api/collections/elements/camera-movements/schemas/camera-movement.schema';
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
 import { ModelCategory } from '@genfeedai/enums';
+import { type ElementCameraMovement } from '@genfeedai/prisma';
 
 export class ElementCameraMovementEntity
   extends BaseEntity

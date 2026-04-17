@@ -1,8 +1,8 @@
 import { TrackSubscriptionDto } from '@api/collections/subscription-attributions/dto/track-subscription.dto';
-import { SubscriptionAttribution } from '@api/collections/subscription-attributions/schemas/subscription-attribution.schema';
 import { SubscriptionAttributionsService } from '@api/collections/subscription-attributions/services/subscription-attributions.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { type SubscriptionAttribution } from '@genfeedai/prisma';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('SubscriptionAttributionsService', () => {

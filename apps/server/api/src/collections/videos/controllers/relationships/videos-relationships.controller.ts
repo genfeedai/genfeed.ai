@@ -9,10 +9,10 @@ import { ActivityEntity } from '@api/collections/activities/entities/activity.en
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { CaptionEntity } from '@api/collections/captions/entities/caption.entity';
 import { CaptionsService } from '@api/collections/captions/services/captions.service';
-import { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import { PostDocument } from '@api/collections/posts/schemas/post.schema';
+import { type PostDocument } from '@api/collections/posts/schemas/post.schema';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { CreateMergedVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import { VideosQueryDto } from '@api/collections/videos/dto/videos-query.dto';

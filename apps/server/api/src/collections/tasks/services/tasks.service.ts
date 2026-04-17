@@ -4,7 +4,7 @@ import { AgentRunsService } from '@api/collections/agent-runs/services/agent-run
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
-import { SkillDocument } from '@api/collections/skills/schemas/skill.schema';
+import { type SkillDocument } from '@api/collections/skills/schemas/skill.schema';
 import { SkillsService } from '@api/collections/skills/services/skills.service';
 import { TaskCountersService } from '@api/collections/task-counters/services/task-counters.service';
 import { CreateTaskDto } from '@api/collections/tasks/dto/create-task.dto';

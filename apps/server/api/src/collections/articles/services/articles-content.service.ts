@@ -17,7 +17,7 @@ import {
   type GenerateArticlesDto,
 } from '@api/collections/articles/dto/generate-articles.dto';
 import { UpdateArticleDto } from '@api/collections/articles/dto/update-article.dto';
-import { ArticleDocument } from '@api/collections/articles/schemas/article.schema';
+import { type ArticleDocument } from '@api/collections/articles/schemas/article.schema';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { ModelsService } from '@api/collections/models/services/models.service';

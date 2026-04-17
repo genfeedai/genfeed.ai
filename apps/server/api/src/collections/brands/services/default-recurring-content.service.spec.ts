@@ -1,11 +1,13 @@
-import { Brand } from '@api/collections/brands/schemas/brand.schema';
 import { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
-import { Credential } from '@api/collections/credentials/schemas/credential.schema';
-import { WorkflowExecution } from '@api/collections/workflow-executions/schemas/workflow-execution.schema';
-import { Workflow } from '@api/collections/workflows/schemas/workflow.schema';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import {
+  type Brand,
+  type Credential,
+  type Workflow,
+  type WorkflowExecution,
+} from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 

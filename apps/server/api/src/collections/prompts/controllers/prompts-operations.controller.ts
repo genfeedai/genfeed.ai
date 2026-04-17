@@ -9,7 +9,6 @@
  */
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import { Brand } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { CreateTweetReplyDto } from '@api/collections/prompts/dto/create-tweet-reply.dto';
@@ -53,6 +52,7 @@ import {
   Status,
   SystemPromptKey,
 } from '@genfeedai/enums';
+import { type Brand } from '@genfeedai/prisma';
 import { PromptSerializer } from '@genfeedai/serializers';
 import { Public } from '@libs/decorators/public.decorator';
 import { LoggerService } from '@libs/logger/logger.service';

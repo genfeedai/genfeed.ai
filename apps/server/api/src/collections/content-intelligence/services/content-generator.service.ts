@@ -1,6 +1,6 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { GenerateContentDto } from '@api/collections/content-intelligence/dto/generate-content.dto';
-import { ContentPatternDocument } from '@api/collections/content-intelligence/schemas/content-pattern.schema';
+import { type ContentPatternDocument } from '@api/collections/content-intelligence/schemas/content-pattern.schema';
 import { PatternStoreService } from '@api/collections/content-intelligence/services/pattern-store.service';
 import { PlaybookBuilderService } from '@api/collections/content-intelligence/services/playbook-builder.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';

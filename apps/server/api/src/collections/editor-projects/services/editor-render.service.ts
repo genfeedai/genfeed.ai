@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
-import { EditorProjectDocument } from '@api/collections/editor-projects/schemas/editor-project.schema';
+import { type EditorProjectDocument } from '@api/collections/editor-projects/schemas/editor-project.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { ConfigService } from '@api/config/config.service';

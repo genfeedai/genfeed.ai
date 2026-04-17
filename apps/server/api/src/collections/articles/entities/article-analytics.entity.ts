@@ -1,4 +1,4 @@
-import { ArticleAnalytics } from '@api/collections/articles/schemas/article-analytics.schema';
+import { type ArticleAnalytics } from '@genfeedai/prisma';
 
 export class ArticleAnalyticsEntity implements ArticleAnalytics {
   declare readonly _id: string;

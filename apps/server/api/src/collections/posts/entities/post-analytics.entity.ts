@@ -1,5 +1,5 @@
-import { PostAnalytics } from '@api/collections/posts/schemas/post-analytics.schema';
 import { CredentialPlatform } from '@genfeedai/enums';
+import { type PostAnalytics } from '@genfeedai/prisma';
 
 export class PostAnalyticsEntity implements PostAnalytics {
   declare readonly _id: string;

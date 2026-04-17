@@ -1,4 +1,4 @@
-import { PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
+import { type PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import {

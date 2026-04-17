@@ -7,7 +7,7 @@ const appRoot = `${desktopRoot}/../../app`;
 const appPort = process.env.GENFEED_DESKTOP_APP_PORT || '3000';
 const appUrl = `http://127.0.0.1:${appPort}`;
 const apiEndpoint =
-  process.env.GENFEED_DESKTOP_API_URL || 'https://api.genfeed.ai/v1';
+  process.env.NEXT_PUBLIC_API_ENDPOINT || 'http://localhost:3010/v1';
 const apiBaseUrl = apiEndpoint.replace(/\/v1\/?$/, '');
 
 function run(command, args, options = {}) {

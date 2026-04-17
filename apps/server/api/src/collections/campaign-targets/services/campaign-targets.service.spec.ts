@@ -1,7 +1,7 @@
-import { CampaignTarget } from '@api/collections/campaign-targets/schemas/campaign-target.schema';
 import { CampaignTargetsService } from '@api/collections/campaign-targets/services/campaign-targets.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { type CampaignTarget } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 

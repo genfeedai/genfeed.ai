@@ -1,6 +1,6 @@
-import { Post } from '@api/collections/posts/schemas/post.schema';
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
+import { type Post } from '@genfeedai/prisma';
 
 export interface PostAnalyticsSummary {
   totalViews: number;

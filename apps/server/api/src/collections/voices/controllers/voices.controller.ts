@@ -1,4 +1,4 @@
-import { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { CloneVoiceDto } from '@api/collections/voices/dto/clone-voice.dto';
 import { GenerateVoiceDto } from '@api/collections/voices/dto/generate-voice.dto';

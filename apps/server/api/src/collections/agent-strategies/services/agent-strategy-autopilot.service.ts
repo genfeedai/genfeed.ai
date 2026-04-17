@@ -1,12 +1,11 @@
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import { AgentStrategyDocument } from '@api/collections/agent-strategies/schemas/agent-strategy.schema';
-import { AgentStrategyOpportunityDocument } from '@api/collections/agent-strategies/schemas/agent-strategy-opportunity.schema';
+import { type AgentStrategyDocument } from '@api/collections/agent-strategies/schemas/agent-strategy.schema';
+import { type AgentStrategyOpportunityDocument } from '@api/collections/agent-strategies/schemas/agent-strategy-opportunity.schema';
 import { AgentStrategyReportType } from '@api/collections/agent-strategies/schemas/agent-strategy-policy.schema';
 import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
 import { AgentStrategyOpportunitiesService } from '@api/collections/agent-strategies/services/agent-strategy-opportunities.service';
 import { AgentStrategyReportsService } from '@api/collections/agent-strategies/services/agent-strategy-reports.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { ContentDraftStatus } from '@api/collections/content-drafts/schemas/content-draft.schema';
 import { ContentDraftsService } from '@api/collections/content-drafts/services/content-drafts.service';
 import { ContentPerformanceService } from '@api/collections/content-performance/services/content-performance.service';
 import { PerformanceSummaryService } from '@api/collections/content-performance/services/performance-summary.service';
@@ -22,6 +21,7 @@ import {
   ActivityEntityModel,
   ActivityKey,
   ActivitySource,
+  ContentDraftStatus,
   ContentFormat,
   IngredientCategory,
   PostCategory,

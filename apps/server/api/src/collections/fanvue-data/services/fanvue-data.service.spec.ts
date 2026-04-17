@@ -1,10 +1,12 @@
-import { FanvueContent } from '@api/collections/fanvue-data/schemas/fanvue-content.schema';
-import { FanvueEarnings } from '@api/collections/fanvue-data/schemas/fanvue-earnings.schema';
-import { FanvueSchedule } from '@api/collections/fanvue-data/schemas/fanvue-schedule.schema';
-import { FanvueSubscriber } from '@api/collections/fanvue-data/schemas/fanvue-subscriber.schema';
-import { FanvueSyncLog } from '@api/collections/fanvue-data/schemas/fanvue-sync-log.schema';
 import { FanvueDataService } from '@api/collections/fanvue-data/services/fanvue-data.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import {
+  type FanvueContent,
+  type FanvueEarnings,
+  type FanvueSchedule,
+  type FanvueSubscriber,
+  type FanvueSyncLog,
+} from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 

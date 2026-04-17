@@ -1,10 +1,12 @@
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
-import { AgentRun } from '@api/collections/agent-runs/schemas/agent-run.schema';
-import { AgentRoom } from '@api/collections/agent-threads/schemas/agent-thread.schema';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { AgentThreadSnapshot } from '@api/services/agent-threading/schemas/agent-thread-snapshot.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { AgentExecutionStatus, AgentThreadStatus } from '@genfeedai/enums';
+import {
+  type AgentThread as AgentRoom,
+  type AgentRun,
+} from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';

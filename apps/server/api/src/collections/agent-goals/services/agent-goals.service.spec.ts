@@ -1,7 +1,7 @@
-import { AgentGoal } from '@api/collections/agent-goals/schemas/agent-goal.schema';
 import { AgentGoalsService } from '@api/collections/agent-goals/services/agent-goals.service';
 import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { type AgentGoal } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 

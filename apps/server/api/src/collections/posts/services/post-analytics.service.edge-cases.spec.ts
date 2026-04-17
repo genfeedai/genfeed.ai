@@ -1,11 +1,11 @@
 import { CredentialEntity } from '@api/collections/credentials/entities/credential.entity';
 import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
-import { PostAnalytics } from '@api/collections/posts/schemas/post-analytics.schema';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { CredentialPlatform } from '@genfeedai/enums';
+import { type PostAnalytics } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 

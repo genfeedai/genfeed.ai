@@ -1,5 +1,5 @@
-import { Role } from '@api/collections/roles/schemas/role.schema';
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
+import { type Role } from '@genfeedai/prisma';
 
 export class RoleEntity extends BaseEntity implements Role {
   declare readonly label: string;

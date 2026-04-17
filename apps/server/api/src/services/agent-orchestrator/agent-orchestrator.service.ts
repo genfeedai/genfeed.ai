@@ -1,7 +1,7 @@
 import { AgentCampaignsService } from '@api/collections/agent-campaigns/services/agent-campaigns.service';
-import { AgentMemoryDocument } from '@api/collections/agent-memories/schemas/agent-memory.schema';
+import { type AgentMemoryDocument } from '@api/collections/agent-memories/schemas/agent-memory.schema';
 import { AgentMemoriesService } from '@api/collections/agent-memories/services/agent-memories.service';
-import { AgentMessageDocument } from '@api/collections/agent-messages/schemas/agent-message.schema';
+import { type AgentMessageDocument } from '@api/collections/agent-messages/schemas/agent-message.schema';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { CreateAgentRunDto } from '@api/collections/agent-runs/dto/create-agent-run.dto';
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';

@@ -1,9 +1,8 @@
-import { AdPerformance } from '@api/collections/ad-performance/schemas/ad-performance.schema';
-import { ContentPerformance } from '@api/collections/content-performance/schemas/content-performance.schema';
 import { CreativePatternsService } from '@api/collections/creative-patterns/creative-patterns.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { PatternExtractionProcessor } from '@api/queues/pattern-extraction/pattern-extraction.processor';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { type AdPerformance, type ContentPerformance } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Job } from 'bullmq';

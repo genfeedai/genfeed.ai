@@ -1,4 +1,3 @@
-import { ContentPlanItem } from '@api/collections/content-plan-items/schemas/content-plan-item.schema';
 import {
   ContentPlanItemsService,
   type CreateContentPlanItemInput,
@@ -7,6 +6,7 @@ import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ContentPlanItemStatus } from '@genfeedai/enums';
+import { type ContentPlanItem } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

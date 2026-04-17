@@ -1,7 +1,7 @@
 import { ActivitiesQueryDto } from '@api/collections/activities/dto/activities-query.dto';
 import { BulkUpdateActivitiesDto } from '@api/collections/activities/dto/bulk-update-activities.dto';
 import { UpdateActivityDto } from '@api/collections/activities/dto/update-activity.dto';
-import { ActivityDocument } from '@api/collections/activities/schemas/activity.schema';
+import { type ActivityDocument } from '@api/collections/activities/schemas/activity.schema';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';

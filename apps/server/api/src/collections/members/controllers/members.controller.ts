@@ -1,6 +1,6 @@
 import { InviteMemberDto } from '@api/collections/members/dto/invite-member.dto';
 import { MemberEntity } from '@api/collections/members/entities/member.entity';
-import { MemberDocument } from '@api/collections/members/schemas/member.schema';
+import { type MemberDocument } from '@api/collections/members/schemas/member.schema';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { RolesService } from '@api/collections/roles/services/roles.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';

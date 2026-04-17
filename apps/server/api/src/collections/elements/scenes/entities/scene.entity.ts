@@ -1,6 +1,6 @@
-import { ElementScene } from '@api/collections/elements/scenes/schemas/scene.schema';
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
 import { ModelCategory } from '@genfeedai/enums';
+import { type ElementScene } from '@genfeedai/prisma';
 
 export class ElementSceneEntity extends BaseEntity implements ElementScene {
   declare readonly user?: string;

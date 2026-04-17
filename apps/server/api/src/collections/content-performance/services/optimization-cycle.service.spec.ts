@@ -1,8 +1,8 @@
-import { ContentPerformance } from '@api/collections/content-performance/schemas/content-performance.schema';
 import { OptimizationCycleService } from '@api/collections/content-performance/services/optimization-cycle.service';
 import { PerformanceSummaryService } from '@api/collections/content-performance/services/performance-summary.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { type ContentPerformance } from '@genfeedai/prisma';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('OptimizationCycleService', () => {

@@ -1,6 +1,6 @@
-import { TemplateMetadata } from '@api/collections/template-metadata/schemas/template-metadata.schema';
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
 import { TemplateDifficulty } from '@genfeedai/enums';
+import { type TemplateMetadata } from '@genfeedai/prisma';
 
 export class TemplateMetadataEntity
   extends BaseEntity

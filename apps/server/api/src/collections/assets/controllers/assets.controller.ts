@@ -1,6 +1,6 @@
 import { AssetQueryDto } from '@api/collections/assets/dto/assets-query.dto';
 import { UpdateAssetDto } from '@api/collections/assets/dto/update-asset.dto';
-import { AssetDocument } from '@api/collections/assets/schemas/asset.schema';
+import { type AssetDocument } from '@api/collections/assets/schemas/asset.schema';
 import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';

@@ -1,6 +1,6 @@
-import { ElementBlacklist } from '@api/collections/elements/blacklists/schemas/blacklist.schema';
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
 import { ModelCategory } from '@genfeedai/enums';
+import { type ElementBlacklist } from '@genfeedai/prisma';
 
 export class ElementBlacklistEntity
   extends BaseEntity

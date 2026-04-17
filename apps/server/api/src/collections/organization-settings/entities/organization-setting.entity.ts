@@ -1,5 +1,5 @@
-import { OrganizationSetting } from '@api/collections/organization-settings/schemas/organization-setting.schema';
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
+import { type OrganizationSetting } from '@genfeedai/prisma';
 
 // @ts-expect-error - implements via BaseEntity + explicit fields
 export class OrganizationSettingEntity

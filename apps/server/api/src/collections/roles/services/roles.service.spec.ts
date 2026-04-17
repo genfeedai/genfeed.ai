@@ -1,9 +1,9 @@
 import { CreateRoleDto } from '@api/collections/roles/dto/create-role.dto';
 import { UpdateRoleDto } from '@api/collections/roles/dto/update-role.dto';
-import { Role } from '@api/collections/roles/schemas/role.schema';
 import { RolesService } from '@api/collections/roles/services/roles.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { type Role } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 

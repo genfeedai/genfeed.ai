@@ -1,11 +1,11 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { ContentPlanItemDocument } from '@api/collections/content-plan-items/schemas/content-plan-item.schema';
+import { type ContentPlanItemDocument } from '@api/collections/content-plan-items/schemas/content-plan-item.schema';
 import {
   ContentPlanItemsService,
   type CreateContentPlanItemInput,
 } from '@api/collections/content-plan-items/services/content-plan-items.service';
 import { GenerateContentPlanDto } from '@api/collections/content-plans/dto/generate-content-plan.dto';
-import { ContentPlanDocument } from '@api/collections/content-plans/schemas/content-plan.schema';
+import { type ContentPlanDocument } from '@api/collections/content-plans/schemas/content-plan.schema';
 import { ContentPlansService } from '@api/collections/content-plans/services/content-plans.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { ContentPlanItemType, ContentPlanStatus } from '@genfeedai/enums';

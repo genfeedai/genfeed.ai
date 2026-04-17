@@ -1,5 +1,5 @@
-import { TemplateUsage } from '@api/collections/template-usage/schemas/template-usage.schema';
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
+import { type TemplateUsage } from '@genfeedai/prisma';
 
 export class TemplateUsageEntity extends BaseEntity implements TemplateUsage {
   organization!: string;

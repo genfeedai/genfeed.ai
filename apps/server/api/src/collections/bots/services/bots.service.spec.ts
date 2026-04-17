@@ -1,10 +1,10 @@
 import { CreateBotDto } from '@api/collections/bots/dto/create-bot.dto';
 import { UpdateBotDto } from '@api/collections/bots/dto/update-bot.dto';
-import { Bot } from '@api/collections/bots/schemas/bot.schema';
 import { BotsService } from '@api/collections/bots/services/bots.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BotStatus } from '@genfeedai/enums';
+import { type Bot } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';

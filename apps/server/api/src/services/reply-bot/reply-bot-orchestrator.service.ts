@@ -12,7 +12,6 @@
 import { BotActivitiesService } from '@api/collections/bot-activities/services/bot-activities.service';
 import { MonitoredAccountsService } from '@api/collections/monitored-accounts/services/monitored-accounts.service';
 import { ProcessedTweetsService } from '@api/collections/processed-tweets/services/processed-tweets.service';
-import { ReplyBotConfig } from '@api/collections/reply-bot-configs/schemas/reply-bot-config.schema';
 import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/services/reply-bot-configs.service';
 import { ConfigService } from '@api/config/config.service';
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
@@ -32,6 +31,7 @@ import {
   ReplyTone,
 } from '@genfeedai/enums';
 import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
+import { type ReplyBotConfig } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';

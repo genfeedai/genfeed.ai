@@ -1,5 +1,5 @@
 import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
-import { ClipResultDocument } from '@api/collections/clip-results/schemas/clip-result.schema';
+import { type ClipResultDocument } from '@api/collections/clip-results/schemas/clip-result.schema';
 import { AvatarVideoService } from '@api/services/avatar-video/avatar-video.service';
 import { AvatarVideoProviderName } from '@api/services/avatar-video/avatar-video-provider.interface';
 import { LoggerService } from '@libs/logger/logger.service';

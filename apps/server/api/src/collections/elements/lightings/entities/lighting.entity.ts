@@ -1,6 +1,6 @@
-import { ElementLighting } from '@api/collections/elements/lightings/schemas/lighting.schema';
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
 import { ModelCategory } from '@genfeedai/enums';
+import { type ElementLighting } from '@genfeedai/prisma';
 
 export class ElementLightingEntity
   extends BaseEntity

@@ -1,8 +1,8 @@
-import { PostAnalytics } from '@api/collections/posts/schemas/post-analytics.schema';
 import { AnalyticsAggregationService } from '@api/collections/posts/services/analytics-aggregation.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { type PostAnalytics } from '@genfeedai/prisma';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('AnalyticsAggregationService', () => {

@@ -1,4 +1,3 @@
-import { Ingredient } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
 import {
   AssetScope,
@@ -6,6 +5,7 @@ import {
   IngredientStatus,
   TransformationCategory,
 } from '@genfeedai/enums';
+import { type Ingredient } from '@genfeedai/prisma';
 
 export class IngredientEntity extends BaseEntity implements Ingredient {
   declare readonly user: string;

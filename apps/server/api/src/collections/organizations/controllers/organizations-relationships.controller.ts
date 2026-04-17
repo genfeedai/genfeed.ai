@@ -9,13 +9,13 @@
  * - Get organization posts
  * - Get organization activities
  */
-import { ActivityDocument } from '@api/collections/activities/schemas/activity.schema';
+import { type ActivityDocument } from '@api/collections/activities/schemas/activity.schema';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
+import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { IngredientsQueryDto } from '@api/collections/ingredients/dto/ingredients-query.dto';
-import { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationQueryDto } from '@api/collections/organizations/dto/organization-query.dto';
@@ -26,10 +26,10 @@ import {
   TopContentQueryDto,
 } from '@api/collections/posts/dto/analytics-query.dto';
 import { PostsQueryDto } from '@api/collections/posts/dto/posts-query.dto';
-import { PostDocument } from '@api/collections/posts/schemas/post.schema';
+import { type PostDocument } from '@api/collections/posts/schemas/post.schema';
 import { AnalyticsAggregationService } from '@api/collections/posts/services/analytics-aggregation.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
-import { TagDocument } from '@api/collections/tags/schemas/tag.schema';
+import { type TagDocument } from '@api/collections/tags/schemas/tag.schema';
 import { TagsService } from '@api/collections/tags/services/tags.service';
 import { VideosQueryDto } from '@api/collections/videos/dto/videos-query.dto';
 import { VideosService } from '@api/collections/videos/services/videos.service';

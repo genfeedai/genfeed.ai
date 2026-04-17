@@ -14,7 +14,6 @@ import { CreateArticleDto } from '@api/collections/articles/dto/create-article.d
 import type { EditArticleWithAIDto } from '@api/collections/articles/dto/edit-article-with-ai.dto';
 import type { GenerateArticlesDto } from '@api/collections/articles/dto/generate-articles.dto';
 import { UpdateArticleDto } from '@api/collections/articles/dto/update-article.dto';
-import { Article } from '@api/collections/articles/schemas/article.schema';
 import { ArticleAnalyticsService } from '@api/collections/articles/services/article-analytics.service';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { ArticlesContentService } from '@api/collections/articles/services/articles-content.service';
@@ -31,6 +30,7 @@ import { NotificationsService } from '@api/services/notifications/notifications.
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ArticleCategory, ArticleScope, ArticleStatus } from '@genfeedai/enums';
+import { type Article } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';

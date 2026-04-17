@@ -1,6 +1,6 @@
 import type { TrendSourceItem } from '@api/collections/trends/interfaces/trend.interfaces';
-import { Trend } from '@api/collections/trends/schemas/trend.schema';
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
+import { type Trend } from '@genfeedai/prisma';
 
 export class TrendEntity extends BaseEntity implements Trend {
   declare readonly platform: string;

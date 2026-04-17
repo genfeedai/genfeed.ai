@@ -1,9 +1,11 @@
 import { BusinessAnalyticsService } from '@api/collections/business-analytics/services/business-analytics.service';
-import { CreditTransactions } from '@api/collections/credits/schemas/credit-transactions.schema';
-import { Ingredient } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import {
+  type CreditTransaction as CreditTransactions,
+  type Ingredient,
+} from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 

@@ -1,11 +1,11 @@
 import type { ArticleDocument } from '@api/collections/articles/schemas/article.schema';
-import { Article } from '@api/collections/articles/schemas/article.schema';
 import { ArticlesAnalyticsService } from '@api/collections/articles/services/articles-analytics.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { ConfigService } from '@api/config/config.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { type Article } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 
