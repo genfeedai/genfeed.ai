@@ -8,6 +8,7 @@ const getInstanceMock = vi.fn(() => ({
 
 vi.mock('@app-server/protected-bootstrap.server', () => ({
   getServerAuthToken: getServerAuthTokenMock,
+  hasUsableServerAuthToken: vi.fn().mockReturnValue(true),
 }));
 
 vi.mock('@services/auth/auth.service', () => ({
