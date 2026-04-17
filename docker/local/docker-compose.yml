@@ -1,0 +1,38 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: genfeed-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: genfeed
+      POSTGRES_USER: genfeed
+      POSTGRES_PASSWORD: genfeed_local
+    ports:
+      - "5432:5432"
+    volumes:
+      - genfeed_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U genfeed"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: genfeed-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - genfeed_redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  genfeed_pgdata:
+  genfeed_redis:
