@@ -46,7 +46,7 @@ jobs:
           install-command: "bun install"
 
       - name: Build workspace
-        run: bunx turbo build --filter=./packages/**
+        run: bunx turbo build --filter='./${{ matrix.package }}...'
 
       - name: Run coverage
         run: cd ${{ matrix.package }} && npx vitest run --coverage
@@ -83,7 +83,7 @@ jobs:
           install-command: "bun install"
 
       - name: Build workspace
-        run: bunx turbo build --filter=./packages/**
+        run: bunx turbo build --filter='./packages/hooks...'
 
       - name: Run coverage
         run: cd packages/hooks && npx vitest run --coverage --config vitest.config.mts
