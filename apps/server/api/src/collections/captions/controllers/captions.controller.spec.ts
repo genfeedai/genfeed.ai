@@ -37,9 +37,9 @@ function createMockDeps() {
 function createMockUser(userId: string) {
   return {
     publicMetadata: {
-      brand: '507f191e810c19729de860ee'.toHexString(),
+      brand: '507f191e810c19729de860ee',
       isSuperAdmin: false,
-      organization: '507f191e810c19729de860ee'.toHexString(),
+      organization: '507f191e810c19729de860ee',
       user: userId,
     },
   } as never;
@@ -83,7 +83,7 @@ describe('CaptionsController', () => {
 
   describe('findOne', () => {
     it('should return serialized caption when found', async () => {
-      const captionId = '507f191e810c19729de860ee'.toHexString();
+      const captionId = '507f191e810c19729de860ee';
       const doc = {
         _id: captionId,
         content: 'Hello',
@@ -112,7 +112,7 @@ describe('CaptionsController', () => {
   describe('create', () => {
     it('should throw 404 when ingredient not found', async () => {
       deps.ingredientsService.findOne.mockResolvedValue(null);
-      const userId = '507f191e810c19729de860ee'.toHexString();
+      const userId = '507f191e810c19729de860ee';
       const ingredientId = '507f191e810c19729de860ee';
 
       await expect(
@@ -132,7 +132,7 @@ describe('CaptionsController', () => {
         status: IngredientStatus.GENERATED,
       });
 
-      const userId = '507f191e810c19729de860ee'.toHexString();
+      const userId = '507f191e810c19729de860ee';
 
       await expect(
         controller.create(
@@ -151,7 +151,7 @@ describe('CaptionsController', () => {
         status: IngredientStatus.GENERATING,
       });
 
-      const userId = '507f191e810c19729de860ee'.toHexString();
+      const userId = '507f191e810c19729de860ee';
 
       await expect(
         controller.create(
@@ -164,7 +164,7 @@ describe('CaptionsController', () => {
 
     it('should generate captions and create caption document for valid video', async () => {
       const ingredientId = '507f191e810c19729de860ee';
-      const userId = '507f191e810c19729de860ee'.toHexString();
+      const userId = '507f191e810c19729de860ee';
       const captionContent = '1\n00:00:00,000 --> 00:00:05,000\nHello';
 
       deps.ingredientsService.findOne.mockResolvedValue({
@@ -180,7 +180,7 @@ describe('CaptionsController', () => {
         format: 'srt',
         language: 'en',
         toJSON: () => ({
-          _id: '507f191e810c19729de860ee'.toHexString(),
+          _id: '507f191e810c19729de860ee',
           content: captionContent,
         }),
       };
@@ -202,7 +202,7 @@ describe('CaptionsController', () => {
 
   describe('update', () => {
     it('should return serialized caption on successful update', async () => {
-      const captionId = '507f191e810c19729de860ee'.toHexString();
+      const captionId = '507f191e810c19729de860ee';
       const updated = {
         _id: captionId,
         content: 'Updated',
@@ -229,7 +229,7 @@ describe('CaptionsController', () => {
 
   describe('remove', () => {
     it('should return serialized caption on successful removal', async () => {
-      const captionId = '507f191e810c19729de860ee'.toHexString();
+      const captionId = '507f191e810c19729de860ee';
       const deleted = {
         _id: captionId,
         isDeleted: true,

@@ -36,8 +36,8 @@ describe('GhostService', () => {
     warn: ReturnType<typeof vi.fn>;
   };
 
-  const orgId = 'test-object-id'.toHexString();
-  const brandId = 'test-object-id'.toHexString();
+  const orgId = 'test-object-id';
+  const brandId = 'test-object-id';
 
   beforeEach(async () => {
     httpService = { get: vi.fn(), post: vi.fn() };

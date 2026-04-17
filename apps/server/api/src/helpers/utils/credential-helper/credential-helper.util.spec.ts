@@ -11,8 +11,8 @@ import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 
 import { CredentialHelper } from './credential-helper.util';
 
-const orgId = '507f191e810c19729de860ee'.toHexString();
-const brandId = '507f191e810c19729de860ee'.toHexString();
+const orgId = '507f191e810c19729de860ee';
+const brandId = '507f191e810c19729de860ee';
 const platform = CredentialPlatform.INSTAGRAM;
 
 const baseOptions = { brandId, organizationId: orgId, platform };

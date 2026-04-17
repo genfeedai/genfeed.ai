@@ -9,7 +9,7 @@ describe('UserExtractionUtil', () => {
     });
 
     it('extracts dbUserId from a plain string user ID', () => {
-      const id = '507f191e810c19729de860ee'.toHexString();
+      const id = '507f191e810c19729de860ee';
       const result = UserExtractionUtil.extractUserIds(id);
       expect(result.dbUserId).toBe(id);
       expect(result.clerkUserId).toBeUndefined();
@@ -19,22 +19,22 @@ describe('UserExtractionUtil', () => {
     it('extracts dbUserId from a string', () => {
       const oid = '507f191e810c19729de860ee';
       const result = UserExtractionUtil.extractUserIds(oid);
-      expect(result.dbUserId).toBe(oid.toHexString());
-      expect(result.userId).toBe(oid.toHexString());
+      expect(result.dbUserId).toBe(oid);
+      expect(result.userId).toBe(oid);
     });
 
     it('extracts _id and clerkId from a populated user document', () => {
       const oid = '507f191e810c19729de860ee';
       const userDoc = { _id: oid, clerkId: 'clerk_abc123' };
       const result = UserExtractionUtil.extractUserIds(userDoc);
-      expect(result.dbUserId).toBe(oid.toHexString());
+      expect(result.dbUserId).toBe(oid);
       expect(result.clerkUserId).toBe('clerk_abc123');
       expect(result.userId).toBe('clerk_abc123');
       expect(result.userRoom).toBe('user:clerk_abc123');
     });
 
     it('extracts string _id from a populated user document', () => {
-      const strId = '507f191e810c19729de860ee'.toHexString();
+      const strId = '507f191e810c19729de860ee';
       const userDoc = { _id: strId, clerkId: 'clerk_xyz' };
       const result = UserExtractionUtil.extractUserIds(userDoc);
       expect(result.dbUserId).toBe(strId);
@@ -62,24 +62,22 @@ describe('UserExtractionUtil', () => {
     });
 
     it('returns the string as-is when brandField is a string', () => {
-      const id = '507f191e810c19729de860ee'.toHexString();
+      const id = '507f191e810c19729de860ee';
       expect(UserExtractionUtil.extractBrandId(id)).toBe(id);
     });
 
     it('returns hex string when brandField is a string', () => {
       const oid = '507f191e810c19729de860ee';
-      expect(UserExtractionUtil.extractBrandId(oid)).toBe(oid.toHexString());
+      expect(UserExtractionUtil.extractBrandId(oid)).toBe(oid);
     });
 
     it('extracts _id from populated brand document (ObjectId)', () => {
       const oid = '507f191e810c19729de860ee';
-      expect(UserExtractionUtil.extractBrandId({ _id: oid })).toBe(
-        oid.toHexString(),
-      );
+      expect(UserExtractionUtil.extractBrandId({ _id: oid })).toBe(oid);
     });
 
     it('extracts _id from populated brand document (string)', () => {
-      const strId = '507f191e810c19729de860ee'.toHexString();
+      const strId = '507f191e810c19729de860ee';
       expect(UserExtractionUtil.extractBrandId({ _id: strId })).toBe(strId);
     });
 

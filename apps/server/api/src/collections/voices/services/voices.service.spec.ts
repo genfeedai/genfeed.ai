@@ -88,7 +88,7 @@ describe('VoicesService', () => {
         exec: vi.fn().mockResolvedValue([doc]),
       });
 
-      const result = await service.findOne({ _id: doc._id.toHexString() });
+      const result = await service.findOne({ _id: doc._id });
       expect(result).toEqual(doc);
       expect(model.aggregate).toHaveBeenCalled();
     });
@@ -99,7 +99,7 @@ describe('VoicesService', () => {
       });
 
       const result = await service.findOne({
-        _id: 'test-object-id'.toHexString(),
+        _id: 'test-object-id',
       });
       expect(result).toBeNull();
     });
@@ -115,7 +115,7 @@ describe('VoicesService', () => {
       });
       model.populate = vi.fn().mockResolvedValue(doc);
 
-      const result = await service.findOne({ _id: doc._id.toHexString() }, [
+      const result = await service.findOne({ _id: doc._id }, [
         { path: 'metadata' },
       ]);
       expect(result).toEqual(doc);
@@ -127,9 +127,9 @@ describe('VoicesService', () => {
         exec: vi.fn().mockRejectedValue(new Error('Connection lost')),
       });
 
-      await expect(
-        service.findOne({ _id: 'test-object-id'.toHexString() }),
-      ).rejects.toThrow('Connection lost');
+      await expect(service.findOne({ _id: 'test-object-id' })).rejects.toThrow(
+        'Connection lost',
+      );
     });
   });
 
@@ -146,7 +146,7 @@ describe('VoicesService', () => {
         exec: vi.fn().mockResolvedValue([updated]),
       });
 
-      const result = await service.patch(id.toHexString(), {
+      const result = await service.patch(id, {
         status: 'validated',
       });
       expect(result).toEqual(updated);
@@ -155,7 +155,7 @@ describe('VoicesService', () => {
 
   describe('remove (inherited from BaseService)', () => {
     it('should soft-delete a voice', async () => {
-      const id = 'test-object-id'.toHexString();
+      const id = 'test-object-id';
       const deleted = { _id: id, isDeleted: true };
       model.findByIdAndUpdate.mockReturnValue({
         exec: vi.fn().mockResolvedValue(deleted),
@@ -172,7 +172,7 @@ describe('VoicesService', () => {
         populate: vi.fn().mockReturnThis(),
       });
 
-      const result = await service.remove('test-object-id'.toHexString());
+      const result = await service.remove('test-object-id');
       expect(result).toBeNull();
     });
   });

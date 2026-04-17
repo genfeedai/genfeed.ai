@@ -203,7 +203,7 @@ describe('VideosLipSyncController', () => {
         await controller.createLipSyncVideo(mockReq, mockUser, mockDto);
 
         expect(heygenService.generatePhotoAvatarVideo).toHaveBeenCalledWith(
-          mockIngredientData._id.toHexString(),
+          mockIngredientData._id,
           `http://localhost/images/${mockDto.parent}`,
           `http://localhost/audios/${mockDto.voice}`,
           '507f1f77bcf86cd799439013',

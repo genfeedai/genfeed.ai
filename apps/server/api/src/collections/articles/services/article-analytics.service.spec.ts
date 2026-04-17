@@ -22,7 +22,7 @@ describe('ArticleAnalyticsService', () => {
   let mockArticleModel: vi.Mocked<any>;
   let mockLogger: vi.Mocked<LoggerService>;
 
-  const mockArticleId = 'test-object-id'.toHexString();
+  const mockArticleId = 'test-object-id';
   const mockUserId = 'test-object-id';
   const mockOrgId = 'test-object-id';
   const mockBrandId = 'test-object-id';

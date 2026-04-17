@@ -4,10 +4,10 @@ import { describe, expect, it, vi } from 'vitest';
 import { ContentEngineService } from './content-engine.service';
 
 describe('ContentEngineService', () => {
-  const campaignId = 'test-object-id'.toHexString();
-  const organizationId = 'test-object-id'.toHexString();
-  const userId = 'test-object-id'.toHexString();
-  const brandId = 'test-object-id'.toHexString();
+  const campaignId = 'test-object-id';
+  const organizationId = 'test-object-id';
+  const userId = 'test-object-id';
+  const brandId = 'test-object-id';
 
   function createCampaign(
     overrides: Record<string, unknown> = {},
@@ -222,7 +222,7 @@ describe('ContentEngineService', () => {
       goalId: 'test-object-id',
       topics: ['ai marketing', 'creator growth'],
     });
-    const runId = 'test-object-id'.toHexString();
+    const runId = 'test-object-id';
     const campaign = createCampaign({ agents: [strategy._id] });
 
     agentCampaignsService.findOne.mockResolvedValue(campaign);
@@ -494,8 +494,8 @@ describe('ContentEngineService', () => {
       analyticsService,
       logger,
     } = createService();
-    const strategyId = 'test-object-id'.toHexString();
-    const runId = 'test-object-id'.toHexString();
+    const strategyId = 'test-object-id';
+    const runId = 'test-object-id';
     const strategy = {
       _id: strategyId,
       agentType: 'general',

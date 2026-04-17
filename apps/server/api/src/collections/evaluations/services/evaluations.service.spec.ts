@@ -186,8 +186,8 @@ describe('EvaluationsService', () => {
       expect(model.find).toHaveBeenCalledTimes(1);
       const filter = model.find.mock.calls[0][0];
       expect(filter.contentType).toBe(IngredientCategory.VIDEO);
-      expect(filter.content.toHexString()).toBe(contentId);
-      expect(filter.organization.toHexString()).toBe(organizationId);
+      expect(filter.content).toBe(contentId);
+      expect(filter.organization).toBe(organizationId);
       expect(filter.isDeleted).toBe(false);
       expect(result).toEqual(mockEvaluations);
     });
@@ -214,9 +214,7 @@ describe('EvaluationsService', () => {
       expect(model.aggregate).toHaveBeenCalledTimes(1);
       const pipeline = model.aggregate.mock.calls[0][0];
       expect(pipeline).toHaveLength(3);
-      expect(pipeline[0].$match.organization.toHexString()).toBe(
-        organizationId,
-      );
+      expect(pipeline[0].$match.organization).toBe(organizationId);
       expect(pipeline[0].$match.evaluationType).toBe(
         EvaluationType.PRE_PUBLICATION,
       );

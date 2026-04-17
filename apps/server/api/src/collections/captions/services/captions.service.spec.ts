@@ -62,7 +62,7 @@ describe('CaptionsService', () => {
       });
 
       const result = await service.findOne({
-        _id: doc._id.toHexString(),
+        _id: doc._id,
       });
       expect(result).toEqual(doc);
     });
@@ -74,7 +74,7 @@ describe('CaptionsService', () => {
       });
 
       const result = await service.findOne({
-        _id: 'test-object-id'.toHexString(),
+        _id: 'test-object-id',
       });
       expect(result).toBeNull();
     });
@@ -85,9 +85,9 @@ describe('CaptionsService', () => {
         populate: vi.fn().mockReturnThis(),
       });
 
-      await expect(
-        service.findOne({ _id: 'test-object-id'.toHexString() }),
-      ).rejects.toThrow('DB error');
+      await expect(service.findOne({ _id: 'test-object-id' })).rejects.toThrow(
+        'DB error',
+      );
     });
   });
 
@@ -112,7 +112,7 @@ describe('CaptionsService', () => {
 
   describe('remove (inherited from BaseService)', () => {
     it('should soft-delete a caption', async () => {
-      const id = 'test-object-id'.toHexString();
+      const id = 'test-object-id';
       const deleted = { _id: id, isDeleted: true };
       model.findByIdAndUpdate.mockReturnValue({
         exec: vi.fn().mockResolvedValue(deleted),
@@ -129,7 +129,7 @@ describe('CaptionsService', () => {
         populate: vi.fn().mockReturnThis(),
       });
 
-      const result = await service.remove('test-object-id'.toHexString());
+      const result = await service.remove('test-object-id');
       expect(result).toBeNull();
     });
   });

@@ -42,7 +42,7 @@ describe('MetadataService', () => {
 
   describe('findOne (inherited from BaseService)', () => {
     it('should call model.findOne with processed params', async () => {
-      const id = 'test-object-id'.toHexString();
+      const id = 'test-object-id';
       await service.findOne({ _id: id, isDeleted: false });
 
       expect(model.findOne).toHaveBeenCalledWith(
@@ -73,7 +73,7 @@ describe('MetadataService', () => {
         populate: vi.fn().mockReturnThis(),
       });
 
-      const result = await service.findOne({ _id: doc._id.toHexString() });
+      const result = await service.findOne({ _id: doc._id });
       expect(result).toEqual(doc);
     });
   });
@@ -131,7 +131,7 @@ describe('MetadataService', () => {
 
   describe('processSearchParams', () => {
     it('should convert string _id to ObjectId', () => {
-      const id = 'test-object-id'.toHexString();
+      const id = 'test-object-id';
       const result = service.processSearchParams({ _id: id });
       expect(result._id).toBeInstanceOf(string);
     });
@@ -146,7 +146,7 @@ describe('MetadataService', () => {
     });
 
     it('should convert metadata field to ObjectId', () => {
-      const id = 'test-object-id'.toHexString();
+      const id = 'test-object-id';
       const result = service.processSearchParams({ metadata: id });
       expect(result.metadata).toBeInstanceOf(string);
     });

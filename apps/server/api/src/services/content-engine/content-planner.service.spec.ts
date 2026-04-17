@@ -7,10 +7,10 @@ import { ContentPlanItemType, ContentPlanStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 
-const mockOrgId = 'test-object-id'.toHexString();
-const mockBrandId = 'test-object-id'.toHexString();
-const mockUserId = 'test-object-id'.toHexString();
-const mockPlanId = 'test-object-id'.toHexString();
+const mockOrgId = 'test-object-id';
+const mockBrandId = 'test-object-id';
+const mockUserId = 'test-object-id';
+const mockPlanId = 'test-object-id';
 
 const baseBrand = {
   _id: mockBrandId,

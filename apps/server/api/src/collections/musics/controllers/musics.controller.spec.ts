@@ -26,9 +26,9 @@ function createMockUser(overrides: Record<string, unknown> = {}) {
   return {
     id: 'user_test123',
     publicMetadata: {
-      brand: '507f191e810c19729de860ee'.toHexString(),
-      organization: '507f191e810c19729de860ee'.toHexString(),
-      user: '507f191e810c19729de860ee'.toHexString(),
+      brand: '507f191e810c19729de860ee',
+      organization: '507f191e810c19729de860ee',
+      user: '507f191e810c19729de860ee',
       ...overrides,
     },
   };
@@ -152,7 +152,7 @@ describe('MusicsController', () => {
     });
 
     it('should filter by brand when valid ObjectId is provided', () => {
-      const brandId = '507f191e810c19729de860ee'.toHexString();
+      const brandId = '507f191e810c19729de860ee';
       const user = createMockUser();
       const query = { brand: brandId };
       const pipeline = controller.buildFindAllPipeline(

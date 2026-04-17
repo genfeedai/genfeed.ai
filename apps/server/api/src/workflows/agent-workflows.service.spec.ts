@@ -11,8 +11,8 @@ describe('AgentWorkflowsService', () => {
     findOne: ReturnType<typeof vi.fn>;
   };
 
-  const organizationId = '507f191e810c19729de860ee'.toHexString();
-  const userId = '507f191e810c19729de860ee'.toHexString();
+  const organizationId = '507f191e810c19729de860ee';
+  const userId = '507f191e810c19729de860ee';
 
   beforeEach(async () => {
     model = {
@@ -170,10 +170,7 @@ describe('AgentWorkflowsService', () => {
     model.findOne.mockResolvedValue(null);
 
     await expect(
-      service.getWorkflow(
-        '507f191e810c19729de860ee'.toHexString(),
-        organizationId,
-      ),
+      service.getWorkflow('507f191e810c19729de860ee', organizationId),
     ).rejects.toThrow(NotFoundException);
   });
 });

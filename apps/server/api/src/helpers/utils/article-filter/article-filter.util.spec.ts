@@ -38,9 +38,9 @@ describe('ArticleFilterUtil', () => {
 
   describe('buildTagFilter', () => {
     it('returns ObjectId for valid tag', () => {
-      const tagId = '507f191e810c19729de860ee'.toHexString();
+      const tagId = '507f191e810c19729de860ee';
       const filter = ArticleFilterUtil.buildTagFilter(tagId);
-      expect(filter.tags.toHexString()).toBe(tagId);
+      expect(filter.tags).toBe(tagId);
     });
 
     it('returns empty object for invalid tag', () => {
@@ -73,7 +73,7 @@ describe('ArticleFilterUtil', () => {
 
   describe('buildArticlePipeline', () => {
     it('composes pipeline with filters, lookups, and sorting', () => {
-      const tag = '507f191e810c19729de860ee'.toHexString();
+      const tag = '507f191e810c19729de860ee';
       const pipeline = ArticleFilterUtil.buildArticlePipeline(
         {
           category: 'blog',
@@ -90,7 +90,7 @@ describe('ArticleFilterUtil', () => {
         },
       );
 
-      expect(pipeline[0].$match.tags.toHexString()).toBe(tag);
+      expect(pipeline[0].$match.tags).toBe(tag);
       expect(
         pipeline.some(
           (stage) => '$match' in stage && stage.$match?.category === 'blog',

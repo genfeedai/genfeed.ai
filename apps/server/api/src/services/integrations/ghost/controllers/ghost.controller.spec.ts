@@ -25,9 +25,9 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_req, _s, data) => ({ data })),
 }));
 
-const mockOrgId = 'test-object-id'.toHexString();
-const mockUserId = 'test-object-id'.toHexString();
-const mockBrandId = 'test-object-id'.toHexString();
+const mockOrgId = 'test-object-id';
+const mockUserId = 'test-object-id';
+const mockBrandId = 'test-object-id';
 const mockBrand = { _id: mockBrandId, name: 'TestBrand' };
 
 const mockUser = {} as User;

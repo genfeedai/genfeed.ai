@@ -68,7 +68,7 @@ describe('AvatarsService', () => {
         exec: vi.fn().mockResolvedValue([doc]),
       });
 
-      const result = await service.findOne({ _id: doc._id.toHexString() });
+      const result = await service.findOne({ _id: doc._id });
       expect(result).toEqual(doc);
       expect(model.aggregate).toHaveBeenCalled();
     });
@@ -79,7 +79,7 @@ describe('AvatarsService', () => {
       });
 
       const result = await service.findOne({
-        _id: 'test-object-id'.toHexString(),
+        _id: 'test-object-id',
       });
       expect(result).toBeNull();
     });
@@ -87,7 +87,7 @@ describe('AvatarsService', () => {
 
   describe('remove (inherited from BaseService)', () => {
     it('should soft-delete by setting isDeleted: true', async () => {
-      const id = 'test-object-id'.toHexString();
+      const id = 'test-object-id';
       const deleted = { _id: id, isDeleted: true };
       model.findByIdAndUpdate.mockReturnValue({
         exec: vi.fn().mockResolvedValue(deleted),
@@ -109,14 +109,14 @@ describe('AvatarsService', () => {
         populate: vi.fn().mockReturnThis(),
       });
 
-      const result = await service.remove('test-object-id'.toHexString());
+      const result = await service.remove('test-object-id');
       expect(result).toBeNull();
     });
   });
 
   describe('processSearchParams (inherited)', () => {
     it('should convert _id string to ObjectId', () => {
-      const id = 'test-object-id'.toHexString();
+      const id = 'test-object-id';
       const result = service.processSearchParams({ _id: id });
       expect(result._id).toBeInstanceOf(string);
     });

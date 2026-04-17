@@ -26,12 +26,12 @@ describe('AgentMemoryCaptureService', () => {
     warn: ReturnType<typeof vi.fn>;
   };
 
-  const userId = 'test-object-id'.toHexString();
-  const orgId = 'test-object-id'.toHexString();
-  const brandId = 'test-object-id'.toHexString();
-  const campaignId = 'test-object-id'.toHexString();
-  const memoryId = 'test-object-id'.toHexString();
-  const contextId = 'test-object-id'.toHexString();
+  const userId = 'test-object-id';
+  const orgId = 'test-object-id';
+  const brandId = 'test-object-id';
+  const campaignId = 'test-object-id';
+  const memoryId = 'test-object-id';
+  const contextId = 'test-object-id';
 
   const mockMemory = { _id: memoryId };
 

@@ -10,20 +10,20 @@ describe('CollectionFilterUtil', () => {
 
   describe('buildBrandFilter', () => {
     it('returns provided brand ObjectId when valid', () => {
-      const brandId = '507f191e810c19729de860ee'.toHexString();
+      const brandId = '507f191e810c19729de860ee';
       const result = CollectionFilterUtil.buildBrandFilter(brandId);
 
       expect(result).toEqual(expect.any(String));
-      expect((result as string).toHexString()).toBe(brandId);
+      expect(result as string).toBe(brandId);
     });
 
     it('falls back to user brand metadata by default', () => {
-      const userBrand = '507f191e810c19729de860ee'.toHexString();
+      const userBrand = '507f191e810c19729de860ee';
       const result = CollectionFilterUtil.buildBrandFilter(undefined, {
         brand: userBrand,
       });
       expect(result).toEqual(expect.any(String));
-      expect((result as string).toHexString()).toBe(userBrand);
+      expect(result as string).toBe(userBrand);
     });
 
     it('returns existence filter when metadata missing', () => {
@@ -83,8 +83,8 @@ describe('CollectionFilterUtil', () => {
   });
 
   describe('buildOwnershipFilter', () => {
-    const userId = '507f191e810c19729de860ee'.toHexString();
-    const organizationId = '507f191e810c19729de860ee'.toHexString();
+    const userId = '507f191e810c19729de860ee';
+    const organizationId = '507f191e810c19729de860ee';
 
     it('builds $or filter when user and organization exist', () => {
       const result = CollectionFilterUtil.buildOwnershipFilter({
@@ -94,8 +94,8 @@ describe('CollectionFilterUtil', () => {
 
       expect(result).toHaveProperty('$or');
       expect(result.$or).toHaveLength(2);
-      expect(result.$or?.[0].user.toHexString()).toBe(userId);
-      expect(result.$or?.[1].organization.toHexString()).toBe(organizationId);
+      expect(result.$or?.[0].user).toBe(userId);
+      expect(result.$or?.[1].organization).toBe(organizationId);
     });
 
     it('returns single condition when only user provided', () => {
@@ -104,9 +104,7 @@ describe('CollectionFilterUtil', () => {
         { includeOrganization: false },
       );
       expect(result).toHaveProperty('user');
-      expect((result as Record<string, string>).user.toHexString()).toBe(
-        userId,
-      );
+      expect((result as Record<string, string>).user).toBe(userId);
     });
 
     it('returns empty filter when metadata empty', () => {

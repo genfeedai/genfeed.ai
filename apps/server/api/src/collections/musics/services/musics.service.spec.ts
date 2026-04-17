@@ -78,7 +78,7 @@ describe('MusicsService', () => {
         populate: vi.fn().mockReturnThis(),
       });
 
-      const result = await service.findOne({ _id: doc._id.toHexString() });
+      const result = await service.findOne({ _id: doc._id });
       expect(result).toEqual(doc);
     });
 
@@ -89,7 +89,7 @@ describe('MusicsService', () => {
       });
 
       const result = await service.findOne({
-        _id: 'test-object-id'.toHexString(),
+        _id: 'test-object-id',
       });
       expect(result).toBeNull();
     });
@@ -100,9 +100,9 @@ describe('MusicsService', () => {
         populate: vi.fn().mockReturnThis(),
       });
 
-      await expect(
-        service.findOne({ _id: 'test-object-id'.toHexString() }),
-      ).rejects.toThrow('Connection lost');
+      await expect(service.findOne({ _id: 'test-object-id' })).rejects.toThrow(
+        'Connection lost',
+      );
     });
   });
 
@@ -127,7 +127,7 @@ describe('MusicsService', () => {
 
   describe('remove (inherited from BaseService)', () => {
     it('should soft-delete a music document', async () => {
-      const id = 'test-object-id'.toHexString();
+      const id = 'test-object-id';
       const deleted = { _id: id, isDeleted: true };
       model.findByIdAndUpdate.mockReturnValue({
         exec: vi.fn().mockResolvedValue(deleted),
@@ -144,7 +144,7 @@ describe('MusicsService', () => {
         populate: vi.fn().mockReturnThis(),
       });
 
-      const result = await service.remove('test-object-id'.toHexString());
+      const result = await service.remove('test-object-id');
       expect(result).toBeNull();
     });
   });

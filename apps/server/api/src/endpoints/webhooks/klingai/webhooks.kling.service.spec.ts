@@ -127,7 +127,7 @@ describe('KlingWebhookService', () => {
     });
 
     it('should return early when metadata not found', async () => {
-      const metadataId = '507f191e810c19729de860ee'.toHexString();
+      const metadataId = '507f191e810c19729de860ee';
       const body = {
         custom_id: metadataId,
         task_id: 'task-1',
@@ -142,7 +142,7 @@ describe('KlingWebhookService', () => {
     });
 
     it('should patch with first video URL on succeed', async () => {
-      const metadataId = '507f191e810c19729de860ee'.toHexString();
+      const metadataId = '507f191e810c19729de860ee';
       const body = {
         custom_id: metadataId,
         task_id: 'task-1',
@@ -164,7 +164,7 @@ describe('KlingWebhookService', () => {
     });
 
     it('should stringify task_result when no URLs found', async () => {
-      const metadataId = '507f191e810c19729de860ee'.toHexString();
+      const metadataId = '507f191e810c19729de860ee';
       const taskResult = { data: 'some non-url data' };
       const body = {
         custom_id: metadataId,
@@ -185,7 +185,7 @@ describe('KlingWebhookService', () => {
     });
 
     it('should patch with error message on failed status', async () => {
-      const metadataId = '507f191e810c19729de860ee'.toHexString();
+      const metadataId = '507f191e810c19729de860ee';
       const body = {
         custom_id: metadataId,
         task_id: 'task-1',
@@ -204,7 +204,7 @@ describe('KlingWebhookService', () => {
     });
 
     it('should rethrow errors from metadataService', async () => {
-      const metadataId = '507f191e810c19729de860ee'.toHexString();
+      const metadataId = '507f191e810c19729de860ee';
       const body = {
         custom_id: metadataId,
         task_id: 'task-1',

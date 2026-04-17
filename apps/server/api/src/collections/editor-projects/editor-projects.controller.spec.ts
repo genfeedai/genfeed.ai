@@ -32,9 +32,9 @@ vi.mock('@api/helpers/decorators/swagger/auto-swagger.decorator', () => ({
 
 vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
   getPublicMetadata: vi.fn(() => ({
-    brand: '507f191e810c19729de860ee'.toHexString(),
-    organization: '507f191e810c19729de860ee'.toHexString(),
-    user: '507f191e810c19729de860ee'.toHexString(),
+    brand: '507f191e810c19729de860ee',
+    organization: '507f191e810c19729de860ee',
+    user: '507f191e810c19729de860ee',
   })),
 }));
 
@@ -58,9 +58,9 @@ const makeUser = () =>
   ({
     id: 'user_clerk_123',
     publicMetadata: {
-      brand: '507f191e810c19729de860ee'.toHexString(),
-      organization: '507f191e810c19729de860ee'.toHexString(),
-      user: '507f191e810c19729de860ee'.toHexString(),
+      brand: '507f191e810c19729de860ee',
+      organization: '507f191e810c19729de860ee',
+      user: '507f191e810c19729de860ee',
     },
   }) as never;
 
@@ -164,7 +164,7 @@ describe('EditorProjectsController', () => {
     });
 
     it('builds video track when sourceVideoId is provided', async () => {
-      const videoId = '507f191e810c19729de860ee'.toHexString();
+      const videoId = '507f191e810c19729de860ee';
       const video = {
         _id: videoId,
         thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
@@ -194,7 +194,7 @@ describe('EditorProjectsController', () => {
     it('throws NotFoundException when sourceVideoId does not resolve', async () => {
       ingredientsService.findOne.mockResolvedValue(null as never);
 
-      const fakeVideoId = '507f191e810c19729de860ee'.toHexString();
+      const fakeVideoId = '507f191e810c19729de860ee';
       await expect(
         controller.create(makeRequest(), makeUser(), {
           name: 'Bad Video',

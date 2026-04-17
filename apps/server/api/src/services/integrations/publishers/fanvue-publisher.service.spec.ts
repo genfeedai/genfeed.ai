@@ -21,8 +21,8 @@ describe('FanvuePublisherService', () => {
     warn: ReturnType<typeof vi.fn>;
   };
 
-  const orgId = 'test-object-id'.toHexString();
-  const brandId = 'test-object-id'.toHexString();
+  const orgId = 'test-object-id';
+  const brandId = 'test-object-id';
 
   const mockCredential = {
     _id: 'test-object-id',

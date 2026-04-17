@@ -37,9 +37,9 @@ describe('AgentMemoriesService', () => {
   };
   let logger: vi.Mocked<LoggerService>;
 
-  const orgId = 'test-object-id'.toHexString();
-  const userId = 'test-object-id'.toHexString();
-  const campaignId = 'test-object-id'.toHexString();
+  const orgId = 'test-object-id';
+  const userId = 'test-object-id';
+  const campaignId = 'test-object-id';
 
   beforeEach(async () => {
     const chainMock = {
@@ -98,9 +98,9 @@ describe('AgentMemoriesService', () => {
         scope: { $ne: string };
         user: string;
       };
-      expect(filter.organization.toHexString()).toBe(orgId);
+      expect(filter.organization).toBe(orgId);
       expect(filter.scope).toEqual({ $ne: 'campaign' });
-      expect(filter.user.toHexString()).toBe(userId);
+      expect(filter.user).toBe(userId);
       expect(chainMock.sort).toHaveBeenCalledWith({ createdAt: -1 });
       expect(chainMock.limit).toHaveBeenCalledWith(100);
       expect(result).toEqual(memories);
@@ -166,7 +166,7 @@ describe('AgentMemoriesService', () => {
       });
 
       const payload = spy.mock.calls[0][0] as Record<string, string>;
-      expect(payload.campaignId.toHexString()).toBe(campaignId);
+      expect(payload.campaignId).toBe(campaignId);
       expect(payload.scope).toBe('campaign');
     });
 
@@ -278,8 +278,8 @@ describe('AgentMemoriesService', () => {
         organization: string;
         scope: string;
       };
-      expect(filter.campaignId.toHexString()).toBe(campaignId);
-      expect(filter.organization.toHexString()).toBe(orgId);
+      expect(filter.campaignId).toBe(campaignId);
+      expect(filter.organization).toBe(orgId);
       expect(filter.scope).toBe('campaign');
       expect(result).toEqual(memories);
     });
@@ -288,7 +288,7 @@ describe('AgentMemoriesService', () => {
   // ── removeMemory ─────────────────────────────────────────────────────────
   describe('removeMemory', () => {
     it('calls findOneAndDelete with correct filter', async () => {
-      const memoryId = 'test-object-id'.toHexString();
+      const memoryId = 'test-object-id';
       model.findOneAndDelete.mockResolvedValue(makeMemory());
 
       await service.removeMemory(memoryId, userId, orgId);
@@ -298,14 +298,14 @@ describe('AgentMemoriesService', () => {
         organization: string;
         user: string;
       };
-      expect(filter._id.toHexString()).toBe(memoryId);
-      expect(filter.organization.toHexString()).toBe(orgId);
-      expect(filter.user.toHexString()).toBe(userId);
+      expect(filter._id).toBe(memoryId);
+      expect(filter.organization).toBe(orgId);
+      expect(filter.user).toBe(userId);
     });
 
     it('throws NotFoundException when memory not found', async () => {
       model.findOneAndDelete.mockResolvedValue(null);
-      const memoryId = 'test-object-id'.toHexString();
+      const memoryId = 'test-object-id';
 
       await expect(
         service.removeMemory(memoryId, userId, orgId),
@@ -344,7 +344,7 @@ describe('AgentMemoriesService', () => {
       model.find.mockReturnValue(chainMock);
 
       const result = await service.getMemoriesForPrompt(userId, orgId, {
-        pinnedMemoryIds: [pinnedId.toHexString()],
+        pinnedMemoryIds: [pinnedId],
       });
 
       expect(result[0].content).toBe('pinned');

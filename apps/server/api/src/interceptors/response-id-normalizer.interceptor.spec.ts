@@ -260,7 +260,7 @@ describe('ResponseIdNormalizerInterceptor', () => {
 
       expect(result).toHaveProperty('id');
       expect(typeof result.id).toBe('string');
-      expect(result.id).toBe(objectId.toHexString());
+      expect(result.id).toBe(objectId);
     });
 
     it('should handle number _id values', async () => {
@@ -763,9 +763,9 @@ describe('ResponseIdNormalizerInterceptor', () => {
         interceptor.intercept(mockExecutionContext, mockCallHandler),
       );
 
-      expect(result).toHaveProperty('id', objectId.toHexString());
+      expect(result).toHaveProperty('id', objectId);
       expect(result).not.toHaveProperty('_id');
-      expect(result.author).toHaveProperty('id', userId.toHexString());
+      expect(result.author).toHaveProperty('id', userId);
       expect(result.author).not.toHaveProperty('_id');
       expect(result.comments[0]).toHaveProperty('id');
       expect(result.comments[0]).not.toHaveProperty('_id');

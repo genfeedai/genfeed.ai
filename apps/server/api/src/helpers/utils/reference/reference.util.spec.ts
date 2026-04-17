@@ -72,7 +72,7 @@ describe('buildReferenceImageUrl', () => {
     expect(ingredientsService.findOne).toHaveBeenCalledTimes(1);
     const ingredientQuery = (ingredientsService.findOne as vi.Mock).mock
       .calls[0][0];
-    expect(ingredientQuery._id.toHexString()).toBe(referenceId);
+    expect(ingredientQuery._id).toBe(referenceId);
     expect(ingredientQuery.category).toBe('image');
     expect(ingredientQuery.isDeleted).toBe(false);
     expect(assetsService.findOne).not.toHaveBeenCalled();
@@ -125,7 +125,7 @@ describe('buildReferenceImageUrl', () => {
     expect(ingredientsService.findOne).toHaveBeenCalledTimes(2); // IMAGE + VIDEO checks
     expect(assetsService.findOne).toHaveBeenCalledTimes(1);
     const assetQuery = (assetsService.findOne as vi.Mock).mock.calls[0][0];
-    expect(assetQuery._id.toHexString()).toBe(referenceId);
+    expect(assetQuery._id).toBe(referenceId);
     expect(assetQuery.isDeleted).toBe(false);
   });
 

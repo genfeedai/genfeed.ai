@@ -49,9 +49,9 @@ describe('YoutubeUploadService', () => {
   };
 
   const mockAuth = { credentials: { access_token: 'test-token' } };
-  const orgId = 'test-object-id'.toHexString();
-  const brandId = 'test-object-id'.toHexString();
-  const videoId = 'test-object-id'.toHexString();
+  const orgId = 'test-object-id';
+  const brandId = 'test-object-id';
+  const videoId = 'test-object-id';
 
   function createPost(
     overrides: Partial<PostEntity> & { status?: PostStatus | string } = {},

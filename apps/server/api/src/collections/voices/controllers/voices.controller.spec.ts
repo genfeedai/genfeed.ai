@@ -30,9 +30,9 @@ function createMockUser(overrides: Record<string, unknown> = {}) {
   return {
     id: 'user_test123',
     publicMetadata: {
-      brand: '507f191e810c19729de860ee'.toHexString(),
-      organization: '507f191e810c19729de860ee'.toHexString(),
-      user: '507f191e810c19729de860ee'.toHexString(),
+      brand: '507f191e810c19729de860ee',
+      organization: '507f191e810c19729de860ee',
+      user: '507f191e810c19729de860ee',
       ...overrides,
     },
   };
@@ -141,8 +141,8 @@ describe('VoicesController', () => {
       const brandId = '507f191e810c19729de860ee';
       const organizationId = '507f191e810c19729de860ee';
       const user = createMockUser({
-        brand: brandId.toHexString(),
-        organization: organizationId.toHexString(),
+        brand: brandId,
+        organization: organizationId,
       });
       const request = createMockRequest();
 
@@ -201,8 +201,8 @@ describe('VoicesController', () => {
       const brandId = '507f191e810c19729de860ee';
       const organizationId = '507f191e810c19729de860ee';
       const user = createMockUser({
-        brand: brandId.toHexString(),
-        organization: organizationId.toHexString(),
+        brand: brandId,
+        organization: organizationId,
       });
       const request = createMockRequest();
 
@@ -218,8 +218,8 @@ describe('VoicesController', () => {
 
       await controller.findAll(
         {
-          brand: '507f191e810c19729de860ee'.toHexString(),
-          organization: '507f191e810c19729de860ee'.toHexString(),
+          brand: '507f191e810c19729de860ee',
+          organization: '507f191e810c19729de860ee',
         } as never,
         request as never,
         user as never,
@@ -304,8 +304,8 @@ describe('VoicesController', () => {
       const brandId = '507f191e810c19729de860ee';
       const organizationId = '507f191e810c19729de860ee';
       const user = createMockUser({
-        brand: brandId.toHexString(),
-        organization: organizationId.toHexString(),
+        brand: brandId,
+        organization: organizationId,
       });
       const request = createMockRequest();
 
@@ -674,7 +674,7 @@ describe('VoicesController', () => {
         controller.deleteClonedVoice(
           request as never,
           user as never,
-          '507f191e810c19729de860ee'.toHexString(),
+          '507f191e810c19729de860ee',
         ),
       ).rejects.toThrow(HttpException);
     });
@@ -699,7 +699,7 @@ describe('VoicesController', () => {
       const result = await controller.deleteClonedVoice(
         request as never,
         user as never,
-        voiceId.toHexString(),
+        voiceId,
       );
 
       expect(result).toBeDefined();

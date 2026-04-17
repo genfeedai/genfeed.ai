@@ -3,11 +3,11 @@ import { describe, expect, it, vi } from 'vitest';
 import { TriggerEvaluatorService } from './trigger-evaluator.service';
 
 describe('TriggerEvaluatorService', () => {
-  const campaignId = 'test-object-id'.toHexString();
-  const organizationId = 'test-object-id'.toHexString();
-  const userId = 'test-object-id'.toHexString();
-  const brandId = 'test-object-id'.toHexString();
-  const strategyId = 'test-object-id'.toHexString();
+  const campaignId = 'test-object-id';
+  const organizationId = 'test-object-id';
+  const userId = 'test-object-id';
+  const brandId = 'test-object-id';
+  const strategyId = 'test-object-id';
 
   function createService() {
     const agentCampaignsService = {

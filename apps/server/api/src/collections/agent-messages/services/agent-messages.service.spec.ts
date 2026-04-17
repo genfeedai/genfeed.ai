@@ -89,7 +89,7 @@ describe('AgentMessagesService', () => {
         organization: orgId,
         role: AgentMessageRole.USER,
         room: roomId,
-        user: 'test-object-id'.toHexString(),
+        user: 'test-object-id',
       };
 
       const result = await service.addMessage(dto);
@@ -104,7 +104,7 @@ describe('AgentMessagesService', () => {
         role: AgentMessageRole.ASSISTANT,
         room: roomId,
         toolCalls: [{ status: 'success', toolName: 'generateImage' }],
-        user: 'test-object-id'.toHexString(),
+        user: 'test-object-id',
       };
 
       const result = await service.addMessage(dto);
@@ -132,8 +132,8 @@ describe('AgentMessagesService', () => {
         room: string;
       };
       expect(filter.isDeleted).toBe(false);
-      expect(filter.organization.toHexString()).toBe(orgId);
-      expect(filter.room.toHexString()).toBe(roomId);
+      expect(filter.organization).toBe(orgId);
+      expect(filter.room).toBe(roomId);
       expect(result).toEqual(mockMessages);
     });
 
@@ -190,7 +190,7 @@ describe('AgentMessagesService', () => {
         room: string;
       };
       expect(filter.isDeleted).toBe(false);
-      expect(filter.room.toHexString()).toBe(roomId);
+      expect(filter.room).toBe(roomId);
     });
   });
 
