@@ -11,14 +11,12 @@ import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
 import { ConfigService } from '@api/config/config.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { StripeWebhookService } from '@api/endpoints/webhooks/stripe/webhooks.stripe.service';
 import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { ManagedStripeCheckoutService } from '@api/services/integrations/stripe/services/managed-stripe-checkout.service';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
-import { SkillReceipt } from '@api/skills-pro/schemas/skill-receipt.schema';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Types } from 'mongoose';
 import Stripe from 'stripe';
@@ -219,7 +217,7 @@ describe('StripeWebhookService', () => {
           },
         },
         {
-          provide: getModelToken(SkillReceipt.name, DB_CONNECTIONS.CLOUD),
+          provide: PrismaService,
           useFactory: () => {
             function MockSkillReceiptModel(
               this: Record<string, unknown>,

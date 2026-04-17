@@ -3,10 +3,10 @@ import { CreateIntegrationDto } from '@api/endpoints/integrations/dto/create-int
 import { UpdateIntegrationDto } from '@api/endpoints/integrations/dto/update-integration.dto';
 import { InternalIntegrationsController } from '@api/endpoints/integrations/integrations.controller';
 import { IntegrationsService } from '@api/endpoints/integrations/integrations.service';
-import { OrgIntegration } from '@api/endpoints/integrations/schemas/org-integration.schema';
 import { AdminApiKeyGuard } from '@api/helpers/guards/admin-api-key/admin-api-key.guard';
 import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
 import { IntegrationPlatform, IntegrationStatus } from '@genfeedai/enums';
+import type { OrgIntegration } from '@genfeedai/prisma';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';

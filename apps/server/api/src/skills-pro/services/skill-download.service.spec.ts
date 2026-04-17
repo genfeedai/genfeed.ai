@@ -1,12 +1,10 @@
 import { ConfigService } from '@api/config/config.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
-import { SkillReceipt } from '@api/skills-pro/schemas/skill-receipt.schema';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { SkillDownloadService } from '@api/skills-pro/services/skill-download.service';
 import { SkillRegistryService } from '@api/skills-pro/services/skill-registry.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 
 interface SkillRegistryEntry {
@@ -103,7 +101,7 @@ describe('SkillDownloadService', () => {
           },
         },
         {
-          provide: getModelToken(SkillReceipt.name, DB_CONNECTIONS.CLOUD),
+          provide: PrismaService,
           useValue: skillReceiptModel,
         },
       ],
