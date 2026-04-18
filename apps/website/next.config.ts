@@ -12,6 +12,25 @@ const helpersRoot = path.resolve(__dirname, '../../packages/helpers');
 
 const config = createAppNextConfig({
   appName: 'website',
+  headers: async () => [
+    {
+      headers: [
+        {
+          key: 'Link',
+          value: [
+            '<https://genfeed.ai/sitemap.xml>; rel="sitemap"',
+            '<https://genfeed.ai/llms.txt>; rel="describedby"; type="text/plain"',
+            '<https://genfeed.ai/llms-full.txt>; rel="describedby"; type="text/plain"',
+          ].join(', '),
+        },
+        {
+          key: 'X-Robots-Tag',
+          value: 'index, follow, AI-index',
+        },
+      ],
+      source: '/(.*)',
+    },
+  ],
   redirects: async () => [
     {
       destination: '/use-cases/creators',
