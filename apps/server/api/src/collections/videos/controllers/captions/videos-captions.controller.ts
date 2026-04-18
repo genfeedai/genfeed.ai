@@ -229,7 +229,7 @@ export class VideosCaptionsController {
       .then(async (job) => {
         const result = await this.fileQueueService.waitForJob(job.jobId, 60000);
         const output = result.outputPath;
-        const ingredientId = (ingredientData._id as string).toHexString();
+        const ingredientId = String(ingredientData._id);
 
         this.filesClientService
           .uploadToS3(ingredientId, `videos`, {

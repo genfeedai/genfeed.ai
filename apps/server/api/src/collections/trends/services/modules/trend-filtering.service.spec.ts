@@ -249,12 +249,14 @@ describe('TrendFilteringService', () => {
         id: 'trend-xyz',
         isDeleted: false,
         organizationId: null,
+        topic: 'ai news',
         updatedAt: new Date(),
+        viralityScore: 70,
       };
       prisma.trend.findMany.mockResolvedValue([rawDoc]);
 
       const results = await service.getRelatedTrends(
-        'ai technology',
+        'trending news today',
         'instagram',
       );
 

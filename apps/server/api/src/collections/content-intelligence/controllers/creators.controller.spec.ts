@@ -5,6 +5,30 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_req, _serializer, data) => ({ data })),
 }));
 
+vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
+  getPublicMetadata: vi.fn(
+    (user: { publicMetadata?: unknown }) => user?.publicMetadata ?? {},
+  ),
+}));
+
+vi.mock('@api/collections/content-intelligence/schemas/creator-analysis.schema', () => ({
+  CreatorAnalysis: { name: 'CreatorAnalysis' },
+}));
+
+vi.mock('@api/helpers/utils/error-response/error-response.util', () => {
+  const { HttpException, HttpStatus } = require('@nestjs/common');
+  return {
+    ErrorResponse: {
+      notFound: vi.fn((resource: string, id: string) => {
+        throw new HttpException(
+          { detail: `${resource} with ID '${id}' not found`, status: HttpStatus.NOT_FOUND },
+          HttpStatus.NOT_FOUND,
+        );
+      }),
+    },
+  };
+});
+
 import { CreatorsController } from '@api/collections/content-intelligence/controllers/creators.controller';
 import { ContentIntelligenceService } from '@api/collections/content-intelligence/services/content-intelligence.service';
 import { PatternAnalyzerService } from '@api/collections/content-intelligence/services/pattern-analyzer.service';

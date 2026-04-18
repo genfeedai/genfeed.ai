@@ -249,7 +249,7 @@ describe('WatchlistsController', () => {
       };
       watchlistsService.findOne.mockResolvedValue(existing);
       watchlistsService.findByHandle.mockResolvedValue({
-        _id: '507f191e810c19729de860ee', // different ID = duplicate
+        _id: '607f191e810c19729de860ff', // different ID = duplicate
         handle: 'creator2',
       });
 

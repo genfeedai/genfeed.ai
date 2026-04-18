@@ -55,7 +55,7 @@ export class ElementsSoundsController extends BaseCRUDController<
       loggerService,
       soundsService as unknown,
       SoundSerializer,
-      ElementSound.name,
+      'ElementSound',
     );
   }
 
