@@ -10,6 +10,7 @@ import { TasksController } from '@api/collections/tasks/controllers/tasks.contro
 import { CreateTaskDto } from '@api/collections/tasks/dto/create-task.dto';
 import type { TaskDocument } from '@api/collections/tasks/schemas/task.schema';
 import { TasksService } from '@api/collections/tasks/services/tasks.service';
+import type { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import type { User } from '@clerk/backend';
 import { TaskSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -28,6 +29,9 @@ describe('TasksController', () => {
   };
   let taskCountersService: { getNextNumber: ReturnType<typeof vi.fn> };
   let organizationsService: { findOne: ReturnType<typeof vi.fn> };
+  let agentOrchestratorService: {
+    runAgent: ReturnType<typeof vi.fn>;
+  };
   let loggerService: {
     debug: ReturnType<typeof vi.fn>;
     error: ReturnType<typeof vi.fn>;
@@ -65,6 +69,9 @@ describe('TasksController', () => {
     organizationsService = {
       findOne: vi.fn(),
     };
+    agentOrchestratorService = {
+      runAgent: vi.fn(),
+    };
     loggerService = {
       debug: vi.fn(),
       error: vi.fn(),
@@ -77,6 +84,7 @@ describe('TasksController', () => {
       tasksService as unknown as TasksService,
       taskCountersService as unknown as TaskCountersService,
       organizationsService as unknown as OrganizationsService,
+      agentOrchestratorService as unknown as AgentOrchestratorService,
     );
 
     vi.spyOn(TaskSerializer, 'serialize').mockImplementation(
@@ -206,7 +214,7 @@ describe('TasksController', () => {
 
     it('rejects modification when organizations differ', () => {
       const entity = {
-        organization: '507f191e810c19729de860ee',
+        organization: '607f191e810c19729de860ff',
       } as TaskDocument;
 
       expect(controller.canUserModifyEntity(mockUser, entity)).toBe(false);

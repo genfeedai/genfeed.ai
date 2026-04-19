@@ -27,9 +27,8 @@ describe('NewslettersController', () => {
   let service: {
     approveScoped: ReturnType<typeof vi.fn>;
     archiveScoped: ReturnType<typeof vi.fn>;
-    buildListPipeline: ReturnType<typeof vi.fn>;
     createScoped: ReturnType<typeof vi.fn>;
-    findAll: ReturnType<typeof vi.fn>;
+    findAllScoped: ReturnType<typeof vi.fn>;
     findOneScoped: ReturnType<typeof vi.fn>;
     generateDraft: ReturnType<typeof vi.fn>;
     generateTopicProposals: ReturnType<typeof vi.fn>;
@@ -61,11 +60,10 @@ describe('NewslettersController', () => {
             archiveScoped: vi
               .fn()
               .mockResolvedValue({ _id: 'nl-1', status: 'archived' }),
-            buildListPipeline: vi.fn().mockReturnValue([]),
             createScoped: vi
               .fn()
               .mockResolvedValue({ _id: 'nl-1', title: 'New Newsletter' }),
-            findAll: vi.fn().mockResolvedValue({
+            findAllScoped: vi.fn().mockResolvedValue({
               docs: [{ _id: 'nl-1' }],
               limit: 10,
               page: 1,
@@ -109,13 +107,13 @@ describe('NewslettersController', () => {
   });
 
   describe('findAll', () => {
-    it('should build pipeline and return serialized collection', async () => {
+    it('should call findAllScoped and return serialized collection', async () => {
       const query = { limit: 10, page: 1, pagination: true } as never;
       await controller.findAll(mockReq, mockUser, query);
 
-      expect(service.buildListPipeline).toHaveBeenCalled();
-      expect(service.findAll).toHaveBeenCalledWith(
-        expect.anything(),
+      expect(service.findAllScoped).toHaveBeenCalledWith(
+        expect.objectContaining({ organizationId: '507f1f77bcf86cd799439012' }),
+        query,
         expect.objectContaining({ limit: 10, page: 1, pagination: true }),
       );
     });

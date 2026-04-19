@@ -196,7 +196,7 @@ export class VideosLipSyncController {
           status: IngredientStatus.PROCESSING,
         });
 
-      ingredientId = (ingredientData._id as string).toHexString();
+      ingredientId = String(ingredientData._id);
 
       // 5. Call HeyGen Photo Avatar API
       this.loggerService.log(`${url} calling HeyGen Photo Avatar API`, {

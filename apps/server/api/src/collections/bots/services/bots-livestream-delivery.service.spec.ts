@@ -51,12 +51,6 @@ vi.mock('googleapis', () => ({
   },
 }));
 
-function createCredentialQueryMock(result: CredentialDocument | null) {
-  return {
-    exec: vi.fn().mockResolvedValue(result),
-  };
-}
-
 describe('BotsLivestreamDeliveryService', () => {
   const axiosPostMock = vi.mocked(axios.post);
   const configService = {
@@ -75,16 +69,14 @@ describe('BotsLivestreamDeliveryService', () => {
     refreshToken: 'refresh-token',
   } as CredentialDocument;
 
-  let credentialModel: {
-    findOne: ReturnType<typeof vi.fn>;
-  };
+  let prismaService: { credential: { findFirst: ReturnType<typeof vi.fn> } };
   let service: BotsLivestreamDeliveryService;
 
   beforeEach(() => {
     vi.clearAllMocks();
 
-    credentialModel = {
-      findOne: vi.fn().mockReturnValue(createCredentialQueryMock(credential)),
+    prismaService = {
+      credential: { findFirst: vi.fn().mockResolvedValue(credential) },
     };
 
     configService.get.mockImplementation((key: string) => {
@@ -112,7 +104,7 @@ describe('BotsLivestreamDeliveryService', () => {
 
     service = new BotsLivestreamDeliveryService(
       configService,
-      credentialModel as never,
+      prismaService as never,
     );
   });
 
@@ -126,11 +118,13 @@ describe('BotsLivestreamDeliveryService', () => {
 
     const result = await service.deliverMessage(bot, target, 'Ship it live');
 
-    expect(credentialModel.findOne).toHaveBeenCalledWith({
-      _id: 'credential-id',
-      isConnected: true,
-      isDeleted: false,
-      organization: 'org-123',
+    expect(prismaService.credential.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'credential-id',
+        isConnected: true,
+        isDeleted: false,
+        organizationId: 'org-123',
+      },
     });
     expect(axiosPostMock).toHaveBeenCalledWith(
       'https://www.googleapis.com/youtube/v3/liveChat/messages?part=snippet',
@@ -262,7 +256,7 @@ describe('BotsLivestreamDeliveryService', () => {
   });
 
   it('throws when the target credential is missing', async () => {
-    credentialModel.findOne.mockReturnValue(createCredentialQueryMock(null));
+    prismaService.credential.findFirst.mockResolvedValue(null);
 
     const target = {
       channelId: 'youtube-channel-id',

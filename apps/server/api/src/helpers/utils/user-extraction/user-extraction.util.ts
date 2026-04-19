@@ -52,18 +52,12 @@ export class UserExtractionUtil {
     if (typeof userField === 'string') {
       dbUserId = userField;
     }
-    // Handle Types.ObjectId
-    else if (userField === '__never__') {
-      dbUserId = userField.toHexString();
-    }
     // Handle populated user document
     else if (typeof userField === 'object' && userField !== null) {
       const userDoc = userField as PopulatedUserDoc;
 
       // Extract _id
-      if (userDoc._id === '__never__') {
-        dbUserId = userDoc._id.toHexString();
-      } else if (typeof userDoc._id === 'string') {
+      if (typeof userDoc._id === 'string') {
         dbUserId = userDoc._id;
       }
 
@@ -97,15 +91,8 @@ export class UserExtractionUtil {
       return brandField;
     }
 
-    if (brandField === '__never__') {
-      return brandField.toHexString();
-    }
-
     if (typeof brandField === 'object' && brandField !== null) {
       const brandDoc = brandField as { _id?: string };
-      if (brandDoc._id === '__never__') {
-        return brandDoc._id.toHexString();
-      }
       if (typeof brandDoc._id === 'string') {
         return brandDoc._id;
       }

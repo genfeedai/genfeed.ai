@@ -223,7 +223,7 @@ export class VideosRelationshipsController {
         status: IngredientStatus.PROCESSING,
       });
 
-    const ingredientId = (ingredientData._id as string).toHexString();
+    const ingredientId = String(ingredientData._id);
     const websocketURL = WebSocketPaths.video(ingredientId);
 
     // Create activity to track merge progress

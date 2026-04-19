@@ -206,7 +206,7 @@ export class VideosUpscaleController {
         promptParams,
       );
 
-      const ingredientId = (ingredientData._id as string).toHexString();
+      const ingredientId = String(ingredientData._id);
       const websocketUrl = WebSocketPaths.video(ingredientId);
 
       if (externalId) {

@@ -166,7 +166,7 @@ describe('ContentGeneratorService', () => {
     const results = await service.generateContent(ORG_ID, dto as any);
 
     expect(patternStoreService.findOne).toHaveBeenCalledWith(
-      expect.objectContaining({ _id: expect.any(String) }),
+      expect.objectContaining({ id: expect.any(String) }),
     );
     expect(results.length).toBeGreaterThanOrEqual(1);
   });
@@ -199,7 +199,8 @@ describe('ContentGeneratorService', () => {
 
     expect(playbookBuilderService.findOne).toHaveBeenCalledWith(
       expect.objectContaining({
-        _id: expect.any(String),
+        id: expect.any(String),
+        isDeleted: false,
         organization: ORG_ID,
       }),
     );
