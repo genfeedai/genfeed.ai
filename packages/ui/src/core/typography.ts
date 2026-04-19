@@ -1,7 +1,6 @@
 export type TypographyTokenName =
   | 'fontSans'
   | 'fontSerif'
-  | 'fontSerifItalic'
   | 'fontSizeXs'
   | 'fontSizeSm'
   | 'fontSizeMd'
@@ -17,7 +16,6 @@ export type TypographyTokenName =
 export const typographyTokens = {
   fontSans: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
   fontSerif: "Georgia, 'Times New Roman', serif",
-  fontSerifItalic: "Georgia, 'Times New Roman', serif",
   fontSizeH1: '26px',
   fontSizeH2: '24px',
   fontSizeH3: '20px',

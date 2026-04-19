@@ -53,15 +53,12 @@
       "require": "./dist/*.js",
       "types": "./dist/*.d.ts"
     },
-    "./gen-vars.scss": "./gen-vars.scss",
-    "./presets/dark.scss": "./presets/dark.scss",
     "./web-tokens.scss": "./web-tokens.scss"
   },
   "files": [
     "dist",
     "presets",
-    "web-tokens.scss",
-    "gen-vars.scss"
+    "web-tokens.scss"
   ],
   "license": "MIT",
   "main": "./dist/index.js",
