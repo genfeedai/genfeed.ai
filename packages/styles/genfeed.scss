@@ -142,15 +142,6 @@
   animation: gen-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-@keyframes gen-pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
-}
-
 /* --------------------------------------------------------------------------
    Dividers
    -------------------------------------------------------------------------- */
@@ -379,6 +370,7 @@
 }
 
 /* Horizontal light bars (venetian blinds) */
+/* WARNING: Uses ::after — cannot be composed with .gen-spotlight-left or .gen-spotlight-right on the same element. Use a wrapper instead. */
 .gen-venetian {
   position: relative;
 
@@ -519,7 +511,7 @@
   background: hsl(var(--foreground));
   color: hsl(var(--gen-accent));
   transition: all 0.2s ease;
-  &:hover { background: rgba(0, 0, 0, 0.8); }
+  &:hover { background: color-mix(in srgb, hsl(var(--foreground)) 85%, transparent); }
 }
 
 /* Badge */
@@ -534,7 +526,7 @@
 .gen-text-bright  { color: hsl(var(--gen-accent-bright)); }
 .gen-text-heading { color: var(--gen-accent-heading); }
 .gen-text-muted   { color: var(--gen-accent-text); }
-.gen-text-subtle  { color: var(--gen-accent-text); opacity: 0.75; }
+.gen-text-subtle  { color: var(--gen-accent-heading); }
 
 /* Icon */
 .gen-icon { color: hsl(var(--gen-accent)); }
