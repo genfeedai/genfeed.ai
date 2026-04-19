@@ -421,7 +421,7 @@ export class GalleryViewProvider implements vscode.WebviewViewProvider {
       padding: 32px 16px;
     }
 
-    .loading-spinner {
+    .spinner {
       width: 24px;
       height: 24px;
       border: 2px solid var(--vscode-foreground);
@@ -461,7 +461,7 @@ export class GalleryViewProvider implements vscode.WebviewViewProvider {
     </div>
 
     <div id="loading-view" class="loading" style="display: none;">
-      <div class="loading-spinner"></div>
+      <div class="spinner"></div>
       <p>Loading media...</p>
     </div>
 

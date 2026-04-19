@@ -1,72 +1,65 @@
-@plugin "daisyui";
-
-/* LIGHT THEME */
-@plugin "daisyui/theme" {
-  name: 'light';
-
-  /* Brand */
+/* Light theme */
+:root {
   --color-primary: #000000;
   --color-primary-content: #ffffff;
-
-  /* Surfaces */
-  --color-base-100: #fafafa; /* cards and menu background */
-  --color-base-200: #ffffff; /* app background */
-  --color-base-300: #e5e7eb; /* borders */
-  --color-base-content: #111111; /* dark gray text */
-
-  /* Neutral text */
+  --color-base-100: #fafafa;
+  --color-base-200: #ffffff;
+  --color-base-300: #e5e7eb;
+  --color-base-content: #111111;
   --color-muted: #9ca3af;
   --color-muted-content: #f9fafb;
 }
 
-/* DARK THEME */
-@plugin "daisyui/theme" {
-  name: 'dark';
-
-  /* Brand */
+/* Dark theme */
+[data-theme='dark'] {
   --color-primary: #ffffff;
   --color-primary-content: #000000;
-
-  /* Surfaces */
-  --color-base-100: #0f0f0f; /* cards and menu background */
-  --color-base-200: #020202; /* app background */
-  --color-base-300: #1a1a1a; /* dividers */
-  --color-base-content: #e5e7eb; /* off-white text */
-
-  /* Neutral text */
+  --color-base-100: #0f0f0f;
+  --color-base-200: #020202;
+  --color-base-300: #1a1a1a;
+  --color-base-content: #e5e7eb;
   --color-muted: #6b7280;
   --color-muted-content: #f3f4f6;
 }
 
 /* App shell */
 .gf-app {
-  @apply min-h-screen bg-base-200 text-base-content transition-colors duration-300;
+  min-height: 100vh;
+  background: var(--color-base-200);
+  color: var(--color-base-content);
+  transition: background-color 300ms, color 300ms;
 }
 
 /* Cards */
 .gf-card {
-  @apply bg-base-100 border border-base-300 shadow-sm rounded-box transition-all duration-300;
+  background: var(--color-base-100);
+  border: 1px solid var(--color-base-300);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  border-radius: 8px;
+  transition: all 300ms;
 
   &:hover {
-    @apply shadow-md;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   }
 }
 
 /* Buttons */
-/* Secondary: soft ghost style with primary tint and better states */
+/* Secondary: soft ghost style with primary tint */
 .btn-secondary {
-  @apply btn-ghost bg-primary/5 text-primary border-transparent;
+  background: color-mix(in srgb, var(--color-primary) 5%, transparent);
+  color: var(--color-primary);
+  border: none;
 
   &:hover {
-    @apply bg-primary/20;
+    background: color-mix(in srgb, var(--color-primary) 20%, transparent);
   }
 
-  &:disabled,
-  &.btn-disabled {
-    @apply opacity-50;
+  &:disabled {
+    opacity: 0.5;
   }
 
   &:focus-visible {
-    @apply outline-none ring-2 ring-primary/20;
+    outline: none;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 20%, transparent);
   }
 }
