@@ -7,36 +7,43 @@
  * This file only layers on effect, overlay, platform, and accent variables.
  */
 
+/**
+ * Theme-invariant tokens — identical in light and dark, defined once here.
+ */
+:root {
+  --platform-instagram: #e1306c;
+  --platform-facebook: #1877f2;
+  --platform-twitter: #1da1f2;
+  --platform-linkedin: #0a66c2;
+  --platform-reddit: #ff4500;
+  --platform-pinterest: #e60023;
+  --platform-tiktok: #fe2c55;
+  --platform-tiktok-cyan: #25f4ee;
+  --platform-discord: #5865f2;
+
+  --overlay-white-5: rgba(255, 255, 255, 0.05);
+  --overlay-white-8: rgba(255, 255, 255, 0.08);
+  --overlay-white-10: rgba(255, 255, 255, 0.1);
+  --overlay-white-15: rgba(255, 255, 255, 0.15);
+  --overlay-white-20: rgba(255, 255, 255, 0.2);
+  --overlay-black-5: rgba(0, 0, 0, 0.05);
+  --overlay-black-10: rgba(0, 0, 0, 0.1);
+  --overlay-black-20: rgba(0, 0, 0, 0.2);
+  --overlay-black-60: rgba(0, 0, 0, 0.6);
+  --overlay-black-90: rgba(0, 0, 0, 0.9);
+
+  --accent-violet: #8b5cf6;
+  --accent-purple: #a855f7;
+  --accent-pink: #ec4899;
+  --accent-rose: #f472b6;
+  --accent-orange: #f97316;
+
+  --radius: 0.25rem;
+}
+
 @layer base {
   :root,
   [data-theme='light'] {
-    --platform-instagram: #e1306c;
-    --platform-facebook: #1877f2;
-    --platform-twitter: #1da1f2;
-    --platform-linkedin: #0a66c2;
-    --platform-reddit: #ff4500;
-    --platform-pinterest: #e60023;
-    --platform-tiktok: #fe2c55;
-    --platform-tiktok-cyan: #25f4ee;
-    --platform-discord: #5865f2;
-
-    --overlay-white-5: rgba(255, 255, 255, 0.05);
-    --overlay-white-8: rgba(255, 255, 255, 0.08);
-    --overlay-white-10: rgba(255, 255, 255, 0.1);
-    --overlay-white-15: rgba(255, 255, 255, 0.15);
-    --overlay-white-20: rgba(255, 255, 255, 0.2);
-    --overlay-black-5: rgba(0, 0, 0, 0.05);
-    --overlay-black-10: rgba(0, 0, 0, 0.1);
-    --overlay-black-20: rgba(0, 0, 0, 0.2);
-    --overlay-black-60: rgba(0, 0, 0, 0.6);
-    --overlay-black-90: rgba(0, 0, 0, 0.9);
-
-    --accent-violet: #8b5cf6;
-    --accent-purple: #a855f7;
-    --accent-pink: #ec4899;
-    --accent-rose: #f472b6;
-    --accent-orange: #f97316;
-
     --gen-accent: 0 0% 0%;
     --gen-accent-bright: 0 0% 15%;
     --gen-accent-bg: rgba(0, 0, 0, 0.03);
@@ -57,42 +64,16 @@
     --shadow-glow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
     --shadow-glow-lg: 0 8px 30px rgba(0, 0, 0, 0.1);
 
-    --nn-bg-glass: rgba(0, 0, 0, 0.02);
-    --nn-bg-glass-hover: rgba(0, 0, 0, 0.04);
-    --nn-border-subtle: rgba(0, 0, 0, 0.06);
-    --nn-border-hover: rgba(0, 0, 0, 0.12);
-    --nn-border-active: rgba(0, 0, 0, 0.2);
-    --radius: 0.25rem;
+    /* @deprecated — use --overlay-black-* and --gen-accent-* tokens instead.
+       Values are closest available approximations; originals noted in comments. */
+    --nn-bg-glass: var(--overlay-black-5); /* was rgba(0,0,0,0.02) */
+    --nn-bg-glass-hover: var(--overlay-black-10); /* was rgba(0,0,0,0.04) */
+    --nn-border-subtle: var(--gen-accent-border); /* was rgba(0,0,0,0.06) */
+    --nn-border-hover: var(--gen-accent-border-strong); /* was rgba(0,0,0,0.12) */
+    --nn-border-active: var(--gen-accent-selection); /* was rgba(0,0,0,0.2) — exact */
   }
 
   [data-theme='dark'] {
-    --platform-instagram: #e1306c;
-    --platform-facebook: #1877f2;
-    --platform-twitter: #1da1f2;
-    --platform-linkedin: #0a66c2;
-    --platform-reddit: #ff4500;
-    --platform-pinterest: #e60023;
-    --platform-tiktok: #fe2c55;
-    --platform-tiktok-cyan: #25f4ee;
-    --platform-discord: #5865f2;
-
-    --overlay-white-5: rgba(255, 255, 255, 0.05);
-    --overlay-white-8: rgba(255, 255, 255, 0.08);
-    --overlay-white-10: rgba(255, 255, 255, 0.1);
-    --overlay-white-15: rgba(255, 255, 255, 0.15);
-    --overlay-white-20: rgba(255, 255, 255, 0.2);
-    --overlay-black-5: rgba(0, 0, 0, 0.05);
-    --overlay-black-10: rgba(0, 0, 0, 0.1);
-    --overlay-black-20: rgba(0, 0, 0, 0.2);
-    --overlay-black-60: rgba(0, 0, 0, 0.6);
-    --overlay-black-90: rgba(0, 0, 0, 0.9);
-
-    --accent-violet: #8b5cf6;
-    --accent-purple: #a855f7;
-    --accent-pink: #ec4899;
-    --accent-rose: #f472b6;
-    --accent-orange: #f97316;
-
     --gen-accent: 0 0% 100%;
     --gen-accent-bright: 0 0% 90%;
     --gen-accent-bg: rgba(255, 255, 255, 0.05);
@@ -113,12 +94,12 @@
     --shadow-glow-md: 0 0 40px rgba(255, 255, 255, 0.12);
     --shadow-glow-lg: 0 0 60px rgba(255, 255, 255, 0.15);
 
-    --nn-bg-glass: rgba(255, 255, 255, 0.05);
-    --nn-bg-glass-hover: rgba(255, 255, 255, 0.08);
-    --nn-border-subtle: rgba(255, 255, 255, 0.08);
-    --nn-border-hover: rgba(255, 255, 255, 0.15);
-    --nn-border-active: rgba(255, 255, 255, 0.25);
-    --radius: 0.25rem;
+    /* @deprecated — use --overlay-white-* and --gen-accent-* tokens instead.
+       Values are closest available approximations; originals noted in comments. */
+    --nn-bg-glass: var(--overlay-white-5); /* exact */
+    --nn-bg-glass-hover: var(--overlay-white-8); /* exact */
+    --nn-border-subtle: var(--overlay-white-8); /* exact */
+    --nn-border-hover: var(--overlay-white-15); /* exact */
+    --nn-border-active: rgba(255, 255, 255, 0.25); /* no exact token; nearest is --overlay-white-20 */
   }
 }
-

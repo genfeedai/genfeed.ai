@@ -43,8 +43,12 @@ export const satoshi = localFont({
  * Download from: https://fontshare.com/fonts/zodiak
  *
  * Font files required in ./files/:
+ * - Zodiak-Light.woff2
+ * - Zodiak-LightItalic.woff2
  * - Zodiak-Regular.woff2
+ * - Zodiak-Italic.woff2
  * - Zodiak-Bold.woff2
+ * - Zodiak-BoldItalic.woff2
  */
 export const zodiak = localFont({
   display: 'swap',
