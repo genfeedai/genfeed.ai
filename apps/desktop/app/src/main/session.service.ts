@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto';
 import type {
   IDesktopEnvironment,
   IDesktopSession,
@@ -102,12 +101,17 @@ export class DesktopSessionService {
 
       const payload = (await response.json()) as AuthWhoamiResponse;
       const user = payload.data?.user;
+      const userId = user?.id;
+
+      if (!userId) {
+        return null;
+      }
 
       return this.setSession({
         issuedAt,
         token,
         userEmail: user?.email || undefined,
-        userId: user?.id || randomUUID(),
+        userId,
         userName: user?.name || undefined,
       });
     } catch {

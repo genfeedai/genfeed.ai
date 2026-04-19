@@ -42,7 +42,7 @@ interface SidebarProps {
   onNewThread: () => void;
   onOpenWorkspace: () => void;
   onLogout: () => void;
-  session: IDesktopSession;
+  session: IDesktopSession | null;
   syncState: IDesktopSyncState;
   threads: IDesktopThread[];
   workspaces: IDesktopWorkspace[];
@@ -231,11 +231,15 @@ export const Sidebar = ({
 
         <div className="user-info">
           <span className="user-avatar">
-            {(session.userName ?? session.userEmail ?? 'U')[0].toUpperCase()}
+            {session
+              ? (session.userName ?? session.userEmail ?? 'U')[0].toUpperCase()
+              : '?'}
           </span>
           <div className="user-details">
-            <span className="user-name">{session.userName ?? 'User'}</span>
-            <span className="user-email">{session.userEmail ?? ''}</span>
+            <span className="user-name">
+              {session?.userName ?? (session ? 'User' : 'Offline')}
+            </span>
+            <span className="user-email">{session?.userEmail ?? ''}</span>
           </div>
         </div>
 

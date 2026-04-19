@@ -152,7 +152,13 @@ function OnboardingGuardInner({ children }: OnboardingGuardProps) {
  * In Clerk mode, delegates to OnboardingGuardInner which runs the full redirect logic.
  */
 export default function OnboardingGuard({ children }: OnboardingGuardProps) {
+  // No Clerk keys → self-hosted mode, seed service handles onboarding state.
   if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
+    return <>{children}</>;
+  }
+
+  // Desktop shell without a cloud session → offline mode, skip onboarding gate.
+  if (process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1') {
     return <>{children}</>;
   }
 

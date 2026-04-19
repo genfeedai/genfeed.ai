@@ -41,19 +41,12 @@ export class BookmarksService extends BaseService<
       return null;
     }
 
-    const currentIngredients =
-      ((bookmark as Record<string, unknown>)
-        .generatedIngredients as string[]) ?? [];
-    const updatedIngredients = Array.from(
-      new Set([...currentIngredients, ingredientId]),
-    );
-
     const result = await this.delegate.update({
       where: { id: bookmarkId },
       data: {
-        generatedIngredients: updatedIngredients,
+        generatedIngredients: { connect: { id: ingredientId } },
         processedAt: new Date(),
-      } as Record<string, unknown>,
+      },
     });
 
     this.logOperation('addGeneratedIngredient', 'completed', {

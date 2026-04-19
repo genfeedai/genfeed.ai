@@ -7,6 +7,7 @@ import { Cloud, CloudOff, Monitor, X } from 'lucide-react';
 import { useState } from 'react';
 import { useCloudSession } from '@/hooks/useCloudSession';
 import { isHybridMode, isLocalOnly } from '@/lib/config/edition';
+import { getDesktopBridge, isDesktopShell } from '@/lib/desktop/runtime';
 import { cn } from '@/lib/utils';
 
 interface ModeIndicatorProps {
@@ -18,8 +19,10 @@ export default function ModeIndicator({
 }: ModeIndicatorProps) {
   const { isConnected } = useCloudSession();
   const [showSignIn, setShowSignIn] = useState(false);
+  const [isLaunching, setIsLaunching] = useState(false);
   const hybrid = isHybridMode();
   const local = isLocalOnly();
+  const desktop = isDesktopShell();
 
   if (!hybrid && !local) {
     return null;
@@ -43,12 +46,30 @@ export default function ModeIndicator({
   }
 
   if (hybrid) {
+    const handleConnectDesktop = async () => {
+      const bridge = getDesktopBridge();
+      if (!bridge) return;
+      setIsLaunching(true);
+      try {
+        await bridge.auth.login();
+      } finally {
+        setIsLaunching(false);
+      }
+    };
+
     return (
       <>
         <Button
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}
-          onClick={() => setShowSignIn(true)}
+          disabled={desktop && isLaunching}
+          onClick={() => {
+            if (desktop) {
+              void handleConnectDesktop();
+            } else {
+              setShowSignIn(true);
+            }
+          }}
           className={cn(
             'flex w-full items-center gap-2 rounded-lg px-2 py-1.5',
             'bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors cursor-pointer',
@@ -58,12 +79,12 @@ export default function ModeIndicator({
           <CloudOff className="h-3.5 w-3.5 shrink-0" />
           {!collapsed && (
             <span className="truncate text-xs font-medium">
-              Connect to Cloud
+              {desktop && isLaunching ? 'Opening Browser…' : 'Connect to Cloud'}
             </span>
           )}
         </Button>
 
-        {showSignIn && (
+        {!desktop && showSignIn && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
             <div className="relative">
               <Button

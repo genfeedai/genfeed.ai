@@ -14,6 +14,8 @@ type DesktopAuthSnapshot = {
   accessState: ProtectedAppBootstrapPayload['access'] | null;
   currentUser: IUser | null;
   isLoaded: boolean;
+  /** True when running in desktop shell with no active cloud session. */
+  isOfflineMode: boolean;
   session: {
     issuedAt: string;
     token: string;
@@ -52,6 +54,7 @@ const EMPTY_SNAPSHOT: DesktopAuthSnapshot = {
   accessState: null,
   currentUser: null,
   isLoaded: false,
+  isOfflineMode: false,
   session: null,
 };
 
@@ -152,6 +155,7 @@ async function refreshSnapshot(
               accessState: bootstrap.access,
               currentUser: bootstrap.currentUser,
               isLoaded: true,
+              isOfflineMode: false,
               session: {
                 issuedAt: new Date().toISOString(),
                 token: LOCAL_SESSION_TOKEN,
@@ -184,10 +188,13 @@ async function refreshSnapshot(
 
   if (!session) {
     if (generation === refreshGeneration) {
+      // No cloud session — desktop offline mode. Signal to auth guards that
+      // this is a valid state (not unauthenticated) so they don't redirect to /login.
       emit({
         accessState: null,
         currentUser: null,
         isLoaded: true,
+        isOfflineMode: true,
         session: null,
       });
     }
@@ -205,6 +212,7 @@ async function refreshSnapshot(
       accessState: null,
       currentUser: null,
       isLoaded: true,
+      isOfflineMode: false,
       session: null,
     });
     return;
@@ -214,6 +222,7 @@ async function refreshSnapshot(
     accessState: bootstrap.access,
     currentUser: bootstrap.currentUser,
     isLoaded: true,
+    isOfflineMode: false,
     session,
   });
 }
@@ -270,6 +279,7 @@ async function signOutDesktop(redirectUrl?: string): Promise<void> {
       accessState: null,
       currentUser: null,
       isLoaded: true,
+      isOfflineMode: false,
       session: null,
     });
 
@@ -303,10 +313,13 @@ export function ClerkProvider({
   return children;
 }
 
+function isSnapshotSignedIn(s: DesktopAuthSnapshot): boolean {
+  return s.session !== null || s.accessState !== null || s.isOfflineMode;
+}
+
 export function useAuth() {
   const currentSnapshot = useDesktopSnapshot();
-  const isSignedIn =
-    currentSnapshot.session !== null || currentSnapshot.accessState !== null;
+  const isSignedIn = isSnapshotSignedIn(currentSnapshot);
 
   return useMemo(
     () => ({
@@ -345,9 +358,7 @@ export function useUser(): {
 
     return {
       isLoaded: currentSnapshot.isLoaded,
-      isSignedIn:
-        currentSnapshot.session !== null ||
-        currentSnapshot.accessState !== null,
+      isSignedIn: isSnapshotSignedIn(currentSnapshot),
       user,
     };
   }, [currentSnapshot]);
@@ -363,9 +374,7 @@ export function useSession(): {
   return useMemo(
     () => ({
       isLoaded: currentSnapshot.isLoaded,
-      isSignedIn:
-        currentSnapshot.session !== null ||
-        currentSnapshot.accessState !== null,
+      isSignedIn: isSnapshotSignedIn(currentSnapshot),
       session: currentSnapshot.session
         ? {
             id: getDesktopSessionId(currentSnapshot.session.token) ?? '',

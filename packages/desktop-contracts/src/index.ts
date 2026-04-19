@@ -160,7 +160,11 @@ export interface IDesktopPreferences {
 /* ─── Bootstrap ─── */
 
 export interface IDesktopBootstrap {
+  /** Clerk user ID persisted locally after first sign-in — survives sign-out and token expiry. Null if never signed in. */
+  clerkId: string | null;
   environment: IDesktopEnvironment;
+  /** Stable local UUID generated on first boot — never changes, even across sign-out. Sync anchor for Phase 2 PGlite. */
+  localUserId: string;
   preferences: IDesktopPreferences;
   recents: IDesktopRecentItem[];
   session: IDesktopSession | null;

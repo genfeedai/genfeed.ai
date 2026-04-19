@@ -23,7 +23,7 @@ export interface ServiceHealth {
 @Injectable()
 export class MicroservicesService implements OnModuleInit {
   private readonly constructorName: string = String(this.constructor.name);
-  private redisClient!: RedisClientType;
+  private redisClient: RedisClientType | null = null;
   private servicesConfig!: Map<string, { url: string; required: boolean }>;
 
   constructor(
@@ -78,6 +78,13 @@ export class MicroservicesService implements OnModuleInit {
   }
 
   private async initializeRedis() {
+    if (!process.env.REDIS_URL) {
+      this.loggerService.warn(
+        `${this.constructorName} initializeRedis: REDIS_URL not set — skipping (offline/self-hosted mode)`,
+      );
+      return;
+    }
+
     const config = parseRedisConnection(this.configService);
 
     this.loggerService.log(
@@ -114,6 +121,10 @@ export class MicroservicesService implements OnModuleInit {
   }
 
   async checkRedisHealth(): Promise<boolean> {
+    if (!this.redisClient) {
+      return false;
+    }
+
     try {
       await this.redisClient.ping();
       return true;
@@ -197,12 +208,18 @@ export class MicroservicesService implements OnModuleInit {
 
     this.loggerService.log(`${url} checking services in ${nodeEnv} mode`);
 
-    const redisHealthy = await this.checkRedisHealth();
-    if (!redisHealthy) {
-      const message =
-        'Redis is not available. Redis is required for all environments.';
-      this.loggerService.error(message, url);
-      throw new HttpException(message, HttpStatus.SERVICE_UNAVAILABLE);
+    if (process.env.REDIS_URL) {
+      const redisHealthy = await this.checkRedisHealth();
+      if (!redisHealthy) {
+        const message =
+          'Redis is not available. Redis is required for all environments.';
+        this.loggerService.error(message, url);
+        throw new HttpException(message, HttpStatus.SERVICE_UNAVAILABLE);
+      }
+    } else {
+      this.loggerService.warn(
+        `${url} REDIS_URL not set — skipping Redis health check (offline/self-hosted mode)`,
+      );
     }
 
     // Skip microservice health checks in development/localhost

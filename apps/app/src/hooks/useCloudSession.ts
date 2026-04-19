@@ -14,8 +14,9 @@ export function useCloudSession() {
   const auth = useOptionalAuth();
 
   return {
-    /** True if the user has an active Clerk session */
-    isConnected: auth.isSignedIn === true,
+    /** True if the user has an active cloud session (signed in with a real user ID).
+     * In desktop offline mode isSignedIn is true to bypass guards, but userId is null — not cloud-connected. */
+    isConnected: auth.isSignedIn === true && auth.userId !== null,
     /** True if Clerk is configured (hybrid or full cloud mode) */
     isCapable: isHybridMode() || isCloudConnected(),
     /** Current Clerk user ID, or null when not signed in */

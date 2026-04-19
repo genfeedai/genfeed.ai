@@ -1,3 +1,6 @@
+-- CreateSchema
+CREATE SCHEMA IF NOT EXISTS "public";
+
 -- CreateEnum
 CREATE TYPE "AppSource" AS ENUM ('GENFEED', 'GETSHAREABLE');
 
@@ -175,6 +178,7 @@ CREATE TYPE "BatchStatus" AS ENUM ('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED
 -- CreateTable
 CREATE TABLE "users" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "clerkId" TEXT,
     "handle" TEXT NOT NULL,
     "firstName" TEXT,
@@ -200,6 +204,7 @@ CREATE TABLE "users" (
 -- CreateTable
 CREATE TABLE "organizations" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "userId" TEXT NOT NULL,
     "label" TEXT NOT NULL,
     "slug" TEXT NOT NULL,
@@ -221,6 +226,7 @@ CREATE TABLE "organizations" (
 -- CreateTable
 CREATE TABLE "brands" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "userId" TEXT,
     "organizationId" TEXT NOT NULL,
     "voiceIngredientId" TEXT,
@@ -255,6 +261,7 @@ CREATE TABLE "brands" (
 -- CreateTable
 CREATE TABLE "members" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "roleId" TEXT NOT NULL,
@@ -270,6 +277,7 @@ CREATE TABLE "members" (
 -- CreateTable
 CREATE TABLE "roles" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "label" TEXT NOT NULL,
     "key" TEXT NOT NULL,
     "primaryColor" TEXT,
@@ -283,6 +291,7 @@ CREATE TABLE "roles" (
 -- CreateTable
 CREATE TABLE "settings" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "userId" TEXT NOT NULL,
     "theme" TEXT NOT NULL DEFAULT 'dark',
     "isVerified" BOOLEAN NOT NULL DEFAULT false,
@@ -316,6 +325,7 @@ CREATE TABLE "settings" (
 -- CreateTable
 CREATE TABLE "organization_settings" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "isFirstLogin" BOOLEAN NOT NULL DEFAULT true,
     "isWhitelabelEnabled" BOOLEAN NOT NULL DEFAULT false,
@@ -377,6 +387,7 @@ CREATE TABLE "organization_settings" (
 -- CreateTable
 CREATE TABLE "credentials" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT,
     "brandId" TEXT,
     "userId" TEXT,
@@ -408,6 +419,7 @@ CREATE TABLE "credentials" (
 -- CreateTable
 CREATE TABLE "api_keys" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "userId" TEXT NOT NULL,
     "organizationId" TEXT NOT NULL,
     "key" TEXT NOT NULL,
@@ -434,6 +446,7 @@ CREATE TABLE "api_keys" (
 -- CreateTable
 CREATE TABLE "org_integrations" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "platform" "IntegrationPlatform" NOT NULL,
     "encryptedToken" TEXT NOT NULL,
@@ -451,6 +464,7 @@ CREATE TABLE "org_integrations" (
 -- CreateTable
 CREATE TABLE "ingredients" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "userId" TEXT,
     "organizationId" TEXT,
     "brandId" TEXT,
@@ -527,6 +541,7 @@ CREATE TABLE "ingredients" (
 -- CreateTable
 CREATE TABLE "metadata" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "label" TEXT NOT NULL,
     "description" TEXT NOT NULL DEFAULT 'Default Description',
     "promptId" TEXT,
@@ -558,6 +573,7 @@ CREATE TABLE "metadata" (
 -- CreateTable
 CREATE TABLE "prompts" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT,
     "brandId" TEXT,
     "userId" TEXT NOT NULL,
@@ -594,6 +610,7 @@ CREATE TABLE "prompts" (
 -- CreateTable
 CREATE TABLE "folders" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "userId" TEXT NOT NULL,
     "organizationId" TEXT NOT NULL,
     "brandId" TEXT,
@@ -610,6 +627,7 @@ CREATE TABLE "folders" (
 -- CreateTable
 CREATE TABLE "tags" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "userId" TEXT,
     "organizationId" TEXT,
     "brandId" TEXT,
@@ -630,6 +648,7 @@ CREATE TABLE "tags" (
 -- CreateTable
 CREATE TABLE "bookmarks" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "userId" TEXT NOT NULL,
     "organizationId" TEXT NOT NULL,
     "brandId" TEXT,
@@ -658,6 +677,7 @@ CREATE TABLE "bookmarks" (
 -- CreateTable
 CREATE TABLE "assets" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "userId" TEXT NOT NULL,
     "parentType" "AssetParent" NOT NULL,
     "parentOrgId" TEXT,
@@ -676,6 +696,7 @@ CREATE TABLE "assets" (
 -- CreateTable
 CREATE TABLE "links" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "brandId" TEXT NOT NULL,
     "label" TEXT NOT NULL,
     "category" "LinkCategory" NOT NULL,
@@ -690,6 +711,7 @@ CREATE TABLE "links" (
 -- CreateTable
 CREATE TABLE "tracked_links" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "brandId" TEXT,
     "contentId" TEXT,
@@ -714,6 +736,7 @@ CREATE TABLE "tracked_links" (
 -- CreateTable
 CREATE TABLE "link_clicks" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "linkId" TEXT NOT NULL,
     "timestamp" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "sessionId" TEXT NOT NULL,
@@ -732,6 +755,7 @@ CREATE TABLE "link_clicks" (
 -- CreateTable
 CREATE TABLE "posts" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "entityIngredientId" TEXT,
     "entityArticleId" TEXT,
     "entityModel" "PostEntityModel",
@@ -800,6 +824,7 @@ CREATE TABLE "posts" (
 -- CreateTable
 CREATE TABLE "post_analytics" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "postId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "organizationId" TEXT NOT NULL,
@@ -826,6 +851,7 @@ CREATE TABLE "post_analytics" (
 -- CreateTable
 CREATE TABLE "schedules" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "brandId" TEXT,
@@ -844,6 +870,7 @@ CREATE TABLE "schedules" (
 -- CreateTable
 CREATE TABLE "content_schedules" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "brandId" TEXT,
     "config" JSONB NOT NULL DEFAULT '{}',
@@ -858,6 +885,7 @@ CREATE TABLE "content_schedules" (
 -- CreateTable
 CREATE TABLE "distributions" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "brandId" TEXT,
@@ -874,6 +902,7 @@ CREATE TABLE "distributions" (
 -- CreateTable
 CREATE TABLE "repurposing_jobs" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "config" JSONB NOT NULL DEFAULT '{}',
@@ -888,6 +917,7 @@ CREATE TABLE "repurposing_jobs" (
 -- CreateTable
 CREATE TABLE "customers" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "stripeCustomerId" TEXT,
     "isDeleted" BOOLEAN NOT NULL DEFAULT false,
@@ -900,6 +930,7 @@ CREATE TABLE "customers" (
 -- CreateTable
 CREATE TABLE "subscriptions" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "customerId" TEXT,
@@ -920,6 +951,7 @@ CREATE TABLE "subscriptions" (
 -- CreateTable
 CREATE TABLE "user_subscriptions" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "userId" TEXT NOT NULL,
     "stripeSubscriptionId" TEXT,
     "stripePriceId" TEXT,
@@ -938,6 +970,7 @@ CREATE TABLE "user_subscriptions" (
 -- CreateTable
 CREATE TABLE "subscription_attributions" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "sourceContentId" TEXT,
@@ -954,6 +987,7 @@ CREATE TABLE "subscription_attributions" (
 -- CreateTable
 CREATE TABLE "credit_balances" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "balance" DOUBLE PRECISION NOT NULL DEFAULT 0,
     "isDeleted" BOOLEAN NOT NULL DEFAULT false,
@@ -966,6 +1000,7 @@ CREATE TABLE "credit_balances" (
 -- CreateTable
 CREATE TABLE "credit_transactions" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "amount" DOUBLE PRECISION NOT NULL,
     "balanceAfter" DOUBLE PRECISION,
@@ -984,6 +1019,7 @@ CREATE TABLE "credit_transactions" (
 -- CreateTable
 CREATE TABLE "customer_instances" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT,
     "config" JSONB NOT NULL DEFAULT '{}',
     "status" TEXT,
@@ -997,6 +1033,7 @@ CREATE TABLE "customer_instances" (
 -- CreateTable
 CREATE TABLE "articles" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "userId" TEXT NOT NULL,
     "organizationId" TEXT NOT NULL,
     "brandId" TEXT,
@@ -1017,6 +1054,7 @@ CREATE TABLE "articles" (
 -- CreateTable
 CREATE TABLE "article_analytics" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "articleId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "organizationId" TEXT NOT NULL,
@@ -1037,6 +1075,7 @@ CREATE TABLE "article_analytics" (
 -- CreateTable
 CREATE TABLE "newsletters" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "userId" TEXT NOT NULL,
     "organizationId" TEXT NOT NULL,
     "brandId" TEXT,
@@ -1058,6 +1097,7 @@ CREATE TABLE "newsletters" (
 -- CreateTable
 CREATE TABLE "transcripts" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "userId" TEXT NOT NULL,
     "organizationId" TEXT NOT NULL,
     "articleId" TEXT,
@@ -1073,6 +1113,7 @@ CREATE TABLE "transcripts" (
 -- CreateTable
 CREATE TABLE "trainings" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "userId" TEXT NOT NULL,
     "organizationId" TEXT NOT NULL,
     "brandId" TEXT,
@@ -1092,6 +1133,7 @@ CREATE TABLE "trainings" (
 -- CreateTable
 CREATE TABLE "models" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "trainingId" TEXT,
     "parentModelId" TEXT,
@@ -1109,6 +1151,7 @@ CREATE TABLE "models" (
 -- CreateTable
 CREATE TABLE "personas" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "userId" TEXT NOT NULL,
     "organizationId" TEXT NOT NULL,
     "brandId" TEXT,
@@ -1131,6 +1174,7 @@ CREATE TABLE "personas" (
 -- CreateTable
 CREATE TABLE "agent_threads" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "userId" TEXT NOT NULL,
     "organizationId" TEXT NOT NULL,
     "title" TEXT,
@@ -1145,6 +1189,7 @@ CREATE TABLE "agent_threads" (
 -- CreateTable
 CREATE TABLE "agent_messages" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "threadId" TEXT NOT NULL,
     "organizationId" TEXT NOT NULL,
     "userId" TEXT,
@@ -1164,6 +1209,7 @@ CREATE TABLE "agent_messages" (
 -- CreateTable
 CREATE TABLE "agent_runs" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "strategyId" TEXT,
@@ -1186,6 +1232,7 @@ CREATE TABLE "agent_runs" (
 -- CreateTable
 CREATE TABLE "agent_strategies" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "brandId" TEXT,
@@ -1205,6 +1252,7 @@ CREATE TABLE "agent_strategies" (
 -- CreateTable
 CREATE TABLE "agent_strategy_opportunities" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "strategyId" TEXT NOT NULL,
     "organizationId" TEXT NOT NULL,
     "brandId" TEXT,
@@ -1219,6 +1267,7 @@ CREATE TABLE "agent_strategy_opportunities" (
 -- CreateTable
 CREATE TABLE "agent_strategy_reports" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "strategyId" TEXT NOT NULL,
     "organizationId" TEXT NOT NULL,
     "brandId" TEXT,
@@ -1233,6 +1282,7 @@ CREATE TABLE "agent_strategy_reports" (
 -- CreateTable
 CREATE TABLE "agent_campaigns" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "brandId" TEXT,
@@ -1250,6 +1300,7 @@ CREATE TABLE "agent_campaigns" (
 -- CreateTable
 CREATE TABLE "agent_goals" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "brandId" TEXT,
@@ -1266,6 +1317,7 @@ CREATE TABLE "agent_goals" (
 -- CreateTable
 CREATE TABLE "agent_memories" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "brandId" TEXT,
@@ -1282,6 +1334,7 @@ CREATE TABLE "agent_memories" (
 -- CreateTable
 CREATE TABLE "agent_thread_events" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "threadId" TEXT NOT NULL,
     "sequence" INTEGER NOT NULL,
@@ -1299,6 +1352,7 @@ CREATE TABLE "agent_thread_events" (
 -- CreateTable
 CREATE TABLE "agent_thread_snapshots" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "threadId" TEXT NOT NULL,
     "data" JSONB NOT NULL DEFAULT '{}',
@@ -1312,6 +1366,7 @@ CREATE TABLE "agent_thread_snapshots" (
 -- CreateTable
 CREATE TABLE "thread_context_states" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "threadId" TEXT NOT NULL,
     "data" JSONB NOT NULL DEFAULT '{}',
@@ -1325,6 +1380,7 @@ CREATE TABLE "thread_context_states" (
 -- CreateTable
 CREATE TABLE "agent_workflows" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "label" TEXT,
@@ -1340,6 +1396,7 @@ CREATE TABLE "agent_workflows" (
 -- CreateTable
 CREATE TABLE "workflows" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "userId" TEXT NOT NULL,
     "organizationId" TEXT NOT NULL,
     "label" TEXT,
@@ -1360,6 +1417,7 @@ CREATE TABLE "workflows" (
 -- CreateTable
 CREATE TABLE "workflow_executions" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "workflowId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "organizationId" TEXT NOT NULL,
@@ -1378,6 +1436,7 @@ CREATE TABLE "workflow_executions" (
 -- CreateTable
 CREATE TABLE "batch_workflow_jobs" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "workflowId" TEXT NOT NULL,
@@ -1393,6 +1452,7 @@ CREATE TABLE "batch_workflow_jobs" (
 -- CreateTable
 CREATE TABLE "content_runs" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "brandId" TEXT,
     "config" JSONB NOT NULL DEFAULT '{}',
@@ -1407,6 +1467,7 @@ CREATE TABLE "content_runs" (
 -- CreateTable
 CREATE TABLE "cron_jobs" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "label" TEXT,
@@ -1425,6 +1486,7 @@ CREATE TABLE "cron_jobs" (
 -- CreateTable
 CREATE TABLE "cron_runs" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "cronJobId" TEXT NOT NULL,
     "organizationId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
@@ -1443,6 +1505,7 @@ CREATE TABLE "cron_runs" (
 -- CreateTable
 CREATE TABLE "tasks" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "brandId" TEXT,
     "userId" TEXT,
@@ -1466,6 +1529,7 @@ CREATE TABLE "tasks" (
 -- CreateTable
 CREATE TABLE "task_comments" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "taskId" TEXT NOT NULL,
     "content" TEXT,
@@ -1480,6 +1544,7 @@ CREATE TABLE "task_comments" (
 -- CreateTable
 CREATE TABLE "task_counters" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "counter" INTEGER NOT NULL DEFAULT 0,
     "isDeleted" BOOLEAN NOT NULL DEFAULT false,
@@ -1492,6 +1557,7 @@ CREATE TABLE "task_counters" (
 -- CreateTable
 CREATE TABLE "bots" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "brandId" TEXT,
     "userId" TEXT NOT NULL,
@@ -1510,6 +1576,7 @@ CREATE TABLE "bots" (
 -- CreateTable
 CREATE TABLE "bot_activities" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "brandId" TEXT,
     "userId" TEXT NOT NULL,
@@ -1526,6 +1593,7 @@ CREATE TABLE "bot_activities" (
 -- CreateTable
 CREATE TABLE "reply_bot_configs" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "brandId" TEXT,
     "userId" TEXT NOT NULL,
@@ -1540,6 +1608,7 @@ CREATE TABLE "reply_bot_configs" (
 -- CreateTable
 CREATE TABLE "monitored_accounts" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "brandId" TEXT,
     "userId" TEXT NOT NULL,
@@ -1556,6 +1625,7 @@ CREATE TABLE "monitored_accounts" (
 -- CreateTable
 CREATE TABLE "processed_tweets" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "replyBotConfigId" TEXT,
     "botActivityId" TEXT,
@@ -1572,6 +1642,7 @@ CREATE TABLE "processed_tweets" (
 -- CreateTable
 CREATE TABLE "content_performance" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "brandId" TEXT,
     "userId" TEXT,
@@ -1592,6 +1663,7 @@ CREATE TABLE "content_performance" (
 -- CreateTable
 CREATE TABLE "content_patterns" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "sourceCreatorId" TEXT,
     "data" JSONB NOT NULL DEFAULT '{}',
@@ -1605,6 +1677,7 @@ CREATE TABLE "content_patterns" (
 -- CreateTable
 CREATE TABLE "creator_analyses" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "createdById" TEXT,
     "data" JSONB NOT NULL DEFAULT '{}',
@@ -1618,6 +1691,7 @@ CREATE TABLE "creator_analyses" (
 -- CreateTable
 CREATE TABLE "pattern_playbooks" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "createdById" TEXT,
     "data" JSONB NOT NULL DEFAULT '{}',
@@ -1631,6 +1705,7 @@ CREATE TABLE "pattern_playbooks" (
 -- CreateTable
 CREATE TABLE "creative_patterns" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "brandId" TEXT,
     "data" JSONB NOT NULL DEFAULT '{}',
@@ -1644,6 +1719,7 @@ CREATE TABLE "creative_patterns" (
 -- CreateTable
 CREATE TABLE "content_drafts" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "brandId" TEXT,
     "contentRunId" TEXT,
@@ -1660,6 +1736,7 @@ CREATE TABLE "content_drafts" (
 -- CreateTable
 CREATE TABLE "content_plans" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "brandId" TEXT,
     "createdById" TEXT,
@@ -1675,6 +1752,7 @@ CREATE TABLE "content_plans" (
 -- CreateTable
 CREATE TABLE "content_plan_items" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "planId" TEXT NOT NULL,
     "brandId" TEXT,
@@ -1689,6 +1767,7 @@ CREATE TABLE "content_plan_items" (
 -- CreateTable
 CREATE TABLE "content_scores" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "data" JSONB NOT NULL DEFAULT '{}',
     "isDeleted" BOOLEAN NOT NULL DEFAULT false,
@@ -1701,6 +1780,7 @@ CREATE TABLE "content_scores" (
 -- CreateTable
 CREATE TABLE "optimizations" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "scoreId" TEXT,
@@ -1715,6 +1795,7 @@ CREATE TABLE "optimizations" (
 -- CreateTable
 CREATE TABLE "evaluations" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "contentType" TEXT,
@@ -1730,6 +1811,7 @@ CREATE TABLE "evaluations" (
 -- CreateTable
 CREATE TABLE "activities" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "userId" TEXT,
     "organizationId" TEXT,
     "brandId" TEXT,
@@ -1747,6 +1829,7 @@ CREATE TABLE "activities" (
 -- CreateTable
 CREATE TABLE "insights" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "data" JSONB NOT NULL DEFAULT '{}',
     "isDeleted" BOOLEAN NOT NULL DEFAULT false,
@@ -1759,6 +1842,7 @@ CREATE TABLE "insights" (
 -- CreateTable
 CREATE TABLE "forecasts" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "data" JSONB NOT NULL DEFAULT '{}',
@@ -1772,6 +1856,7 @@ CREATE TABLE "forecasts" (
 -- CreateTable
 CREATE TABLE "ad_bulk_upload_jobs" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "brandId" TEXT,
     "credentialId" TEXT,
@@ -1786,6 +1871,7 @@ CREATE TABLE "ad_bulk_upload_jobs" (
 -- CreateTable
 CREATE TABLE "ad_creative_mappings" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "brandId" TEXT,
     "data" JSONB NOT NULL DEFAULT '{}',
@@ -1799,6 +1885,7 @@ CREATE TABLE "ad_creative_mappings" (
 -- CreateTable
 CREATE TABLE "ad_insights" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "data" JSONB NOT NULL DEFAULT '{}',
     "isDeleted" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -1810,6 +1897,7 @@ CREATE TABLE "ad_insights" (
 -- CreateTable
 CREATE TABLE "ad_optimization_audit_logs" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "data" JSONB NOT NULL DEFAULT '{}',
     "isDeleted" BOOLEAN NOT NULL DEFAULT false,
@@ -1822,6 +1910,7 @@ CREATE TABLE "ad_optimization_audit_logs" (
 -- CreateTable
 CREATE TABLE "ad_optimization_configs" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "config" JSONB NOT NULL DEFAULT '{}',
     "isDeleted" BOOLEAN NOT NULL DEFAULT false,
@@ -1834,6 +1923,7 @@ CREATE TABLE "ad_optimization_configs" (
 -- CreateTable
 CREATE TABLE "ad_optimization_recommendations" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "data" JSONB NOT NULL DEFAULT '{}',
     "isDeleted" BOOLEAN NOT NULL DEFAULT false,
@@ -1846,6 +1936,7 @@ CREATE TABLE "ad_optimization_recommendations" (
 -- CreateTable
 CREATE TABLE "ad_performance" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "brandId" TEXT,
     "credentialId" TEXT,
@@ -1860,6 +1951,7 @@ CREATE TABLE "ad_performance" (
 -- CreateTable
 CREATE TABLE "trends" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "brandId" TEXT,
     "data" JSONB NOT NULL DEFAULT '{}',
@@ -1873,6 +1965,7 @@ CREATE TABLE "trends" (
 -- CreateTable
 CREATE TABLE "trending_hashtags" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "data" JSONB NOT NULL DEFAULT '{}',
     "isDeleted" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -1884,6 +1977,7 @@ CREATE TABLE "trending_hashtags" (
 -- CreateTable
 CREATE TABLE "trending_sounds" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "data" JSONB NOT NULL DEFAULT '{}',
     "isDeleted" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -1895,6 +1989,7 @@ CREATE TABLE "trending_sounds" (
 -- CreateTable
 CREATE TABLE "trending_videos" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "data" JSONB NOT NULL DEFAULT '{}',
     "isDeleted" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -1906,6 +2001,7 @@ CREATE TABLE "trending_videos" (
 -- CreateTable
 CREATE TABLE "trend_preferences" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "brandId" TEXT,
     "config" JSONB NOT NULL DEFAULT '{}',
@@ -1919,6 +2015,7 @@ CREATE TABLE "trend_preferences" (
 -- CreateTable
 CREATE TABLE "trend_remix_lineages" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "brandId" TEXT,
     "contentDraftId" TEXT,
@@ -1934,6 +2031,7 @@ CREATE TABLE "trend_remix_lineages" (
 -- CreateTable
 CREATE TABLE "trend_source_references" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "data" JSONB NOT NULL DEFAULT '{}',
     "isDeleted" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -1945,6 +2043,7 @@ CREATE TABLE "trend_source_references" (
 -- CreateTable
 CREATE TABLE "trend_source_reference_links" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "trendId" TEXT,
     "sourceReferenceId" TEXT,
     "isDeleted" BOOLEAN NOT NULL DEFAULT false,
@@ -1957,6 +2056,7 @@ CREATE TABLE "trend_source_reference_links" (
 -- CreateTable
 CREATE TABLE "trend_source_reference_snapshots" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "sourceReferenceId" TEXT,
     "data" JSONB NOT NULL DEFAULT '{}',
     "isDeleted" BOOLEAN NOT NULL DEFAULT false,
@@ -1969,6 +2069,7 @@ CREATE TABLE "trend_source_reference_snapshots" (
 -- CreateTable
 CREATE TABLE "outreach_campaigns" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "userId" TEXT,
     "brandId" TEXT,
@@ -1984,6 +2085,7 @@ CREATE TABLE "outreach_campaigns" (
 -- CreateTable
 CREATE TABLE "campaign_targets" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "campaignId" TEXT NOT NULL,
     "status" "CampaignTargetStatus" NOT NULL DEFAULT 'PENDING',
@@ -1998,6 +2100,7 @@ CREATE TABLE "campaign_targets" (
 -- CreateTable
 CREATE TABLE "elements_blacklists" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "key" TEXT,
     "label" TEXT,
@@ -2012,6 +2115,7 @@ CREATE TABLE "elements_blacklists" (
 -- CreateTable
 CREATE TABLE "elements_cameras" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "key" TEXT,
     "label" TEXT,
@@ -2026,6 +2130,7 @@ CREATE TABLE "elements_cameras" (
 -- CreateTable
 CREATE TABLE "elements_camera_movements" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "key" TEXT,
     "label" TEXT,
@@ -2040,6 +2145,7 @@ CREATE TABLE "elements_camera_movements" (
 -- CreateTable
 CREATE TABLE "elements_lenses" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "key" TEXT,
     "label" TEXT,
@@ -2054,6 +2160,7 @@ CREATE TABLE "elements_lenses" (
 -- CreateTable
 CREATE TABLE "elements_lightings" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "key" TEXT,
     "label" TEXT,
@@ -2068,6 +2175,7 @@ CREATE TABLE "elements_lightings" (
 -- CreateTable
 CREATE TABLE "elements_moods" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "key" TEXT,
     "label" TEXT,
@@ -2082,6 +2190,7 @@ CREATE TABLE "elements_moods" (
 -- CreateTable
 CREATE TABLE "elements_scenes" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "key" TEXT,
     "label" TEXT,
@@ -2096,6 +2205,7 @@ CREATE TABLE "elements_scenes" (
 -- CreateTable
 CREATE TABLE "elements_sounds" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "key" TEXT,
     "label" TEXT,
@@ -2110,6 +2220,7 @@ CREATE TABLE "elements_sounds" (
 -- CreateTable
 CREATE TABLE "elements_styles" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "key" TEXT,
     "label" TEXT,
@@ -2124,6 +2235,7 @@ CREATE TABLE "elements_styles" (
 -- CreateTable
 CREATE TABLE "font_families" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "key" TEXT,
     "label" TEXT,
@@ -2138,6 +2250,7 @@ CREATE TABLE "font_families" (
 -- CreateTable
 CREATE TABLE "presets" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "brandId" TEXT,
     "config" JSONB NOT NULL DEFAULT '{}',
@@ -2151,6 +2264,7 @@ CREATE TABLE "presets" (
 -- CreateTable
 CREATE TABLE "captions" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "userId" TEXT NOT NULL,
     "ingredientId" TEXT,
     "agentRunId" TEXT,
@@ -2166,6 +2280,7 @@ CREATE TABLE "captions" (
 -- CreateTable
 CREATE TABLE "clip_projects" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "brandId" TEXT,
     "config" JSONB NOT NULL DEFAULT '{}',
@@ -2179,6 +2294,7 @@ CREATE TABLE "clip_projects" (
 -- CreateTable
 CREATE TABLE "clip_results" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "data" JSONB NOT NULL DEFAULT '{}',
     "isDeleted" BOOLEAN NOT NULL DEFAULT false,
@@ -2191,6 +2307,7 @@ CREATE TABLE "clip_results" (
 -- CreateTable
 CREATE TABLE "editor_projects" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "brandId" TEXT,
     "userId" TEXT NOT NULL,
@@ -2207,6 +2324,7 @@ CREATE TABLE "editor_projects" (
 -- CreateTable
 CREATE TABLE "brand_memories" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "brandId" TEXT,
     "content" TEXT,
@@ -2222,6 +2340,7 @@ CREATE TABLE "brand_memories" (
 -- CreateTable
 CREATE TABLE "context_bases" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "createdById" TEXT,
     "sourceBrandId" TEXT,
@@ -2236,6 +2355,7 @@ CREATE TABLE "context_bases" (
 -- CreateTable
 CREATE TABLE "context_entries" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "contextBaseId" TEXT NOT NULL,
     "organizationId" TEXT NOT NULL,
     "data" JSONB NOT NULL DEFAULT '{}',
@@ -2249,6 +2369,7 @@ CREATE TABLE "context_entries" (
 -- CreateTable
 CREATE TABLE "skills" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "label" TEXT,
     "config" JSONB NOT NULL DEFAULT '{}',
@@ -2262,6 +2383,7 @@ CREATE TABLE "skills" (
 -- CreateTable
 CREATE TABLE "skill_receipts" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "data" JSONB NOT NULL DEFAULT '{}',
     "isDeleted" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -2273,6 +2395,7 @@ CREATE TABLE "skill_receipts" (
 -- CreateTable
 CREATE TABLE "templates" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "label" TEXT,
     "config" JSONB NOT NULL DEFAULT '{}',
@@ -2286,6 +2409,7 @@ CREATE TABLE "templates" (
 -- CreateTable
 CREATE TABLE "template_metadata" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "templateId" TEXT NOT NULL,
     "data" JSONB NOT NULL DEFAULT '{}',
     "isDeleted" BOOLEAN NOT NULL DEFAULT false,
@@ -2298,6 +2422,7 @@ CREATE TABLE "template_metadata" (
 -- CreateTable
 CREATE TABLE "template_usages" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "templateId" TEXT NOT NULL,
@@ -2310,6 +2435,7 @@ CREATE TABLE "template_usages" (
 -- CreateTable
 CREATE TABLE "votes" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "userId" TEXT NOT NULL,
     "organizationId" TEXT,
     "entityId" TEXT,
@@ -2324,6 +2450,7 @@ CREATE TABLE "votes" (
 -- CreateTable
 CREATE TABLE "watchlists" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "brandId" TEXT,
     "organizationId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
@@ -2338,6 +2465,7 @@ CREATE TABLE "watchlists" (
 -- CreateTable
 CREATE TABLE "goals" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "parentId" TEXT,
     "label" TEXT,
@@ -2352,6 +2480,7 @@ CREATE TABLE "goals" (
 -- CreateTable
 CREATE TABLE "streaks" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "data" JSONB NOT NULL DEFAULT '{}',
@@ -2365,6 +2494,7 @@ CREATE TABLE "streaks" (
 -- CreateTable
 CREATE TABLE "announcements" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT,
     "title" TEXT,
     "content" TEXT,
@@ -2379,6 +2509,7 @@ CREATE TABLE "announcements" (
 -- CreateTable
 CREATE TABLE "leads" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT,
     "userId" TEXT,
     "proactiveOrganizationId" TEXT,
@@ -2395,6 +2526,7 @@ CREATE TABLE "leads" (
 -- CreateTable
 CREATE TABLE "profiles" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "createdById" TEXT,
     "data" JSONB NOT NULL DEFAULT '{}',
@@ -2408,6 +2540,7 @@ CREATE TABLE "profiles" (
 -- CreateTable
 CREATE TABLE "batches" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "brandId" TEXT,
@@ -2425,6 +2558,7 @@ CREATE TABLE "batches" (
 -- CreateTable
 CREATE TABLE "fanvue_content" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "status" TEXT,
@@ -2440,6 +2574,7 @@ CREATE TABLE "fanvue_content" (
 -- CreateTable
 CREATE TABLE "fanvue_earnings" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "type" TEXT,
@@ -2455,6 +2590,7 @@ CREATE TABLE "fanvue_earnings" (
 -- CreateTable
 CREATE TABLE "fanvue_schedules" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "contentId" TEXT,
@@ -2471,6 +2607,7 @@ CREATE TABLE "fanvue_schedules" (
 -- CreateTable
 CREATE TABLE "fanvue_subscribers" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "externalId" TEXT,
@@ -2486,6 +2623,7 @@ CREATE TABLE "fanvue_subscribers" (
 -- CreateTable
 CREATE TABLE "livestream_bot_sessions" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "data" JSONB NOT NULL DEFAULT '{}',
     "isDeleted" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -2497,6 +2635,7 @@ CREATE TABLE "livestream_bot_sessions" (
 -- CreateTable
 CREATE TABLE "runs" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "organizationId" TEXT NOT NULL,
     "brandId" TEXT,
     "data" JSONB NOT NULL DEFAULT '{}',
@@ -2510,6 +2649,7 @@ CREATE TABLE "runs" (
 -- CreateTable
 CREATE TABLE "analytics" (
     "id" TEXT NOT NULL,
+    "mongoId" TEXT,
     "data" JSONB NOT NULL DEFAULT '{}',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -2750,6 +2890,9 @@ CREATE TABLE "_remix_lineage_source_refs" (
 );
 
 -- CreateIndex
+CREATE UNIQUE INDEX "users_mongoId_key" ON "users"("mongoId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "users_clerkId_key" ON "users"("clerkId");
 
 -- CreateIndex
@@ -2765,6 +2908,9 @@ CREATE INDEX "users_appSource_idx" ON "users"("appSource");
 CREATE INDEX "users_stripeCustomerId_idx" ON "users"("stripeCustomerId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "organizations_mongoId_key" ON "organizations"("mongoId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "organizations_slug_key" ON "organizations"("slug");
 
 -- CreateIndex
@@ -2777,22 +2923,43 @@ CREATE INDEX "organizations_category_idx" ON "organizations"("category");
 CREATE INDEX "organizations_accountType_idx" ON "organizations"("accountType");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "brands_mongoId_key" ON "brands"("mongoId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "brands_slug_key" ON "brands"("slug");
 
 -- CreateIndex
 CREATE INDEX "brands_isDefault_idx" ON "brands"("isDefault");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "members_mongoId_key" ON "members"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "roles_mongoId_key" ON "roles"("mongoId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "roles_key_key" ON "roles"("key");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "settings_mongoId_key" ON "settings"("mongoId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "settings_userId_key" ON "settings"("userId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "organization_settings_mongoId_key" ON "organization_settings"("mongoId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "organization_settings_organizationId_key" ON "organization_settings"("organizationId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "credentials_mongoId_key" ON "credentials"("mongoId");
+
+-- CreateIndex
 CREATE INDEX "credentials_oauthTokenHash_idx" ON "credentials"("oauthTokenHash");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "api_keys_mongoId_key" ON "api_keys"("mongoId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "api_keys_key_key" ON "api_keys"("key");
@@ -2805,6 +2972,12 @@ CREATE INDEX "api_keys_organizationId_idx" ON "api_keys"("organizationId");
 
 -- CreateIndex
 CREATE INDEX "api_keys_keyFingerprint_idx" ON "api_keys"("keyFingerprint");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "org_integrations_mongoId_key" ON "org_integrations"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ingredients_mongoId_key" ON "ingredients"("mongoId");
 
 -- CreateIndex
 CREATE INDEX "ingredients_groupId_idx" ON "ingredients"("groupId");
@@ -2831,10 +3004,19 @@ CREATE INDEX "ingredients_isDeleted_personaId_reviewStatus_idx" ON "ingredients"
 CREATE INDEX "ingredients_campaign_isDeleted_personaSlug_idx" ON "ingredients"("campaign", "isDeleted", "personaSlug");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "metadata_mongoId_key" ON "metadata"("mongoId");
+
+-- CreateIndex
 CREATE INDEX "metadata_externalId_idx" ON "metadata"("externalId");
 
 -- CreateIndex
 CREATE INDEX "metadata_externalProvider_idx" ON "metadata"("externalProvider");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "prompts_mongoId_key" ON "prompts"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "folders_mongoId_key" ON "folders"("mongoId");
 
 -- CreateIndex
 CREATE INDEX "folders_organizationId_isDeleted_createdAt_idx" ON "folders"("organizationId", "isDeleted", "createdAt" DESC);
@@ -2843,13 +3025,34 @@ CREATE INDEX "folders_organizationId_isDeleted_createdAt_idx" ON "folders"("orga
 CREATE INDEX "folders_brandId_isDeleted_createdAt_idx" ON "folders"("brandId", "isDeleted", "createdAt" DESC);
 
 -- CreateIndex
+CREATE UNIQUE INDEX "tags_mongoId_key" ON "tags"("mongoId");
+
+-- CreateIndex
 CREATE INDEX "tags_organizationId_isDeleted_createdAt_idx" ON "tags"("organizationId", "isDeleted", "createdAt" DESC);
 
 -- CreateIndex
 CREATE INDEX "tags_brandId_isDeleted_createdAt_idx" ON "tags"("brandId", "isDeleted", "createdAt" DESC);
 
 -- CreateIndex
+CREATE UNIQUE INDEX "bookmarks_mongoId_key" ON "bookmarks"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "assets_mongoId_key" ON "assets"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "links_mongoId_key" ON "links"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "tracked_links_mongoId_key" ON "tracked_links"("mongoId");
+
+-- CreateIndex
 CREATE INDEX "tracked_links_shortCode_idx" ON "tracked_links"("shortCode");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "link_clicks_mongoId_key" ON "link_clicks"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "posts_mongoId_key" ON "posts"("mongoId");
 
 -- CreateIndex
 CREATE INDEX "posts_externalId_idx" ON "posts"("externalId");
@@ -2894,10 +3097,52 @@ CREATE INDEX "posts_organizationId_isDeleted_createdAt_idx" ON "posts"("organiza
 CREATE INDEX "posts_brandId_isDeleted_createdAt_idx" ON "posts"("brandId", "isDeleted", "createdAt" DESC);
 
 -- CreateIndex
+CREATE UNIQUE INDEX "post_analytics_mongoId_key" ON "post_analytics"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "schedules_mongoId_key" ON "schedules"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "content_schedules_mongoId_key" ON "content_schedules"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "distributions_mongoId_key" ON "distributions"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "repurposing_jobs_mongoId_key" ON "repurposing_jobs"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "customers_mongoId_key" ON "customers"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "subscriptions_mongoId_key" ON "subscriptions"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "user_subscriptions_mongoId_key" ON "user_subscriptions"("mongoId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "user_subscriptions_userId_key" ON "user_subscriptions"("userId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "subscription_attributions_mongoId_key" ON "subscription_attributions"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "credit_balances_mongoId_key" ON "credit_balances"("mongoId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "credit_balances_organizationId_key" ON "credit_balances"("organizationId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "credit_transactions_mongoId_key" ON "credit_transactions"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "customer_instances_mongoId_key" ON "customer_instances"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "articles_mongoId_key" ON "articles"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "article_analytics_mongoId_key" ON "article_analytics"("mongoId");
 
 -- CreateIndex
 CREATE INDEX "article_analytics_organizationId_date_idx" ON "article_analytics"("organizationId", "date" DESC);
@@ -2909,6 +3154,15 @@ CREATE INDEX "article_analytics_brandId_date_idx" ON "article_analytics"("brandI
 CREATE UNIQUE INDEX "article_analytics_articleId_date_key" ON "article_analytics"("articleId", "date");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "newsletters_mongoId_key" ON "newsletters"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "transcripts_mongoId_key" ON "transcripts"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "trainings_mongoId_key" ON "trainings"("mongoId");
+
+-- CreateIndex
 CREATE INDEX "trainings_organizationId_isDeleted_createdAt_idx" ON "trainings"("organizationId", "isDeleted", "createdAt" DESC);
 
 -- CreateIndex
@@ -2918,7 +3172,13 @@ CREATE INDEX "trainings_brandId_isDeleted_createdAt_idx" ON "trainings"("brandId
 CREATE INDEX "trainings_isDeleted_personaId_stage_idx" ON "trainings"("isDeleted", "personaId", "stage");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "models_mongoId_key" ON "models"("mongoId");
+
+-- CreateIndex
 CREATE INDEX "models_organizationId_isActive_isDeleted_idx" ON "models"("organizationId", "isActive", "isDeleted");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "personas_mongoId_key" ON "personas"("mongoId");
 
 -- CreateIndex
 CREATE INDEX "personas_organizationId_isDeleted_status_idx" ON "personas"("organizationId", "isDeleted", "status");
@@ -2930,6 +3190,36 @@ CREATE INDEX "personas_brandId_organizationId_isDeleted_idx" ON "personas"("bran
 CREATE INDEX "personas_organizationId_isDeleted_isAutopilotEnabled_nextAu_idx" ON "personas"("organizationId", "isDeleted", "isAutopilotEnabled", "nextAutopilotRunAt");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "agent_threads_mongoId_key" ON "agent_threads"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "agent_messages_mongoId_key" ON "agent_messages"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "agent_runs_mongoId_key" ON "agent_runs"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "agent_strategies_mongoId_key" ON "agent_strategies"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "agent_strategy_opportunities_mongoId_key" ON "agent_strategy_opportunities"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "agent_strategy_reports_mongoId_key" ON "agent_strategy_reports"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "agent_campaigns_mongoId_key" ON "agent_campaigns"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "agent_goals_mongoId_key" ON "agent_goals"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "agent_memories_mongoId_key" ON "agent_memories"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "agent_thread_events_mongoId_key" ON "agent_thread_events"("mongoId");
+
+-- CreateIndex
 CREATE INDEX "agent_thread_events_organizationId_threadId_commandId_idx" ON "agent_thread_events"("organizationId", "threadId", "commandId");
 
 -- CreateIndex
@@ -2939,10 +3229,28 @@ CREATE INDEX "agent_thread_events_organizationId_runId_sequence_idx" ON "agent_t
 CREATE UNIQUE INDEX "agent_thread_events_organizationId_threadId_sequence_key" ON "agent_thread_events"("organizationId", "threadId", "sequence");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "agent_thread_snapshots_mongoId_key" ON "agent_thread_snapshots"("mongoId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "agent_thread_snapshots_organizationId_threadId_key" ON "agent_thread_snapshots"("organizationId", "threadId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "thread_context_states_mongoId_key" ON "thread_context_states"("mongoId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "thread_context_states_organizationId_threadId_key" ON "thread_context_states"("organizationId", "threadId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "agent_workflows_mongoId_key" ON "agent_workflows"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "workflows_mongoId_key" ON "workflows"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "workflow_executions_mongoId_key" ON "workflow_executions"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "batch_workflow_jobs_mongoId_key" ON "batch_workflow_jobs"("mongoId");
 
 -- CreateIndex
 CREATE INDEX "batch_workflow_jobs_organizationId_status_idx" ON "batch_workflow_jobs"("organizationId", "status");
@@ -2951,10 +3259,46 @@ CREATE INDEX "batch_workflow_jobs_organizationId_status_idx" ON "batch_workflow_
 CREATE INDEX "batch_workflow_jobs_workflowId_idx" ON "batch_workflow_jobs"("workflowId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "content_runs_mongoId_key" ON "content_runs"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "cron_jobs_mongoId_key" ON "cron_jobs"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "cron_runs_mongoId_key" ON "cron_runs"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "tasks_mongoId_key" ON "tasks"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "task_comments_mongoId_key" ON "task_comments"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "task_counters_mongoId_key" ON "task_counters"("mongoId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "task_counters_organizationId_key" ON "task_counters"("organizationId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "bots_mongoId_key" ON "bots"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "bot_activities_mongoId_key" ON "bot_activities"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "reply_bot_configs_mongoId_key" ON "reply_bot_configs"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "monitored_accounts_mongoId_key" ON "monitored_accounts"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "processed_tweets_mongoId_key" ON "processed_tweets"("mongoId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "processed_tweets_organizationId_tweetId_processedBy_key" ON "processed_tweets"("organizationId", "tweetId", "processedBy");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "content_performance_mongoId_key" ON "content_performance"("mongoId");
 
 -- CreateIndex
 CREATE INDEX "content_performance_organizationId_idx" ON "content_performance"("organizationId");
@@ -2975,19 +3319,208 @@ CREATE INDEX "content_performance_variantId_idx" ON "content_performance"("varia
 CREATE INDEX "content_performance_generationId_idx" ON "content_performance"("generationId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "content_patterns_mongoId_key" ON "content_patterns"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "creator_analyses_mongoId_key" ON "creator_analyses"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "pattern_playbooks_mongoId_key" ON "pattern_playbooks"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "creative_patterns_mongoId_key" ON "creative_patterns"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "content_drafts_mongoId_key" ON "content_drafts"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "content_plans_mongoId_key" ON "content_plans"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "content_plan_items_mongoId_key" ON "content_plan_items"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "content_scores_mongoId_key" ON "content_scores"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "optimizations_mongoId_key" ON "optimizations"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "evaluations_mongoId_key" ON "evaluations"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "activities_mongoId_key" ON "activities"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "insights_mongoId_key" ON "insights"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "forecasts_mongoId_key" ON "forecasts"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ad_bulk_upload_jobs_mongoId_key" ON "ad_bulk_upload_jobs"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ad_creative_mappings_mongoId_key" ON "ad_creative_mappings"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ad_insights_mongoId_key" ON "ad_insights"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ad_optimization_audit_logs_mongoId_key" ON "ad_optimization_audit_logs"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ad_optimization_configs_mongoId_key" ON "ad_optimization_configs"("mongoId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "ad_optimization_configs_organizationId_key" ON "ad_optimization_configs"("organizationId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ad_optimization_recommendations_mongoId_key" ON "ad_optimization_recommendations"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ad_performance_mongoId_key" ON "ad_performance"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "trends_mongoId_key" ON "trends"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "trending_hashtags_mongoId_key" ON "trending_hashtags"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "trending_sounds_mongoId_key" ON "trending_sounds"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "trending_videos_mongoId_key" ON "trending_videos"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "trend_preferences_mongoId_key" ON "trend_preferences"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "trend_remix_lineages_mongoId_key" ON "trend_remix_lineages"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "trend_source_references_mongoId_key" ON "trend_source_references"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "trend_source_reference_links_mongoId_key" ON "trend_source_reference_links"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "trend_source_reference_snapshots_mongoId_key" ON "trend_source_reference_snapshots"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "outreach_campaigns_mongoId_key" ON "outreach_campaigns"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "campaign_targets_mongoId_key" ON "campaign_targets"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "elements_blacklists_mongoId_key" ON "elements_blacklists"("mongoId");
 
 -- CreateIndex
 CREATE INDEX "elements_blacklists_organizationId_isDeleted_createdAt_idx" ON "elements_blacklists"("organizationId", "isDeleted", "createdAt" DESC);
 
 -- CreateIndex
+CREATE UNIQUE INDEX "elements_cameras_mongoId_key" ON "elements_cameras"("mongoId");
+
+-- CreateIndex
 CREATE INDEX "elements_cameras_organizationId_isDeleted_createdAt_idx" ON "elements_cameras"("organizationId", "isDeleted", "createdAt" DESC);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "elements_camera_movements_mongoId_key" ON "elements_camera_movements"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "elements_lenses_mongoId_key" ON "elements_lenses"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "elements_lightings_mongoId_key" ON "elements_lightings"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "elements_moods_mongoId_key" ON "elements_moods"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "elements_scenes_mongoId_key" ON "elements_scenes"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "elements_sounds_mongoId_key" ON "elements_sounds"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "elements_styles_mongoId_key" ON "elements_styles"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "font_families_mongoId_key" ON "font_families"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "presets_mongoId_key" ON "presets"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "captions_mongoId_key" ON "captions"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "clip_projects_mongoId_key" ON "clip_projects"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "clip_results_mongoId_key" ON "clip_results"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "editor_projects_mongoId_key" ON "editor_projects"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "brand_memories_mongoId_key" ON "brand_memories"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "context_bases_mongoId_key" ON "context_bases"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "context_entries_mongoId_key" ON "context_entries"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "skills_mongoId_key" ON "skills"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "skill_receipts_mongoId_key" ON "skill_receipts"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "templates_mongoId_key" ON "templates"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "template_metadata_mongoId_key" ON "template_metadata"("mongoId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "template_metadata_templateId_key" ON "template_metadata"("templateId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "template_usages_mongoId_key" ON "template_usages"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "votes_mongoId_key" ON "votes"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "watchlists_mongoId_key" ON "watchlists"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "goals_mongoId_key" ON "goals"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "streaks_mongoId_key" ON "streaks"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "announcements_mongoId_key" ON "announcements"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "leads_mongoId_key" ON "leads"("mongoId");
+
+-- CreateIndex
 CREATE INDEX "leads_organizationId_isDeleted_status_idx" ON "leads"("organizationId", "isDeleted", "status");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "profiles_mongoId_key" ON "profiles"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "batches_mongoId_key" ON "batches"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "fanvue_content_mongoId_key" ON "fanvue_content"("mongoId");
 
 -- CreateIndex
 CREATE INDEX "fanvue_content_organizationId_isDeleted_status_idx" ON "fanvue_content"("organizationId", "isDeleted", "status");
@@ -2996,10 +3529,16 @@ CREATE INDEX "fanvue_content_organizationId_isDeleted_status_idx" ON "fanvue_con
 CREATE INDEX "fanvue_content_organizationId_publishedAt_idx" ON "fanvue_content"("organizationId", "publishedAt" DESC);
 
 -- CreateIndex
+CREATE UNIQUE INDEX "fanvue_earnings_mongoId_key" ON "fanvue_earnings"("mongoId");
+
+-- CreateIndex
 CREATE INDEX "fanvue_earnings_organizationId_isDeleted_type_idx" ON "fanvue_earnings"("organizationId", "isDeleted", "type");
 
 -- CreateIndex
 CREATE INDEX "fanvue_earnings_organizationId_earnedAt_idx" ON "fanvue_earnings"("organizationId", "earnedAt" DESC);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "fanvue_schedules_mongoId_key" ON "fanvue_schedules"("mongoId");
 
 -- CreateIndex
 CREATE INDEX "fanvue_schedules_organizationId_isDeleted_status_idx" ON "fanvue_schedules"("organizationId", "isDeleted", "status");
@@ -3008,10 +3547,22 @@ CREATE INDEX "fanvue_schedules_organizationId_isDeleted_status_idx" ON "fanvue_s
 CREATE INDEX "fanvue_schedules_scheduledAt_status_idx" ON "fanvue_schedules"("scheduledAt", "status");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "fanvue_subscribers_mongoId_key" ON "fanvue_subscribers"("mongoId");
+
+-- CreateIndex
 CREATE INDEX "fanvue_subscribers_organizationId_isDeleted_status_idx" ON "fanvue_subscribers"("organizationId", "isDeleted", "status");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "fanvue_subscribers_organizationId_externalId_key" ON "fanvue_subscribers"("organizationId", "externalId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "livestream_bot_sessions_mongoId_key" ON "livestream_bot_sessions"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "runs_mongoId_key" ON "runs"("mongoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "analytics_mongoId_key" ON "analytics"("mongoId");
 
 -- CreateIndex
 CREATE INDEX "_member_brands_B_index" ON "_member_brands"("B");
@@ -4161,3 +4712,4 @@ ALTER TABLE "_remix_lineage_source_refs" ADD CONSTRAINT "_remix_lineage_source_r
 
 -- AddForeignKey
 ALTER TABLE "_remix_lineage_source_refs" ADD CONSTRAINT "_remix_lineage_source_refs_B_fkey" FOREIGN KEY ("B") REFERENCES "trend_source_references"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+

@@ -94,7 +94,7 @@ export class WorkspaceTasksService extends BaseService<
     private readonly agentRunsService: AgentRunsService,
     private readonly notificationsPublisher: NotificationsPublisherService,
   ) {
-    super(prisma, 'workspaceTask', logger);
+    super(prisma, 'task', logger);
   }
 
   override async create(

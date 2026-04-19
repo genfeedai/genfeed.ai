@@ -177,5 +177,11 @@ export default function ProtectedProviders({
     return content;
   }
 
+  // DESKTOP mode: bypass token gate — auth is handled by the desktop session bridge.
+  // In offline mode getToken() returns '' which never satisfies hasJwtToken, causing a black screen.
+  if (process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1') {
+    return content;
+  }
+
   return <ProtectedAuthGate>{content}</ProtectedAuthGate>;
 }

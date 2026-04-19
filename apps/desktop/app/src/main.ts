@@ -20,6 +20,7 @@ import { CloudDatabaseService } from './main/cloud-database.service';
 import { DesktopConfigService } from './main/config.service';
 import { DesktopDraftsService } from './main/drafts.service';
 import { DesktopFilesService } from './main/files.service';
+import { LocalIdentityService } from './main/local-identity.service';
 import { buildDesktopMenu } from './main/menu.service';
 import { DesktopSessionService } from './main/session.service';
 import { DesktopShortcutsService } from './main/shortcuts.service';
@@ -34,6 +35,7 @@ const environment = configService.getEnvironment();
 let mainWindow: BrowserWindow | null = null;
 
 const database = new CloudDatabaseService();
+const localIdentityService = new LocalIdentityService(database);
 const sessionService = new DesktopSessionService(database, environment);
 const workspaceService = new DesktopWorkspaceService(database);
 const filesService = new DesktopFilesService(workspaceService);
@@ -74,7 +76,9 @@ const emitBootstrap = (): void => {
 };
 
 const getBootstrap = (): IDesktopBootstrap => ({
+  clerkId: localIdentityService.getClerkId(),
   environment: sessionService.getEnvironment(),
+  localUserId: localIdentityService.getLocalUserId(),
   preferences: {
     nativeNotificationsEnabled: Notification.isSupported(),
   },
@@ -228,6 +232,7 @@ const handleAuthCallback = async (rawUrl: string): Promise<void> => {
     return;
   }
 
+  localIdentityService.setClerkId(session.userId);
   emitSession();
   emitBootstrap();
   void new Notification({

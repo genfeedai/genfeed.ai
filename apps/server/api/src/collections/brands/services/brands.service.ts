@@ -342,8 +342,8 @@ Respond ONLY with the JSON object, no markdown fences or extra text.`;
       data: { isSelected: false },
     });
 
-    await this.delegate.update({
-      where: { id: brandId },
+    await this.delegate.updateMany({
+      where: { id: brandId, organizationId, isDeleted: false },
       data: { isSelected: true },
     });
 

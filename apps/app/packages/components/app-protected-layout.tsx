@@ -93,6 +93,7 @@ import {
   useState,
 } from 'react';
 import { HiPlus } from 'react-icons/hi2';
+import ModeIndicator from '@/components/mode-indicator/ModeIndicator';
 import AppProtectedTopbar from '@/components/shell/AppProtectedTopbar';
 import { useOptionalAuth } from '@/hooks/useOptionalAuth';
 import { isEEEnabled } from '@/lib/config/edition';
@@ -764,6 +765,7 @@ function AppLayoutWithDynamicMenu({
         showPrimaryItems={!isChatRoute}
         sidebarWidth={isChatRoute ? undefined : 304}
         shellChromeVariant={shellChromeVariant}
+        renderFooterSlot={() => <ModeIndicator />}
       />
     );
   }, [

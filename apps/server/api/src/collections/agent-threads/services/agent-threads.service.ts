@@ -36,7 +36,7 @@ export class AgentThreadsService extends BaseService<AgentRoomDocument> {
     public readonly logger: LoggerService,
     private readonly agentMessagesService: AgentMessagesService,
   ) {
-    super(prisma, 'agentRoom', logger);
+    super(prisma, 'agentThread', logger);
   }
 
   async getUserThreads(

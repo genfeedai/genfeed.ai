@@ -1,5 +1,7 @@
-export type ProjectDocument = Record<string, unknown>;
-export type Project = ProjectDocument;
+export type {
+  Project as ProjectDocument,
+  Project,
+} from '@genfeedai/prisma';
 
 export const PROJECT_STATUSES = ['active', 'completed', 'archived'] as const;
 
