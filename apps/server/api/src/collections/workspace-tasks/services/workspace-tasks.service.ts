@@ -94,7 +94,7 @@ export class WorkspaceTasksService extends BaseService<
     private readonly agentRunsService: AgentRunsService,
     private readonly notificationsPublisher: NotificationsPublisherService,
   ) {
-    super(prisma, 'workspaceTask', logger);
+    super(prisma, 'task', logger);
   }
 
   override async create(
@@ -126,7 +126,7 @@ export class WorkspaceTasksService extends BaseService<
     id: string,
     organizationId: string,
   ): Promise<WorkspaceTaskDocument | null> {
-    const result = await this.prisma.workspaceTask.findFirst({
+    const result = await this.prisma.task.findFirst({
       where: { id, isDeleted: false, organizationId },
     });
     return result as unknown as WorkspaceTaskDocument | null;
@@ -136,7 +136,7 @@ export class WorkspaceTasksService extends BaseService<
     organizationId: string,
     limit: number = 20,
   ): Promise<WorkspaceTaskDocument[]> {
-    const results = await this.prisma.workspaceTask.findMany({
+    const results = await this.prisma.task.findMany({
       orderBy: [{ reviewState: 'asc' }, { updatedAt: 'desc' }],
       take: limit,
       where: {
@@ -156,7 +156,7 @@ export class WorkspaceTasksService extends BaseService<
     organizationId: string,
   ): Promise<WorkspaceTaskDocument> {
     const task = await this.requireTask(id, organizationId);
-    const updated = await this.prisma.workspaceTask.update({
+    const updated = await this.prisma.task.update({
       data: {
         completedAt: new Date(),
         failureReason: null,
@@ -190,7 +190,7 @@ export class WorkspaceTasksService extends BaseService<
     reason: string,
   ): Promise<WorkspaceTaskDocument> {
     const task = await this.requireTask(id, organizationId);
-    const updated = await this.prisma.workspaceTask.update({
+    const updated = await this.prisma.task.update({
       data: {
         requestedChangesReason: reason,
         reviewState: 'changes_requested',
@@ -223,7 +223,7 @@ export class WorkspaceTasksService extends BaseService<
     reason?: string,
   ): Promise<WorkspaceTaskDocument> {
     const task = await this.requireTask(id, organizationId);
-    const updated = await this.prisma.workspaceTask.update({
+    const updated = await this.prisma.task.update({
       data: {
         dismissedAt: new Date(),
         failureReason: reason,
@@ -262,7 +262,7 @@ export class WorkspaceTasksService extends BaseService<
       outputId,
     );
 
-    const existing = await this.prisma.workspaceTask.findFirst({
+    const existing = await this.prisma.task.findFirst({
       where: { id, isDeleted: false, organizationId },
     });
     if (!existing) {
@@ -275,7 +275,7 @@ export class WorkspaceTasksService extends BaseService<
       ? approvedOutputIds
       : [...approvedOutputIds, outputId];
 
-    const updated = await this.prisma.workspaceTask.update({
+    const updated = await this.prisma.task.update({
       data: { approvedOutputIds: nextApprovedOutputIds as never } as never,
       where: { id },
     });
@@ -305,7 +305,7 @@ export class WorkspaceTasksService extends BaseService<
       outputId,
     );
 
-    const existing = await this.prisma.workspaceTask.findFirst({
+    const existing = await this.prisma.task.findFirst({
       where: { id, isDeleted: false, organizationId },
     });
     if (!existing) {
@@ -318,7 +318,7 @@ export class WorkspaceTasksService extends BaseService<
       (oid) => oid !== outputId && oid?.toString() !== outputId,
     );
 
-    const updated = await this.prisma.workspaceTask.update({
+    const updated = await this.prisma.task.update({
       data: { approvedOutputIds: nextApprovedOutputIds as never } as never,
       where: { id },
     });
@@ -358,7 +358,7 @@ export class WorkspaceTasksService extends BaseService<
 
     await this.ingredientsService.patch(outputId, { isDeleted: true });
 
-    const existing = await this.prisma.workspaceTask.findFirst({
+    const existing = await this.prisma.task.findFirst({
       where: { id, isDeleted: false, organizationId },
     });
     if (!existing) {
@@ -371,7 +371,7 @@ export class WorkspaceTasksService extends BaseService<
       (oid) => oid !== outputId && oid?.toString() !== outputId,
     );
 
-    const updated = await this.prisma.workspaceTask.update({
+    const updated = await this.prisma.task.update({
       data: { approvedOutputIds: nextApprovedOutputIds as never } as never,
       where: { id },
     });
@@ -778,7 +778,7 @@ export class WorkspaceTasksService extends BaseService<
       return this.findOneById(id, organizationId);
     }
 
-    const result = await this.prisma.workspaceTask.update({
+    const result = await this.prisma.task.update({
       data: patch as never,
       where: { id },
     });
@@ -901,7 +901,7 @@ export class WorkspaceTasksService extends BaseService<
     );
 
     // Read current eventStream then append new event
-    const current = await this.prisma.workspaceTask.findFirst({
+    const current = await this.prisma.task.findFirst({
       where: { id: taskId, isDeleted: false, organizationId },
     });
     if (!current) return;
@@ -912,7 +912,7 @@ export class WorkspaceTasksService extends BaseService<
       event,
     ];
 
-    const updated = await this.prisma.workspaceTask.update({
+    const updated = await this.prisma.task.update({
       data: { eventStream: eventStream as never } as never,
       where: { id: taskId },
     });

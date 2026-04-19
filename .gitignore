@@ -32,3 +32,5 @@ apps/desktop/app/release/
 # Covers apps/app/.agents, apps/mobile/app/.agents, apps/extensions/browser/app/.agents, etc.
 **/apps/**/.agents/
 
+# Added by code-review-graph
+.code-review-graph/

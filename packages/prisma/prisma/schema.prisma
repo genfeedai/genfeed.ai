@@ -665,6 +665,7 @@ model Organization {
   clipProjects         ClipProject[]
   clipResults          ClipResult[]
   editorProjects       EditorProject[]
+  projects             Project[]
   forecasts            Forecast[]
   insights             Insight[]
   contentScores        ContentScore[]
@@ -3222,6 +3223,21 @@ model EditorProject {
   updatedAt       DateTime     @updatedAt
 
   @@map("editor_projects")
+}
+
+model Project {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  label           String
+  description     String?
+  status          String       @default("active")
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([organizationId, isDeleted])
+  @@map("projects")
 }
 
 model BrandMemory {
