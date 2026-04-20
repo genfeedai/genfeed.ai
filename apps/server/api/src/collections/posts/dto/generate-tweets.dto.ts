@@ -9,7 +9,6 @@ import {
   Max,
   Min,
 } from 'class-validator';
-import { Types } from 'mongoose';
 
 export enum TweetTone {
   PROFESSIONAL = 'professional',
@@ -45,7 +44,7 @@ export class GenerateTweetsDto {
     description: 'Credential ID (Twitter account) to use',
     required: true,
   })
-  readonly credential!: Types.ObjectId;
+  readonly credential!: string;
 
   @IsEnum(TweetTone)
   @IsOptional()
@@ -77,7 +76,7 @@ export class GenerateTweetsDto {
     required: false,
     type: [String],
   })
-  readonly sourceReferenceIds?: Types.ObjectId[];
+  readonly sourceReferenceIds?: string[];
 
   @IsOptional()
   @IsMongoId()
@@ -85,7 +84,7 @@ export class GenerateTweetsDto {
     description: 'Optional originating trend ID for remix lineage',
     required: false,
   })
-  readonly trendId?: Types.ObjectId;
+  readonly trendId?: string;
 
   @IsString()
   @IsOptional()

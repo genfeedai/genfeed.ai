@@ -27,7 +27,6 @@ import { OrganizationCategory } from '@genfeedai/enums';
 import { ONBOARDING_SIGNUP_GIFT_CREDITS } from '@genfeedai/types';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 export interface UserSetupResult {
   organization: OrganizationEntity;
@@ -62,7 +61,7 @@ export class UserSetupService {
    * @throws Error if any critical step fails (cascading failure)
    */
   async initializeUserResources(
-    userId: Types.ObjectId,
+    userId: string,
     category?: OrganizationCategory,
   ): Promise<UserSetupResult> {
     let organization: OrganizationEntity | null = null;
@@ -136,7 +135,7 @@ export class UserSetupService {
   }
 
   private async getOrCreateOrganization(
-    userId: Types.ObjectId,
+    userId: string,
     category?: OrganizationCategory,
   ): Promise<{ organization: OrganizationEntity; wasCreated: boolean }> {
     const existing = await this.organizationsService.findOne({
@@ -181,9 +180,7 @@ export class UserSetupService {
     return { organization, wasCreated: true };
   }
 
-  private async awardSignupGiftCredits(
-    organizationId: Types.ObjectId,
-  ): Promise<void> {
+  private async awardSignupGiftCredits(organizationId: string): Promise<void> {
     const organizationIdString = organizationId.toString();
     const existingCredits =
       await this.creditsUtilsService.getOrganizationCreditsWithExpiration(
@@ -212,7 +209,7 @@ export class UserSetupService {
   }
 
   private async getOrCreateOrganizationSettings(
-    organizationId: Types.ObjectId,
+    organizationId: string,
   ): Promise<OrganizationSettingEntity> {
     const existing = await this.organizationSettingsService.findOne({
       isDeleted: false,
@@ -263,7 +260,7 @@ export class UserSetupService {
   }
 
   private async getOrCreateUserSettings(
-    userId: Types.ObjectId,
+    userId: string,
   ): Promise<SettingEntity> {
     const existing = await this.settingsService.findOne({
       isDeleted: false,
@@ -297,8 +294,8 @@ export class UserSetupService {
   }
 
   private async getOrCreateBrand(
-    organizationId: Types.ObjectId,
-    userId: Types.ObjectId,
+    organizationId: string,
+    userId: string,
   ): Promise<BrandEntity> {
     const existing = await this.brandsService.findOne({
       isDeleted: false,
@@ -338,8 +335,8 @@ export class UserSetupService {
   }
 
   private async getOrCreateMember(
-    organizationId: Types.ObjectId,
-    userId: Types.ObjectId,
+    organizationId: string,
+    userId: string,
   ): Promise<MemberEntity> {
     const existing = await this.membersService.findOne({
       isDeleted: false,
@@ -378,7 +375,7 @@ export class UserSetupService {
       new MemberEntity({
         isActive: true,
         organization: organizationId,
-        role: new Types.ObjectId(roleToAssign._id),
+        role: roleToAssign._id,
         user: userId,
       }),
     );

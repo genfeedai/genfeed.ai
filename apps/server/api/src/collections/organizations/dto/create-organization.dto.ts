@@ -11,7 +11,6 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class CreateOrganizationDto {
   @IsMongoId()
@@ -19,7 +18,7 @@ export class CreateOrganizationDto {
     description: 'The user ID who owns this organization',
     required: true,
   })
-  readonly user!: Types.ObjectId;
+  readonly user!: string;
 
   @IsString()
   @IsNotEmpty()

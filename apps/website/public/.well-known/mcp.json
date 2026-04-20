@@ -1,0 +1,60 @@
+{
+  "schema_version": "1.0",
+  "name": "Genfeed AI",
+  "description": "AI-powered content creation platform. Generate viral articles, videos, images, avatars, and music. Publish to multiple social media platforms with built-in analytics and automation.",
+  "version": "1.0.0",
+  "homepage": "https://genfeed.ai",
+  "icon": "https://cdn.genfeed.ai/assets/logo.png",
+  "documentation_url": "https://docs.genfeed.ai",
+  "privacy_policy": "https://genfeed.ai/privacy",
+  "terms_of_service": "https://genfeed.ai/terms",
+  "support_url": "https://genfeed.ai/support",
+  "author": {
+    "name": "Genfeed Team",
+    "email": "support@genfeed.ai",
+    "url": "https://genfeed.ai"
+  },
+  "servers": [
+    {
+      "type": "http",
+      "url": "https://mcp.genfeed.ai/mcp",
+      "auth": {
+        "type": "bearer",
+        "description": "Genfeed API key (starts with gf_). Obtain at https://genfeed.ai/settings/api"
+      }
+    },
+    {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@genfeedai/mcp-client"],
+      "env": {
+        "GENFEED_API_KEY": "your-api-key"
+      }
+    }
+  ],
+  "capabilities": {
+    "tools": true,
+    "resources": true,
+    "prompts": false,
+    "sampling": false
+  },
+  "categories": [
+    "productivity",
+    "content-creation",
+    "social-media",
+    "ai-tools"
+  ],
+  "tags": [
+    "ai",
+    "content",
+    "video",
+    "article",
+    "image",
+    "avatar",
+    "music",
+    "social-media",
+    "automation",
+    "publishing",
+    "analytics"
+  ]
+}

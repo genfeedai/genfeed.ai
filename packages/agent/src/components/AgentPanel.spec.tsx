@@ -164,7 +164,9 @@ describe('AgentPanel', () => {
   it('renders outputs as a second rail tab', () => {
     render(<AgentPanel apiService={createCreditsInfoApiService() as never} />);
 
-    expect(screen.getByRole('button', { name: 'Terminal' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Terminal' }),
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Outputs' })).toBeInTheDocument();
     expect(screen.getByTestId('agent-outputs-panel')).toBeInTheDocument();
   });

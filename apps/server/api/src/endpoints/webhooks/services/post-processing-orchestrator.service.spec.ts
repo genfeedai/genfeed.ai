@@ -1,6 +1,5 @@
 import { PostProcessingOrchestratorService } from '@api/endpoints/webhooks/services/post-processing-orchestrator.service';
 import { IngredientCategory } from '@genfeedai/enums';
-import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('PostProcessingOrchestratorService', () => {
@@ -71,10 +70,10 @@ describe('PostProcessingOrchestratorService', () => {
       );
 
       const ingredient = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         category: IngredientCategory.IMAGE,
-        organization: new Types.ObjectId(),
-        user: { _id: new Types.ObjectId(), clerkId: 'clerk_1' },
+        organization: 'test-object-id',
+        user: { _id: 'test-object-id', clerkId: 'clerk_1' },
       } as unknown as IngredientEntity;
 
       expect(() =>
@@ -86,10 +85,10 @@ describe('PostProcessingOrchestratorService', () => {
       organizationSettingsService.findOne.mockResolvedValue(null);
 
       const ingredient = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         category: IngredientCategory.IMAGE,
-        organization: new Types.ObjectId(),
-        user: { _id: new Types.ObjectId(), clerkId: 'clerk_1' },
+        organization: 'test-object-id',
+        user: { _id: 'test-object-id', clerkId: 'clerk_1' },
       } as unknown as IngredientEntity;
 
       expect(() =>

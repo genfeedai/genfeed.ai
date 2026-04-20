@@ -9,7 +9,6 @@ import {
   IsString,
   Matches,
 } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class CreateSubscriptionPreviewDto {
   @IsString()
@@ -69,14 +68,14 @@ export class CreateSubscriptionDto {
     description: 'The organization ID that owns the subscription',
     required: true,
   })
-  readonly organization!: Types.ObjectId;
+  readonly organization!: string;
 
   @IsMongoId()
   @ApiProperty({
     description: 'The customer ID associated with the subscription',
     required: true,
   })
-  readonly customer!: Types.ObjectId;
+  readonly customer!: string;
 
   // admin user id
   @IsMongoId()
@@ -84,7 +83,7 @@ export class CreateSubscriptionDto {
     description: 'The admin user ID who created the subscription',
     required: true,
   })
-  readonly user!: Types.ObjectId;
+  readonly user!: string;
 
   @IsString()
   @IsNotEmpty()

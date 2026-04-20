@@ -4,18 +4,17 @@ import {
 } from '@api/collections/brands/schemas/brand.schema';
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
 import { AssetScope } from '@genfeedai/enums';
-import { Types } from 'mongoose';
 
 // @ts-expect-error - BrandEntity implements Brand via BaseEntity + explicit fields
 export class BrandEntity extends BaseEntity implements Brand {
-  declare readonly user: Types.ObjectId;
-  declare readonly organization: Types.ObjectId;
+  declare readonly user: string;
+  declare readonly organization: string;
 
-  declare readonly logo?: Types.ObjectId;
-  declare readonly banner?: Types.ObjectId;
+  declare readonly logo?: string;
+  declare readonly banner?: string;
 
-  declare readonly voice?: Types.ObjectId;
-  declare readonly music?: Types.ObjectId;
+  declare readonly voice?: string;
+  declare readonly music?: string;
 
   declare readonly slug: string;
   declare readonly label: string;

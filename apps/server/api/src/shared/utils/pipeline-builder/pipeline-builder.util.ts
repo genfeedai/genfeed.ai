@@ -1,17 +1,17 @@
 import type {
   LookupStageOptions,
   MatchConditions,
+  PipelineStage,
   SortOrder,
   UnwindStageOptions,
 } from '@api/shared/utils/pipeline-builder/pipeline-builder.types';
-import type { PipelineStage } from 'mongoose';
 
 type GroupStage = {
   _id: unknown;
   [key: string]: unknown;
 };
 
-type LookupPipeline = NonNullable<PipelineStage.Lookup['$lookup']['pipeline']>;
+type LookupPipeline = PipelineStage[];
 
 function hasStageKey<K extends '$match' | '$sort' | '$project'>(
   stage: PipelineStage,
@@ -95,7 +95,7 @@ export class PipelineBuilder {
    * })
    */
   static buildLookup(options: LookupStageOptions): PipelineStage {
-    const lookup: PipelineStage.Lookup['$lookup'] = {
+    const lookup: Record<string, unknown> = {
       as: options.as,
       foreignField: options.foreignField,
       from: options.from,
@@ -208,7 +208,7 @@ export class PipelineBuilder {
     if (existingMatchIndex >= 0) {
       // Merge with existing match
       const existingMatch = (
-        this.stages[existingMatchIndex] as PipelineStage.Match
+        this.stages[existingMatchIndex] as Record<string, unknown>
       ).$match as MatchConditions;
       const merged = PipelineBuilder.mergeMatches([existingMatch, conditions]);
       this.stages[existingMatchIndex] = merged;

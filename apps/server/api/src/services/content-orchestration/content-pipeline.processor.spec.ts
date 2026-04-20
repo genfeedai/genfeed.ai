@@ -3,7 +3,6 @@ import { ContentPipelineProcessor } from '@api/services/content-orchestration/co
 import { ImageTaskModel } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 // Mock the BullMQ decorators
 vi.mock('@nestjs/bullmq', () => ({
@@ -60,17 +59,17 @@ describe('ContentPipelineProcessor', () => {
       const job = {
         data: {
           config: {
-            brandId: new Types.ObjectId().toString(),
-            organizationId: new Types.ObjectId().toString(),
-            personaId: new Types.ObjectId().toString(),
+            brandId: 'test-object-id',
+            organizationId: 'test-object-id',
+            personaId: 'test-object-id',
             prompt: 'Test',
             steps: [
               { model: ImageTaskModel.FAL, type: 'text-to-image' as const },
             ],
-            userId: new Types.ObjectId().toString(),
+            userId: 'test-object-id',
           },
-          organizationId: new Types.ObjectId().toString(),
-          personaId: new Types.ObjectId().toString(),
+          organizationId: 'test-object-id',
+          personaId: 'test-object-id',
           type: 'generate-and-publish' as const,
         },
         name: 'generate-and-publish',
@@ -88,7 +87,7 @@ describe('ContentPipelineProcessor', () => {
       const job = {
         data: {
           config: {
-            brandId: new Types.ObjectId().toString(),
+            brandId: 'test-object-id',
             count: 1,
             items: [
               {
@@ -98,12 +97,12 @@ describe('ContentPipelineProcessor', () => {
                 ],
               },
             ],
-            organizationId: new Types.ObjectId().toString(),
-            personaId: new Types.ObjectId().toString(),
-            userId: new Types.ObjectId().toString(),
+            organizationId: 'test-object-id',
+            personaId: 'test-object-id',
+            userId: 'test-object-id',
           },
-          organizationId: new Types.ObjectId().toString(),
-          personaId: new Types.ObjectId().toString(),
+          organizationId: 'test-object-id',
+          personaId: 'test-object-id',
           type: 'batch-generate' as const,
         },
         name: 'batch-generate',

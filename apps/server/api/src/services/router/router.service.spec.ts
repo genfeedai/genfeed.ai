@@ -8,7 +8,6 @@ import { ModelCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { NotFoundException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('RouterService', () => {
   let service: RouterService;
@@ -17,7 +16,7 @@ describe('RouterService', () => {
 
   const createMockModel = (overrides: Record<string, unknown> = {}) =>
     ({
-      _id: new Types.ObjectId('507f1f77bcf86cd799439011'),
+      _id: '507f1f77bcf86cd799439011',
       capabilities: [],
       category: ModelCategory.IMAGE,
       cost: 50,
@@ -1074,7 +1073,7 @@ describe('RouterService', () => {
   describe('Model Details', () => {
     it('should include correct model details in recommendation', async () => {
       const model = createMockModel({
-        _id: new Types.ObjectId('507f1f77bcf86cd799439011'),
+        _id: '507f1f77bcf86cd799439011',
         category: ModelCategory.IMAGE,
         cost: 100,
         key: 'test-model-key',

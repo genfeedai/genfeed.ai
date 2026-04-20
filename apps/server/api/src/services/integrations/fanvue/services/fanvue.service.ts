@@ -7,7 +7,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 import { firstValueFrom } from 'rxjs';
 
 const FANVUE_API_BASE = 'https://api.fanvue.com';
@@ -164,9 +163,9 @@ export class FanvueService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     const credential = await this.credentialsService.findOne({
-      brand: new Types.ObjectId(brandId),
+      brand: brandId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
       platform: CredentialPlatform.FANVUE,
     });
 

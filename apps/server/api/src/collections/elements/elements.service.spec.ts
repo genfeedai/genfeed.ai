@@ -10,7 +10,6 @@ import { ElementsSoundsService } from '@api/collections/elements/sounds/services
 import { ElementsStylesService } from '@api/collections/elements/styles/services/styles.service';
 import { createMockModel } from '@api/shared/testing/mock-model.factory';
 import type { LoggerService } from '@libs/logger/logger.service';
-import { Types } from 'mongoose';
 
 const mockLoggerService = {
   debug: vi.fn(),
@@ -68,7 +67,7 @@ describe('ElementsService', () => {
     });
 
     it('should return elements for a specific org', async () => {
-      const orgId = new Types.ObjectId().toString();
+      const orgId = '507f191e810c19729de860ee'.toString();
       const result = await service.findAllElements(orgId);
       expect(result).toBeDefined();
     });

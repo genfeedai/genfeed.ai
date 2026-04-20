@@ -15,7 +15,6 @@ import {
   MaxLength,
   ValidateNested,
 } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class CreateNewsletterDto {
   @IsString()
@@ -73,7 +72,7 @@ export class CreateNewsletterDto {
     required: false,
     type: [String],
   })
-  contextNewsletterIds?: Types.ObjectId[];
+  contextNewsletterIds?: string[];
 
   @IsOptional()
   @IsString()

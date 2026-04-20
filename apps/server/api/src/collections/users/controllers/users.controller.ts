@@ -1,7 +1,7 @@
-import { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
+import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { MembersService } from '@api/collections/members/services/members.service';
-import { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
+import { type OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { UpdateSettingDto } from '@api/collections/settings/dto/update-setting.dto';
 import { SettingEntity } from '@api/collections/settings/entities/setting.entity';
@@ -10,7 +10,7 @@ import { SubscriptionsService } from '@api/collections/subscriptions/services/su
 import { UpdateUserDto } from '@api/collections/users/dto/update-user.dto';
 import { UpdateUserOnboardingDto } from '@api/collections/users/dto/update-user-onboarding.dto';
 import { UserEntity } from '@api/collections/users/entities/user.entity';
-import { UserDocument } from '@api/collections/users/schemas/user.schema';
+import { type UserDocument } from '@api/collections/users/schemas/user.schema';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
@@ -63,7 +63,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { type PipelineStage, Types } from 'mongoose';
 
 @AutoSwagger()
 @Controller('users')
@@ -103,7 +102,7 @@ export class UsersController {
     };
 
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: {
           isDeleted,
@@ -138,7 +137,7 @@ export class UsersController {
   async findMe(@Req() request: Request, @CurrentUser() user: User) {
     const publicMetadata = getPublicMetadata(user);
     const subscriptionStatus = getStripeSubscriptionStatus(user, request);
-    const userId = new Types.ObjectId(publicMetadata.user);
+    const userId = publicMetadata.user;
     const organizationId = publicMetadata.organization;
 
     let dbSubscription = await this.subscriptionsService.findOne({
@@ -146,10 +145,10 @@ export class UsersController {
       user: userId,
     });
 
-    if (!dbSubscription && Types.ObjectId.isValid(organizationId)) {
+    if (!dbSubscription && /^[0-9a-f]{24}$/i.test(organizationId)) {
       dbSubscription = await this.subscriptionsService.findOne({
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
+        organization: organizationId,
       });
     }
 
@@ -176,9 +175,7 @@ export class UsersController {
     // Auto-complete onboarding for records missing the onboarding flag
     // and for entitled users whose DB onboarding flag fell out of sync.
     if (!data.isOnboardingCompleted) {
-      const hasField = await this.usersService.hasOnboardingField(
-        new Types.ObjectId(data._id),
-      );
+      const hasField = await this.usersService.hasOnboardingField(data._id);
 
       if (!hasField || hasAccessByEntitlement) {
         data = await this.usersService.patch(data._id.toString(), {
@@ -225,8 +222,8 @@ export class UsersController {
     try {
       member = await this.membersService.findOne({
         isDeleted: false,
-        organization: new Types.ObjectId(publicMetadata.organization),
-        user: new Types.ObjectId(publicMetadata.user),
+        organization: publicMetadata.organization,
+        user: publicMetadata.user,
       });
     } catch (error: unknown) {
       this.loggerService.error(
@@ -239,7 +236,7 @@ export class UsersController {
 
     const brandFilter: unknown = {
       isDeleted,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     };
 
     if (
@@ -250,7 +247,7 @@ export class UsersController {
       brandFilter._id = { $in: member.brands };
     }
 
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: brandFilter,
       },
@@ -277,7 +274,7 @@ export class UsersController {
     const publicMetadata = getPublicMetadata(user);
 
     const userData = await this.usersService.findOne({
-      _id: new Types.ObjectId(publicMetadata.user),
+      _id: publicMetadata.user,
       isDeleted: false,
     });
 
@@ -298,7 +295,7 @@ export class UsersController {
     const publicMetadata = getPublicMetadata(user);
 
     const userData = await this.usersService.findOne({
-      _id: new Types.ObjectId(publicMetadata.user),
+      _id: publicMetadata.user,
       isDeleted: false,
     });
 
@@ -331,11 +328,11 @@ export class UsersController {
     };
 
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: {
           isDeleted,
-          user: new Types.ObjectId(publicMetadata.user),
+          user: publicMetadata.user,
         },
       },
       {
@@ -358,9 +355,9 @@ export class UsersController {
   ) {
     const publicMetadata = getPublicMetadata(user);
     const organization = await this.organizationsService.findOne({
-      _id: new Types.ObjectId(organizationId),
+      _id: organizationId,
       isDeleted: false,
-      user: new Types.ObjectId(publicMetadata.user),
+      user: publicMetadata.user,
     });
 
     if (!organization) {
@@ -416,8 +413,8 @@ export class UsersController {
       {
         isActive: true,
         isDeleted: false,
-        organization: new Types.ObjectId(publicMetadata.organization),
-        user: new Types.ObjectId(publicMetadata.user),
+        organization: publicMetadata.organization,
+        user: publicMetadata.user,
       },
       data._id,
     );

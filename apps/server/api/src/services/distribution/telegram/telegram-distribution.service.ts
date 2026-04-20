@@ -14,7 +14,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 import { firstValueFrom } from 'rxjs';
 
 interface TelegramSendResult {
@@ -173,9 +172,9 @@ export class TelegramDistributionService {
     const { distributionId, organizationId, platform } = options;
 
     const distribution = await this.distributionsService.findOne({
-      _id: new Types.ObjectId(distributionId),
+      _id: distributionId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
       platform,
       status: PublishStatus.SCHEDULED,
     });
@@ -243,10 +242,10 @@ export class TelegramDistributionService {
     // Try org-specific credential first (brand-scoped token)
     if (brandId) {
       const credential = await this.credentialsService.findOne({
-        brand: new Types.ObjectId(brandId),
+        brand: brandId,
         isConnected: true,
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
+        organization: organizationId,
         platform: CredentialPlatform.TELEGRAM,
       });
 
@@ -259,7 +258,7 @@ export class TelegramDistributionService {
     const orgCredential = await this.credentialsService.findOne({
       isConnected: true,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
       platform: CredentialPlatform.TELEGRAM,
     });
 

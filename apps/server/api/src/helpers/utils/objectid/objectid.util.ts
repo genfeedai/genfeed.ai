@@ -2,7 +2,6 @@ import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
 import { CacheResult } from '@api/helpers/utils/cache/cache.util';
 import type { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
-import { Types } from 'mongoose';
 
 /**
  * Utility class for ObjectId validation and conversion
@@ -28,29 +27,26 @@ export class ObjectIdUtil {
   /**
    * Validate that a string is a valid ObjectId
    */
-  static validate(id: string, fieldName: string = 'id'): Types.ObjectId {
+  static validate(id: string, fieldName: string = 'id'): string {
     if (!id || typeof id !== 'string') {
       throw new ValidationException(
         `${fieldName} is required and must be a string`,
       );
     }
 
-    if (!Types.ObjectId.isValid(id)) {
+    if (!/^[0-9a-f]{24}$/i.test(id)) {
       throw new ValidationException(
         `Invalid ${fieldName} format. Must be a valid ObjectId.`,
       );
     }
 
-    return new Types.ObjectId(id);
+    return id;
   }
 
   /**
    * Validate multiple ObjectIds at once
    */
-  static validateMany(
-    ids: string[],
-    fieldName: string = 'ids',
-  ): Types.ObjectId[] {
+  static validateMany(ids: string[], fieldName: string = 'ids'): string[] {
     if (!Array.isArray(ids)) {
       throw new ValidationException(`${fieldName} must be an array`);
     }
@@ -95,8 +91,8 @@ export class ObjectIdUtil {
         } else if (Array.isArray(value)) {
           // Handle arrays of ObjectIds (e.g., for $in queries)
           processed[key] = value.map((item) => {
-            if (typeof item === 'string' && Types.ObjectId.isValid(item)) {
-              return new Types.ObjectId(item);
+            if (typeof item === 'string' && /^[0-9a-f]{24}$/i.test(item)) {
+              return item;
             }
             return item;
           });
@@ -115,12 +111,12 @@ export class ObjectIdUtil {
   /**
    * Safely convert string to ObjectId without throwing
    */
-  static toObjectId(id: string): Types.ObjectId | null {
-    if (!id || typeof id !== 'string' || !Types.ObjectId.isValid(id)) {
+  static toObjectId(id: string): string | null {
+    if (!id || typeof id !== 'string' || !/^[0-9a-f]{24}$/i.test(id)) {
       return null;
     }
 
-    return new Types.ObjectId(id);
+    return id;
   }
 
   /**
@@ -128,13 +124,13 @@ export class ObjectIdUtil {
    * Returns undefined for invalid/empty values (does not throw).
    */
   static normalizeToObjectId(
-    value: Types.ObjectId | string | null | undefined,
-  ): Types.ObjectId | undefined {
+    value: string | string | null | undefined,
+  ): string | undefined {
     if (!value) {
       return undefined;
     }
 
-    if (value instanceof Types.ObjectId) {
+    if (value === '__never__') {
       return value;
     }
 
@@ -144,7 +140,7 @@ export class ObjectIdUtil {
         return undefined;
       }
       try {
-        return new Types.ObjectId(trimmed);
+        return trimmed;
       } catch {
         return undefined;
       }
@@ -157,15 +153,15 @@ export class ObjectIdUtil {
    * Normalize an array of values to ObjectIds, filtering out invalid entries.
    */
   static normalizeArrayToObjectIds(
-    values: Array<Types.ObjectId | string | null | undefined> | undefined,
-  ): Types.ObjectId[] | undefined {
+    values: Array<string | null | undefined> | undefined,
+  ): string[] | undefined {
     if (!values || !Array.isArray(values)) {
       return undefined;
     }
 
     const normalized = values
       .map((v) => ObjectIdUtil.normalizeToObjectId(v))
-      .filter((v): v is Types.ObjectId => v !== undefined);
+      .filter((v): v is string => v !== undefined);
 
     return normalized;
   }
@@ -174,13 +170,13 @@ export class ObjectIdUtil {
    * Check if a value is a valid ObjectId string
    */
   static isValid(id: unknown): id is string {
-    return typeof id === 'string' && Types.ObjectId.isValid(id);
+    return typeof id === 'string' && /^[0-9a-f]{24}$/i.test(id);
   }
 
   /**
    * Convert ObjectId to string safely
    */
-  static toString(id: Types.ObjectId | string): string {
+  static toString(id: string | string): string {
     if (typeof id === 'string') {
       return id;
     }
@@ -282,10 +278,7 @@ export class ObjectIdUtil {
   /**
    * Validate array of ObjectId strings for bulk operations
    */
-  static validateBulkIds(
-    ids: string[],
-    maxCount: number = 100,
-  ): Types.ObjectId[] {
+  static validateBulkIds(ids: string[], maxCount: number = 100): string[] {
     if (!Array.isArray(ids)) {
       throw new ValidationException('IDs must be provided as an array');
     }
@@ -310,7 +303,7 @@ export class ObjectIdUtil {
   static async convertRelationshipField(
     value: unknown,
     fieldName: string,
-  ): Promise<Types.ObjectId | null> {
+  ): Promise<string | null> {
     // Handle null, undefined, or empty string - remove relationship
     if (value === null || value === undefined || value === '') {
       return null;

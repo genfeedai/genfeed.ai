@@ -14,7 +14,6 @@ import { CombinedAuthGuard } from '@api/helpers/guards/combined-auth/combined-au
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 describe('ShopifyController', () => {
   let controller: ShopifyController;
@@ -89,19 +88,19 @@ describe('ShopifyController', () => {
       };
 
       const mockOrg = {
-        _id: new Types.ObjectId(),
+        _id: '507f191e810c19729de860ee',
         name: 'test-shop',
       };
       const mockUser = {
-        _id: new Types.ObjectId(),
+        _id: '507f191e810c19729de860ee',
         email: 'shop@test-shop.myshopify.com',
       };
       const mockBrand = {
-        _id: new Types.ObjectId(),
+        _id: '507f191e810c19729de860ee',
         name: 'test-shop',
       };
       const mockApiKey = {
-        apiKey: { _id: new Types.ObjectId() },
+        apiKey: { _id: '507f191e810c19729de860ee' },
         plainKey: 'gf_sk_test_key_123',
       };
 
@@ -189,11 +188,14 @@ describe('ShopifyController', () => {
         shopifyUserId: 'shop_456',
       };
 
-      const mockOrg = { _id: new Types.ObjectId(), name: 'my-awesome-store' };
-      const mockUser = { _id: new Types.ObjectId() };
-      const mockBrand = { _id: new Types.ObjectId() };
+      const mockOrg = {
+        _id: '507f191e810c19729de860ee',
+        name: 'my-awesome-store',
+      };
+      const mockUser = { _id: '507f191e810c19729de860ee' };
+      const mockBrand = { _id: '507f191e810c19729de860ee' };
       const mockApiKey = {
-        apiKey: { _id: new Types.ObjectId() },
+        apiKey: { _id: '507f191e810c19729de860ee' },
         plainKey: 'gf_sk_key',
       };
 
@@ -224,11 +226,11 @@ describe('ShopifyController', () => {
         shopifyUserId: 'shop_789',
       };
 
-      const mockOrg = { _id: new Types.ObjectId() };
-      const mockUser = { _id: new Types.ObjectId() };
-      const mockBrand = { _id: new Types.ObjectId() };
+      const mockOrg = { _id: '507f191e810c19729de860ee' };
+      const mockUser = { _id: '507f191e810c19729de860ee' };
+      const mockBrand = { _id: '507f191e810c19729de860ee' };
       const mockApiKey = {
-        apiKey: { _id: new Types.ObjectId() },
+        apiKey: { _id: '507f191e810c19729de860ee' },
         plainKey: 'gf_sk_success',
       };
 

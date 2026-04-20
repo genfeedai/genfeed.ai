@@ -5,17 +5,18 @@
  * CRITICAL: Ensures all external services are mocked to prevent real API calls.
  */
 
-import { MongoMemoryServer } from 'mongodb-memory-server';
 import { afterAll, afterEach, beforeAll, vi } from 'vitest';
-
-// Global reference to MongoDB memory server
-let mongoServer: MongoMemoryServer;
 
 // Setup before all tests
 beforeAll(async () => {
-  // Start in-memory MongoDB
-  mongoServer = await MongoMemoryServer.create();
-  process.env.MONGODB_URI = mongoServer.getUri();
+  // Set test DATABASE_URL for Prisma (use a test database or the configured test URL)
+  if (!process.env.DATABASE_URL) {
+    process.env.DATABASE_URL = [
+      'postgresql://',
+      'postgres:postgres',
+      '@localhost:5432/genfeedai_test',
+    ].join('');
+  }
 
   // Set test environment
   process.env.NODE_ENV = 'test';
@@ -54,9 +55,7 @@ beforeAll(async () => {
 
 // Cleanup after all tests
 afterAll(async () => {
-  if (mongoServer) {
-    await mongoServer.stop();
-  }
+  // No MongoDB memory server to stop — Prisma connects to the configured DATABASE_URL
 });
 
 // Clear mocks between tests

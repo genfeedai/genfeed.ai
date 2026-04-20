@@ -5,14 +5,13 @@ import type {
   PromptCategory,
   PromptStatus,
 } from '@genfeedai/enums';
-import type { Types } from 'mongoose';
 
 export class PromptEntity extends BaseEntity implements Prompt {
-  declare readonly user: Types.ObjectId;
-  declare readonly organization?: Types.ObjectId;
-  declare readonly brand?: Types.ObjectId;
-  declare readonly ingredient?: Types.ObjectId;
-  declare readonly article?: Types.ObjectId;
+  declare readonly user: string;
+  declare readonly organization?: string;
+  declare readonly brand?: string;
+  declare readonly ingredient?: string;
+  declare readonly article?: string;
 
   declare readonly status: PromptStatus;
   declare readonly original: string;
@@ -27,7 +26,7 @@ export class PromptEntity extends BaseEntity implements Prompt {
   declare readonly fontFamily?: string;
   declare readonly blacklists?: string[];
   declare readonly sounds?: string[];
-  declare readonly tags?: Types.ObjectId[];
+  declare readonly tags?: string[];
 
   // Model-specific fields
   declare readonly model?: string;

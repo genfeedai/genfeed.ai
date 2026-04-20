@@ -1,7 +1,7 @@
 import { BookmarksQueryDto } from '@api/collections/bookmarks/dto/bookmarks-query.dto';
 import { CreateBookmarkDto } from '@api/collections/bookmarks/dto/create-bookmark.dto';
 import { UpdateBookmarkDto } from '@api/collections/bookmarks/dto/update-bookmark.dto';
-import { BookmarkDocument } from '@api/collections/bookmarks/schemas/bookmark.schema';
+import { type BookmarkDocument } from '@api/collections/bookmarks/schemas/bookmark.schema';
 import { BookmarksService } from '@api/collections/bookmarks/services/bookmarks.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -35,7 +35,6 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import type { Request } from 'express';
-import { type PipelineStage, Types } from 'mongoose';
 
 type BookmarkMatchConditions = Record<string, unknown>;
 
@@ -59,15 +58,15 @@ export class BookmarksController {
     const bookmark = await this.bookmarksService.create({
       ...createBookmarkDto,
       brand: createBookmarkDto.brand
-        ? new Types.ObjectId(String(createBookmarkDto.brand))
-        : new Types.ObjectId(publicMetadata.brand),
+        ? String(createBookmarkDto.brand)
+        : publicMetadata.brand,
       folder: createBookmarkDto.folder
-        ? new Types.ObjectId(String(createBookmarkDto.folder))
+        ? String(createBookmarkDto.folder)
         : undefined,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
       savedAt: new Date(),
-      tags: createBookmarkDto.tags?.map((tag) => new Types.ObjectId(tag)),
-      user: new Types.ObjectId(publicMetadata.user),
+      tags: createBookmarkDto.tags?.map((tag) => tag),
+      user: publicMetadata.user,
     } as CreateBookmarkDto);
 
     return serializeSingle(request, BookmarkSerializer, bookmark);
@@ -91,8 +90,8 @@ export class BookmarksController {
     // Build match conditions
     const matchConditions: BookmarkMatchConditions = {
       isDeleted,
-      organization: new Types.ObjectId(publicMetadata.organization),
-      user: new Types.ObjectId(publicMetadata.user),
+      organization: publicMetadata.organization,
+      user: publicMetadata.user,
     };
 
     // Filter by category
@@ -112,17 +111,17 @@ export class BookmarksController {
 
     // Filter by folder
     if (query.folder) {
-      matchConditions.folder = new Types.ObjectId(query.folder);
+      matchConditions.folder = query.folder;
     }
 
     // Filter by brand
     if (query.brand) {
-      matchConditions.brand = new Types.ObjectId(query.brand);
+      matchConditions.brand = query.brand;
     }
 
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
-        $match: matchConditions as PipelineStage.Match['$match'],
+        $match: matchConditions as Record<string, unknown>,
       },
       // Add search if provided
       ...(query.search
@@ -161,8 +160,8 @@ export class BookmarksController {
 
     const bookmark = await this.bookmarksService.findOne({
       _id: bookmarkId,
-      organization: new Types.ObjectId(publicMetadata.organization),
-      user: new Types.ObjectId(publicMetadata.user),
+      organization: publicMetadata.organization,
+      user: publicMetadata.user,
     });
 
     if (!bookmark) {
@@ -185,8 +184,8 @@ export class BookmarksController {
     // Verify ownership
     const bookmark = await this.bookmarksService.findOne({
       _id: bookmarkId,
-      organization: new Types.ObjectId(publicMetadata.organization),
-      user: new Types.ObjectId(publicMetadata.user),
+      organization: publicMetadata.organization,
+      user: publicMetadata.user,
     });
 
     if (!bookmark) {
@@ -197,12 +196,12 @@ export class BookmarksController {
     await this.bookmarksService.patch(bookmarkId, {
       ...updateBookmarkDto,
       brand: updateBookmarkDto.brand
-        ? new Types.ObjectId(String(updateBookmarkDto.brand))
+        ? String(updateBookmarkDto.brand)
         : undefined,
       folder: updateBookmarkDto.folder
-        ? new Types.ObjectId(String(updateBookmarkDto.folder))
+        ? String(updateBookmarkDto.folder)
         : undefined,
-      tags: updateBookmarkDto.tags?.map((tag) => new Types.ObjectId(tag)),
+      tags: updateBookmarkDto.tags?.map((tag) => tag),
     } as UpdateBookmarkDto);
 
     // Fetch updated bookmark
@@ -222,8 +221,8 @@ export class BookmarksController {
     // Verify ownership
     const bookmark = await this.bookmarksService.findOne({
       _id: bookmarkId,
-      organization: new Types.ObjectId(publicMetadata.organization),
-      user: new Types.ObjectId(publicMetadata.user),
+      organization: publicMetadata.organization,
+      user: publicMetadata.user,
     });
 
     if (!bookmark) {

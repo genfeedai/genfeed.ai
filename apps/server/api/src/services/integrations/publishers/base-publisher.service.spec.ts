@@ -14,7 +14,6 @@ import type {
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Types } from 'mongoose';
 
 // ─── Concrete subclass for testing abstract base ──────────────────────────────
 
@@ -66,9 +65,9 @@ class TestPublisher extends BasePublisherService {
 
 // ─── Test fixtures ────────────────────────────────────────────────────────────
 
-const mockPostId = new Types.ObjectId('507f1f77bcf86cd799439011');
-const mockIngredientId1 = new Types.ObjectId('507f1f77bcf86cd799439021');
-const mockIngredientId2 = new Types.ObjectId('507f1f77bcf86cd799439022');
+const mockPostId = '507f1f77bcf86cd799439011';
+const mockIngredientId1 = '507f1f77bcf86cd799439021';
+const mockIngredientId2 = '507f1f77bcf86cd799439022';
 
 function makePost(overrides: Partial<PostEntity> = {}): PostEntity {
   return {

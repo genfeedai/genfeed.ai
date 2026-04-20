@@ -9,16 +9,15 @@ import {
   IsString,
   Min,
 } from 'class-validator';
-import type { Types } from 'mongoose';
 
 export class CreateAgentRunDto {
   @ApiProperty()
   @IsMongoId()
-  organization!: Types.ObjectId;
+  organization!: string;
 
   @ApiProperty()
   @IsMongoId()
-  user!: Types.ObjectId;
+  user!: string;
 
   @ApiProperty()
   @IsEnum(AgentExecutionTrigger)
@@ -36,7 +35,7 @@ export class CreateAgentRunDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsMongoId()
-  strategy?: Types.ObjectId;
+  strategy?: string;
 
   @ApiPropertyOptional()
   @IsOptional()

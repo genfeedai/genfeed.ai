@@ -72,7 +72,7 @@ describe('buildReferenceImageUrl', () => {
     expect(ingredientsService.findOne).toHaveBeenCalledTimes(1);
     const ingredientQuery = (ingredientsService.findOne as vi.Mock).mock
       .calls[0][0];
-    expect(ingredientQuery._id.toHexString()).toBe(referenceId);
+    expect(ingredientQuery._id).toBe(referenceId);
     expect(ingredientQuery.category).toBe('image');
     expect(ingredientQuery.isDeleted).toBe(false);
     expect(assetsService.findOne).not.toHaveBeenCalled();
@@ -125,7 +125,7 @@ describe('buildReferenceImageUrl', () => {
     expect(ingredientsService.findOne).toHaveBeenCalledTimes(2); // IMAGE + VIDEO checks
     expect(assetsService.findOne).toHaveBeenCalledTimes(1);
     const assetQuery = (assetsService.findOne as vi.Mock).mock.calls[0][0];
-    expect(assetQuery._id.toHexString()).toBe(referenceId);
+    expect(assetQuery._id).toBe(referenceId);
     expect(assetQuery.isDeleted).toBe(false);
   });
 
@@ -158,6 +158,10 @@ describe('buildReferenceImageUrl', () => {
     const { ingredientsService, assetsService, configService, loggerService } =
       createMocks();
 
+    (ingredientsService.findOne as vi.Mock).mockRejectedValue(
+      new Error('Invalid ObjectId'),
+    );
+
     await expect(
       buildReferenceImageUrl({
         assetsService,
@@ -168,7 +172,7 @@ describe('buildReferenceImageUrl', () => {
       }),
     ).resolves.toBeNull();
 
-    expect(ingredientsService.findOne).not.toHaveBeenCalled();
+    expect(ingredientsService.findOne).toHaveBeenCalled();
     expect(assetsService.findOne).not.toHaveBeenCalled();
     expect(loggerService.warn).toHaveBeenCalledWith('Reference lookup failed', {
       reference: invalidId,
@@ -205,11 +209,12 @@ describe('buildReferenceImageUrls', () => {
 
     // id1: IMAGE found on first call
     // id2: IMAGE not found, VIDEO not found, ASSET found
-    // invalidId: skipped due to invalid ObjectId
+    // invalidId: findOne throws (invalid ObjectId), caught and returns null
     (ingredientsService.findOne as vi.Mock)
       .mockResolvedValueOnce({ _id: id1 }) // id1: IMAGE check - found
       .mockResolvedValueOnce(null) // id2: IMAGE check - not found
-      .mockResolvedValueOnce(null); // id2: VIDEO check - not found
+      .mockResolvedValueOnce(null) // id2: VIDEO check - not found
+      .mockRejectedValueOnce(new Error('Invalid ObjectId')); // invalidId: throws
 
     (assetsService.findOne as vi.Mock).mockResolvedValueOnce({
       _id: id2,
@@ -227,8 +232,8 @@ describe('buildReferenceImageUrls', () => {
       `${BASE_URL}/images/${id1}`,
       `${BASE_URL}/references/${id2}`,
     ]);
-    // id1: 1 call (IMAGE found), id2: 2 calls (IMAGE + VIDEO), invalidId: 0 (invalid)
-    expect(ingredientsService.findOne).toHaveBeenCalledTimes(3);
+    // id1: 1 call (IMAGE found), id2: 2 calls (IMAGE + VIDEO), invalidId: 1 (throws)
+    expect(ingredientsService.findOne).toHaveBeenCalledTimes(4);
     expect(assetsService.findOne).toHaveBeenCalledTimes(1);
   });
 });

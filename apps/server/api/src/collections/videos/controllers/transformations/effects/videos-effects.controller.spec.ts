@@ -34,7 +34,6 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 const mockRequest = {
   originalUrl: '/api/videos',
@@ -43,10 +42,10 @@ const mockRequest = {
 } as unknown as Request;
 
 const mockVideo = {
-  _id: new Types.ObjectId('507f1f77bcf86cd799439011'),
-  brand: new Types.ObjectId('507f1f77bcf86cd799439014'),
-  organization: new Types.ObjectId('507f1f77bcf86cd799439013'),
-  user: new Types.ObjectId('507f1f77bcf86cd799439012'),
+  _id: '507f1f77bcf86cd799439011',
+  brand: '507f1f77bcf86cd799439014',
+  organization: '507f1f77bcf86cd799439013',
+  user: '507f1f77bcf86cd799439012',
 };
 
 const mockUser = {
@@ -58,8 +57,8 @@ const mockUser = {
   },
 } as unknown as User;
 
-const ingredientId = new Types.ObjectId('507f1f77bcf86cd799439017');
-const metadataId = new Types.ObjectId('507f1f77bcf86cd799439016');
+const ingredientId = '507f1f77bcf86cd799439017';
+const metadataId = '507f1f77bcf86cd799439016';
 
 describe('VideosEffectsController', () => {
   let controller: VideosEffectsController;
@@ -217,7 +216,7 @@ describe('VideosEffectsController', () => {
     expect(mockServices.sharedService.saveDocuments).toHaveBeenCalledWith(
       mockUser,
       expect.objectContaining({
-        parent: new Types.ObjectId('507f1f77bcf86cd799439011'),
+        parent: '507f1f77bcf86cd799439011',
       }),
     );
   });

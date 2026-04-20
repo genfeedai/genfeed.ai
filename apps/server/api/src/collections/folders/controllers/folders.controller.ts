@@ -26,7 +26,6 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
-import { type PipelineStage, Types } from 'mongoose';
 
 @Controller('folders')
 @ApiTags('folders')
@@ -43,7 +42,7 @@ export class FoldersController extends BaseCRUDController<
     public readonly foldersService: FoldersService,
     public readonly loggerService: LoggerService,
   ) {
-    super(loggerService, foldersService, FolderSerializer, Folder.name);
+    super(loggerService, foldersService, FolderSerializer, 'Folder');
   }
 
   @Patch(':folderId')
@@ -76,23 +75,19 @@ export class FoldersController extends BaseCRUDController<
   public buildFindAllPipeline(
     user: User,
     query: BaseQueryDto,
-  ): PipelineStage[] {
+  ): Record<string, unknown>[] {
     const publicMetadata = getPublicMetadata(user);
-    const organizationId = new Types.ObjectId(publicMetadata.organization);
+    const organizationId = publicMetadata.organization;
 
     // Check if brand or organization query params are provided
     const brandId = (query as unknown as Record<string, string | undefined>)
       .brand
-      ? new Types.ObjectId(
-          (query as unknown as Record<string, string | undefined>).brand,
-        )
+      ? (query as unknown as Record<string, string | undefined>).brand
       : null;
     const queryOrganizationId = (
       query as unknown as Record<string, string | undefined>
     ).organization
-      ? new Types.ObjectId(
-          (query as unknown as Record<string, string | undefined>).organization,
-        )
+      ? (query as unknown as Record<string, string | undefined>).organization
       : null;
 
     const matchStage: unknown = {
@@ -118,7 +113,7 @@ export class FoldersController extends BaseCRUDController<
     } else {
       // Default: user folders + organization folders
       matchStage.$or = [
-        { user: new Types.ObjectId(publicMetadata.user) },
+        { user: publicMetadata.user },
         { organization: organizationId },
       ];
     }

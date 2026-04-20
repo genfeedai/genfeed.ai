@@ -35,7 +35,6 @@ import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Body, Controller, Param, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 @AutoSwagger()
 @Controller('videos')
@@ -68,8 +67,8 @@ export class VideosResizeController {
     const video = await this.videosService.findOne({
       _id: videoId,
       $or: [
-        { user: new Types.ObjectId(publicMetadata.user) },
-        { organization: new Types.ObjectId(publicMetadata.organization) },
+        { user: publicMetadata.user },
+        { organization: publicMetadata.organization },
       ],
     });
 
@@ -79,11 +78,11 @@ export class VideosResizeController {
 
     const { ingredientData, metadataData } =
       await this.sharedService.saveDocuments(user, {
-        brand: new Types.ObjectId(video.brand || publicMetadata.brand),
+        brand: video.brand || publicMetadata.brand,
         category: IngredientCategory.VIDEO,
         extension: MetadataExtension.MP4,
-        organization: new Types.ObjectId(publicMetadata.organization),
-        parent: new Types.ObjectId(videoId),
+        organization: publicMetadata.organization,
+        parent: videoId,
         scope: AssetScope.USER,
         status: IngredientStatus.PROCESSING,
       });
@@ -106,9 +105,7 @@ export class VideosResizeController {
       .then(async (job) => {
         const result = await this.fileQueueService.waitForJob(job.jobId, 60000);
         const output = result.outputPath;
-        const ingredientId = (
-          ingredientData._id as Types.ObjectId
-        ).toHexString();
+        const ingredientId = String(ingredientData._id);
 
         return this.filesClientService
           .uploadToS3(ingredientId, `videos`, {
@@ -151,7 +148,7 @@ export class VideosResizeController {
 
     const video = await this.videosService.findOne({
       _id: videoId,
-      user: new Types.ObjectId(publicMetadata.user),
+      user: publicMetadata.user,
     });
 
     if (!video) {
@@ -160,11 +157,11 @@ export class VideosResizeController {
 
     const { metadataData, ingredientData } =
       await this.sharedService.saveDocuments(user, {
-        brand: new Types.ObjectId(publicMetadata.brand),
+        brand: publicMetadata.brand,
         category: IngredientCategory.VIDEO,
         extension: MetadataExtension.MP4,
-        organization: new Types.ObjectId(publicMetadata.organization),
-        parent: new Types.ObjectId(videoId),
+        organization: publicMetadata.organization,
+        parent: videoId,
         status: IngredientStatus.PROCESSING,
       });
 

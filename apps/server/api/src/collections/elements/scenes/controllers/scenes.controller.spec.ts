@@ -10,13 +10,12 @@ import { SceneSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { type PipelineStage, Types } from 'mongoose';
 
 type SceneDocumentLike = {
-  _id: string | Types.ObjectId;
+  _id: string;
   name?: string;
-  organization?: string | Types.ObjectId;
-  user?: string | Types.ObjectId;
+  organization?: string;
+  user?: string;
   [key: string]: unknown;
 };
 
@@ -38,11 +37,11 @@ const createBaseQuery = (partial: Partial<BaseQueryDto> = {}): BaseQueryDto =>
     ...partial,
   }) as BaseQueryDto;
 
-const asMatchStage = (stage: PipelineStage) =>
-  stage as PipelineStage.Match & { $match: Record<string, unknown> };
+const asMatchStage = (stage: Record<string, unknown>) =>
+  stage as Record<string, unknown> & { $match: Record<string, unknown> };
 
-const asSortStage = (stage: PipelineStage) =>
-  stage as PipelineStage.Sort & { $sort: Record<string, unknown> };
+const asSortStage = (stage: Record<string, unknown>) =>
+  stage as Record<string, unknown> & { $sort: Record<string, unknown> };
 
 vi.mock('@genfeedai/helpers', async () => ({
   ...(await vi.importActual('@genfeedai/helpers')),
@@ -72,17 +71,17 @@ describe('ElementsScenesController', () => {
   const mockUser = {
     id: 'user-123',
     publicMetadata: {
-      brand: new Types.ObjectId().toString(),
-      organization: new Types.ObjectId().toString(),
-      user: new Types.ObjectId().toString(),
+      brand: '507f191e810c19729de860ee'.toString(),
+      organization: '507f191e810c19729de860ee'.toString(),
+      user: '507f191e810c19729de860ee'.toString(),
     } as IClerkPublicMetadata,
   } as unknown as User;
 
   const mockUserWithoutOrg = {
     id: 'user-456',
     publicMetadata: {
-      brand: new Types.ObjectId().toString(),
-      user: new Types.ObjectId().toString(),
+      brand: '507f191e810c19729de860ee'.toString(),
+      user: '507f191e810c19729de860ee'.toString(),
     } as IClerkPublicMetadata,
   } as unknown as User;
 
@@ -140,7 +139,7 @@ describe('ElementsScenesController', () => {
       } as unknown as CreateElementSceneDto;
 
       const mockCreatedScene = {
-        _id: new Types.ObjectId(),
+        _id: '507f191e810c19729de860ee',
         ...createDto,
         organization: mockUser.publicMetadata.organization,
       };
@@ -161,7 +160,7 @@ describe('ElementsScenesController', () => {
       } as unknown as CreateElementSceneDto;
 
       const mockCreatedScene = {
-        _id: new Types.ObjectId(),
+        _id: '507f191e810c19729de860ee',
         ...createDto,
         organization: mockUser.publicMetadata.organization,
       };
@@ -179,7 +178,7 @@ describe('ElementsScenesController', () => {
 
   describe('update', () => {
     it('should update an existing scene', async () => {
-      const sceneId = new Types.ObjectId().toString();
+      const sceneId = '507f191e810c19729de860ee'.toString();
       const updateDto: UpdateElementSceneDto = {
         name: 'Updated Scene',
       } as UpdateElementSceneDto;
@@ -187,10 +186,10 @@ describe('ElementsScenesController', () => {
       const mockExistingScene = {
         _id: sceneId,
         name: 'Old Scene',
-        organization: new Types.ObjectId(
+        organization: 
           mockUser.publicMetadata.organization as string,
-        ),
-        user: new Types.ObjectId(mockUser.publicMetadata.user as string),
+        ,
+        user: mockUser.publicMetadata.user as string,
       };
 
       const mockUpdatedScene = {
@@ -218,7 +217,7 @@ describe('ElementsScenesController', () => {
     });
 
     it('should throw error when scene not found', async () => {
-      const sceneId = new Types.ObjectId().toString();
+      const sceneId = '507f191e810c19729de860ee'.toString();
       const updateDto: UpdateElementSceneDto = {
         name: 'Updated',
       } as UpdateElementSceneDto;
@@ -233,14 +232,14 @@ describe('ElementsScenesController', () => {
 
   describe('remove', () => {
     it('should delete a scene', async () => {
-      const sceneId = new Types.ObjectId().toString();
+      const sceneId = '507f191e810c19729de860ee'.toString();
       const mockScene = {
         _id: sceneId,
         name: 'Scene to Delete',
-        organization: new Types.ObjectId(
+        organization: 
           mockUser.publicMetadata.organization as string,
-        ),
-        user: new Types.ObjectId(mockUser.publicMetadata.user as string),
+        ,
+        user: mockUser.publicMetadata.user as string,
       };
 
       scenesService.findOne.mockResolvedValueOnce(
@@ -256,7 +255,7 @@ describe('ElementsScenesController', () => {
     });
 
     it('should throw error when scene not found', async () => {
-      const sceneId = new Types.ObjectId().toString();
+      const sceneId = '507f191e810c19729de860ee'.toString();
 
       scenesService.findOne.mockResolvedValueOnce(null);
 
@@ -335,7 +334,7 @@ describe('ElementsScenesController', () => {
         user: { $exists: false },
       });
       expect(orConditions[1].organization).toEqual(
-        new Types.ObjectId(mockUser.publicMetadata.organization as string),
+        mockUser.publicMetadata.organization as string,
       );
     });
   });
@@ -390,7 +389,7 @@ describe('ElementsScenesController', () => {
     });
 
     it('should handle findOne', async () => {
-      const sceneId = new Types.ObjectId().toString();
+      const sceneId = '507f191e810c19729de860ee'.toString();
       const mockScene = {
         _id: sceneId,
         name: 'Scene 1',

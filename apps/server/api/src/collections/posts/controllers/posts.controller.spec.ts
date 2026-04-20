@@ -30,7 +30,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 describe('PostsController', () => {
   let controller: PostsController;
@@ -45,38 +44,38 @@ describe('PostsController', () => {
   } as unknown as User;
 
   const mockPost = {
-    _id: new Types.ObjectId('507f1f77bcf86cd799439014'),
-    brand: new Types.ObjectId('507f1f77bcf86cd799439013'),
-    credential: new Types.ObjectId('507f1f77bcf86cd799439016'),
+    _id: '507f1f77bcf86cd799439014',
+    brand: '507f1f77bcf86cd799439013',
+    credential: '507f1f77bcf86cd799439016',
     isDeleted: false,
-    organization: new Types.ObjectId('507f1f77bcf86cd799439012'),
+    organization: '507f1f77bcf86cd799439012',
     platform: 'youtube',
     status: 'draft',
-    user: new Types.ObjectId('507f1f77bcf86cd799439011'),
+    user: '507f1f77bcf86cd799439011',
   };
 
   const mockIngredient = {
-    _id: new Types.ObjectId('507f1f77bcf86cd799439015'),
-    brand: new Types.ObjectId('507f1f77bcf86cd799439013'),
+    _id: '507f1f77bcf86cd799439015',
+    brand: '507f1f77bcf86cd799439013',
     campaign: 'spring-drop',
     category: 'video',
-    organization: new Types.ObjectId('507f1f77bcf86cd799439012'),
+    organization: '507f1f77bcf86cd799439012',
     reviewStatus: 'approved',
-    user: new Types.ObjectId('507f1f77bcf86cd799439011'),
+    user: '507f1f77bcf86cd799439011',
   };
 
   const mockCampaignIngredient = {
     ...mockIngredient,
-    _id: new Types.ObjectId('507f1f77bcf86cd799439017'),
+    _id: '507f1f77bcf86cd799439017',
     category: 'image',
   };
 
   const mockCredential = {
-    _id: new Types.ObjectId('507f1f77bcf86cd799439016'),
+    _id: '507f1f77bcf86cd799439016',
     isConnected: true,
     isDeleted: false,
     label: 'YouTube Channel',
-    organization: new Types.ObjectId('507f1f77bcf86cd799439012'),
+    organization: '507f1f77bcf86cd799439012',
     platform: 'youtube',
   };
 
@@ -279,7 +278,7 @@ describe('PostsController', () => {
         docs: [
           {
             ...mockPost,
-            organization: new Types.ObjectId('507f1f77bcf86cd799439012'),
+            organization: '507f1f77bcf86cd799439012',
           },
         ],
       });

@@ -4,7 +4,6 @@ import type { ClipResultDocument } from '@api/collections/clip-results/schemas/c
 import type { User } from '@clerk/backend';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
@@ -79,8 +78,8 @@ describe('ClipResultsController', () => {
 
       expect(service.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          organization: expect.any(Types.ObjectId),
-          user: expect.any(Types.ObjectId),
+          organization: expect.any(String),
+          user: expect.any(String),
         }),
       );
       expect(result).toEqual({ data: created });
@@ -131,7 +130,7 @@ describe('ClipResultsController', () => {
         expect.objectContaining({
           _id: 'cr-1',
           isDeleted: false,
-          organization: expect.any(Types.ObjectId),
+          organization: expect.any(String),
         }),
       );
       expect(result).toEqual({ data: doc });
@@ -167,7 +166,7 @@ describe('ClipResultsController', () => {
         expect.objectContaining({
           _id: 'cr-1',
           isDeleted: false,
-          organization: expect.any(Types.ObjectId),
+          organization: expect.any(String),
         }),
       );
       expect(service.patch).toHaveBeenCalledWith('cr-1', {

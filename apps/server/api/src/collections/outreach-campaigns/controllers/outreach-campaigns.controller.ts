@@ -38,7 +38,6 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
-import { type PipelineStage, Types } from 'mongoose';
 
 @ApiTags('OutreachCampaigns')
 @AutoSwagger()
@@ -69,7 +68,7 @@ export class OutreachCampaignsController extends BaseCRUDController<
   public buildFindAllPipeline(
     user: User,
     query: OutreachCampaignsQueryDto,
-  ): PipelineStage[] {
+  ): Record<string, unknown>[] {
     const publicMetadata = getPublicMetadata(user);
     const match: Record<string, unknown> = {
       isDeleted: query.isDeleted ?? false,
@@ -78,12 +77,12 @@ export class OutreachCampaignsController extends BaseCRUDController<
     const organizationId =
       query.organization || publicMetadata.organization?.toString();
     if (organizationId) {
-      match.organization = new Types.ObjectId(organizationId);
+      match.organization = organizationId;
     }
 
     const brandId = publicMetadata.brand?.toString();
     if (brandId) {
-      match.brand = new Types.ObjectId(brandId);
+      match.brand = brandId;
     }
 
     if (query.platform) {
@@ -102,7 +101,7 @@ export class OutreachCampaignsController extends BaseCRUDController<
       match.isActive = query.isActive;
     }
 
-    const pipeline: PipelineStage[] = [
+    const pipeline: Record<string, unknown>[] = [
       { $match: match },
       { $sort: handleQuerySort(query.sort) },
     ];
@@ -138,9 +137,8 @@ export class OutreachCampaignsController extends BaseCRUDController<
     const publicMetadata = getPublicMetadata(user);
 
     const entityOrganizationId =
-      (
-        entity.organization as unknown as { _id: Types.ObjectId }
-      )?._id?.toString() || entity.organization?.toString();
+      (entity.organization as unknown as { _id: string })?._id?.toString() ||
+      entity.organization?.toString();
 
     if (
       entityOrganizationId &&
@@ -261,7 +259,7 @@ export class OutreachCampaignsController extends BaseCRUDController<
       }
 
       await this.campaignTargetsService.create({
-        campaign: new Types.ObjectId(id),
+        campaign: id,
         contentUrl: url,
         discoverySource: CampaignDiscoverySource.MANUAL,
         externalId: parsed.externalId,
@@ -332,7 +330,7 @@ export class OutreachCampaignsController extends BaseCRUDController<
       }
 
       await this.campaignTargetsService.create({
-        campaign: new Types.ObjectId(id),
+        campaign: id,
         contentUrl: `https://x.com/${username}`,
         discoverySource: CampaignDiscoverySource.MANUAL,
         externalId: username,

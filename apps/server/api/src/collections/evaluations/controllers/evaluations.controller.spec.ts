@@ -9,7 +9,6 @@ import { EvaluationType, ExternalPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('EvaluationsController', () => {
   let controller: EvaluationsController;
@@ -30,15 +29,15 @@ describe('EvaluationsController', () => {
   } as unknown as import('express').Request;
 
   const mockEvaluation = {
-    _id: new Types.ObjectId('507f1f77bcf86cd799439014'),
-    brand: new Types.ObjectId('507f1f77bcf86cd799439013'),
+    _id: '507f1f77bcf86cd799439014',
+    brand: '507f1f77bcf86cd799439013',
     contentId: '507f1f77bcf86cd799439015',
     contentType: 'video',
     evaluationType: EvaluationType.PRE_PUBLICATION,
     isDeleted: false,
-    organization: new Types.ObjectId('507f1f77bcf86cd799439012'),
+    organization: '507f1f77bcf86cd799439012',
     score: 85,
-    user: new Types.ObjectId('507f1f77bcf86cd799439011'),
+    user: '507f1f77bcf86cd799439011',
   };
 
   const mockServices = {

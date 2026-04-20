@@ -1,7 +1,6 @@
-import { ContentDraftStatus } from '@api/collections/content-drafts/schemas/content-draft.schema';
 import { ContentReviewService } from '@api/services/content-engine/content-review.service';
+import { ContentDraftStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Types } from 'mongoose';
 
 describe('ContentReviewService', () => {
   let service: ContentReviewService;
@@ -9,10 +8,10 @@ describe('ContentReviewService', () => {
   let mockBrandsService: Record<string, ReturnType<typeof vi.fn>>;
   let mockLogger: Record<string, ReturnType<typeof vi.fn>>;
 
-  const orgId = new Types.ObjectId().toString();
-  const brandId = new Types.ObjectId().toString();
-  const draftId = new Types.ObjectId().toString();
-  const userId = new Types.ObjectId().toString();
+  const orgId = 'test-object-id';
+  const brandId = 'test-object-id';
+  const draftId = 'test-object-id';
+  const userId = 'test-object-id';
 
   beforeEach(() => {
     mockContentDraftsService = {
@@ -44,7 +43,7 @@ describe('ContentReviewService', () => {
   // ---------------------------------------------------------------------------
   describe('getQueue', () => {
     it('should delegate to contentDraftsService.listByBrand with PENDING status', async () => {
-      const mockDrafts = [{ _id: new Types.ObjectId() }];
+      const mockDrafts = [{ _id: 'test-object-id' }];
       mockContentDraftsService.listByBrand.mockResolvedValue(mockDrafts);
 
       const result = await service.getQueue(orgId, brandId);
@@ -132,7 +131,7 @@ describe('ContentReviewService', () => {
   // ---------------------------------------------------------------------------
   describe('bulkApprove', () => {
     it('should delegate to contentDraftsService.bulkApprove', async () => {
-      const ids = [draftId, new Types.ObjectId().toString()];
+      const ids = [draftId, 'test-object-id'];
       mockContentDraftsService.bulkApprove.mockResolvedValue({
         modifiedCount: 2,
       });
@@ -287,8 +286,8 @@ describe('ContentReviewService', () => {
       expect(callArg).toMatchObject({
         isDeleted: false,
       });
-      expect(callArg._id).toBeInstanceOf(Types.ObjectId);
-      expect(callArg.organization).toBeInstanceOf(Types.ObjectId);
+      expect(callArg._id).toEqual(expect.any(String));
+      expect(callArg.organization).toEqual(expect.any(String));
     });
   });
 });

@@ -1,4 +1,4 @@
-import { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
+import { type CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { ConfigService } from '@api/config/config.service';
@@ -14,7 +14,6 @@ import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 @Injectable()
 export class MastodonPublisherService extends BasePublisherService {
@@ -88,9 +87,9 @@ export class MastodonPublisherService extends BasePublisherService {
     try {
       // Get Mastodon credential with instance URL
       const mastodonCredential = await this.credentialsService.findOne({
-        brand: new Types.ObjectId(brandId),
+        brand: brandId,
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
+        organization: organizationId,
         platform: CredentialPlatform.MASTODON,
       });
 
@@ -183,9 +182,9 @@ export class MastodonPublisherService extends BasePublisherService {
 
     // Get Mastodon credential
     const mastodonCredential = await this.credentialsService.findOne({
-      brand: new Types.ObjectId(brandId),
+      brand: brandId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
       platform: CredentialPlatform.MASTODON,
     });
 
@@ -205,13 +204,13 @@ export class MastodonPublisherService extends BasePublisherService {
 
     for (const child of sortedChildren) {
       try {
-        const childId = (child._id as Types.ObjectId).toString();
+        const childId = child._id.toString();
         const text = this.sanitizeDescription(child.description as string);
 
         // Upload media if child has ingredients
         let mediaIds: string[] | undefined;
         const childIngredients =
-          (child.ingredients as Array<{ _id?: Types.ObjectId }>) || [];
+          (child.ingredients as Array<{ _id?: string }>) || [];
         if (childIngredients.length > 0) {
           mediaIds = [];
           const childIngredientIds = childIngredients.map((ingredient) => {
@@ -276,15 +275,14 @@ export class MastodonPublisherService extends BasePublisherService {
         }
       } catch (error: unknown) {
         this.logger.error(`${url} error publishing thread child`, {
-          childPostId: (child._id as Types.ObjectId).toString(),
+          childPostId: child._id.toString(),
           error: (error as Error)?.message,
           order: child.order,
         });
 
-        await this.postsService.patch(
-          (child._id as Types.ObjectId).toString(),
-          { status: PostStatus.FAILED },
-        );
+        await this.postsService.patch(child._id.toString(), {
+          status: PostStatus.FAILED,
+        });
       }
     }
 

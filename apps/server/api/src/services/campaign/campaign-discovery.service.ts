@@ -27,7 +27,6 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 export interface DiscoveredTarget {
   platform: CampaignPlatform;
@@ -421,7 +420,7 @@ export class CampaignDiscoveryService {
       const targetsToCreate = targets.map((target) => ({
         authorId: target.authorId,
         authorUsername: target.authorUsername,
-        campaign: new Types.ObjectId(campaign._id.toString()),
+        campaign: campaign._id.toString(),
         contentCreatedAt: target.contentCreatedAt,
         contentText: target.contentText,
         contentUrl: target.contentUrl,

@@ -31,7 +31,6 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 interface CreateUserCheckoutDto {
   stripePriceId: string;
@@ -236,7 +235,7 @@ export class UserStripeController {
       const creatorOrg = await this.organizationsService.findOne({
         category: OrganizationCategory.CREATOR,
         isDeleted: false,
-        members: new Types.ObjectId(dbUser._id),
+        members: dbUser._id,
       });
 
       if (creatorOrg) {

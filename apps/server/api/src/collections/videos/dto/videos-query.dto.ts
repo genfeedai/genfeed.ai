@@ -9,7 +9,6 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class VideosQueryDto extends BaseQueryDto {
   @ApiProperty({
@@ -40,7 +39,7 @@ export class VideosQueryDto extends BaseQueryDto {
   })
   @IsOptional()
   @IsMongoId()
-  training?: Types.ObjectId;
+  training?: string;
 
   @ApiProperty({
     description: 'Filter by scope/visibility level',
@@ -58,7 +57,7 @@ export class VideosQueryDto extends BaseQueryDto {
   })
   @IsOptional()
   @IsMongoId()
-  brand?: Types.ObjectId;
+  brand?: string;
 
   @ApiProperty({
     description: 'Filter by reference video ID',
@@ -66,7 +65,7 @@ export class VideosQueryDto extends BaseQueryDto {
   })
   @IsOptional()
   @IsMongoId()
-  reference?: Types.ObjectId;
+  reference?: string;
 
   @ApiProperty({
     description: 'Filter by video format',
@@ -82,7 +81,7 @@ export class VideosQueryDto extends BaseQueryDto {
   })
   @IsOptional()
   @IsMongoId()
-  parent?: Types.ObjectId;
+  parent?: string;
 
   @ApiProperty({
     description: 'Filter by folder ID',
@@ -90,7 +89,7 @@ export class VideosQueryDto extends BaseQueryDto {
   })
   @IsOptional()
   @IsMongoId()
-  folder?: Types.ObjectId;
+  folder?: string;
 
   @ApiProperty({
     description: 'Filter by provider',

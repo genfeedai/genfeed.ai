@@ -17,7 +17,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 @Controller('internal/orgs/:orgId/workflow-executions')
 @Public()
@@ -38,7 +37,7 @@ export class InternalWorkflowExecutionsController {
     const workflow = await this.workflowsService.findOne({
       _id: dto.workflow,
       isDeleted: false,
-      organization: new Types.ObjectId(orgId),
+      organization: orgId,
     });
 
     if (!workflow?.user) {
@@ -56,7 +55,7 @@ export class InternalWorkflowExecutionsController {
     const execution = await this.workflowExecutionsService.findOne({
       _id: result.executionId,
       isDeleted: false,
-      organization: new Types.ObjectId(orgId),
+      organization: orgId,
     });
 
     return serializeSingle(req, WorkflowExecutionSerializer, execution);
@@ -71,7 +70,7 @@ export class InternalWorkflowExecutionsController {
     const execution = await this.workflowExecutionsService.findOne({
       _id: id,
       isDeleted: false,
-      organization: new Types.ObjectId(orgId),
+      organization: orgId,
     });
 
     if (!execution) {
@@ -90,7 +89,7 @@ export class InternalWorkflowExecutionsController {
     const execution = await this.workflowExecutionsService.findOne({
       _id: id,
       isDeleted: false,
-      organization: new Types.ObjectId(orgId),
+      organization: orgId,
     });
 
     if (!execution) {

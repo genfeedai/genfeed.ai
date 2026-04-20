@@ -1,6 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsMongoId, IsNotEmpty, IsString } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class CreateCustomerDto {
   @IsMongoId()
@@ -8,7 +7,7 @@ export class CreateCustomerDto {
     description: 'The organization ID that the customer belongs to',
     required: true,
   })
-  readonly organization!: Types.ObjectId;
+  readonly organization!: string;
 
   @IsString()
   @IsNotEmpty()

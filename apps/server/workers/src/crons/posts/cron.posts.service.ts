@@ -29,7 +29,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { Types } from 'mongoose';
 
 @Injectable()
 export class CronPostsService {
@@ -146,13 +145,13 @@ export class CronPostsService {
             // Log successful publication
             await this.activitiesService.create(
               new ActivityEntity({
-                brand: new Types.ObjectId(post.brand),
+                brand: post.brand,
                 entityId: post._id,
                 entityModel: ActivityEntityModel.POST,
                 key: ActivityKey.POST_PUBLISHED,
-                organization: new Types.ObjectId(post.organization),
+                organization: post.organization,
                 source: ActivitySource.POST,
-                user: new Types.ObjectId(post.user),
+                user: post.user,
                 value: `Published to ${result.platform}: ${result.url}`,
               }),
             );
@@ -594,7 +593,7 @@ export class CronPostsService {
           label: child.label || '',
           order: child.order || 0,
           organization: originalParent.organization,
-          parent: new Types.ObjectId(newParentId),
+          parent: newParentId,
           platform: originalParent.platform,
           scheduledDate: newScheduledDate, // Use new parent's scheduled date
           status: PostStatus.SCHEDULED,
@@ -679,13 +678,13 @@ export class CronPostsService {
   ): Promise<void> {
     await this.activitiesService.create(
       new ActivityEntity({
-        brand: new Types.ObjectId(post.brand),
-        entityId: new Types.ObjectId(post._id),
+        brand: post.brand,
+        entityId: post._id,
         entityModel: ActivityEntityModel.POST,
         key: ActivityKey.POST_FAILED,
-        organization: new Types.ObjectId(post.organization),
+        organization: post.organization,
         source: ActivitySource.POST,
-        user: new Types.ObjectId(post.user),
+        user: post.user,
         value: `Quota exceeded: ${quotaCheck.currentCount}/${quotaCheck.dailyLimit} posts for ${platform}`,
       }),
     );
@@ -733,13 +732,13 @@ export class CronPostsService {
   ): Promise<void> {
     await this.activitiesService.create(
       new ActivityEntity({
-        brand: new Types.ObjectId(post.brand),
-        entityId: new Types.ObjectId(post._id),
+        brand: post.brand,
+        entityId: post._id,
         entityModel: ActivityEntityModel.POST,
         key: ActivityKey.POST_FAILED,
-        organization: new Types.ObjectId(post.organization),
+        organization: post.organization,
         source: ActivitySource.POST,
-        user: new Types.ObjectId(post.user),
+        user: post.user,
         value: errorMessage,
       }),
     );

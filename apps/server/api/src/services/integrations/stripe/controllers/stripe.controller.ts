@@ -28,7 +28,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 @AutoSwagger()
 @Controller('services/stripe')
@@ -90,7 +89,7 @@ export class StripeController {
 
       if (!subscription) {
         const organization = await this.organizationsService.findOne({
-          _id: new Types.ObjectId(publicMetadata.organization),
+          _id: publicMetadata.organization,
           isDeleted: false,
         });
 
@@ -186,7 +185,7 @@ export class StripeController {
 
       if (!subscription) {
         const organization = await this.organizationsService.findOne({
-          _id: new Types.ObjectId(publicMetadata.organization),
+          _id: publicMetadata.organization,
           isDeleted: false,
         });
 

@@ -7,7 +7,6 @@ import type { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.in
 import type { User } from '@clerk/backend';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('MediumController', () => {
   let controller: MediumController;
@@ -17,10 +16,10 @@ describe('MediumController', () => {
   const _mockUser = {
     id: 'user-123',
     publicMetadata: {
-      brand: new Types.ObjectId().toString(),
+      brand: 'test-object-id',
       isSuperAdmin: false,
-      organization: new Types.ObjectId().toString(),
-      user: new Types.ObjectId().toString(),
+      organization: 'test-object-id',
+      user: 'test-object-id',
     } as IClerkPublicMetadata,
   } as unknown as User;
 

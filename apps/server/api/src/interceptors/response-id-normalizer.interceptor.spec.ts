@@ -5,7 +5,6 @@ import {
   StreamableFile,
 } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import { firstValueFrom, of } from 'rxjs';
 
 describe('ResponseIdNormalizerInterceptor', () => {
@@ -253,7 +252,7 @@ describe('ResponseIdNormalizerInterceptor', () => {
 
   describe('normalizeIdValue function', () => {
     it('should handle ObjectId with toHexString method', async () => {
-      const objectId = new Types.ObjectId();
+      const objectId = '507f191e810c19729de860ee';
       const response = { _id: objectId, name: 'Test' };
       const result = await interceptResult<{ id?: string; name: string }>(
         response,
@@ -261,7 +260,7 @@ describe('ResponseIdNormalizerInterceptor', () => {
 
       expect(result).toHaveProperty('id');
       expect(typeof result.id).toBe('string');
-      expect(result.id).toBe(objectId.toHexString());
+      expect(result.id).toBe(objectId);
     });
 
     it('should handle number _id values', async () => {
@@ -732,8 +731,8 @@ describe('ResponseIdNormalizerInterceptor', () => {
 
   describe('complex real-world scenarios', () => {
     it('should normalize a typical MongoDB document response', async () => {
-      const objectId = new Types.ObjectId();
-      const userId = new Types.ObjectId();
+      const objectId = '507f191e810c19729de860ee';
+      const userId = '507f191e810c19729de860ee';
       const response = {
         _id: objectId,
         author: {
@@ -743,12 +742,12 @@ describe('ResponseIdNormalizerInterceptor', () => {
         },
         comments: [
           {
-            _id: new Types.ObjectId(),
+            _id: '507f191e810c19729de860ee',
             createdAt: new Date(),
             text: 'Great post!',
           },
           {
-            _id: new Types.ObjectId(),
+            _id: '507f191e810c19729de860ee',
             createdAt: new Date(),
             text: 'Thanks for sharing',
           },
@@ -764,9 +763,9 @@ describe('ResponseIdNormalizerInterceptor', () => {
         interceptor.intercept(mockExecutionContext, mockCallHandler),
       );
 
-      expect(result).toHaveProperty('id', objectId.toHexString());
+      expect(result).toHaveProperty('id', objectId);
       expect(result).not.toHaveProperty('_id');
-      expect(result.author).toHaveProperty('id', userId.toHexString());
+      expect(result.author).toHaveProperty('id', userId);
       expect(result.author).not.toHaveProperty('_id');
       expect(result.comments[0]).toHaveProperty('id');
       expect(result.comments[0]).not.toHaveProperty('_id');

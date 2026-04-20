@@ -24,7 +24,6 @@ import { HttpService } from '@nestjs/axios';
 import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 import { of } from 'rxjs';
 
 describe('RedditController', () => {
@@ -43,9 +42,9 @@ describe('RedditController', () => {
 
   const mockRequest = {} as unknown as Request;
   const mockUser = { id: 'clerk_user_1' } as never;
-  const brandId = new Types.ObjectId();
-  const orgId = new Types.ObjectId('507f1f77bcf86cd799439011');
-  const credentialId = new Types.ObjectId();
+  const brandId = 'test-object-id';
+  const orgId = '507f1f77bcf86cd799439011';
+  const credentialId = 'test-object-id';
 
   const mockBrand = {
     _id: brandId,
@@ -198,7 +197,7 @@ describe('RedditController', () => {
     it('should set accessTokenExpiry from expires_in', async () => {
       await controller.verify(mockRequest, dto);
       const patchCall = credentialsService.patch.mock.calls[0] as [
-        Types.ObjectId,
+        string,
         Record<string, unknown>,
       ];
       expect(patchCall[1].accessTokenExpiry).toBeInstanceOf(Date);

@@ -7,7 +7,6 @@ import { PersonasService } from '@api/collections/personas/services/personas.ser
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('PersonasController', () => {
   let controller: PersonasController;
@@ -63,7 +62,10 @@ describe('PersonasController', () => {
 
   describe('assignMembers', () => {
     it('should assign members to a persona', async () => {
-      const mockPersona = { _id: new Types.ObjectId(), name: 'Test Persona' };
+      const mockPersona = {
+        _id: '507f191e810c19729de860ee',
+        name: 'Test Persona',
+      };
       mockServiceMethods.assignMembers.mockResolvedValue(mockPersona);
 
       const body = {
@@ -77,12 +79,9 @@ describe('PersonasController', () => {
       );
 
       expect(mockServiceMethods.assignMembers).toHaveBeenCalledWith(
-        new Types.ObjectId('507f1f77bcf86cd799439017'),
-        [
-          new Types.ObjectId('507f1f77bcf86cd799439015'),
-          new Types.ObjectId('507f1f77bcf86cd799439016'),
-        ],
-        new Types.ObjectId('507f1f77bcf86cd799439012'),
+        '507f1f77bcf86cd799439017',
+        ['507f1f77bcf86cd799439015', '507f1f77bcf86cd799439016'],
+        '507f1f77bcf86cd799439012',
       );
     });
 

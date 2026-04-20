@@ -26,7 +26,6 @@ import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 describe('BeehiivController', () => {
   let controller: BeehiivController;
@@ -54,8 +53,8 @@ describe('BeehiivController', () => {
   const mockRequest = {} as unknown as Request;
 
   const mockBrand = {
-    _id: new Types.ObjectId('507f191e810c19729de860ea'),
-    organization: new Types.ObjectId('507f191e810c19729de860eb'),
+    _id: '507f191e810c19729de860ea',
+    organization: '507f191e810c19729de860eb',
   };
 
   const mockPublication = {
@@ -102,7 +101,7 @@ describe('BeehiivController', () => {
       brandsService.findOne.mockResolvedValue(mockBrand);
       beehiivService.listPublications.mockResolvedValue([mockPublication]);
       credentialsService.saveCredentials.mockResolvedValue({
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         platform: CredentialPlatform.BEEHIIV,
       });
 

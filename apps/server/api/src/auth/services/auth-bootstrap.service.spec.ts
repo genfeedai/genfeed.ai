@@ -1,7 +1,6 @@
 import { AuthBootstrapService } from '@api/auth/services/auth-bootstrap.service';
 import type { AccessBootstrapCachePayload } from '@api/common/services/access-bootstrap-cache.service';
 import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/enums';
-import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@genfeedai/enums', () => ({
@@ -247,9 +246,9 @@ describe('AuthBootstrapService', () => {
   });
 
   it('builds a nested shell bootstrap payload from authoritative services', async () => {
-    const userId = new Types.ObjectId().toString();
-    const organizationId = new Types.ObjectId().toString();
-    const brandId = new Types.ObjectId().toString();
+    const userId = 'test-object-id';
+    const organizationId = 'test-object-id';
+    const brandId = 'test-object-id';
 
     usersService.findOne.mockResolvedValue({
       isOnboardingCompleted: true,
@@ -370,7 +369,7 @@ describe('AuthBootstrapService', () => {
     });
     expect(fleetService.isAvailable).toHaveBeenCalledTimes(3);
     expect(usersService.findOne).toHaveBeenCalledWith({
-      _id: expect.any(Types.ObjectId),
+      _id: expect.any(String),
       isDeleted: false,
     });
     expect(accessBootstrapCacheService.set).toHaveBeenCalledWith(
@@ -381,9 +380,9 @@ describe('AuthBootstrapService', () => {
   });
 
   it('keeps member brand scoping when the user is not a super admin', async () => {
-    const userId = new Types.ObjectId().toString();
-    const organizationId = new Types.ObjectId().toString();
-    const restrictedBrandId = new Types.ObjectId().toString();
+    const userId = 'test-object-id';
+    const organizationId = 'test-object-id';
+    const restrictedBrandId = 'test-object-id';
 
     membersService.findOne.mockResolvedValue({
       brands: [restrictedBrandId],
@@ -413,9 +412,9 @@ describe('AuthBootstrapService', () => {
   });
 
   it('preserves an intentionally cleared brand selection', async () => {
-    const userId = new Types.ObjectId().toString();
-    const organizationId = new Types.ObjectId().toString();
-    const brandId = new Types.ObjectId().toString();
+    const userId = 'test-object-id';
+    const organizationId = 'test-object-id';
+    const brandId = 'test-object-id';
 
     brandsService.findForOrganization.mockResolvedValue([
       {
@@ -450,9 +449,9 @@ describe('AuthBootstrapService', () => {
   });
 
   it('aggregates overview data through the single overview bootstrap path', async () => {
-    const organizationId = new Types.ObjectId().toString();
-    const brandId = new Types.ObjectId().toString();
-    const userId = new Types.ObjectId().toString();
+    const organizationId = 'test-object-id';
+    const brandId = 'test-object-id';
+    const userId = 'test-object-id';
     const bootstrapPayload: AccessBootstrapCachePayload = {
       access: {
         brandId,
@@ -463,7 +462,7 @@ describe('AuthBootstrapService', () => {
         organizationId,
         subscriptionStatus: SubscriptionStatus.ACTIVE,
         subscriptionTier: SubscriptionTier.PRO,
-        userId: new Types.ObjectId().toString(),
+        userId: 'test-object-id',
       },
       brands: [],
       currentUser: null,

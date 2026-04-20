@@ -1,0 +1,61 @@
+{
+  "schema_version": "1.0",
+  "name": "Genfeed AI Agent",
+  "description": "AI-powered content creation and publishing agent for generating videos, images, articles, and managing multi-platform social media publishing.",
+  "homepage": "https://genfeed.ai",
+  "documentation": "https://docs.genfeed.ai",
+  "skills": [
+    {
+      "id": "image-generation",
+      "name": "Generate AI Image",
+      "description": "Generate AI images using multiple models including Flux, DALL-E, Imagen, and more."
+    },
+    {
+      "id": "video-generation",
+      "name": "Generate AI Video",
+      "description": "Create AI videos with voice-over using models including Google Veo 3 and OpenAI Sora 2."
+    },
+    {
+      "id": "content-management",
+      "name": "Manage Content",
+      "description": "List, create, and manage AI-generated articles, posts, and media content."
+    },
+    {
+      "id": "publishing",
+      "name": "Publish to Social Platforms",
+      "description": "Publish or schedule content to 19+ platforms including YouTube, TikTok, Instagram, LinkedIn, X, Facebook, Pinterest, and Reddit."
+    },
+    {
+      "id": "workflow-execution",
+      "name": "Execute Workflow",
+      "description": "Run deterministic AI content workflows with 44+ node types for fully automated pipelines."
+    },
+    {
+      "id": "persona-management",
+      "name": "Manage AI Personas",
+      "description": "List and configure AI personas (avatars) for content creation."
+    },
+    {
+      "id": "batch-generation",
+      "name": "Batch Generate Content",
+      "description": "Generate and review multiple pieces of AI content in parallel."
+    },
+    {
+      "id": "agent-chat",
+      "name": "Chat with AI Agent",
+      "description": "Interact with Genfeed AI agents for assisted content creation."
+    }
+  ],
+  "entry_points": [
+    {
+      "type": "mcp",
+      "url": "https://mcp.genfeed.ai/mcp",
+      "description": "MCP Streamable HTTP endpoint"
+    },
+    {
+      "type": "rest",
+      "url": "https://api.genfeed.ai",
+      "documentation": "https://docs.genfeed.ai"
+    }
+  ]
+}

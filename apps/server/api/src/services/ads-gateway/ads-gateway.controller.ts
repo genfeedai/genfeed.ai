@@ -25,7 +25,6 @@ import {
   Query,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 const VALID_PLATFORMS: AdsPlatform[] = ['meta', 'google', 'tiktok'];
 
@@ -462,9 +461,9 @@ export class AdsGatewayController {
     organizationId: string,
   ): Promise<string> {
     const credential = await this.credentialsService.findOne({
-      _id: new Types.ObjectId(credentialId),
+      _id: credentialId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
     });
 
     if (!credential?.accessToken) {

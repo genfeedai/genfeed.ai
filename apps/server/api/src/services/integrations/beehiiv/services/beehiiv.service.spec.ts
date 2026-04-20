@@ -13,7 +13,6 @@ import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import { of, throwError } from 'rxjs';
 
 describe('BeehiivService', () => {
@@ -268,8 +267,8 @@ describe('BeehiivService', () => {
   });
 
   describe('getDecryptedApiKey', () => {
-    const orgId = new Types.ObjectId().toString();
-    const brandId = new Types.ObjectId().toString();
+    const orgId = 'test-object-id';
+    const brandId = 'test-object-id';
 
     it('should return decrypted apiKey and publicationId', async () => {
       credentialsFindOneMock.mockResolvedValue({

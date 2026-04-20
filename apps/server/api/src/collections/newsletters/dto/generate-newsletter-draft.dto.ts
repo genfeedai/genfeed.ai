@@ -9,7 +9,6 @@ import {
   MaxLength,
   ValidateNested,
 } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class GenerateNewsletterDraftDto {
   @IsString()
@@ -38,7 +37,7 @@ export class GenerateNewsletterDraftDto {
     description: 'Existing newsletter to update',
     required: false,
   })
-  newsletterId?: Types.ObjectId;
+  newsletterId?: string;
 
   @IsOptional()
   @IsArray()
@@ -48,7 +47,7 @@ export class GenerateNewsletterDraftDto {
     required: false,
     type: [String],
   })
-  contextNewsletterIds?: Types.ObjectId[];
+  contextNewsletterIds?: string[];
 
   @IsOptional()
   @IsArray()

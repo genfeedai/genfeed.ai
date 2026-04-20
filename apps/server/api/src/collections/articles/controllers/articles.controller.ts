@@ -74,7 +74,6 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { type PipelineStage, Types } from 'mongoose';
 
 @AutoSwagger()
 @Controller('articles')
@@ -100,7 +99,7 @@ export class ArticlesController extends BaseCRUDController<
     public readonly routerService: RouterService,
   ) {
     // ArticleSerializer would need to be created, using null for now
-    super(loggerService, articlesService, ArticleSerializer, Article.name, [
+    super(loggerService, articlesService, ArticleSerializer, 'Article', [
       'user',
       'organization',
       'brand',
@@ -115,7 +114,7 @@ export class ArticlesController extends BaseCRUDController<
   public buildFindAllPipeline(
     user: User,
     query: ArticlesQueryDto,
-  ): PipelineStage[] {
+  ): Record<string, unknown>[] {
     const publicMetadata = getPublicMetadata(user);
 
     return ArticleFilterUtil.buildArticlePipeline(
@@ -129,10 +128,10 @@ export class ArticlesController extends BaseCRUDController<
         tag: query.tag,
       },
       {
-        brand: new Types.ObjectId(publicMetadata.brand),
+        brand: publicMetadata.brand,
         isDeleted: query.isDeleted ?? false,
-        organization: new Types.ObjectId(publicMetadata.organization),
-        user: new Types.ObjectId(publicMetadata.user),
+        organization: publicMetadata.organization,
+        user: publicMetadata.user,
       },
     );
   }
@@ -152,10 +151,10 @@ export class ArticlesController extends BaseCRUDController<
     const publicMetadata = getPublicMetadata(user);
 
     // Build aggregation pipeline to fetch article with evaluation
-    const pipeline: PipelineStage[] = [
+    const pipeline: Record<string, unknown>[] = [
       {
         $match: {
-          _id: new Types.ObjectId(articleId),
+          _id: articleId,
           isDeleted: false,
         },
       },
@@ -270,7 +269,7 @@ export class ArticlesController extends BaseCRUDController<
     // Check if article generation is enabled for this organization
     const orgSettings = await this.organizationSettingsService.findOne({
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     });
 
     if (orgSettings && !orgSettings.isGenerateArticlesEnabled) {
@@ -301,11 +300,11 @@ export class ArticlesController extends BaseCRUDController<
     // Create activity for article generation start
     const activity = await this.activitiesService.create(
       new ActivityEntity({
-        brand: new Types.ObjectId(publicMetadata.brand),
+        brand: publicMetadata.brand,
         key: ActivityKey.ARTICLE_PROCESSING,
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
         source: ActivitySource.ARTICLE_GENERATION,
-        user: new Types.ObjectId(publicMetadata.user),
+        user: publicMetadata.user,
         value: JSON.stringify({
           count: dto.count || 1,
           prompt: dto.prompt?.substring(0, 100),
@@ -358,13 +357,13 @@ export class ArticlesController extends BaseCRUDController<
       for (const article of articles) {
         await this.activitiesService.create(
           new ActivityEntity({
-            brand: new Types.ObjectId(publicMetadata.brand),
+            brand: publicMetadata.brand,
             entityId: article._id,
             entityModel: ActivityEntityModel.ARTICLE,
             key: ActivityKey.ARTICLE_GENERATED,
-            organization: new Types.ObjectId(publicMetadata.organization),
+            organization: publicMetadata.organization,
             source: ActivitySource.ARTICLE_GENERATION,
-            user: new Types.ObjectId(publicMetadata.user),
+            user: publicMetadata.user,
             value: article._id.toString(),
           }),
         );
@@ -707,10 +706,10 @@ export class ArticlesController extends BaseCRUDController<
 
     // Get the article
     const article = await this.articlesService.findOne({
-      _id: new Types.ObjectId(articleId),
+      _id: articleId,
       $or: [
-        { user: new Types.ObjectId(publicMetadata.user) },
-        { organization: new Types.ObjectId(publicMetadata.organization) },
+        { user: publicMetadata.user },
+        { organization: publicMetadata.organization },
       ],
       isDeleted: false,
     });
@@ -722,16 +721,16 @@ export class ArticlesController extends BaseCRUDController<
     // Get brand for default model
     const brand = article.brand
       ? await this.brandsService.findOne({
-          _id: new Types.ObjectId(article.brand),
+          _id: article.brand,
           isDeleted: false,
-          organization: new Types.ObjectId(publicMetadata.organization),
+          organization: publicMetadata.organization,
         })
       : null;
 
     const organizationSettings = await this.organizationSettingsService.findOne(
       {
         isDeleted: false,
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
       },
     );
     const model = resolveGenerationDefaultModel<string>({
@@ -765,10 +764,10 @@ export class ArticlesController extends BaseCRUDController<
 
     // Get the article
     const article = await this.articlesService.findOne({
-      _id: new Types.ObjectId(articleId),
+      _id: articleId,
       $or: [
-        { user: new Types.ObjectId(publicMetadata.user) },
-        { organization: new Types.ObjectId(publicMetadata.organization) },
+        { user: publicMetadata.user },
+        { organization: publicMetadata.organization },
       ],
       isDeleted: false,
     });
@@ -780,16 +779,16 @@ export class ArticlesController extends BaseCRUDController<
     // Get brand for default model
     const brand = article.brand
       ? await this.brandsService.findOne({
-          _id: new Types.ObjectId(article.brand),
+          _id: article.brand,
           isDeleted: false,
-          organization: new Types.ObjectId(publicMetadata.organization),
+          organization: publicMetadata.organization,
         })
       : null;
 
     const organizationSettings = await this.organizationSettingsService.findOne(
       {
         isDeleted: false,
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
       },
     );
     const model = resolveGenerationDefaultModel<string>({

@@ -1,5 +1,4 @@
 import { MemoizationUtil } from '@api/helpers/utils/memoization/memoization.util';
-import { Types } from 'mongoose';
 
 // Mock dependencies
 vi.mock('@api/helpers/utils/cache/cache.util', () => ({
@@ -23,10 +22,8 @@ vi.mock('@api/helpers/utils/objectid/objectid.util', () => ({
       user: metadata.user,
     })),
     processSearchParams: vi.fn((params) => params),
-    validate: vi.fn((id) => new Types.ObjectId(id)),
-    validateMany: vi.fn((ids) =>
-      ids.map((id: string) => new Types.ObjectId(id)),
-    ),
+    validate: vi.fn((id) => id),
+    validateMany: vi.fn((ids) => ids.map((id: string) => id)),
   },
 }));
 

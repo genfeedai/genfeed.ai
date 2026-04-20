@@ -20,7 +20,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Body, Controller, HttpException, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 @AutoSwagger()
 @Controller('services/ghost')
@@ -60,9 +59,9 @@ export class GhostController {
     }
 
     const brand = await this.brandsService.findOne({
-      _id: new Types.ObjectId(body.brand),
+      _id: body.brand,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     });
 
     if (!brand) {

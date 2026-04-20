@@ -1,7 +1,7 @@
 import { CreateModelDto } from '@api/collections/models/dto/create-model.dto';
 import { ModelsQueryDto } from '@api/collections/models/dto/models-query.dto';
 import { UpdateModelDto } from '@api/collections/models/dto/update-model.dto';
-import { ModelDocument } from '@api/collections/models/schemas/model.schema';
+import { type ModelDocument } from '@api/collections/models/schemas/model.schema';
 // biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
@@ -37,7 +37,6 @@ import {
 } from '@nestjs/common';
 // biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { ModuleRef } from '@nestjs/core';
-import { Model, type PipelineStage, Types } from 'mongoose';
 
 @AutoSwagger()
 @Controller('models')
@@ -54,7 +53,7 @@ export class ModelsController extends BaseCRUDController<
     public readonly loggerService: LoggerService,
     private readonly moduleRef: ModuleRef,
   ) {
-    super(loggerService, modelsService, ModelSerializer, Model.name);
+    super(loggerService, modelsService, ModelSerializer, 'Model');
   }
 
   private getOrganizationSettingsService(): OrganizationSettingsService {
@@ -95,7 +94,7 @@ export class ModelsController extends BaseCRUDController<
   public buildFindAllPipeline(
     _user: User,
     query: ModelsQueryDto,
-  ): PipelineStage[] {
+  ): Record<string, unknown>[] {
     let matchConditions: Record<string, unknown> = {
       isDeleted: query.isDeleted ?? false,
     };
@@ -162,12 +161,12 @@ export class ModelsController extends BaseCRUDController<
     if (query.organizationId) {
       const organizationSettings =
         await this.getOrganizationSettingsService().findOne({
-          organization: new Types.ObjectId(query.organizationId),
+          organization: query.organizationId,
         });
 
       if (organizationSettings?.enabledModels) {
         const enabledModelIds = organizationSettings.enabledModels.map(
-          (id) => new Types.ObjectId(id),
+          (id) => id,
         );
         // Strict mode: if enabledModels array exists, only return those models
         // If array is empty, no models will match (strict mode)
@@ -196,7 +195,7 @@ export class ModelsController extends BaseCRUDController<
     // Defense-in-depth: org-scoped tenant isolation
     // Derive org from request context middleware, NOT from query params
     const authenticatedOrgId = request.context?.organizationId
-      ? new Types.ObjectId(request.context.organizationId)
+      ? request.context.organizationId
       : null;
 
     if (authenticatedOrgId) {

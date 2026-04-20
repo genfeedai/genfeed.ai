@@ -8,7 +8,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function createMockDeps() {
@@ -38,9 +37,9 @@ function createMockDeps() {
 function createMockUser(userId: string) {
   return {
     publicMetadata: {
-      brand: new Types.ObjectId().toHexString(),
+      brand: '507f191e810c19729de860ee',
       isSuperAdmin: false,
-      organization: new Types.ObjectId().toHexString(),
+      organization: '507f191e810c19729de860ee',
       user: userId,
     },
   } as never;
@@ -84,7 +83,7 @@ describe('CaptionsController', () => {
 
   describe('findOne', () => {
     it('should return serialized caption when found', async () => {
-      const captionId = new Types.ObjectId().toHexString();
+      const captionId = '507f191e810c19729de860ee';
       const doc = {
         _id: captionId,
         content: 'Hello',
@@ -113,8 +112,8 @@ describe('CaptionsController', () => {
   describe('create', () => {
     it('should throw 404 when ingredient not found', async () => {
       deps.ingredientsService.findOne.mockResolvedValue(null);
-      const userId = new Types.ObjectId().toHexString();
-      const ingredientId = new Types.ObjectId();
+      const userId = '507f191e810c19729de860ee';
+      const ingredientId = '507f191e810c19729de860ee';
 
       await expect(
         controller.create(
@@ -126,14 +125,14 @@ describe('CaptionsController', () => {
     });
 
     it('should throw BadRequestException for non-video ingredient', async () => {
-      const ingredientId = new Types.ObjectId();
+      const ingredientId = '507f191e810c19729de860ee';
       deps.ingredientsService.findOne.mockResolvedValue({
         _id: ingredientId,
         category: IngredientCategory.IMAGE,
         status: IngredientStatus.GENERATED,
       });
 
-      const userId = new Types.ObjectId().toHexString();
+      const userId = '507f191e810c19729de860ee';
 
       await expect(
         controller.create(
@@ -145,14 +144,14 @@ describe('CaptionsController', () => {
     });
 
     it('should throw BadRequestException when video status is not ready', async () => {
-      const ingredientId = new Types.ObjectId();
+      const ingredientId = '507f191e810c19729de860ee';
       deps.ingredientsService.findOne.mockResolvedValue({
         _id: ingredientId,
         category: IngredientCategory.VIDEO,
         status: IngredientStatus.GENERATING,
       });
 
-      const userId = new Types.ObjectId().toHexString();
+      const userId = '507f191e810c19729de860ee';
 
       await expect(
         controller.create(
@@ -164,8 +163,8 @@ describe('CaptionsController', () => {
     });
 
     it('should generate captions and create caption document for valid video', async () => {
-      const ingredientId = new Types.ObjectId();
-      const userId = new Types.ObjectId().toHexString();
+      const ingredientId = '507f191e810c19729de860ee';
+      const userId = '507f191e810c19729de860ee';
       const captionContent = '1\n00:00:00,000 --> 00:00:05,000\nHello';
 
       deps.ingredientsService.findOne.mockResolvedValue({
@@ -176,12 +175,12 @@ describe('CaptionsController', () => {
       deps.whisperService.generateCaptions.mockResolvedValue(captionContent);
 
       const createdDoc = {
-        _id: new Types.ObjectId(),
+        _id: '507f191e810c19729de860ee',
         content: captionContent,
         format: 'srt',
         language: 'en',
         toJSON: () => ({
-          _id: new Types.ObjectId().toHexString(),
+          _id: '507f191e810c19729de860ee',
           content: captionContent,
         }),
       };
@@ -203,7 +202,7 @@ describe('CaptionsController', () => {
 
   describe('update', () => {
     it('should return serialized caption on successful update', async () => {
-      const captionId = new Types.ObjectId().toHexString();
+      const captionId = '507f191e810c19729de860ee';
       const updated = {
         _id: captionId,
         content: 'Updated',
@@ -230,7 +229,7 @@ describe('CaptionsController', () => {
 
   describe('remove', () => {
     it('should return serialized caption on successful removal', async () => {
-      const captionId = new Types.ObjectId().toHexString();
+      const captionId = '507f191e810c19729de860ee';
       const deleted = {
         _id: captionId,
         isDeleted: true,

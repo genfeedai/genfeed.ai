@@ -31,7 +31,6 @@ import {
   Req,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import type { PipelineStage } from 'mongoose';
 
 interface SubscriptionMutationResponse<T = unknown> {
   success: boolean;
@@ -84,7 +83,7 @@ export class SubscriptionsController {
 
       const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
 
-      const aggregate: PipelineStage[] = [
+      const aggregate: Record<string, unknown>[] = [
         {
           $match: {
             isDeleted,

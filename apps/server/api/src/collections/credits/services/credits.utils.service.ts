@@ -20,7 +20,6 @@ import type { ICreditsUtilsService } from '@genfeedai/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { forwardRef, Inject, Injectable, Optional } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 type ActivitiesServiceContract = {
   create: (
@@ -62,7 +61,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
     const organizationSettings = await this.organizationSettingsService.findOne(
       {
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
+        organizationId: organizationId,
       },
     );
 
@@ -98,7 +97,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
 
       // Get organization to verify it exists
       const organization = await this.organizationsService.findOne({
-        _id: new Types.ObjectId(organizationId),
+        id: organizationId,
       });
 
       if (!organization) {
@@ -146,7 +145,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
 
       // Side effects outside transaction (idempotent, non-critical)
       const dbUser = await this.usersService.findOne({
-        _id: new Types.ObjectId(userId),
+        id: userId,
       });
       if (dbUser?.clerkId) {
         await this.clerkService.updateUserPublicMetadata(dbUser.clerkId, {
@@ -156,15 +155,19 @@ export class CreditsUtilsService implements ICreditsUtilsService {
 
       const defaultBrand = await this.brandsService.findOne({
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
+        organizationId: organizationId,
       });
 
       await this.activitiesService.create({
-        brand: defaultBrand?._id ?? new Types.ObjectId(organizationId),
+        brandId: String(
+          (defaultBrand as Record<string, unknown>)?.id ??
+            defaultBrand?._id ??
+            organizationId,
+        ),
         key: ActivityKey.CREDITS_REMOVE,
-        organization: new Types.ObjectId(organizationId),
+        organizationId: organizationId,
         source,
-        user: new Types.ObjectId(userId),
+        userId: userId,
         value: String(creditsToDeduct),
       });
 
@@ -229,7 +232,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
 
       // Get organization to verify it exists
       const organization = await this.organizationsService.findOne({
-        _id: new Types.ObjectId(organizationId),
+        id: organizationId,
       });
 
       if (!organization) {
@@ -331,7 +334,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
 
       // Get organization to verify it exists
       const organization = await this.organizationsService.findOne({
-        _id: new Types.ObjectId(organizationId),
+        id: organizationId,
       });
 
       if (!organization) {
@@ -526,7 +529,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
 
       // Get organization to verify it exists
       const organization = await this.organizationsService.findOne({
-        _id: new Types.ObjectId(organizationId),
+        id: organizationId,
       });
 
       if (!organization) {
@@ -620,7 +623,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
 
       // Get organization to verify it exists
       const organization = await this.organizationsService.findOne({
-        _id: new Types.ObjectId(organizationId),
+        id: organizationId,
       });
 
       if (!organization) {
@@ -668,15 +671,22 @@ export class CreditsUtilsService implements ICreditsUtilsService {
       if (subscription?.user) {
         const defaultBrand = await this.brandsService.findOne({
           isDeleted: false,
-          organization: new Types.ObjectId(organizationId),
+          organizationId: organizationId,
         });
 
         await this.activitiesService.create({
-          brand: defaultBrand?._id ?? new Types.ObjectId(organizationId),
+          brandId: String(
+            (defaultBrand as Record<string, unknown>)?.id ??
+              defaultBrand?._id ??
+              organizationId,
+          ),
           key: ActivityKey.CREDITS_REMOVE_ALL,
-          organization: new Types.ObjectId(organizationId),
+          organizationId: organizationId,
           source,
-          user: new Types.ObjectId(subscription.user),
+          userId: String(
+            (subscription as Record<string, unknown>).userId ??
+              subscription.user,
+          ),
           value: String(currentBalance),
         });
       }

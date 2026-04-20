@@ -5,7 +5,6 @@ import { ApiKeyCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import { of } from 'rxjs';
 
 vi.mock('@libs/utils/caller/caller.util', () => ({
@@ -26,8 +25,8 @@ describe('OpusProService', () => {
   let apiKeyHelperService: { getApiKey: ReturnType<typeof vi.fn> };
 
   const mockApiKey = 'test-api-key';
-  const mockOrgId = new Types.ObjectId();
-  const mockUserId = new Types.ObjectId();
+  const mockOrgId = 'test-object-id';
+  const mockUserId = 'test-object-id';
 
   beforeEach(async () => {
     httpService = { get: vi.fn(), post: vi.fn() };

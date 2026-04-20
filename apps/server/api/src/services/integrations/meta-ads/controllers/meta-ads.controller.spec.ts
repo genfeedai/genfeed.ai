@@ -19,7 +19,6 @@ import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('MetaAdsController', () => {
   let controller: MetaAdsController;
@@ -58,7 +57,7 @@ describe('MetaAdsController', () => {
   } as unknown as User;
 
   const mockCredential = {
-    _id: new Types.ObjectId(),
+    _id: 'test-object-id',
     accessToken: 'encrypted_fb_token',
     platform: CredentialPlatform.FACEBOOK,
   };

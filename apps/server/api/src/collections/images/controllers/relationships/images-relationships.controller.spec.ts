@@ -5,14 +5,13 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 describe('ImagesRelationshipsController', () => {
   let controller: ImagesRelationshipsController;
   let imagesService: ImagesService;
 
   const mockImage = {
-    _id: new Types.ObjectId('507f1f77bcf86cd799439014'),
+    _id: '507f1f77bcf86cd799439014',
     category: 'image',
   };
 
@@ -90,9 +89,7 @@ describe('ImagesRelationshipsController', () => {
       const matchStage = pipeline.find(
         (s): s is { $match: Record<string, unknown> } => '$match' in s,
       );
-      expect(matchStage?.$match.parent).toEqual(
-        new Types.ObjectId('507f1f77bcf86cd799439014'),
-      );
+      expect(matchStage?.$match.parent).toEqual('507f1f77bcf86cd799439014');
     });
 
     it('should include isDeleted filter in pipeline', async () => {

@@ -1,4 +1,4 @@
-import { AgentMessageDocument } from '@api/collections/agent-messages/schemas/agent-message.schema';
+import { type AgentMessageDocument } from '@api/collections/agent-messages/schemas/agent-message.schema';
 // biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 // biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
@@ -9,10 +9,10 @@ import { CacheService } from '@api/services/cache/services/cache.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { OpenRouterMessage } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { ThreadContextState } from '@genfeedai/prisma';
 // biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import type { ThreadContextState } from '@prisma/client';
 
 const LOCK_TTL_SECONDS = 30;
 const CACHE_TTL_SECONDS = 300; // 5 minutes

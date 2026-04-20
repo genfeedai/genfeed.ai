@@ -25,7 +25,6 @@ import {
   SetMetadata,
   UseGuards,
 } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 type PostAnalyticsSummary = Awaited<
   ReturnType<PostAnalyticsService['getPostAnalyticsSummary']>
@@ -84,10 +83,10 @@ export class PostsAnalyticsController {
 
     // Verify publication ownership
     const post = await this.postsService.findOne({
-      _id: new Types.ObjectId(postId),
+      _id: postId,
       $or: [
-        { user: new Types.ObjectId(publicMetadata.user) },
-        { organization: new Types.ObjectId(publicMetadata.organization) },
+        { user: publicMetadata.user },
+        { organization: publicMetadata.organization },
       ],
     });
 
@@ -140,10 +139,10 @@ export class PostsAnalyticsController {
 
     // Verify publication ownership
     const post = await this.postsService.findOne({
-      _id: new Types.ObjectId(postId),
+      _id: postId,
       $or: [
-        { user: new Types.ObjectId(publicMetadata.user) },
-        { organization: new Types.ObjectId(publicMetadata.organization) },
+        { user: publicMetadata.user },
+        { organization: publicMetadata.organization },
       ],
     });
 
@@ -176,8 +175,8 @@ export class PostsAnalyticsController {
     // Get credential for the post
     const credential = await this.credentialsService.findOne({
       _id: post.credential,
-      brand: new Types.ObjectId(post.brand),
-      organization: new Types.ObjectId(post.organization),
+      brand: post.brand,
+      organization: post.organization,
     });
 
     if (!credential) {
@@ -259,7 +258,7 @@ export class PostsAnalyticsController {
             $match: {
               externalId: { $exists: true, $ne: null },
               isDeleted: false,
-              organization: new Types.ObjectId(publicMetadata.organization),
+              organization: publicMetadata.organization,
               status: {
                 $in: [
                   PublishStatus.PUBLISHED,

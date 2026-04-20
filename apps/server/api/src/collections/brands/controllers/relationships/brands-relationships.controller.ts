@@ -11,19 +11,19 @@
  * - Get brand activities
  * - Get brand analytics
  */
-import { ActivityDocument } from '@api/collections/activities/schemas/activity.schema';
+import { type ActivityDocument } from '@api/collections/activities/schemas/activity.schema';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { ArticlesQueryDto } from '@api/collections/articles/dto/articles-query.dto';
-import { ArticleDocument } from '@api/collections/articles/schemas/article.schema';
+import { type ArticleDocument } from '@api/collections/articles/schemas/article.schema';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
-import { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
+import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
+import { type CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ImagesQueryDto } from '@api/collections/images/dto/images-query.dto';
 import { ImagesService } from '@api/collections/images/services/images.service';
-import { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
-import { LinkDocument } from '@api/collections/links/schemas/link.schema';
+import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import { type LinkDocument } from '@api/collections/links/schemas/link.schema';
 import { LinksService } from '@api/collections/links/services/links.service';
 import { MusicsService } from '@api/collections/musics/services/musics.service';
 import {
@@ -31,7 +31,7 @@ import {
   TimeSeriesQueryDto,
 } from '@api/collections/posts/dto/analytics-query.dto';
 import { PostsQueryDto } from '@api/collections/posts/dto/posts-query.dto';
-import { PostDocument } from '@api/collections/posts/schemas/post.schema';
+import { type PostDocument } from '@api/collections/posts/schemas/post.schema';
 import { AnalyticsAggregationService } from '@api/collections/posts/services/analytics-aggregation.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { VideosQueryDto } from '@api/collections/videos/dto/videos-query.dto';
@@ -89,7 +89,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { type PipelineStage, Types } from 'mongoose';
 
 @AutoSwagger()
 @Controller('brands')
@@ -119,10 +118,10 @@ export class BrandsRelationshipsController {
     const publicMetadata = getPublicMetadata(user);
 
     const brand = await this.brandsService.findOne({
-      _id: new Types.ObjectId(brandId),
+      _id: brandId,
       $or: [
-        { user: new Types.ObjectId(publicMetadata.user) },
-        { organization: new Types.ObjectId(publicMetadata.organization) },
+        { user: publicMetadata.user },
+        { organization: publicMetadata.organization },
       ],
       isDeleted: false,
     });
@@ -171,15 +170,15 @@ export class BrandsRelationshipsController {
         ? statusFilter.status
         : { $ne: 'failed' };
 
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: {
-          brand: new Types.ObjectId(brandId),
+          brand: brandId,
           category: IngredientCategory.VIDEO,
           isDeleted,
           scope: AssetScope.PUBLIC,
           status,
-          user: new Types.ObjectId(publicMetadata.user),
+          user: publicMetadata.user,
         },
       },
       {
@@ -227,15 +226,15 @@ export class BrandsRelationshipsController {
         ? statusFilter.status
         : { $ne: 'failed' };
 
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: {
-          brand: new Types.ObjectId(brandId),
+          brand: brandId,
           category: IngredientCategory.IMAGE,
           isDeleted,
           scope: AssetScope.PUBLIC,
           status,
-          user: new Types.ObjectId(publicMetadata.user),
+          user: publicMetadata.user,
         },
       },
       {
@@ -283,15 +282,15 @@ export class BrandsRelationshipsController {
         ? statusFilter.status
         : { $ne: 'failed' };
 
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: {
-          brand: new Types.ObjectId(brandId),
+          brand: brandId,
           category: ArticleCategory.POST,
           isDeleted,
           scope: AssetScope.PUBLIC,
           status,
-          user: new Types.ObjectId(publicMetadata.user),
+          user: publicMetadata.user,
         },
       },
       {
@@ -334,13 +333,13 @@ export class BrandsRelationshipsController {
     const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
 
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: {
-          brand: new Types.ObjectId(brandId),
+          brand: brandId,
           category: IngredientCategory.MUSIC,
           isDeleted,
-          user: new Types.ObjectId(publicMetadata.user),
+          user: publicMetadata.user,
         },
       },
       {
@@ -382,11 +381,11 @@ export class BrandsRelationshipsController {
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: {
-          brand: new Types.ObjectId(brandId),
-          user: new Types.ObjectId(publicMetadata.user),
+          brand: brandId,
+          user: publicMetadata.user,
         },
       },
     ];
@@ -414,10 +413,10 @@ export class BrandsRelationshipsController {
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: {
-          brand: new Types.ObjectId(brandId),
+          brand: brandId,
           isDeleted: false,
         },
       },
@@ -451,7 +450,7 @@ export class BrandsRelationshipsController {
       // Only show parent posts (not children/replies)
       // Handle both null and undefined (undefined fields aren't stored in MongoDB)
       $or: [{ parent: null }, { parent: { $exists: false } }],
-      brand: new Types.ObjectId(brandId),
+      brand: brandId,
       isDeleted,
     };
 
@@ -465,7 +464,7 @@ export class BrandsRelationshipsController {
       matchFilter.status = query.status;
     }
 
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: matchFilter,
       },
@@ -588,10 +587,10 @@ export class BrandsRelationshipsController {
     };
 
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: {
-          brand: new Types.ObjectId(brandId),
+          brand: brandId,
           isDeleted,
         },
       },
@@ -626,10 +625,10 @@ export class BrandsRelationshipsController {
       [
         {
           $match: {
-            brand: new Types.ObjectId(brandId),
+            brand: brandId,
             isConnected: true,
             isDeleted: false,
-            organization: new Types.ObjectId(publicMetadata.organization),
+            organization: publicMetadata.organization,
           },
         },
         { $count: 'total' },

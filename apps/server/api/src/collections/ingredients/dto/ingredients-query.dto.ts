@@ -2,7 +2,6 @@ import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { IngredientCategory } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsMongoId, IsOptional, IsString } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class IngredientsQueryDto extends BaseQueryDto {
   @ApiProperty({
@@ -11,7 +10,7 @@ export class IngredientsQueryDto extends BaseQueryDto {
   })
   @IsOptional()
   @IsMongoId()
-  brand?: Types.ObjectId;
+  brand?: string;
 
   @ApiProperty({
     description: 'Filter ingredients by folder ID',
@@ -19,7 +18,7 @@ export class IngredientsQueryDto extends BaseQueryDto {
   })
   @IsOptional()
   @IsMongoId()
-  folder?: Types.ObjectId;
+  folder?: string;
 
   @ApiProperty({
     description: 'Filter by parent video ID',
@@ -27,7 +26,7 @@ export class IngredientsQueryDto extends BaseQueryDto {
   })
   @IsOptional()
   @IsMongoId()
-  parent?: Types.ObjectId;
+  parent?: string;
 
   @ApiProperty({
     description: 'Filter ingredients by status',

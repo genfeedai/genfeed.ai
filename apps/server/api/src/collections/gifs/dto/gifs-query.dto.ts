@@ -9,7 +9,6 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class GifsQueryDto extends BaseQueryDto {
   @ApiProperty({
@@ -18,7 +17,7 @@ export class GifsQueryDto extends BaseQueryDto {
   })
   @IsOptional()
   @IsMongoId()
-  parent?: Types.ObjectId;
+  parent?: string;
 
   @ApiProperty({
     description:
@@ -58,7 +57,7 @@ export class GifsQueryDto extends BaseQueryDto {
   })
   @IsOptional()
   @IsMongoId()
-  brand?: Types.ObjectId;
+  brand?: string;
 
   @ApiProperty({
     description: 'Filter by format',
@@ -90,7 +89,7 @@ export class GifsQueryDto extends BaseQueryDto {
   })
   @IsOptional()
   @IsMongoId()
-  folder?: Types.ObjectId;
+  folder?: string;
 
   @ApiProperty({
     default: false,

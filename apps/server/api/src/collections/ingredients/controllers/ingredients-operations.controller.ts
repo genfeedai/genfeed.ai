@@ -45,7 +45,6 @@ import {
 } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 @AutoSwagger()
 @Controller('ingredients')
@@ -142,7 +141,7 @@ export class IngredientsOperationsController {
         height: metadata.height,
         model: metadata.model,
         organization: ingredient.organization,
-        parent: new Types.ObjectId(ingredientId),
+        parent: ingredientId,
         prompt: metadata.prompt,
         result: metadata.result,
         size: metadata.size,
@@ -267,8 +266,8 @@ export class IngredientsOperationsController {
       {
         _id: ingredientId,
         $or: [
-          { user: new Types.ObjectId(publicMetadata.user) },
-          { organization: new Types.ObjectId(publicMetadata.organization) },
+          { user: publicMetadata.user },
+          { organization: publicMetadata.organization },
         ],
         isDeleted: false,
       },
@@ -371,8 +370,8 @@ export class IngredientsOperationsController {
       {
         _id: ingredientId,
         $or: [
-          { user: new Types.ObjectId(publicMetadata.user) },
-          { organization: new Types.ObjectId(publicMetadata.organization) },
+          { user: publicMetadata.user },
+          { organization: publicMetadata.organization },
         ],
       },
       [PopulatePatterns.metadataFull],
@@ -420,8 +419,8 @@ export class IngredientsOperationsController {
     const ingredient = await this.ingredientsService.findOne({
       _id: ingredientId,
       $or: [
-        { user: new Types.ObjectId(publicMetadata.user) },
-        { organization: new Types.ObjectId(publicMetadata.organization) },
+        { user: publicMetadata.user },
+        { organization: publicMetadata.organization },
       ],
     });
 
@@ -430,9 +429,7 @@ export class IngredientsOperationsController {
     }
 
     // Convert to ObjectIds
-    const tagObjectIds = updateTagsDto.tags.map(
-      (tagId: Types.ObjectId) => new Types.ObjectId(tagId),
-    );
+    const tagObjectIds = updateTagsDto.tags.map((tagId: string) => tagId);
 
     this.loggerService.log(`Converted to ObjectIds`, { tagObjectIds });
 

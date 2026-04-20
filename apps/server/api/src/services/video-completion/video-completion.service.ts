@@ -4,7 +4,6 @@ import { IngredientStatus, Status } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 type VideoCompletionEvent = {
   ingredientId: string;
@@ -149,20 +148,18 @@ export class VideoCompletionService implements OnModuleInit {
     metadataUpdate: Record<string, number>,
   ): Promise<void> {
     const ingredient = await this.ingredientsService.findOne({
-      _id: new Types.ObjectId(ingredientId),
+      _id: ingredientId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
     });
 
     const metadataId =
-      ingredient?.metadata instanceof Types.ObjectId
-        ? ingredient.metadata.toString()
+      ingredient?.metadata && typeof ingredient.metadata === 'string'
+        ? ingredient.metadata
         : ingredient?.metadata &&
             typeof ingredient.metadata === 'object' &&
             '_id' in ingredient.metadata
-          ? String(
-              (ingredient.metadata as { _id: Types.ObjectId | string })._id,
-            )
+          ? String((ingredient.metadata as { _id: string })._id)
           : undefined;
 
     if (!metadataId) {

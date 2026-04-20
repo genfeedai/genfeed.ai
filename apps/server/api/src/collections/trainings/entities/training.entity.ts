@@ -1,18 +1,17 @@
-import { Training } from '@api/collections/trainings/schemas/training.schema';
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
 import {
   TrainingCategory,
   TrainingProvider,
   TrainingStatus,
 } from '@genfeedai/enums';
-import { Types } from 'mongoose';
+import { type Training } from '@genfeedai/prisma';
 
 export class TrainingEntity extends BaseEntity implements Training {
-  declare readonly organization: Types.ObjectId;
-  declare readonly user: Types.ObjectId;
-  declare readonly brand?: Types.ObjectId;
+  declare readonly organization: string;
+  declare readonly user: string;
+  declare readonly brand?: string;
 
-  declare readonly sources: Types.ObjectId[];
+  declare readonly sources: string[];
 
   declare readonly label: string;
   declare readonly description?: string;

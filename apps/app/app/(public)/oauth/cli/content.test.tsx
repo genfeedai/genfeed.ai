@@ -86,7 +86,7 @@ describe('CliAuthPage', () => {
   const originalFetch = globalThis.fetch;
 
   beforeEach(() => {
-    vi.useFakeTimers();
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     redirectToCallbackMock.mockReset();
     resolveClerkTokenMock.mockReset();
     signInMock.mockClear();

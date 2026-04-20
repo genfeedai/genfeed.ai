@@ -57,7 +57,6 @@ import type {
   Request as ExpressRequest,
   Response as ExpressResponse,
 } from 'express';
-import { Types } from 'mongoose';
 
 describe('VideosController', () => {
   let controller: VideosController;
@@ -78,13 +77,13 @@ describe('VideosController', () => {
   let failedGenerationService: vi.Mocked<FailedGenerationService>;
   let bookmarksService: vi.Mocked<BookmarksService>;
 
-  const mockUserId = new Types.ObjectId();
-  const mockOrgId = new Types.ObjectId();
-  const mockBrandId = new Types.ObjectId();
-  const mockVideoId = new Types.ObjectId();
-  const mockMetadataId = new Types.ObjectId();
-  const mockPromptId = new Types.ObjectId();
-  const mockActivityId = new Types.ObjectId();
+  const mockUserId = '507f191e810c19729de860ee';
+  const mockOrgId = '507f191e810c19729de860ee';
+  const mockBrandId = '507f191e810c19729de860ee';
+  const mockVideoId = '507f191e810c19729de860ee';
+  const mockMetadataId = '507f191e810c19729de860ee';
+  const mockPromptId = '507f191e810c19729de860ee';
+  const mockActivityId = '507f191e810c19729de860ee';
 
   const mockUser = {
     id: 'clerk_user_123',
@@ -176,7 +175,7 @@ describe('VideosController', () => {
   };
 
   const mockModelData = {
-    _id: new Types.ObjectId(),
+    _id: '507f191e810c19729de860ee',
     category: ModelCategory.VIDEO,
     cost: 10,
     key: MODEL_KEYS.KLINGAI_V2,
@@ -605,10 +604,10 @@ describe('VideosController', () => {
     });
 
     it('should filter by folder', async () => {
-      const folderId = new Types.ObjectId();
+      const folderId = '507f191e810c19729de860ee';
       const query: VideosQueryDto = {
         ...baseQuery,
-        folder: folderId as Types.ObjectId,
+        folder: folderId as string,
       };
 
       const mockData = {
@@ -628,7 +627,7 @@ describe('VideosController', () => {
     it('should filter by brand', async () => {
       const query: VideosQueryDto = {
         ...baseQuery,
-        brand: mockBrandId as Types.ObjectId,
+        brand: mockBrandId as string,
       };
 
       const mockData = {
@@ -689,7 +688,7 @@ describe('VideosController', () => {
 
     it('should include vote status', async () => {
       const mockVote = {
-        _id: new Types.ObjectId(),
+        _id: '507f191e810c19729de860ee',
         entity: mockVideoId,
         user: mockUserId,
       };
@@ -714,7 +713,7 @@ describe('VideosController', () => {
       } as unknown as AggregatePaginateResult<IngredientDocument>);
       videosService.findOne.mockResolvedValue(null);
 
-      const missingId = new Types.ObjectId().toString();
+      const missingId = '507f191e810c19729de860ee'.toString();
 
       await expect(
         controller.findOne(mockRequest, missingId, mockUser),
@@ -725,7 +724,7 @@ describe('VideosController', () => {
       const mockVideoWithEvaluation = {
         ...mockVideo,
         evaluation: {
-          _id: new Types.ObjectId(),
+          _id: '507f191e810c19729de860ee',
           score: 85,
           status: 'COMPLETED',
         },
@@ -1065,7 +1064,7 @@ describe('VideosController', () => {
     });
 
     it('should link video to bookmark if provided', async () => {
-      const bookmarkId = new Types.ObjectId();
+      const bookmarkId = '507f191e810c19729de860ee';
       const dto: CreateVideoDto = {
         ...baseCreateDto,
         bookmark: bookmarkId.toString(),
@@ -1080,7 +1079,7 @@ describe('VideosController', () => {
     });
 
     it('should handle bookmark linking failure gracefully', async () => {
-      const bookmarkId = new Types.ObjectId();
+      const bookmarkId = '507f191e810c19729de860ee';
       const dto: CreateVideoDto = {
         ...baseCreateDto,
         bookmark: bookmarkId.toString(),
@@ -1191,7 +1190,7 @@ describe('VideosController', () => {
     });
 
     it('should handle reference images', async () => {
-      const referenceId = new Types.ObjectId();
+      const referenceId = '507f191e810c19729de860ee';
       const dto: CreateVideoDto = {
         ...baseCreateDto,
         references: [referenceId],
@@ -1202,13 +1201,13 @@ describe('VideosController', () => {
       expect(sharedService.saveDocuments).toHaveBeenCalledWith(
         mockUser,
         expect.objectContaining({
-          references: [expect.any(Types.ObjectId)],
+          references: [expect.any(String)],
         }),
       );
     });
 
     it('should handle endFrame for video interpolation', async () => {
-      const endFrameId = new Types.ObjectId();
+      const endFrameId = '507f191e810c19729de860ee';
       const dto: CreateVideoDto = {
         ...baseCreateDto,
         endFrame: endFrameId.toString(),

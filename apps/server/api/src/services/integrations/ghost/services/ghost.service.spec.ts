@@ -15,7 +15,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, type TestingModule } from '@nestjs/testing';
 import jwt from 'jsonwebtoken';
-import { Types } from 'mongoose';
 import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -37,8 +36,8 @@ describe('GhostService', () => {
     warn: ReturnType<typeof vi.fn>;
   };
 
-  const orgId = new Types.ObjectId().toHexString();
-  const brandId = new Types.ObjectId().toHexString();
+  const orgId = 'test-object-id';
+  const brandId = 'test-object-id';
 
   beforeEach(async () => {
     httpService = { get: vi.fn(), post: vi.fn() };
@@ -346,9 +345,9 @@ describe('GhostService', () => {
 
       expect(credentialsService.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
-          brand: expect.any(Types.ObjectId),
+          brand: expect.any(String),
           isDeleted: false,
-          organization: expect.any(Types.ObjectId),
+          organization: expect.any(String),
           platform: CredentialPlatform.GHOST,
         }),
       );

@@ -2,12 +2,12 @@ import type {
   ChildrenLookupOptions,
   LookupOptions,
   MultiPipelineStage,
+  PipelineStage,
   SinglePipelineStage,
 } from '@api/shared/utils/aggregation-builders/pipeline.types';
-import type { PipelineStage } from 'mongoose';
 
-type LookupPipeline = NonNullable<PipelineStage.Lookup['$lookup']['pipeline']>;
-type LookupStage = PipelineStage.Lookup;
+type LookupPipeline = PipelineStage[];
+type LookupStage = { $lookup: Record<string, unknown> };
 
 /**
  * Default projection fields for each entity type

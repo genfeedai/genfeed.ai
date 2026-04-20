@@ -5,7 +5,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 import { firstValueFrom } from 'rxjs';
 
 @Injectable()
@@ -39,8 +38,8 @@ export class OpusProService {
     metadataId: string,
     templateId: string,
     params: Record<string, unknown>,
-    _organizationId?: string | Types.ObjectId,
-    _userId?: string | Types.ObjectId,
+    _organizationId?: string,
+    _userId?: string,
   ): Promise<string> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -80,8 +79,8 @@ export class OpusProService {
 
   public async getVideoStatus(
     videoId: string,
-    _organizationId?: string | Types.ObjectId,
-    _userId?: string | Types.ObjectId,
+    _organizationId?: string,
+    _userId?: string,
   ): Promise<{
     status: string;
     videoUrl?: string;
@@ -118,8 +117,8 @@ export class OpusProService {
   }
 
   public async getTemplates(
-    _organizationId?: string | Types.ObjectId,
-    _userId?: string | Types.ObjectId,
+    _organizationId?: string,
+    _userId?: string,
   ): Promise<
     Array<{
       templateId: string;
@@ -159,8 +158,8 @@ export class OpusProService {
   }
 
   public async getAccountInfo(
-    _organizationId?: string | Types.ObjectId,
-    _userId?: string | Types.ObjectId,
+    _organizationId?: string,
+    _userId?: string,
   ): Promise<{
     plan?: string;
     credits?: number;

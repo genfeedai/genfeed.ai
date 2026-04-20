@@ -68,17 +68,16 @@ import { SharedService } from '@api/shared/services/shared/shared.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 const mockReq = {} as Request;
 
 const mockVideo = {
-  _id: new Types.ObjectId('507f1f77bcf86cd799439011'),
-  brand: new Types.ObjectId('507f1f77bcf86cd799439014'),
+  _id: '507f1f77bcf86cd799439011',
+  brand: '507f1f77bcf86cd799439014',
   category: 'video',
   metadata: { duration: 10, height: 1080, width: 1920 },
-  organization: new Types.ObjectId('507f1f77bcf86cd799439013'),
-  user: new Types.ObjectId('507f1f77bcf86cd799439012'),
+  organization: '507f1f77bcf86cd799439013',
+  user: '507f1f77bcf86cd799439012',
 };
 
 const mockUser = {
@@ -90,10 +89,10 @@ const mockUser = {
   },
 } as unknown as User;
 
-const ingredientId = new Types.ObjectId('507f1f77bcf86cd799439017');
-const metadataId = new Types.ObjectId('507f1f77bcf86cd799439016');
-const promptId = new Types.ObjectId('507f1f77bcf86cd799439015');
-const activityId = new Types.ObjectId('507f1f77bcf86cd799439018');
+const ingredientId = '507f1f77bcf86cd799439017';
+const metadataId = '507f1f77bcf86cd799439016';
+const promptId = '507f1f77bcf86cd799439015';
+const activityId = '507f1f77bcf86cd799439018';
 
 describe('VideosReframeController', () => {
   let controller: VideosReframeController;

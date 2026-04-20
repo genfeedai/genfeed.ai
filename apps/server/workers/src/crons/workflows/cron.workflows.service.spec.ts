@@ -1,12 +1,7 @@
-import {
-  Workflow,
-  type WorkflowDocument,
-} from '@api/collections/workflows/schemas/workflow.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 import { CronWorkflowsService } from '@workers/crons/workflows/cron.workflows.service';
 import { GenerateArticleTask } from '@workers/crons/workflows/task-types/generate-article.task';
@@ -16,31 +11,29 @@ import { GenerateVideoTask } from '@workers/crons/workflows/task-types/generate-
 
 describe('CronWorkflowsService', () => {
   let service: CronWorkflowsService;
-  let workflowModel: {
-    find: ReturnType<typeof vi.fn>;
-    findById: ReturnType<typeof vi.fn>;
-    updateOne: ReturnType<typeof vi.fn>;
+  let prismaService: {
+    workflow: {
+      findMany: ReturnType<typeof vi.fn>;
+      update: ReturnType<typeof vi.fn>;
+    };
   };
   let cacheService: vi.Mocked<CacheService>;
   let loggerService: vi.Mocked<LoggerService>;
 
   beforeEach(async () => {
-    const exec = vi.fn().mockResolvedValue([] as WorkflowDocument[]);
-    const limit = vi.fn().mockReturnValue({ exec });
-    const find = vi.fn().mockReturnValue({ limit });
-
-    workflowModel = {
-      find,
-      findById: vi.fn(),
-      updateOne: vi.fn().mockResolvedValue({}),
+    prismaService = {
+      workflow: {
+        findMany: vi.fn().mockResolvedValue([]),
+        update: vi.fn().mockResolvedValue({}),
+      },
     };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CronWorkflowsService,
         {
-          provide: getModelToken(Workflow.name, DB_CONNECTIONS.CLOUD),
-          useValue: workflowModel,
+          provide: PrismaService,
+          useValue: prismaService,
         },
         {
           provide: GenerateImageTask,
@@ -122,9 +115,11 @@ describe('CronWorkflowsService', () => {
   it('should query due workflows when lock is acquired', async () => {
     await service.checkScheduledWorkflows();
 
-    expect(workflowModel.find).toHaveBeenCalledWith(
+    expect(prismaService.workflow.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        isDeleted: false,
+        where: expect.objectContaining({
+          isDeleted: false,
+        }),
       }),
     );
     expect(cacheService.releaseLock).toHaveBeenCalled();

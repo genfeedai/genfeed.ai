@@ -5,7 +5,6 @@ import { ReplicateService } from '@api/services/integrations/replicate/replicate
 import { ImageGenerationHandler } from '@api/services/skill-executor/handlers/image-generation.handler';
 import { ImageTaskModel } from '@genfeedai/enums';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('ImageGenerationHandler', () => {
@@ -28,9 +27,9 @@ describe('ImageGenerationHandler', () => {
   };
 
   const baseContext = {
-    brandId: new Types.ObjectId().toString(),
+    brandId: 'test-object-id',
     brandVoice: 'voice',
-    organizationId: new Types.ObjectId().toString(),
+    organizationId: 'test-object-id',
     platforms: ['instagram'],
   };
 

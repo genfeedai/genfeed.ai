@@ -16,6 +16,6 @@ export class MusicsService extends BaseService<
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
   ) {
-    super(prisma, 'music', logger);
+    super(prisma, 'ingredient', logger);
   }
 }

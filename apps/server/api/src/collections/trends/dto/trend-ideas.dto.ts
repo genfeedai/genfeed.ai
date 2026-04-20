@@ -1,6 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsMongoId, IsNumber, IsOptional } from 'class-validator';
-import { Types } from 'mongoose';
 
 export enum Platform {
   TIKTOK = 'tiktok',
@@ -38,7 +37,7 @@ export class GenerateTrendIdeasDto {
   })
   @IsMongoId()
   @IsOptional()
-  organizationId?: Types.ObjectId;
+  organizationId?: string;
 
   @ApiProperty({
     description: 'Brand ID to generate trend ideas for',
@@ -46,7 +45,7 @@ export class GenerateTrendIdeasDto {
   })
   @IsMongoId()
   @IsOptional()
-  brandId?: Types.ObjectId;
+  brandId?: string;
 }
 
 export interface TrendIdea {

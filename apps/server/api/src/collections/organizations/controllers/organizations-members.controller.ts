@@ -10,7 +10,7 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { InviteMemberDto } from '@api/collections/members/dto/invite-member.dto';
 import { UpdateMemberDto } from '@api/collections/members/dto/update-member.dto';
-import { MemberDocument } from '@api/collections/members/schemas/member.schema';
+import { type MemberDocument } from '@api/collections/members/schemas/member.schema';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
@@ -60,7 +60,6 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
-import { type PipelineStage, Types } from 'mongoose';
 
 @AutoSwagger()
 @ApiTags('organizations')
@@ -96,11 +95,11 @@ export class OrganizationsMembersController {
     };
 
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: {
           isDeleted,
-          organization: new Types.ObjectId(organizationId),
+          organization: organizationId,
         },
       },
       {
@@ -202,8 +201,8 @@ export class OrganizationsMembersController {
 
       // Check if member already exists for this organization
       const member = await this.membersService.findOne({
-        organization: new Types.ObjectId(organizationId),
-        user: new Types.ObjectId(existingUser._id),
+        organization: organizationId,
+        user: existingUser._id,
       });
 
       if (member) {
@@ -233,7 +232,7 @@ export class OrganizationsMembersController {
           HttpStatus.BAD_REQUEST,
         );
       }
-      roleToAssign = new Types.ObjectId(defaultRole._id);
+      roleToAssign = defaultRole._id;
     }
 
     if (existingClerkUser && existingUser) {
@@ -256,9 +255,9 @@ export class OrganizationsMembersController {
         // Create the member record for existing user
         const member = await this.membersService.create({
           isActive: true, // Always active for existing Clerk users
-          organization: new Types.ObjectId(organizationId),
-          role: new Types.ObjectId(roleToAssign),
-          user: new Types.ObjectId(existingUser._id),
+          organization: organizationId,
+          role: roleToAssign,
+          user: existingUser._id,
         });
 
         // Update their metadata to include this organization
@@ -288,7 +287,7 @@ export class OrganizationsMembersController {
         // Check if this pending user is already in a member relationship
         const existingMembership = await this.membersService.findOne({
           isDeleted: false,
-          user: new Types.ObjectId(newUser._id),
+          user: newUser._id,
         });
 
         if (existingMembership) {
@@ -324,7 +323,7 @@ export class OrganizationsMembersController {
 
       // Create settings for the invited user (if they don't exist)
       const existingSettings = await this.settingsService.findOne({
-        user: new Types.ObjectId(newUser._id),
+        user: newUser._id,
       });
 
       if (!existingSettings) {
@@ -334,7 +333,7 @@ export class OrganizationsMembersController {
             isMenuCollapsed: false,
             isVerified: false,
             theme: 'dark',
-            user: new Types.ObjectId(newUser._id),
+            user: newUser._id,
           }),
         );
       }
@@ -357,9 +356,9 @@ export class OrganizationsMembersController {
 
         const member = await this.membersService.create({
           isActive: false, // Inactive until they sign up
-          organization: new Types.ObjectId(organizationId),
-          role: new Types.ObjectId(roleToAssign),
-          user: new Types.ObjectId(newUser._id),
+          organization: organizationId,
+          role: roleToAssign,
+          user: newUser._id,
         });
 
         // Send Clerk invitation with metadata including the user ID
@@ -414,7 +413,7 @@ export class OrganizationsMembersController {
     // Verify member exists and belongs to this organization
     const member = await this.membersService.findOne({
       _id: memberId,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
     });
 
     if (!member) {
@@ -434,7 +433,7 @@ export class OrganizationsMembersController {
           $match: {
             _id: { $in: brandIds },
             isDeleted: false,
-            organization: new Types.ObjectId(organizationId),
+            organization: organizationId,
           },
         },
       ],

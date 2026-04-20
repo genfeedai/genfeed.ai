@@ -47,7 +47,6 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 export interface OrchestrationContext {
   brandId: string;
@@ -95,9 +94,9 @@ export class VideoMusicOrchestrationService {
     // Option 1: Use existing music ingredient
     if (backgroundMusic.ingredientId) {
       const existingMusic = await this.musicsService.findOne({
-        _id: new Types.ObjectId(backgroundMusic.ingredientId),
+        _id: backgroundMusic.ingredientId,
         isDeleted: false,
-        organization: new Types.ObjectId(context.organizationId),
+        organization: context.organizationId,
       });
 
       if (!existingMusic) {
@@ -160,37 +159,37 @@ export class VideoMusicOrchestrationService {
     // Create prompt record
     const promptData = await this.promptsService.create(
       new PromptEntity({
-        brand: new Types.ObjectId(context.brandId),
+        brand: context.brandId,
         category: PromptCategory.MODELS_PROMPT_MUSIC,
         model,
-        organization: new Types.ObjectId(context.organizationId),
+        organization: context.organizationId,
         original: prompt,
-        user: new Types.ObjectId(context.userId),
+        user: context.userId,
       }),
     );
 
     // Create ingredient and metadata documents
     const { metadataData, ingredientData } =
       await this.sharedService.saveDocumentsInternal({
-        brand: new Types.ObjectId(context.brandId),
+        brand: context.brandId,
         category: IngredientCategory.MUSIC,
         extension: MetadataExtension.MP3,
-        organization: new Types.ObjectId(context.organizationId),
+        organization: context.organizationId,
         prompt: promptData._id,
         status: IngredientStatus.PROCESSING,
-        user: new Types.ObjectId(context.userId),
+        user: context.userId,
       });
 
     // Create activity
     const activity = await this.activitiesService.create(
       new ActivityEntity({
-        brand: new Types.ObjectId(context.brandId),
+        brand: context.brandId,
         entityId: ingredientData._id,
         entityModel: ActivityEntityModel.INGREDIENT,
         key: ActivityKey.MUSIC_PROCESSING,
-        organization: new Types.ObjectId(context.organizationId),
+        organization: context.organizationId,
         source: ActivitySource.MUSIC_GENERATION,
-        user: new Types.ObjectId(context.userId),
+        user: context.userId,
         value: JSON.stringify({
           ingredientId: ingredientData._id.toString(),
           label: 'Background music for video',
@@ -278,17 +277,17 @@ export class VideoMusicOrchestrationService {
     context: OrchestrationContext,
   ): Promise<string> {
     // Create new ingredient for merged result
-    const parentIds = [new Types.ObjectId(videoIngredientId)];
+    const parentIds = [videoIngredientId];
 
     const { ingredientData, metadataData } =
       await this.sharedService.saveDocumentsInternal({
-        brand: new Types.ObjectId(context.brandId),
+        brand: context.brandId,
         category: IngredientCategory.VIDEO,
         extension: MetadataExtension.MP4,
-        organization: new Types.ObjectId(context.organizationId),
+        organization: context.organizationId,
         sources: parentIds,
         status: IngredientStatus.PROCESSING,
-        user: new Types.ObjectId(context.userId),
+        user: context.userId,
       });
 
     const mergedIngredientId = ingredientData._id.toString();
@@ -297,13 +296,13 @@ export class VideoMusicOrchestrationService {
     // Create activity
     const activity = await this.activitiesService.create(
       new ActivityEntity({
-        brand: new Types.ObjectId(context.brandId),
+        brand: context.brandId,
         entityId: ingredientData._id,
         entityModel: ActivityEntityModel.INGREDIENT,
         key: ActivityKey.VIDEO_PROCESSING,
-        organization: new Types.ObjectId(context.organizationId),
+        organization: context.organizationId,
         source: ActivitySource.WEB,
-        user: new Types.ObjectId(context.userId),
+        user: context.userId,
         value: JSON.stringify({
           ingredientId: mergedIngredientId,
           label: 'Adding background music to video',

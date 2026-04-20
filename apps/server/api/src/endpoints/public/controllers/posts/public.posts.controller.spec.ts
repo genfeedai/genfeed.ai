@@ -9,7 +9,6 @@ import { AssetScope, PostStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { type PipelineStage, Types } from 'mongoose';
 
 const createBaseQuery = (partial: Partial<BaseQueryDto> = {}): BaseQueryDto =>
   ({
@@ -21,8 +20,8 @@ const createBaseQuery = (partial: Partial<BaseQueryDto> = {}): BaseQueryDto =>
     ...partial,
   }) as BaseQueryDto;
 
-const asMatchStage = (stage: PipelineStage) =>
-  stage as PipelineStage.Match & { $match: Record<string, unknown> };
+const asMatchStage = (stage: Record<string, unknown>) =>
+  stage as Record<string, unknown> & { $match: Record<string, unknown> };
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnNotFound: vi.fn((type, id) => ({
@@ -119,7 +118,7 @@ describe('PublicPostsController', () => {
 
     it('should filter by account when provided', async () => {
       const query = createBaseQuery();
-      const brandId = new Types.ObjectId().toString();
+      const brandId = '507f191e810c19729de860ee'.toString();
       const mockPosts = {
         docs: [{ _id: 'pub1', brand: brandId }],
         page: 1,
@@ -135,9 +134,7 @@ describe('PublicPostsController', () => {
       const callArgs = postsService.findAll.mock.calls[0][0];
       const matchStage = asMatchStage(callArgs[0]);
       expect(matchStage.$match.brand).toBeDefined();
-      expect((matchStage.$match.brand as Types.ObjectId).toString()).toBe(
-        brandId,
-      );
+      expect((matchStage.$match.brand as string).toString()).toBe(brandId);
     });
 
     it('should filter by tag when provided', async () => {
@@ -215,7 +212,7 @@ describe('PublicPostsController', () => {
 
   describe('getPostMetadata', () => {
     it('should return post metadata for valid id', async () => {
-      const postId = new Types.ObjectId().toString();
+      const postId = '507f191e810c19729de860ee'.toString();
       const mockPost = {
         _id: postId,
         status: PostStatus.PUBLIC,
@@ -259,7 +256,7 @@ describe('PublicPostsController', () => {
     });
 
     it('should return not found when post does not exist', async () => {
-      const postId = new Types.ObjectId().toString();
+      const postId = '507f191e810c19729de860ee'.toString();
       const responseUtil = await import(
         '@api/helpers/utils/response/response.util'
       );
@@ -280,7 +277,7 @@ describe('PublicPostsController', () => {
     });
 
     it('should log the request with correct parameters', async () => {
-      const postId = new Types.ObjectId().toString();
+      const postId = '507f191e810c19729de860ee'.toString();
       const mockPost = {
         _id: postId,
         title: 'Test Post',

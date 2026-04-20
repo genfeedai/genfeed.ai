@@ -4,12 +4,12 @@
 // ─────────────────────────────────────────────────────────────
 
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../generated/prisma/client"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -502,6 +502,7 @@ enum BatchStatus {
 
 model User {
   id                      String          @id @default(cuid())
+  mongoId                 String?         @unique
   clerkId                 String?         @unique
   handle                  String          @unique
   firstName               String?
@@ -591,6 +592,7 @@ model User {
 
 model Organization {
   id                       String               @id @default(cuid())
+  mongoId                 String?         @unique
   userId                   String
   user                     User                 @relation(fields: [userId], references: [id])
   label                    String
@@ -665,6 +667,7 @@ model Organization {
   clipProjects         ClipProject[]
   clipResults          ClipResult[]
   editorProjects       EditorProject[]
+  projects             Project[]
   forecasts            Forecast[]
   insights             Insight[]
   contentScores        ContentScore[]
@@ -719,6 +722,7 @@ model Organization {
 
 model Brand {
   id                     String     @id @default(cuid())
+  mongoId                 String?         @unique
   userId                 String?
   user                   User?      @relation(fields: [userId], references: [id])
   organizationId         String
@@ -810,6 +814,7 @@ model Brand {
 
 model Member {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   userId          String
@@ -829,6 +834,7 @@ model Member {
 
 model Role {
   id           String   @id @default(cuid())
+  mongoId                 String?         @unique
   label        String
   key          String   @unique
   primaryColor String?
@@ -847,6 +853,7 @@ model Role {
 
 model Setting {
   id                             String                     @id @default(cuid())
+  mongoId                 String?         @unique
   userId                         String                     @unique
   user                           User                       @relation(fields: [userId], references: [id])
   theme                          String                     @default("dark")
@@ -880,6 +887,7 @@ model Setting {
 
 model OrganizationSetting {
   id                            String               @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId                String               @unique
   organization                  Organization         @relation(fields: [organizationId], references: [id])
   isFirstLogin                  Boolean              @default(true)
@@ -945,6 +953,7 @@ model OrganizationSetting {
 
 model Credential {
   id                 String             @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId     String?
   organization       Organization?      @relation(fields: [organizationId], references: [id])
   brandId            String?
@@ -987,6 +996,7 @@ model Credential {
 
 model ApiKey {
   id             String         @id @default(cuid())
+  mongoId                 String?         @unique
   userId         String
   user           User           @relation(fields: [userId], references: [id])
   organizationId String
@@ -1017,6 +1027,7 @@ model ApiKey {
 
 model OrgIntegration {
   id               String              @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId   String
   organization     Organization        @relation(fields: [organizationId], references: [id])
   platform         IntegrationPlatform
@@ -1038,6 +1049,7 @@ model OrgIntegration {
 
 model Ingredient {
   id                    String               @id @default(cuid())
+  mongoId                 String?         @unique
   userId                String?
   user                  User?                @relation(fields: [userId], references: [id])
   organizationId        String?
@@ -1163,6 +1175,7 @@ model Ingredient {
 
 model Metadata {
   id               String             @id @default(cuid())
+  mongoId                 String?         @unique
   label            String
   description      String             @default("Default Description")
   promptId         String?
@@ -1199,6 +1212,7 @@ model Metadata {
 
 model Prompt {
   id               String          @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId   String?
   organization     Organization?   @relation(fields: [organizationId], references: [id])
   brandId          String?
@@ -1242,6 +1256,7 @@ model Prompt {
 
 model Folder {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   userId          String
   user            User         @relation(fields: [userId], references: [id])
   organizationId  String
@@ -1266,6 +1281,7 @@ model Folder {
 
 model Tag {
   id              String        @id @default(cuid())
+  mongoId                 String?         @unique
   userId          String?
   organizationId  String?
   organization    Organization? @relation(fields: [organizationId], references: [id])
@@ -1301,6 +1317,7 @@ model Tag {
 
 model Bookmark {
   id                    String           @id @default(cuid())
+  mongoId                 String?         @unique
   userId                String
   user                  User             @relation(fields: [userId], references: [id])
   organizationId        String
@@ -1337,6 +1354,7 @@ model Bookmark {
 
 model Asset {
   id            String        @id @default(cuid())
+  mongoId                 String?         @unique
   userId        String
   user          User          @relation(fields: [userId], references: [id])
   parentType    AssetParent
@@ -1355,6 +1373,7 @@ model Asset {
 
 model Link {
   id         String       @id @default(cuid())
+  mongoId                 String?         @unique
   brandId    String
   brand      Brand        @relation(fields: [brandId], references: [id])
   label      String
@@ -1369,6 +1388,7 @@ model Link {
 
 model TrackedLink {
   id             String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id])
   brandId        String?
@@ -1399,6 +1419,7 @@ model TrackedLink {
 
 model LinkClick {
   id         String     @id @default(cuid())
+  mongoId                 String?         @unique
   linkId     String
   link       TrackedLink @relation(fields: [linkId], references: [id])
   timestamp  DateTime   @default(now())
@@ -1421,6 +1442,7 @@ model LinkClick {
 
 model Post {
   id                    String             @id @default(cuid())
+  mongoId                 String?         @unique
   // Polymorphic entity: either an Ingredient or an Article
   entityIngredientId    String?
   entityIngredient      Ingredient?        @relation("post_entity_ingredient", fields: [entityIngredientId], references: [id])
@@ -1529,6 +1551,7 @@ model Post {
 
 model PostAnalytics {
   id                    String             @id @default(cuid())
+  mongoId                 String?         @unique
   postId                String
   post                  Post               @relation(fields: [postId], references: [id])
   userId                String
@@ -1560,6 +1583,7 @@ model PostAnalytics {
 
 model Schedule {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   userId          String
@@ -1579,6 +1603,7 @@ model Schedule {
 
 model ContentSchedule {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   brandId         String?
@@ -1594,6 +1619,7 @@ model ContentSchedule {
 
 model Distribution {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   userId          String
@@ -1612,6 +1638,7 @@ model Distribution {
 
 model RepurposingJob {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   userId          String
@@ -1631,6 +1658,7 @@ model RepurposingJob {
 
 model Customer {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   stripeCustomerId String?
@@ -1645,6 +1673,7 @@ model Customer {
 
 model Subscription {
   id              String             @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization       @relation(fields: [organizationId], references: [id])
   userId          String
@@ -1667,6 +1696,7 @@ model Subscription {
 
 model UserSubscription {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   userId          String       @unique
   user            User         @relation(fields: [userId], references: [id])
   stripeSubscriptionId String?
@@ -1685,6 +1715,7 @@ model UserSubscription {
 
 model SubscriptionAttribution {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   userId          String
@@ -1704,6 +1735,7 @@ model SubscriptionAttribution {
 
 model CreditBalance {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String       @unique
   organization    Organization @relation(fields: [organizationId], references: [id])
   balance         Float        @default(0)
@@ -1716,6 +1748,7 @@ model CreditBalance {
 
 model CreditTransaction {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   amount          Float
@@ -1734,6 +1767,7 @@ model CreditTransaction {
 
 model CustomerInstance {
   id              String   @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String?
   config          Json     @default("{}")
   status          String?
@@ -1750,6 +1784,7 @@ model CustomerInstance {
 
 model Article {
   id              String        @id @default(cuid())
+  mongoId                 String?         @unique
   userId          String
   user            User          @relation(fields: [userId], references: [id])
   organizationId  String
@@ -1779,6 +1814,7 @@ model Article {
 
 model ArticleAnalytics {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   articleId       String
   article         Article      @relation(fields: [articleId], references: [id])
   userId          String
@@ -1805,6 +1841,7 @@ model ArticleAnalytics {
 
 model Newsletter {
   id                String           @id @default(cuid())
+  mongoId                 String?         @unique
   userId            String
   user              User             @relation("newsletter_user", fields: [userId], references: [id])
   organizationId    String
@@ -1835,6 +1872,7 @@ model Newsletter {
 
 model Transcript {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   userId          String
   user            User         @relation(fields: [userId], references: [id])
   organizationId  String
@@ -1856,6 +1894,7 @@ model Transcript {
 
 model Training {
   id              String        @id @default(cuid())
+  mongoId                 String?         @unique
   userId          String
   user            User          @relation(fields: [userId], references: [id])
   organizationId  String
@@ -1885,8 +1924,9 @@ model Training {
 
 model Model {
   id              String       @id @default(cuid())
-  organizationId  String
-  organization    Organization @relation(fields: [organizationId], references: [id])
+  mongoId                 String?         @unique
+  organizationId  String?
+  organization    Organization? @relation(fields: [organizationId], references: [id])
   trainingId      String?
   training        Training?    @relation(fields: [trainingId], references: [id])
   parentModelId   String?
@@ -1910,6 +1950,7 @@ model Model {
 
 model Persona {
   id                     String        @id @default(cuid())
+  mongoId                 String?         @unique
   userId                 String
   user                   User          @relation(fields: [userId], references: [id])
   organizationId         String
@@ -1950,6 +1991,7 @@ model Persona {
 
 model AgentThread {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   userId          String
   user            User         @relation(fields: [userId], references: [id])
   organizationId  String
@@ -1972,6 +2014,7 @@ model AgentThread {
 
 model AgentMessage {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   threadId        String
   thread          AgentThread  @relation(fields: [threadId], references: [id])
   organizationId  String
@@ -1994,6 +2037,7 @@ model AgentMessage {
 
 model AgentRun {
   id              String        @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization  @relation(fields: [organizationId], references: [id])
   userId          String
@@ -2027,6 +2071,7 @@ model AgentRun {
 
 model AgentStrategy {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   userId          String
@@ -2058,6 +2103,7 @@ model AgentStrategy {
 
 model AgentStrategyOpportunity {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   strategyId      String
   strategy        AgentStrategy @relation(fields: [strategyId], references: [id])
   organizationId  String
@@ -2074,6 +2120,7 @@ model AgentStrategyOpportunity {
 
 model AgentStrategyReport {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   strategyId      String
   strategy        AgentStrategy @relation(fields: [strategyId], references: [id])
   organizationId  String
@@ -2090,6 +2137,7 @@ model AgentStrategyReport {
 
 model AgentCampaign {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   userId          String
@@ -2113,6 +2161,7 @@ model AgentCampaign {
 
 model AgentGoal {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   userId          String
@@ -2133,6 +2182,7 @@ model AgentGoal {
 
 model AgentMemory {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   userId          String
@@ -2152,6 +2202,7 @@ model AgentMemory {
 
 model AgentThreadEvent {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   threadId        String
@@ -2173,6 +2224,7 @@ model AgentThreadEvent {
 
 model AgentThreadSnapshot {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   threadId        String
@@ -2188,6 +2240,7 @@ model AgentThreadSnapshot {
 
 model ThreadContextState {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   threadId        String
@@ -2203,6 +2256,7 @@ model ThreadContextState {
 
 model AgentWorkflow {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   userId          String
@@ -2223,6 +2277,7 @@ model AgentWorkflow {
 
 model Workflow {
   id              String         @id @default(cuid())
+  mongoId                 String?         @unique
   userId          String
   user            User           @relation(fields: [userId], references: [id])
   organizationId  String
@@ -2249,6 +2304,7 @@ model Workflow {
 
 model WorkflowExecution {
   id              String                  @id @default(cuid())
+  mongoId                 String?         @unique
   workflowId      String
   workflow        Workflow                @relation(fields: [workflowId], references: [id])
   userId          String
@@ -2271,6 +2327,7 @@ model WorkflowExecution {
 
 model BatchWorkflowJob {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   userId          String
@@ -2289,6 +2346,7 @@ model BatchWorkflowJob {
 
 model ContentRun {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   brandId         String?
@@ -2308,6 +2366,7 @@ model ContentRun {
 
 model CronJob {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   userId          String
@@ -2329,6 +2388,7 @@ model CronJob {
 
 model CronRun {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   cronJobId       String
   cronJob         CronJob      @relation(fields: [cronJobId], references: [id])
   organizationId  String
@@ -2353,6 +2413,7 @@ model CronRun {
 
 model Task {
   id                  String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId      String
   organization        Organization @relation(fields: [organizationId], references: [id])
   brandId             String?
@@ -2385,6 +2446,7 @@ model Task {
 
 model TaskComment {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   taskId          String
@@ -2400,6 +2462,7 @@ model TaskComment {
 
 model TaskCounter {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String       @unique
   organization    Organization @relation(fields: [organizationId], references: [id])
   counter         Int          @default(0)
@@ -2416,6 +2479,7 @@ model TaskCounter {
 
 model Bot {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   brandId         String?
@@ -2435,6 +2499,7 @@ model Bot {
 
 model BotActivity {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   brandId         String?
@@ -2455,6 +2520,7 @@ model BotActivity {
 
 model ReplyBotConfig {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   brandId         String?
@@ -2474,6 +2540,7 @@ model ReplyBotConfig {
 
 model MonitoredAccount {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   brandId         String?
@@ -2497,6 +2564,7 @@ model MonitoredAccount {
 
 model ProcessedTweet {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   replyBotConfigId String?
@@ -2520,6 +2588,7 @@ model ProcessedTweet {
 
 model ContentPerformance {
   id                  String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId      String
   organization        Organization @relation(fields: [organizationId], references: [id])
   brandId             String?
@@ -2549,6 +2618,7 @@ model ContentPerformance {
 
 model ContentPattern {
   id                String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId    String
   organization      Organization @relation(fields: [organizationId], references: [id])
   sourceCreatorId   String?
@@ -2563,6 +2633,7 @@ model ContentPattern {
 
 model CreatorAnalysis {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   createdById     String?
@@ -2580,6 +2651,7 @@ model CreatorAnalysis {
 
 model PatternPlaybook {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   createdById     String?
@@ -2595,6 +2667,7 @@ model PatternPlaybook {
 
 model CreativePattern {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   brandId         String?
@@ -2609,6 +2682,7 @@ model CreativePattern {
 
 model ContentDraft {
   id              String            @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization      @relation(fields: [organizationId], references: [id])
   brandId         String?
@@ -2630,6 +2704,7 @@ model ContentDraft {
 
 model ContentPlan {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   brandId         String?
@@ -2649,6 +2724,7 @@ model ContentPlan {
 
 model ContentPlanItem {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   planId          String
@@ -2665,6 +2741,7 @@ model ContentPlanItem {
 
 model ContentScore {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   data            Json         @default("{}")
@@ -2679,6 +2756,7 @@ model ContentScore {
 
 model Optimization {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   userId          String
@@ -2695,6 +2773,7 @@ model Optimization {
 
 model Evaluation {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   userId          String
@@ -2711,6 +2790,7 @@ model Evaluation {
 
 model Activity {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   userId          String?
   organizationId  String?
   organization    Organization? @relation(fields: [organizationId], references: [id])
@@ -2729,6 +2809,7 @@ model Activity {
 
 model Insight {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   data            Json         @default("{}")
@@ -2741,6 +2822,7 @@ model Insight {
 
 model Forecast {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   userId          String
@@ -2759,6 +2841,7 @@ model Forecast {
 
 model AdBulkUploadJob {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   brandId         String?
@@ -2775,6 +2858,7 @@ model AdBulkUploadJob {
 
 model AdCreativeMapping {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   brandId         String?
@@ -2789,6 +2873,7 @@ model AdCreativeMapping {
 
 model AdInsights {
   id        String   @id @default(cuid())
+  mongoId                 String?         @unique
   data      Json     @default("{}")
   isDeleted Boolean  @default(false)
   createdAt DateTime @default(now())
@@ -2799,6 +2884,7 @@ model AdInsights {
 
 model AdOptimizationAuditLog {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   data            Json         @default("{}")
@@ -2811,6 +2897,7 @@ model AdOptimizationAuditLog {
 
 model AdOptimizationConfig {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String       @unique
   organization    Organization @relation(fields: [organizationId], references: [id])
   config          Json         @default("{}")
@@ -2823,6 +2910,7 @@ model AdOptimizationConfig {
 
 model AdOptimizationRecommendation {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   data            Json         @default("{}")
@@ -2835,6 +2923,7 @@ model AdOptimizationRecommendation {
 
 model AdPerformance {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   brandId         String?
@@ -2855,6 +2944,7 @@ model AdPerformance {
 
 model Trend {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   brandId         String?
@@ -2872,6 +2962,7 @@ model Trend {
 
 model TrendingHashtag {
   id        String   @id @default(cuid())
+  mongoId                 String?         @unique
   data      Json     @default("{}")
   isDeleted Boolean  @default(false)
   createdAt DateTime @default(now())
@@ -2882,6 +2973,7 @@ model TrendingHashtag {
 
 model TrendingSound {
   id        String   @id @default(cuid())
+  mongoId                 String?         @unique
   data      Json     @default("{}")
   isDeleted Boolean  @default(false)
   createdAt DateTime @default(now())
@@ -2892,6 +2984,7 @@ model TrendingSound {
 
 model TrendingVideo {
   id        String   @id @default(cuid())
+  mongoId                 String?         @unique
   data      Json     @default("{}")
   isDeleted Boolean  @default(false)
   createdAt DateTime @default(now())
@@ -2902,6 +2995,7 @@ model TrendingVideo {
 
 model TrendPreferences {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   brandId         String?
@@ -2916,6 +3010,7 @@ model TrendPreferences {
 
 model TrendRemixLineage {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   brandId         String?
@@ -2937,6 +3032,7 @@ model TrendRemixLineage {
 
 model TrendSourceReference {
   id        String   @id @default(cuid())
+  mongoId                 String?         @unique
   data      Json     @default("{}")
   isDeleted Boolean  @default(false)
   createdAt DateTime @default(now())
@@ -2951,6 +3047,7 @@ model TrendSourceReference {
 
 model TrendSourceReferenceLink {
   id                String               @id @default(cuid())
+  mongoId                 String?         @unique
   trendId           String?
   trend             Trend?               @relation(fields: [trendId], references: [id])
   sourceReferenceId String?
@@ -2964,6 +3061,7 @@ model TrendSourceReferenceLink {
 
 model TrendSourceReferenceSnapshot {
   id                String               @id @default(cuid())
+  mongoId                 String?         @unique
   sourceReferenceId String?
   sourceReference   TrendSourceReference? @relation(fields: [sourceReferenceId], references: [id])
   data              Json                 @default("{}")
@@ -2980,6 +3078,7 @@ model TrendSourceReferenceSnapshot {
 
 model OutreachCampaign {
   id              String                 @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization           @relation(fields: [organizationId], references: [id])
   userId          String?
@@ -2998,6 +3097,7 @@ model OutreachCampaign {
 
 model CampaignTarget {
   id              String               @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization         @relation(fields: [organizationId], references: [id])
   campaignId      String
@@ -3017,6 +3117,7 @@ model CampaignTarget {
 
 model ElementBlacklist {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   key             String?
   label           String?
@@ -3031,6 +3132,7 @@ model ElementBlacklist {
 
 model ElementCamera {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   key             String?
   label           String?
@@ -3045,6 +3147,7 @@ model ElementCamera {
 
 model ElementCameraMovement {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   key             String?
   label           String?
@@ -3058,6 +3161,7 @@ model ElementCameraMovement {
 
 model ElementLens {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   key             String?
   label           String?
@@ -3071,6 +3175,7 @@ model ElementLens {
 
 model ElementLighting {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   key             String?
   label           String?
@@ -3084,6 +3189,7 @@ model ElementLighting {
 
 model ElementMood {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   key             String?
   label           String?
@@ -3097,6 +3203,7 @@ model ElementMood {
 
 model ElementScene {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   key             String?
   label           String?
@@ -3110,6 +3217,7 @@ model ElementScene {
 
 model ElementSound {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   key             String?
   label           String?
@@ -3123,6 +3231,7 @@ model ElementSound {
 
 model ElementStyle {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   key             String?
   label           String?
@@ -3136,7 +3245,8 @@ model ElementStyle {
 
 model FontFamilyRecord {
   id              String       @id @default(cuid())
-  organizationId  String
+  mongoId                 String?         @unique
+  organizationId  String?
   key             String?
   label           String?
   description     String?
@@ -3149,8 +3259,9 @@ model FontFamilyRecord {
 
 model Preset {
   id              String       @id @default(cuid())
-  organizationId  String
-  organization    Organization @relation(fields: [organizationId], references: [id])
+  mongoId                 String?         @unique
+  organizationId  String?
+  organization    Organization? @relation(fields: [organizationId], references: [id])
   brandId         String?
   brand           Brand?       @relation(fields: [brandId], references: [id])
   config          Json         @default("{}")
@@ -3163,6 +3274,7 @@ model Preset {
 
 model Caption {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   userId          String
   user            User         @relation(fields: [userId], references: [id])
   ingredientId    String?
@@ -3181,6 +3293,7 @@ model Caption {
 
 model ClipProject {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   brandId         String?
@@ -3195,6 +3308,7 @@ model ClipProject {
 
 model ClipResult {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   data            Json         @default("{}")
@@ -3207,6 +3321,7 @@ model ClipResult {
 
 model EditorProject {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   brandId         String?
@@ -3224,8 +3339,25 @@ model EditorProject {
   @@map("editor_projects")
 }
 
+model Project {
+  id              String        @id @default(cuid())
+  mongoId         String?       @unique
+  organizationId  String
+  organization    Organization  @relation(fields: [organizationId], references: [id])
+  label           String
+  description     String?
+  status          String        @default("active")
+  isDeleted       Boolean       @default(false)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([organizationId, isDeleted])
+  @@map("projects")
+}
+
 model BrandMemory {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   brandId         String?
@@ -3242,6 +3374,7 @@ model BrandMemory {
 
 model ContextBase {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   createdById     String?
@@ -3260,6 +3393,7 @@ model ContextBase {
 
 model ContextEntry {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   contextBaseId   String
   contextBase     ContextBase  @relation(fields: [contextBaseId], references: [id])
   organizationId  String
@@ -3274,6 +3408,7 @@ model ContextEntry {
 
 model Skill {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   label           String?
@@ -3287,6 +3422,7 @@ model Skill {
 
 model SkillReceipt {
   id        String   @id @default(cuid())
+  mongoId                 String?         @unique
   data      Json     @default("{}")
   isDeleted Boolean  @default(false)
   createdAt DateTime @default(now())
@@ -3297,8 +3433,9 @@ model SkillReceipt {
 
 model Template {
   id              String       @id @default(cuid())
-  organizationId  String
-  organization    Organization @relation(fields: [organizationId], references: [id])
+  mongoId                 String?         @unique
+  organizationId  String?
+  organization    Organization? @relation(fields: [organizationId], references: [id])
   label           String?
   config          Json         @default("{}")
   isDeleted       Boolean      @default(false)
@@ -3313,6 +3450,7 @@ model Template {
 
 model TemplateMetadata {
   id         String   @id @default(cuid())
+  mongoId                 String?         @unique
   templateId String   @unique
   template   Template @relation(fields: [templateId], references: [id])
   data       Json     @default("{}")
@@ -3325,6 +3463,7 @@ model TemplateMetadata {
 
 model TemplateUsage {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   userId          String
@@ -3338,6 +3477,7 @@ model TemplateUsage {
 
 model Vote {
   id              String        @id @default(cuid())
+  mongoId                 String?         @unique
   userId          String
   user            User          @relation(fields: [userId], references: [id])
   organizationId  String?
@@ -3353,6 +3493,7 @@ model Vote {
 
 model Watchlist {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   brandId         String?
   brand           Brand?       @relation(fields: [brandId], references: [id])
   organizationId  String
@@ -3369,6 +3510,7 @@ model Watchlist {
 
 model Goal {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   parentId        String?
@@ -3385,6 +3527,7 @@ model Goal {
 
 model Streak {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   userId          String
@@ -3399,6 +3542,7 @@ model Streak {
 
 model Announcement {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String?
   organization    Organization? @relation(fields: [organizationId], references: [id])
   title           String?
@@ -3413,6 +3557,7 @@ model Announcement {
 
 model Lead {
   id                    String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId        String?
   organization          Organization? @relation("lead_org", fields: [organizationId], references: [id])
   userId                String?
@@ -3433,6 +3578,7 @@ model Lead {
 
 model Profile {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   createdById     String?
@@ -3447,6 +3593,7 @@ model Profile {
 
 model Batch {
   id              String        @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   organization    Organization  @relation(fields: [organizationId], references: [id])
   userId          String
@@ -3471,6 +3618,7 @@ model Batch {
 
 model FanvueContent {
   id              String   @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   userId          String
   status          String?
@@ -3489,6 +3637,7 @@ model FanvueContent {
 
 model FanvueEarnings {
   id              String   @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   userId          String
   type            String?
@@ -3505,6 +3654,7 @@ model FanvueEarnings {
 
 model FanvueSchedule {
   id              String   @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   userId          String
   contentId       String?
@@ -3523,6 +3673,7 @@ model FanvueSchedule {
 
 model FanvueSubscriber {
   id              String   @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   userId          String
   externalId      String?
@@ -3539,6 +3690,7 @@ model FanvueSubscriber {
 
 model LivestreamBotSession {
   id        String   @id @default(cuid())
+  mongoId                 String?         @unique
   data      Json     @default("{}")
   isDeleted Boolean  @default(false)
   createdAt DateTime @default(now())
@@ -3549,6 +3701,7 @@ model LivestreamBotSession {
 
 model Run {
   id              String       @id @default(cuid())
+  mongoId                 String?         @unique
   organizationId  String
   brandId         String?
   data            Json         @default("{}")
@@ -3561,6 +3714,7 @@ model Run {
 
 model Analytic {
   id        String   @id @default(cuid())
+  mongoId                 String?         @unique
   data      Json     @default("{}")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

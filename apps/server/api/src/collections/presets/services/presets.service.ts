@@ -1,6 +1,6 @@
 import { CreatePresetDto } from '@api/collections/presets/dto/create-preset.dto';
 import { UpdatePresetDto } from '@api/collections/presets/dto/update-preset.dto';
-import { PresetDocument } from '@api/collections/presets/schemas/preset.schema';
+import { type PresetDocument } from '@api/collections/presets/schemas/preset.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type { PopulateOption } from '@genfeedai/interfaces';

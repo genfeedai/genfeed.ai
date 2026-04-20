@@ -50,7 +50,6 @@ import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Body, Controller, Param, Post, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 @AutoSwagger()
 @Controller('videos')
@@ -95,8 +94,8 @@ export class VideosUpscaleController {
     const video = await this.videosService.findOne({
       _id: videoId,
       $or: [
-        { user: new Types.ObjectId(publicMetadata.user) },
-        { organization: new Types.ObjectId(publicMetadata.organization) },
+        { user: publicMetadata.user },
+        { organization: publicMetadata.organization },
       ],
     });
 
@@ -121,12 +120,12 @@ export class VideosUpscaleController {
     try {
       const { metadataData, ingredientData } =
         await this.sharedService.saveDocuments(user, {
-          brand: new Types.ObjectId(video.brand || publicMetadata.brand),
+          brand: video.brand || publicMetadata.brand,
           category: IngredientCategory.VIDEO,
           extension: MetadataExtension.MP4,
           model,
-          organization: new Types.ObjectId(publicMetadata.organization),
-          parent: new Types.ObjectId(videoId),
+          organization: publicMetadata.organization,
+          parent: videoId,
           status: IngredientStatus.PROCESSING,
           transformations: [TransformationCategory.UPSCALED],
         });
@@ -142,13 +141,13 @@ export class VideosUpscaleController {
       // Create activity for video upscale start
       const activity = await this.activitiesService.create(
         new ActivityEntity({
-          brand: new Types.ObjectId(video.brand || publicMetadata.brand),
+          brand: video.brand || publicMetadata.brand,
           entityId: ingredientData._id,
           entityModel: ActivityEntityModel.INGREDIENT,
           key: ActivityKey.VIDEO_UPSCALE_PROCESSING,
-          organization: new Types.ObjectId(publicMetadata.organization),
+          organization: publicMetadata.organization,
           source: ActivitySource.VIDEO_UPSCALE,
-          user: new Types.ObjectId(publicMetadata.user),
+          user: publicMetadata.user,
           value: JSON.stringify({
             ingredientId: ingredientData._id.toString(),
             model,
@@ -207,7 +206,7 @@ export class VideosUpscaleController {
         promptParams,
       );
 
-      const ingredientId = (ingredientData._id as Types.ObjectId).toHexString();
+      const ingredientId = String(ingredientData._id);
       const websocketUrl = WebSocketPaths.video(ingredientId);
 
       if (externalId) {

@@ -1,4 +1,4 @@
-import { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
@@ -14,7 +14,6 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 @Injectable()
 export class PresignedUploadService {
@@ -98,9 +97,9 @@ export class PresignedUploadService {
     // Find and update the ingredient status
     const ingredient = await this.ingredientsService.findOne(
       {
-        _id: new Types.ObjectId(id),
+        _id: id,
         status: 'processing',
-        user: new Types.ObjectId(publicMetadata.user),
+        user: publicMetadata.user,
       },
       [{ path: 'metadata' }],
     );

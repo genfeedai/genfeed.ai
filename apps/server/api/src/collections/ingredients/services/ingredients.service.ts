@@ -5,11 +5,7 @@ import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import {
-  createModelLookupPipeline,
-  createUserLookupPipeline,
-  PopulatePatterns,
-} from '@api/shared/utils/populate/populate.util';
+import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import type { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
 import {
   DarkroomReviewStatus,
@@ -18,10 +14,8 @@ import {
   MetadataExtension,
 } from '@genfeedai/enums';
 import type { PopulateOption } from '@genfeedai/interfaces';
-import { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import type { PipelineStage } from 'mongoose';
 
 @Injectable()
 export class IngredientsService extends BaseService<
@@ -373,48 +367,6 @@ export class IngredientsService extends BaseService<
   }
 
   /**
-   * Override findAll — delegates to super (BaseService Prisma migration pending)
-   */
-  async findAll(
-    aggregate: PipelineStage[],
-    options: AggregationOptions,
-    enableCache: boolean = true,
-  ): Promise<AggregatePaginateResult<IngredientDocument>> {
-    try {
-      this.logger.debug(`${this.constructorName} findAll`, {
-        aggregateStages: aggregate.length,
-        options,
-      });
-
-      const enhancedAggregate = [
-        ...aggregate,
-        ...createModelLookupPipeline(),
-        ...createUserLookupPipeline('minimal'),
-      ];
-
-      const result = await super.findAll(
-        enhancedAggregate,
-        options,
-        enableCache,
-      );
-
-      this.logger.debug(`${this.constructorName} findAll success`, {
-        page: result.page,
-        totalDocs: result.totalDocs,
-      });
-
-      return result;
-    } catch (error: unknown) {
-      this.logger.error(`${this.constructorName} findAll failed`, {
-        aggregate,
-        error,
-        options,
-      });
-      throw error;
-    }
-  }
-
-  /**
    * Find top ingredients sorted by total votes (most voted first).
    */
   @HandleErrors('findTopByVotes', 'ingredients')
@@ -436,16 +388,29 @@ export class IngredientsService extends BaseService<
       where.category = params.category;
     }
 
-    // Delegate to super.findAll for pagination support (BaseService Prisma migration pending)
-    return this.findAll(
-      [{ $match: where }],
-      {
-        limit: params.limit || 10,
-        page: 1,
-        sort: { totalVotes: -1 },
-      },
-      false,
-    );
+    const limit = params.limit ?? 10;
+
+    const [docs, totalDocs] = await Promise.all([
+      this.prisma.ingredient.findMany({
+        where: where as never,
+        orderBy: { totalVotes: 'desc' },
+        take: limit,
+      }),
+      this.prisma.ingredient.count({ where: where as never }),
+    ]);
+
+    return {
+      docs: docs as unknown as IngredientDocument[],
+      hasNextPage: false,
+      hasPrevPage: false,
+      limit,
+      nextPage: null,
+      page: 1,
+      pagingCounter: 1,
+      prevPage: null,
+      totalDocs,
+      totalPages: Math.ceil(totalDocs / limit),
+    };
   }
 
   /**

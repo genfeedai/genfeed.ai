@@ -10,11 +10,7 @@ import TopbarBreadcrumbs from '@ui/topbars/breadcrumbs/TopbarBreadcrumbs';
 import TopbarEnd from '@ui/topbars/end/TopbarEnd';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import {
-  HiBars3,
-  HiOutlineCommandLine,
-  HiXMark,
-} from 'react-icons/hi2';
+import { HiBars3, HiOutlineCommandLine, HiXMark } from 'react-icons/hi2';
 import { appendSearchParamsToHref } from '@/lib/navigation/operator-shell';
 
 export default function AppProtectedTopbar({
@@ -101,7 +97,9 @@ export default function AppProtectedTopbar({
               variant={ButtonVariant.UNSTYLED}
               className={cn(
                 'inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.03] transition-colors hover:bg-white/[0.06]',
-                isAgentCollapsed ? 'text-white/70' : 'bg-white/[0.08] text-white',
+                isAgentCollapsed
+                  ? 'text-white/70'
+                  : 'bg-white/[0.08] text-white',
               )}
               ariaLabel={
                 isAgentCollapsed ? 'Open terminal dock' : 'Close terminal dock'

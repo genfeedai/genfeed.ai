@@ -5,11 +5,10 @@ import type { HedraService } from '@api/services/integrations/hedra/services/hed
 import type { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import type { User } from '@clerk/backend';
 import type { LoggerService } from '@libs/logger/logger.service';
-import { Types } from 'mongoose';
 
-const userId = new Types.ObjectId().toString();
-const orgId = new Types.ObjectId().toString();
-const brandId = new Types.ObjectId().toString();
+const userId = '507f191e810c19729de860ee'.toString();
+const orgId = '507f191e810c19729de860ee'.toString();
+const brandId = '507f191e810c19729de860ee'.toString();
 
 const makeUser = (overrides: Record<string, unknown> = {}): User =>
   ({

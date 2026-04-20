@@ -5,7 +5,6 @@ import type { PublishContext } from '@api/services/integrations/publishers/inter
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('FanvuePublisherService', () => {
@@ -22,11 +21,11 @@ describe('FanvuePublisherService', () => {
     warn: ReturnType<typeof vi.fn>;
   };
 
-  const orgId = new Types.ObjectId().toHexString();
-  const brandId = new Types.ObjectId().toHexString();
+  const orgId = 'test-object-id';
+  const brandId = 'test-object-id';
 
   const mockCredential = {
-    _id: new Types.ObjectId(),
+    _id: 'test-object-id',
     accessToken: 'encrypted-token',
     externalHandle: 'creator-handle',
     platform: CredentialPlatform.FANVUE,
@@ -41,14 +40,14 @@ describe('FanvuePublisherService', () => {
     organization: {} as never,
     organizationId: orgId,
     post: {
-      _id: new Types.ObjectId().toString(),
+      _id: 'test-object-id',
       category: PostCategory.TEXT,
       description: '<p>Hello world</p>',
       ingredients: [],
       label: 'Test Post',
       status: PostStatus.DRAFT,
     } as never,
-    postId: new Types.ObjectId().toString(),
+    postId: 'test-object-id',
     ...overrides,
   });
 
@@ -120,7 +119,7 @@ describe('FanvuePublisherService', () => {
     });
 
     it('should upload media when post has image ingredients', async () => {
-      const ingredientId = new Types.ObjectId();
+      const ingredientId = 'test-object-id';
       const context = makeContext({
         post: {
           category: PostCategory.IMAGE,
@@ -147,7 +146,7 @@ describe('FanvuePublisherService', () => {
     });
 
     it('should reject multi-ingredient image posts because carousel is unsupported', async () => {
-      const ingredientIds = [new Types.ObjectId(), new Types.ObjectId()];
+      const ingredientIds = ['test-object-id', 'test-object-id'];
       const context = makeContext({
         post: {
           category: PostCategory.IMAGE,

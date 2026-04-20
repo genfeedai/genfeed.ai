@@ -22,7 +22,6 @@ import { ArticleCategory, AssetScope } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 describe('ArticlesController', () => {
   let controller: ArticlesController;
@@ -44,20 +43,20 @@ describe('ArticlesController', () => {
 
   const mockArticle = {
     _id: '507f1f77bcf86cd799439014',
-    brand: new Types.ObjectId('507f1f77bcf86cd799439013'),
+    brand: '507f1f77bcf86cd799439013',
     category: ArticleCategory.POST,
     content: 'This is the article content',
     createdAt: new Date(),
     isDeleted: false,
     label: 'Test Article',
-    organization: new Types.ObjectId('507f1f77bcf86cd799439012'),
+    organization: '507f1f77bcf86cd799439012',
     scope: AssetScope.USER,
     slug: 'test-article',
     status: 'draft',
     summary: 'A test article summary',
     tags: [],
     updatedAt: new Date(),
-    user: new Types.ObjectId('507f1f77bcf86cd799439011'),
+    user: '507f1f77bcf86cd799439011',
   } as unknown as Article;
 
   const mockArticlesService = {
@@ -212,7 +211,7 @@ describe('ArticlesController', () => {
       });
       mockOrganizationSettingsService.findOne.mockResolvedValue(null);
       mockActivitiesService.create.mockResolvedValue({
-        _id: new Types.ObjectId(),
+        _id: '507f191e810c19729de860ee',
       });
       mockWebsocketService.publishBackgroundTaskUpdate.mockResolvedValue(
         undefined,

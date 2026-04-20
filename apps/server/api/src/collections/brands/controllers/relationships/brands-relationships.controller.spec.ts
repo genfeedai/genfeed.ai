@@ -20,7 +20,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { REQUEST } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 describe('BrandsRelationshipsController', () => {
   let controller: BrandsRelationshipsController;
@@ -37,9 +36,9 @@ describe('BrandsRelationshipsController', () => {
   } as unknown as User;
 
   const mockBrand = {
-    _id: new Types.ObjectId('507f1f77bcf86cd799439013'),
-    organization: new Types.ObjectId('507f1f77bcf86cd799439012'),
-    user: new Types.ObjectId('507f1f77bcf86cd799439011'),
+    _id: '507f1f77bcf86cd799439013',
+    organization: '507f1f77bcf86cd799439012',
+    user: '507f1f77bcf86cd799439011',
   };
 
   const mockServices = {

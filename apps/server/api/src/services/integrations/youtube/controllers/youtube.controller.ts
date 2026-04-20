@@ -30,7 +30,6 @@ import {
   Req,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 @AutoSwagger()
 @Controller('services/youtube')
@@ -58,9 +57,9 @@ export class YoutubeController {
     const publicMetadata = getPublicMetadata(user);
 
     const brand = await this.brandsService.findOne({
-      _id: new Types.ObjectId(createCredentialDto.brand),
+      _id: createCredentialDto.brand,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     });
 
     if (!brand) {
@@ -75,8 +74,8 @@ export class YoutubeController {
 
     try {
       const credential = await this.credentialsService.findOne({
-        brand: new Types.ObjectId(brand._id),
-        organization: new Types.ObjectId(brand.organization),
+        brand: brand._id,
+        organization: brand.organization,
         platform: CredentialPlatform.YOUTUBE,
       });
 
@@ -141,8 +140,8 @@ export class YoutubeController {
 
       // Find and update the existing credential
       const existingCredential = await this.credentialsService.findOne({
-        brand: new Types.ObjectId(brandId),
-        organization: new Types.ObjectId(organizationId),
+        brand: brandId,
+        organization: organizationId,
         platform: CredentialPlatform.YOUTUBE,
       });
 

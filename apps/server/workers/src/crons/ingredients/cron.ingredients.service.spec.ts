@@ -11,7 +11,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@workers/config/config.service';
 import { CronIngredientsService } from '@workers/crons/ingredients/cron.ingredients.service';
-import { Types } from 'mongoose';
 
 describe('CronIngredientsService', () => {
   let service: CronIngredientsService;
@@ -26,12 +25,12 @@ describe('CronIngredientsService', () => {
   const mockStuckIngredients = {
     docs: [
       {
-        _id: new Types.ObjectId(),
+        _id: 'ingredient-id-1',
         createdAt: new Date(Date.now() - 60 * 60 * 1000), // 1 hour ago
         status: IngredientStatus.PROCESSING,
       },
       {
-        _id: new Types.ObjectId(),
+        _id: 'ingredient-id-2',
         createdAt: new Date(Date.now() - 45 * 60 * 1000), // 45 minutes ago
         status: IngredientStatus.PROCESSING,
       },
@@ -41,19 +40,19 @@ describe('CronIngredientsService', () => {
   const mockIngredientsNeedingRefresh = {
     docs: [
       {
-        _id: new Types.ObjectId(),
+        _id: 'ingredient-id-3',
         category: IngredientCategory.VIDEO,
-        metadata: new Types.ObjectId(),
+        metadata: 'metadata-id-1',
         metadataDoc: {
-          _id: new Types.ObjectId(),
+          _id: 'metadata-doc-id-1',
         },
       },
       {
-        _id: new Types.ObjectId(),
+        _id: 'ingredient-id-4',
         category: IngredientCategory.IMAGE,
-        metadata: new Types.ObjectId(),
+        metadata: 'metadata-id-2',
         metadataDoc: {
-          _id: new Types.ObjectId(),
+          _id: 'metadata-doc-id-2',
         },
       },
     ],
@@ -306,11 +305,11 @@ describe('CronIngredientsService', () => {
       const videoIngredient = {
         docs: [
           {
-            _id: new Types.ObjectId(),
+            _id: 'ingredient-id-5',
             category: IngredientCategory.VIDEO,
-            metadata: new Types.ObjectId(),
+            metadata: 'metadata-id-5',
             metadataDoc: {
-              _id: new Types.ObjectId(),
+              _id: 'metadata-doc-id-5',
             },
           },
         ],
@@ -345,11 +344,11 @@ describe('CronIngredientsService', () => {
       const imageIngredient = {
         docs: [
           {
-            _id: new Types.ObjectId(),
+            _id: 'ingredient-id-6',
             category: IngredientCategory.IMAGE,
-            metadata: new Types.ObjectId(),
+            metadata: 'metadata-id-6',
             metadataDoc: {
-              _id: new Types.ObjectId(),
+              _id: 'metadata-doc-id-6',
             },
           },
         ],

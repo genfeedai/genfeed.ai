@@ -5,15 +5,14 @@ import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import { GoogleAdsService } from '../services/google-ads.service';
 import { GoogleAdsOAuthService } from '../services/google-ads-oauth.service';
 import { GoogleAdsController } from './google-ads.controller';
 
 vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
   getPublicMetadata: vi.fn(() => ({
-    organization: new Types.ObjectId().toString(),
-    user: new Types.ObjectId().toString(),
+    organization: 'test-object-id',
+    user: 'test-object-id',
   })),
 }));
 
@@ -26,8 +25,8 @@ vi.mock('@api/shared/utils/encryption/encryption.util', () => ({
 const mockUser = {
   id: 'user_abc',
   publicMetadata: {
-    organization: new Types.ObjectId().toString(),
-    user: new Types.ObjectId().toString(),
+    organization: 'test-object-id',
+    user: 'test-object-id',
   },
 } as never;
 
@@ -67,9 +66,9 @@ describe('GoogleAdsController', () => {
   beforeEach(async () => {
     brandsService = {
       findOne: vi.fn().mockResolvedValue({
-        _id: new Types.ObjectId(),
-        organization: new Types.ObjectId(),
-        user: new Types.ObjectId(),
+        _id: 'test-object-id',
+        organization: 'test-object-id',
+        user: 'test-object-id',
       }),
     };
     credentialsService = {
@@ -163,8 +162,8 @@ describe('GoogleAdsController', () => {
       const result = await controller.verify({} as never, {
         code: 'auth-code',
         state: JSON.stringify({
-          brandId: new Types.ObjectId().toString(),
-          organizationId: new Types.ObjectId().toString(),
+          brandId: 'test-object-id',
+          organizationId: 'test-object-id',
         }),
       });
 

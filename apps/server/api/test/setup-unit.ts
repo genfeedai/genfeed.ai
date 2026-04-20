@@ -23,6 +23,11 @@ vi.mock('@genfeedai/prisma', () => {
   return { PrismaClient };
 });
 
+// Mock @prisma/adapter-pg so PrismaService constructor doesn't require DATABASE_URL
+vi.mock('@prisma/adapter-pg', () => ({
+  PrismaPg: vi.fn().mockImplementation(() => ({})),
+}));
+
 // Set test environment
 process.env.NODE_ENV = 'test';
 
@@ -111,6 +116,9 @@ global.fetch = vi
 
 // Mock Redis URL (tests should mock Redis operations)
 process.env.REDIS_URL = 'redis://localhost:6379';
+
+// Mock PostgreSQL URL (Prisma adapter — real connections never happen in unit tests)
+process.env.DATABASE_URL = 'test-mock-database-url';
 
 // Mock all external service keys to prevent accidental real calls
 process.env.REPLICATE_API_TOKEN = 'test-mock-replicate-key';

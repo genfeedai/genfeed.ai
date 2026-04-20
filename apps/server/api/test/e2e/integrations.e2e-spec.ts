@@ -1,6 +1,6 @@
 /**
  * Integrations E2E Tests
- * Tests integration CRUD operations with real database (MongoMemoryServer)
+ * Tests integration CRUD operations with real database (Prisma)
  * All external services are mocked to prevent real API calls
  */
 
@@ -8,6 +8,7 @@ import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
 import {
   createTestIntegration,
   createTestOrganization,
+  generateIdString,
 } from '@api-test/e2e/e2e-test.utils';
 import {
   createTestDatabaseHelper,
@@ -17,7 +18,6 @@ import {
 } from '@api-test/e2e-test.module';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import request from 'supertest';
 
 describe('Integrations E2E Tests', () => {
@@ -58,7 +58,7 @@ describe('Integrations E2E Tests', () => {
     await dbHelper.clearDatabase();
 
     testOrganization = createTestOrganization({
-      _id: new Types.ObjectId(),
+      _id: generateIdString(),
       label: 'Integration Test Org',
     });
 
@@ -104,7 +104,7 @@ describe('Integrations E2E Tests', () => {
         .post(orgPath())
         .send({
           botToken: 'test-slack-bot-token',
-          config: { appToken: 'xapp-slack-token' },
+          config: { appToken: 'test-app-token-placeholder' },
           platform: 'slack',
         })
         .expect(201);
@@ -112,7 +112,7 @@ describe('Integrations E2E Tests', () => {
       const integration = unwrapResource(response.body);
       expect(integration.platform).toBe('slack');
       expect((integration.config as { appToken?: string }).appToken).toBe(
-        'xapp-slack-token',
+        'test-app-token-placeholder',
       );
     });
 
@@ -261,7 +261,7 @@ describe('Integrations E2E Tests', () => {
     });
 
     it('should return 404 for non-existent integration', async () => {
-      const fakeId = new Types.ObjectId();
+      const fakeId = generateIdString();
 
       await request(app.getHttpServer())
         .patch(`${orgPath()}/${fakeId}`)
@@ -295,7 +295,7 @@ describe('Integrations E2E Tests', () => {
     });
 
     it('should return 404 for non-existent integration', async () => {
-      const fakeId = new Types.ObjectId();
+      const fakeId = generateIdString();
 
       await request(app.getHttpServer())
         .delete(`${orgPath()}/${fakeId}`)

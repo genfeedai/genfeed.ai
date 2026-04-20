@@ -10,7 +10,6 @@ import { ApiKeyCategory } from '@genfeedai/enums';
 import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 describe('ApiKeysController', () => {
   let controller: ApiKeysController;
@@ -37,11 +36,11 @@ describe('ApiKeysController', () => {
     isRevoked: false,
     key: 'hashed_key_value',
     label: 'Test API Key',
-    organization: new Types.ObjectId('507f1f77bcf86cd799439012'),
+    organization: '507f1f77bcf86cd799439012',
     scopes: ['read', 'write'],
     updatedAt: new Date(),
     usageCount: 0,
-    user: new Types.ObjectId('507f1f77bcf86cd799439011'),
+    user: '507f1f77bcf86cd799439011',
   } as ApiKey;
 
   const mockApiKeysService = {

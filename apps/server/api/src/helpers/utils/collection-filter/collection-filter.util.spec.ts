@@ -1,6 +1,5 @@
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { AssetScope } from '@genfeedai/enums';
-import { type PipelineStage, Types } from 'mongoose';
 
 describe('CollectionFilterUtil', () => {
   afterEach(() => {
@@ -11,20 +10,20 @@ describe('CollectionFilterUtil', () => {
 
   describe('buildBrandFilter', () => {
     it('returns provided brand ObjectId when valid', () => {
-      const brandId = new Types.ObjectId().toHexString();
+      const brandId = '507f191e810c19729de860ee';
       const result = CollectionFilterUtil.buildBrandFilter(brandId);
 
-      expect(result).toBeInstanceOf(Types.ObjectId);
-      expect((result as Types.ObjectId).toHexString()).toBe(brandId);
+      expect(result).toEqual(expect.any(String));
+      expect(result as string).toBe(brandId);
     });
 
     it('falls back to user brand metadata by default', () => {
-      const userBrand = new Types.ObjectId().toHexString();
+      const userBrand = '507f191e810c19729de860ee';
       const result = CollectionFilterUtil.buildBrandFilter(undefined, {
         brand: userBrand,
       });
-      expect(result).toBeInstanceOf(Types.ObjectId);
-      expect((result as Types.ObjectId).toHexString()).toBe(userBrand);
+      expect(result).toEqual(expect.any(String));
+      expect(result as string).toBe(userBrand);
     });
 
     it('returns existence filter when metadata missing', () => {
@@ -73,7 +72,9 @@ describe('CollectionFilterUtil', () => {
       ]);
 
       expect(stages).toHaveLength(1);
-      const matchStage = stages[0] as PipelineStage.Match;
+      const matchStage = stages[0] as Record<string, unknown> & {
+        $match: Record<string, unknown>;
+      };
       expect(matchStage.$match?.$or).toHaveLength(2);
       expect(matchStage.$match?.$or?.[0]).toEqual({
         'metadata.label': { $options: 'i', $regex: 'hello' },
@@ -82,8 +83,8 @@ describe('CollectionFilterUtil', () => {
   });
 
   describe('buildOwnershipFilter', () => {
-    const userId = new Types.ObjectId().toHexString();
-    const organizationId = new Types.ObjectId().toHexString();
+    const userId = '507f191e810c19729de860ee';
+    const organizationId = '507f191e810c19729de860ee';
 
     it('builds $or filter when user and organization exist', () => {
       const result = CollectionFilterUtil.buildOwnershipFilter({
@@ -93,8 +94,8 @@ describe('CollectionFilterUtil', () => {
 
       expect(result).toHaveProperty('$or');
       expect(result.$or).toHaveLength(2);
-      expect(result.$or?.[0].user.toHexString()).toBe(userId);
-      expect(result.$or?.[1].organization.toHexString()).toBe(organizationId);
+      expect(result.$or?.[0].user).toBe(userId);
+      expect(result.$or?.[1].organization).toBe(organizationId);
     });
 
     it('returns single condition when only user provided', () => {
@@ -103,9 +104,7 @@ describe('CollectionFilterUtil', () => {
         { includeOrganization: false },
       );
       expect(result).toHaveProperty('user');
-      expect(
-        (result as Record<string, Types.ObjectId>).user.toHexString(),
-      ).toBe(userId);
+      expect((result as Record<string, string>).user).toBe(userId);
     });
 
     it('returns empty filter when metadata empty', () => {
@@ -207,7 +206,7 @@ describe('CollectionFilterUtil', () => {
   });
 
   describe('conditionalStages', () => {
-    const stages: PipelineStage[] = [{ $limit: 5 }];
+    const stages: Record<string, unknown>[] = [{ $limit: 5 }];
 
     it('returns stages when condition true', () => {
       expect(CollectionFilterUtil.conditionalStages(true, stages)).toEqual(

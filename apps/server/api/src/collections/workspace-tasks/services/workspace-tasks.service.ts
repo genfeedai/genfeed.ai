@@ -2,7 +2,7 @@ import { AgentMessagesService } from '@api/collections/agent-messages/services/a
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { SkillDocument } from '@api/collections/skills/schemas/skill.schema';
+import { type SkillDocument } from '@api/collections/skills/schemas/skill.schema';
 import { SkillsService } from '@api/collections/skills/services/skills.service';
 import { CreateWorkspaceTaskDto } from '@api/collections/workspace-tasks/dto/create-workspace-task.dto';
 import { UpdateWorkspaceTaskDto } from '@api/collections/workspace-tasks/dto/update-workspace-task.dto';
@@ -94,7 +94,7 @@ export class WorkspaceTasksService extends BaseService<
     private readonly agentRunsService: AgentRunsService,
     private readonly notificationsPublisher: NotificationsPublisherService,
   ) {
-    super(prisma, 'workspaceTask', logger);
+    super(prisma, 'task', logger);
   }
 
   override async create(

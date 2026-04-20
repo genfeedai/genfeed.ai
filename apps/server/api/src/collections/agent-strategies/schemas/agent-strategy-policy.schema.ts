@@ -1,6 +1,3 @@
-import { Prop, Schema } from '@nestjs/mongoose';
-import { Types } from 'mongoose';
-
 export const AGENT_STRATEGY_GOAL_PROFILES = ['reach_traffic'] as const;
 export type AgentStrategyGoalProfile =
   (typeof AGENT_STRATEGY_GOAL_PROFILES)[number];
@@ -37,93 +34,43 @@ export const AGENT_STRATEGY_REPORT_TYPES = ['daily', 'weekly'] as const;
 export type AgentStrategyReportType =
   (typeof AGENT_STRATEGY_REPORT_TYPES)[number];
 
-@Schema({ _id: false })
-export class AgentStrategyOpportunitySources {
-  @Prop({ default: true, type: Boolean })
-  trendWatchersEnabled!: boolean;
-
-  @Prop({ default: true, type: Boolean })
-  eventTriggersEnabled!: boolean;
-
-  @Prop({ default: true, type: Boolean })
-  evergreenCadenceEnabled!: boolean;
+export interface AgentStrategyOpportunitySources {
+  trendWatchersEnabled: boolean;
+  eventTriggersEnabled: boolean;
+  evergreenCadenceEnabled: boolean;
 }
 
-@Schema({ _id: false })
-export class AgentStrategyBudgetCap {
-  @Prop({ required: true, type: String })
-  key!: string;
-
-  @Prop({ default: 0, type: Number })
-  creditBudget!: number;
+export interface AgentStrategyBudgetCap {
+  key: string;
+  creditBudget: number;
 }
 
-@Schema({ _id: false })
-export class AgentStrategyBudgetPolicy {
-  @Prop({ default: 500, type: Number })
-  monthlyCreditBudget!: number;
-
-  @Prop({ default: 125, type: Number })
-  reserveTrendBudget!: number;
-
-  @Prop({ default: [], type: [AgentStrategyBudgetCap] })
-  perPlatformCaps!: AgentStrategyBudgetCap[];
-
-  @Prop({ default: [], type: [AgentStrategyBudgetCap] })
-  perFormatCaps!: AgentStrategyBudgetCap[];
-
-  @Prop({ default: 1, type: Number })
-  maxRetriesPerOpportunity!: number;
+export interface AgentStrategyBudgetPolicy {
+  monthlyCreditBudget: number;
+  reserveTrendBudget: number;
+  perPlatformCaps: AgentStrategyBudgetCap[];
+  perFormatCaps: AgentStrategyBudgetCap[];
+  maxRetriesPerOpportunity: number;
 }
 
-@Schema({ _id: false })
-export class AgentStrategyPublishPolicy {
-  @Prop({ default: false, type: Boolean })
-  autoPublishEnabled!: boolean;
-
-  @Prop({ default: 70, max: 100, min: 0, type: Number })
-  minPostScore!: number;
-
-  @Prop({ default: 75, max: 100, min: 0, type: Number })
-  minImageScore!: number;
-
-  @Prop({ default: false, type: Boolean })
-  videoAutopublishEnabled!: boolean;
-
-  @Prop({
-    default: 'standard',
-    enum: AGENT_STRATEGY_BRAND_SAFETY_MODES,
-    type: String,
-  })
-  brandSafetyMode!: AgentStrategyBrandSafetyMode;
+export interface AgentStrategyPublishPolicy {
+  autoPublishEnabled: boolean;
+  minPostScore: number;
+  minImageScore: number;
+  videoAutopublishEnabled: boolean;
+  brandSafetyMode: AgentStrategyBrandSafetyMode;
 }
 
-@Schema({ _id: false })
-export class AgentStrategyReportingPolicy {
-  @Prop({ default: true, type: Boolean })
-  dailyDigestEnabled!: boolean;
-
-  @Prop({ default: true, type: Boolean })
-  weeklySummaryEnabled!: boolean;
-
-  @Prop({ default: [], ref: 'User', type: [Types.ObjectId] })
-  reportRecipientUserIds!: Types.ObjectId[];
+export interface AgentStrategyReportingPolicy {
+  dailyDigestEnabled: boolean;
+  weeklySummaryEnabled: boolean;
+  reportRecipientUserIds: string[];
 }
 
-@Schema({ _id: false })
-export class AgentStrategyRankingPolicy {
-  @Prop({ default: 0.3, type: Number })
-  relevanceWeight!: number;
-
-  @Prop({ default: 0.2, type: Number })
-  freshnessWeight!: number;
-
-  @Prop({ default: 0.2, type: Number })
-  expectedTrafficWeight!: number;
-
-  @Prop({ default: 0.15, type: Number })
-  historicalConfidenceWeight!: number;
-
-  @Prop({ default: 0.15, type: Number })
-  costEfficiencyWeight!: number;
+export interface AgentStrategyRankingPolicy {
+  relevanceWeight: number;
+  freshnessWeight: number;
+  expectedTrafficWeight: number;
+  historicalConfidenceWeight: number;
+  costEfficiencyWeight: number;
 }

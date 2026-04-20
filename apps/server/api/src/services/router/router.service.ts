@@ -1,4 +1,4 @@
-import { ModelDocument } from '@api/collections/models/schemas/model.schema';
+import { type ModelDocument } from '@api/collections/models/schemas/model.schema';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import type {

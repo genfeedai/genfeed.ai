@@ -1,5 +1,5 @@
+import type { PipelineStage } from '@api/shared/utils/pipeline-builder/pipeline-builder.types';
 import { PipelineBuilder } from '@api/shared/utils/pipeline-builder/pipeline-builder.util';
-import type { PipelineStage } from 'mongoose';
 import { describe, expect, it } from 'vitest';
 
 function hasLookup(

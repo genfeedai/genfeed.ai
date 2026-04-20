@@ -36,6 +36,7 @@ const hasClerkKeys =
   Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) &&
   Boolean(process.env.CLERK_SECRET_KEY);
 const isDesktopShell = process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1';
+const SEEDED_WORKSPACE_PATH = '/default/default/workspace/overview';
 
 /**
  * In self-hosted core mode Clerk keys are absent.
@@ -223,6 +224,11 @@ const clerkProxy = isCloudConnected
         const pathname = req.nextUrl.pathname;
         if (pathname === '/') {
           if (!userId || !sessionId) {
+            if (isDesktopShell) {
+              return NextResponse.redirect(
+                new URL(SEEDED_WORKSPACE_PATH, req.url),
+              );
+            }
             return NextResponse.redirect(new URL('/login', req.url));
           }
 
@@ -263,6 +269,10 @@ const clerkProxy = isCloudConnected
         }
 
         if (!userId || !sessionId) {
+          // Desktop offline: no session is valid — pass straight through.
+          if (isDesktopShell) {
+            return NextResponse.next();
+          }
           return redirectPreservingSearch(req, '/login');
         }
 
@@ -311,22 +321,25 @@ export default async function proxy(req: NextRequest, event: NextFetchEvent) {
       );
     };
 
-    if (pathname === '/') {
-      if (!hasDesktopToken) {
-        return redirectPreservingSearch(req, '/login');
+    // Offline / no active session: skip all token-dependent logic and go
+    // straight to the default seeded workspace (same as self-hosted mode).
+    if (!hasDesktopToken) {
+      if (pathname === '/' || isBareProtectedPath(pathname)) {
+        return redirectPreservingSearch(req, SEEDED_WORKSPACE_PATH);
       }
+      return NextResponse.next();
+    }
 
+    if (pathname === '/') {
       const resolvedPath = await resolveDesktopWorkspacePath();
       return redirectPreservingSearch(req, resolvedPath ?? '/login');
     }
 
     if (pathname === '/logout') {
-      return hasDesktopToken
-        ? NextResponse.next()
-        : redirectPreservingSearch(req, '/login');
+      return NextResponse.next();
     }
 
-    if (isAuthRoute && hasDesktopToken) {
+    if (isAuthRoute) {
       const resolvedPath = await resolveDesktopWorkspacePath();
 
       if (resolvedPath) {
@@ -334,10 +347,6 @@ export default async function proxy(req: NextRequest, event: NextFetchEvent) {
       }
 
       return NextResponse.next();
-    }
-
-    if (!hasDesktopToken && isBareProtectedPath(pathname)) {
-      return redirectPreservingSearch(req, '/login');
     }
 
     if (hasDesktopToken && isBareProtectedPath(pathname) && desktopToken) {
@@ -375,9 +384,7 @@ export default async function proxy(req: NextRequest, event: NextFetchEvent) {
       pathname === '/oauth' ||
       pathname === '/oauth/';
     if (redirectToWorkspace) {
-      return NextResponse.redirect(
-        new URL('/default/default/workspace/overview', req.url),
-      );
+      return NextResponse.redirect(new URL(SEEDED_WORKSPACE_PATH, req.url));
     }
     return NextResponse.next();
   }

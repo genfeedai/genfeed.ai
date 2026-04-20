@@ -1,5 +1,5 @@
 import { EvaluationsService } from '@api/collections/evaluations/services/evaluations.service';
-import { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { ConfigService } from '@api/config/config.service';
 import { getErrorMessage } from '@api/helpers/utils/error/get-error-message.util';

@@ -9,12 +9,13 @@ import { ByokService } from '@api/services/byok/byok.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import type { ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { Types } from 'mongoose';
 
 const createContext = (): ExecutionContext => {
   const req: Record<string, unknown> = {
-    params: { id: new Types.ObjectId().toString() },
-    user: { publicMetadata: { organization: new Types.ObjectId().toString() } },
+    params: { id: '507f191e810c19729de860ee'.toString() },
+    user: {
+      publicMetadata: { organization: '507f191e810c19729de860ee'.toString() },
+    },
   };
   return {
     getClass: vi.fn(),
@@ -62,7 +63,7 @@ describe('MemberCreditsGuard', () => {
       .mockResolvedValue(true);
 
     organizationSettingsService.findOne.mockResolvedValue({
-      _id: new Types.ObjectId(),
+      _id: '507f191e810c19729de860ee',
       seatsLimit: 1,
     });
     membersService.findAll.mockResolvedValue({ docs: [1] });

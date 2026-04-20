@@ -8,7 +8,6 @@ import {
   IsString,
   MaxLength,
 } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class CreatePlaybookDto {
   @IsString()
@@ -52,7 +51,7 @@ export class CreatePlaybookDto {
     required: false,
     type: [String],
   })
-  sourceCreators?: Types.ObjectId[];
+  sourceCreators?: string[];
 }
 
 export class UpdatePlaybookDto {
@@ -91,5 +90,5 @@ export class UpdatePlaybookDto {
     required: false,
     type: [String],
   })
-  sourceCreators?: Types.ObjectId[];
+  sourceCreators?: string[];
 }

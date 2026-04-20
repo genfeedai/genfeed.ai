@@ -11,7 +11,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { type PipelineStage, Types } from 'mongoose';
 
 const createBaseQuery = (
   partial: Partial<BaseQueryDto> & Record<string, unknown> = {},
@@ -25,11 +24,11 @@ const createBaseQuery = (
     ...partial,
   }) as BaseQueryDto;
 
-const asMatchStage = (stage: PipelineStage) =>
-  stage as PipelineStage.Match & { $match: Record<string, unknown> };
+const asMatchStage = (stage: Record<string, unknown>) =>
+  stage as Record<string, unknown> & { $match: Record<string, unknown> };
 
-const asSortStage = (stage: PipelineStage) =>
-  stage as PipelineStage.Sort & { $sort: Record<string, unknown> };
+const asSortStage = (stage: Record<string, unknown>) =>
+  stage as Record<string, unknown> & { $sort: Record<string, unknown> };
 
 vi.mock('@genfeedai/helpers', async () => ({
   ...(await vi.importActual('@genfeedai/helpers')),
@@ -55,20 +54,20 @@ describe('ElementsCamerasController', () => {
   const mockSuperAdminUser = {
     id: 'user-123',
     publicMetadata: {
-      brand: new Types.ObjectId().toString(),
+      brand: '507f191e810c19729de860ee'.toString(),
       isSuperAdmin: true,
-      organization: new Types.ObjectId().toString(),
-      user: new Types.ObjectId().toString(),
+      organization: '507f191e810c19729de860ee'.toString(),
+      user: '507f191e810c19729de860ee'.toString(),
     } as IClerkPublicMetadata,
   } as unknown as User;
 
   const mockRegularUser = {
     id: 'user-456',
     publicMetadata: {
-      brand: new Types.ObjectId().toString(),
+      brand: '507f191e810c19729de860ee'.toString(),
       isSuperAdmin: false,
-      organization: new Types.ObjectId().toString(),
-      user: new Types.ObjectId().toString(),
+      organization: '507f191e810c19729de860ee'.toString(),
+      user: '507f191e810c19729de860ee'.toString(),
     } as IClerkPublicMetadata,
   } as unknown as User;
 
@@ -163,7 +162,7 @@ describe('ElementsCamerasController', () => {
       } as unknown as CreateElementCameraDto;
 
       const mockCreatedCamera = {
-        _id: new Types.ObjectId(),
+        _id: '507f191e810c19729de860ee',
         ...createDto,
       };
 
@@ -182,7 +181,7 @@ describe('ElementsCamerasController', () => {
 
   describe('update', () => {
     it('should update a camera for superadmin', async () => {
-      const id = new Types.ObjectId().toString();
+      const id = '507f191e810c19729de860ee'.toString();
       const updateDto: UpdateElementCameraDto = {
         label: 'Updated Camera',
       } as unknown as UpdateElementCameraDto;
@@ -209,7 +208,7 @@ describe('ElementsCamerasController', () => {
       );
 
       expect(camerasService.findOne).toHaveBeenCalledWith(
-        { _id: new Types.ObjectId(id) },
+        { _id: id },
         expect.anything(),
       );
       expect(camerasService.patch).toHaveBeenCalled();
@@ -217,7 +216,7 @@ describe('ElementsCamerasController', () => {
     });
 
     it('should throw error if camera not found', async () => {
-      const id = new Types.ObjectId().toString();
+      const id = '507f191e810c19729de860ee'.toString();
       const updateDto: UpdateElementCameraDto = {
         label: 'Updated Camera',
       } as unknown as UpdateElementCameraDto;
@@ -232,14 +231,14 @@ describe('ElementsCamerasController', () => {
 
   describe('remove', () => {
     it('should remove a camera for superadmin', async () => {
-      const id = new Types.ObjectId().toString();
+      const id = '507f191e810c19729de860ee'.toString();
       const mockCamera = {
         _id: id,
         key: 'delete-camera',
         label: 'Camera to Delete',
-        user: new Types.ObjectId(
+        user: 
           mockSuperAdminUser.publicMetadata.user as string,
-        ),
+        ,
       };
 
       camerasService.findOne.mockResolvedValue(mockCamera as never);

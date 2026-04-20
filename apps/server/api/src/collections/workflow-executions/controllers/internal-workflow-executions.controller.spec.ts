@@ -7,21 +7,20 @@ import { AdminApiKeyGuard } from '@api/helpers/guards/admin-api-key/admin-api-ke
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 describe('InternalWorkflowExecutionsController', () => {
   let controller: InternalWorkflowExecutionsController;
 
   const mockRequest = {} as Request;
   const mockWorkflow = {
-    _id: new Types.ObjectId('507f1f77bcf86cd799439014'),
-    organization: new Types.ObjectId('507f1f77bcf86cd799439012'),
-    user: new Types.ObjectId('507f1f77bcf86cd799439011'),
+    _id: '507f1f77bcf86cd799439014',
+    organization: '507f1f77bcf86cd799439012',
+    user: '507f1f77bcf86cd799439011',
   };
   const mockExecution = {
-    _id: new Types.ObjectId('507f1f77bcf86cd799439015'),
+    _id: '507f1f77bcf86cd799439015',
     id: '507f1f77bcf86cd799439015',
-    organization: new Types.ObjectId('507f1f77bcf86cd799439012'),
+    organization: '507f1f77bcf86cd799439012',
     status: 'running',
     user: mockWorkflow.user,
     workflow: mockWorkflow._id,

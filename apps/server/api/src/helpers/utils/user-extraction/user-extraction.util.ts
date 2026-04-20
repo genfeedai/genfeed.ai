@@ -1,11 +1,10 @@
 import { getUserRoomName } from '@libs/websockets/room-name.util';
-import { Types } from 'mongoose';
 
 /**
  * User document structure from populated user references
  */
 export interface PopulatedUserDoc {
-  _id?: string | Types.ObjectId;
+  _id?: string;
   clerkId?: string;
 }
 
@@ -40,7 +39,7 @@ export class UserExtractionUtil {
    * @returns ExtractedUserIds with all available user identifiers
    */
   static extractUserIds(
-    userField: PopulatedUserDoc | string | Types.ObjectId | undefined,
+    userField: PopulatedUserDoc | string | undefined,
   ): ExtractedUserIds {
     if (!userField) {
       return {};
@@ -53,18 +52,12 @@ export class UserExtractionUtil {
     if (typeof userField === 'string') {
       dbUserId = userField;
     }
-    // Handle Types.ObjectId
-    else if (userField instanceof Types.ObjectId) {
-      dbUserId = userField.toHexString();
-    }
     // Handle populated user document
     else if (typeof userField === 'object' && userField !== null) {
       const userDoc = userField as PopulatedUserDoc;
 
       // Extract _id
-      if (userDoc._id instanceof Types.ObjectId) {
-        dbUserId = userDoc._id.toHexString();
-      } else if (typeof userDoc._id === 'string') {
+      if (typeof userDoc._id === 'string') {
         dbUserId = userDoc._id;
       }
 
@@ -88,11 +81,7 @@ export class UserExtractionUtil {
    * Handles populated and unpopulated references.
    */
   static extractBrandId(
-    brandField:
-      | { _id?: string | Types.ObjectId }
-      | string
-      | Types.ObjectId
-      | undefined,
+    brandField: { _id?: string } | string | undefined,
   ): string | undefined {
     if (!brandField) {
       return undefined;
@@ -102,15 +91,8 @@ export class UserExtractionUtil {
       return brandField;
     }
 
-    if (brandField instanceof Types.ObjectId) {
-      return brandField.toHexString();
-    }
-
     if (typeof brandField === 'object' && brandField !== null) {
-      const brandDoc = brandField as { _id?: string | Types.ObjectId };
-      if (brandDoc._id instanceof Types.ObjectId) {
-        return brandDoc._id.toHexString();
-      }
+      const brandDoc = brandField as { _id?: string };
       if (typeof brandDoc._id === 'string') {
         return brandDoc._id;
       }

@@ -2,18 +2,17 @@ import { TagsService } from '@api/collections/tags/services/tags.service';
 import { TagResolutionService } from '@api/shared/services/tag-resolution/tag-resolution.service';
 import type { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('TagResolutionService', () => {
   let service: TagResolutionService;
   let tagsService: vi.Mocked<TagsService>;
 
-  const mockTagId1 = new Types.ObjectId('507f1f77bcf86cd799439011');
-  const mockTagId2 = new Types.ObjectId('507f1f77bcf86cd799439012');
-  const mockTagId3 = new Types.ObjectId('507f1f77bcf86cd799439013');
+  const mockTagId1 = '507f1f77bcf86cd799439011';
+  const mockTagId2 = '507f1f77bcf86cd799439012';
+  const mockTagId3 = '507f1f77bcf86cd799439013';
 
   const createFindAllResult = (
-    docs: Array<{ _id: Types.ObjectId; label: string | null }>,
+    docs: Array<{ _id: string; label: string | null }>,
   ) =>
     ({
       docs,
@@ -55,7 +54,7 @@ describe('TagResolutionService', () => {
   });
 
   describe('resolveTagLabels', () => {
-    it('should resolve tag ObjectIds to labels', async () => {
+    it('should resolve tag IDs to labels', async () => {
       const tagIds = [mockTagId1, mockTagId2, mockTagId3];
 
       const mockTags = createFindAllResult([
@@ -99,7 +98,7 @@ describe('TagResolutionService', () => {
 
     it('should return empty array for null tag IDs', async () => {
       const result = await service.resolveTagLabels(
-        null as unknown as Types.ObjectId[],
+        null as unknown as string[],
       );
 
       expect(result).toEqual([]);
@@ -147,7 +146,7 @@ describe('TagResolutionService', () => {
   });
 
   describe('resolveTagLabel', () => {
-    it('should resolve single tag ObjectId to label', async () => {
+    it('should resolve single tag ID to label', async () => {
       const mockTag = {
         _id: mockTagId1,
         category: 'general',
@@ -173,9 +172,7 @@ describe('TagResolutionService', () => {
     });
 
     it('should return null for null tag ID', async () => {
-      const result = await service.resolveTagLabel(
-        null as unknown as Types.ObjectId,
-      );
+      const result = await service.resolveTagLabel(null as unknown as string);
 
       expect(result).toBeNull();
       expect(tagsService.findOne).not.toHaveBeenCalled();
@@ -183,7 +180,7 @@ describe('TagResolutionService', () => {
 
     it('should return null for undefined tag ID', async () => {
       const result = await service.resolveTagLabel(
-        undefined as unknown as Types.ObjectId,
+        undefined as unknown as string,
       );
 
       expect(result).toBeNull();

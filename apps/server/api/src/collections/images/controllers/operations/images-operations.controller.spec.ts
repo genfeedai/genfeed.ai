@@ -84,7 +84,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 describe('ImagesOperationsController', () => {
   let controller: ImagesOperationsController;
@@ -107,14 +106,14 @@ describe('ImagesOperationsController', () => {
   let creditsUtilsService: vi.Mocked<CreditsUtilsService>;
   let modelsService: vi.Mocked<ModelsService>;
 
-  const mockUserId = new Types.ObjectId();
-  const mockOrgId = new Types.ObjectId();
-  const mockBrandId = new Types.ObjectId();
-  const mockImageId = new Types.ObjectId();
-  const mockMetadataId = new Types.ObjectId();
-  const mockPromptId = new Types.ObjectId();
-  const mockActivityId = new Types.ObjectId();
-  const mockTagId = new Types.ObjectId();
+  const mockUserId = '507f191e810c19729de860ee';
+  const mockOrgId = '507f191e810c19729de860ee';
+  const mockBrandId = '507f191e810c19729de860ee';
+  const mockImageId = '507f191e810c19729de860ee';
+  const mockMetadataId = '507f191e810c19729de860ee';
+  const mockPromptId = '507f191e810c19729de860ee';
+  const mockActivityId = '507f191e810c19729de860ee';
+  const mockTagId = '507f191e810c19729de860ee';
 
   const mockUser = {
     id: 'clerk_user_123',
@@ -962,7 +961,7 @@ describe('ImagesOperationsController', () => {
 
       expect(imagesService.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
-          _id: expect.any(Types.ObjectId),
+          _id: expect.any(String),
           isDeleted: false,
         }),
         expect.any(Array),
@@ -1124,7 +1123,7 @@ describe('ImagesOperationsController', () => {
       expect(sharedService.saveDocuments).toHaveBeenCalledWith(
         mockUser,
         expect.objectContaining({
-          parent: expect.any(Types.ObjectId),
+          parent: expect.any(String),
         }),
       );
     });
@@ -1141,10 +1140,9 @@ describe('ImagesOperationsController', () => {
         mockUser,
       );
 
-      expect(imagesService.patch).toHaveBeenCalledWith(
-        expect.any(Types.ObjectId),
-        { status: IngredientStatus.GENERATED },
-      );
+      expect(imagesService.patch).toHaveBeenCalledWith(expect.any(String), {
+        status: IngredientStatus.GENERATED,
+      });
     });
   });
 

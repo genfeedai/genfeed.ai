@@ -31,7 +31,6 @@ import type { User } from '@clerk/backend';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('OrganizationsRelationshipsController', () => {
   let controller: OrganizationsRelationshipsController;
@@ -71,7 +70,7 @@ describe('OrganizationsRelationshipsController', () => {
     membersService: {},
     organizationsService: {
       findOne: vi.fn().mockResolvedValue({
-        _id: new Types.ObjectId('507f1f77bcf86cd799439012'),
+        _id: '507f1f77bcf86cd799439012',
       }),
     },
     postsService: {

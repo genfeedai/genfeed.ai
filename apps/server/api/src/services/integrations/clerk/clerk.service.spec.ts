@@ -371,7 +371,9 @@ describe('ClerkService', () => {
       expect(mockClerkClient.users.updateUserMetadata).toHaveBeenCalledWith(
         mockUserId,
         {
-          publicMetadata: expect.not.objectContaining({ brand: expect.anything() }),
+          publicMetadata: expect.not.objectContaining({
+            brand: expect.anything(),
+          }),
         },
       );
     });

@@ -16,7 +16,6 @@ import type {
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 import { firstValueFrom } from 'rxjs';
 
 type FileProcessingJob = IFileProcessingJob;
@@ -44,7 +43,7 @@ export class FileQueueService {
    * Refresh YouTube OAuth token
    */
   private async refreshYoutubeToken(credential: {
-    _id: Types.ObjectId;
+    _id: string;
     refreshToken: string;
   }): Promise<{
     access_token?: string | null;
@@ -291,7 +290,7 @@ export class FileQueueService {
     try {
       // Fetch credential from database
       const credential = await this.credentialsService.findOne({
-        _id: new Types.ObjectId(data.credentialId),
+        _id: data.credentialId,
         isConnected: true,
         isDeleted: false,
       });
@@ -306,7 +305,7 @@ export class FileQueueService {
 
       // Re-fetch credential to get the refreshed token
       const refreshedCredential = await this.credentialsService.findOne({
-        _id: new Types.ObjectId(data.credentialId),
+        _id: data.credentialId,
       });
 
       if (!refreshedCredential) {

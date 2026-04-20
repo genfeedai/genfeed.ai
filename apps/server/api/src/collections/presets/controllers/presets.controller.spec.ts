@@ -7,7 +7,6 @@ import type { User } from '@clerk/backend';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 describe('PresetsController', () => {
   let controller: PresetsController;
@@ -167,7 +166,7 @@ describe('PresetsController', () => {
       } as unknown as User;
 
       const entity = {
-        organization: new Types.ObjectId('507f1f77bcf86cd799439012'),
+        organization: '507f1f77bcf86cd799439012',
       };
       const result = controller.canUserModifyEntity(regularUser, entity);
 

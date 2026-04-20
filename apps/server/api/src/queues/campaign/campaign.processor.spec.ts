@@ -8,7 +8,6 @@ import { DmCampaignExecutorService } from '@api/services/campaign/dm-campaign-ex
 import { CampaignStatus, CampaignType } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Job } from 'bullmq';
-import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('CampaignProcessor', () => {
@@ -54,8 +53,8 @@ describe('CampaignProcessor', () => {
 
   describe('process', () => {
     it('should process active campaign successfully', async () => {
-      const campaignId = new Types.ObjectId().toString();
-      const organizationId = new Types.ObjectId().toString();
+      const campaignId = '507f191e810c19729de860ee'.toString();
+      const organizationId = '507f191e810c19729de860ee'.toString();
 
       const jobData: CampaignProcessingJobData = {
         campaignId,
@@ -69,9 +68,9 @@ describe('CampaignProcessor', () => {
       } as unknown as Job<CampaignProcessingJobData>;
 
       const mockCampaign = {
-        _id: new Types.ObjectId(campaignId),
+        _id: campaignId,
         campaignType: CampaignType.REPLY,
-        organization: new Types.ObjectId(organizationId),
+        organization: organizationId,
         status: CampaignStatus.ACTIVE,
         targets: [],
       };
@@ -103,8 +102,8 @@ describe('CampaignProcessor', () => {
     });
 
     it('should skip non-active campaign', async () => {
-      const campaignId = new Types.ObjectId().toString();
-      const organizationId = new Types.ObjectId().toString();
+      const campaignId = '507f191e810c19729de860ee'.toString();
+      const organizationId = '507f191e810c19729de860ee'.toString();
 
       const jobData: CampaignProcessingJobData = {
         campaignId,
@@ -118,7 +117,7 @@ describe('CampaignProcessor', () => {
       } as unknown as Job<CampaignProcessingJobData>;
 
       const mockCampaign = {
-        _id: new Types.ObjectId(campaignId),
+        _id: campaignId,
         status: CampaignStatus.PAUSED,
       };
 
@@ -133,8 +132,8 @@ describe('CampaignProcessor', () => {
     });
 
     it('should throw error if campaign not found', async () => {
-      const campaignId = new Types.ObjectId().toString();
-      const organizationId = new Types.ObjectId().toString();
+      const campaignId = '507f191e810c19729de860ee'.toString();
+      const organizationId = '507f191e810c19729de860ee'.toString();
 
       const jobData: CampaignProcessingJobData = {
         campaignId,
@@ -154,8 +153,8 @@ describe('CampaignProcessor', () => {
     });
 
     it('should handle circuit breaker errors', async () => {
-      const campaignId = new Types.ObjectId().toString();
-      const organizationId = new Types.ObjectId().toString();
+      const campaignId = '507f191e810c19729de860ee'.toString();
+      const organizationId = '507f191e810c19729de860ee'.toString();
 
       const jobData: CampaignProcessingJobData = {
         campaignId,

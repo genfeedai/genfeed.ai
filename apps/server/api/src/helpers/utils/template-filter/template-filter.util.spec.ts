@@ -1,5 +1,4 @@
 import { TemplateFilterUtil } from '@api/helpers/utils/template-filter/template-filter.util';
-import type { PipelineStage } from 'mongoose';
 
 describe('TemplateFilterUtil', () => {
   afterEach(() => {
@@ -120,23 +119,36 @@ describe('TemplateFilterUtil', () => {
       const categoriesStage = pipeline.find(
         (stage) =>
           '$match' in stage &&
-          (stage as PipelineStage.Match).$match?.categories,
-      ) as PipelineStage.Match;
+          (
+            stage as Record<string, unknown> & {
+              $match: Record<string, unknown>;
+            }
+          ).$match?.categories,
+      ) as Record<string, unknown> & { $match: Record<string, unknown> };
       expect(categoriesStage.$match?.categories).toEqual({
         $in: ['ads'],
       });
 
       const scopeStage = pipeline.find(
         (stage) =>
-          '$match' in stage && (stage as PipelineStage.Match).$match?.scope,
-      ) as PipelineStage.Match;
+          '$match' in stage &&
+          (
+            stage as Record<string, unknown> & {
+              $match: Record<string, unknown>;
+            }
+          ).$match?.scope,
+      ) as Record<string, unknown> & { $match: Record<string, unknown> };
       expect(scopeStage.$match?.scope).toBe('brand');
 
       const searchStage = pipeline.find(
         (stage) =>
           '$match' in stage &&
-          (stage as PipelineStage.Match).$match?.$or?.length === 3,
-      ) as PipelineStage.Match;
+          (
+            stage as Record<string, unknown> & {
+              $match: Record<string, unknown>;
+            }
+          ).$match?.$or?.length === 3,
+      ) as Record<string, unknown> & { $match: Record<string, unknown> };
       expect(searchStage.$match?.$or?.[0]?.label?.$regex).toBe('hook');
     });
 
@@ -149,8 +161,12 @@ describe('TemplateFilterUtil', () => {
       const featuredStage = pipeline.find(
         (stage) =>
           '$match' in stage &&
-          (stage as PipelineStage.Match).$match?.isFeatured !== undefined,
-      ) as PipelineStage.Match;
+          (
+            stage as Record<string, unknown> & {
+              $match: Record<string, unknown>;
+            }
+          ).$match?.isFeatured !== undefined,
+      ) as Record<string, unknown> & { $match: Record<string, unknown> };
       expect(featuredStage.$match?.isFeatured).toBe(false);
     });
   });

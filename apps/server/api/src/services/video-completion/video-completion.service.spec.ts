@@ -5,7 +5,6 @@ import { IngredientStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('VideoCompletionService', () => {
   let service: VideoCompletionService;
@@ -13,9 +12,9 @@ describe('VideoCompletionService', () => {
   let ingredientsService: vi.Mocked<IngredientsService>;
   let metadataService: vi.Mocked<MetadataService>;
 
-  const mockIngredientId = new Types.ObjectId('507f1f77bcf86cd799439011');
-  const mockUserId = new Types.ObjectId('507f1f77bcf86cd799439012');
-  const mockOrganizationId = new Types.ObjectId('507f1f77bcf86cd799439013');
+  const mockIngredientId = '507f1f77bcf86cd799439011';
+  const mockUserId = '507f1f77bcf86cd799439012';
+  const mockOrganizationId = '507f1f77bcf86cd799439013';
 
   async function waitForAsyncHandler(): Promise<void> {
     await new Promise<void>((resolve) => setTimeout(resolve, 0));
@@ -101,7 +100,7 @@ describe('VideoCompletionService', () => {
 
       ingredientsService.findOne.mockResolvedValue({
         _id: mockIngredientId,
-        metadata: new Types.ObjectId('507f1f77bcf86cd799439099'),
+        metadata: '507f1f77bcf86cd799439099',
       } as never);
       ingredientsService.patch.mockResolvedValue({
         _id: mockIngredientId,
@@ -180,7 +179,7 @@ describe('VideoCompletionService', () => {
 
       ingredientsService.findOne.mockResolvedValue({
         _id: mockIngredientId,
-        metadata: new Types.ObjectId('507f1f77bcf86cd799439099'),
+        metadata: '507f1f77bcf86cd799439099',
       } as never);
       ingredientsService.patch.mockResolvedValue({
         _id: mockIngredientId,
@@ -252,7 +251,7 @@ describe('VideoCompletionService', () => {
 
       ingredientsService.findOne.mockResolvedValue({
         _id: mockIngredientId,
-        metadata: new Types.ObjectId('507f1f77bcf86cd799439099'),
+        metadata: '507f1f77bcf86cd799439099',
       } as never);
       ingredientsService.patch.mockResolvedValue({
         _id: mockIngredientId,
@@ -309,7 +308,7 @@ describe('VideoCompletionService', () => {
 
       const mockData2 = {
         error: 'Processing error',
-        ingredientId: new Types.ObjectId().toString(),
+        ingredientId: 'test-object-id',
         organizationId: mockOrganizationId.toString(),
         status: 'failed',
         timestamp: new Date().toISOString(),

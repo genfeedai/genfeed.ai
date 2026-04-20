@@ -7,7 +7,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import { of, throwError } from 'rxjs';
 
 vi.mock('@api/shared/utils/encryption/encryption.util');
@@ -259,8 +258,8 @@ describe('MastodonService', () => {
   });
 
   describe('getMediaAnalytics', () => {
-    const orgId = new Types.ObjectId().toString();
-    const brandId = new Types.ObjectId().toString();
+    const orgId = 'test-object-id';
+    const brandId = 'test-object-id';
 
     it('should return analytics data from status endpoint', async () => {
       credentialsService.findOne.mockResolvedValue({

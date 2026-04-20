@@ -7,7 +7,6 @@ import { ApiKeyCategory, FileInputType } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 @Injectable()
 export class ElevenLabsService {
@@ -35,8 +34,8 @@ export class ElevenLabsService {
   }
 
   public async getVoices(
-    _organizationId?: string | Types.ObjectId,
-    _userId?: string | Types.ObjectId,
+    _organizationId?: string,
+    _userId?: string,
     apiKeyOverride?: string,
   ): Promise<Array<{ voiceId: string; name: string; preview?: string }>> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
@@ -61,8 +60,8 @@ export class ElevenLabsService {
   public async textToSpeech(
     voiceId: string,
     text: string,
-    _organizationId?: string | Types.ObjectId,
-    _userId?: string | Types.ObjectId,
+    _organizationId?: string,
+    _userId?: string,
     apiKeyOverride?: string,
   ) {
     const client = this.getClient(apiKeyOverride);
@@ -81,8 +80,8 @@ export class ElevenLabsService {
     voiceId: string,
     text: string,
     ingredientId: string,
-    _organizationId?: string | Types.ObjectId,
-    _userId?: string | Types.ObjectId,
+    _organizationId?: string,
+    _userId?: string,
     apiKeyOverride?: string,
   ): Promise<{
     audioUrl: string;
@@ -232,8 +231,8 @@ export class ElevenLabsService {
   public async forcedAlignment(
     filePath: string,
     text: string,
-    _organizationId?: string | Types.ObjectId,
-    _userId?: string | Types.ObjectId,
+    _organizationId?: string,
+    _userId?: string,
     apiKeyOverride?: string,
   ): Promise<string> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;

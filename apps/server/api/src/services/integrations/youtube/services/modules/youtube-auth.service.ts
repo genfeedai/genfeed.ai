@@ -6,7 +6,6 @@ import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { OAuth2Client } from 'google-auth-library';
-import { Types } from 'mongoose';
 
 @Injectable()
 export class YoutubeAuthService {
@@ -21,9 +20,9 @@ export class YoutubeAuthService {
     brandId: string,
   ): Promise<OAuth2Client> {
     const queryCredentials = {
-      brand: new Types.ObjectId(brandId),
+      brand: brandId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
       platform: CredentialPlatform.YOUTUBE,
     };
 

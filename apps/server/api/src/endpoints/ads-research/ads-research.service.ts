@@ -1,7 +1,5 @@
-import { AdPerformance } from '@api/collections/ad-performance/schemas/ad-performance.schema';
 import { AdPerformanceService } from '@api/collections/ad-performance/services/ad-performance.service';
 import { CreativePatternsService } from '@api/collections/creative-patterns/creative-patterns.service';
-import { CreativePattern } from '@api/collections/creative-patterns/schemas/creative-pattern.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { AdsGatewayService } from '@api/services/ads-gateway/ads-gateway.service';
@@ -24,8 +22,8 @@ import type {
   AdsResearchWorkflowResult,
   CampaignLaunchPrep,
 } from '@genfeedai/interfaces/integrations/ads-research.interface';
+import { type AdPerformance, type CreativePattern } from '@genfeedai/prisma';
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 interface DetailContext {
   source: Exclude<AdsResearchSource, 'all'>;
@@ -470,7 +468,7 @@ export class AdsResearchService {
       : [];
 
     const itemWithId = item as AdPerformance & {
-      _id?: string | Types.ObjectId;
+      _id?: string;
     };
 
     return {
@@ -591,7 +589,7 @@ export class AdsResearchService {
           : true,
       )
       .slice(0, 3)
-      .map((pattern: CreativePattern & { _id?: string | Types.ObjectId }) => ({
+      .map((pattern: CreativePattern & { _id?: string }) => ({
         examples:
           pattern.examples?.slice(0, 2).map((example) => example.text) || [],
         id: String(pattern._id || ''),
@@ -742,14 +740,14 @@ export class AdsResearchService {
       loginCustomerId?: string;
     },
   ): Promise<AdsAdapterContext> {
-    if (!Types.ObjectId.isValid(params.credentialId)) {
+    if (!/^[0-9a-f]{24}$/i.test(params.credentialId)) {
       throw new BadRequestException('credentialId is invalid');
     }
 
     const credential = await this.credentialsService.findOne({
-      _id: new Types.ObjectId(params.credentialId),
+      _id: params.credentialId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
     });
 
     if (!credential?.accessToken) {

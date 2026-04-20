@@ -12,7 +12,6 @@ import type {
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 @AutoSwagger()
 @Controller('services/whatsapp')
@@ -43,9 +42,9 @@ export class WhatsappController {
     }
 
     const brand = await this.brandsService.findOne({
-      _id: new Types.ObjectId(body.brandId),
+      _id: body.brandId,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     });
 
     if (!brand) {
@@ -85,9 +84,9 @@ export class WhatsappController {
     }
 
     const brand = await this.brandsService.findOne({
-      _id: new Types.ObjectId(body.brandId),
+      _id: body.brandId,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     });
 
     if (!brand) {
@@ -120,9 +119,9 @@ export class WhatsappController {
     }
 
     const brand = await this.brandsService.findOne({
-      _id: new Types.ObjectId(brandId),
+      _id: brandId,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     });
 
     if (!brand) {

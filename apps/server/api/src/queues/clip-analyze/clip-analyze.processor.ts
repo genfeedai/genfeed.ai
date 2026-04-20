@@ -13,7 +13,7 @@
 
 import { randomUUID } from 'node:crypto';
 import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
-import { IHighlight } from '@api/collections/clip-projects/schemas/clip-project.schema';
+import type { IHighlight } from '@api/collections/clip-projects/schemas/clip-project.schema';
 import { ConfigService } from '@api/config/config.service';
 import {
   CLIP_ANALYZE_CONCURRENCY,

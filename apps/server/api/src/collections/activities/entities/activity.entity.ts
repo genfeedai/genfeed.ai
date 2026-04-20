@@ -1,22 +1,21 @@
-import { Activity } from '@api/collections/activities/schemas/activity.schema';
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
 import type {
   ActivityEntityModel,
   ActivityKey,
   ActivitySource,
 } from '@genfeedai/enums';
-import type { Types } from 'mongoose';
+import { type Activity } from '@genfeedai/prisma';
 
 export class ActivityEntity extends BaseEntity implements Activity {
-  declare readonly user: Types.ObjectId;
-  declare readonly organization: Types.ObjectId;
-  declare readonly brand: Types.ObjectId;
+  declare readonly user: string;
+  declare readonly organization: string;
+  declare readonly brand: string;
 
   declare readonly key: ActivityKey;
   declare readonly source: ActivitySource;
   declare readonly value?: string;
   declare readonly entityModel?: ActivityEntityModel;
-  declare readonly entityId?: Types.ObjectId;
+  declare readonly entityId?: string;
 
   declare readonly isRead: boolean;
 

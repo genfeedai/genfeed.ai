@@ -4,7 +4,6 @@
  * This file provides comprehensive mocks for all AI/external service integrations.
  */
 
-import { Types } from 'mongoose';
 import { vi } from 'vitest';
 
 // ============================================================================
@@ -565,8 +564,8 @@ export const createMockClerkClient = () => ({
         email: 'test@example.com',
         isOwner: true,
         isSuperAdmin: false,
-        organization: new Types.ObjectId().toString(),
-        user: new Types.ObjectId().toString(),
+        organization: 'test-id-' + Math.random().toString(36).slice(2, 9),
+        user: 'test-id-' + Math.random().toString(36).slice(2, 9),
       },
     }),
     getUserList: vi.fn().mockResolvedValue({ data: [] }),
@@ -588,8 +587,8 @@ export const createMockClerkService = () => ({
     publicMetadata: {
       email: 'test@example.com',
       isOwner: true,
-      organization: new Types.ObjectId().toString(),
-      user: new Types.ObjectId().toString(),
+      organization: 'test-id-' + Math.random().toString(36).slice(2, 9),
+      user: 'test-id-' + Math.random().toString(36).slice(2, 9),
     },
   }),
   getUserByEmail: vi.fn().mockResolvedValue(null),
@@ -918,13 +917,13 @@ export const createMockNotificationsService = () => ({
 
 export const createMockCreditTransactionsService = () => ({
   createTransactionEntry: vi.fn().mockResolvedValue({
-    _id: new Types.ObjectId(),
+    _id: 'test-id-' + Math.random().toString(36).slice(2, 9),
     amount: 100,
     balanceAfter: 100,
     balanceBefore: 0,
     createdAt: new Date(),
     description: 'Credit purchase',
-    organization: new Types.ObjectId(),
+    organization: 'test-id-' + Math.random().toString(36).slice(2, 9),
     source: 'stripe',
     type: 'purchase',
   }),

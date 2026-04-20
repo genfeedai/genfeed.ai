@@ -1,8 +1,8 @@
-import { AdPerformance } from '@api/collections/ad-performance/schemas/ad-performance.schema';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { AdAggregationService } from '@api/services/ad-aggregation/ad-aggregation.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { type AdPerformance } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 
 const mockAggregate = vi.fn();
@@ -27,10 +27,7 @@ describe('AdAggregationService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AdAggregationService,
-        {
-          provide: getModelToken(AdPerformance.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockAdPerformanceModel,
-        },
+        { provide: PrismaService, useValue: mockAdPerformanceModel },
         {
           provide: LoggerService,
           useValue: mockLoggerService,

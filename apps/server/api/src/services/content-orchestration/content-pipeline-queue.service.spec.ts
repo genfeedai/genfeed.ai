@@ -3,15 +3,14 @@ import { ImageTaskModel } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getQueueToken } from '@nestjs/bullmq';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('ContentPipelineQueueService', () => {
   let service: ContentPipelineQueueService;
   let mockQueue: Record<string, ReturnType<typeof vi.fn>>;
   let mockLogger: Record<string, ReturnType<typeof vi.fn>>;
 
-  const orgId = new Types.ObjectId().toString();
-  const personaId = new Types.ObjectId().toString();
+  const orgId = 'test-object-id';
+  const personaId = 'test-object-id';
 
   beforeEach(async () => {
     mockQueue = {
@@ -42,12 +41,12 @@ describe('ContentPipelineQueueService', () => {
   describe('queueGenerateAndPublish', () => {
     it('should add job to queue and return job id', async () => {
       const config = {
-        brandId: new Types.ObjectId().toString(),
+        brandId: 'test-object-id',
         organizationId: orgId,
         personaId,
         prompt: 'Test',
         steps: [{ model: ImageTaskModel.FAL, type: 'text-to-image' as const }],
-        userId: new Types.ObjectId().toString(),
+        userId: 'test-object-id',
       };
 
       const result = await service.queueGenerateAndPublish(config);
@@ -65,13 +64,13 @@ describe('ContentPipelineQueueService', () => {
 
     it('should use idempotencyKey as jobId', async () => {
       const config = {
-        brandId: new Types.ObjectId().toString(),
+        brandId: 'test-object-id',
         idempotencyKey: 'dedup-123',
         organizationId: orgId,
         personaId,
         prompt: 'Test',
         steps: [{ model: ImageTaskModel.FAL, type: 'text-to-image' as const }],
-        userId: new Types.ObjectId().toString(),
+        userId: 'test-object-id',
       };
 
       await service.queueGenerateAndPublish(config);
@@ -87,7 +86,7 @@ describe('ContentPipelineQueueService', () => {
   describe('queueBatchGenerate', () => {
     it('should add batch job to queue', async () => {
       const config = {
-        brandId: new Types.ObjectId().toString(),
+        brandId: 'test-object-id',
         count: 2,
         items: [
           {
@@ -105,7 +104,7 @@ describe('ContentPipelineQueueService', () => {
         ],
         organizationId: orgId,
         personaId,
-        userId: new Types.ObjectId().toString(),
+        userId: 'test-object-id',
       };
 
       const result = await service.queueBatchGenerate(config);

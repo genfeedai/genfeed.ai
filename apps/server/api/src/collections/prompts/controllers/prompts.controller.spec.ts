@@ -34,7 +34,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 describe('PromptsController', () => {
   let controller: PromptsController;
@@ -52,12 +51,12 @@ describe('PromptsController', () => {
   const mockReq = {} as Request;
 
   const mockPrompt = {
-    _id: new Types.ObjectId('507f1f77bcf86cd799439014'),
+    _id: '507f1f77bcf86cd799439014',
     isDeleted: false,
-    organization: new Types.ObjectId('507f1f77bcf86cd799439012'),
+    organization: '507f1f77bcf86cd799439012',
     original: 'Test prompt',
     status: 'completed',
-    user: new Types.ObjectId('507f1f77bcf86cd799439011'),
+    user: '507f1f77bcf86cd799439011',
   };
 
   const mockPromptsService = {

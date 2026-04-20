@@ -1,7 +1,7 @@
 import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
 import { CreateClipResultDto } from '@api/collections/clip-results/dto/create-clip-result.dto';
 import { UpdateClipResultDto } from '@api/collections/clip-results/dto/update-clip-result.dto';
-import { ClipResultDocument } from '@api/collections/clip-results/schemas/clip-result.schema';
+import { type ClipResultDocument } from '@api/collections/clip-results/schemas/clip-result.schema';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -30,7 +30,6 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 @AutoSwagger()
 @Controller('clip-results')
@@ -54,8 +53,8 @@ export class ClipResultsController {
 
     const data: ClipResultDocument = await this.clipResultsService.create({
       ...createClipResultDto,
-      organization: new Types.ObjectId(publicMetadata.organization),
-      user: new Types.ObjectId(publicMetadata.user),
+      organization: publicMetadata.organization,
+      user: publicMetadata.user,
     } as CreateClipResultDto);
 
     return serializeSingle(request, ClipResultSerializer, data);
@@ -119,7 +118,7 @@ export class ClipResultsController {
     const data = await this.clipResultsService.findOne({
       _id: id,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     });
 
     if (!data) {
@@ -142,7 +141,7 @@ export class ClipResultsController {
     const existing = await this.clipResultsService.findOne({
       _id: id,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     });
 
     if (!existing) {

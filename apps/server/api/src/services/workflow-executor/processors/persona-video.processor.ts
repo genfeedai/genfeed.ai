@@ -5,7 +5,6 @@ import {
 } from '@api/services/persona-content/persona-content.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 export interface PersonaVideoProcessorInput {
   personaId: string;
@@ -57,10 +56,10 @@ export class PersonaVideoProcessor {
 
     const result = await this.personaContentService.generateVideo({
       aspectRatio: input.aspectRatio,
-      organization: new Types.ObjectId(input.organizationId),
-      personaId: new Types.ObjectId(input.personaId),
+      organization: input.organizationId,
+      personaId: input.personaId,
       script: input.script,
-      user: new Types.ObjectId(input.userId),
+      user: input.userId,
     });
 
     // Generate a unique generationId for closed-loop attribution

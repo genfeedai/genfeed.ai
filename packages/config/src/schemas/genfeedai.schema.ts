@@ -42,12 +42,9 @@ export const internalAuthSchema = {
     .description(
       'HMAC secret for GitHub Secret Scanning Partner Program webhooks',
     ),
-  TOKEN_ENCRYPTION_KEY: Joi.string()
-    .min(32)
-    .required()
-    .description(
-      'Encryption key for sensitive data. Must be at least 32 characters.',
-    ),
+  TOKEN_ENCRYPTION_KEY: conditionalRequired(Joi.string().min(32)).description(
+    'Encryption key for sensitive data. Must be at least 32 characters.',
+  ),
 };
 
 /**

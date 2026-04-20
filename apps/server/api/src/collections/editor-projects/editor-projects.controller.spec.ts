@@ -9,7 +9,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 import { EditorProjectsController } from './editor-projects.controller';
 
@@ -33,9 +32,9 @@ vi.mock('@api/helpers/decorators/swagger/auto-swagger.decorator', () => ({
 
 vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
   getPublicMetadata: vi.fn(() => ({
-    brand: new Types.ObjectId().toHexString(),
-    organization: new Types.ObjectId().toHexString(),
-    user: new Types.ObjectId().toHexString(),
+    brand: '507f191e810c19729de860ee',
+    organization: '507f191e810c19729de860ee',
+    user: '507f191e810c19729de860ee',
   })),
 }));
 
@@ -59,17 +58,17 @@ const makeUser = () =>
   ({
     id: 'user_clerk_123',
     publicMetadata: {
-      brand: new Types.ObjectId().toHexString(),
-      organization: new Types.ObjectId().toHexString(),
-      user: new Types.ObjectId().toHexString(),
+      brand: '507f191e810c19729de860ee',
+      organization: '507f191e810c19729de860ee',
+      user: '507f191e810c19729de860ee',
     },
   }) as never;
 
 const makeProject = (overrides: Record<string, unknown> = {}) => ({
-  _id: new Types.ObjectId(),
+  _id: '507f191e810c19729de860ee',
   isDeleted: false,
   name: 'My Project',
-  organization: new Types.ObjectId(),
+  organization: '507f191e810c19729de860ee',
   ...overrides,
 });
 
@@ -165,7 +164,7 @@ describe('EditorProjectsController', () => {
     });
 
     it('builds video track when sourceVideoId is provided', async () => {
-      const videoId = new Types.ObjectId().toHexString();
+      const videoId = '507f191e810c19729de860ee';
       const video = {
         _id: videoId,
         thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
@@ -195,7 +194,7 @@ describe('EditorProjectsController', () => {
     it('throws NotFoundException when sourceVideoId does not resolve', async () => {
       ingredientsService.findOne.mockResolvedValue(null as never);
 
-      const fakeVideoId = new Types.ObjectId().toHexString();
+      const fakeVideoId = '507f191e810c19729de860ee';
       await expect(
         controller.create(makeRequest(), makeUser(), {
           name: 'Bad Video',

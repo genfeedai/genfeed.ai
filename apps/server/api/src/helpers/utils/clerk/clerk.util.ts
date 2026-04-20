@@ -1,7 +1,6 @@
 import type { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
 import type { User } from '@clerk/backend';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 export function getPublicMetadata(user: User): IClerkPublicMetadata {
   return user.publicMetadata as unknown as IClerkPublicMetadata;
@@ -56,9 +55,9 @@ export interface RequestContext {
   organizationId: string;
   brandId: string;
   userId: string;
-  organizationObjectId?: Types.ObjectId;
-  brandObjectId?: Types.ObjectId;
-  userObjectId?: Types.ObjectId;
+  organizationObjectId?: string;
+  brandObjectId?: string;
+  userObjectId?: string;
 }
 
 /**
@@ -98,13 +97,11 @@ export function extractRequestContext(
 
   return {
     brandId,
-    brandObjectId: brandId ? new Types.ObjectId(brandId) : undefined,
+    brandObjectId: brandId ? brandId : undefined,
     organizationId,
-    organizationObjectId: organizationId
-      ? new Types.ObjectId(organizationId)
-      : undefined,
+    organizationObjectId: organizationId ? organizationId : undefined,
     userId,
-    userObjectId: userId ? new Types.ObjectId(userId) : undefined,
+    userObjectId: userId ? userId : undefined,
   };
 }
 

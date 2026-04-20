@@ -8,7 +8,6 @@ import { SharedService } from '@api/shared/services/shared/shared.service';
 import { BotCommandType, IngredientCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 import { BotGenerationService } from './bot-generation.service';
 
@@ -19,7 +18,7 @@ vi.mock(
   }),
 );
 
-const makeIngredientId = () => new Types.ObjectId().toString();
+const makeIngredientId = () => 'test-object-id';
 
 describe('BotGenerationService', () => {
   let service: BotGenerationService;
@@ -37,22 +36,22 @@ describe('BotGenerationService', () => {
   let configService: vi.Mocked<Pick<ConfigService, 'ingredientsEndpoint'>>;
   let loggerService: vi.Mocked<Pick<LoggerService, 'log' | 'error' | 'warn'>>;
 
-  const orgId = new Types.ObjectId().toString();
-  const userId = new Types.ObjectId().toString();
-  const brandId = new Types.ObjectId().toString();
+  const orgId = 'test-object-id';
+  const userId = 'test-object-id';
+  const brandId = 'test-object-id';
   const ingredientId = makeIngredientId();
 
   const resolvedUser = { brandId, organizationId: orgId, userId };
   const callbackCtx = { channelId: 'ch-1', messageId: 'msg-1' };
 
   const mockBrand = {
-    _id: new Types.ObjectId(brandId),
+    _id: brandId,
     defaultImageModel: null,
     defaultVideoModel: null,
   };
   const mockSettings = { defaultImageModel: null, defaultVideoModel: null };
-  const mockIngredientData = { _id: new Types.ObjectId(ingredientId) };
-  const mockMetadataData = { _id: new Types.ObjectId() };
+  const mockIngredientData = { _id: ingredientId };
+  const mockMetadataData = { _id: 'test-object-id' };
 
   beforeEach(async () => {
     brandsService = { findOne: vi.fn().mockResolvedValue(mockBrand) };

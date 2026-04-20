@@ -9,7 +9,6 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class CreatePresetDto extends ElementDto {
   @IsMongoId()
@@ -18,7 +17,7 @@ export class CreatePresetDto extends ElementDto {
     description: 'The organization ID for the preset',
     required: false,
   })
-  organization?: Types.ObjectId;
+  organization?: string;
 
   @IsMongoId()
   @IsOptional()
@@ -26,7 +25,7 @@ export class CreatePresetDto extends ElementDto {
     description: 'The brand ID for the preset (null for org-wide presets)',
     required: false,
   })
-  brand?: Types.ObjectId;
+  brand?: string;
 
   @IsMongoId()
   @IsOptional()
@@ -34,7 +33,7 @@ export class CreatePresetDto extends ElementDto {
     description: 'Ingredient image ID used as thumbnail for the preset',
     required: false,
   })
-  ingredient?: Types.ObjectId;
+  ingredient?: string;
 
   @IsString()
   @IsOptional()

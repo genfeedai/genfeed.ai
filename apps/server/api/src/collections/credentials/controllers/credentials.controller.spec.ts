@@ -15,7 +15,6 @@ import { YoutubeService } from '@api/services/integrations/youtube/services/yout
 import { QuotaService } from '@api/services/quota/quota.service';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { HttpException } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 describe('CredentialsController', () => {
   let controller: CredentialsController;
@@ -26,9 +25,9 @@ describe('CredentialsController', () => {
   let instagramService: Record<string, ReturnType<typeof vi.fn>>;
   let quotaService: Record<string, ReturnType<typeof vi.fn>>;
 
-  const userId = new Types.ObjectId().toString();
-  const orgId = new Types.ObjectId().toString();
-  const credId = new Types.ObjectId().toString();
+  const userId = '507f191e810c19729de860ee'.toString();
+  const orgId = '507f191e810c19729de860ee'.toString();
+  const credId = '507f191e810c19729de860ee'.toString();
 
   const mockUser = {
     id: 'clerk_user_123',
@@ -111,7 +110,7 @@ describe('CredentialsController', () => {
   describe('findOne', () => {
     it('should return a credential when found', async () => {
       credentialsService.findOne.mockResolvedValue({
-        _id: new Types.ObjectId(credId),
+        _id: credId,
       });
 
       const result = await controller.findOne(mockRequest, credId);
@@ -121,7 +120,7 @@ describe('CredentialsController', () => {
 
     it('should throw when credential not found', async () => {
       credentialsService.findOne.mockResolvedValue(null);
-      const missingId = new Types.ObjectId().toString();
+      const missingId = '507f191e810c19729de860ee'.toString();
 
       await expect(controller.findOne(mockRequest, missingId)).rejects.toThrow(
         HttpException,
@@ -133,19 +132,19 @@ describe('CredentialsController', () => {
     it('should return deduplicated mentions', async () => {
       credentialsService.find.mockResolvedValue([
         {
-          _id: new Types.ObjectId(),
+          _id: '507f191e810c19729de860ee',
           externalHandle: '@user1',
           externalName: 'User One',
           platform: CredentialPlatform.TWITTER,
         },
         {
-          _id: new Types.ObjectId(),
+          _id: '507f191e810c19729de860ee',
           externalHandle: '@user1',
           externalName: 'User One',
           platform: CredentialPlatform.TWITTER,
         },
         {
-          _id: new Types.ObjectId(),
+          _id: '507f191e810c19729de860ee',
           externalHandle: '@user2',
           externalName: 'User Two',
           platform: CredentialPlatform.INSTAGRAM,
@@ -160,7 +159,7 @@ describe('CredentialsController', () => {
     it('should skip credentials without a handle', async () => {
       credentialsService.find.mockResolvedValue([
         {
-          _id: new Types.ObjectId(),
+          _id: '507f191e810c19729de860ee',
           externalHandle: null,
           platform: CredentialPlatform.TWITTER,
         },
@@ -176,13 +175,13 @@ describe('CredentialsController', () => {
     it('should refresh token for supported platform', async () => {
       credentialsService.findOne
         .mockResolvedValueOnce({
-          _id: new Types.ObjectId(credId),
-          brand: new Types.ObjectId(),
-          organization: new Types.ObjectId(orgId),
+          _id: credId,
+          brand: '507f191e810c19729de860ee',
+          organization: orgId,
           platform: CredentialPlatform.TWITTER,
         })
         .mockResolvedValueOnce({
-          _id: new Types.ObjectId(credId),
+          _id: credId,
           platform: CredentialPlatform.TWITTER,
         });
 
@@ -197,7 +196,7 @@ describe('CredentialsController', () => {
 
     it('should throw when credential not found for refresh', async () => {
       credentialsService.findOne.mockResolvedValue(null);
-      const missingId = new Types.ObjectId().toString();
+      const missingId = '507f191e810c19729de860ee'.toString();
 
       await expect(
         controller.refreshCredentialToken(mockRequest, missingId, mockUser),
@@ -226,9 +225,9 @@ describe('CredentialsController', () => {
       );
 
       credentialsService.findOne.mockResolvedValueOnce({
-        _id: new Types.ObjectId(credId),
-        brand: new Types.ObjectId(),
-        organization: new Types.ObjectId(orgId),
+        _id: credId,
+        brand: '507f191e810c19729de860ee',
+        organization: orgId,
         platform: CredentialPlatform.TWITTER,
       });
 
@@ -245,10 +244,10 @@ describe('CredentialsController', () => {
   describe('update', () => {
     it('should update allowed fields on a credential', async () => {
       credentialsService.findOne.mockResolvedValue({
-        _id: new Types.ObjectId(credId),
+        _id: credId,
       });
       credentialsService.patch.mockResolvedValue({
-        _id: new Types.ObjectId(credId),
+        _id: credId,
         label: 'Updated',
       });
 
@@ -265,7 +264,7 @@ describe('CredentialsController', () => {
 
     it('should throw when credential not found for update', async () => {
       credentialsService.findOne.mockResolvedValue(null);
-      const missingId = new Types.ObjectId().toString();
+      const missingId = '507f191e810c19729de860ee'.toString();
 
       await expect(
         controller.update(
@@ -281,10 +280,10 @@ describe('CredentialsController', () => {
   describe('remove', () => {
     it('should soft-delete a credential owned by the user', async () => {
       credentialsService.findOne.mockResolvedValue({
-        _id: new Types.ObjectId(credId),
+        _id: credId,
       });
       credentialsService.remove.mockResolvedValue({
-        _id: new Types.ObjectId(credId),
+        _id: credId,
         isDeleted: true,
       });
 
@@ -296,7 +295,7 @@ describe('CredentialsController', () => {
 
     it('should throw when credential not found for deletion', async () => {
       credentialsService.findOne.mockResolvedValue(null);
-      const missingId = new Types.ObjectId().toString();
+      const missingId = '507f191e810c19729de860ee'.toString();
 
       await expect(
         controller.remove(missingId, mockUser, mockRequest),
@@ -307,10 +306,10 @@ describe('CredentialsController', () => {
   describe('getQuotaStatus', () => {
     it('should return quota status for a credential', async () => {
       credentialsService.findOne.mockResolvedValue({
-        _id: new Types.ObjectId(credId),
+        _id: credId,
       });
       organizationsService.findOne.mockResolvedValue({
-        _id: new Types.ObjectId(orgId),
+        _id: orgId,
         label: 'Test Org',
       });
       quotaService.checkQuota.mockResolvedValue({
@@ -337,7 +336,7 @@ describe('CredentialsController', () => {
 
     it('should throw NOT_FOUND when organization not found for quota', async () => {
       credentialsService.findOne.mockResolvedValue({
-        _id: new Types.ObjectId(credId),
+        _id: credId,
       });
       organizationsService.findOne.mockResolvedValue(null);
 

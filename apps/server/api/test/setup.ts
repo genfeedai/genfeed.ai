@@ -13,16 +13,14 @@ import { config as loadEnv } from 'dotenv';
 
 loadEnv({ path: join(process.cwd(), '.env.test') });
 
-// Import MongoMemoryServer utilities
-import { stopMongoMemoryServer } from '@api-test/e2e-test.module';
-
 // Global setup - runs before all tests
 beforeAll(async () => {
   // Any global setup can go here
+  // Prisma uses DATABASE_URL from environment — no memory server startup needed
 });
 
 // Global teardown - runs after all tests
 afterAll(async () => {
-  // Stop MongoMemoryServer after all tests complete
-  await stopMongoMemoryServer();
+  // Prisma connections are closed when NestJS modules close
+  // No manual cleanup needed
 });

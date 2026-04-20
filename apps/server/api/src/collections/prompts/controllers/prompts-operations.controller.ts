@@ -9,7 +9,6 @@
  */
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import { Brand } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { CreateTweetReplyDto } from '@api/collections/prompts/dto/create-tweet-reply.dto';
@@ -53,6 +52,7 @@ import {
   Status,
   SystemPromptKey,
 } from '@genfeedai/enums';
+import { type Brand } from '@genfeedai/prisma';
 import { PromptSerializer } from '@genfeedai/serializers';
 import { Public } from '@libs/decorators/public.decorator';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -71,7 +71,11 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Request } from 'express';
-import { isValidObjectId, Types } from 'mongoose';
+
+const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
+function isValidObjectId(id: unknown): id is string {
+  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
+}
 
 @AutoSwagger()
 @Controller('prompts')
@@ -105,10 +109,10 @@ export class PromptsOperationsController {
     let selectedBrand: Brand | undefined;
     if (isValidObjectId(createParsePromptDto.brand)) {
       const brand = await this.brandsService.findOne({
-        _id: new Types.ObjectId(createParsePromptDto.brand),
+        _id: createParsePromptDto.brand,
         $or: [
-          { user: new Types.ObjectId(publicMetadata.user) },
-          { organization: new Types.ObjectId(publicMetadata.organization) },
+          { user: publicMetadata.user },
+          { organization: publicMetadata.organization },
         ],
         isDeleted: false,
       });
@@ -159,7 +163,7 @@ export class PromptsOperationsController {
     let selectedBrand: Brand | undefined;
     if (isValidObjectId(prompt.brand)) {
       const brand = await this.brandsService.findOne({
-        _id: new Types.ObjectId(prompt.brand),
+        _id: prompt.brand,
         isDeleted: false,
       });
       selectedBrand = brand ?? undefined;
@@ -234,12 +238,12 @@ export class PromptsOperationsController {
     const activity = await this.activitiesService.create(
       new ActivityEntity({
         brand: isValidObjectId(prompt.brand)
-          ? new Types.ObjectId(prompt.brand)
-          : new Types.ObjectId(publicMetadata.brand),
+          ? prompt.brand
+          : publicMetadata.brand,
         key: ActivityKey.PROMPT_REMIX_PROCESSING,
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
         source: ActivitySource.PROMPT_REMIX,
-        user: new Types.ObjectId(publicMetadata.user),
+        user: publicMetadata.user,
         value: JSON.stringify({
           promptId: data._id.toString(),
           sourcePromptId: promptId,
@@ -383,7 +387,7 @@ export class PromptsOperationsController {
     let selectedBrand: Brand | undefined;
     if (isValidObjectId(prompt.brand)) {
       const brand = await this.brandsService.findOne({
-        _id: new Types.ObjectId(prompt.brand),
+        _id: prompt.brand,
         isDeleted: false,
       });
       selectedBrand = brand ?? undefined;
@@ -402,12 +406,12 @@ export class PromptsOperationsController {
     const activity = await this.activitiesService.create(
       new ActivityEntity({
         brand: isValidObjectId(prompt.brand)
-          ? new Types.ObjectId(prompt.brand)
-          : new Types.ObjectId(publicMetadata.brand),
+          ? prompt.brand
+          : publicMetadata.brand,
         key: ActivityKey.PROMPT_ENHANCE_PROCESSING,
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
         source: ActivitySource.PROMPT_ENHANCEMENT,
-        user: new Types.ObjectId(publicMetadata.user),
+        user: publicMetadata.user,
         value: JSON.stringify({
           promptId: promptId,
           type: 'enhance',
@@ -622,11 +626,11 @@ export class PromptsOperationsController {
       const promptEntity = new PromptEntity({
         category: 'tweet-reply' as unknown as PromptCategory,
         enhanced: result,
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
         original: createTweetReplyDto.tweetContent,
         scope: AssetScope.USER,
         status: PromptStatus.GENERATED,
-        user: new Types.ObjectId(publicMetadata.user),
+        user: publicMetadata.user,
       });
 
       await this.promptsService.create(promptEntity);

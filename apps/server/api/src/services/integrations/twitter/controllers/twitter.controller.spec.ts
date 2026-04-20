@@ -28,7 +28,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 describe('TwitterController', () => {
   let controller: TwitterController;
@@ -98,12 +97,12 @@ describe('TwitterController', () => {
   });
 
   describe('connect', () => {
-    const brandId = new Types.ObjectId();
-    const orgId = new Types.ObjectId();
+    const brandId = 'test-object-id';
+    const orgId = 'test-object-id';
     const mockUser = {
       publicMetadata: {
         organization: orgId.toString(),
-        user: new Types.ObjectId().toString(),
+        user: 'test-object-id',
       },
     };
     const mockRequest = {} as Request;

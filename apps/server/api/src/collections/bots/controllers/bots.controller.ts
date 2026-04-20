@@ -26,16 +26,15 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { Body, Controller, Get, Param, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';
-import { type PipelineStage, Types } from 'mongoose';
 
 interface MutableEntityReference {
-  _id?: Types.ObjectId | string;
+  _id?: string | string;
 }
 
 interface MutableEntity {
-  brand?: MutableEntityReference | Types.ObjectId | string;
-  organization?: MutableEntityReference | Types.ObjectId | string;
-  user?: MutableEntityReference | Types.ObjectId | string;
+  brand?: MutableEntityReference | string;
+  organization?: MutableEntityReference | string;
+  user?: MutableEntityReference | string;
 }
 
 @AutoSwagger()
@@ -51,7 +50,7 @@ export class BotsController extends BaseCRUDController<
     private readonly botsLivestreamService: BotsLivestreamService,
     public readonly loggerService: LoggerService,
   ) {
-    super(loggerService, botsService, BotSerializer, Bot.name, [
+    super(loggerService, botsService, BotSerializer, 'Bot', [
       'organization',
       'brand',
       'user',
@@ -61,7 +60,7 @@ export class BotsController extends BaseCRUDController<
   public buildFindAllPipeline(
     user: User,
     query: BotsQueryDto,
-  ): PipelineStage[] {
+  ): Record<string, unknown>[] {
     const publicMetadata = getPublicMetadata(user);
     const match: Record<string, unknown> = {
       isDeleted: query.isDeleted ?? false,
@@ -75,21 +74,21 @@ export class BotsController extends BaseCRUDController<
       const organizationId =
         query.organization || publicMetadata.organization?.toString();
       if (organizationId) {
-        match.organization = new Types.ObjectId(organizationId);
+        match.organization = organizationId;
       }
     }
 
     if (scope === 'brand') {
       const brandId = query.brand || publicMetadata.brand?.toString();
       if (brandId) {
-        match.brand = new Types.ObjectId(brandId);
+        match.brand = brandId;
       }
     }
 
     if (scope === 'user') {
       const userId = query.user || publicMetadata.user?.toString();
       if (userId) {
-        match.user = new Types.ObjectId(userId);
+        match.user = userId;
       }
     }
 
@@ -105,7 +104,7 @@ export class BotsController extends BaseCRUDController<
 
     const statusFilter = CollectionFilterUtil.buildStatusFilter(query.status);
 
-    const pipeline: PipelineStage[] = [
+    const pipeline: Record<string, unknown>[] = [
       {
         $match: {
           ...match,
@@ -281,7 +280,7 @@ export class BotsController extends BaseCRUDController<
   ): Promise<BotDocument> {
     const bot = await this.botsService.findOne(
       {
-        _id: new Types.ObjectId(id),
+        _id: id,
         isDeleted: false,
       },
       this.getPopulateFields(),

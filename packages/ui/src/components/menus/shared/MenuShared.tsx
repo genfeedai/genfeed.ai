@@ -98,6 +98,7 @@ export default function MenuShared({
   onToggleCollapse,
   showPrimaryItems = true,
   conversationActions,
+  renderFooterSlot,
 }: MenuSharedProps) {
   const logoUrl = useThemeLogo();
   const rawPathname = usePathname();
@@ -655,6 +656,10 @@ export default function MenuShared({
               </div>
 
               <ProgressSidebarCard />
+
+              {renderFooterSlot && (
+                <div className="px-3 pb-1">{renderFooterSlot()}</div>
+              )}
 
               <SidebarUserProfile />
             </>

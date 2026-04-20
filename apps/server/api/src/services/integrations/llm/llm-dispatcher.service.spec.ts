@@ -12,7 +12,6 @@ import { OpenRouterService } from '@api/services/integrations/openrouter/service
 import { ByokProvider } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { LlmDispatcherService } from './llm-dispatcher.service';
@@ -45,7 +44,7 @@ describe('LlmDispatcherService', () => {
     warn: ReturnType<typeof vi.fn>;
   };
 
-  const orgId = new Types.ObjectId().toHexString();
+  const orgId = 'test-object-id';
 
   const mockResponse: OpenRouterChatCompletionResponse = {
     choices: [

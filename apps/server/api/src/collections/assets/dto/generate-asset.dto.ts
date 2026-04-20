@@ -1,12 +1,11 @@
 import { AssetCategory, AssetParent } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsMongoId, IsString } from 'class-validator';
-import type { Types } from 'mongoose';
 
 export class GenerateAssetDto {
   @IsMongoId()
   @ApiProperty({ required: true })
-  readonly parent!: Types.ObjectId;
+  readonly parent!: string;
 
   @IsString()
   @IsEnum(AssetParent)

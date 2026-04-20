@@ -5,12 +5,11 @@ import { BatchGenerationService } from '@api/services/batch-generation/batch-gen
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
   getPublicMetadata: vi.fn(() => ({
-    organization: new Types.ObjectId().toString(),
-    user: new Types.ObjectId().toString(),
+    organization: 'test-object-id',
+    user: 'test-object-id',
   })),
 }));
 
@@ -102,7 +101,7 @@ describe('BatchGenerationController', () => {
       const result = await controller.createManualReviewBatch(
         mockReq,
         {
-          brandId: new Types.ObjectId().toString(),
+          brandId: 'test-object-id',
           items: [{ format: 'video' }],
         } as never,
         user,

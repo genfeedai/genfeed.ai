@@ -15,7 +15,6 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 vi.mock('@sentry/nestjs', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@sentry/nestjs')>();
@@ -41,8 +40,8 @@ describe('ContentOrchestrationService', () => {
   let mockMetadataService: Record<string, ReturnType<typeof vi.fn>>;
   let mockStepExecutorService: Record<string, ReturnType<typeof vi.fn>>;
 
-  const ingredientId = new Types.ObjectId();
-  const metadataId = new Types.ObjectId();
+  const ingredientId = 'test-object-id';
+  const metadataId = 'test-object-id';
 
   const steps: PipelineStep[] = [
     { model: ImageTaskModel.FAL, type: 'text-to-image' },
@@ -54,16 +53,16 @@ describe('ContentOrchestrationService', () => {
   ];
 
   const baseConfig = {
-    brandId: new Types.ObjectId().toString(),
-    organizationId: new Types.ObjectId().toString(),
-    personaId: new Types.ObjectId().toString(),
+    brandId: 'test-object-id',
+    organizationId: 'test-object-id',
+    personaId: 'test-object-id',
     prompt: 'Test prompt',
     steps,
-    userId: new Types.ObjectId().toString(),
+    userId: 'test-object-id',
   };
 
   const mockPersona = {
-    _id: new Types.ObjectId(baseConfig.personaId),
+    _id: baseConfig.personaId,
     credentials: [{ platform: 'tiktok' }],
     name: 'Test Persona',
   };
@@ -505,12 +504,12 @@ describe('ContentOrchestrationService', () => {
       startSpan.mockClear();
 
       const singleStepConfig = {
-        brandId: new Types.ObjectId().toString(),
-        organizationId: new Types.ObjectId().toString(),
-        personaId: new Types.ObjectId().toString(),
+        brandId: 'test-object-id',
+        organizationId: 'test-object-id',
+        personaId: 'test-object-id',
         prompt: 'Sentry tracing test',
         steps: [{ model: 'fal', type: 'text-to-image' as const }],
-        userId: new Types.ObjectId().toString(),
+        userId: 'test-object-id',
       };
 
       await service.generateAndPublish(singleStepConfig);
@@ -527,13 +526,13 @@ describe('ContentOrchestrationService', () => {
       startSpan.mockClear();
 
       await service.generateAndPublish({
-        brandId: new Types.ObjectId().toString(),
-        organizationId: new Types.ObjectId().toString(),
-        personaId: new Types.ObjectId().toString(),
+        brandId: 'test-object-id',
+        organizationId: 'test-object-id',
+        personaId: 'test-object-id',
         prompt: 'Sentry publish tracing',
         publishMode: 'final',
         steps: [{ model: 'fal', type: 'text-to-image' as const }],
-        userId: new Types.ObjectId().toString(),
+        userId: 'test-object-id',
       });
 
       const spanNames = startSpan.mock.calls.map(
@@ -549,12 +548,12 @@ describe('ContentOrchestrationService', () => {
       startSpan.mockClear();
 
       await service.generateAndPublish({
-        brandId: new Types.ObjectId().toString(),
-        organizationId: new Types.ObjectId().toString(),
-        personaId: new Types.ObjectId().toString(),
+        brandId: 'test-object-id',
+        organizationId: 'test-object-id',
+        personaId: 'test-object-id',
         prompt: 'Attributes test',
         steps: [{ model: 'fal', type: 'text-to-image' as const }],
-        userId: new Types.ObjectId().toString(),
+        userId: 'test-object-id',
       });
 
       const stepCall = startSpan.mock.calls.find(

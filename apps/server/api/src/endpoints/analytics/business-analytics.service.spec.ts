@@ -1,10 +1,12 @@
-import { CreditTransactions } from '@api/collections/credits/schemas/credit-transactions.schema';
-import { Ingredient } from '@api/collections/ingredients/schemas/ingredient.schema';
-import { Organization } from '@api/collections/organizations/schemas/organization.schema';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { BusinessAnalyticsService } from '@api/endpoints/analytics/business-analytics.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import {
+  type CreditTransaction as CreditTransactions,
+  type Ingredient,
+  type Organization,
+} from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('BusinessAnalyticsService', () => {
@@ -41,16 +43,12 @@ describe('BusinessAnalyticsService', () => {
       providers: [
         BusinessAnalyticsService,
         {
-          provide: getModelToken(CreditTransactions.name, DB_CONNECTIONS.AUTH),
-          useValue: mockCreditTransactionModel,
-        },
-        {
-          provide: getModelToken(Ingredient.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockIngredientModel,
-        },
-        {
-          provide: getModelToken(Organization.name, DB_CONNECTIONS.AUTH),
-          useValue: mockOrganizationModel,
+          provide: PrismaService,
+          useValue: {
+            ...mockCreditTransactionModel,
+            ...mockIngredientModel,
+            ...mockOrganizationModel,
+          },
         },
         {
           provide: LoggerService,

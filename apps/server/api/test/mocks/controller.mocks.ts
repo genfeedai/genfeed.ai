@@ -1,6 +1,6 @@
 import { ExecutionContext } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
+
 import { vi } from 'vitest';
 
 interface MockContextOverrides {
@@ -75,8 +75,8 @@ export const mockAuthRequest = (overrides: MockRequestOverrides = {}) => ({
   publicMetadata: {
     email: 'test@example.com',
     isOwner: true,
-    organization: new Types.ObjectId().toString(),
-    user: new Types.ObjectId().toString(),
+    organization: 'test-id-' + Math.random().toString(36).slice(2, 9),
+    user: 'test-id-' + Math.random().toString(36).slice(2, 9),
   },
   query: {},
   user: {

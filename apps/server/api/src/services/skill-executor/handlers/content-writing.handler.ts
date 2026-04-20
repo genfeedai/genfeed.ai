@@ -9,7 +9,6 @@ import type {
 import { ContentIntelligencePlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 @Injectable()
 export class ContentWritingHandler implements SkillHandler {
@@ -41,7 +40,7 @@ export class ContentWritingHandler implements SkillHandler {
     };
 
     const generated = await this.contentGeneratorService.generateContent(
-      new Types.ObjectId(context.organizationId),
+      context.organizationId,
       generationDto,
     );
 

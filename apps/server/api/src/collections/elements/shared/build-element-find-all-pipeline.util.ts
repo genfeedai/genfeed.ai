@@ -1,7 +1,6 @@
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { PipelineBuilder } from '@api/shared/utils/pipeline-builder/pipeline-builder.util';
-import { type PipelineStage, Types } from 'mongoose';
 
 interface ElementMetadata {
   organization?: string;
@@ -24,7 +23,7 @@ export function buildElementFindAllPipeline({
   metadata,
   query,
   searchableFields = [],
-}: BuildElementFindAllPipelineOptions): PipelineStage[] {
+}: BuildElementFindAllPipelineOptions): Record<string, unknown>[] {
   const queryAny = query as unknown as Record<string, unknown>;
   const orConditions: Record<string, unknown>[] = [
     { organization: { $exists: false }, user: { $exists: false } },
@@ -32,12 +31,12 @@ export function buildElementFindAllPipeline({
 
   if (metadata.organization) {
     orConditions.push({
-      organization: new Types.ObjectId(metadata.organization),
+      organization: metadata.organization,
     });
   }
 
   if (metadata.user) {
-    orConditions.push({ user: new Types.ObjectId(metadata.user) });
+    orConditions.push({ user: metadata.user });
   }
 
   const builder = PipelineBuilder.create().match({

@@ -14,7 +14,6 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class CreateAvatarDto {
   @IsString()
@@ -43,7 +42,7 @@ export class CreateIngredientDto {
   @IsMongoId()
   @IsOptional()
   @ApiProperty({ required: false })
-  readonly prompt?: Types.ObjectId;
+  readonly prompt?: string;
 
   @IsMongoId()
   @IsOptional()
@@ -51,7 +50,7 @@ export class CreateIngredientDto {
     description: 'Parent ingredient ID (for tracking origin/hierarchy)',
     required: false,
   })
-  readonly parent?: Types.ObjectId;
+  readonly parent?: string;
 
   @IsMongoId()
   @IsOptional()
@@ -59,40 +58,40 @@ export class CreateIngredientDto {
     description: 'Folder ID for organizing ingredients',
     required: false,
   })
-  readonly folder?: Types.ObjectId;
+  readonly folder?: string;
 
   @IsMongoId({ each: true })
   @IsOptional()
   @ApiProperty({
     description: 'Source ingredient IDs (for tracking merged content)',
     required: false,
-    type: [Types.ObjectId],
+    type: [String],
   })
-  readonly sources?: Types.ObjectId[];
+  readonly sources?: string[];
 
   @IsMongoId()
   @IsOptional()
   @ApiProperty({ required: false })
-  readonly metadata?: Types.ObjectId;
+  readonly metadata?: string;
 
   @IsMongoId()
   @IsOptional()
   @ApiProperty({ required: false })
-  readonly brand?: Types.ObjectId;
+  readonly brand?: string;
 
   @IsMongoId()
   @IsOptional()
   @ApiProperty({ required: false })
-  readonly training?: Types.ObjectId;
+  readonly training?: string;
 
   @IsMongoId({ each: true })
   @IsOptional()
   @ApiProperty({
     description: 'References to asset(s) or ingredient image(s) for generation',
     required: false,
-    type: [Types.ObjectId],
+    type: [String],
   })
-  readonly references?: Types.ObjectId[];
+  readonly references?: string[];
 
   @IsString()
   @IsOptional()
@@ -165,9 +164,9 @@ export class CreateIngredientDto {
   @ApiProperty({
     description: 'Array of tag IDs for this ingredient',
     required: false,
-    type: [Types.ObjectId],
+    type: [String],
   })
-  readonly tags?: Types.ObjectId[];
+  readonly tags?: string[];
 
   @IsString()
   @IsOptional()

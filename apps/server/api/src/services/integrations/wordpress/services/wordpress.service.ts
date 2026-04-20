@@ -6,7 +6,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 import { firstValueFrom } from 'rxjs';
 
 interface WordpressTokenResponse {
@@ -107,9 +106,9 @@ export class WordpressService {
       // WordPress.com tokens are long-lived and do not expire.
       // Verify the credential exists and is valid by making a test API call.
       const credential = await this.credentialsService.findOne({
-        brand: new Types.ObjectId(brandId),
+        brand: brandId,
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
+        organization: organizationId,
         platform: CredentialPlatform.WORDPRESS,
       });
 

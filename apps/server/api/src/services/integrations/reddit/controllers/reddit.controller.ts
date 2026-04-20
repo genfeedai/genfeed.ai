@@ -28,7 +28,6 @@ import {
   Req,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 import { firstValueFrom } from 'rxjs';
 
 @AutoSwagger()
@@ -59,9 +58,9 @@ export class RedditController {
     const publicMetadata = getPublicMetadata(user);
 
     const brand = await this.brandsService.findOne({
-      _id: new Types.ObjectId(createCredentialDto.brand),
+      _id: createCredentialDto.brand,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     });
 
     if (!brand) {
@@ -76,8 +75,8 @@ export class RedditController {
 
     try {
       const credential = await this.credentialsService.findOne({
-        brand: new Types.ObjectId(brand._id),
-        organization: new Types.ObjectId(brand.organization),
+        brand: brand._id,
+        organization: brand.organization,
         platform: CredentialPlatform.REDDIT,
       });
 
@@ -152,8 +151,8 @@ export class RedditController {
       const { access_token, refresh_token, expires_in } = tokenRes.data;
 
       const existingCredential = await this.credentialsService.findOne({
-        brand: new Types.ObjectId(brandId),
-        organization: new Types.ObjectId(organizationId),
+        brand: brandId,
+        organization: organizationId,
         platform: CredentialPlatform.REDDIT,
       });
 

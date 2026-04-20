@@ -22,7 +22,6 @@ import {
   PopulateBuilder,
   PopulatePatterns,
 } from '@api/shared/utils/populate/populate.util';
-import { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
 import type { User } from '@clerk/backend';
 import type {
   IJsonApiSerializer,
@@ -43,7 +42,23 @@ import {
   Req,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { isValidObjectId, type PipelineStage, Types } from 'mongoose';
+
+type PipelineStage = Record<string, unknown>;
+type AggregatePaginateResult<T> = {
+  docs: T[];
+  totalDocs: number;
+  limit: number;
+  page?: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+  [key: string]: unknown;
+};
+
+const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
+function isValidObjectId(id: unknown): id is string {
+  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
+}
 
 @AutoSwagger()
 export abstract class BaseCRUDController<
@@ -185,7 +200,7 @@ export abstract class BaseCRUDController<
     // Only populate user if the entity might have one (can be overridden by child controllers)
     const populateForOwnershipCheck = this.getPopulateForOwnershipCheck();
     const existing = await this.service.findOne(
-      { _id: new Types.ObjectId(id) },
+      { _id: id },
       populateForOwnershipCheck,
     );
 
@@ -270,7 +285,7 @@ export abstract class BaseCRUDController<
     if (adminFilter) {
       Object.assign(matchFilter, adminFilter);
     } else {
-      matchFilter.user = new Types.ObjectId(publicMetadata.user);
+      matchFilter.user = publicMetadata.user;
     }
 
     return [{ $match: matchFilter }, { $sort: handleQuerySort(query.sort) }];
@@ -283,21 +298,21 @@ export abstract class BaseCRUDController<
   public enrichCreateDto(createDto: Partial<CreateDto>, user: User): CreateDto {
     const publicMetadata = getPublicMetadata(user);
 
-    let organization;
-    let brand;
+    let organization: string | undefined;
+    let brand: string | undefined;
 
     if (publicMetadata.brand) {
-      brand = new Types.ObjectId(publicMetadata.brand);
+      brand = publicMetadata.brand;
     }
 
     if (publicMetadata.organization) {
-      organization = new Types.ObjectId(publicMetadata.organization);
+      organization = publicMetadata.organization;
     }
 
     // Only set brand if it exists on both publicMetadata or createDto, and avoid TS error for generic CreateDto
     const dtoRecord = createDto as Record<string, unknown>;
     if (createDto && Object.hasOwn(createDto, 'brand') && dtoRecord.brand) {
-      brand = new Types.ObjectId(String(dtoRecord.brand));
+      brand = String(dtoRecord.brand);
     }
 
     if (
@@ -305,14 +320,14 @@ export abstract class BaseCRUDController<
       Object.hasOwn(createDto, 'organization') &&
       dtoRecord.organization
     ) {
-      organization = new Types.ObjectId(String(dtoRecord.organization));
+      organization = String(dtoRecord.organization);
     }
 
     return {
       ...createDto,
       brand,
       organization,
-      user: new Types.ObjectId(publicMetadata.user),
+      user: publicMetadata.user,
     } as CreateDto;
   }
 
@@ -341,32 +356,32 @@ export abstract class BaseCRUDController<
 
     // Determine final brand and organization values
     // Prefer dto values over publicMetadata (same logic as enrichCreateDto)
-    let brand;
-    let organization;
+    let brand: string | undefined;
+    let organization: string | undefined;
 
     // Start with publicMetadata defaults
     if (publicMetadata.brand) {
-      brand = new Types.ObjectId(publicMetadata.brand);
+      brand = publicMetadata.brand;
     }
 
     if (publicMetadata.organization) {
-      organization = new Types.ObjectId(publicMetadata.organization);
+      organization = publicMetadata.organization;
     }
 
     // Override with dto values if provided (already converted above)
     if (Object.hasOwn(dto, 'brand')) {
-      brand = dto.brand;
+      brand = dto.brand as string | undefined;
     }
 
     if (Object.hasOwn(dto, 'organization')) {
-      organization = dto.organization;
+      organization = dto.organization as string | undefined;
     }
 
     return await Promise.resolve({
       ...dto,
       brand,
       organization,
-      user: new Types.ObjectId(publicMetadata.user),
+      user: publicMetadata.user,
     } as UpdateDto);
   }
 

@@ -6,7 +6,6 @@ import { ContentPipelineQueueService } from '@api/services/content-orchestration
 import { ImageTaskModel, VideoTaskModel } from '@genfeedai/enums';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('ContentOrchestrationController', () => {
   let controller: ContentOrchestrationController;
@@ -14,10 +13,10 @@ describe('ContentOrchestrationController', () => {
   let mockQueueService: Record<string, ReturnType<typeof vi.fn>>;
   let mockOrchestrationService: Record<string, ReturnType<typeof vi.fn>>;
 
-  const orgId = new Types.ObjectId().toString();
-  const userId = new Types.ObjectId().toString();
-  const brandId = new Types.ObjectId().toString();
-  const personaId = new Types.ObjectId().toString();
+  const orgId = 'test-object-id';
+  const userId = 'test-object-id';
+  const brandId = 'test-object-id';
+  const personaId = 'test-object-id';
 
   const mockReq = {
     organization: { id: orgId },
@@ -89,8 +88,8 @@ describe('ContentOrchestrationController', () => {
         stepCount: 2,
       });
       expect(mockBrandsService.findOne).toHaveBeenCalledWith({
-        _id: expect.any(Types.ObjectId),
-        organization: expect.any(Types.ObjectId),
+        _id: expect.any(String),
+        organization: expect.any(String),
       });
       expect(mockQueueService.queueGenerateAndPublish).toHaveBeenCalled();
     });

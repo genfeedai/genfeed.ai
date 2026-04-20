@@ -17,14 +17,6 @@ import { VideosModule } from '@api/collections/videos/videos.module';
 import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/workflow-executions.module';
 import { WebhooksController } from '@api/collections/workflows/controllers/webhooks.controller';
 import { WorkflowsController } from '@api/collections/workflows/controllers/workflows.controller';
-import {
-  BatchWorkflowJob,
-  BatchWorkflowJobSchema,
-} from '@api/collections/workflows/schemas/batch-workflow-job.schema';
-import {
-  Workflow,
-  WorkflowSchema,
-} from '@api/collections/workflows/schemas/workflow.schema';
 import { InstagramSocialAdapter } from '@api/collections/workflows/services/adapters/instagram-social.adapter';
 import { SocialAdapterFactory } from '@api/collections/workflows/services/adapters/social-adapter.factory';
 import { TwitterSocialAdapter } from '@api/collections/workflows/services/adapters/twitter-social.adapter';
@@ -43,7 +35,6 @@ import { WorkflowFormatConverterService } from '@api/collections/workflows/servi
 import { WorkflowGenerationService } from '@api/collections/workflows/services/workflow-generation.service';
 import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { MarketplaceIntegrationModule } from '@api/marketplace-integration/marketplace-integration.module';
 import { ElevenLabsModule } from '@api/services/integrations/elevenlabs/elevenlabs.module';
 import { HeyGenModule } from '@api/services/integrations/heygen/heygen.module';
@@ -56,15 +47,12 @@ import { WorkflowExecutorModule } from '@api/services/workflow-executor/workflow
 import { SharedModule } from '@api/shared/shared.module';
 import { BullModule } from '@nestjs/bullmq';
 import { forwardRef, Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
-import mongooseAggregatePaginateV2 from 'mongoose-aggregate-paginate-v2';
 
 @Module({
   controllers: [WorkflowsController, WebhooksController],
   exports: [
     BatchWorkflowQueueService,
     BatchWorkflowService,
-    MongooseModule,
     WorkflowsService,
     WorkflowSchedulerService,
     WorkflowEngineAdapterService,
@@ -116,63 +104,6 @@ import mongooseAggregatePaginateV2 from 'mongoose-aggregate-paginate-v2';
       },
       name: BATCH_WORKFLOW_QUEUE,
     }),
-
-    MongooseModule.forFeature(
-      [{ name: BatchWorkflowJob.name, schema: BatchWorkflowJobSchema }],
-      DB_CONNECTIONS.CLOUD,
-    ),
-
-    MongooseModule.forFeatureAsync(
-      [
-        {
-          name: Workflow.name,
-          useFactory: () => {
-            const schema = WorkflowSchema;
-
-            schema.plugin(mongooseAggregatePaginateV2);
-
-            schema.index(
-              { createdAt: -1, isDeleted: 1, organization: 1 },
-              { partialFilterExpression: { isDeleted: false } },
-            );
-
-            // Status-based workflow queries (with soft-delete awareness)
-            schema.index(
-              { isDeleted: 1, organization: 1, status: 1 },
-              { partialFilterExpression: { isDeleted: false } },
-            );
-            schema.index(
-              { isDeleted: 1, status: 1, user: 1 },
-              { partialFilterExpression: { isDeleted: false } },
-            );
-            schema.index({ status: 1, trigger: 1 });
-
-            // Marketplace queries (public templates)
-            schema.index(
-              { isDeleted: 1, isPublic: 1, isTemplate: 1 },
-              { partialFilterExpression: { isDeleted: false, isPublic: true } },
-            );
-
-            // Template lookup by key
-            schema.index({ isDeleted: 1, isTemplate: 1, templateId: 1 });
-
-            // Published workflow trigger matching
-            schema.index(
-              { isDeleted: 1, lifecycle: 1, organization: 1 },
-              {
-                partialFilterExpression: {
-                  isDeleted: false,
-                  lifecycle: 'published',
-                },
-              },
-            );
-
-            return schema;
-          },
-        },
-      ],
-      DB_CONNECTIONS.CLOUD,
-    ),
   ],
   providers: [
     TwitterSocialAdapter,

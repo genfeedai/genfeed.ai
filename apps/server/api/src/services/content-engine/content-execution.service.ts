@@ -1,12 +1,12 @@
-import { ContentDraftStatus } from '@api/collections/content-drafts/schemas/content-draft.schema';
 import { ContentDraftsService } from '@api/collections/content-drafts/services/content-drafts.service';
-import { ContentPlanItemDocument } from '@api/collections/content-plan-items/schemas/content-plan-item.schema';
+import { type ContentPlanItemDocument } from '@api/collections/content-plan-items/schemas/content-plan-item.schema';
 import { ContentPlanItemsService } from '@api/collections/content-plan-items/services/content-plan-items.service';
 import { ContentPlansService } from '@api/collections/content-plans/services/content-plans.service';
 import { ContentOrchestrationService } from '@api/services/content-orchestration/content-orchestration.service';
 import { PipelineStep } from '@api/services/content-orchestration/pipeline.interfaces';
 import { SkillExecutorService } from '@api/services/skill-executor/skill-executor.service';
 import {
+  ContentDraftStatus,
   ContentPlanItemStatus,
   ContentPlanItemType,
   ContentPlanStatus,
@@ -16,7 +16,6 @@ import {
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 export interface ExecutionResult {
   itemId: string;
@@ -219,7 +218,7 @@ export class ContentExecutionService {
     );
 
     const draft = await this.contentDraftsService.createFromContentEngine({
-      brand: new Types.ObjectId(brandId),
+      brand: brandId,
       confidence: result.draft.confidence,
       content: result.draft.content,
       generatedBy: `content-engine:${skillSlug}`,
@@ -230,7 +229,7 @@ export class ContentExecutionService {
         contentPlanItemId: itemId,
         source: result.source,
       },
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
       platforms: item.platforms,
       skillSlug,
       status: ContentDraftStatus.PENDING,
@@ -334,7 +333,7 @@ export class ContentExecutionService {
     }
 
     const draft = await this.contentDraftsService.createFromContentEngine({
-      brand: new Types.ObjectId(brandId),
+      brand: brandId,
       content: item.prompt ?? item.topic,
       generatedBy: 'content-engine:media-pipeline',
       isDeleted: false,
@@ -347,7 +346,7 @@ export class ContentExecutionService {
         pipelineStatus: pipelineResult.status,
         postIds: pipelineResult.postIds,
       },
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
       platforms: item.platforms,
       skillSlug: 'media-pipeline',
       status: ContentDraftStatus.PENDING,

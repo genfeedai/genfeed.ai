@@ -29,7 +29,6 @@ import { HttpService } from '@nestjs/axios';
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 import { of } from 'rxjs';
 
 describe('ImagesUploadsController', () => {
@@ -53,7 +52,7 @@ describe('ImagesUploadsController', () => {
   } as unknown as Request;
 
   const mockIngredient = {
-    _id: new Types.ObjectId('507f1f77bcf86cd799439014'),
+    _id: '507f1f77bcf86cd799439014',
     category: 'image',
     id: '507f1f77bcf86cd799439014',
     label: 'test-image.jpg',

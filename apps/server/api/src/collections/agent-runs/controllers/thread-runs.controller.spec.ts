@@ -10,14 +10,13 @@ import { AgentRunsService } from '@api/collections/agent-runs/services/agent-run
 import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 describe('ThreadRunsController', () => {
   let controller: ThreadRunsController;
   let agentRunsService: { getByThread: ReturnType<typeof vi.fn> };
 
   const orgId = '507f1f77bcf86cd799439012';
-  const threadId = new Types.ObjectId().toString();
+  const threadId = '507f191e810c19729de860ee'.toString();
 
   const mockUser = {
     id: 'user_123',
@@ -60,8 +59,16 @@ describe('ThreadRunsController', () => {
   describe('getThreadRuns', () => {
     it('should return serialized runs for the given thread', async () => {
       const mockRuns = [
-        { _id: new Types.ObjectId(), status: 'completed', thread: threadId },
-        { _id: new Types.ObjectId(), status: 'running', thread: threadId },
+        {
+          _id: '507f191e810c19729de860ee',
+          status: 'completed',
+          thread: threadId,
+        },
+        {
+          _id: '507f191e810c19729de860ee',
+          status: 'running',
+          thread: threadId,
+        },
       ];
       agentRunsService.getByThread.mockResolvedValue(mockRuns);
 
@@ -123,8 +130,10 @@ describe('ThreadRunsController', () => {
     });
 
     it('should work with a different threadId', async () => {
-      const otherThreadId = new Types.ObjectId().toString();
-      const mockRuns = [{ _id: new Types.ObjectId(), thread: otherThreadId }];
+      const otherThreadId = '507f191e810c19729de860ee'.toString();
+      const mockRuns = [
+        { _id: '507f191e810c19729de860ee', thread: otherThreadId },
+      ];
       agentRunsService.getByThread.mockResolvedValue(mockRuns);
 
       await controller.getThreadRuns(
@@ -148,7 +157,9 @@ describe('ThreadRunsController', () => {
     });
 
     it('should handle single-run thread correctly', async () => {
-      const singleRun = [{ _id: new Types.ObjectId(), status: 'completed' }];
+      const singleRun = [
+        { _id: '507f191e810c19729de860ee', status: 'completed' },
+      ];
       agentRunsService.getByThread.mockResolvedValue(singleRun);
 
       const result = await controller.getThreadRuns(

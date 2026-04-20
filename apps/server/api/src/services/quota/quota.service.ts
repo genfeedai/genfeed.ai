@@ -1,14 +1,13 @@
-import { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
+import { type CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
+import { type OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
-import { Types } from 'mongoose';
 
 export interface QuotaCheckResult {
   allowed: boolean;
@@ -66,7 +65,7 @@ export class QuotaService {
     organization: OrganizationDocument,
   ): Promise<QuotaCheckResult> {
     const settings = await this.organizationSettingsService.findOne({
-      organization: new Types.ObjectId(organization._id.toString()),
+      organization: organization._id.toString(),
     });
 
     if (!settings) {
@@ -94,7 +93,7 @@ export class QuotaService {
         $gte: startOfDay,
         $lte: endOfDay,
       },
-      credential: new Types.ObjectId(credential._id.toString()),
+      credential: credential._id.toString(),
       isDeleted: false,
       platform: credential.platform,
       status: {
@@ -129,7 +128,7 @@ export class QuotaService {
     organizationId: string,
   ): Promise<void> {
     const organization = await this.organizationsService.findOne({
-      _id: new Types.ObjectId(organizationId),
+      _id: organizationId,
     });
 
     if (!organization) {
@@ -170,10 +169,10 @@ export class QuotaService {
   ): Promise<QuotaCheckResult | null> {
     try {
       const credential = await this.credentialsService.findOne({
-        _id: new Types.ObjectId(credentialId),
+        _id: credentialId,
       });
       const organization = await this.organizationsService.findOne({
-        _id: new Types.ObjectId(organizationId),
+        _id: organizationId,
       });
 
       if (!credential || !organization) {

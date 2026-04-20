@@ -1,7 +1,6 @@
 import { MusicsController } from '@api/collections/musics/controllers/musics.controller';
 import { MusicsService } from '@api/collections/musics/services/musics.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function createMockLogger() {
@@ -27,9 +26,9 @@ function createMockUser(overrides: Record<string, unknown> = {}) {
   return {
     id: 'user_test123',
     publicMetadata: {
-      brand: new Types.ObjectId().toHexString(),
-      organization: new Types.ObjectId().toHexString(),
-      user: new Types.ObjectId().toHexString(),
+      brand: '507f191e810c19729de860ee',
+      organization: '507f191e810c19729de860ee',
+      user: '507f191e810c19729de860ee',
       ...overrides,
     },
   };
@@ -153,7 +152,7 @@ describe('MusicsController', () => {
     });
 
     it('should filter by brand when valid ObjectId is provided', () => {
-      const brandId = new Types.ObjectId().toHexString();
+      const brandId = '507f191e810c19729de860ee';
       const user = createMockUser();
       const query = { brand: brandId };
       const pipeline = controller.buildFindAllPipeline(
@@ -170,7 +169,11 @@ describe('MusicsController', () => {
       const user = createMockUser();
       const request = createMockRequest();
       const docs = [
-        { _id: new Types.ObjectId(), category: 'music', status: 'generated' },
+        {
+          _id: '507f191e810c19729de860ee',
+          category: 'music',
+          status: 'generated',
+        },
       ];
       musicsService.findAll.mockResolvedValue({
         docs,

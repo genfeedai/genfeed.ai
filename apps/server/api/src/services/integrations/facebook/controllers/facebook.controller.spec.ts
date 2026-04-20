@@ -9,7 +9,6 @@ import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('FacebookController', () => {
   let controller: FacebookController;
@@ -37,7 +36,7 @@ describe('FacebookController', () => {
 
   const mockCredentialsService = {
     findOne: vi.fn().mockResolvedValue({
-      _id: new Types.ObjectId(),
+      _id: 'test-object-id',
       externalId: undefined,
       platform: CredentialPlatform.FACEBOOK,
     }),
@@ -47,9 +46,9 @@ describe('FacebookController', () => {
 
   const mockBrandsService = {
     findOne: vi.fn().mockResolvedValue({
-      _id: new Types.ObjectId(),
-      organization: new Types.ObjectId(),
-      user: new Types.ObjectId(),
+      _id: 'test-object-id',
+      organization: 'test-object-id',
+      user: 'test-object-id',
     }),
   };
 
@@ -140,8 +139,8 @@ describe('FacebookController', () => {
         code: 'auth-code',
         state: Buffer.from(
           JSON.stringify({
-            brandId: new Types.ObjectId().toString(),
-            organizationId: new Types.ObjectId().toString(),
+            brandId: 'test-object-id',
+            organizationId: 'test-object-id',
           }),
         ).toString('base64'),
       });

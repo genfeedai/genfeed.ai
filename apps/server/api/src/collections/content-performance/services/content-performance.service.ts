@@ -3,30 +3,21 @@ import { ImportCsvDto } from '@api/collections/content-performance/dto/import-cs
 import { ImportManualDto } from '@api/collections/content-performance/dto/import-manual.dto';
 import { ManualInputDto } from '@api/collections/content-performance/dto/manual-input.dto';
 import { QueryContentPerformanceDto } from '@api/collections/content-performance/dto/query-content-performance.dto';
-import {
-  ContentPerformance,
-  type ContentPerformanceDocument,
-  PerformanceSource,
-} from '@api/collections/content-performance/schemas/content-performance.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import type { ContentPerformanceDocument } from '@api/collections/content-performance/schemas/content-performance.schema';
+import { PerformanceSource } from '@api/collections/content-performance/schemas/content-performance.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { ContentType, PostCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import type { PipelineStage } from 'mongoose';
 
 @Injectable()
 export class ContentPerformanceService extends BaseService<ContentPerformanceDocument> {
   constructor(
-    @InjectModel(ContentPerformance.name, DB_CONNECTIONS.CLOUD)
-    protected readonly model: AggregatePaginateModel<ContentPerformanceDocument>,
-    private readonly prisma: PrismaService,
+    public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
   ) {
-    super(model, logger);
+    super(prisma, 'contentPerformance', logger);
   }
 
   /**
@@ -79,7 +70,6 @@ export class ContentPerformanceService extends BaseService<ContentPerformanceDoc
     organizationId: string,
     userId: string,
   ): Promise<ContentPerformanceDocument[]> {
-    // M6: Validate brand belongs to org
     if (dto.brand) {
       const brand = await this.prisma.brand.findFirst({
         where: { id: dto.brand, isDeleted: false, organizationId },
@@ -103,9 +93,13 @@ export class ContentPerformanceService extends BaseService<ContentPerformanceDoc
       userId,
     }));
 
-    return this.model.insertMany(
-      records,
-    ) as unknown as ContentPerformanceDocument[];
+    const created = await Promise.all(
+      records.map((r) =>
+        this.delegate.create({ data: r as Record<string, unknown> }),
+      ),
+    );
+
+    return created as ContentPerformanceDocument[];
   }
 
   /**
@@ -124,7 +118,6 @@ export class ContentPerformanceService extends BaseService<ContentPerformanceDoc
     const records: Record<string, unknown>[] = [];
     let matched = 0;
 
-    // Validate brand belongs to org if provided
     let validatedBrandId: string | undefined;
     if (dto.brandId) {
       const brand = await this.prisma.brand.findFirst({
@@ -138,7 +131,6 @@ export class ContentPerformanceService extends BaseService<ContentPerformanceDoc
       validatedBrandId = dto.brandId;
     }
 
-    // M2: Batch-fetch all matching posts instead of N+1 queries
     const postMatchConditions = dto.entries
       .filter((e) => e.externalPostId && e.platform)
       .map((e) => ({ externalId: e.externalPostId, platform: e.platform }));
@@ -179,6 +171,7 @@ export class ContentPerformanceService extends BaseService<ContentPerformanceDoc
           engagementRate: this.computeEngagementRate(entry),
           externalPostId: entry.externalPostId,
           generationId: post?.generationId ?? undefined,
+          isDeleted: false,
           likes: entry.likes ?? 0,
           measuredAt: new Date(entry.measuredAt),
           organizationId,
@@ -201,7 +194,7 @@ export class ContentPerformanceService extends BaseService<ContentPerformanceDoc
     }
 
     if (records.length > 0) {
-      await this.model.insertMany(records);
+      await Promise.all(records.map((r) => this.delegate.create({ data: r })));
     }
 
     return { errors, imported: records.length, matched };
@@ -241,6 +234,7 @@ export class ContentPerformanceService extends BaseService<ContentPerformanceDoc
       engagementRate: this.computeEngagementRate(dto),
       externalPostId: dto.externalPostId,
       generationId: (post?.generationId as string) ?? undefined,
+      isDeleted: false,
       likes: dto.likes ?? 0,
       measuredAt: new Date(),
       organizationId,
@@ -265,39 +259,44 @@ export class ContentPerformanceService extends BaseService<ContentPerformanceDoc
     filters: QueryContentPerformanceDto,
     organizationId: string,
   ): Promise<ContentPerformanceDocument[]> {
-    const query: Record<string, unknown> = {
+    const where: Record<string, unknown> = {
       isDeleted: false,
-      organization: organizationId,
+      organizationId,
     };
 
     if (filters.brand) {
-      query.brand = filters.brand;
+      where.brandId = filters.brand;
     }
     if (filters.platform) {
-      query.platform = filters.platform;
+      where.platform = filters.platform;
     }
     if (filters.cycleNumber) {
-      query.cycleNumber = filters.cycleNumber;
+      where.cycleNumber = filters.cycleNumber;
     }
     if (filters.generationId) {
-      query.generationId = filters.generationId;
+      where.generationId = filters.generationId;
     }
     if (filters.startDate || filters.endDate) {
-      query.measuredAt = {};
+      where.measuredAt = {};
       if (filters.startDate) {
-        (query.measuredAt as Record<string, unknown>).$gte = new Date(
+        (where.measuredAt as Record<string, unknown>).gte = new Date(
           filters.startDate,
         );
       }
       if (filters.endDate) {
-        (query.measuredAt as Record<string, unknown>).$lte = new Date(
+        (where.measuredAt as Record<string, unknown>).lte = new Date(
           filters.endDate,
         );
       }
     }
 
     const limit = filters.limit ? Math.min(filters.limit, 500) : 100;
-    return this.model.find(query).sort({ measuredAt: -1 }).limit(limit).exec();
+
+    return this.delegate.findMany({
+      where,
+      orderBy: { measuredAt: 'desc' },
+      take: limit,
+    }) as Promise<ContentPerformanceDocument[]>;
   }
 
   /**
@@ -308,20 +307,20 @@ export class ContentPerformanceService extends BaseService<ContentPerformanceDoc
     brandId?: string,
     limit = 10,
   ): Promise<ContentPerformanceDocument[]> {
-    const query: Record<string, unknown> = {
+    const where: Record<string, unknown> = {
       isDeleted: false,
-      organization: organizationId,
+      organizationId,
     };
 
     if (brandId) {
-      query.brand = brandId;
+      where.brandId = brandId;
     }
 
-    return this.model
-      .find(query)
-      .sort({ performanceScore: -1 })
-      .limit(limit)
-      .exec();
+    return this.delegate.findMany({
+      where,
+      orderBy: { performanceScore: 'desc' },
+      take: limit,
+    }) as Promise<ContentPerformanceDocument[]>;
   }
 
   /**
@@ -331,33 +330,30 @@ export class ContentPerformanceService extends BaseService<ContentPerformanceDoc
     organizationId: string,
     generationId: string,
   ): Promise<Record<string, unknown>> {
-    const pipeline: PipelineStage[] = [
-      {
-        $match: {
-          generationId,
-          isDeleted: false,
-          organization: organizationId,
-        },
-      },
-      {
-        $group: {
-          _id: '$generationId',
-          avgEngagementRate: { $avg: '$engagementRate' },
-          avgPerformanceScore: { $avg: '$performanceScore' },
-          count: { $sum: 1 },
-          totalClicks: { $sum: '$clicks' },
-          totalComments: { $sum: '$comments' },
-          totalLikes: { $sum: '$likes' },
-          totalRevenue: { $sum: '$revenue' },
-          totalSaves: { $sum: '$saves' },
-          totalShares: { $sum: '$shares' },
-          totalViews: { $sum: '$views' },
-        },
-      },
-    ];
+    const rows = await this.delegate.findMany({
+      where: { generationId, isDeleted: false, organizationId },
+    });
 
-    const results = await this.model.aggregate(pipeline).exec();
-    return results[0] || {};
+    if (rows.length === 0) return {};
+
+    const r = rows as Array<Record<string, number | null>>;
+    const count = r.length;
+    const sum = (key: string) =>
+      r.reduce((acc, row) => acc + (Number(row[key]) || 0), 0);
+
+    return {
+      _id: generationId,
+      avgEngagementRate: sum('engagementRate') / count,
+      avgPerformanceScore: sum('performanceScore') / count,
+      count,
+      totalClicks: sum('clicks'),
+      totalComments: sum('comments'),
+      totalLikes: sum('likes'),
+      totalRevenue: sum('revenue'),
+      totalSaves: sum('saves'),
+      totalShares: sum('shares'),
+      totalViews: sum('views'),
+    };
   }
 
   /**
@@ -387,7 +383,6 @@ export class ContentPerformanceService extends BaseService<ContentPerformanceDoc
 
     const engagementRate =
       ((likes + comments + shares + saves + clicks) / views) * 100;
-    // Normalize: 10%+ engagement = 100 score
     return Math.min(100, Math.round(engagementRate * 10));
   }
 

@@ -18,7 +18,6 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 /** All non-admin scopes granted to standard CLI keys */
 const CLI_STANDARD_SCOPES: string[] = [
@@ -79,8 +78,8 @@ export class AuthCliController {
     @Req() request: Request,
   ): Promise<{ key: string }> {
     const publicMetadata = getPublicMetadata(user);
-    const userId = new Types.ObjectId(publicMetadata.user);
-    const organizationId = new Types.ObjectId(publicMetadata.organization);
+    const userId = publicMetadata.user;
+    const organizationId = publicMetadata.organization;
 
     // Revoke any existing CLI key for this user
     const existingKeysPipeline = PipelineBuilder.create()

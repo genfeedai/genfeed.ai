@@ -1,4 +1,5 @@
-import { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
+import { randomUUID } from 'node:crypto';
+import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { resolveEffectiveBrandAgentConfig } from '@api/collections/brands/utils/brand-agent-config-resolution.util';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
@@ -8,7 +9,7 @@ import { MetadataService } from '@api/collections/metadata/services/metadata.ser
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { AvatarVideoAspectRatio } from '@api/collections/videos/dto/create-avatar-video.dto';
 import { VideosService } from '@api/collections/videos/services/videos.service';
-import { VoiceDocument } from '@api/collections/voices/schemas/voice.schema';
+import { type VoiceDocument } from '@api/collections/voices/schemas/voice.schema';
 import { VoicesService } from '@api/collections/voices/services/voices.service';
 import { ConfigService } from '@api/config/config.service';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
@@ -40,7 +41,6 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 interface AvatarVideoGenerationContext {
   organizationId: string;
@@ -129,17 +129,17 @@ export class AvatarVideoGenerationService {
 
       const { ingredientData, metadataData } =
         await this.sharedService.saveDocumentsInternal({
-          brand: new Types.ObjectId(brand._id),
+          brand: brand._id,
           category: IngredientCategory.AVATAR,
           extension: MetadataExtension.MP4,
           model: MODEL_KEYS.HEYGEN_AVATAR,
-          organization: new Types.ObjectId(context.organizationId),
+          organization: context.organizationId,
           parent:
             resolvedIdentity.photoIngredientId != null
-              ? new Types.ObjectId(resolvedIdentity.photoIngredientId)
+              ? resolvedIdentity.photoIngredientId
               : undefined,
           status: IngredientStatus.PROCESSING,
-          user: new Types.ObjectId(context.userId),
+          user: context.userId,
         });
 
       ingredientId = String(ingredientData._id);
@@ -266,7 +266,7 @@ export class AvatarVideoGenerationService {
 
     const organizationSettings = await this.orgSettingsService.findOne({
       isDeleted: false,
-      organization: new Types.ObjectId(context.organizationId),
+      organization: context.organizationId,
     });
     const effectiveBrandAgentConfig = resolveEffectiveBrandAgentConfig({
       brand,
@@ -551,7 +551,7 @@ export class AvatarVideoGenerationService {
       const audioResult = await this.elevenlabsService.generateAndUploadAudio(
         resolvedIdentity.elevenlabsVoiceId,
         params.text,
-        new Types.ObjectId().toHexString(),
+        randomUUID(),
         context.organizationId,
         context.userId,
         elevenLabsByokKey?.apiKey,
@@ -683,9 +683,9 @@ export class AvatarVideoGenerationService {
     organizationId: string,
   ): Promise<VoiceDocument | null> {
     return (await this.voicesService.findOne({
-      _id: new Types.ObjectId(voiceId),
+      _id: voiceId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
     })) as VoiceDocument | null;
   }
 
@@ -695,16 +695,16 @@ export class AvatarVideoGenerationService {
     const brand = context.brandId
       ? await this.brandsService.findOne(
           {
-            _id: new Types.ObjectId(context.brandId),
+            _id: context.brandId,
             isDeleted: false,
-            organization: new Types.ObjectId(context.organizationId),
+            organization: context.organizationId,
           },
           'none',
         )
       : await this.brandsService.findOne(
           {
             isDeleted: false,
-            organization: new Types.ObjectId(context.organizationId),
+            organization: context.organizationId,
           },
           'none',
         );

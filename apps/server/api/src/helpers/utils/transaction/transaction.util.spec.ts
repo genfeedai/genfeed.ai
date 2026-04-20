@@ -1,20 +1,11 @@
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getConnectionToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TransactionUtil } from './transaction.util';
 
-const mockSession = {
-  abortTransaction: vi.fn().mockResolvedValue(undefined),
-  commitTransaction: vi.fn().mockResolvedValue(undefined),
-  endSession: vi.fn().mockResolvedValue(undefined),
-  startTransaction: vi.fn(),
-};
-
-const mockConnection = {
-  startSession: vi.fn().mockResolvedValue(mockSession),
+const mockPrismaService = {
+  $transaction: vi.fn(),
 };
 
 const mockLoggerService = {
@@ -34,8 +25,8 @@ describe('TransactionUtil', () => {
       providers: [
         TransactionUtil,
         {
-          provide: getConnectionToken(DB_CONNECTIONS.CLOUD),
-          useValue: mockConnection,
+          provide: 'PrismaService',
+          useValue: mockPrismaService,
         },
         {
           provide: LoggerService,
@@ -44,9 +35,8 @@ describe('TransactionUtil', () => {
       ],
     }).compile();
 
-    // Manually instantiate since LoggerService token may vary
     transactionUtil = new TransactionUtil(
-      mockConnection as never,
+      mockPrismaService as never,
       mockLoggerService as never,
     );
   });
@@ -55,70 +45,49 @@ describe('TransactionUtil', () => {
     expect(transactionUtil).toBeDefined();
   });
 
-  it('starts a session and transaction, commits on success', async () => {
+  it('runs the function in a Prisma transaction and returns result', async () => {
     const fn = vi.fn().mockResolvedValue('result');
+    mockPrismaService.$transaction.mockImplementation(
+      (callback: (tx: unknown) => Promise<unknown>) => callback({}),
+    );
 
     const result = await transactionUtil.runInTransaction(fn);
 
-    expect(mockConnection.startSession).toHaveBeenCalledOnce();
-    expect(mockSession.startTransaction).toHaveBeenCalledWith({
-      readConcern: { level: 'majority' },
-      writeConcern: { w: 'majority' },
-    });
-    expect(fn).toHaveBeenCalledWith(mockSession);
-    expect(mockSession.commitTransaction).toHaveBeenCalledOnce();
-    expect(mockSession.endSession).toHaveBeenCalledOnce();
+    expect(mockPrismaService.$transaction).toHaveBeenCalledOnce();
+    expect(fn).toHaveBeenCalledOnce();
     expect(result).toBe('result');
   });
 
-  it('aborts the transaction and re-throws on error', async () => {
+  it('logs error and re-throws when transaction fails', async () => {
     const error = new Error('db failure');
-    const fn = vi.fn().mockRejectedValue(error);
+    mockPrismaService.$transaction.mockRejectedValue(error);
 
-    await expect(transactionUtil.runInTransaction(fn)).rejects.toThrow(
+    await expect(transactionUtil.runInTransaction(vi.fn())).rejects.toThrow(
       'db failure',
     );
 
-    expect(mockSession.abortTransaction).toHaveBeenCalledOnce();
-    expect(mockSession.commitTransaction).not.toHaveBeenCalled();
-    expect(mockSession.endSession).toHaveBeenCalledOnce();
-  });
-
-  it('logs error when transaction is aborted', async () => {
-    const fn = vi.fn().mockRejectedValue(new Error('tx error'));
-
-    await expect(transactionUtil.runInTransaction(fn)).rejects.toThrow();
-
     expect(mockLoggerService.error).toHaveBeenCalledWith(
       'Transaction aborted',
-      expect.objectContaining({ error: 'tx error' }),
+      expect.objectContaining({ error: 'db failure' }),
     );
-  });
-
-  it('ensures endSession is always called even when commit fails', async () => {
-    mockSession.commitTransaction.mockRejectedValueOnce(
-      new Error('commit failed'),
-    );
-    const fn = vi.fn().mockResolvedValue('ok');
-
-    await expect(transactionUtil.runInTransaction(fn)).rejects.toThrow(
-      'commit failed',
-    );
-
-    expect(mockSession.endSession).toHaveBeenCalledOnce();
   });
 
   describe('isTransactionSupported', () => {
-    it('returns true when a session can be started', async () => {
+    it('returns true when transaction can be started', async () => {
+      mockPrismaService.$transaction.mockResolvedValue(undefined);
+
       const supported = await transactionUtil.isTransactionSupported();
+
       expect(supported).toBe(true);
     });
 
-    it('returns false when startSession throws', async () => {
-      mockConnection.startSession.mockRejectedValueOnce(
-        new Error('no replica set'),
+    it('returns false when $transaction throws', async () => {
+      mockPrismaService.$transaction.mockRejectedValue(
+        new Error('no transaction support'),
       );
+
       const supported = await transactionUtil.isTransactionSupported();
+
       expect(supported).toBe(false);
     });
   });

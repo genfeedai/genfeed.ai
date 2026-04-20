@@ -20,21 +20,20 @@ import { IngredientStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpStatus } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import {
   type OrchestrationContext,
   VideoMusicOrchestrationService,
 } from './video-music-orchestration.service';
 
 const makeContext = (): OrchestrationContext => ({
-  brandId: new Types.ObjectId().toString(),
+  brandId: 'test-object-id',
   clerkUserId: 'clerk_abc',
-  organizationId: new Types.ObjectId().toString(),
-  userId: new Types.ObjectId().toString(),
+  organizationId: 'test-object-id',
+  userId: 'test-object-id',
 });
 
 const makeMusic = (status: IngredientStatus = IngredientStatus.GENERATED) => ({
-  _id: new Types.ObjectId(),
+  _id: 'test-object-id',
   status,
 });
 
@@ -73,16 +72,16 @@ describe('VideoMusicOrchestrationService', () => {
       getDefaultModel: vi.fn().mockResolvedValue(MODEL_KEYS.MUSICGEN),
     };
     promptsService = {
-      create: vi.fn().mockResolvedValue({ _id: new Types.ObjectId() }),
+      create: vi.fn().mockResolvedValue({ _id: 'test-object-id' }),
     };
     sharedService = {
       saveDocumentsInternal: vi.fn().mockResolvedValue({
-        ingredientData: { _id: new Types.ObjectId() },
-        metadataData: { _id: new Types.ObjectId() },
+        ingredientData: { _id: 'test-object-id' },
+        metadataData: { _id: 'test-object-id' },
       }),
     };
     activitiesService = {
-      create: vi.fn().mockResolvedValue({ _id: new Types.ObjectId() }),
+      create: vi.fn().mockResolvedValue({ _id: 'test-object-id' }),
       patch: vi.fn().mockResolvedValue(undefined),
     };
     websocketService = {
@@ -181,7 +180,7 @@ describe('VideoMusicOrchestrationService', () => {
       musicsService.findOne.mockResolvedValue(null);
 
       const dto: BackgroundMusicDto = {
-        ingredientId: new Types.ObjectId().toString(),
+        ingredientId: 'test-object-id',
       } as BackgroundMusicDto;
 
       await expect(service.resolveMusic(dto, 30, ctx)).rejects.toThrow(
@@ -195,7 +194,7 @@ describe('VideoMusicOrchestrationService', () => {
       );
 
       const dto: BackgroundMusicDto = {
-        ingredientId: new Types.ObjectId().toString(),
+        ingredientId: 'test-object-id',
       } as BackgroundMusicDto;
 
       await expect(service.resolveMusic(dto, 30, ctx)).rejects.toThrow(
@@ -254,7 +253,7 @@ describe('VideoMusicOrchestrationService', () => {
 
   describe('orchestrateVideoWithMusic', () => {
     it('should return original videoIngredientId when no music is needed', async () => {
-      const videoId = new Types.ObjectId().toString();
+      const videoId = 'test-object-id';
       const dto: BackgroundMusicDto = {} as BackgroundMusicDto;
 
       const result = await service.orchestrateVideoWithMusic(
@@ -275,7 +274,7 @@ describe('VideoMusicOrchestrationService', () => {
     });
 
     it('should wait for music if it was generated before merging', async () => {
-      const videoId = new Types.ObjectId().toString();
+      const videoId = 'test-object-id';
       const dto: BackgroundMusicDto = {
         autoGenerate: { duration: 30, prompt: 'Epic' },
       } as BackgroundMusicDto;
@@ -296,7 +295,7 @@ describe('VideoMusicOrchestrationService', () => {
     });
 
     it('should not wait for music when using existing ingredient', async () => {
-      const videoId = new Types.ObjectId().toString();
+      const videoId = 'test-object-id';
       const musicDoc = makeMusic(IngredientStatus.GENERATED);
       musicsService.findOne.mockResolvedValue(musicDoc);
 

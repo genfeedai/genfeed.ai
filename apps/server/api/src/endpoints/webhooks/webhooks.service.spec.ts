@@ -36,7 +36,6 @@ import {
 import type { IFileMetadata } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 // Mock setImmediate for testing async callbacks
 vi.useFakeTimers();
@@ -58,11 +57,11 @@ describe('WebhooksService', () => {
   let postProcessingOrchestrator: vi.Mocked<PostProcessingOrchestratorService>;
   let autoMergeService: vi.Mocked<AutoMergeService>;
 
-  const mockUserId = new Types.ObjectId();
-  const mockOrgId = new Types.ObjectId();
-  const mockBrandId = new Types.ObjectId();
-  const mockMetadataId = new Types.ObjectId();
-  const mockIngredientId = new Types.ObjectId();
+  const mockUserId = '507f191e810c19729de860ee';
+  const mockOrgId = '507f191e810c19729de860ee';
+  const mockBrandId = '507f191e810c19729de860ee';
+  const mockMetadataId = '507f191e810c19729de860ee';
+  const mockIngredientId = '507f191e810c19729de860ee';
   const mockClerkId = 'clerk_user_123';
 
   const mockMetadata = {
@@ -559,7 +558,7 @@ describe('WebhooksService', () => {
       );
 
       expect(usersService.findOne).toHaveBeenCalledWith({
-        _id: new Types.ObjectId(mockUserId),
+        _id: mockUserId,
       });
     });
 
@@ -789,14 +788,14 @@ describe('WebhooksService', () => {
   });
 
   describe('processAssetFromWebhook', () => {
-    const assetId = new Types.ObjectId().toString();
+    const assetId = '507f191e810c19729de860ee'.toString();
     const url = 'https://example.com/asset.png';
     const integration = 'test-integration';
 
     const mockAsset = {
-      _id: new Types.ObjectId(assetId),
+      _id: assetId,
       category: AssetCategory.LOGO,
-      parent: new Types.ObjectId(),
+      parent: '507f191e810c19729de860ee',
       parentModel: 'Brand',
       user: mockUser,
     };

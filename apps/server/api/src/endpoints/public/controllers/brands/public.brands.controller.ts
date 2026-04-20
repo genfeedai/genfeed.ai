@@ -29,7 +29,11 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Controller, Get, Param, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
-import { isValidObjectId, type PipelineStage } from 'mongoose';
+
+const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
+function isValidObjectId(id: unknown): id is string {
+  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
+}
 
 type BrandCollectionFailure = {
   data: unknown[];
@@ -84,7 +88,7 @@ export class PublicBrandsController {
     this.logger.log(url, { query: { isHighlighted, limit } });
 
     const maxLimit = Math.min(Number(limit), 100); // Cap at 100
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       { $match: filter },
       ...BrandFilterUtil.buildBrandAssetLookups({
         includeBanner: true,
@@ -136,12 +140,6 @@ export class PublicBrandsController {
       return { data: null, message: 'Brand is not public' };
     }
 
-    // Ensure logo and banner are populated (findOneBySlug uses 'detail' context which should populate them)
-    // The virtual fields should be populated automatically, but ensure they're loaded
-    if (data && typeof data.populate === 'function') {
-      await data.populate([{ path: 'logo' }, { path: 'banner' }]);
-    }
-
     return serializeSingle(request, BrandSerializer, data);
   }
 
@@ -174,12 +172,6 @@ export class PublicBrandsController {
     // Check if brand is public
     if (data.scope !== AssetScope.PUBLIC) {
       return { data: null, message: 'Brand is not public' };
-    }
-
-    // Ensure logo and banner are populated (findOne uses 'detail' context which should populate them)
-    // The virtual fields should be populated automatically, but ensure they're loaded
-    if (data && typeof data.populate === 'function') {
-      await data.populate([{ path: 'logo' }, { path: 'banner' }]);
     }
 
     return serializeSingle(request, BrandSerializer, data);
@@ -220,7 +212,7 @@ export class PublicBrandsController {
       pagination: false,
     };
 
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: {
           brand: brandId,
@@ -277,7 +269,7 @@ export class PublicBrandsController {
       pagination: true,
     };
 
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: {
           brand: brandId,
@@ -336,7 +328,7 @@ export class PublicBrandsController {
       pagination: true,
     };
 
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: {
           brand: brandId,
@@ -395,7 +387,7 @@ export class PublicBrandsController {
       pagination: true,
     };
 
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: {
           brand: brandId,

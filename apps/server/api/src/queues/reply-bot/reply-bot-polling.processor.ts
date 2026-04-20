@@ -10,7 +10,6 @@ import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
-import { Types } from 'mongoose';
 
 export interface ReplyBotPollingJobData {
   organizationId: string;
@@ -75,9 +74,9 @@ export class ReplyBotPollingProcessor extends WorkerHost {
 
       // Fetch credential
       const credential: unknown = await this.credentialsService.findOne({
-        _id: new Types.ObjectId(credentialId),
+        _id: credentialId,
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
+        organization: organizationId,
       });
 
       if (!credential) {

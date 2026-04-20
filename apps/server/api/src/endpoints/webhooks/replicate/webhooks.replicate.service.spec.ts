@@ -4,7 +4,6 @@ import { MicroservicesService } from '@api/services/microservices/microservices.
 import type { ReplicateWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function createMockDeps() {
@@ -62,7 +61,7 @@ describe('ReplicateWebhookService', () => {
   });
 
   it('should fire-and-forget notifyWebhook on every callback', async () => {
-    const metadataId = new Types.ObjectId().toHexString();
+    const metadataId = '507f191e810c19729de860ee';
     const body = makePayload({
       webhook_metadata: { metadataId },
     });
@@ -109,7 +108,7 @@ describe('ReplicateWebhookService', () => {
   });
 
   it('should return early when metadata not found', async () => {
-    const metadataId = new Types.ObjectId().toHexString();
+    const metadataId = '507f191e810c19729de860ee';
     const body = makePayload({ webhook_metadata: { metadataId } });
 
     deps.metadataService.findOne.mockResolvedValue(null);
@@ -120,7 +119,7 @@ describe('ReplicateWebhookService', () => {
   });
 
   it('should store string output as result on succeeded', async () => {
-    const metadataId = new Types.ObjectId().toHexString();
+    const metadataId = '507f191e810c19729de860ee';
     const body = makePayload({
       output: 'https://replicate.delivery/video.mp4',
       status: 'succeeded',
@@ -138,7 +137,7 @@ describe('ReplicateWebhookService', () => {
   });
 
   it('should extract first URL from array output', async () => {
-    const metadataId = new Types.ObjectId().toHexString();
+    const metadataId = '507f191e810c19729de860ee';
     const body = makePayload({
       output: [
         'https://replicate.delivery/img1.png',
@@ -159,7 +158,7 @@ describe('ReplicateWebhookService', () => {
   });
 
   it('should stringify output when not a string or string array', async () => {
-    const metadataId = new Types.ObjectId().toHexString();
+    const metadataId = '507f191e810c19729de860ee';
     const output = { key: 'value' };
     const body = makePayload({
       output,
@@ -178,7 +177,7 @@ describe('ReplicateWebhookService', () => {
   });
 
   it('should store error string on error payload', async () => {
-    const metadataId = new Types.ObjectId().toHexString();
+    const metadataId = '507f191e810c19729de860ee';
     const body = makePayload({
       error: 'NSFW content detected',
       status: 'failed',
@@ -197,7 +196,7 @@ describe('ReplicateWebhookService', () => {
   });
 
   it('should stringify non-string error objects', async () => {
-    const metadataId = new Types.ObjectId().toHexString();
+    const metadataId = '507f191e810c19729de860ee';
     const errorObj = { code: 500, message: 'Internal' };
     const body = makePayload({
       error: errorObj,
@@ -217,7 +216,7 @@ describe('ReplicateWebhookService', () => {
   });
 
   it('should rethrow errors from metadataService', async () => {
-    const metadataId = new Types.ObjectId().toHexString();
+    const metadataId = '507f191e810c19729de860ee';
     const body = makePayload({ webhook_metadata: { metadataId } });
 
     deps.metadataService.findOne.mockRejectedValue(
@@ -231,7 +230,7 @@ describe('ReplicateWebhookService', () => {
   });
 
   it('should not throw when notifyWebhook fails', async () => {
-    const metadataId = new Types.ObjectId().toHexString();
+    const metadataId = '507f191e810c19729de860ee';
     const body = makePayload({
       output: 'https://replicate.delivery/ok.mp4',
       status: 'succeeded',

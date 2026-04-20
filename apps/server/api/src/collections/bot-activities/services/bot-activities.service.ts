@@ -1,17 +1,13 @@
 import { BotActivitiesQueryDto } from '@api/collections/bot-activities/dto/bot-activities-query.dto';
-import {
+import type {
   BotActivity,
-  type BotActivityDocument,
+  BotActivityDocument,
 } from '@api/collections/bot-activities/schemas/bot-activity.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { BotActivityStatus } from '@genfeedai/enums';
-import type { PopulateOption } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Types } from 'mongoose';
 
 export interface BotActivityStats {
   total: number;
@@ -30,22 +26,10 @@ export class BotActivitiesService extends BaseService<
   Partial<BotActivity>
 > {
   constructor(
-    @InjectModel(BotActivity.name, DB_CONNECTIONS.CLOUD)
-    model: AggregatePaginateModel<BotActivityDocument>,
-    logger: LoggerService,
+    public readonly prisma: PrismaService,
+    public readonly logger: LoggerService,
   ) {
-    super(model, logger);
-  }
-
-  create(
-    createDto: Partial<BotActivity>,
-    populate: (string | PopulateOption)[] = [
-      { path: 'organization' },
-      { path: 'replyBotConfig' },
-      { path: 'monitoredAccount' },
-    ],
-  ): Promise<BotActivityDocument> {
-    return super.create(createDto, populate);
+    super(prisma, 'botActivity', logger);
   }
 
   /**
@@ -56,37 +40,39 @@ export class BotActivitiesService extends BaseService<
     brandId: string | undefined,
     query: BotActivitiesQueryDto,
   ): Promise<{ activities: BotActivityDocument[]; total: number }> {
-    const filter: Record<string, unknown> = {
-      ...(brandId ? { brand: new Types.ObjectId(brandId) } : {}),
+    const where: Record<string, unknown> = {
+      ...(brandId ? { brandId } : {}),
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organizationId,
     };
 
     if (query.replyBotConfig) {
-      filter.replyBotConfig = new Types.ObjectId(query.replyBotConfig);
+      where.replyBotConfigId = query.replyBotConfig;
     }
 
     if (query.monitoredAccount) {
-      filter.monitoredAccount = new Types.ObjectId(query.monitoredAccount);
+      where.monitoredAccountId = query.monitoredAccount;
     }
 
     if (query.botType) {
-      filter.botType = query.botType;
+      where.botType = query.botType;
     }
 
     if (query.status) {
-      filter.status = query.status;
+      where.status = query.status;
     }
 
     if (query.fromDate || query.toDate) {
-      filter.createdAt = {};
+      where.createdAt = {};
       if (query.fromDate) {
-        // @ts-expect-error TS18046
-        filter.createdAt.$gte = new Date(query.fromDate);
+        (where.createdAt as Record<string, unknown>).gte = new Date(
+          query.fromDate,
+        );
       }
       if (query.toDate) {
-        // @ts-expect-error TS18046
-        filter.createdAt.$lte = new Date(query.toDate);
+        (where.createdAt as Record<string, unknown>).lte = new Date(
+          query.toDate,
+        );
       }
     }
 
@@ -94,24 +80,16 @@ export class BotActivitiesService extends BaseService<
     const offset = query.offset || 0;
 
     const [activities, total] = await Promise.all([
-      this.model
-        .find(filter)
-        .sort({ createdAt: -1 })
-        .skip(offset)
-        .limit(limit)
-        .populate([
-          { path: 'replyBotConfig', select: 'label type actionType' },
-          {
-            path: 'monitoredAccount',
-            select: 'twitterUsername twitterDisplayName',
-          },
-        ])
-        .lean()
-        .exec(),
-      this.model.countDocuments(filter).exec(),
+      this.delegate.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: offset,
+        take: limit,
+      }) as Promise<BotActivityDocument[]>,
+      this.delegate.count({ where }) as Promise<number>,
     ]);
 
-    return { activities: activities as BotActivityDocument[], total };
+    return { activities, total };
   }
 
   /**
@@ -124,77 +102,58 @@ export class BotActivitiesService extends BaseService<
     fromDate?: Date,
     toDate?: Date,
   ): Promise<BotActivityStats> {
-    const matchStage: Record<string, unknown> = {
-      ...(brandId ? { brand: new Types.ObjectId(brandId) } : {}),
+    const where: Record<string, unknown> = {
+      ...(brandId ? { brandId } : {}),
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organizationId,
     };
 
     if (replyBotConfigId) {
-      matchStage.replyBotConfig = new Types.ObjectId(replyBotConfigId);
+      where.replyBotConfigId = replyBotConfigId;
     }
 
     if (fromDate || toDate) {
-      matchStage.createdAt = {};
+      where.createdAt = {};
       if (fromDate) {
-        // @ts-expect-error TS18046
-        matchStage.createdAt.$gte = fromDate;
+        (where.createdAt as Record<string, unknown>).gte = fromDate;
       }
       if (toDate) {
-        // @ts-expect-error TS18046
-        matchStage.createdAt.$lte = toDate;
+        (where.createdAt as Record<string, unknown>).lte = toDate;
       }
     }
 
-    const result = await this.model.aggregate([
-      { $match: matchStage },
-      {
-        $group: {
-          _id: null,
-          completed: {
-            $sum: {
-              $cond: [{ $eq: ['$status', BotActivityStatus.COMPLETED] }, 1, 0],
-            },
-          },
-          failed: {
-            $sum: {
-              $cond: [{ $eq: ['$status', BotActivityStatus.FAILED] }, 1, 0],
-            },
-          },
-          pending: {
-            $sum: {
-              $cond: [{ $eq: ['$status', BotActivityStatus.PENDING] }, 1, 0],
-            },
-          },
-          skipped: {
-            $sum: {
-              $cond: [{ $eq: ['$status', BotActivityStatus.SKIPPED] }, 1, 0],
-            },
-          },
-          total: { $sum: 1 },
-          totalDms: {
-            $sum: { $cond: ['$dmSent', 1, 0] },
-          },
-          totalReplies: {
-            $sum: { $cond: [{ $ne: ['$replyTweetId', null] }, 1, 0] },
-          },
-        },
-      },
-    ]);
+    const [total, completed, failed, pending, skipped, totalReplies, totalDms] =
+      await Promise.all([
+        this.delegate.count({ where }) as Promise<number>,
+        this.delegate.count({
+          where: { ...where, status: BotActivityStatus.COMPLETED },
+        }) as Promise<number>,
+        this.delegate.count({
+          where: { ...where, status: BotActivityStatus.FAILED },
+        }) as Promise<number>,
+        this.delegate.count({
+          where: { ...where, status: BotActivityStatus.PENDING },
+        }) as Promise<number>,
+        this.delegate.count({
+          where: { ...where, status: BotActivityStatus.SKIPPED },
+        }) as Promise<number>,
+        this.delegate.count({
+          where: { ...where, replyTweetId: { not: null } },
+        }) as Promise<number>,
+        this.delegate.count({
+          where: { ...where, dmSent: true },
+        }) as Promise<number>,
+      ]);
 
-    if (result.length === 0) {
-      return {
-        completed: 0,
-        failed: 0,
-        pending: 0,
-        skipped: 0,
-        total: 0,
-        totalDms: 0,
-        totalReplies: 0,
-      };
-    }
-
-    return result[0];
+    return {
+      completed,
+      failed,
+      pending,
+      skipped,
+      total,
+      totalDms,
+      totalReplies,
+    };
   }
 
   /**
@@ -271,22 +230,21 @@ export class BotActivitiesService extends BaseService<
     brandId: string | undefined,
     limit: number = 10,
   ): Promise<BotActivityDocument[]> {
-    return this.model
-      .find({
-        ...(brandId ? { brand: new Types.ObjectId(brandId) } : {}),
+    return this.delegate.findMany({
+      where: {
+        ...(brandId ? { brandId } : {}),
         isDeleted: false,
-        replyBotConfig: new Types.ObjectId(configId),
-      })
-      .sort({ createdAt: -1 })
-      .limit(limit)
-      .lean()
-      .exec() as Promise<BotActivityDocument[]>;
+        replyBotConfigId: configId,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    }) as Promise<BotActivityDocument[]>;
   }
 
   /**
    * Update activity status with optional additional data
    */
-  updateStatus(
+  async updateStatus(
     id: string,
     organizationId: string,
     updateData: {
@@ -300,7 +258,7 @@ export class BotActivitiesService extends BaseService<
       completedAt?: Date;
     },
   ): Promise<BotActivityDocument | null> {
-    const update: Partial<BotActivity> = {};
+    const update: Record<string, unknown> = {};
 
     if (updateData.status !== undefined) {
       update.status = updateData.status;
@@ -327,14 +285,17 @@ export class BotActivitiesService extends BaseService<
       update.processedAt = updateData.completedAt;
     }
 
-    return this.model.findOneAndUpdate(
-      {
-        _id: new Types.ObjectId(id),
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-      },
-      { $set: update },
-      { returnDocument: 'after' },
-    );
+    const existing = await this.delegate.findFirst({
+      where: { id, isDeleted: false, organizationId },
+    });
+
+    if (!existing) {
+      return null;
+    }
+
+    return this.delegate.update({
+      where: { id },
+      data: update,
+    }) as Promise<BotActivityDocument>;
   }
 }

@@ -9,7 +9,6 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class ImagesQueryDto extends BaseQueryDto {
   @ApiProperty({
@@ -18,7 +17,7 @@ export class ImagesQueryDto extends BaseQueryDto {
   })
   @IsOptional()
   @IsMongoId()
-  parent?: Types.ObjectId;
+  parent?: string;
 
   @ApiProperty({
     description:
@@ -58,7 +57,7 @@ export class ImagesQueryDto extends BaseQueryDto {
   })
   @IsOptional()
   @IsMongoId()
-  brand?: Types.ObjectId;
+  brand?: string;
 
   @ApiProperty({
     description: 'Filter by reference image ID',
@@ -66,7 +65,7 @@ export class ImagesQueryDto extends BaseQueryDto {
   })
   @IsOptional()
   @IsMongoId()
-  references?: Types.ObjectId;
+  references?: string;
 
   @ApiProperty({
     description: 'Filter by image format',
@@ -98,7 +97,7 @@ export class ImagesQueryDto extends BaseQueryDto {
   })
   @IsOptional()
   @IsMongoId()
-  folder?: Types.ObjectId;
+  folder?: string;
 
   @ApiProperty({
     description: 'Filter by training ID',
@@ -106,7 +105,7 @@ export class ImagesQueryDto extends BaseQueryDto {
   })
   @IsOptional()
   @IsMongoId()
-  training?: Types.ObjectId;
+  training?: string;
 
   @ApiProperty({
     default: false,

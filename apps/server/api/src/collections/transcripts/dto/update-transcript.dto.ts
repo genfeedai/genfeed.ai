@@ -9,7 +9,6 @@ import {
   IsString,
   ValidateNested,
 } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class TranscriptVideoMetadataDto {
   @IsOptional()
@@ -76,7 +75,7 @@ export class UpdateTranscriptDto {
   audioFileUrl?: string;
 
   @IsOptional()
-  article?: Types.ObjectId;
+  article?: string;
 
   @IsOptional()
   @ValidateNested()

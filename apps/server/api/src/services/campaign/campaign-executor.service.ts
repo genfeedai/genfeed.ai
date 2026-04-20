@@ -8,7 +8,7 @@
  * - Tracks success/failure metrics
  */
 
-import { CampaignTargetDocument } from '@api/collections/campaign-targets/schemas/campaign-target.schema';
+import { type CampaignTargetDocument } from '@api/collections/campaign-targets/schemas/campaign-target.schema';
 import { CampaignTargetsService } from '@api/collections/campaign-targets/services/campaign-targets.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import {

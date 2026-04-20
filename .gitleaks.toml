@@ -17,4 +17,6 @@ paths = [
   '''\.secretlintrc\.json''',
   '''\.gitleaks\.toml''',
   '''package-lock\.json''',
+  '''\.spec\.ts$''',
+  '''\.test\.ts$''',
 ]

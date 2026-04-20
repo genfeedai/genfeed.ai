@@ -1,6 +1,6 @@
-import { Model } from '@api/collections/models/schemas/model.schema';
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
 import { ModelCategory, ModelProvider, PricingType } from '@genfeedai/enums';
+import { type Model } from '@genfeedai/prisma';
 
 export class ModelEntity extends BaseEntity implements Model {
   declare readonly label: string;

@@ -1,14 +1,13 @@
-import { AdOptimizationAuditLog } from '@api/collections/ad-optimization-audit-logs/schemas/ad-optimization-audit-log.schema';
 import { AdOptimizationAuditLogsService } from '@api/collections/ad-optimization-audit-logs/services/ad-optimization-audit-logs.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { type AdOptimizationAuditLog } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('AdOptimizationAuditLogsService', () => {
-  const orgId = new Types.ObjectId().toString();
+  const orgId = 'test-object-id'.toString();
 
   let service: AdOptimizationAuditLogsService;
   let auditLogModel: {
@@ -44,13 +43,7 @@ describe('AdOptimizationAuditLogsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AdOptimizationAuditLogsService,
-        {
-          provide: getModelToken(
-            AdOptimizationAuditLog.name,
-            DB_CONNECTIONS.CLOUD,
-          ),
-          useValue: modelMock,
-        },
+        { provide: PrismaService, useValue: modelMock },
         {
           provide: LoggerService,
           useValue: logger,
@@ -59,9 +52,7 @@ describe('AdOptimizationAuditLogsService', () => {
     }).compile();
 
     service = module.get(AdOptimizationAuditLogsService);
-    auditLogModel = module.get(
-      getModelToken(AdOptimizationAuditLog.name, DB_CONNECTIONS.CLOUD),
-    );
+    auditLogModel = module.get(PrismaService);
   });
 
   afterEach(() => {
@@ -78,7 +69,7 @@ describe('AdOptimizationAuditLogsService', () => {
         runId: 'run_001',
       } as Partial<AdOptimizationAuditLog>;
 
-      const createdDoc = { _id: new Types.ObjectId(), runId: 'run_001' };
+      const createdDoc = { _id: 'test-object-id', runId: 'run_001' };
       auditLogModel.create.mockResolvedValue(createdDoc);
 
       const result = await service.create(data);
@@ -89,7 +80,7 @@ describe('AdOptimizationAuditLogsService', () => {
 
     it('should log success after creation', async () => {
       const data = { runId: 'run_002' } as Partial<AdOptimizationAuditLog>;
-      auditLogModel.create.mockResolvedValue({ _id: new Types.ObjectId() });
+      auditLogModel.create.mockResolvedValue({ _id: 'test-object-id' });
 
       await service.create(data);
 
@@ -118,14 +109,14 @@ describe('AdOptimizationAuditLogsService', () => {
 
   describe('findByOrganization', () => {
     it('should query with isDeleted:false and org ObjectId, sorted by runDate desc', async () => {
-      const mockDocs = [{ _id: new Types.ObjectId(), runId: 'run_1' }];
+      const mockDocs = [{ _id: 'test-object-id', runId: 'run_1' }];
       auditLogModel.find.mockReturnValue(buildFindChain(mockDocs));
 
       const result = await service.findByOrganization(orgId);
 
       expect(auditLogModel.find).toHaveBeenCalledWith({
         isDeleted: false,
-        organization: expect.any(Types.ObjectId),
+        organization: expect.any(string),
       });
       expect(result).toEqual(mockDocs);
     });

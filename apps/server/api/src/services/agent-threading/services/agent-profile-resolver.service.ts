@@ -2,7 +2,6 @@ import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
 import { getAgentTypeConfig } from '@api/services/agent-orchestrator/constants/agent-type-config.constant';
 import type { AgentType } from '@genfeedai/enums';
 import { Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 export interface AgentProfileResolutionContext {
   agentType?: AgentType;
@@ -12,14 +11,14 @@ export interface AgentProfileResolutionContext {
 
 export interface ResolvedAgentProfileSnapshot {
   agentType?: string;
-  campaign?: Types.ObjectId;
+  campaign?: string;
   enabledTools: string[];
   hooks: Record<string, unknown>;
   memoryPolicy: Record<string, unknown>;
   outputRules: Record<string, unknown>;
   promptFragments: string[];
   routeKey: string;
-  strategy?: Types.ObjectId;
+  strategy?: string;
 }
 
 @Injectable()

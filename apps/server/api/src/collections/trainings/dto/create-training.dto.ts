@@ -8,29 +8,28 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class CreateTrainingDto {
   // @IsMongoId()
   // @IsNotEmpty()
   // @ApiProperty({ required: true })
-  // readonly organization!: Types.ObjectId;
+  // readonly organization!: string;
 
   // @IsMongoId()
   // @IsNotEmpty()
   // @ApiProperty({ required: true })
-  // readonly brand!: Types.ObjectId;
+  // readonly brand!: string;
 
   // @ApiProperty({ required: true })
   // @IsString()
   // @IsNotEmpty()
-  // readonly user!: Types.ObjectId;
+  // readonly user!: string;
 
   @ApiProperty({ description: 'Array of source ObjectIds', required: false })
   @IsOptional()
   @IsArray()
   @IsMongoId({ each: true })
-  readonly sources?: Types.ObjectId[];
+  readonly sources?: string[];
 
   @ApiProperty({ required: true })
   @IsString()

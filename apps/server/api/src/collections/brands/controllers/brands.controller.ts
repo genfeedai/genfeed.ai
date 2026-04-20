@@ -63,7 +63,6 @@ import {
 } from '@nestjs/common';
 import { REQUEST } from '@nestjs/core';
 import type { Request } from 'express';
-import { type PipelineStage, Types } from 'mongoose';
 
 @AutoSwagger()
 @Controller('brands')
@@ -91,7 +90,7 @@ export class BrandsController extends BaseCRUDController<
     public readonly analyticsAggregationService: AnalyticsAggregationService,
     public readonly loggerService: LoggerService,
   ) {
-    super(loggerService, brandsService as unknown, BrandSerializer, Brand.name);
+    super(loggerService, brandsService as unknown, BrandSerializer, 'Brand');
   }
 
   /**
@@ -105,10 +104,10 @@ export class BrandsController extends BaseCRUDController<
     const publicMetadata = getPublicMetadata(user);
 
     const brand = await this.brandsService.findOne({
-      _id: new Types.ObjectId(brandId),
+      _id: brandId,
       $or: [
-        { user: new Types.ObjectId(publicMetadata.user) },
-        { organization: new Types.ObjectId(publicMetadata.organization) },
+        { user: publicMetadata.user },
+        { organization: publicMetadata.organization },
       ],
       isDeleted: false,
     });
@@ -187,13 +186,13 @@ export class BrandsController extends BaseCRUDController<
   public buildFindAllPipeline(
     user: User,
     query: BaseQueryDto,
-  ): PipelineStage[] {
+  ): Record<string, unknown>[] {
     const publicMetadata = getPublicMetadata(user);
     return [
       {
         $match: {
           isDeleted: query.isDeleted ?? false,
-          user: new Types.ObjectId(publicMetadata.user),
+          user: publicMetadata.user,
         },
       },
       // Lookup brand assets (logo, banner, references, credentials)
@@ -242,8 +241,8 @@ export class BrandsController extends BaseCRUDController<
     const brand = await this.brandsService.findOneBySlug({
       slug,
       $or: [
-        { user: new Types.ObjectId(publicMetadata.user) },
-        { organization: new Types.ObjectId(publicMetadata.organization) },
+        { user: publicMetadata.user },
+        { organization: publicMetadata.organization },
       ],
       isDeleted: false,
     });

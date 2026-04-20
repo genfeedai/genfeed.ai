@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
-import { EditorProjectDocument } from '@api/collections/editor-projects/schemas/editor-project.schema';
+import { type EditorProjectDocument } from '@api/collections/editor-projects/schemas/editor-project.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { ConfigService } from '@api/config/config.service';
@@ -27,7 +27,6 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 interface RenderResult {
   jobId: string;
@@ -66,8 +65,8 @@ export class EditorRenderService {
           category: IngredientCategory.VIDEO,
           extension: MetadataExtension.MP4,
           height: renderParams.height,
-          organization: new Types.ObjectId(orgId),
-          parent: new Types.ObjectId(renderParams.videoId),
+          organizationId: orgId,
+          parentId: renderParams.videoId,
           status: IngredientStatus.PROCESSING,
           width: renderParams.width,
         });
@@ -169,10 +168,10 @@ export class EditorRenderService {
 
     // Validate source video ownership
     const video = await this.ingredientsService.findOne({
-      _id: new Types.ObjectId(videoId),
+      id: videoId,
       category: IngredientCategory.VIDEO,
       isDeleted: false,
-      organization: new Types.ObjectId(orgId),
+      organizationId: orgId,
     });
 
     if (!video) {
@@ -237,9 +236,7 @@ export class EditorRenderService {
     }
 
     return {
-      brand: video.brand
-        ? new Types.ObjectId(video.brand.toString())
-        : undefined,
+      brandId: video.brand ? video.brand.toString() : undefined,
       hasTextOverlay,
       height,
       jobParams,

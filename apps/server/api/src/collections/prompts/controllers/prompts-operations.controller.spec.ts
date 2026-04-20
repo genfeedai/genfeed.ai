@@ -36,7 +36,6 @@ import { PromptCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('PromptsOperationsController', () => {
   let controller: PromptsOperationsController;
@@ -51,19 +50,19 @@ describe('PromptsOperationsController', () => {
   } as unknown as User;
 
   const mockPrompt = {
-    _id: new Types.ObjectId('507f1f77bcf86cd799439014'),
+    _id: '507f1f77bcf86cd799439014',
     original: 'Test prompt',
     status: 'completed',
   };
 
   const mockServices = {
     activitiesService: {
-      create: vi.fn().mockResolvedValue({ _id: new Types.ObjectId() }),
+      create: vi.fn().mockResolvedValue({ _id: '507f191e810c19729de860ee' }),
       patch: vi.fn().mockResolvedValue({}),
     },
     brandsService: {
       findOne: vi.fn().mockResolvedValue({
-        _id: new Types.ObjectId('507f1f77bcf86cd799439013'),
+        _id: '507f1f77bcf86cd799439013',
       }),
     },
     configService: {},

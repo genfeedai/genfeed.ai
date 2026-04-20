@@ -1,13 +1,11 @@
-import { AdPerformance } from '@api/collections/ad-performance/schemas/ad-performance.schema';
-import { ContentPerformance } from '@api/collections/content-performance/schemas/content-performance.schema';
 import { CreativePatternsService } from '@api/collections/creative-patterns/creative-patterns.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { PatternExtractionProcessor } from '@api/queues/pattern-extraction/pattern-extraction.processor';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { type AdPerformance, type ContentPerformance } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Job } from 'bullmq';
-import { Types } from 'mongoose';
 
 const makeLeanExec = (data: unknown[]) => ({
   exec: vi.fn().mockResolvedValue(data),
@@ -43,12 +41,8 @@ describe('PatternExtractionProcessor', () => {
       providers: [
         PatternExtractionProcessor,
         {
-          provide: getModelToken(AdPerformance.name, DB_CONNECTIONS.CLOUD),
-          useValue: adPerformanceModel,
-        },
-        {
-          provide: getModelToken(ContentPerformance.name, DB_CONNECTIONS.CLOUD),
-          useValue: contentPerformanceModel,
+          provide: PrismaService,
+          useValue: { ...adPerformanceModel, ...contentPerformanceModel },
         },
         { provide: CreativePatternsService, useValue: creativePatternsService },
         { provide: LoggerService, useValue: logger },
@@ -94,7 +88,7 @@ describe('PatternExtractionProcessor', () => {
 
   it('upserts public pattern when 5+ distinct orgs produce same classified type', async () => {
     const orgIds = Array.from({ length: 5 }, () =>
-      new Types.ObjectId().toString(),
+      '507f191e810c19729de860ee'.toString(),
     );
     const adRecords = orgIds.map((id) => ({
       adPlatform: 'tiktok',
@@ -115,7 +109,7 @@ describe('PatternExtractionProcessor', () => {
   });
 
   it('upserts private pattern for single-org data', async () => {
-    const singleOrg = new Types.ObjectId().toString();
+    const singleOrg = '507f191e810c19729de860ee'.toString();
     const adRecords = [
       {
         adPlatform: 'instagram',
@@ -137,7 +131,7 @@ describe('PatternExtractionProcessor', () => {
 
   it('does NOT upsert pattern when distinct org count is between 2 and 4', async () => {
     const orgIds = Array.from({ length: 3 }, () =>
-      new Types.ObjectId().toString(),
+      '507f191e810c19729de860ee'.toString(),
     );
     const adRecords = orgIds.map((id) => ({
       adPlatform: 'facebook',
@@ -156,7 +150,7 @@ describe('PatternExtractionProcessor', () => {
 
   it('logs error but does not rethrow when upsertPattern fails for a single pattern', async () => {
     const orgIds = Array.from({ length: 5 }, () =>
-      new Types.ObjectId().toString(),
+      '507f191e810c19729de860ee'.toString(),
     );
     const adRecords = orgIds.map((id) => ({
       adPlatform: 'tiktok',

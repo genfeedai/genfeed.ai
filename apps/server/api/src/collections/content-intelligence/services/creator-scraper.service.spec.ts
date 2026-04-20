@@ -6,7 +6,6 @@ import {
   ContentIntelligencePlatform,
   CreatorAnalysisStatus,
 } from '@genfeedai/enums';
-import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockApifyService = {
@@ -33,7 +32,7 @@ function makeService() {
   );
 }
 
-const creatorId = new Types.ObjectId();
+const creatorId = 'test-object-id';
 
 function makeCreator(platform: ContentIntelligencePlatform) {
   return {

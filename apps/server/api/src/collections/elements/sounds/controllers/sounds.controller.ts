@@ -1,6 +1,5 @@
 import { CreateElementSoundDto } from '@api/collections/elements/sounds/dto/create-sound.dto';
 import { UpdateElementSoundDto } from '@api/collections/elements/sounds/dto/update-sound.dto';
-import { ElementSound } from '@api/collections/elements/sounds/schemas/sound.schema';
 import { ElementsSoundsService } from '@api/collections/elements/sounds/services/sounds.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -19,6 +18,7 @@ import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
 import type { User } from '@clerk/backend';
 import { MemberRole } from '@genfeedai/enums';
 import type { PopulateOption } from '@genfeedai/interfaces';
+import { type ElementSound } from '@genfeedai/prisma';
 import { SoundSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -35,7 +35,6 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
-import { type PipelineStage, Types } from 'mongoose';
 
 @Controller('elements/sounds')
 @ApiTags('sounds')
@@ -56,7 +55,7 @@ export class ElementsSoundsController extends BaseCRUDController<
       loggerService,
       soundsService as unknown,
       SoundSerializer,
-      ElementSound.name,
+      'ElementSound',
     );
   }
 
@@ -115,7 +114,7 @@ export class ElementsSoundsController extends BaseCRUDController<
   public buildFindAllPipeline(
     user: User,
     query: BaseQueryDto,
-  ): PipelineStage[] {
+  ): Record<string, unknown>[] {
     const publicMetadata = getPublicMetadata(user);
     const adminFilter = CollectionFilterUtil.buildAdminFilter(
       publicMetadata,
@@ -129,12 +128,12 @@ export class ElementsSoundsController extends BaseCRUDController<
 
     if (publicMetadata.organization) {
       orConditions.push({
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
       });
     }
 
     if (publicMetadata.user) {
-      orConditions.push({ user: new Types.ObjectId(publicMetadata.user) });
+      orConditions.push({ user: publicMetadata.user });
     }
 
     return PipelineBuilder.create()
@@ -163,7 +162,7 @@ export class ElementsSoundsController extends BaseCRUDController<
 
     // Add organization if not super admin
     if (!getIsSuperAdmin(user) && publicMetadata.organization) {
-      enriched.organization = new Types.ObjectId(publicMetadata.organization);
+      enriched.organization = publicMetadata.organization;
     }
 
     // Sounds don't have a user field
@@ -180,7 +179,7 @@ export class ElementsSoundsController extends BaseCRUDController<
 
     // Only add organization if it's being updated
     if (enriched.organization) {
-      enriched.organization = new Types.ObjectId(enriched.organization);
+      enriched.organization = enriched.organization;
     }
 
     // Sounds don't have a user field

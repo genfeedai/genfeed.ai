@@ -1,18 +1,17 @@
 import { SubscriptionsService } from '@api/collections/subscriptions/services/subscriptions.service';
 import { ConfigService } from '@api/config/config.service';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
+import { PrismaModule } from '@api/shared/modules/prisma/prisma.module';
 import { CreditTransactionsService } from '@credits/services/credit-transactions.service';
 import { CustomersService } from '@customers/services/customers.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { INestApplication } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 import { MongoIdFactory } from '@test/factories/base.factory';
 import {
   mockConfigService,
   mockLoggerService,
 } from '@test/mocks/service.mocks';
-import { MongoMemoryServer } from 'mongodb-memory-server';
 
 // Allow skipping this file when MongoDB memory server cannot run
 // Set SKIP_MONGODB_MEMORY=true to skip all tests in this file
@@ -33,7 +32,7 @@ describe('Payment Processing Integration Tests (Stripe)', () => {
 
   let app: INestApplication;
   let moduleRef: TestingModule;
-  let mongoServer: MongoMemoryServer;
+
   let stripeService: StripeService;
   let subscriptionsService: SubscriptionsService;
   let customersService: CustomersService;
@@ -41,9 +40,6 @@ describe('Payment Processing Integration Tests (Stripe)', () => {
   let mockStripe: any;
 
   beforeAll(async () => {
-    mongoServer = await MongoMemoryServer.create();
-    const mongoUri = mongoServer.getUri();
-
     // Create mock Stripe client
     mockStripe = {
       charges: {
@@ -110,7 +106,7 @@ describe('Payment Processing Integration Tests (Stripe)', () => {
     };
 
     moduleRef = await Test.createTestingModule({
-      imports: [MongooseModule.forRoot(mongoUri)],
+      imports: [PrismaModule],
       providers: [
         {
           provide: StripeService,
@@ -212,15 +208,6 @@ describe('Payment Processing Integration Tests (Stripe)', () => {
       }
     } catch {
       // Ignore close errors
-    }
-
-    try {
-      if (mongoServer) {
-        await mongoServer.stop({ doCleanup: true, force: true });
-        mongoServer = null as any;
-      }
-    } catch {
-      // Ignore stop errors
     }
 
     // Clear mock references

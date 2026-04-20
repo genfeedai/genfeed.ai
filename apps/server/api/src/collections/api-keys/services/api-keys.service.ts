@@ -1,20 +1,14 @@
 import * as crypto from 'node:crypto';
 import { CreateApiKeyDto } from '@api/collections/api-keys/dto/create-api-key.dto';
 import { UpdateApiKeyDto } from '@api/collections/api-keys/dto/update-api-key.dto';
-import {
-  ApiKey,
-  type ApiKeyDocument,
-} from '@api/collections/api-keys/schemas/api-key.schema';
+import type { ApiKeyDocument } from '@api/collections/api-keys/schemas/api-key.schema';
 import { ConfigService } from '@api/config/config.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
 import * as bcrypt from 'bcrypt';
-import { Types } from 'mongoose';
 
 @Injectable()
 export class ApiKeysService extends BaseService<
@@ -25,13 +19,12 @@ export class ApiKeysService extends BaseService<
   private static readonly RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute sliding window
 
   constructor(
-    @InjectModel(ApiKey.name, DB_CONNECTIONS.AUTH)
-    model: AggregatePaginateModel<ApiKeyDocument>,
-    logger: LoggerService,
+    public readonly prisma: PrismaService,
+    public readonly logger: LoggerService,
     private readonly configService: ConfigService,
     private readonly redisService: RedisService,
   ) {
-    super(model, logger);
+    super(prisma, 'apiKey', logger);
   }
 
   /**
@@ -73,8 +66,8 @@ export class ApiKeysService extends BaseService<
    */
   async createWithKey(
     createApiKeyDto: CreateApiKeyDto & {
-      user: Types.ObjectId;
-      organization: Types.ObjectId;
+      userId: string;
+      organizationId: string;
     },
   ): Promise<{ apiKey: ApiKeyDocument; plainKey: string }> {
     const plainKey = this.generateApiKey();
@@ -110,50 +103,45 @@ export class ApiKeysService extends BaseService<
    */
   async findByKey(plainKey: string): Promise<ApiKeyDocument | null> {
     const fingerprint = this.computeFingerprint(plainKey);
-    const activeFilter = {
-      $or: [{ expiresAt: null }, { expiresAt: { $gt: new Date() } }],
-      isRevoked: false,
-    };
+    const now = new Date();
 
     // Fast path: query by indexed fingerprint
-    const fingerprintMatches = await this.findAll(
-      [{ $match: { ...activeFilter, keyFingerprint: fingerprint } }],
-      { limit: 10, page: 1 },
-    );
+    const fingerprintMatches = await this.delegate.findMany({
+      where: {
+        isRevoked: false,
+        keyFingerprint: fingerprint,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+      },
+      take: 10,
+    });
 
-    for (const key of fingerprintMatches.docs) {
+    for (const key of fingerprintMatches as ApiKeyDocument[]) {
       const isValid = await this.verifyApiKey(plainKey, key.key);
       if (isValid) {
-        await this.updateLastUsed(key._id.toString());
+        await this.updateLastUsed(key.id);
         return key;
       }
     }
 
     // Legacy fallback: scan all active keys without a fingerprint
-    const legacyMatches = await this.findAll(
-      [
-        {
-          $match: {
-            ...activeFilter,
-            $or: [
-              { keyFingerprint: { $exists: false } },
-              { keyFingerprint: null },
-            ],
-          },
-        },
-      ],
-      { limit: 200, page: 1 },
-    );
+    const legacyMatches = await this.delegate.findMany({
+      where: {
+        isRevoked: false,
+        keyFingerprint: null,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+      },
+      take: 200,
+    });
 
-    for (const key of legacyMatches.docs) {
+    for (const key of legacyMatches as ApiKeyDocument[]) {
       const isValid = await this.verifyApiKey(plainKey, key.key);
       if (isValid) {
         // Backfill fingerprint so future lookups are fast
-        await this.patchAll(
-          { _id: key._id },
-          { $set: { keyFingerprint: fingerprint } },
-        );
-        await this.updateLastUsed(key._id.toString());
+        await this.delegate.update({
+          where: { id: key.id },
+          data: { keyFingerprint: fingerprint },
+        });
+        await this.updateLastUsed(key.id);
         return key;
       }
     }
@@ -165,13 +153,14 @@ export class ApiKeysService extends BaseService<
    * Update last used timestamp and increment usage count
    */
   async updateLastUsed(keyId: string, ip?: string): Promise<void> {
-    await this.patchAll(
-      { _id: new Types.ObjectId(keyId) },
-      {
-        $inc: { usageCount: 1 },
-        $set: { lastUsedAt: new Date(), lastUsedIp: ip },
+    await this.delegate.update({
+      where: { id: keyId },
+      data: {
+        usageCount: { increment: 1 },
+        lastUsedAt: new Date(),
+        lastUsedIp: ip,
       },
-    );
+    });
   }
 
   /**
@@ -220,7 +209,7 @@ export class ApiKeysService extends BaseService<
       return true;
     }
 
-    const key = `rateLimit:${(apiKey._id as Types.ObjectId).toString()}`;
+    const key = `rateLimit:${apiKey.id}`;
     const now = Date.now();
     const windowStart = now - ApiKeysService.RATE_LIMIT_WINDOW_MS;
 
@@ -233,7 +222,7 @@ export class ApiKeysService extends BaseService<
 
       if (requestCount >= apiKey.rateLimit) {
         this.logger?.warn('API key rate limit exceeded', {
-          apiKeyId: (apiKey._id as Types.ObjectId).toString(),
+          apiKeyId: apiKey.id,
           limit: apiKey.rateLimit,
           requestCount,
         });
@@ -254,7 +243,7 @@ export class ApiKeysService extends BaseService<
       return true;
     } catch (error: unknown) {
       this.logger?.error('Rate limit check failed', {
-        apiKeyId: (apiKey._id as Types.ObjectId).toString(),
+        apiKeyId: apiKey.id,
         error: (error as Error)?.message,
       });
       // On Redis errors, allow the request to avoid blocking users

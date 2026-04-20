@@ -8,11 +8,10 @@ import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpException, HttpStatus } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 type IntegrationBrand = {
-  _id: Types.ObjectId;
-  organization: Types.ObjectId;
+  _id: string;
+  organization: string;
 };
 
 /**
@@ -122,9 +121,9 @@ export abstract class BaseIntegrationController {
     organizationId: string,
   ): Promise<IntegrationBrand> {
     const brand = await this.brandsService.findOne({
-      _id: new Types.ObjectId(brandId),
+      _id: brandId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
     });
 
     if (!brand) {
@@ -148,12 +147,12 @@ export abstract class BaseIntegrationController {
    * @returns The credential (existing or newly created)
    */
   protected async getOrCreateCredential(
-    brand: { _id: Types.ObjectId; organization: Types.ObjectId },
+    brand: { _id: string; organization: string },
     initialData: Record<string, unknown> = {},
   ) {
     const existingCredential = await this.credentialsService.findOne({
-      brand: new Types.ObjectId(brand._id),
-      organization: new Types.ObjectId(brand.organization),
+      brand: brand._id,
+      organization: brand.organization,
       platform: this.platform,
     });
 
@@ -167,8 +166,8 @@ export abstract class BaseIntegrationController {
     });
 
     return this.credentialsService.findOne({
-      brand: new Types.ObjectId(brand._id),
-      organization: new Types.ObjectId(brand.organization),
+      brand: brand._id,
+      organization: brand.organization,
       platform: this.platform,
     });
   }
@@ -233,12 +232,12 @@ export abstract class BaseIntegrationController {
   /**
    * Update credential with verified OAuth tokens
    *
-   * @param credentialId - The credential ID
+   * @param credentialId - The credential string ID
    * @param verifyResult - OAuth verification result
    * @returns Updated credential
    */
   protected updateCredentialWithTokens(
-    credentialId: Types.ObjectId,
+    credentialId: string,
     verifyResult: OAuthVerifyResult,
   ) {
     return this.credentialsService.patch(credentialId, {

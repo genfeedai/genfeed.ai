@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { CreateAgentGoalDto } from '@api/collections/agent-goals/dto/create-agent-goal.dto';
 import { UpdateAgentGoalDto } from '@api/collections/agent-goals/dto/update-agent-goal.dto';
 import { AgentGoalsService } from '@api/collections/agent-goals/services/agent-goals.service';
@@ -93,7 +94,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Inject, Injectable, Optional } from '@nestjs/common';
 import { Effect } from 'effect';
-import { Types } from 'mongoose';
 import { firstValueFrom } from 'rxjs';
 
 interface ToolExecutionContext {
@@ -646,7 +646,7 @@ export class AgentToolExecutorService {
     const workflow = await this.workflowsService.findOne({
       _id: workflowId,
       isDeleted: false,
-      organization: new Types.ObjectId(ctx.organizationId),
+      organization: ctx.organizationId,
     });
 
     if (!workflow) {
@@ -664,10 +664,7 @@ export class AgentToolExecutorService {
         : 'UTC';
 
     await this.workflowsService.patch(workflowId, {
-      brands:
-        brand && brand._id
-          ? [new Types.ObjectId(String(brand._id))]
-          : workflow.brands,
+      brands: brand && brand._id ? [String(brand._id)] : workflow.brands,
       label:
         typeof params.label === 'string' && params.label.trim()
           ? params.label.trim()
@@ -993,13 +990,9 @@ export class AgentToolExecutorService {
     }
 
     const brandId =
-      typeof params.brandId === 'string' &&
-      Types.ObjectId.isValid(params.brandId)
-        ? params.brandId
-        : undefined;
+      typeof params.brandId === 'string' && true ? params.brandId : undefined;
     const campaignId =
-      typeof params.campaignId === 'string' &&
-      Types.ObjectId.isValid(params.campaignId)
+      typeof params.campaignId === 'string' && true
         ? params.campaignId
         : undefined;
     const summary =
@@ -1092,7 +1085,7 @@ export class AgentToolExecutorService {
     const existing = await this.brandsService.findOne({
       handle: normalizedHandle,
       isDeleted: false,
-      organization: new Types.ObjectId(ctx.organizationId),
+      organization: ctx.organizationId,
     });
 
     if (existing) {
@@ -1114,7 +1107,7 @@ export class AgentToolExecutorService {
       handle: normalizedHandle,
       isSelected: false,
       label: name,
-      organization: new Types.ObjectId(ctx.organizationId),
+      organization: ctx.organizationId,
       primaryColor: '#000000',
       secondaryColor: '#FFFFFF',
       text: (params.niche as string) || undefined,
@@ -1161,10 +1154,7 @@ export class AgentToolExecutorService {
 
     const dto: CreateAgentGoalDto = {
       brand:
-        typeof params.brandId === 'string' &&
-        Types.ObjectId.isValid(params.brandId)
-          ? new Types.ObjectId(params.brandId)
-          : undefined,
+        typeof params.brandId === 'string' && true ? params.brandId : undefined,
       description:
         typeof params.description === 'string'
           ? params.description.trim()
@@ -1217,7 +1207,7 @@ export class AgentToolExecutorService {
     }
 
     const goalId = String(params.goalId || '').trim();
-    if (!Types.ObjectId.isValid(goalId)) {
+    if (!goalId) {
       return {
         creditsUsed: 0,
         error: 'check_goal_progress requires a valid goalId.',
@@ -1257,7 +1247,7 @@ export class AgentToolExecutorService {
     }
 
     const goalId = String(params.goalId || '').trim();
-    if (!Types.ObjectId.isValid(goalId)) {
+    if (!goalId) {
       return {
         creditsUsed: 0,
         error: 'update_goal requires a valid goalId.',
@@ -1312,7 +1302,7 @@ export class AgentToolExecutorService {
   private async checkOnboardingStatus(
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    const organizationObjectId = new Types.ObjectId(ctx.organizationId);
+    const organizationObjectId = ctx.organizationId;
 
     const [brand, credential, firstImage, firstVideo, publishedPost, settings] =
       await Promise.all([
@@ -1537,7 +1527,7 @@ export class AgentToolExecutorService {
 
     const settings = await this.organizationSettingsService.findOne({
       isDeleted: false,
-      organization: new Types.ObjectId(ctx.organizationId),
+      organization: ctx.organizationId,
     });
 
     if (!settings?._id) {
@@ -1623,7 +1613,7 @@ export class AgentToolExecutorService {
     );
     const currentSettings = await this.organizationSettingsService.findOne({
       isDeleted: false,
-      organization: new Types.ObjectId(ctx.organizationId),
+      organization: ctx.organizationId,
     });
 
     if (currentSettings?._id) {
@@ -2019,24 +2009,23 @@ export class AgentToolExecutorService {
     ctx: ToolExecutionContext,
   ): Promise<Record<string, unknown> | null> {
     const explicitBrandId =
-      typeof params.brandId === 'string' &&
-      Types.ObjectId.isValid(params.brandId)
+      typeof params.brandId === 'string' && true
         ? params.brandId
-        : typeof ctx.brandId === 'string' && Types.ObjectId.isValid(ctx.brandId)
+        : typeof ctx.brandId === 'string' && true
           ? ctx.brandId
           : null;
 
     if (explicitBrandId) {
       return this.brandsService.findOne({
-        _id: new Types.ObjectId(explicitBrandId),
+        _id: explicitBrandId,
         isDeleted: false,
-        organization: new Types.ObjectId(ctx.organizationId),
+        organization: ctx.organizationId,
       });
     }
 
     return this.brandsService.findOne({
       isDeleted: false,
-      organization: new Types.ObjectId(ctx.organizationId),
+      organization: ctx.organizationId,
     });
   }
 
@@ -2252,7 +2241,7 @@ export class AgentToolExecutorService {
         {
           $match: {
             isDeleted: false,
-            organization: new Types.ObjectId(ctx.organizationId),
+            organization: ctx.organizationId,
           },
         },
         { $limit: 50 },
@@ -2288,8 +2277,8 @@ export class AgentToolExecutorService {
     const currentBrand = await this.brandsService.findOne({
       isDeleted: false,
       isSelected: true,
-      organization: new Types.ObjectId(ctx.organizationId),
-      user: new Types.ObjectId(ctx.userId),
+      organization: ctx.organizationId,
+      user: ctx.userId,
     } as never);
 
     if (!currentBrand) {
@@ -2315,14 +2304,11 @@ export class AgentToolExecutorService {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<Record<string, unknown> | null> {
-    if (
-      typeof params.brandId === 'string' &&
-      Types.ObjectId.isValid(params.brandId)
-    ) {
+    if (typeof params.brandId === 'string' && true) {
       const explicitBrand = await this.brandsService.findOne({
-        _id: new Types.ObjectId(params.brandId),
+        _id: params.brandId,
         isDeleted: false,
-        organization: new Types.ObjectId(ctx.organizationId),
+        organization: ctx.organizationId,
       });
 
       if (explicitBrand) {
@@ -2333,8 +2319,8 @@ export class AgentToolExecutorService {
     const currentBrand = await this.brandsService.findOne({
       isDeleted: false,
       isSelected: true,
-      organization: new Types.ObjectId(ctx.organizationId),
-      user: new Types.ObjectId(ctx.userId),
+      organization: ctx.organizationId,
+      user: ctx.userId,
     });
 
     if (currentBrand) {
@@ -2346,7 +2332,7 @@ export class AgentToolExecutorService {
     }
 
     const user = await this.usersService.findOne({
-      _id: new Types.ObjectId(ctx.userId),
+      _id: ctx.userId,
       isDeleted: false,
     });
 
@@ -2357,17 +2343,14 @@ export class AgentToolExecutorService {
     const clerkUser = await this.clerkService.getUser(user.clerkId);
     const fallbackBrandId = clerkUser.publicMetadata?.brand;
 
-    if (
-      typeof fallbackBrandId !== 'string' ||
-      !Types.ObjectId.isValid(fallbackBrandId)
-    ) {
+    if (typeof fallbackBrandId !== 'string' || !fallbackBrandId) {
       return null;
     }
 
     const fallbackBrand = await this.brandsService.findOne({
-      _id: new Types.ObjectId(fallbackBrandId),
+      _id: fallbackBrandId,
       isDeleted: false,
-      organization: new Types.ObjectId(ctx.organizationId),
+      organization: ctx.organizationId,
     });
 
     return fallbackBrand as unknown as Record<string, unknown> | null;
@@ -2705,14 +2688,14 @@ export class AgentToolExecutorService {
       return null;
     }
 
-    if (!Types.ObjectId.isValid(botId)) {
+    if (!botId) {
       return null;
     }
 
     const bot = await this.botsService.findOne({
-      _id: new Types.ObjectId(botId),
+      _id: botId,
       isDeleted: false,
-      organization: new Types.ObjectId(ctx.organizationId),
+      organization: ctx.organizationId,
     });
 
     if (!bot || !this.isLivestreamBot(bot)) {
@@ -2740,7 +2723,7 @@ export class AgentToolExecutorService {
     const limit = (params.limit as number) || 10;
     const matchStage: Record<string, unknown> = {
       isDeleted: false,
-      organization: new Types.ObjectId(ctx.organizationId),
+      organization: ctx.organizationId,
     };
 
     if (params.status) {
@@ -2800,7 +2783,7 @@ export class AgentToolExecutorService {
         {
           $match: {
             isDeleted: false,
-            organization: new Types.ObjectId(ctx.organizationId),
+            organization: ctx.organizationId,
           },
         },
         { $sort: { updatedAt: -1 } },
@@ -2886,14 +2869,14 @@ export class AgentToolExecutorService {
     contentId: string,
     organizationId: string,
   ): Promise<Record<string, unknown> | null> {
-    if (!this.ingredientsService || !Types.ObjectId.isValid(contentId)) {
+    if (!this.ingredientsService || !contentId) {
       return null;
     }
 
     return (await this.ingredientsService.findOne({
-      _id: new Types.ObjectId(contentId),
+      _id: contentId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
     })) as unknown as Record<string, unknown> | null;
   }
 
@@ -2902,19 +2885,15 @@ export class AgentToolExecutorService {
     organizationId: string;
     platforms?: string[];
   }): Promise<Array<Record<string, unknown>>> {
-    if (
-      !this.credentialsService ||
-      !params.brandId ||
-      !Types.ObjectId.isValid(String(params.brandId))
-    ) {
+    if (!this.credentialsService || !params.brandId) {
       return [];
     }
 
     const filter: Record<string, unknown> = {
-      brand: new Types.ObjectId(String(params.brandId)),
+      brand: String(params.brandId),
       isConnected: true,
       isDeleted: false,
-      organization: new Types.ObjectId(params.organizationId),
+      organization: params.organizationId,
     };
 
     if (params.platforms && params.platforms.length > 0) {
@@ -3052,9 +3031,9 @@ export class AgentToolExecutorService {
       [
         {
           $match: {
-            ingredients: new Types.ObjectId(ingredientId),
+            ingredients: ingredientId,
             isDeleted: false,
-            organization: new Types.ObjectId(organizationId),
+            organization: organizationId,
             status: {
               $in: [PostStatus.PUBLIC, PostStatus.PRIVATE, PostStatus.UNLISTED],
             },
@@ -3114,18 +3093,10 @@ export class AgentToolExecutorService {
           : undefined;
 
     if (postId) {
-      if (!Types.ObjectId.isValid(postId)) {
-        return {
-          creditsUsed: 0,
-          error: `Post ${postId} not found`,
-          success: false,
-        };
-      }
-
       const post = await this.postsService.findOne({
-        _id: new Types.ObjectId(postId),
+        _id: postId,
         isDeleted: false,
-        organization: new Types.ObjectId(ctx.organizationId),
+        organization: ctx.organizationId,
       });
 
       if (!post) {
@@ -3328,7 +3299,7 @@ export class AgentToolExecutorService {
       ? await this.credentialsService.findOne({
           isConnected: true,
           isDeleted: false,
-          organization: new Types.ObjectId(ctx.organizationId),
+          organization: ctx.organizationId,
           platform,
         })
       : null;
@@ -4016,33 +3987,31 @@ export class AgentToolExecutorService {
       const missingPlatforms = platforms.filter(
         (platform) => !createdPlatforms.includes(platform),
       );
-      const groupId = new Types.ObjectId().toHexString();
+      const groupId = randomUUID();
       const scheduledDate = scheduledAt ? new Date(scheduledAt) : undefined;
       const postIds: string[] = [];
 
       for (const credential of credentials) {
         const platform = credential.platform as CredentialPlatform;
         const post = await this.postsService.create({
-          ...(ctx.runId ? { agentRunId: new Types.ObjectId(ctx.runId) } : {}),
-          ...(ctx.strategyId
-            ? { agentStrategyId: new Types.ObjectId(ctx.strategyId) }
-            : {}),
-          brand: new Types.ObjectId(String(ingredient.brand)),
+          ...(ctx.runId ? { agentRunId: ctx.runId } : {}),
+          ...(ctx.strategyId ? { agentStrategyId: ctx.strategyId } : {}),
+          brand: String(ingredient.brand),
           category: this.mapIngredientToPostCategory(ingredient.category),
-          credential: new Types.ObjectId(String(credential._id)),
+          credential: String(credential._id),
           description: caption ?? '',
           groupId,
-          ingredients: [new Types.ObjectId(contentId)],
+          ingredients: [contentId],
           label: (caption ?? '').trim().slice(0, 100) || 'Agent publish',
-          organization: new Types.ObjectId(ctx.organizationId),
+          organization: ctx.organizationId,
           platform,
           scheduledDate,
           source: 'agent',
           status: scheduledDate ? PostStatus.SCHEDULED : PostStatus.PENDING,
-          user: new Types.ObjectId(ctx.userId),
+          user: ctx.userId,
         } as never);
 
-        postIds.push(String((post as { _id: Types.ObjectId })._id));
+        postIds.push(String((post as { _id: string })._id));
 
         if (platform === CredentialPlatform.YOUTUBE) {
           await this.postsService.handleYoutubePost(post as never);
@@ -4090,16 +4059,14 @@ export class AgentToolExecutorService {
     }
 
     const post = await this.postsService.create({
-      ...(ctx.runId ? { agentRunId: new Types.ObjectId(ctx.runId) } : {}),
-      ...(ctx.strategyId
-        ? { agentStrategyId: new Types.ObjectId(ctx.strategyId) }
-        : {}),
+      ...(ctx.runId ? { agentRunId: ctx.runId } : {}),
+      ...(ctx.strategyId ? { agentStrategyId: ctx.strategyId } : {}),
       description: params.content as string,
       label: ((params.content as string) || '').substring(0, 100),
-      organization: new Types.ObjectId(ctx.organizationId),
+      organization: ctx.organizationId,
       source: 'agent',
       status: PostStatus.DRAFT,
-      user: new Types.ObjectId(ctx.userId),
+      user: ctx.userId,
     } as never);
 
     return {
@@ -4206,7 +4173,7 @@ export class AgentToolExecutorService {
       };
     }
     const brandId = String(brand._id);
-    const brandObjectId = new Types.ObjectId(brandId);
+    const brandObjectId = brandId;
     const brandLabel = String(brand.label || 'your brand');
     const countLabel = count > 1 ? `${count} ${contentType}s per run` : null;
 
@@ -4734,13 +4701,13 @@ export class AgentToolExecutorService {
 
     const createDto: CreateOutreachCampaignDto = {
       campaignType: campaignType as CampaignType,
-      credential: new Types.ObjectId(String(params.credential)),
+      credential: String(params.credential),
       description: (params.description as string) || '',
       isActive: true,
       label: String(params.label || 'Agent Campaign'),
-      organization: new Types.ObjectId(ctx.organizationId),
+      organization: ctx.organizationId,
       platform: platform as CampaignPlatform,
-      user: new Types.ObjectId(ctx.userId),
+      user: ctx.userId,
     };
 
     const campaign = await this.campaignsService.create(createDto);
@@ -4927,7 +4894,7 @@ export class AgentToolExecutorService {
 
     const botPlatform = this.toBotPlatform(platform);
     const createdBot = await this.botsService.create({
-      brand: new Types.ObjectId(String(brand._id)),
+      brand: String(brand._id),
       category: LIVESTREAM_BOT_CATEGORY,
       description:
         typeof params.description === 'string'
@@ -4965,7 +4932,7 @@ export class AgentToolExecutorService {
             ? params.transcriptEnabled
             : undefined,
       }),
-      organization: new Types.ObjectId(ctx.organizationId),
+      organization: ctx.organizationId,
       platforms: [botPlatform],
       settings: {
         messagesPerMinute: 5,
@@ -4986,9 +4953,8 @@ export class AgentToolExecutorService {
               ? params.botChannelUrl.trim() || undefined
               : undefined,
           credentialId:
-            typeof params.credentialId === 'string' &&
-            Types.ObjectId.isValid(params.credentialId)
-              ? new Types.ObjectId(params.credentialId)
+            typeof params.credentialId === 'string' && true
+              ? params.credentialId
               : undefined,
           isEnabled: true,
           liveChatId:
@@ -5002,7 +4968,7 @@ export class AgentToolExecutorService {
               : undefined,
         },
       ],
-      user: new Types.ObjectId(ctx.userId),
+      user: ctx.userId,
     });
 
     const session =
@@ -5195,7 +5161,7 @@ export class AgentToolExecutorService {
     }
     const brandId = String(brand._id);
     const brandLabel = String(brand.label || 'your brand');
-    const workflowBrandIds = [new Types.ObjectId(brandId)];
+    const workflowBrandIds = [brandId];
 
     let workflowLabel = String(params.label || params.name || '').trim();
     let description =
@@ -5557,12 +5523,10 @@ export class AgentToolExecutorService {
     }
 
     const results = await this.contentGeneratorService.generateContent(
-      new Types.ObjectId(ctx.organizationId),
+      ctx.organizationId,
       {
         additionalContext: params.additionalContext as string[] | undefined,
-        brandId: params.brandId
-          ? new Types.ObjectId(params.brandId as string)
-          : undefined,
+        brandId: params.brandId ? (params.brandId as string) : undefined,
         platform: params.platform as string,
         topic: params.topic as string,
         variationsCount: 1,
@@ -6060,8 +6024,8 @@ export class AgentToolExecutorService {
       const selectedBrand = await this.brandsService.findOne({
         isDeleted: false,
         isSelected: true,
-        organization: new Types.ObjectId(ctx.organizationId),
-        user: new Types.ObjectId(ctx.userId),
+        organization: ctx.organizationId,
+        user: ctx.userId,
       } as never);
 
       if (selectedBrand?._id) {
@@ -6724,7 +6688,7 @@ export class AgentToolExecutorService {
       .replace(/^[:#\s-]+/, '')
       .trim();
 
-    if (!normalized || !Types.ObjectId.isValid(normalized)) {
+    if (!normalized) {
       return undefined;
     }
 
@@ -7028,7 +6992,7 @@ export class AgentToolExecutorService {
           $match: {
             createdAt: { $gte: startDate, $lte: endDate },
             isDeleted: false,
-            organization: new Types.ObjectId(ctx.organizationId),
+            organization: ctx.organizationId,
             status: PostStatus.PUBLIC,
           },
         },
@@ -7105,7 +7069,7 @@ export class AgentToolExecutorService {
               { status: PostStatus.DRAFT },
             ],
             isDeleted: false,
-            organization: new Types.ObjectId(ctx.organizationId),
+            organization: ctx.organizationId,
           },
         },
         { $sort: { createdAt: -1, scheduledDate: 1 } },
@@ -7540,7 +7504,7 @@ export class AgentToolExecutorService {
     };
 
     if (params.brandId) {
-      baseFilters.brand = new Types.ObjectId(params.brandId as string);
+      baseFilters.brand = params.brandId as string;
     }
 
     type AssetDoc = {
@@ -7661,7 +7625,7 @@ export class AgentToolExecutorService {
         {
           $match: {
             isDeleted: false,
-            organization: new Types.ObjectId(ctx.organizationId),
+            organization: ctx.organizationId,
           },
         },
         { $sort: { updatedAt: -1 } },
@@ -7710,8 +7674,8 @@ export class AgentToolExecutorService {
       {
         isDeleted: false,
         isSelected: true,
-        organization: new Types.ObjectId(ctx.organizationId),
-        user: new Types.ObjectId(ctx.userId),
+        organization: ctx.organizationId,
+        user: ctx.userId,
       },
       'none',
     );
@@ -7719,7 +7683,7 @@ export class AgentToolExecutorService {
     const orgSettings = this.organizationSettingsService
       ? await this.organizationSettingsService.findOne({
           isDeleted: false,
-          organization: new Types.ObjectId(ctx.organizationId),
+          organization: ctx.organizationId,
         })
       : null;
 
@@ -7730,7 +7694,7 @@ export class AgentToolExecutorService {
               $match: {
                 isCloned: true,
                 isDeleted: false,
-                organization: new Types.ObjectId(ctx.organizationId),
+                organization: ctx.organizationId,
                 type: 'voice',
               },
             },
@@ -7817,8 +7781,8 @@ export class AgentToolExecutorService {
       {
         isDeleted: false,
         isSelected: true,
-        organization: new Types.ObjectId(ctx.organizationId),
-        user: new Types.ObjectId(ctx.userId),
+        organization: ctx.organizationId,
+        user: ctx.userId,
       },
       'none',
     );
@@ -7848,7 +7812,7 @@ export class AgentToolExecutorService {
         {
           $match: {
             isDeleted: false,
-            organization: new Types.ObjectId(ctx.organizationId),
+            organization: ctx.organizationId,
           },
         },
         { $sort: { updatedAt: -1 } },
@@ -8291,7 +8255,7 @@ export class AgentToolExecutorService {
     try {
       const ingredientId = String(params.ingredientId || '');
 
-      if (!ingredientId || !Types.ObjectId.isValid(ingredientId)) {
+      if (!ingredientId) {
         return {
           creditsUsed: 0,
           error: 'Valid ingredientId is required',
@@ -8309,9 +8273,9 @@ export class AgentToolExecutorService {
 
       // Toggle: if an active vote exists, remove it; otherwise create one
       const existing = await this.votesService.findOne({
-        entity: new Types.ObjectId(ingredientId),
+        entity: ingredientId,
         isDeleted: false,
-        user: new Types.ObjectId(ctx.userId),
+        user: ctx.userId,
       });
 
       if (existing) {
@@ -8334,9 +8298,9 @@ export class AgentToolExecutorService {
 
       const vote = await this.votesService.create(
         new VoteEntity({
-          entity: new Types.ObjectId(ingredientId),
+          entity: ingredientId,
           entityModel: VoteEntityModel.INGREDIENT,
-          user: new Types.ObjectId(ctx.userId),
+          user: ctx.userId,
         }),
       );
 
@@ -8426,7 +8390,7 @@ export class AgentToolExecutorService {
       const ingredientId = String(params.ingredientId || '');
       const variations = Number(params.variations) || 3;
 
-      if (!ingredientId || !Types.ObjectId.isValid(ingredientId)) {
+      if (!ingredientId) {
         return {
           creditsUsed: 0,
           error: 'Valid ingredientId is required',
@@ -8443,9 +8407,9 @@ export class AgentToolExecutorService {
       }
 
       const ingredient = await this.ingredientsService.findOne({
-        _id: new Types.ObjectId(ingredientId),
+        _id: ingredientId,
         isDeleted: false,
-        organization: new Types.ObjectId(ctx.organizationId),
+        organization: ctx.organizationId,
       });
 
       if (!ingredient) {

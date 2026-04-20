@@ -11,12 +11,11 @@ import {
   IsUrl,
   MaxLength,
 } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class CreateSocialMediaPostDto {
   @IsMongoId()
   @ApiProperty({ required: true })
-  readonly brand!: Types.ObjectId;
+  readonly brand!: string;
 
   @IsEnum(Platform)
   @ApiProperty({ enum: Platform, enumName: 'Platform', required: true })

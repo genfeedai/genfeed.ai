@@ -8,7 +8,6 @@ import type {
 import { SkillExecutorService } from '@api/services/skill-executor/skill-executor.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 @Injectable()
 export class ContentGatewayService {
@@ -106,9 +105,9 @@ export class ContentGatewayService {
     brandId: string,
   ): Promise<void> {
     const brand = await this.brandsService.findOne({
-      _id: new Types.ObjectId(brandId),
+      _id: brandId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
     });
 
     if (!brand) {

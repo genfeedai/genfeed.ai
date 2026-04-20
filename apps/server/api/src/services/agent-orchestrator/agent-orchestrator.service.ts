@@ -1,7 +1,7 @@
 import { AgentCampaignsService } from '@api/collections/agent-campaigns/services/agent-campaigns.service';
-import { AgentMemoryDocument } from '@api/collections/agent-memories/schemas/agent-memory.schema';
+import { type AgentMemoryDocument } from '@api/collections/agent-memories/schemas/agent-memory.schema';
 import { AgentMemoriesService } from '@api/collections/agent-memories/services/agent-memories.service';
-import { AgentMessageDocument } from '@api/collections/agent-messages/schemas/agent-message.schema';
+import { type AgentMessageDocument } from '@api/collections/agent-messages/schemas/agent-message.schema';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { CreateAgentRunDto } from '@api/collections/agent-runs/dto/create-agent-run.dto';
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
@@ -78,7 +78,10 @@ import {
   Optional,
 } from '@nestjs/common';
 import { Effect } from 'effect';
-import { Error as MongooseError, Types } from 'mongoose';
+
+const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
+const isValidObjectId = (id: unknown): id is string =>
+  typeof id === 'string' && OBJECT_ID_REGEX.test(id);
 
 const EXPLICIT_WEB_SEARCH_PATTERN =
   /\b(browse|find online|google|internet|look up online|online research|search (?:the )?(?:internet|online|web)|web search)\b/i;
@@ -539,15 +542,14 @@ export class AgentOrchestratorService {
         });
       });
     } catch (error: unknown) {
-      if (error instanceof MongooseError.ValidationError) {
+      if (error instanceof Error && error.name.includes('ValidationError')) {
         this.loggerService.error(
-          `${this.constructorName} Mongoose ValidationError during chat`,
+          `${this.constructorName} ValidationError during chat`,
           {
-            error: error.message,
+            error: (error as Error).message,
             model: request.model,
             organizationId: context.organizationId,
             userId: context.userId,
-            validationErrors: Object.keys(error.errors),
           },
         );
         throw new InternalServerErrorException(
@@ -1259,12 +1261,12 @@ export class AgentOrchestratorService {
         threadId,
       },
       objective: request.content,
-      organization: new Types.ObjectId(context.organizationId),
-      thread: new Types.ObjectId(threadId),
+      organization: context.organizationId,
+      thread: threadId,
       trigger: AgentExecutionTrigger.MANUAL,
-      user: new Types.ObjectId(context.userId),
+      user: context.userId,
     } as unknown as CreateAgentRunDto);
-    const runId = String((createdRun as { _id: Types.ObjectId })._id);
+    const runId = String((createdRun as { _id: string })._id);
     const startedRun = await this.agentRunsService.start(
       runId,
       context.organizationId,
@@ -2055,7 +2057,7 @@ export class AgentOrchestratorService {
     const seedTitle = this.buildSeedThreadTitle(request.content);
 
     const thread = await this.agentThreadsService.create({
-      organization: new Types.ObjectId(context.organizationId),
+      organization: context.organizationId,
       planModeEnabled: request.planModeEnabled ?? false,
       source: request.source || 'agent',
       title: seedTitle,
@@ -2190,11 +2192,11 @@ export class AgentOrchestratorService {
     }
 
     const thread = (await this.agentThreadsService.findOne({
-      _id: new Types.ObjectId(params.threadId),
+      _id: params.threadId,
       isDeleted: false,
-      organization: new Types.ObjectId(params.context.organizationId),
+      organization: params.context.organizationId,
       user: {
-        $in: [new Types.ObjectId(params.context.userId), params.context.userId],
+        $in: [params.context.userId],
       },
     })) as { title?: string } | null;
 
@@ -2216,15 +2218,15 @@ export class AgentOrchestratorService {
     organizationId: string,
     userId: string,
   ): Promise<string | null> {
-    if (!threadId || !Types.ObjectId.isValid(threadId)) {
+    if (!isValidObjectId(threadId)) {
       return null;
     }
 
     const thread = await this.agentThreadsService.findOne({
-      _id: new Types.ObjectId(threadId),
+      _id: threadId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
-      user: { $in: [new Types.ObjectId(userId), userId] },
+      organization: organizationId,
+      user: { $in: [userId] },
     });
 
     return thread ? String(thread._id) : null;
@@ -3465,7 +3467,7 @@ export class AgentOrchestratorService {
     organizationId: string,
   ): Promise<string> {
     const organization = await this.organizationsService.findOne({
-      _id: new Types.ObjectId(organizationId),
+      _id: organizationId,
       isDeleted: false,
     });
     const settings = organization?.settings as
@@ -3497,7 +3499,7 @@ export class AgentOrchestratorService {
       : null;
     const orgSettings = await this.organizationSettingsService.findOne({
       isDeleted: false,
-      organization: new Types.ObjectId(context.organizationId),
+      organization: context.organizationId,
     });
     const { policy, strategyModel } = resolveEffectiveAgentExecutionConfig({
       organizationSettings: orgSettings,
@@ -3509,11 +3511,11 @@ export class AgentOrchestratorService {
       memoryEntryIds?: string[];
     } | null = null;
 
-    if (request.threadId && Types.ObjectId.isValid(request.threadId)) {
+    if (isValidObjectId(request.threadId)) {
       thread = (await this.agentThreadsService.findOne({
-        _id: new Types.ObjectId(request.threadId),
+        _id: request.threadId,
         isDeleted: false,
-        organization: new Types.ObjectId(context.organizationId),
+        organization: context.organizationId,
       })) as { systemPrompt?: string; memoryEntryIds?: string[] } | null;
     }
 

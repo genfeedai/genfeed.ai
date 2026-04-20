@@ -3,7 +3,6 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { ConfigService } from '@api/config/config.service';
 import { AssetCategory, IngredientCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Types } from 'mongoose';
 
 /**
  * Builds a public reference image URL for a given reference id.
@@ -30,7 +29,7 @@ export async function buildReferenceImageUrl(params: {
 
   try {
     const imageIngredient = await ingredientsService.findOne({
-      _id: new Types.ObjectId(referenceId),
+      _id: referenceId,
       category: IngredientCategory.IMAGE,
       isDeleted: false,
     });
@@ -43,7 +42,7 @@ export async function buildReferenceImageUrl(params: {
 
     // If not an image, try to find a VIDEO ingredient and use its thumbnail
     const videoIngredient = await ingredientsService.findOne({
-      _id: new Types.ObjectId(referenceId),
+      _id: referenceId,
       category: IngredientCategory.VIDEO,
       isDeleted: false,
     });
@@ -56,7 +55,7 @@ export async function buildReferenceImageUrl(params: {
     }
 
     const asset = await assetsService.findOne({
-      _id: new Types.ObjectId(referenceId),
+      _id: referenceId,
       category: AssetCategory.REFERENCE,
       isDeleted: false,
     });

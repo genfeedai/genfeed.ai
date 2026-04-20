@@ -9,14 +9,14 @@ import { ActivityEntity } from '@api/collections/activities/entities/activity.en
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { CaptionEntity } from '@api/collections/captions/entities/caption.entity';
 import { CaptionsService } from '@api/collections/captions/services/captions.service';
-import { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import { PostDocument } from '@api/collections/posts/schemas/post.schema';
+import { type PostDocument } from '@api/collections/posts/schemas/post.schema';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { CreateMergedVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import { VideosQueryDto } from '@api/collections/videos/dto/videos-query.dto';
-import { Video } from '@api/collections/videos/schemas/video.schema';
+import type { Video } from '@api/collections/videos/schemas/video.schema';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { ConfigService } from '@api/config/config.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -74,7 +74,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { type PipelineStage, Types } from 'mongoose';
 
 @AutoSwagger()
 @Controller('videos')
@@ -109,11 +108,11 @@ export class VideosRelationshipsController {
     };
 
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: {
           isDeleted,
-          parent: new Types.ObjectId(videoId),
+          parent: videoId,
         },
       },
       {
@@ -141,12 +140,12 @@ export class VideosRelationshipsController {
 
     const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: {
-          ingredient: new Types.ObjectId(videoId),
+          ingredient: videoId,
           isDeleted,
-          user: new Types.ObjectId(publicMetadata.user),
+          user: publicMetadata.user,
         },
       },
       {
@@ -178,11 +177,9 @@ export class VideosRelationshipsController {
     };
 
     const uniqueIds = [...new Set(createMergedVideoDto.ids)];
-    const uniqueObjectIds = uniqueIds.map(
-      (id: string) => new Types.ObjectId(id),
-    );
+    const uniqueObjectIds = uniqueIds.map((id: string) => id);
 
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: {
           _id: { $in: uniqueObjectIds },
@@ -190,7 +187,7 @@ export class VideosRelationshipsController {
           status: {
             $in: [IngredientStatus.GENERATED, IngredientStatus.VALIDATED],
           },
-          user: new Types.ObjectId(publicMetadata.user),
+          user: publicMetadata.user,
         },
       },
       {
@@ -213,32 +210,32 @@ export class VideosRelationshipsController {
       );
     }
 
-    const parentIds = ingredientIds.map((id: string) => new Types.ObjectId(id));
+    const parentIds = ingredientIds.map((id: string) => id);
 
     const { ingredientData, metadataData } =
       await this.sharedService.saveDocuments(user, {
-        brand: new Types.ObjectId(publicMetadata.brand),
+        brand: publicMetadata.brand,
         category: IngredientCategory.VIDEO,
         extension: MetadataExtension.MP4,
         order: 1,
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
         sources: parentIds,
         status: IngredientStatus.PROCESSING,
       });
 
-    const ingredientId = (ingredientData._id as Types.ObjectId).toHexString();
+    const ingredientId = String(ingredientData._id);
     const websocketURL = WebSocketPaths.video(ingredientId);
 
     // Create activity to track merge progress
     const activity = await this.activitiesService.create(
       new ActivityEntity({
-        brand: new Types.ObjectId(publicMetadata.brand),
+        brand: publicMetadata.brand,
         entityId: ingredientData._id,
         entityModel: ActivityEntityModel.INGREDIENT,
         key: ActivityKey.VIDEO_PROCESSING,
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
         source: ActivitySource.WEB,
-        user: new Types.ObjectId(publicMetadata.user),
+        user: publicMetadata.user,
         value: JSON.stringify({
           frameCount: ingredientIds.length,
           ingredientId,
@@ -325,10 +322,10 @@ export class VideosRelationshipsController {
                 ...createMergedVideoDto,
                 content: captionContent,
                 format: CaptionFormat.SRT,
-                ingredient: new Types.ObjectId(ingredientData.id),
+                ingredient: ingredientData.id,
                 isDeleted: false,
                 language: CaptionLanguage.EN,
-                user: new Types.ObjectId(publicMetadata.user),
+                user: publicMetadata.user,
               }),
             );
 

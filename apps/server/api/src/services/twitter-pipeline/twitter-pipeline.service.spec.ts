@@ -9,7 +9,6 @@ import type {
 } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('TwitterPipelineService', () => {
@@ -41,8 +40,8 @@ describe('TwitterPipelineService', () => {
     findOne: vi.fn(),
   };
 
-  const orgId = new Types.ObjectId().toString();
-  const brandId = new Types.ObjectId().toString();
+  const orgId = 'test-object-id';
+  const brandId = 'test-object-id';
 
   const fakeTweet: ITwitterSearchResult = {
     authorName: 'Test User',
@@ -64,7 +63,7 @@ describe('TwitterPipelineService', () => {
   };
 
   const fakeCredential = {
-    _id: new Types.ObjectId(),
+    _id: 'test-object-id',
     accessToken: 'at',
     accessTokenSecret: 'ats',
     externalHandle: 'genfeedbot',

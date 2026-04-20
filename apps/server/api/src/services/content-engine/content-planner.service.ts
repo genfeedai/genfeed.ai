@@ -1,17 +1,16 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { ContentPlanItemDocument } from '@api/collections/content-plan-items/schemas/content-plan-item.schema';
+import { type ContentPlanItemDocument } from '@api/collections/content-plan-items/schemas/content-plan-item.schema';
 import {
   ContentPlanItemsService,
   type CreateContentPlanItemInput,
 } from '@api/collections/content-plan-items/services/content-plan-items.service';
 import { GenerateContentPlanDto } from '@api/collections/content-plans/dto/generate-content-plan.dto';
-import { ContentPlanDocument } from '@api/collections/content-plans/schemas/content-plan.schema';
+import { type ContentPlanDocument } from '@api/collections/content-plans/schemas/content-plan.schema';
 import { ContentPlansService } from '@api/collections/content-plans/services/content-plans.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { ContentPlanItemType, ContentPlanStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 interface LlmPlanItem {
   topic: string;
@@ -63,9 +62,9 @@ export class ContentPlannerService {
     dto: GenerateContentPlanDto,
   ): Promise<{ plan: ContentPlanDocument; items: ContentPlanItemDocument[] }> {
     const brand = await this.brandsService.findOne({
-      _id: new Types.ObjectId(brandId),
+      _id: brandId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
     });
 
     if (!brand) {
@@ -96,13 +95,13 @@ export class ContentPlannerService {
     const parsed = this.parseLlmResponse(content, dto);
 
     const plan = await this.contentPlansService.createInternal({
-      brand: new Types.ObjectId(brandId),
-      createdBy: new Types.ObjectId(userId),
+      brand: brandId,
+      createdBy: userId,
       description: `AI-generated plan: ${parsed.name}`,
       isDeleted: false,
       itemCount: parsed.items.length,
       name: dto.name ?? parsed.name,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
       periodEnd: new Date(dto.periodEnd),
       periodStart: new Date(dto.periodStart),
       status: ContentPlanStatus.DRAFT,

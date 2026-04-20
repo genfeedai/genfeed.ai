@@ -17,7 +17,6 @@ import { LinkedInPublisherService } from '@api/services/integrations/publishers/
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('LinkedInPublisherService', () => {
   let service: LinkedInPublisherService;
@@ -27,12 +26,12 @@ describe('LinkedInPublisherService', () => {
   let postsService: vi.Mocked<PostsService>;
 
   // Test IDs
-  const mockOrganizationId = new Types.ObjectId('507f1f77bcf86cd799439011');
-  const mockBrandId = new Types.ObjectId('507f1f77bcf86cd799439012');
-  const mockPostId = new Types.ObjectId('507f1f77bcf86cd799439013');
-  const mockUserId = new Types.ObjectId('507f1f77bcf86cd799439014');
-  const mockCredentialId = new Types.ObjectId('507f1f77bcf86cd799439015');
-  const mockIngredientId = new Types.ObjectId('507f1f77bcf86cd799439016');
+  const mockOrganizationId = '507f1f77bcf86cd799439011';
+  const mockBrandId = '507f1f77bcf86cd799439012';
+  const mockPostId = '507f1f77bcf86cd799439013';
+  const mockUserId = '507f1f77bcf86cd799439014';
+  const mockCredentialId = '507f1f77bcf86cd799439015';
+  const mockIngredientId = '507f1f77bcf86cd799439016';
 
   // Mock credential
   const mockCredential = {
@@ -99,10 +98,7 @@ describe('LinkedInPublisherService', () => {
     brand: mockBrandId,
     category: PostCategory.IMAGE,
     description: '<p>Carousel post</p>',
-    ingredients: [
-      new Types.ObjectId('507f1f77bcf86cd799439020'),
-      new Types.ObjectId('507f1f77bcf86cd799439021'),
-    ],
+    ingredients: ['507f1f77bcf86cd799439020', '507f1f77bcf86cd799439021'],
     isDeleted: false,
     organization: mockOrganizationId,
     status: PostStatus.DRAFT,
@@ -340,19 +336,19 @@ describe('LinkedInPublisherService', () => {
 
     const mockChildren = [
       {
-        _id: new Types.ObjectId('507f1f77bcf86cd799439030'),
+        _id: '507f1f77bcf86cd799439030',
         category: PostCategory.TEXT,
         description: '<p>Comment 1</p>',
         order: 1,
       },
       {
-        _id: new Types.ObjectId('507f1f77bcf86cd799439031'),
+        _id: '507f1f77bcf86cd799439031',
         category: PostCategory.TEXT,
         description: '<p>Comment 2</p>',
         order: 2,
       },
       {
-        _id: new Types.ObjectId('507f1f77bcf86cd799439032'),
+        _id: '507f1f77bcf86cd799439032',
         category: PostCategory.IMAGE,
         description: '<p>Image child - should be ignored</p>',
         ingredients: [mockIngredientId],
@@ -383,7 +379,7 @@ describe('LinkedInPublisherService', () => {
       const context = createPublishContext(mockImagePost);
       const imageChildren = [
         {
-          _id: new Types.ObjectId('507f1f77bcf86cd799439040'),
+          _id: '507f1f77bcf86cd799439040',
           category: PostCategory.IMAGE,
           description: '<p>Image</p>',
           ingredients: [mockIngredientId],
@@ -408,13 +404,13 @@ describe('LinkedInPublisherService', () => {
       const context = createPublishContext(mockImagePost);
       const unorderedChildren = [
         {
-          _id: new Types.ObjectId('507f1f77bcf86cd799439050'),
+          _id: '507f1f77bcf86cd799439050',
           category: PostCategory.TEXT,
           description: '<p>Second</p>',
           order: 2,
         },
         {
-          _id: new Types.ObjectId('507f1f77bcf86cd799439051'),
+          _id: '507f1f77bcf86cd799439051',
           category: PostCategory.TEXT,
           description: '<p>First</p>',
           order: 1,

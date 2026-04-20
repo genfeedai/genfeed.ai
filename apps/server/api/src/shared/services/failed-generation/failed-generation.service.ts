@@ -8,7 +8,6 @@ import {
   IngredientStatus,
 } from '@genfeedai/enums';
 import { Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 export interface FailedGenerationOptions {
   ingredientId: string;
@@ -92,7 +91,7 @@ export class FailedGenerationService {
           ],
           isDeleted: false,
           key: processingKey,
-          user: new Types.ObjectId(activityMetadata.user),
+          user: activityMetadata.user,
         });
 
         if (existingActivity) {
@@ -130,16 +129,13 @@ export class FailedGenerationService {
           await this.activitiesService.create(
             new ActivityEntity({
               // @ts-expect-error TS2339
-              brand: activityMetadata.brand
-                ? // @ts-expect-error TS2339
-                  new Types.ObjectId(activityMetadata.brand)
-                : undefined,
-              entityId: new Types.ObjectId(ingredientId),
+              brand: activityMetadata.brand ?? undefined,
+              entityId: ingredientId,
               entityModel: ActivityEntityModel.INGREDIENT,
               key: activityMetadata.key,
-              organization: new Types.ObjectId(activityMetadata.organization),
+              organization: activityMetadata.organization,
               source: activityMetadata.source,
-              user: new Types.ObjectId(activityMetadata.user),
+              user: activityMetadata.user,
               value: JSON.stringify({
                 error: websocketMessage || 'Generation failed',
                 ingredientId: ingredientId,
@@ -159,14 +155,11 @@ export class FailedGenerationService {
         await this.activitiesService.create(
           new ActivityEntity({
             // @ts-expect-error TS2339
-            brand: activityMetadata.brand
-              ? // @ts-expect-error TS2339
-                new Types.ObjectId(activityMetadata.brand)
-              : undefined,
+            brand: activityMetadata.brand ?? undefined,
             key: activityMetadata.key,
-            organization: new Types.ObjectId(activityMetadata.organization),
+            organization: activityMetadata.organization,
             source: activityMetadata.source,
-            user: new Types.ObjectId(activityMetadata.user),
+            user: activityMetadata.user,
             value: activityMetadata.value,
           }),
         );

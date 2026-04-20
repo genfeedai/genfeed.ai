@@ -2,7 +2,6 @@ import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
 import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
 import type { IClerkPublicMetadata } from '@libs/interfaces/clerk.interface';
-import { Types } from 'mongoose';
 
 // Mock cache decorator
 vi.mock('@helpers/utils/cache/cache.util', () => ({
@@ -18,7 +17,7 @@ describe('ObjectIdUtil', () => {
       const validId = '507f1f77bcf86cd799439011';
       const result = ObjectIdUtil.validate(validId);
 
-      expect(result).toBeInstanceOf(Types.ObjectId);
+      expect(result).toEqual(expect.any(String));
       expect(result.toString()).toBe(validId);
     });
 
@@ -58,7 +57,7 @@ describe('ObjectIdUtil', () => {
       const result = ObjectIdUtil.validateMany(validIds);
 
       expect(result).toHaveLength(3);
-      result.forEach((id) => expect(id).toBeInstanceOf(Types.ObjectId));
+      result.forEach((id) => expect(id).toEqual(expect.any(String)));
     });
 
     it('should throw error for non-array input', () => {
@@ -105,7 +104,7 @@ describe('ObjectIdUtil', () => {
 
   describe('toString', () => {
     it('should convert ObjectId to string', () => {
-      const objectId = new Types.ObjectId('507f1f77bcf86cd799439011');
+      const objectId = '507f1f77bcf86cd799439011';
       const result = ObjectIdUtil.toString(objectId);
 
       expect(result).toBe('507f1f77bcf86cd799439011');
@@ -123,7 +122,7 @@ describe('ObjectIdUtil', () => {
     it('should convert valid string to ObjectId', () => {
       const result = ObjectIdUtil.toObjectId('507f1f77bcf86cd799439011');
 
-      expect(result).toBeInstanceOf(Types.ObjectId);
+      expect(result).toEqual(expect.any(String));
     });
 
     it('should return null for invalid string', () => {
@@ -202,7 +201,7 @@ describe('ObjectIdUtil', () => {
       const result = ObjectIdUtil.validateBulkIds(ids);
 
       expect(result).toHaveLength(3);
-      result.forEach((id) => expect(id).toBeInstanceOf(Types.ObjectId));
+      result.forEach((id) => expect(id).toEqual(expect.any(String)));
     });
 
     it('should throw error for non-array', () => {
@@ -248,8 +247,8 @@ describe('ObjectIdUtil', () => {
       );
 
       expect(result.name).toBe('Test');
-      expect(result.user).toBeInstanceOf(Types.ObjectId);
-      expect(result.organization).toBeInstanceOf(Types.ObjectId);
+      expect(result.user).toEqual(expect.any(String));
+      expect(result.organization).toEqual(expect.any(String));
     });
 
     it('should enrich DTO without organization', () => {
@@ -263,7 +262,7 @@ describe('ObjectIdUtil', () => {
         publicMetadata as IClerkPublicMetadata,
       );
 
-      expect(result.user).toBeInstanceOf(Types.ObjectId);
+      expect(result.user).toEqual(expect.any(String));
       expect(result.organization).toBeUndefined();
     });
 
@@ -284,7 +283,7 @@ describe('ObjectIdUtil', () => {
         'parent',
       );
 
-      expect(result).toBeInstanceOf(Types.ObjectId);
+      expect(result).toEqual(expect.any(String));
     });
 
     it('should return null for null value', async () => {
@@ -349,9 +348,9 @@ describe('ObjectIdUtil', () => {
         params as BaseQueryDto,
       );
 
-      expect(result._id).toBeInstanceOf(Types.ObjectId);
-      expect(result.user).toBeInstanceOf(Types.ObjectId);
-      expect(result.organization).toBeInstanceOf(Types.ObjectId);
+      expect(result._id).toEqual(expect.any(String));
+      expect(result.user).toEqual(expect.any(String));
+      expect(result.organization).toEqual(expect.any(String));
       expect(result.name).toBe('Test');
     });
 
@@ -365,8 +364,8 @@ describe('ObjectIdUtil', () => {
       );
 
       expect(Array.isArray(result.user)).toBe(true);
-      (result.user as Types.ObjectId[]).forEach((id) =>
-        expect(id).toBeInstanceOf(Types.ObjectId),
+      (result.user as string[]).forEach((id) =>
+        expect(id).toEqual(expect.any(String)),
       );
     });
 
@@ -415,8 +414,8 @@ describe('ObjectIdUtil', () => {
       );
 
       expect(result.name).toBe('Test');
-      expect(result.user).toBeInstanceOf(Types.ObjectId);
-      expect(result.organization).toBeInstanceOf(Types.ObjectId);
+      expect(result.user).toEqual(expect.any(String));
+      expect(result.organization).toEqual(expect.any(String));
       expect(result.isDeleted).toBe(false);
     });
 

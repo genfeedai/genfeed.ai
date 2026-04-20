@@ -1,5 +1,3 @@
-import { Types } from 'mongoose';
-
 /**
  * PresetFilterUtil - Utility for building preset-specific query filters
  *
@@ -57,12 +55,12 @@ export class PresetFilterUtil {
 
     if (publicMetadata.organization) {
       orConditions.push({
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
       });
     }
 
     if (publicMetadata.user) {
-      orConditions.push({ user: new Types.ObjectId(publicMetadata.user) });
+      orConditions.push({ user: publicMetadata.user });
     }
 
     return orConditions;
@@ -100,7 +98,7 @@ export class PresetFilterUtil {
    * // Regular user modifying their org preset
    * PresetFilterUtil.canUserModifyPreset(
    *   { publicMetadata: { isSuperAdmin: false, organization: '123' } },
-   *   { organization: new Types.ObjectId('123') }
+   *   { organization: '123' }
    * )
    * // Returns: true
    */
@@ -111,7 +109,7 @@ export class PresetFilterUtil {
         organization?: string;
       };
     },
-    preset: { organization?: Types.ObjectId | null },
+    preset: { organization?: string | null },
   ): boolean {
     const { isSuperAdmin, organization } = user.publicMetadata;
 
@@ -180,11 +178,11 @@ export class PresetFilterUtil {
 
     // Non-root users always get their organization assigned
     if (!isSuperAdmin) {
-      enriched.organization = new Types.ObjectId(organization);
+      enriched.organization = organization;
 
       // Convert brand string ID to ObjectId if provided
       if (enriched.brand) {
-        enriched.brand = new Types.ObjectId(enriched.brand);
+        enriched.brand = enriched.brand;
       }
     } else {
       // Superadmins can create:
@@ -192,13 +190,13 @@ export class PresetFilterUtil {
       // 2. Org-wide presets (org but no brand)
       // 3. Brand-specific presets (org and brand)
       if (enriched.organization) {
-        enriched.organization = new Types.ObjectId(enriched.organization);
+        enriched.organization = enriched.organization;
       } else {
         enriched.organization = null;
       }
 
       if (enriched.brand) {
-        enriched.brand = new Types.ObjectId(enriched.brand);
+        enriched.brand = enriched.brand;
       } else {
         enriched.brand = null;
       }

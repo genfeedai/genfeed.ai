@@ -7,7 +7,6 @@ import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import FormData from 'form-data';
-import { Types } from 'mongoose';
 import { firstValueFrom } from 'rxjs';
 
 interface MastodonAppRegistration {
@@ -259,9 +258,9 @@ export class MastodonService {
 
     try {
       const credential = await this.credentialsService.findOne({
-        brand: new Types.ObjectId(brandId),
+        brand: brandId,
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
+        organization: organizationId,
         platform: CredentialPlatform.MASTODON,
       });
 
@@ -465,9 +464,9 @@ export class MastodonService {
 
     try {
       const credential = await this.credentialsService.findOne({
-        brand: new Types.ObjectId(brandId),
+        brand: brandId,
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
+        organization: organizationId,
         platform: CredentialPlatform.MASTODON,
       });
 

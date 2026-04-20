@@ -6,7 +6,6 @@ import { CampaignDiscoveryService } from '@api/services/campaign/campaign-discov
 import { CampaignExecutorService } from '@api/services/campaign/campaign-executor.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('OutreachCampaignsController', () => {
   let controller: OutreachCampaignsController;
@@ -64,13 +63,13 @@ describe('OutreachCampaignsController', () => {
 
   describe('buildFindAllPipeline', () => {
     it('should build pipeline with organization and brand filter', () => {
-      const brandId = new Types.ObjectId().toString();
+      const brandId = '507f191e810c19729de860ee'.toString();
       const user = {
         id: 'user-123',
         publicMetadata: {
           brand: brandId,
-          organization: new Types.ObjectId().toString(),
-          user: new Types.ObjectId().toString(),
+          organization: '507f191e810c19729de860ee'.toString(),
+          user: '507f191e810c19729de860ee'.toString(),
         },
       } as never;
       const query = { isDeleted: false } as never;
@@ -80,30 +79,30 @@ describe('OutreachCampaignsController', () => {
     });
 
     it('should include $match with correct organization ObjectId', () => {
-      const orgId = new Types.ObjectId().toString();
-      const brandId = new Types.ObjectId().toString();
+      const orgId = '507f191e810c19729de860ee'.toString();
+      const brandId = '507f191e810c19729de860ee'.toString();
       const user = {
         id: 'user-123',
         publicMetadata: {
           brand: brandId,
           organization: orgId,
-          user: new Types.ObjectId().toString(),
+          user: '507f191e810c19729de860ee'.toString(),
         },
       } as never;
       const query = { isDeleted: false } as never;
       const pipeline = controller.buildFindAllPipeline(user, query);
       const matchStage = pipeline[0] as { $match: Record<string, unknown> };
-      expect(matchStage.$match.brand).toEqual(new Types.ObjectId(brandId));
-      expect(matchStage.$match.organization).toEqual(new Types.ObjectId(orgId));
+      expect(matchStage.$match.brand).toEqual(brandId);
+      expect(matchStage.$match.organization).toEqual(orgId);
     });
 
     it('should omit brand match when no brand is selected', () => {
-      const orgId = new Types.ObjectId().toString();
+      const orgId = '507f191e810c19729de860ee'.toString();
       const user = {
         id: 'user-123',
         publicMetadata: {
           organization: orgId,
-          user: new Types.ObjectId().toString(),
+          user: '507f191e810c19729de860ee'.toString(),
         },
       } as never;
       const pipeline = controller.buildFindAllPipeline(user, {
@@ -112,15 +111,15 @@ describe('OutreachCampaignsController', () => {
       const matchStage = pipeline[0] as { $match: Record<string, unknown> };
 
       expect(matchStage.$match.brand).toBeUndefined();
-      expect(matchStage.$match.organization).toEqual(new Types.ObjectId(orgId));
+      expect(matchStage.$match.organization).toEqual(orgId);
     });
 
     it('should include $sort stage in pipeline', () => {
       const user = {
         id: 'user-123',
         publicMetadata: {
-          organization: new Types.ObjectId().toString(),
-          user: new Types.ObjectId().toString(),
+          organization: '507f191e810c19729de860ee'.toString(),
+          user: '507f191e810c19729de860ee'.toString(),
         },
       } as never;
       const query = { isDeleted: false } as never;
@@ -134,12 +133,12 @@ describe('OutreachCampaignsController', () => {
 
   describe('canUserModifyEntity', () => {
     it('should return true when entity organization matches user organization', () => {
-      const orgId = new Types.ObjectId();
+      const orgId = '507f191e810c19729de860ee';
       const user = {
         id: 'user-123',
         publicMetadata: {
           organization: orgId.toString(),
-          user: new Types.ObjectId().toString(),
+          user: '507f191e810c19729de860ee'.toString(),
         },
       } as never;
       const entity = { organization: orgId } as never;
@@ -150,11 +149,11 @@ describe('OutreachCampaignsController', () => {
       const user = {
         id: 'user-123',
         publicMetadata: {
-          organization: new Types.ObjectId().toString(),
-          user: new Types.ObjectId().toString(),
+          organization: '507f191e810c19729de860ee'.toString(),
+          user: '507f191e810c19729de860ee'.toString(),
         },
       } as never;
-      const entity = { organization: new Types.ObjectId() } as never;
+      const entity = { organization: '507f191e810c19729de860ee' } as never;
       expect(controller.canUserModifyEntity(user, entity)).toBe(false);
     });
   });

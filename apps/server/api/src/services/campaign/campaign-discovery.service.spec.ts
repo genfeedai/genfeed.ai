@@ -17,7 +17,6 @@ import {
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('CampaignDiscoveryService', () => {
@@ -39,8 +38,8 @@ describe('CampaignDiscoveryService', () => {
     targetExists: vi.fn(),
   };
 
-  const orgId = new Types.ObjectId();
-  const campaignId = new Types.ObjectId();
+  const orgId = 'test-object-id';
+  const campaignId = 'test-object-id';
 
   const makeConfig = (
     overrides: Partial<CampaignDiscoveryConfig> = {},

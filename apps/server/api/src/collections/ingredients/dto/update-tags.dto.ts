@@ -1,6 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsArray, IsMongoId } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class UpdateTagsDto {
   @ApiProperty({
@@ -10,5 +9,5 @@ export class UpdateTagsDto {
   })
   @IsArray()
   @IsMongoId({ each: true })
-  readonly tags!: Types.ObjectId[];
+  readonly tags!: string[];
 }

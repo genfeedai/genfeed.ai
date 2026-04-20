@@ -1,7 +1,7 @@
 import { ActivitiesQueryDto } from '@api/collections/activities/dto/activities-query.dto';
 import { BulkUpdateActivitiesDto } from '@api/collections/activities/dto/bulk-update-activities.dto';
 import { UpdateActivityDto } from '@api/collections/activities/dto/update-activity.dto';
-import { ActivityDocument } from '@api/collections/activities/schemas/activity.schema';
+import { type ActivityDocument } from '@api/collections/activities/schemas/activity.schema';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
@@ -38,7 +38,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { type PipelineStage, Types } from 'mongoose';
 
 @AutoSwagger()
 @Controller('activities')
@@ -65,7 +64,7 @@ export class ActivitiesController {
 
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
 
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: { isDeleted },
       },
@@ -96,8 +95,8 @@ export class ActivitiesController {
     const activity = await this.activitiesService.findOne({
       _id: activityId,
       $or: [
-        { user: new Types.ObjectId(publicMetadata.user) },
-        { organization: new Types.ObjectId(publicMetadata.organization) },
+        { user: publicMetadata.user },
+        { organization: publicMetadata.organization },
       ],
     });
 

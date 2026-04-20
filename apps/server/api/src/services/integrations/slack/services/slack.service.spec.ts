@@ -6,7 +6,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import { of, throwError } from 'rxjs';
 
 describe('SlackService', () => {
@@ -155,7 +154,7 @@ describe('SlackService', () => {
   describe('exchangeCodeForToken', () => {
     it('should exchange code for token successfully', async () => {
       const mockResponseData = {
-        access_token: 'xoxb-slack-token',
+        access_token: 'test-slack-bot-token',
         ok: true,
         team: { id: 'T12345' },
       };
@@ -317,13 +316,13 @@ describe('SlackService', () => {
         }),
       );
 
-      const result = await service.getUserInfo('xoxb-access-token');
+      const result = await service.getUserInfo('test-access-token');
 
       expect(result).toEqual(mockResponseData);
       expect(httpService.get).toHaveBeenCalledWith(
         'https://slack.com/api/auth.test',
         expect.objectContaining({
-          headers: { Authorization: 'Bearer xoxb-access-token' },
+          headers: { Authorization: 'Bearer test-access-token' },
         }),
       );
       expect(loggerService.log).toHaveBeenCalled();
@@ -418,12 +417,12 @@ describe('SlackService', () => {
   });
 
   describe('disconnect', () => {
-    const orgId = new Types.ObjectId().toString();
-    const brandId = new Types.ObjectId().toString();
+    const orgId = 'test-object-id';
+    const brandId = 'test-object-id';
 
     it('should disconnect successfully when credential exists', async () => {
       const mockCredential = {
-        _id: new Types.ObjectId(),
+        _id: 'test-credential-id',
         accessToken: 'encrypted-token',
         isConnected: true,
         platform: CredentialPlatform.SLACK,
@@ -436,9 +435,9 @@ describe('SlackService', () => {
 
       expect(result).toEqual({ success: true });
       expect(credentialsService.findOne).toHaveBeenCalledWith({
-        brand: new Types.ObjectId(brandId),
+        brand: brandId,
         isDeleted: false,
-        organization: new Types.ObjectId(orgId),
+        organization: orgId,
         platform: CredentialPlatform.SLACK,
       });
       expect(credentialsService.patch).toHaveBeenCalledWith(
@@ -489,7 +488,7 @@ describe('SlackService', () => {
 
     it('should throw INTERNAL_SERVER_ERROR when patch fails', async () => {
       const mockCredential = {
-        _id: new Types.ObjectId(),
+        _id: 'test-credential-id',
         accessToken: 'token',
         platform: CredentialPlatform.SLACK,
       };

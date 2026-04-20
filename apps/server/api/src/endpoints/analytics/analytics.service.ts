@@ -1,12 +1,7 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
-import {
-  PostAnalytics,
-  type PostAnalyticsDocument,
-} from '@api/collections/posts/schemas/post-analytics.schema';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { ConfigService } from '@api/config/config.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { LeaderboardSort } from '@api/endpoints/analytics/dto/leaderboard-query.dto';
 import {
   BrandWithStatsEntity,
@@ -15,10 +10,6 @@ import {
   PaginatedBrandsResponse,
   PaginatedOrgsResponse,
 } from '@api/endpoints/analytics/entities/organization-leaderboard.entity';
-import {
-  Analytic,
-  type AnalyticDocument,
-} from '@api/endpoints/analytics/schemas/analytic.schema';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { DateRangeUtil } from '@api/helpers/utils/date-range/date-range.util';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
@@ -26,12 +17,9 @@ import { PinterestService } from '@api/services/integrations/pinterest/services/
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { PipelineBuilder } from '@api/shared/utils/pipeline-builder/pipeline-builder.util';
-import type {
-  AggregatePaginateModel,
-  AggregatePaginateResult,
-} from '@api/types/mongoose-aggregate-paginate-v2';
+import type { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
 import {
   AnalyticsMetric,
   CredentialPlatform,
@@ -42,14 +30,13 @@ import type {
   IAggregatedEngagementResult,
   IEntityAnalyticsStats,
 } from '@genfeedai/interfaces';
+import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
 import * as ExcelJS from 'exceljs';
-import { Model, type PipelineStage, Types } from 'mongoose';
 
 interface ExportPostData {
-  _id: Types.ObjectId;
+  id: string;
   label: string;
   description?: string;
   status: string;
@@ -69,7 +56,7 @@ interface ExportPostData {
     platform: CredentialPlatform;
   };
   ingredient: {
-    metadata: Types.ObjectId;
+    metadata: string;
   };
   metadata?: {
     label?: string;
@@ -78,8 +65,8 @@ interface ExportPostData {
     model?: string;
     style?: string;
   };
-  organization: Types.ObjectId;
-  brand: Types.ObjectId;
+  organizationId: string;
+  brandId: string;
 }
 
 interface ProcessedExportData {
@@ -112,22 +99,23 @@ interface ExportRowData {
   [key: string]: string | number | Date | boolean | undefined;
 }
 
-/** Organization document with aggregated fields from MongoDB */
+/** Organization document with aggregated fields */
 interface OrganizationDoc {
-  _id: Types.ObjectId;
+  id: string;
   name?: string;
   label?: string;
   logo?: { cdnUrl?: string };
   isDeleted?: boolean;
+  createdAt?: Date;
 }
 
-/** Brand document with aggregated fields from MongoDB */
+/** Brand document with aggregated fields */
 interface BrandDoc {
-  _id: Types.ObjectId;
+  id: string;
   name?: string;
   label?: string;
   logo?: { cdnUrl?: string };
-  organization?: Types.ObjectId;
+  organizationId?: string;
   org?: OrganizationDoc;
   isDeleted?: boolean;
   createdAt?: Date;
@@ -148,12 +136,6 @@ interface LeaderboardStats {
   organizationName?: string;
 }
 
-/** Post count aggregation result */
-interface PostCountResult {
-  _id: Types.ObjectId;
-  count: number;
-}
-
 /** Platform metrics for time series */
 interface PlatformMetrics {
   views: number;
@@ -162,6 +144,25 @@ interface PlatformMetrics {
   shares: number;
   saves: number;
   engagementRate: number;
+}
+
+/** Raw row from $queryRaw analytics aggregation */
+interface AnalyticsAggRow {
+  entity_id: string;
+  avg_engagement_rate: number;
+  total_views: bigint;
+  total_likes: bigint;
+  total_comments: bigint;
+  total_shares: bigint;
+  total_saves: bigint;
+  unique_posts: bigint;
+  platforms?: string[];
+}
+
+/** Raw row from $queryRaw previous-engagement aggregation */
+interface EngagementAggRow {
+  entity_id: string;
+  total_engagement: bigint;
 }
 
 export type AnalyticsBestPostingTime = {
@@ -193,12 +194,9 @@ const SORT_FIELD_MAP: Record<LeaderboardSort, string> = {
 };
 
 @Injectable()
-export class AnalyticsService extends BaseService<AnalyticDocument> {
+export class AnalyticsService extends BaseService<Record<string, unknown>> {
   constructor(
-    @InjectModel(Analytic.name, DB_CONNECTIONS.ANALYTICS)
-    protected readonly model: AggregatePaginateModel<AnalyticDocument>,
-    @InjectModel(PostAnalytics.name, DB_CONNECTIONS.ANALYTICS)
-    private readonly postAnalyticsModel: Model<PostAnalyticsDocument>,
+    protected readonly prisma: PrismaService,
     private readonly postsService: PostsService,
     private readonly organizationsService: OrganizationsService,
     private readonly brandsService: BrandsService,
@@ -210,7 +208,7 @@ export class AnalyticsService extends BaseService<AnalyticDocument> {
     configService: ConfigService,
     logger: LoggerService,
   ) {
-    super(model, logger, configService);
+    super(prisma, 'analytic', logger, configService);
   }
 
   /**
@@ -240,97 +238,95 @@ export class AnalyticsService extends BaseService<AnalyticDocument> {
   }
 
   /**
-   * Get current period analytics grouped by entity ID
+   * Get current period analytics grouped by entity ID.
+   * Uses $queryRaw to replicate MongoDB $group aggregation on PostAnalytics.
    */
   private async getCurrentAnalytics(
-    entityIds: Types.ObjectId[],
+    entityIds: string[],
     startDate: Date,
     endDate: Date,
-    entityField: 'organization' | 'brand',
+    entityField: 'organizationId' | 'brandId',
     includePlatforms = false,
   ): Promise<Map<string, IEntityAnalyticsStats>> {
-    const groupFields: Record<string, unknown> = {
-      _id: `$${entityField}`,
-      avgEngagementRate: { $avg: '$engagementRate' },
-      posts: { $addToSet: '$post' },
-      totalComments: { $sum: '$totalComments' },
-      totalLikes: { $sum: '$totalLikes' },
-      totalSaves: { $sum: '$totalSaves' },
-      totalShares: { $sum: '$totalShares' },
-      totalViews: { $sum: '$totalViews' },
-    };
-
-    if (includePlatforms) {
-      groupFields.platforms = { $addToSet: '$platform' };
+    if (entityIds.length === 0) {
+      return new Map();
     }
 
-    const results =
-      await this.postAnalyticsModel.aggregate<IAggregatedAnalyticsResult>([
-        {
-          $match: {
-            [entityField]: { $in: entityIds },
-            date: { $gte: startDate, $lte: endDate },
-          },
-        },
-        // @ts-expect-error TS2769
-        { $group: groupFields },
-      ]);
+    const column =
+      entityField === 'organizationId' ? 'organization_id' : 'brand_id';
+
+    // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
+    const results: any[] = await this.prisma.$queryRaw`
+      SELECT
+        ${Prisma.raw(column)} AS entity_id,
+        AVG("engagement_rate") AS avg_engagement_rate,
+        SUM("total_views") AS total_views,
+        SUM("total_likes") AS total_likes,
+        SUM("total_comments") AS total_comments,
+        SUM("total_shares") AS total_shares,
+        SUM("total_saves") AS total_saves,
+        COUNT(DISTINCT "post_id") AS unique_posts
+        ${includePlatforms ? Prisma.raw(`, ARRAY_AGG(DISTINCT "platform"::text) AS platforms`) : Prisma.raw('')}
+      FROM "post_analytics"
+      WHERE ${Prisma.raw(column)} = ANY(${entityIds}::text[])
+        AND "date" >= ${startDate}
+        AND "date" <= ${endDate}
+      GROUP BY ${Prisma.raw(column)}
+    `;
 
     const analyticsMap = new Map<string, IEntityAnalyticsStats>();
-    results.forEach((a: IAggregatedAnalyticsResult) => {
+    for (const row of results as AnalyticsAggRow[]) {
+      const totalLikes = Number(row.total_likes);
+      const totalComments = Number(row.total_comments);
+      const totalShares = Number(row.total_shares);
+      const totalSaves = Number(row.total_saves);
       const stats: IEntityAnalyticsStats = {
-        avgEngagementRate: a.avgEngagementRate || 0,
-        totalEngagement:
-          a.totalLikes + a.totalComments + a.totalShares + a.totalSaves,
-        totalPosts: a.posts.length,
-        totalViews: a.totalViews,
+        avgEngagementRate: row.avg_engagement_rate || 0,
+        totalEngagement: totalLikes + totalComments + totalShares + totalSaves,
+        totalPosts: Number(row.unique_posts),
+        totalViews: Number(row.total_views),
       };
       if (includePlatforms) {
-        stats.activePlatforms = a.platforms || [];
+        stats.activePlatforms = (row.platforms as string[] | null) || [];
       }
-      analyticsMap.set(a._id.toString(), stats);
-    });
+      analyticsMap.set(row.entity_id, stats);
+    }
 
     return analyticsMap;
   }
 
   /**
-   * Get previous period engagement totals grouped by entity ID
+   * Get previous period engagement totals grouped by entity ID.
    */
   private async getPreviousEngagement(
-    entityIds: Types.ObjectId[],
+    entityIds: string[],
     startDate: Date,
     endDate: Date,
-    entityField: 'organization' | 'brand',
+    entityField: 'organizationId' | 'brandId',
   ): Promise<Map<string, number>> {
-    const results = await this.postAnalyticsModel.aggregate([
-      {
-        $match: {
-          [entityField]: { $in: entityIds },
-          date: { $gte: startDate, $lte: endDate },
-        },
-      },
-      {
-        $group: {
-          _id: `$${entityField}`,
-          totalEngagement: {
-            $sum: {
-              $add: [
-                '$totalLikes',
-                '$totalComments',
-                '$totalShares',
-                '$totalSaves',
-              ],
-            },
-          },
-        },
-      },
-    ]);
+    if (entityIds.length === 0) {
+      return new Map();
+    }
+
+    const column =
+      entityField === 'organizationId' ? 'organization_id' : 'brand_id';
+
+    // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
+    const results: any[] = await this.prisma.$queryRaw`
+      SELECT
+        ${Prisma.raw(column)} AS entity_id,
+        SUM("total_likes" + "total_comments" + "total_shares" + "total_saves") AS total_engagement
+      FROM "post_analytics"
+      WHERE ${Prisma.raw(column)} = ANY(${entityIds}::text[])
+        AND "date" >= ${startDate}
+        AND "date" <= ${endDate}
+      GROUP BY ${Prisma.raw(column)}
+    `;
 
     const engagementMap = new Map<string, number>();
-    results.forEach((a: IAggregatedEngagementResult) => {
-      engagementMap.set(a._id.toString(), a.totalEngagement);
-    });
+    for (const row of results as EngagementAggRow[]) {
+      engagementMap.set(row.entity_id, Number(row.total_engagement));
+    }
 
     return engagementMap;
   }
@@ -360,15 +356,15 @@ export class AnalyticsService extends BaseService<AnalyticDocument> {
       return [];
     }
 
-    const orgIds = allOrgs.map((o: OrganizationDoc) => o._id);
+    const orgIds = allOrgs.map((o: OrganizationDoc) => o.id);
 
     const [analyticsMap, previousEngagementMap] = await Promise.all([
-      this.getCurrentAnalytics(orgIds, startDate, endDate, 'organization'),
+      this.getCurrentAnalytics(orgIds, startDate, endDate, 'organizationId'),
       this.getPreviousEngagement(
         orgIds,
         previousStartDate,
         previousEndDate,
-        'organization',
+        'organizationId',
       ),
     ]);
 
@@ -376,7 +372,7 @@ export class AnalyticsService extends BaseService<AnalyticDocument> {
 
     let orgsWithStats: LeaderboardStats[] = allOrgs.map(
       (org: OrganizationDoc) => {
-        const orgId = org._id.toString();
+        const orgId = org.id;
         const analytics = analyticsMap.get(orgId) || DEFAULT_ANALYTICS;
         const prevEngagement = previousEngagementMap.get(orgId) || 0;
 
@@ -440,9 +436,7 @@ export class AnalyticsService extends BaseService<AnalyticDocument> {
         {
           $match: {
             isDeleted: false,
-            ...(organizationId && {
-              organization: new Types.ObjectId(organizationId),
-            }),
+            ...(organizationId && { organization: organizationId }),
           },
         },
         {
@@ -464,36 +458,34 @@ export class AnalyticsService extends BaseService<AnalyticDocument> {
       return [];
     }
 
-    const brandIds = allBrands.map((b: BrandDoc) => b._id);
+    const brandIds = allBrands.map((b: BrandDoc) => b.id);
 
     const [analyticsMap, previousEngagementMap] = await Promise.all([
-      this.getCurrentAnalytics(brandIds, startDate, endDate, 'brand', true),
+      this.getCurrentAnalytics(brandIds, startDate, endDate, 'brandId', true),
       this.getPreviousEngagement(
         brandIds,
         previousStartDate,
         previousEndDate,
-        'brand',
+        'brandId',
       ),
     ]);
 
     const sortField = SORT_FIELD_MAP[sort];
 
     let brandsWithStats = allBrands.map((brand: BrandDoc) => {
-      const brandId = brand._id.toString();
+      const brandId = brand.id;
       const analytics = analyticsMap.get(brandId) || DEFAULT_BRAND_ANALYTICS;
       const prevEngagement = previousEngagementMap.get(brandId) || 0;
 
       return new BrandWithStatsEntity({
         activePlatforms: analytics.activePlatforms,
         avgEngagementRate: analytics.avgEngagementRate,
-        // @ts-expect-error createdAt from document
         createdAt: brand.createdAt,
         growth: this.calculateGrowth(analytics.totalEngagement, prevEngagement),
         id: brandId,
         logo: brand.logo?.cdnUrl,
         name: brand.label || brand.name || 'Unknown',
-        organizationId:
-          brand.organization?.toString() || brand.org?._id?.toString(),
+        organizationId: brand.organizationId || brand.org?.id,
         organizationName: brand.org?.label || brand.org?.name || 'Unknown',
         totalEngagement: analytics.totalEngagement,
         totalPosts: analytics.totalPosts,
@@ -536,41 +528,36 @@ export class AnalyticsService extends BaseService<AnalyticDocument> {
     let previousEngagementMap = new Map<string, number>();
 
     if (allOrgs.length > 0) {
-      const orgIds = allOrgs.map((o: OrganizationDoc) => o._id);
+      const orgIds = allOrgs.map((o: OrganizationDoc) => o.id);
 
       [analyticsMap, previousEngagementMap] = await Promise.all([
-        this.getCurrentAnalytics(orgIds, startDate, endDate, 'organization'),
+        this.getCurrentAnalytics(orgIds, startDate, endDate, 'organizationId'),
         this.getPreviousEngagement(
           orgIds,
           previousStartDate,
           previousEndDate,
-          'organization',
+          'organizationId',
         ),
       ]);
     }
 
-    const brandCounts = await this.brandsService.findAll(
-      [
-        { $match: { isDeleted: false } },
-        { $group: { _id: '$organization', count: { $sum: 1 } } },
-      ],
-      { pagination: false },
-    );
+    // Count brands per org directly from Prisma
+    const brandCountRows = await this.prisma.brand.groupBy({
+      by: ['organizationId'],
+      where: { isDeleted: false },
+      _count: { id: true },
+    });
     const brandCountMap = new Map<string, number>(
-      (
-        (brandCounts as unknown as AggregatePaginateResult<PostCountResult>)
-          .docs || []
-      ).map((b: PostCountResult) => [b._id.toString(), b.count]),
+      brandCountRows.map((row) => [row.organizationId, row._count.id]),
     );
 
     const orgsWithStats = allOrgs.map((org: OrganizationDoc) => {
-      const orgId = org._id.toString();
+      const orgId = org.id;
       const analytics = analyticsMap.get(orgId) || DEFAULT_ANALYTICS;
       const prevEngagement = previousEngagementMap.get(orgId) || 0;
 
       return new OrgWithStatsEntity({
         avgEngagementRate: analytics.avgEngagementRate,
-        // @ts-expect-error createdAt from document
         createdAt: org.createdAt,
         growth: this.calculateGrowth(analytics.totalEngagement, prevEngagement),
         id: orgId,
@@ -627,9 +614,7 @@ export class AnalyticsService extends BaseService<AnalyticDocument> {
         {
           $match: {
             isDeleted: false,
-            ...(organizationId && {
-              organization: new Types.ObjectId(organizationId),
-            }),
+            ...(organizationId && { organization: organizationId }),
           },
         },
         {
@@ -651,35 +636,33 @@ export class AnalyticsService extends BaseService<AnalyticDocument> {
     let previousEngagementMap = new Map<string, number>();
 
     if (allBrands.length > 0) {
-      const brandIds = allBrands.map((b: BrandDoc) => b._id);
+      const brandIds = allBrands.map((b: BrandDoc) => b.id);
 
       [analyticsMap, previousEngagementMap] = await Promise.all([
-        this.getCurrentAnalytics(brandIds, startDate, endDate, 'brand', true),
+        this.getCurrentAnalytics(brandIds, startDate, endDate, 'brandId', true),
         this.getPreviousEngagement(
           brandIds,
           previousStartDate,
           previousEndDate,
-          'brand',
+          'brandId',
         ),
       ]);
     }
 
     const brandsWithStats = allBrands.map((brand: BrandDoc) => {
-      const brandId = brand._id.toString();
+      const brandId = brand.id;
       const analytics = analyticsMap.get(brandId) || DEFAULT_BRAND_ANALYTICS;
       const prevEngagement = previousEngagementMap.get(brandId) || 0;
 
       return new BrandWithStatsEntity({
         activePlatforms: analytics.activePlatforms,
         avgEngagementRate: analytics.avgEngagementRate,
-        // @ts-expect-error createdAt from document
         createdAt: brand.createdAt,
         growth: this.calculateGrowth(analytics.totalEngagement, prevEngagement),
         id: brandId,
         logo: brand.logo?.cdnUrl,
         name: brand.label || brand.name || 'Unknown',
-        organizationId:
-          brand.organization?.toString() || brand.org?._id?.toString(),
+        organizationId: brand.organizationId || brand.org?.id,
         organizationName: brand.org?.label || brand.org?.name || 'Unknown',
         totalEngagement: analytics.totalEngagement,
         totalPosts: analytics.totalPosts,
@@ -713,8 +696,6 @@ export class AnalyticsService extends BaseService<AnalyticDocument> {
     });
   }
 
-  // Inherit findAll from BaseService - no need to override
-
   @LogMethod({ level: 'log', logEnd: true, logError: true, logStart: true })
   public async exportData(
     format: 'csv' | 'xlsx',
@@ -738,10 +719,10 @@ export class AnalyticsService extends BaseService<AnalyticDocument> {
       status: PublishStatus.PUBLISHED,
     };
     if (organizationId) {
-      matchStage.organization = new Types.ObjectId(organizationId);
+      matchStage.organization = organizationId;
     }
 
-    const aggregate: PipelineStage[] = [
+    const aggregate = [
       { $match: matchStage },
       {
         $lookup: {
@@ -775,7 +756,6 @@ export class AnalyticsService extends BaseService<AnalyticDocument> {
     const result = await this.postsService.findAll(aggregate, {
       pagination: false,
     });
-    // Use 'unknown' as intermediate type for complex type conversion
     const docs = (result as unknown as { docs?: ExportPostData[] }).docs || [];
 
     // Batch fetch analytics by platform to avoid N+1 queries
@@ -783,7 +763,7 @@ export class AnalyticsService extends BaseService<AnalyticDocument> {
 
     const processedData: ProcessedExportData[] = docs.map((pub) => {
       const platform = pub.credential.platform;
-      const stats = statsMap.get(pub._id.toString()) || {
+      const stats = statsMap.get(pub.id) || {
         comments: 0,
         likes: 0,
         views: pub.views || 0,
@@ -794,7 +774,7 @@ export class AnalyticsService extends BaseService<AnalyticDocument> {
         createdAt: pub.createdAt,
         description: pub.description,
         extension: pub.metadata?.extension || '',
-        id: pub._id.toString(),
+        id: pub.id,
         isRepeat: pub.isRepeat,
         likes: stats.likes,
         maxRepeats: pub.maxRepeats || 0,
@@ -855,18 +835,18 @@ export class AnalyticsService extends BaseService<AnalyticDocument> {
             try {
               const stats = await this.fetchPlatformStats(
                 platform,
-                post.organization.toString(),
-                post.brand.toString(),
+                post.organizationId,
+                post.brandId,
                 post.externalId!,
               );
-              statsMap.set(post._id.toString(), stats);
+              statsMap.set(post.id, stats);
             } catch (error) {
               this.logger?.error('fetch stats failed', {
                 error,
                 externalId: post.externalId,
                 platform,
               });
-              statsMap.set(post._id.toString(), {
+              statsMap.set(post.id, {
                 comments: 0,
                 likes: 0,
                 views: post.views || 0,
@@ -1003,88 +983,46 @@ export class AnalyticsService extends BaseService<AnalyticDocument> {
     const end = new Date(endDate);
     end.setUTCHours(23, 59, 59, 999); // Include the entire end date (UTC)
 
-    // Aggregate timeseries data across all organizations and platforms
-    const pipeline: PipelineStage[] = [
-      {
-        $match: {
-          date: { $gte: start, $lte: end },
-          isDeleted: false,
-          ...(organizationId && {
-            organization: new Types.ObjectId(organizationId),
-          }),
-        },
-      },
-      {
-        $group: {
-          _id: {
-            date: {
-              $dateToString: {
-                date: '$date',
-                format: '%Y-%m-%d',
-              },
-            },
-            platform: '$platform',
-          },
-          comments: { $sum: '$totalComments' },
-          engagementRate: { $avg: '$engagementRate' },
-          likes: { $sum: '$totalLikes' },
-          saves: { $sum: '$totalSaves' },
-          shares: { $sum: '$totalShares' },
-          views: { $sum: '$totalViews' },
-        },
-      },
-      {
-        $group: {
-          _id: '$_id.date',
-          platforms: {
-            $push: {
-              comments: '$comments',
-              engagementRate: { $ifNull: ['$engagementRate', 0] },
-              likes: '$likes',
-              platform: '$_id.platform',
-              saves: '$saves',
-              shares: '$shares',
-              views: '$views',
-            },
-          },
-        },
-      },
-      { $sort: { _id: 1 } },
-    ];
-
-    const results = await this.postAnalyticsModel.aggregate(pipeline);
+    // Aggregate timeseries data across all organizations and platforms using raw SQL
+    // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
+    const rawResults: any[] = await this.prisma.$queryRaw`
+      SELECT
+        TO_CHAR("date", 'YYYY-MM-DD') AS day,
+        "platform"::text AS platform,
+        SUM("total_comments") AS comments,
+        AVG("engagement_rate") AS engagement_rate,
+        SUM("total_likes") AS likes,
+        SUM("total_saves") AS saves,
+        SUM("total_shares") AS shares,
+        SUM("total_views") AS views
+      FROM "post_analytics"
+      WHERE "date" >= ${start}
+        AND "date" <= ${end}
+        ${organizationId ? Prisma.raw(`AND "organization_id" = '${organizationId.replace(/'/g, "''")}'`) : Prisma.raw('')}
+      GROUP BY TO_CHAR("date", 'YYYY-MM-DD'), "platform"
+      ORDER BY day ASC
+    `;
 
     // Generate date scaffolding
     const allDates = this.generateDateScaffolding(start, end);
 
-    // Create a map of existing data
-    interface TimeSeriesItem {
-      _id: string;
-      platforms: Array<{
-        platform: string;
-        views: number;
-        likes: number;
-        comments: number;
-        shares: number;
-        saves: number;
-        engagementRate: number;
-      }>;
-    }
+    // Build a nested map: date -> platform -> metrics
     const dataMap = new Map<string, Map<string, PlatformMetrics>>();
-    results.forEach((item: TimeSeriesItem) => {
-      const platformsMap = new Map<string, PlatformMetrics>();
-      item.platforms.forEach((p) => {
-        platformsMap.set(p.platform, {
-          comments: p.comments,
-          engagementRate: p.engagementRate,
-          likes: p.likes,
-          saves: p.saves,
-          shares: p.shares,
-          views: p.views,
-        });
+    for (const row of rawResults) {
+      const day = row.day as string;
+      const platform = row.platform as string;
+      if (!dataMap.has(day)) {
+        dataMap.set(day, new Map<string, PlatformMetrics>());
+      }
+      dataMap.get(day)!.set(platform, {
+        comments: Number(row.comments),
+        engagementRate: Number(row.engagement_rate) || 0,
+        likes: Number(row.likes),
+        saves: Number(row.saves),
+        shares: Number(row.shares),
+        views: Number(row.views),
       });
-      dataMap.set(item._id, platformsMap);
-    });
+    }
 
     // Build response with all dates and platforms
     return allDates.map((date) => {
@@ -1168,120 +1106,98 @@ export class AnalyticsService extends BaseService<AnalyticDocument> {
     const { startDate, endDate, previousStartDate, previousEndDate } =
       this.parseDateRange(startDateStr, endDateStr);
 
-    // Build match stage with optional brand filter
-    const matchStage = {
-      date: { $gte: startDate, $lte: endDate },
-      isDeleted: false,
-      ...(brandId && { brand: new Types.ObjectId(brandId) }),
-      ...(organizationId && {
-        organization: new Types.ObjectId(organizationId),
-      }),
-    };
-
-    const previousMatchStage = {
-      date: { $gte: previousStartDate, $lte: previousEndDate },
-      isDeleted: false,
-      ...(brandId && { brand: new Types.ObjectId(brandId) }),
-      ...(organizationId && {
-        organization: new Types.ObjectId(organizationId),
-      }),
-    };
+    // Build conditional WHERE fragments
+    const brandFilter = brandId
+      ? Prisma.raw(`AND "brand_id" = '${brandId.replace(/'/g, "''")}'`)
+      : Prisma.raw('');
+    const orgFilter = organizationId
+      ? Prisma.raw(
+          `AND "organization_id" = '${organizationId.replace(/'/g, "''")}'`,
+        )
+      : Prisma.raw('');
 
     // Current period metrics
-    const currentMetrics = await this.postAnalyticsModel.aggregate([
-      PipelineBuilder.buildMatch(matchStage),
-      {
-        $group: {
-          _id: null,
-          avgEngagementRate: { $avg: '$engagementRate' },
-          totalComments: { $sum: '$totalComments' },
-          totalLikes: { $sum: '$totalLikes' },
-          totalPosts: { $sum: 1 },
-          totalSaves: { $sum: '$totalSaves' },
-          totalShares: { $sum: '$totalShares' },
-          totalViews: { $sum: '$totalViews' },
-        },
-      },
-    ]);
+    // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
+    const currentMetrics: any[] = await this.prisma.$queryRaw`
+      SELECT
+        AVG("engagement_rate") AS avg_engagement_rate,
+        SUM("total_comments") AS total_comments,
+        SUM("total_likes") AS total_likes,
+        COUNT(*) AS total_posts,
+        SUM("total_saves") AS total_saves,
+        SUM("total_shares") AS total_shares,
+        SUM("total_views") AS total_views
+      FROM "post_analytics"
+      WHERE "date" >= ${startDate} AND "date" <= ${endDate}
+        ${brandFilter}
+        ${orgFilter}
+    `;
 
     // Previous period metrics for growth calculation
-    const previousMetrics = await this.postAnalyticsModel.aggregate([
-      PipelineBuilder.buildMatch(previousMatchStage),
-      {
-        $group: {
-          _id: null,
-          totalEngagement: {
-            $sum: {
-              $add: [
-                '$totalLikes',
-                '$totalComments',
-                '$totalShares',
-                '$totalSaves',
-              ],
-            },
-          },
-          totalPosts: { $sum: 1 },
-          totalViews: { $sum: '$totalViews' },
-        },
-      },
-    ]);
+    // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
+    const previousMetrics: any[] = await this.prisma.$queryRaw`
+      SELECT
+        SUM("total_likes" + "total_comments" + "total_shares" + "total_saves") AS total_engagement,
+        COUNT(*) AS total_posts,
+        SUM("total_views") AS total_views
+      FROM "post_analytics"
+      WHERE "date" >= ${previousStartDate} AND "date" <= ${previousEndDate}
+        ${brandFilter}
+        ${orgFilter}
+    `;
 
     const current = currentMetrics[0] || {
-      avgEngagementRate: 0,
-      totalComments: 0,
-      totalLikes: 0,
-      totalPosts: 0,
-      totalSaves: 0,
-      totalShares: 0,
-      totalViews: 0,
+      avg_engagement_rate: 0,
+      total_comments: 0,
+      total_likes: 0,
+      total_posts: 0,
+      total_saves: 0,
+      total_shares: 0,
+      total_views: 0,
     };
 
     const previous = previousMetrics[0] || {
-      totalEngagement: 0,
-      totalPosts: 0,
-      totalViews: 0,
+      total_engagement: 0,
+      total_posts: 0,
+      total_views: 0,
     };
 
+    const totalLikes = Number(current.total_likes);
+    const totalComments = Number(current.total_comments);
+    const totalShares = Number(current.total_shares);
+    const totalSaves = Number(current.total_saves);
     const totalEngagement =
-      current.totalLikes +
-      current.totalComments +
-      current.totalShares +
-      current.totalSaves;
+      totalLikes + totalComments + totalShares + totalSaves;
+    const totalPosts = Number(current.total_posts);
+    const totalViews = Number(current.total_views);
+    const prevEngagement = Number(previous.total_engagement);
+    const prevPosts = Number(previous.total_posts);
+    const prevViews = Number(previous.total_views);
 
-    // Calculate growth percentages
     const postsGrowth =
-      previous.totalPosts > 0
-        ? ((current.totalPosts - previous.totalPosts) / previous.totalPosts) *
-          100
-        : 0;
-
+      prevPosts > 0 ? ((totalPosts - prevPosts) / prevPosts) * 100 : 0;
     const viewsGrowth =
-      previous.totalViews > 0
-        ? ((current.totalViews - previous.totalViews) / previous.totalViews) *
-          100
-        : 0;
-
+      prevViews > 0 ? ((totalViews - prevViews) / prevViews) * 100 : 0;
     const engagementGrowth =
-      previous.totalEngagement > 0
-        ? ((totalEngagement - previous.totalEngagement) /
-            previous.totalEngagement) *
-          100
+      prevEngagement > 0
+        ? ((totalEngagement - prevEngagement) / prevEngagement) * 100
         : 0;
 
-    // Count organizations and brands
-    const orgCount = await this.organizationsService.count({
-      isDeleted: false,
-      ...(organizationId && { _id: new Types.ObjectId(organizationId) }),
-    });
-    const brandCount = await this.brandsService.count({
-      isDeleted: false,
-      ...(organizationId && {
-        organization: new Types.ObjectId(organizationId),
-      }),
-    });
+    // Count organizations and brands via Prisma
+    const orgWhere = organizationId
+      ? { isDeleted: false, id: organizationId }
+      : { isDeleted: false };
+    const brandWhere = organizationId
+      ? { isDeleted: false, organizationId }
+      : { isDeleted: false };
+
+    const [orgCount, brandCount] = await Promise.all([
+      this.prisma.organization.count({ where: orgWhere }),
+      this.prisma.brand.count({ where: brandWhere }),
+    ]);
 
     return {
-      avgEngagementRate: current.avgEngagementRate || 0,
+      avgEngagementRate: Number(current.avg_engagement_rate) || 0,
       brandCount,
       growth: {
         engagement: engagementGrowth,
@@ -1290,8 +1206,8 @@ export class AnalyticsService extends BaseService<AnalyticDocument> {
       },
       organizationCount: orgCount,
       totalEngagement,
-      totalPosts: current.totalPosts,
-      totalViews: current.totalViews,
+      totalPosts,
+      totalViews,
     };
   }
 
@@ -1307,59 +1223,52 @@ export class AnalyticsService extends BaseService<AnalyticDocument> {
       endDateStr,
     );
 
-    const matchStage = {
-      date: { $gte: startDate, $lte: endDate },
-      isDeleted: false,
-      ...(brandId && { brand: new Types.ObjectId(brandId) }),
-      ...(organizationId && {
-        organization: new Types.ObjectId(organizationId),
-      }),
-    };
+    const brandFilter = brandId
+      ? Prisma.raw(`AND "brand_id" = '${brandId.replace(/'/g, "''")}'`)
+      : Prisma.raw('');
+    const orgFilter = organizationId
+      ? Prisma.raw(
+          `AND "organization_id" = '${organizationId.replace(/'/g, "''")}'`,
+        )
+      : Prisma.raw('');
 
-    const results =
-      await this.postAnalyticsModel.aggregate<AnalyticsBestPostingTime>([
-        PipelineBuilder.buildMatch(matchStage),
-        {
-          $group: {
-            _id: {
-              hour: { $hour: '$date' },
-              platform: '$platform',
-            },
-            avgEngagementRate: { $avg: '$engagementRate' },
-            postCount: { $sum: 1 },
-          },
-        },
-        {
-          $sort: {
-            avgEngagementRate: -1,
-            postCount: -1,
-          },
-        },
-        {
-          $group: {
-            _id: '$_id.platform',
-            avgEngagementRate: { $first: '$avgEngagementRate' },
-            hour: { $first: '$_id.hour' },
-            postCount: { $first: '$postCount' },
-          },
-        },
-        {
-          $project: {
-            _id: 0,
-            avgEngagementRate: 1,
-            hour: 1,
-            platform: '$_id',
-            postCount: 1,
-          },
-        },
-        { $sort: { platform: 1 } },
-      ]);
+    // Group by platform and hour, pick the best hour per platform
+    // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
+    const results: any[] = await this.prisma.$queryRaw`
+      WITH hour_stats AS (
+        SELECT
+          "platform"::text AS platform,
+          EXTRACT(HOUR FROM "date") AS hour,
+          AVG("engagement_rate") AS avg_engagement_rate,
+          COUNT(*) AS post_count
+        FROM "post_analytics"
+        WHERE "date" >= ${startDate} AND "date" <= ${endDate}
+          ${brandFilter}
+          ${orgFilter}
+        GROUP BY "platform", EXTRACT(HOUR FROM "date")
+      ),
+      ranked AS (
+        SELECT
+          platform,
+          hour,
+          avg_engagement_rate,
+          post_count,
+          ROW_NUMBER() OVER (PARTITION BY platform ORDER BY avg_engagement_rate DESC, post_count DESC) AS rn
+        FROM hour_stats
+      )
+      SELECT platform, hour, avg_engagement_rate, post_count
+      FROM ranked
+      WHERE rn = 1
+      ORDER BY platform ASC
+    `;
 
-    return results.map((result) => ({
-      avgEngagementRate: Number((result.avgEngagementRate || 0).toFixed(2)),
-      hour: result.hour,
-      platform: result.platform,
-      postCount: result.postCount,
+    return results.map((row) => ({
+      avgEngagementRate: Number(
+        (Number(row.avg_engagement_rate) || 0).toFixed(2),
+      ),
+      hour: Number(row.hour),
+      platform: row.platform as string,
+      postCount: Number(row.post_count),
     }));
   }
 
@@ -1387,99 +1296,83 @@ export class AnalyticsService extends BaseService<AnalyticDocument> {
     );
 
     // Determine sort field based on metric
-    let sortField: Record<string, 1 | -1>;
+    let sortExpr: string;
     switch (metric) {
       case AnalyticsMetric.ENGAGEMENT:
-        sortField = {
-          totalEngagement: -1,
-        };
+        sortExpr =
+          '(pa.total_likes + pa.total_comments + pa.total_shares + pa.total_saves) DESC';
         break;
       case AnalyticsMetric.LIKES:
-        sortField = { totalLikes: -1 };
+        sortExpr = 'pa.total_likes DESC';
         break;
       default:
-        sortField = { totalViews: -1 };
+        sortExpr = 'pa.total_views DESC';
     }
 
-    const pipeline: PipelineStage[] = [
-      PipelineBuilder.buildMatch({
-        date: { $gte: startDate, $lte: endDate },
-        isDeleted: false,
-        ...(brandId && { brand: new Types.ObjectId(brandId) }),
-        ...(platform && { platform }),
-        ...(organizationId && {
-          organization: new Types.ObjectId(organizationId),
-        }),
-      }),
-      {
-        $addFields: {
-          totalEngagement: {
-            $add: [
-              '$totalLikes',
-              '$totalComments',
-              '$totalShares',
-              '$totalSaves',
-            ],
-          },
-        },
-      },
-      { $sort: sortField },
-      { $limit: safeLimit },
-      {
-        $lookup: {
-          as: 'postData',
-          foreignField: '_id',
-          from: 'posts',
-          localField: 'post',
-        },
-      },
-      { $unwind: { path: '$postData', preserveNullAndEmptyArrays: true } },
-      {
-        $lookup: {
-          as: 'brandData',
-          foreignField: '_id',
-          from: 'brands',
-          localField: 'brand',
-        },
-      },
-      { $unwind: { path: '$brandData', preserveNullAndEmptyArrays: true } },
-      // Lookup ingredients for thumbnail/media display
-      {
-        $lookup: {
-          as: 'ingredientData',
-          foreignField: '_id',
-          from: 'ingredients',
-          localField: 'postData.ingredients',
-        },
-      },
-      {
-        $project: {
-          _id: 1,
-          brandLogo: '$brandData.logo',
-          brandName: '$brandData.name',
-          date: 1,
-          description: '$postData.description',
-          engagementRate: 1,
-          ingredientUrl: { $arrayElemAt: ['$ingredientData.ingredientUrl', 0] },
-          isVideo: {
-            $eq: [{ $arrayElemAt: ['$ingredientData.category', 0] }, 'VIDEO'],
-          },
-          label: '$postData.label',
-          platform: 1,
-          postId: '$post',
-          // First ingredient's thumbnail and URL for display
-          thumbnailUrl: { $arrayElemAt: ['$ingredientData.thumbnailUrl', 0] },
-          totalComments: 1,
-          totalEngagement: 1,
-          totalLikes: 1,
-          totalSaves: 1,
-          totalShares: 1,
-          totalViews: 1,
-        },
-      },
-    ];
+    const brandFilter = brandId
+      ? Prisma.raw(`AND pa."brand_id" = '${brandId.replace(/'/g, "''")}'`)
+      : Prisma.raw('');
+    const platformFilter = platform
+      ? Prisma.raw(
+          `AND pa."platform"::text = '${String(platform).replace(/'/g, "''")}'`,
+        )
+      : Prisma.raw('');
+    const orgFilter = organizationId
+      ? Prisma.raw(
+          `AND pa."organization_id" = '${organizationId.replace(/'/g, "''")}'`,
+        )
+      : Prisma.raw('');
 
-    return await this.postAnalyticsModel.aggregate(pipeline);
+    // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
+    const results: any[] = await this.prisma.$queryRaw`
+      SELECT
+        pa.id,
+        pa."post_id" AS post_id,
+        pa."platform"::text AS platform,
+        pa."date",
+        pa."total_views",
+        pa."total_likes",
+        pa."total_comments",
+        pa."total_saves",
+        pa."total_shares",
+        pa."engagement_rate",
+        (pa.total_likes + pa.total_comments + pa.total_shares + pa.total_saves) AS total_engagement,
+        p.label AS label,
+        p.description AS description,
+        b.name AS brand_name,
+        b.logo AS brand_logo
+      FROM "post_analytics" pa
+      LEFT JOIN "posts" p ON p.id = pa."post_id"
+      LEFT JOIN "brands" b ON b.id = pa."brand_id"
+      WHERE pa."date" >= ${startDate}
+        AND pa."date" <= ${endDate}
+        ${brandFilter}
+        ${platformFilter}
+        ${orgFilter}
+      ORDER BY ${Prisma.raw(sortExpr)}
+      LIMIT ${safeLimit}
+    `;
+
+    return results.map((row) => ({
+      _id: row.id as string,
+      brandName: row.brand_name as string,
+      brandLogo: row.brand_logo as unknown,
+      date: row.date as Date,
+      description: row.description as string,
+      engagementRate: Number(row.engagement_rate),
+      label: row.label as string,
+      platform: row.platform as string,
+      postId: row.post_id as string,
+      thumbnailUrl: undefined,
+      ingredientUrl: undefined,
+      isVideo: false,
+      totalComments: Number(row.total_comments),
+      totalEngagement: Number(row.total_engagement),
+      totalLikes: Number(row.total_likes),
+      totalSaves: Number(row.total_saves),
+      totalShares: Number(row.total_shares),
+      totalViews: Number(row.total_views),
+    }));
   }
 
   /**
@@ -1496,68 +1389,61 @@ export class AnalyticsService extends BaseService<AnalyticDocument> {
       endDateStr,
     );
 
-    const pipeline: PipelineStage[] = [
-      PipelineBuilder.buildMatch({
-        date: { $gte: startDate, $lte: endDate },
-        isDeleted: false,
-        ...(brandId && { brand: new Types.ObjectId(brandId) }),
-      }),
-      {
-        $group: {
-          _id: '$platform',
-          avgEngagementRate: { $avg: '$engagementRate' },
-          totalComments: { $sum: '$totalComments' },
-          totalLikes: { $sum: '$totalLikes' },
-          totalPosts: { $sum: 1 },
-          totalSaves: { $sum: '$totalSaves' },
-          totalShares: { $sum: '$totalShares' },
-          totalViews: { $sum: '$totalViews' },
-        },
-      },
-      {
-        $addFields: {
-          totalEngagement: {
-            $add: [
-              '$totalLikes',
-              '$totalComments',
-              '$totalShares',
-              '$totalSaves',
-            ],
-          },
-        },
-      },
-      { $sort: { totalViews: -1 } },
-    ];
+    const brandFilter = brandId
+      ? Prisma.raw(`AND "brand_id" = '${brandId.replace(/'/g, "''")}'`)
+      : Prisma.raw('');
 
-    const results = await this.postAnalyticsModel.aggregate(pipeline);
+    // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
+    const results: any[] = await this.prisma.$queryRaw`
+      SELECT
+        "platform"::text AS platform,
+        AVG("engagement_rate") AS avg_engagement_rate,
+        SUM("total_comments") AS total_comments,
+        SUM("total_likes") AS total_likes,
+        COUNT(*) AS total_posts,
+        SUM("total_saves") AS total_saves,
+        SUM("total_shares") AS total_shares,
+        SUM("total_views") AS total_views,
+        SUM("total_likes" + "total_comments" + "total_shares" + "total_saves") AS total_engagement
+      FROM "post_analytics"
+      WHERE "date" >= ${startDate} AND "date" <= ${endDate}
+        ${brandFilter}
+      GROUP BY "platform"
+      ORDER BY SUM("total_views") DESC
+    `;
 
     // Calculate totals for percentage calculation
     const totals = results.reduce(
       (acc, platform) => {
-        acc.views += platform.totalViews;
-        acc.engagement += platform.totalEngagement;
-        acc.posts += platform.totalPosts;
+        acc.views += Number(platform.total_views);
+        acc.engagement += Number(platform.total_engagement);
+        acc.posts += Number(platform.total_posts);
         return acc;
       },
       { engagement: 0, posts: 0, views: 0 },
     );
 
     // Add percentages to each platform
-    return results.map((platform) => ({
-      avgEngagementRate: platform.avgEngagementRate || 0,
-      engagementPercentage:
-        totals.engagement > 0
-          ? (platform.totalEngagement / totals.engagement) * 100
-          : 0,
-      platform: platform._id,
-      postsPercentage:
-        totals.posts > 0 ? (platform.totalPosts / totals.posts) * 100 : 0,
-      totalEngagement: platform.totalEngagement,
-      totalPosts: platform.totalPosts,
-      totalViews: platform.totalViews,
-      viewsPercentage:
-        totals.views > 0 ? (platform.totalViews / totals.views) * 100 : 0,
-    }));
+    return results.map((platform) => {
+      const totalViews = Number(platform.total_views);
+      const totalEngagement = Number(platform.total_engagement);
+      const totalPosts = Number(platform.total_posts);
+      return {
+        avgEngagementRate: Number(platform.avg_engagement_rate) || 0,
+        engagementPercentage:
+          totals.engagement > 0
+            ? (totalEngagement / totals.engagement) * 100
+            : 0,
+        platform: platform.platform as string,
+        postsPercentage:
+          totals.posts > 0 ? (totalPosts / totals.posts) * 100 : 0,
+        totalEngagement,
+        totalPosts,
+        totalViews,
+        viewsPercentage:
+          totals.views > 0 ? (totalViews / totals.views) * 100 : 0,
+      };
+    });
   }
 
   /**
@@ -1576,92 +1462,58 @@ export class AnalyticsService extends BaseService<AnalyticDocument> {
     const { startDate, endDate, previousStartDate, previousEndDate } =
       this.parseDateRange(startDateStr, endDateStr);
 
-    // Build match stages with optional brand filter
-    interface MatchStage {
-      date: { $gte: Date; $lte: Date };
-      isDeleted: boolean;
-      brand?: Types.ObjectId;
-    }
-    const currentMatchStage: MatchStage = {
-      date: { $gte: startDate, $lte: endDate },
-      isDeleted: false,
-    };
+    const brandFilter = brandId
+      ? Prisma.raw(`AND "brand_id" = '${brandId.replace(/'/g, "''")}'`)
+      : Prisma.raw('');
 
-    const previousMatchStage: MatchStage = {
-      date: { $gte: previousStartDate, $lte: previousEndDate },
-      isDeleted: false,
-    };
+    // Current period: group by day
+    // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
+    const currentResults: any[] = await this.prisma.$queryRaw`
+      SELECT
+        TO_CHAR("date", 'YYYY-MM-DD') AS day,
+        SUM("total_comments") AS comments,
+        SUM("total_likes") AS likes,
+        COUNT(*) AS posts,
+        SUM("total_saves") AS saves,
+        SUM("total_shares") AS shares,
+        SUM("total_views") AS views,
+        SUM("total_likes" + "total_comments" + "total_shares" + "total_saves") AS engagement
+      FROM "post_analytics"
+      WHERE "date" >= ${startDate} AND "date" <= ${endDate}
+        ${brandFilter}
+      GROUP BY TO_CHAR("date", 'YYYY-MM-DD')
+      ORDER BY day ASC
+    `;
 
-    if (brandId) {
-      currentMatchStage.brand = new Types.ObjectId(brandId);
-      previousMatchStage.brand = new Types.ObjectId(brandId);
-    }
-
-    // Current period aggregation
-    const currentPipeline: PipelineStage[] = [
-      {
-        $match: currentMatchStage,
-      },
-      {
-        $group: {
-          _id: {
-            $dateToString: { date: '$date', format: '%Y-%m-%d' },
-          },
-          comments: { $sum: '$totalComments' },
-          likes: { $sum: '$totalLikes' },
-          posts: { $sum: 1 },
-          saves: { $sum: '$totalSaves' },
-          shares: { $sum: '$totalShares' },
-          views: { $sum: '$totalViews' },
-        },
-      },
-      {
-        $addFields: {
-          engagement: {
-            $add: ['$likes', '$comments', '$shares', '$saves'],
-          },
-        },
-      },
-      { $sort: { _id: 1 } },
-    ];
-
-    // Previous period aggregation
-    const previousPipeline: PipelineStage[] = [
-      {
-        $match: previousMatchStage,
-      },
-      {
-        $group: {
-          _id: null,
-          totalComments: { $sum: '$totalComments' },
-          totalLikes: { $sum: '$totalLikes' },
-          totalPosts: { $sum: 1 },
-          totalSaves: { $sum: '$totalSaves' },
-          totalShares: { $sum: '$totalShares' },
-          totalViews: { $sum: '$totalViews' },
-        },
-      },
-    ];
-
-    const [currentResults, previousResults] = await Promise.all([
-      this.postAnalyticsModel.aggregate(currentPipeline),
-      this.postAnalyticsModel.aggregate(previousPipeline),
-    ]);
+    // Previous period: aggregate totals
+    // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
+    const previousResults: any[] = await this.prisma.$queryRaw`
+      SELECT
+        SUM("total_comments") AS total_comments,
+        SUM("total_likes") AS total_likes,
+        COUNT(*) AS total_posts,
+        SUM("total_saves") AS total_saves,
+        SUM("total_shares") AS total_shares,
+        SUM("total_views") AS total_views
+      FROM "post_analytics"
+      WHERE "date" >= ${previousStartDate} AND "date" <= ${previousEndDate}
+        ${brandFilter}
+    `;
 
     const previous = previousResults[0] || {
-      totalComments: 0,
-      totalLikes: 0,
-      totalPosts: 0,
-      totalSaves: 0,
-      totalShares: 0,
-      totalViews: 0,
+      total_comments: 0,
+      total_likes: 0,
+      total_posts: 0,
+      total_saves: 0,
+      total_shares: 0,
+      total_views: 0,
     };
 
-    const previousEngagement =
-      previous.totalLikes +
-      previous.totalComments +
-      previous.totalShares +
-      previous.totalSaves;
+    const prevEngagement =
+      Number(previous.total_likes) +
+      Number(previous.total_comments) +
+      Number(previous.total_shares) +
+      Number(previous.total_saves);
 
     // Calculate growth for each day
     const trends = currentResults.map((day) => {
@@ -1671,16 +1523,16 @@ export class AnalyticsService extends BaseService<AnalyticDocument> {
 
       switch (metric) {
         case AnalyticsMetric.ENGAGEMENT:
-          previousValue = previousEngagement;
-          currentValue = day.engagement;
+          previousValue = prevEngagement;
+          currentValue = Number(day.engagement);
           break;
         case AnalyticsMetric.POSTS:
-          previousValue = previous.totalPosts;
-          currentValue = day.posts;
+          previousValue = Number(previous.total_posts);
+          currentValue = Number(day.posts);
           break;
         default:
-          previousValue = previous.totalViews;
-          currentValue = day.views;
+          previousValue = Number(previous.total_views);
+          currentValue = Number(day.views);
       }
 
       if (previousValue > 0) {
@@ -1688,7 +1540,7 @@ export class AnalyticsService extends BaseService<AnalyticDocument> {
       }
 
       return {
-        date: day._id,
+        date: day.day as string,
         growth,
         trend: growth > 0 ? 'up' : growth < 0 ? 'down' : 'stable',
         value: currentValue,
@@ -1718,46 +1570,52 @@ export class AnalyticsService extends BaseService<AnalyticDocument> {
       endDateStr,
     );
 
-    const pipeline: PipelineStage[] = [
-      PipelineBuilder.buildMatch({
-        date: { $gte: startDate, $lte: endDate },
-        isDeleted: false,
-        ...(brandId && { brand: new Types.ObjectId(brandId) }),
-        ...(platform && { platform }),
-      }),
-      {
-        $group: {
-          _id: null,
-          totalComments: { $sum: '$totalComments' },
-          totalLikes: { $sum: '$totalLikes' },
-          totalSaves: { $sum: '$totalSaves' },
-          totalShares: { $sum: '$totalShares' },
-        },
-      },
-    ];
+    const brandFilter = brandId
+      ? Prisma.raw(`AND "brand_id" = '${brandId.replace(/'/g, "''")}'`)
+      : Prisma.raw('');
+    const platformFilter = platform
+      ? Prisma.raw(
+          `AND "platform"::text = '${String(platform).replace(/'/g, "''")}'`,
+        )
+      : Prisma.raw('');
 
-    const results = await this.postAnalyticsModel.aggregate(pipeline);
+    // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
+    const results: any[] = await this.prisma.$queryRaw`
+      SELECT
+        SUM("total_comments") AS total_comments,
+        SUM("total_likes") AS total_likes,
+        SUM("total_saves") AS total_saves,
+        SUM("total_shares") AS total_shares
+      FROM "post_analytics"
+      WHERE "date" >= ${startDate} AND "date" <= ${endDate}
+        ${brandFilter}
+        ${platformFilter}
+    `;
+
     const data = results[0] || {
-      totalComments: 0,
-      totalLikes: 0,
-      totalSaves: 0,
-      totalShares: 0,
+      total_comments: 0,
+      total_likes: 0,
+      total_saves: 0,
+      total_shares: 0,
     };
 
-    const total =
-      data.totalLikes + data.totalComments + data.totalShares + data.totalSaves;
+    const totalComments = Number(data.total_comments);
+    const totalLikes = Number(data.total_likes);
+    const totalSaves = Number(data.total_saves);
+    const totalShares = Number(data.total_shares);
+    const total = totalLikes + totalComments + totalShares + totalSaves;
 
     return {
-      comments: data.totalComments,
-      likes: data.totalLikes,
+      comments: totalComments,
+      likes: totalLikes,
       percentages: {
-        comments: total > 0 ? (data.totalComments / total) * 100 : 0,
-        likes: total > 0 ? (data.totalLikes / total) * 100 : 0,
-        saves: total > 0 ? (data.totalSaves / total) * 100 : 0,
-        shares: total > 0 ? (data.totalShares / total) * 100 : 0,
+        comments: total > 0 ? (totalComments / total) * 100 : 0,
+        likes: total > 0 ? (totalLikes / total) * 100 : 0,
+        saves: total > 0 ? (totalSaves / total) * 100 : 0,
+        shares: total > 0 ? (totalShares / total) * 100 : 0,
       },
-      saves: data.totalSaves,
-      shares: data.totalShares,
+      saves: totalSaves,
+      shares: totalShares,
       total,
     };
   }
@@ -1809,91 +1667,61 @@ export class AnalyticsService extends BaseService<AnalyticDocument> {
       endDateStr,
     );
 
-    const matchStage = {
-      date: { $gte: startDate, $lte: endDate },
-      isDeleted: false,
-      ...(brandId && { brand: new Types.ObjectId(brandId) }),
-      ...(organizationId && {
-        organization: new Types.ObjectId(organizationId),
-      }),
-    };
+    const brandFilter = brandId
+      ? Prisma.raw(`AND pa."brand_id" = '${brandId.replace(/'/g, "''")}'`)
+      : Prisma.raw('');
+    const orgFilter = organizationId
+      ? Prisma.raw(
+          `AND pa."organization_id" = '${organizationId.replace(/'/g, "''")}'`,
+        )
+      : Prisma.raw('');
 
-    // Get top performing videos with post description data
-    const videoPipeline: PipelineStage[] = [
-      PipelineBuilder.buildMatch(matchStage),
-      {
-        $group: {
-          _id: '$post',
-          platforms: { $addToSet: '$platform' },
-          totalEngagement: {
-            $sum: {
-              $add: [
-                '$totalLikes',
-                '$totalComments',
-                '$totalShares',
-                '$totalSaves',
-              ],
-            },
-          },
-          totalViews: { $sum: '$totalViews' },
-        },
-      },
-      { $sort: { totalEngagement: -1 } },
-      { $limit: 50 },
-      {
-        $lookup: {
-          as: 'postData',
-          foreignField: '_id',
-          from: 'posts',
-          localField: '_id',
-        },
-      },
-      { $unwind: { path: '$postData', preserveNullAndEmptyArrays: true } },
-      {
-        $project: {
-          _id: 1,
-          description: '$postData.description',
-          platforms: 1,
-          title: '$postData.label',
-          totalEngagement: 1,
-          totalViews: 1,
-        },
-      },
-    ];
-
-    const videos = await this.postAnalyticsModel.aggregate(videoPipeline);
+    // Get top performing posts with description data
+    // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
+    const videos: any[] = await this.prisma.$queryRaw`
+      SELECT
+        pa."post_id" AS id,
+        ARRAY_AGG(DISTINCT pa."platform"::text) AS platforms,
+        SUM(pa."total_likes" + pa."total_comments" + pa."total_shares" + pa."total_saves") AS total_engagement,
+        SUM(pa."total_views") AS total_views,
+        p.description AS description,
+        p.label AS title
+      FROM "post_analytics" pa
+      LEFT JOIN "posts" p ON p.id = pa."post_id"
+      WHERE pa."date" >= ${startDate} AND pa."date" <= ${endDate}
+        ${brandFilter}
+        ${orgFilter}
+      GROUP BY pa."post_id", p.description, p.label
+      ORDER BY total_engagement DESC
+      LIMIT 50
+    `;
 
     // Platform aggregation
-    const platformPipeline: PipelineStage[] = [
-      PipelineBuilder.buildMatch(matchStage),
-      {
-        $group: {
-          _id: '$platform',
-          postCount: { $sum: 1 },
-          totalEngagement: {
-            $sum: {
-              $add: [
-                '$totalLikes',
-                '$totalComments',
-                '$totalShares',
-                '$totalSaves',
-              ],
-            },
-          },
-          totalViews: { $sum: '$totalViews' },
-        },
-      },
-      { $sort: { totalEngagement: -1 } },
-      { $limit: 5 },
-    ];
-
-    const topPlatforms =
-      await this.postAnalyticsModel.aggregate(platformPipeline);
+    // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
+    const topPlatformsRaw: any[] = await this.prisma.$queryRaw`
+      SELECT
+        "platform"::text AS platform,
+        COUNT(*) AS post_count,
+        SUM("total_likes" + "total_comments" + "total_shares" + "total_saves") AS total_engagement,
+        SUM("total_views") AS total_views
+      FROM "post_analytics"
+      WHERE "date" >= ${startDate} AND "date" <= ${endDate}
+        ${brandFilter}
+        ${orgFilter}
+      GROUP BY "platform"
+      ORDER BY total_engagement DESC
+      LIMIT 5
+    `;
 
     // Extract hook text from each video's description (first sentence/line)
     const videosWithHooks = videos.map((v) => ({
       ...v,
-      hook: this.extractHookFromDescription(v.description),
+      hook: this.extractHookFromDescription(v.description as string),
+      id: v.id as string,
+      platforms: (v.platforms as string[]) || [],
+      title: (v.title as string) || 'Untitled',
+      totalEngagement: Number(v.total_engagement),
+      totalViews: Number(v.total_views),
     }));
 
     // Group by normalized hook text and compute aggregate engagement
@@ -1937,20 +1765,20 @@ export class AnalyticsService extends BaseService<AnalyticDocument> {
       analysis: {
         hookEffectiveness,
         topHooks,
-        topPlatforms: topPlatforms.map((p) => ({
-          platform: p._id,
-          postCount: p.postCount,
-          totalEngagement: p.totalEngagement,
-          totalViews: p.totalViews,
+        topPlatforms: topPlatformsRaw.map((p) => ({
+          platform: p.platform as string,
+          postCount: Number(p.post_count),
+          totalEngagement: Number(p.total_engagement),
+          totalViews: Number(p.total_views),
         })),
         totalVideos: videosWithHooks.length,
       },
       videos: videosWithHooks.map((v) => ({
-        description: v.description || '',
+        description: (v.description as string) || '',
         hook: v.hook || '',
-        id: v._id.toString(),
+        id: v.id,
         platforms: v.platforms,
-        title: v.title || 'Untitled',
+        title: v.title,
         totalEngagement: v.totalEngagement,
         totalViews: v.totalViews,
       })),

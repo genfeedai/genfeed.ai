@@ -5,7 +5,6 @@ import { CredentialPlatform, OAuthGrantType } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import { of, throwError } from 'rxjs';
 import { SnapchatService } from './snapchat.service';
 
@@ -22,11 +21,11 @@ describe('SnapchatService', () => {
   let loggerService: vi.Mocked<LoggerService>;
   let httpService: vi.Mocked<HttpService>;
 
-  const orgId = new Types.ObjectId().toString();
-  const brandId = new Types.ObjectId().toString();
+  const orgId = 'test-object-id';
+  const brandId = 'test-object-id';
 
   const mockCredential = {
-    _id: new Types.ObjectId(),
+    _id: 'test-object-id',
     accessToken: 'encrypted-access',
     refreshToken: 'encrypted-refresh',
   };

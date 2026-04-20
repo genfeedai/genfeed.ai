@@ -22,7 +22,6 @@ import type {
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 interface GenerationResult {
   ingredientId: string;
@@ -127,7 +126,7 @@ export class BotGenerationService {
     try {
       // Get brand for default model
       const brand = await this.brandsService.findOne({
-        _id: new Types.ObjectId(resolvedUser.brandId),
+        _id: resolvedUser.brandId,
         isDeleted: false,
       });
 
@@ -143,7 +142,7 @@ export class BotGenerationService {
       const organizationSettings =
         await this.organizationSettingsService.findOne({
           isDeleted: false,
-          organization: new Types.ObjectId(resolvedUser.organizationId),
+          organization: resolvedUser.organizationId,
         });
       const defaultModel = isImage
         ? resolveGenerationDefaultModel<string>({
@@ -176,15 +175,15 @@ export class BotGenerationService {
         await this.sharedService.saveDocuments(
           syntheticUser as unknown as User,
           {
-            brand: new Types.ObjectId(resolvedUser.brandId),
+            brand: resolvedUser.brandId,
             category,
             extension: isImage ? MetadataExtension.JPEG : MetadataExtension.MP4,
             model: defaultModel,
-            organization: new Types.ObjectId(resolvedUser.organizationId),
+            organization: resolvedUser.organizationId,
             prompt,
             status: IngredientStatus.PROCESSING,
             text: prompt,
-            user: new Types.ObjectId(resolvedUser.userId),
+            user: resolvedUser.userId,
           },
         );
 

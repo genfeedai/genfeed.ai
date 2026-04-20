@@ -114,11 +114,10 @@ export class RedisService
   async publish(channel: string, message: unknown) {
     if (!this.isInitialized) {
       this.logger.warn(
-        `Cannot publish to ${channel}: Redis not yet initialized`,
+        `Cannot publish to ${channel}: Redis not initialized — skipping (offline mode)`,
         this.context,
       );
-
-      throw new Error('Redis service not initialized');
+      return;
     }
 
     const payload = JSON.stringify(message);

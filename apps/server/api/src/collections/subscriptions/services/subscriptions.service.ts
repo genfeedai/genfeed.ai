@@ -1,5 +1,5 @@
 import { CustomersService } from '@api/collections/customers/services/customers.service';
-import { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
+import { type OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { CreateSubscriptionDto } from '@api/collections/subscriptions/dto/create-subscription.dto';
 import { UpdateSubscriptionDto } from '@api/collections/subscriptions/dto/update-subscription.dto';
 import { SubscriptionEntity } from '@api/collections/subscriptions/entities/subscription.entity';

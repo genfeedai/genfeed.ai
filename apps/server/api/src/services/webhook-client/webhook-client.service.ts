@@ -7,7 +7,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import { Queue } from 'bullmq';
-import { Types } from 'mongoose';
 
 @Injectable()
 export class WebhookClientService {
@@ -30,7 +29,7 @@ export class WebhookClientService {
     try {
       // Fetch organization settings
       const settings = await this.organizationSettingsService.findOne({
-        organization: new Types.ObjectId(organizationId),
+        organization: organizationId,
       });
 
       if (
@@ -113,7 +112,7 @@ export class WebhookClientService {
   ): Promise<void> {
     try {
       const settings = await this.organizationSettingsService.findOne({
-        organization: new Types.ObjectId(organizationId),
+        organization: organizationId,
       });
 
       if (

@@ -107,7 +107,6 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import type { Request as ExpressRequest } from 'express';
-import { type PipelineStage, Types } from 'mongoose';
 
 type PromptInput = Record<string, unknown> & {
   prompt?: string;
@@ -166,9 +165,9 @@ export class VideosController {
     const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(false);
     const scope = { $ne: null };
-    const brand = new Types.ObjectId(publicMetadata.brand);
+    const brand = publicMetadata.brand;
 
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: {
           $and: [
@@ -179,7 +178,7 @@ export class VideosController {
               scope,
               // Exclude training source videos by default
               training: { $exists: false },
-              user: new Types.ObjectId(publicMetadata.user),
+              user: publicMetadata.user,
             },
           ],
         },
@@ -277,15 +276,15 @@ export class VideosController {
     // Handle format filter based on metadata dimensions
     // Format is now filtered after metadata lookup using $expr
 
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: {
           $and: [
             {
               $or: [
-                { user: new Types.ObjectId(publicMetadata.user) },
+                { user: publicMetadata.user },
                 {
-                  organization: new Types.ObjectId(publicMetadata.organization),
+                  organization: publicMetadata.organization,
                 },
               ],
             },
@@ -296,7 +295,7 @@ export class VideosController {
               scope,
               status,
               // ...(isValidObjectId(query.references)
-              //   ? { references: new Types.ObjectId(query.references) }
+              //   ? { references: query.references }
               //   : {}),
             },
             folderConditions,
@@ -417,7 +416,7 @@ export class VideosController {
                     { $eq: ['$entityModel', ActivityEntityModel.INGREDIENT] },
                     { $eq: ['$entity', '$$entityId'] },
                     { $eq: ['$isDeleted', false] },
-                    { $eq: ['$user', new Types.ObjectId(publicMetadata.user)] },
+                    { $eq: ['$user', publicMetadata.user] },
                   ],
                 },
               },
@@ -481,12 +480,12 @@ export class VideosController {
     const publicMetadata = getPublicMetadata(user);
 
     // Build aggregation pipeline to fetch video with evaluation
-    const pipeline: PipelineStage[] = [
+    const pipeline: Record<string, unknown>[] = [
       {
         $match: {
-          _id: new Types.ObjectId(videoId),
+          _id: videoId,
           isDeleted: false,
-          organization: new Types.ObjectId(publicMetadata.organization),
+          organization: publicMetadata.organization,
         },
       },
       // Lookup latest COMPLETED evaluation for this video (full document)
@@ -556,10 +555,10 @@ export class VideosController {
     };
 
     const vote = await this.votesService.findOne({
-      entity: new Types.ObjectId(videoId),
+      entity: videoId,
       entityModel: ActivityEntityModel.INGREDIENT,
       isDeleted: false,
-      user: new Types.ObjectId(publicMetadata.user),
+      user: publicMetadata.user,
     });
 
     mergedData.hasVoted = !!vote;
@@ -580,7 +579,7 @@ export class VideosController {
     const video = await this.videosService.findOne({
       _id: videoId,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     });
 
     if (!video) {
@@ -652,8 +651,8 @@ export class VideosController {
     const video = await this.videosService.findOne({
       _id: videoId,
       $or: [
-        { user: new Types.ObjectId(publicMetadata.user) },
-        { organization: new Types.ObjectId(publicMetadata.organization) },
+        { user: publicMetadata.user },
+        { organization: publicMetadata.organization },
       ],
       isDeleted: false,
     });
@@ -712,9 +711,9 @@ export class VideosController {
     const brandId = createVideoDto.brand || publicMetadata.brand;
 
     const brand = await this.brandsService.findOne({
-      _id: new Types.ObjectId(brandId),
+      _id: brandId,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     });
 
     if (!brand) {
@@ -730,7 +729,7 @@ export class VideosController {
     const organizationSettings = await this.organizationSettingsService.findOne(
       {
         isDeleted: false,
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
       },
     );
 
@@ -783,9 +782,7 @@ export class VideosController {
 
     // Validate resolved model against org (catches default-resolution bypassing ModelsGuard)
     if (request.context?.organizationId) {
-      const authenticatedOrgId = new Types.ObjectId(
-        request.context.organizationId,
-      );
+      const authenticatedOrgId = request.context.organizationId;
       await this.modelRegistrationService.validateModelForOrg(
         model,
         authenticatedOrgId,
@@ -942,18 +939,18 @@ export class VideosController {
     const promptData = await this.promptsService.create(
       new PromptEntity({
         blacklists: createVideoDto.blacklist,
-        brand: new Types.ObjectId(publicMetadata.brand),
+        brand: publicMetadata.brand,
         camera: createVideoDto.camera,
         category: PromptCategory.MODELS_PROMPT_VIDEO,
         mood: createVideoDto.mood,
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
         original: promptText,
         scene: createVideoDto.scene,
         sounds: createVideoDto.sounds,
         speech: createVideoDto.speech,
         status: PromptStatus.PROCESSING,
         style: createVideoDto.style,
-        user: new Types.ObjectId(publicMetadata.user),
+        user: publicMetadata.user,
       }),
     );
 
@@ -961,22 +958,20 @@ export class VideosController {
       await this.sharedService.saveDocuments(user, {
         ...createVideoDto,
         bookmark: createVideoDto.bookmark
-          ? new Types.ObjectId(createVideoDto.bookmark as string)
+          ? (createVideoDto.bookmark as string)
           : undefined,
-        brand: new Types.ObjectId(brand._id),
+        brand: brand._id,
         category: IngredientCategory.VIDEO,
         extension: MetadataExtension.MP4,
         height,
         model,
-        organization: new Types.ObjectId(brand.organization),
-        prompt: new Types.ObjectId(promptData._id),
+        organization: brand.organization,
+        prompt: promptData._id,
 
         // Template tracking
         promptTemplate: templateUsed,
         references:
-          referenceIds.length > 0
-            ? referenceIds.map((id) => new Types.ObjectId(id))
-            : undefined,
+          referenceIds.length > 0 ? referenceIds.map((id) => id) : undefined,
         status: IngredientStatus.PROCESSING,
         style: createVideoDto.style === '' ? null : createVideoDto.style,
         templateVersion: templateVersion,
@@ -986,13 +981,13 @@ export class VideosController {
     // Create activity for video generation start
     const activity = await this.activitiesService.create(
       new ActivityEntity({
-        brand: new Types.ObjectId(brand._id),
-        entityId: new Types.ObjectId(ingredientData._id),
+        brand: brand._id,
+        entityId: ingredientData._id,
         entityModel: ActivityEntityModel.INGREDIENT,
         key: ActivityKey.VIDEO_PROCESSING,
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
         source: ActivitySource.VIDEO_GENERATION,
-        user: new Types.ObjectId(publicMetadata.user),
+        user: publicMetadata.user,
         value: JSON.stringify({
           ingredientId: ingredientData._id.toString(),
           model,
@@ -1143,16 +1138,16 @@ export class VideosController {
             Array.from({ length: outputs - 1 }, () => {
               return this.sharedService.saveDocuments(user, {
                 ...createVideoDto,
-                brand: new Types.ObjectId(brand._id),
+                brand: brand._id,
                 category: IngredientCategory.VIDEO,
                 extension: MetadataExtension.MP4,
                 height,
                 model,
-                organization: new Types.ObjectId(brand.organization),
-                prompt: new Types.ObjectId(promptData._id),
+                organization: brand.organization,
+                prompt: promptData._id,
                 references:
                   referenceIds.length > 0
-                    ? referenceIds.map((id) => new Types.ObjectId(id))
+                    ? referenceIds.map((id) => id)
                     : undefined,
                 status: IngredientStatus.PROCESSING,
                 style:
@@ -1175,7 +1170,7 @@ export class VideosController {
                     }),
                   ),
                   this.videosService.patch(ingredientData._id, {
-                    prompt: new Types.ObjectId(promptData._id),
+                    prompt: promptData._id,
                   }),
                 ];
               },
@@ -1195,15 +1190,13 @@ export class VideosController {
               this.activitiesService
                 .create(
                   new ActivityEntity({
-                    brand: new Types.ObjectId(brand._id),
-                    entityId: new Types.ObjectId(addIngredient._id),
+                    brand: brand._id,
+                    entityId: addIngredient._id,
                     entityModel: ActivityEntityModel.INGREDIENT,
                     key: ActivityKey.VIDEO_PROCESSING,
-                    organization: new Types.ObjectId(
-                      publicMetadata.organization,
-                    ),
+                    organization: publicMetadata.organization,
                     source: ActivitySource.VIDEO_GENERATION,
-                    user: new Types.ObjectId(publicMetadata.user),
+                    user: publicMetadata.user,
                     value: JSON.stringify({
                       ingredientId: addIngredient._id.toString(),
                       model,
@@ -1253,16 +1246,16 @@ export class VideosController {
               ingredientData: additionalIngredient,
             } = await this.sharedService.saveDocuments(user, {
               ...createVideoDto,
-              brand: new Types.ObjectId(brand._id),
+              brand: brand._id,
               category: IngredientCategory.VIDEO,
               extension: MetadataExtension.MP4,
               height,
               model,
-              organization: new Types.ObjectId(brand.organization),
-              prompt: new Types.ObjectId(promptData._id),
+              organization: brand.organization,
+              prompt: promptData._id,
               references:
                 referenceIds.length > 0
-                  ? referenceIds.map((id) => new Types.ObjectId(id))
+                  ? referenceIds.map((id) => id)
                   : undefined,
               status: IngredientStatus.PROCESSING,
               style: createVideoDto.style === '' ? null : createVideoDto.style,
@@ -1318,7 +1311,7 @@ export class VideosController {
                 }),
               ),
               this.videosService.patch(additionalIngredient._id, {
-                prompt: new Types.ObjectId(promptData._id),
+                prompt: promptData._id,
               }),
             ]);
 
@@ -1327,13 +1320,13 @@ export class VideosController {
             // Create activity for this additional output (non-batch path)
             const additionalActivity = await this.activitiesService.create(
               new ActivityEntity({
-                brand: new Types.ObjectId(brand._id),
-                entityId: new Types.ObjectId(additionalIngredient._id),
+                brand: brand._id,
+                entityId: additionalIngredient._id,
                 entityModel: ActivityEntityModel.INGREDIENT,
                 key: ActivityKey.VIDEO_PROCESSING,
-                organization: new Types.ObjectId(publicMetadata.organization),
+                organization: publicMetadata.organization,
                 source: ActivitySource.VIDEO_GENERATION,
-                user: new Types.ObjectId(publicMetadata.user),
+                user: publicMetadata.user,
                 value: JSON.stringify({
                   ingredientId: additionalIngredient._id.toString(),
                   model,

@@ -1,12 +1,12 @@
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { TemplateMetadataService } from '@api/collections/template-metadata/services/template-metadata.service';
 import { TemplateUsageService } from '@api/collections/template-usage/services/template-usage.service';
-import { Template } from '@api/collections/templates/schemas/template.schema';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { type Template } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('TemplatesService', () => {
@@ -17,7 +17,7 @@ describe('TemplatesService', () => {
       providers: [
         TemplatesService,
         {
-          provide: getModelToken(Template.name, DB_CONNECTIONS.CLOUD),
+          provide: PrismaService,
           useValue: {
             find: vi.fn().mockReturnThis(),
             findOne: vi.fn().mockReturnThis(),

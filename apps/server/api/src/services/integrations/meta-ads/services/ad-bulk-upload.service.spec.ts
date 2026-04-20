@@ -7,7 +7,6 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('AdBulkUploadService', () => {
   let service: AdBulkUploadService;
@@ -30,7 +29,7 @@ describe('AdBulkUploadService', () => {
   };
 
   beforeEach(async () => {
-    const jobId = new Types.ObjectId();
+    const jobId = 'test-object-id';
     bulkUploadJobsService = {
       create: vi.fn().mockResolvedValue({ _id: jobId }),
     };
@@ -173,7 +172,7 @@ describe('AdBulkUploadService', () => {
     await service.createBulkUpload(input);
     expect(bulkUploadJobsService.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        brand: expect.any(Types.ObjectId),
+        brand: expect.any(String),
       }),
     );
   });

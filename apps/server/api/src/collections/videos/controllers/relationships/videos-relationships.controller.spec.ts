@@ -32,7 +32,6 @@ import type { User } from '@clerk/backend';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 describe('VideosRelationshipsController', () => {
   let controller: VideosRelationshipsController;
@@ -42,10 +41,10 @@ describe('VideosRelationshipsController', () => {
   const mockReq = {} as Request;
 
   const mockVideo = {
-    _id: new Types.ObjectId('507f1f77bcf86cd799439011'),
-    organization: new Types.ObjectId('507f1f77bcf86cd799439013'),
-    parent: new Types.ObjectId('507f1f77bcf86cd799439010'),
-    user: new Types.ObjectId('507f1f77bcf86cd799439012'),
+    _id: '507f1f77bcf86cd799439011',
+    organization: '507f1f77bcf86cd799439013',
+    parent: '507f1f77bcf86cd799439010',
+    user: '507f1f77bcf86cd799439012',
   };
 
   const mockUser = {
@@ -170,8 +169,8 @@ describe('VideosRelationshipsController', () => {
       const mockData = {
         docs: [
           {
-            _id: new Types.ObjectId('507f1f77bcf86cd799439020'),
-            ingredient: new Types.ObjectId(videoId),
+            _id: '507f1f77bcf86cd799439020',
+            ingredient: videoId,
             platform: 'twitter',
             status: 'published',
           },
@@ -210,15 +209,15 @@ describe('VideosRelationshipsController', () => {
       });
       mockServices.sharedService.saveDocuments.mockResolvedValue({
         ingredientData: {
-          _id: new Types.ObjectId('507f1f77bcf86cd799439015'),
+          _id: '507f1f77bcf86cd799439015',
           id: '507f1f77bcf86cd799439015',
         },
         metadataData: {
-          _id: new Types.ObjectId('507f1f77bcf86cd799439016'),
+          _id: '507f1f77bcf86cd799439016',
         },
       });
       mockServices.activitiesService.create.mockResolvedValue({
-        _id: new Types.ObjectId('507f1f77bcf86cd799439018'),
+        _id: '507f1f77bcf86cd799439018',
       });
       mockServices.fileQueueService.processVideo.mockResolvedValue({
         jobId: 'job123',

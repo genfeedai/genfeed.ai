@@ -19,7 +19,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Body, Controller, Param, Patch, Post, Req } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
-import { type PipelineStage, Types } from 'mongoose';
 
 @ApiTags('Goals')
 @AutoSwagger()
@@ -34,7 +33,7 @@ export class GoalsController extends BaseCRUDController<
     public readonly loggerService: LoggerService,
     private readonly goalsService: GoalsService,
   ) {
-    super(loggerService, goalsService, GoalSerializer, Goal.name);
+    super(loggerService, goalsService, GoalSerializer, 'Goal');
   }
 
   @Post()
@@ -48,9 +47,9 @@ export class GoalsController extends BaseCRUDController<
 
     const doc = await this.goalsService.create({
       ...createDto,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
     } as CreateGoalDto & {
-      organization: Types.ObjectId;
+      organization: string;
     });
 
     return serializeSingle(request, GoalSerializer, doc);
@@ -59,11 +58,11 @@ export class GoalsController extends BaseCRUDController<
   public override buildFindAllPipeline(
     user: User,
     query: GoalQueryDto,
-  ): PipelineStage[] {
+  ): Record<string, unknown>[] {
     const publicMetadata = getPublicMetadata(user);
     const match: Record<string, unknown> = {
       isDeleted: query.isDeleted ?? false,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     };
 
     if (query.status) {
@@ -85,9 +84,8 @@ export class GoalsController extends BaseCRUDController<
   ): boolean {
     const publicMetadata = getPublicMetadata(user);
     const entityOrganizationId =
-      (
-        entity.organization as unknown as { _id?: Types.ObjectId }
-      )?._id?.toString() || entity.organization?.toString();
+      (entity.organization as unknown as { _id?: string })?._id?.toString() ||
+      entity.organization?.toString();
 
     return entityOrganizationId === publicMetadata.organization;
   }

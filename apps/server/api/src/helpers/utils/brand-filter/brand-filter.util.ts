@@ -1,5 +1,3 @@
-import type { PipelineStage } from 'mongoose';
-
 /**
  * BrandFilterUtil - Utility for building brand-specific query filters
  *
@@ -11,7 +9,7 @@ import type { PipelineStage } from 'mongoose';
  * const assetStages = BrandFilterUtil.buildBrandAssetLookups();
  *
  * // Use in aggregation pipeline
- * const pipeline: PipelineStage[] = [
+ * const pipeline: Record<string, unknown>[] = [
  *   { $match: { ...baseMatch } },
  *   ...assetStages,
  * ];
@@ -47,7 +45,7 @@ export class BrandFilterUtil {
       includeReferences?: boolean;
       includeCredentials?: boolean;
     } = {},
-  ): PipelineStage[] {
+  ): Record<string, unknown>[] {
     const {
       includeLogo = true,
       includeBanner = true,
@@ -55,7 +53,7 @@ export class BrandFilterUtil {
       includeCredentials = true,
     } = options;
 
-    const stages: PipelineStage[] = [];
+    const stages: Record<string, unknown>[] = [];
 
     // Logo lookup (single asset)
     if (includeLogo) {

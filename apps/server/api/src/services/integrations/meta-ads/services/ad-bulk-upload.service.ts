@@ -1,11 +1,10 @@
-import { CreativeSource } from '@api/collections/ad-bulk-upload-jobs/schemas/ad-bulk-upload-job.schema';
+import type { CreativeSource } from '@api/collections/ad-bulk-upload-jobs/schemas/ad-bulk-upload-job.schema';
 import { AdBulkUploadJobsService } from '@api/collections/ad-bulk-upload-jobs/services/ad-bulk-upload-jobs.service';
 import { AdBulkUploadJobData } from '@api/queues/ad-bulk-upload/ad-bulk-upload.processor';
 import { QueueService } from '@api/queues/core/queue.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 export interface CreateBulkUploadInput {
   organizationId: string;
@@ -59,15 +58,15 @@ export class AdBulkUploadService {
       adAccountId: input.adAccountId,
       adSetId: input.adSetId,
       bodyCopies: input.bodyCopies,
-      brand: input.brandId ? new Types.ObjectId(input.brandId) : undefined,
+      brand: input.brandId ? input.brandId : undefined,
       callToAction: input.callToAction,
       campaignId: input.campaignId,
       creativeSource: input.creativeSource,
-      credential: new Types.ObjectId(input.credentialId),
+      credential: input.credentialId,
       headlines: input.headlines,
       images: resolvedMedia.images,
       linkUrl: input.linkUrl,
-      organization: new Types.ObjectId(input.organizationId),
+      organization: input.organizationId,
       status: 'pending',
       totalPermutations,
       videos: resolvedMedia.videos,

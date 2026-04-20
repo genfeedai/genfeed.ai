@@ -1,6 +1,11 @@
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { User } from '@clerk/backend';
 import { IS_HYBRID_MODE, IS_LOCAL_MODE } from '@genfeedai/config';
+import type {
+  Brand,
+  Organization,
+  User as PrismaUser,
+} from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   type CallHandler,
@@ -8,7 +13,6 @@ import {
   Injectable,
   type NestInterceptor,
 } from '@nestjs/common';
-import type { Brand, Organization, User as PrismaUser } from '@prisma/client';
 import type { Request } from 'express';
 import type { Observable } from 'rxjs';
 

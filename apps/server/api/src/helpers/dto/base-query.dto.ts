@@ -9,7 +9,6 @@ import {
   Min,
   ValidateIf,
 } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class BaseQueryDto {
   @ApiProperty({
@@ -119,7 +118,7 @@ export class BaseQueryDto {
   })
   @IsOptional()
   @IsMongoId()
-  organization?: string | Types.ObjectId;
+  organization?: string;
 
   @ApiProperty({
     description: 'Filter by brand ID (superadmin only)',
@@ -127,7 +126,7 @@ export class BaseQueryDto {
   })
   @IsOptional()
   @IsMongoId()
-  brand?: string | Types.ObjectId;
+  brand?: string;
 
   @ApiProperty({
     description: 'Filter by favorite status',

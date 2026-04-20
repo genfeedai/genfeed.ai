@@ -13,7 +13,6 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import type { User } from '@clerk/backend';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('TrainingsOperationsController', () => {
   let controller: TrainingsOperationsController;
@@ -29,21 +28,18 @@ describe('TrainingsOperationsController', () => {
   } as unknown as User;
 
   const mockTraining = {
-    _id: new Types.ObjectId('507f1f77bcf86cd799439014'),
-    organization: new Types.ObjectId('507f1f77bcf86cd799439012'),
+    _id: '507f1f77bcf86cd799439014',
+    organization: '507f1f77bcf86cd799439012',
     sources: Array.from(
       { length: 10 },
-      (_, i) =>
-        new Types.ObjectId(`507f1f77bcf86cd79943${String(i).padStart(4, '0')}`),
+      (_, i) => `507f1f77bcf86cd79943${String(i).padStart(4, '0')}`,
     ),
     status: 'completed',
-    user: new Types.ObjectId('507f1f77bcf86cd799439011'),
+    user: '507f1f77bcf86cd799439011',
   };
 
   const mockSourceDocs = Array.from({ length: 10 }, (_, i) => ({
-    _id: new Types.ObjectId(
-      `507f1f77bcf86cd79943${String(i).padStart(4, '0')}`,
-    ),
+    _id: `507f1f77bcf86cd79943${String(i).padStart(4, '0')}`,
     metadata: { extension: 'jpg' },
   }));
 
@@ -127,7 +123,7 @@ describe('TrainingsOperationsController', () => {
         controller.relaunchTraining(
           {} as unknown as Request,
           mockUser,
-          new Types.ObjectId().toString(),
+          '507f191e810c19729de860ee'.toString(),
         ),
       ).rejects.toThrow();
     });
@@ -150,7 +146,7 @@ describe('TrainingsOperationsController', () => {
     it('should throw when fewer than 10 source images found', async () => {
       mockServices.ingredientsService.findAll.mockResolvedValueOnce({
         docs: Array.from({ length: 5 }, () => ({
-          _id: new Types.ObjectId(),
+          _id: '507f191e810c19729de860ee',
           metadata: { extension: 'jpg' },
         })),
         total: 5,

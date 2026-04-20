@@ -284,7 +284,7 @@ export class StreaksService {
     userId: string,
     organizationId: string,
   ): Promise<StreakDocument> {
-    const streak = await this.getStreak(userId, organizationId);
+    let streak = await this.getStreak(userId, organizationId);
 
     if (!streak) {
       throw new NotFoundException('Streak not found');

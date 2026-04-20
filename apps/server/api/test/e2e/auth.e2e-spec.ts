@@ -26,7 +26,6 @@ import {
 } from '@api-test/mocks/external-services.mocks';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('Authentication E2E Tests', () => {
   let app: INestApplication;
@@ -72,14 +71,14 @@ describe('Authentication E2E Tests', () => {
 
     // Create test user
     testUser = createTestUser({
-      _id: new Types.ObjectId(),
+      _id: generateIdString(),
       clerkId: 'clerk_test_user_123',
       email: 'auth-test@example.com',
     });
 
     // Create test organization
     testOrganization = createTestOrganization({
-      _id: new Types.ObjectId(),
+      _id: generateIdString(),
       label: 'Auth Test Organization',
       user: testUser._id,
     });
@@ -267,7 +266,7 @@ describe('Authentication E2E Tests', () => {
   describe('Multi-Organization Access', () => {
     it('should create multiple organizations for same user', async () => {
       const secondOrg = createTestOrganization({
-        _id: new Types.ObjectId(),
+        _id: generateIdString(),
         label: 'Second Organization',
         user: testUser._id,
       });
@@ -290,7 +289,7 @@ describe('Authentication E2E Tests', () => {
 
     it('should verify user can be member of different organizations with different roles', async () => {
       const anotherUser = createTestUser({
-        _id: new Types.ObjectId(),
+        _id: generateIdString(),
         clerkId: 'clerk_another_user',
         email: 'another@example.com',
       });

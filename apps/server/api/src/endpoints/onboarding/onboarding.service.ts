@@ -40,7 +40,6 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 /** Credits cost for generating an onboarding preview image */
 const ONBOARDING_PREVIEW_CREDIT_COST = 5;
@@ -200,14 +199,14 @@ export class OnboardingService {
   }
 
   private async resolveOnboardingBrand(
-    organizationId: Types.ObjectId,
-    userId: Types.ObjectId,
+    organizationId: string,
+    userId: string,
     brandId?: string | null,
   ) {
-    if (brandId && Types.ObjectId.isValid(brandId)) {
+    if (brandId && /^[0-9a-f]{24}$/i.test(brandId)) {
       const metadataBrand = await this.brandsService.findOne(
         {
-          _id: new Types.ObjectId(brandId),
+          _id: brandId,
           isDeleted: false,
           organization: organizationId,
           user: userId,
@@ -245,9 +244,9 @@ export class OnboardingService {
   }
 
   private async resolveWritableOnboardingBrand(
-    brand: { _id: Types.ObjectId; label?: string | null },
-    organizationId: Types.ObjectId,
-    userId: Types.ObjectId,
+    brand: { _id: string; label?: string | null },
+    organizationId: string,
+    userId: string,
     clerkUserId: string,
     label?: string,
   ) {
@@ -293,8 +292,8 @@ export class OnboardingService {
     this.loggerService.log(`${caller} starting`, { brandUrl: dto.brandUrl });
 
     const publicMetadata = getPublicMetadata(user);
-    const organizationId = new Types.ObjectId(publicMetadata.organization);
-    const userId = new Types.ObjectId(publicMetadata.user);
+    const organizationId = publicMetadata.organization;
+    const userId = publicMetadata.user;
     const metadataBrandId = publicMetadata.brand?.toString() ?? null;
 
     try {
@@ -524,7 +523,7 @@ export class OnboardingService {
   ): Promise<void> {
     const settings = await this.organizationSettingsService.findOne({
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
     });
 
     if (!settings?._id) {
@@ -583,13 +582,13 @@ export class OnboardingService {
     this.loggerService.log(`${caller} starting`, { brandId });
 
     const publicMetadata = getPublicMetadata(user);
-    const organizationId = new Types.ObjectId(publicMetadata.organization);
+    const organizationId = publicMetadata.organization;
 
     try {
       // Verify brand belongs to user's organization
       const brand = await this.brandsService.findOne(
         {
-          _id: new Types.ObjectId(brandId),
+          _id: brandId,
           isDeleted: false,
           organization: organizationId,
         },
@@ -673,7 +672,7 @@ export class OnboardingService {
     this.loggerService.log(`${caller} starting`);
 
     const publicMetadata = getPublicMetadata(user);
-    const organizationId = new Types.ObjectId(publicMetadata.organization);
+    const organizationId = publicMetadata.organization;
 
     try {
       // Mark onboarding as skipped
@@ -702,7 +701,7 @@ export class OnboardingService {
     user: User,
   ): Promise<{ isFirstLogin: boolean; hasCompletedOnboarding: boolean }> {
     const publicMetadata = getPublicMetadata(user);
-    const organizationId = new Types.ObjectId(publicMetadata.organization);
+    const organizationId = publicMetadata.organization;
 
     const settings = await this.organizationSettingsService.findOne({
       isDeleted: false,
@@ -725,9 +724,9 @@ export class OnboardingService {
     let hasOrganization = false;
     let hasBrand = false;
 
-    if (organizationId && Types.ObjectId.isValid(organizationId)) {
+    if (organizationId && /^[0-9a-f]{24}$/i.test(organizationId)) {
       const organization = await this.organizationsService.findOne({
-        _id: new Types.ObjectId(organizationId),
+        _id: organizationId,
         isDeleted: false,
       });
 
@@ -774,7 +773,7 @@ export class OnboardingService {
     this.loggerService.log(`${caller} starting`, { category });
 
     const publicMetadata = getPublicMetadata(user);
-    const organizationId = new Types.ObjectId(publicMetadata.organization);
+    const organizationId = publicMetadata.organization;
 
     try {
       await this.organizationsService.patch(organizationId.toString(), {
@@ -959,9 +958,9 @@ export class OnboardingService {
       // 1. Fetch brand data
       const brand = await this.brandsService.findOne(
         {
-          _id: new Types.ObjectId(dto.brandId),
+          _id: dto.brandId,
           isDeleted: false,
-          organization: new Types.ObjectId(organizationId),
+          organization: organizationId,
         },
         'none',
       );
@@ -1094,11 +1093,11 @@ export class OnboardingService {
     this.loggerService.log(`${caller} starting`, { brandId });
 
     const publicMetadata = getPublicMetadata(user);
-    const organizationId = new Types.ObjectId(publicMetadata.organization);
+    const organizationId = publicMetadata.organization;
 
     const brand = await this.brandsService.findOne(
       {
-        _id: new Types.ObjectId(brandId),
+        _id: brandId,
         isDeleted: false,
         organization: organizationId,
       },
@@ -1112,10 +1111,15 @@ export class OnboardingService {
       );
     }
 
-    await this.brandsService.patchAll(
-      { _id: brand._id },
-      { $push: { referenceImages: { $each: images } } },
+    const brandId_str = String(
+      (brand as Record<string, unknown>).id ?? brand._id,
     );
+    const existingImages = Array.isArray(brand.referenceImages)
+      ? (brand.referenceImages as unknown[])
+      : [];
+    await this.brandsService.patch(brandId_str, {
+      referenceImages: [...existingImages, ...images],
+    });
 
     this.loggerService.log(`${caller} completed`, {
       brandId,
@@ -1138,8 +1142,8 @@ export class OnboardingService {
     });
 
     const publicMetadata = getPublicMetadata(user);
-    const organizationId = new Types.ObjectId(publicMetadata.organization);
-    const userId = new Types.ObjectId(publicMetadata.user);
+    const organizationId = publicMetadata.organization;
+    const userId = publicMetadata.user;
 
     try {
       const brand = await this.brandsService.findOne(
@@ -1194,7 +1198,7 @@ export class OnboardingService {
    * Update brand entity with scraped data
    */
   private async updateBrandWithScrapedData(
-    brandId: Types.ObjectId,
+    brandId: string,
     scrapedData: IScrapedBrandData,
     dto: BrandSetupDto,
     labelOverride?: string,
@@ -1258,7 +1262,7 @@ export class OnboardingService {
   }
 
   private async upsertBrandWebsiteLink(
-    brandId: Types.ObjectId,
+    brandId: string,
     websiteUrl: string,
   ): Promise<void> {
     const normalizedUrl = websiteUrl.trim();
@@ -1290,7 +1294,7 @@ export class OnboardingService {
   }
 
   private async updateBrandGuidance(
-    brandId: Types.ObjectId,
+    brandId: string,
     extractedData: IExtractedBrandData,
   ): Promise<void> {
     const brand = await this.brandsService.findOne({
@@ -1345,7 +1349,7 @@ export class OnboardingService {
   }
 
   private async updateBrandGuidanceOverrides(
-    brandId: Types.ObjectId,
+    brandId: string,
     dto: ConfirmBrandDataDto,
   ): Promise<void> {
     const brand = await this.brandsService.findOne({
@@ -1397,7 +1401,7 @@ export class OnboardingService {
     this.loggerService.log(`${caller} starting`, { prefix });
 
     const publicMetadata = getPublicMetadata(user);
-    const organizationId = new Types.ObjectId(publicMetadata.organization);
+    const organizationId = publicMetadata.organization;
 
     try {
       // Check if org already has a prefix
@@ -1466,9 +1470,7 @@ export class OnboardingService {
   /**
    * Mark onboarding as complete (set isFirstLogin to false)
    */
-  private async completeOnboarding(
-    organizationId: Types.ObjectId,
-  ): Promise<void> {
+  private async completeOnboarding(organizationId: string): Promise<void> {
     const settings = await this.organizationSettingsService.findOne({
       isDeleted: false,
       organization: organizationId,

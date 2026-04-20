@@ -5,11 +5,10 @@ import type { ClerkService } from '@api/services/integrations/clerk/clerk.servic
 import type { User } from '@clerk/backend';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
-import { Types } from 'mongoose';
 
-const userId = new Types.ObjectId().toString();
-const orgId = new Types.ObjectId().toString();
-const brandId = new Types.ObjectId().toString();
+const userId = '507f191e810c19729de860ee'.toString();
+const orgId = '507f191e810c19729de860ee'.toString();
+const brandId = '507f191e810c19729de860ee'.toString();
 
 const makeUser = (overrides: Record<string, unknown> = {}): User =>
   ({
@@ -85,10 +84,10 @@ describe('MembersController — invitation endpoints', () => {
     it('throws 409 when user is already a member', async () => {
       const controller = buildController();
       vi.mocked(mockClerkService.getUserByEmail).mockResolvedValue({
-        publicMetadata: { user: new Types.ObjectId().toString() },
+        publicMetadata: { user: '507f191e810c19729de860ee'.toString() },
       } as never);
       vi.mocked(mockMembersService.findOne).mockResolvedValue({
-        _id: new Types.ObjectId(),
+        _id: '507f191e810c19729de860ee',
       } as never);
 
       await expect(
@@ -106,7 +105,7 @@ describe('MembersController — invitation endpoints', () => {
 
     it('creates invitation with default member role when role not specified', async () => {
       const controller = buildController();
-      const roleId = new Types.ObjectId();
+      const roleId = '507f191e810c19729de860ee';
 
       vi.mocked(mockClerkService.getUserByEmail).mockResolvedValue(null);
       vi.mocked(mockRolesService.findOne).mockResolvedValue({
@@ -139,7 +138,7 @@ describe('MembersController — invitation endpoints', () => {
 
     it('uses provided role when specified', async () => {
       const controller = buildController();
-      const customRole = new Types.ObjectId();
+      const customRole = '507f191e810c19729de860ee';
 
       vi.mocked(mockClerkService.getUserByEmail).mockResolvedValue(null);
       vi.mocked(mockClerkService.createInvitation).mockResolvedValue({

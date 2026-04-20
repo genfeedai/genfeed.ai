@@ -1,32 +1,25 @@
-import {
-  CreditTransactions,
-  type CreditTransactionsDocument,
-} from '@api/collections/credits/schemas/credit-transactions.schema';
+import type { CreditTransactionsDocument } from '@api/collections/credits/schemas/credit-transactions.schema';
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
 import { CACHE_PATTERNS } from '@api/common/constants/cache-patterns.constants';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { BusinessLogicException } from '@api/helpers/exceptions/business/business-logic.exception';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { CreditTransactionCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Types } from 'mongoose';
 
 @Injectable()
 export class CreditTransactionsService extends BaseService<CreditTransactionsDocument> {
   private readonly constructorName: string = String(this.constructor.name);
 
   constructor(
-    @InjectModel(CreditTransactions.name, DB_CONNECTIONS.AUTH)
-    protected readonly model: AggregatePaginateModel<CreditTransactionsDocument>,
+    public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
     private readonly creditBalanceService: CreditBalanceService,
     private readonly cacheInvalidationService: CacheInvalidationService,
   ) {
-    super(model, logger);
+    super(prisma, 'creditTransaction', logger);
   }
 
   async createTransactionEntry(
@@ -76,7 +69,7 @@ export class CreditTransactionsService extends BaseService<CreditTransactionsDoc
       description,
       expiresAt,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organizationId,
       source,
     } as Record<string, unknown>);
 
@@ -95,15 +88,15 @@ export class CreditTransactionsService extends BaseService<CreditTransactionsDoc
     skip: number = 0,
   ): Promise<CreditTransactionsDocument[]> {
     try {
-      return await this.model
-        .find({
-          isDeleted: { $ne: true },
-          organization: new Types.ObjectId(organizationId),
-        })
-        .sort({ createdAt: -1 })
-        .limit(limit)
-        .skip(skip)
-        .exec();
+      return (await this.delegate.findMany({
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+        where: {
+          isDeleted: { not: true },
+          organizationId,
+        },
+      })) as unknown as CreditTransactionsDocument[];
     } catch (error: unknown) {
       this.logger.error(
         `${this.constructorName} getOrganizationTransactions failed`,
@@ -124,14 +117,14 @@ export class CreditTransactionsService extends BaseService<CreditTransactionsDoc
     before: Date,
   ): Promise<CreditTransactionsDocument | null> {
     try {
-      return await this.model
-        .findOne({
-          createdAt: { $lt: before },
-          isDeleted: { $ne: true },
-          organization: new Types.ObjectId(organizationId),
-        })
-        .sort({ createdAt: -1 })
-        .exec();
+      return (await this.delegate.findFirst({
+        orderBy: { createdAt: 'desc' },
+        where: {
+          createdAt: { lt: before },
+          isDeleted: { not: true },
+          organizationId,
+        },
+      })) as unknown as CreditTransactionsDocument | null;
     } catch (error: unknown) {
       this.logger.error(
         `${this.constructorName} getLatestTransactionBeforeDate failed`,
@@ -151,14 +144,14 @@ export class CreditTransactionsService extends BaseService<CreditTransactionsDoc
     endDate: Date,
   ): Promise<CreditTransactionsDocument[]> {
     try {
-      return await this.model
-        .find({
-          createdAt: { $gte: startDate, $lte: endDate },
-          isDeleted: { $ne: true },
-          organization: new Types.ObjectId(organizationId),
-        })
-        .sort({ createdAt: 1 })
-        .exec();
+      return (await this.delegate.findMany({
+        orderBy: { createdAt: 'asc' },
+        where: {
+          createdAt: { gte: startDate, lte: endDate },
+          isDeleted: { not: true },
+          organizationId,
+        },
+      })) as unknown as CreditTransactionsDocument[];
     } catch (error: unknown) {
       this.logger.error(
         `${this.constructorName} getOrganizationTransactionsInRange failed`,
@@ -179,15 +172,15 @@ export class CreditTransactionsService extends BaseService<CreditTransactionsDoc
     limit = 100,
   ): Promise<CreditTransactionsDocument[]> {
     try {
-      return await this.model
-        .find({
-          isDeleted: { $ne: true },
-          organization: new Types.ObjectId(organizationId),
+      return (await this.delegate.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        where: {
+          isDeleted: { not: true },
+          organizationId,
           type,
-        })
-        .sort({ createdAt: -1 })
-        .limit(limit)
-        .exec();
+        },
+      })) as unknown as CreditTransactionsDocument[];
     } catch (error: unknown) {
       this.logger.error(
         `${this.constructorName} getTransactionsByType failed`,
@@ -204,15 +197,12 @@ export class CreditTransactionsService extends BaseService<CreditTransactionsDoc
   }
 
   async delete(id: string): Promise<void> {
-    await this.model.findByIdAndUpdate(id, {
-      isDeleted: true,
+    await this.delegate.update({
+      data: { isDeleted: true },
+      where: { id },
     });
   }
 
-  /**
-   * Get usage metrics for credits
-   * Returns 7-day usage, 30-day usage, current balance, trend, and breakdown by source
-   */
   async getUsageMetrics(organizationId: string): Promise<{
     currentBalance: number;
     usage7Days: number;
@@ -225,80 +215,51 @@ export class CreditTransactionsService extends BaseService<CreditTransactionsDoc
         organizationId,
       });
 
-      // Get current balance
       const balance =
         await this.creditBalanceService.getOrCreateBalance(organizationId);
       const currentBalance = balance?.balance || 0;
 
-      // Calculate dates for 7 and 30 days ago
       const now = new Date();
       const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-      // Aggregate usage for last 30 days (includes DEDUCT transactions)
-      const usage = await this.model.aggregate([
-        {
-          $match: {
-            category: CreditTransactionCategory.DEDUCT,
-            createdAt: { $gte: thirtyDaysAgo },
-            isDeleted: { $ne: true },
-            organization: new Types.ObjectId(organizationId),
-          },
+      // Get all deductions in last 30 days
+      const deductions = (await this.delegate.findMany({
+        where: {
+          category: CreditTransactionCategory.DEDUCT,
+          createdAt: { gte: thirtyDaysAgo },
+          isDeleted: { not: true },
+          organizationId,
         },
-        {
-          $group: {
-            _id: null,
-            usage7Days: {
-              $sum: {
-                $cond: [
-                  { $gte: ['$createdAt', sevenDaysAgo] },
-                  { $abs: '$amount' },
-                  0,
-                ],
-              },
-            },
-            usage30Days: {
-              $sum: { $abs: '$amount' },
-            },
-          },
-        },
-      ]);
+      })) as Array<{ amount: number; createdAt: Date; source?: string }>;
 
-      const usageData = usage[0] || { usage7Days: 0, usage30Days: 0 };
+      let usage7Days = 0;
+      let usage30Days = 0;
+      const sourceMap = new Map<string, { amount: number; count: number }>();
 
-      // Get breakdown by source for last 30 days
-      const breakdown = await this.model.aggregate([
-        {
-          $match: {
-            category: CreditTransactionCategory.DEDUCT,
-            createdAt: { $gte: thirtyDaysAgo },
-            isDeleted: { $ne: true },
-            organization: new Types.ObjectId(organizationId),
-          },
-        },
-        {
-          $group: {
-            _id: { $ifNull: ['$source', 'Unknown'] },
-            amount: { $sum: { $abs: '$amount' } },
-            count: { $sum: 1 },
-          },
-        },
-        {
-          $project: {
-            _id: 0,
-            amount: 1,
-            count: 1,
-            source: '$_id',
-          },
-        },
-        {
-          $sort: { amount: -1 },
-        },
-      ]);
+      for (const d of deductions) {
+        const absAmount = Math.abs(d.amount);
+        usage30Days += absAmount;
+        if (d.createdAt >= sevenDaysAgo) {
+          usage7Days += absAmount;
+        }
+        const src = d.source || 'Unknown';
+        const existing = sourceMap.get(src) || { amount: 0, count: 0 };
+        existing.amount += absAmount;
+        existing.count += 1;
+        sourceMap.set(src, existing);
+      }
 
-      // Calculate trend percentage (7-day vs 30-day daily average)
-      const dailyAvg7Days = usageData.usage7Days / 7;
-      const dailyAvg30Days = usageData.usage30Days / 30;
+      const breakdown = Array.from(sourceMap.entries())
+        .map(([source, data]) => ({
+          amount: data.amount,
+          count: data.count,
+          source,
+        }))
+        .sort((a, b) => b.amount - a.amount);
+
+      const dailyAvg7Days = usage7Days / 7;
+      const dailyAvg30Days = usage30Days / 30;
       const trendPercentage =
         dailyAvg30Days > 0
           ? ((dailyAvg7Days - dailyAvg30Days) / dailyAvg30Days) * 100
@@ -308,8 +269,8 @@ export class CreditTransactionsService extends BaseService<CreditTransactionsDoc
         breakdown,
         currentBalance,
         trendPercentage: Math.round(trendPercentage * 100) / 100,
-        usage7Days: usageData.usage7Days,
-        usage30Days: usageData.usage30Days,
+        usage7Days,
+        usage30Days,
       };
     } catch (error: unknown) {
       this.logger.error(`${this.constructorName} getUsageMetrics failed`, {
@@ -320,10 +281,6 @@ export class CreditTransactionsService extends BaseService<CreditTransactionsDoc
     }
   }
 
-  /**
-   * Get baseline usage since the latest top-up purchase.
-   * Baseline is defined by the most recent ADD transaction amount.
-   */
   async getLastPurchaseBaseline(organizationId: string): Promise<{
     lastPurchaseCredits: number;
     usedSinceLastPurchase: number;
@@ -340,14 +297,14 @@ export class CreditTransactionsService extends BaseService<CreditTransactionsDoc
         await this.creditBalanceService.getOrCreateBalance(organizationId);
       const currentBalance = balance?.balance || 0;
 
-      const latestAdd = await this.model
-        .findOne({
+      const latestAdd = (await this.delegate.findFirst({
+        orderBy: { createdAt: 'desc' },
+        where: {
           category: CreditTransactionCategory.ADD,
-          isDeleted: { $ne: true },
-          organization: new Types.ObjectId(organizationId),
-        })
-        .sort({ createdAt: -1 })
-        .exec();
+          isDeleted: { not: true },
+          organizationId,
+        },
+      })) as { amount: number; createdAt?: Date | null } | null;
 
       if (!latestAdd) {
         return {
@@ -374,8 +331,7 @@ export class CreditTransactionsService extends BaseService<CreditTransactionsDoc
 
       return {
         currentBalance,
-        lastPurchaseAt:
-          (latestAdd as { createdAt?: Date | null }).createdAt ?? null,
+        lastPurchaseAt: latestAdd.createdAt ?? null,
         lastPurchaseCredits,
         usedPercent,
         usedSinceLastPurchase,

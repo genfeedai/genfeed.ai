@@ -1,4 +1,4 @@
-import { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
+import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
@@ -64,7 +64,11 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { isValidObjectId, type PipelineStage, Types } from 'mongoose';
+
+const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
+function isValidObjectId(id: unknown): id is string {
+  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
+}
 
 const PROMPT_ENHANCEMENT_MODEL = 'openrouter/free';
 const DEFAULT_TEXT_SYSTEM_PROMPT =
@@ -116,9 +120,9 @@ export class PromptsController {
     let selectedBrand: BrandDocument | undefined;
     if (isValidObjectId(createPromptDto.brand)) {
       const brand = await this.brandsService.findOne({
-        _id: new Types.ObjectId(createPromptDto.brand),
+        _id: createPromptDto.brand,
         isDeleted: false,
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
       });
       selectedBrand = brand ?? undefined;
     }
@@ -132,13 +136,13 @@ export class PromptsController {
     const enrichedDto = {
       ...createPromptDto,
       brand: isValidObjectId(createPromptDto.brand)
-        ? new Types.ObjectId(createPromptDto.brand)
+        ? createPromptDto.brand
         : undefined,
       category: normalizedType,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
       status: PromptStatus.PROCESSING,
-      user: new Types.ObjectId(publicMetadata.user),
-    } as CreatePromptDto & { user: Types.ObjectId };
+      user: publicMetadata.user,
+    } as CreatePromptDto & { user: string };
 
     const data = await this.promptsService.create(enrichedDto, [
       { path: 'ingredient' },
@@ -256,12 +260,12 @@ export class PromptsController {
     const match: Record<string, unknown> = {
       isDeleted,
       scope,
-      user: new Types.ObjectId(publicMetadata.user),
+      user: publicMetadata.user,
     };
 
     // Add brand filter if provided
     if (query.brand && isValidObjectId(query.brand)) {
-      match.brand = new Types.ObjectId(query.brand);
+      match.brand = query.brand;
     }
 
     // Filter by favorite status if provided
@@ -269,7 +273,7 @@ export class PromptsController {
       match.isFavorite = query.isFavorite;
     }
 
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: match,
       },
@@ -333,7 +337,7 @@ export class PromptsController {
       {
         _id: promptId,
         isDeleted: false,
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
       },
       [{ path: 'ingredient' }],
     );
@@ -342,8 +346,8 @@ export class PromptsController {
     if (data && !data.ingredient) {
       const ingredient = await this.ingredientsService.findOne({
         isDeleted: false,
-        organization: new Types.ObjectId(publicMetadata.organization),
-        prompt: new Types.ObjectId(promptId),
+        organization: publicMetadata.organization,
+        prompt: promptId,
       });
 
       if (ingredient) {
@@ -372,8 +376,8 @@ export class PromptsController {
     const prompt = await this.promptsService.findOne({
       _id: promptId,
       $or: [
-        { user: new Types.ObjectId(publicMetadata.user) },
-        { organization: new Types.ObjectId(publicMetadata.organization) },
+        { user: publicMetadata.user },
+        { organization: publicMetadata.organization },
       ],
       isDeleted: false,
     });
@@ -405,7 +409,7 @@ export class PromptsController {
     const prompt = await this.promptsService.findOne({
       _id: promptId,
       isDeleted: false,
-      user: new Types.ObjectId(publicMetadata.user),
+      user: publicMetadata.user,
     });
 
     if (!prompt) {

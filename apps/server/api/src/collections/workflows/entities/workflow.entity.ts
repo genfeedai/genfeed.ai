@@ -13,7 +13,6 @@ import {
   WorkflowStepStatus,
   WorkflowTrigger,
 } from '@genfeedai/enums';
-import { Types } from 'mongoose';
 
 export class WorkflowRecurrenceEntity {
   type!: WorkflowRecurrenceType;
@@ -29,7 +28,7 @@ export class WorkflowStepEntity {
   config!: Record<string, unknown>;
   dependsOn!: string[];
   status!: WorkflowStepStatus;
-  output?: Types.ObjectId;
+  output?: string;
   outputModel?: string;
   error?: string;
   startedAt?: Date;
@@ -39,14 +38,14 @@ export class WorkflowStepEntity {
 
 // @ts-expect-error - implements via BaseEntity + explicit fields
 export class WorkflowEntity extends BaseEntity implements Workflow {
-  user?: Types.ObjectId;
-  organization?: Types.ObjectId;
+  user?: string;
+  organization?: string;
   label!: string;
   description?: string;
   templateId?: string;
   trigger!: WorkflowTrigger;
   status!: WorkflowStatus;
-  sourceAsset?: Types.ObjectId;
+  sourceAsset?: string;
   sourceAssetModel?: string;
   steps!: WorkflowStepEntity[];
   metadata?: Record<string, unknown>;
@@ -58,7 +57,7 @@ export class WorkflowEntity extends BaseEntity implements Workflow {
   executionCount!: number;
   lastExecutedAt?: Date;
   recurrence?: WorkflowRecurrenceEntity;
-  tags!: Types.ObjectId[];
+  tags!: string[];
   nodes!: WorkflowVisualNode[];
   edges!: WorkflowEdge[];
   inputVariables!: WorkflowInputVariable[];
@@ -72,5 +71,5 @@ export class WorkflowEntity extends BaseEntity implements Workflow {
   // New workflow engine fields
   lifecycle!: WorkflowLifecycle;
   lockedNodeIds!: string[];
-  brands!: Types.ObjectId[];
+  brands!: string[];
 }

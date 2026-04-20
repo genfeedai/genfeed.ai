@@ -48,7 +48,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 describe('PostsOperationsController', () => {
   let controller: PostsOperationsController;
@@ -71,40 +70,40 @@ describe('PostsOperationsController', () => {
   } as unknown as User;
 
   const mockPost = {
-    _id: new Types.ObjectId(postId),
-    brand: new Types.ObjectId(brandId),
+    _id: postId,
+    brand: brandId,
     category: PostCategory.TEXT,
-    credential: new Types.ObjectId(credentialId),
+    credential: credentialId,
     description: 'Test post description',
     isDeleted: false,
-    organization: new Types.ObjectId(organizationId),
+    organization: organizationId,
     parent: undefined,
     platform: CredentialPlatform.TWITTER,
     status: PostStatus.DRAFT,
-    user: new Types.ObjectId(userId),
+    user: userId,
   };
 
   const mockCredential = {
-    _id: new Types.ObjectId(credentialId),
+    _id: credentialId,
     handle: '@testaccount',
     isConnected: true,
     isDeleted: false,
     label: 'Twitter Account',
-    organization: new Types.ObjectId(organizationId),
+    organization: organizationId,
     platform: CredentialPlatform.TWITTER,
   };
 
   const mockIngredient = {
-    _id: new Types.ObjectId(ingredientId),
-    brand: new Types.ObjectId(brandId),
+    _id: ingredientId,
+    brand: brandId,
     category: IngredientCategory.IMAGE,
     isDeleted: false,
-    organization: new Types.ObjectId(organizationId),
+    organization: organizationId,
     url: 'https://example.com/image.jpg',
   };
 
   const mockActivity = {
-    _id: new Types.ObjectId(),
+    _id: '507f191e810c19729de860ee',
     key: 'POST_PROCESSING',
     source: 'POST_GENERATION',
   };
@@ -277,7 +276,7 @@ Tweet 3: Tech innovation is changing the world.`,
   describe('generateTweets', () => {
     const generateTweetsDto = {
       count: 3,
-      credential: new Types.ObjectId(credentialId),
+      credential: credentialId,
       tone: TweetTone.PROFESSIONAL,
       topic: 'AI technology',
     };
@@ -293,7 +292,7 @@ Tweet 3: Tech innovation is changing the world.`,
         _id: generateTweetsDto.credential,
         isConnected: true,
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
+        organization: organizationId,
       });
       expect(mockPostsService.create).toHaveBeenCalledTimes(3);
       expect(result).toBeDefined();
@@ -339,9 +338,9 @@ Tweet 3: Tech innovation is changing the world.`,
       await (controller as any).generateTweetsAsync(
         {
           ...generateTweetsDto,
-          sourceReferenceIds: [new Types.ObjectId('507f1f77bcf86cd799439099')],
+          sourceReferenceIds: ['507f1f77bcf86cd799439099'],
           sourceUrl: 'https://x.com/example/status/1',
-          trendId: new Types.ObjectId('507f1f77bcf86cd799439098'),
+          trendId: '507f1f77bcf86cd799439098',
         },
         [mockPost],
         {
@@ -371,7 +370,7 @@ Tweet 3: Tech innovation is changing the world.`,
   describe('generateThread', () => {
     const generateThreadDto = {
       count: 5,
-      credential: new Types.ObjectId(credentialId),
+      credential: credentialId,
       tone: TweetTone.CASUAL,
       topic: 'AI technology',
     };
@@ -382,7 +381,7 @@ Tweet 3: Tech innovation is changing the world.`,
         callCount++;
         return Promise.resolve({
           ...mockPost,
-          _id: new Types.ObjectId(),
+          _id: '507f191e810c19729de860ee',
           order: callCount - 1,
         });
       });
@@ -410,7 +409,7 @@ Tweet 3: Tech innovation is changing the world.`,
     it('should use default PROFESSIONAL tone when not specified', async () => {
       const dtoWithoutTone = {
         count: 3,
-        credential: new Types.ObjectId(credentialId),
+        credential: credentialId,
         topic: 'AI',
       };
 
@@ -423,9 +422,9 @@ Tweet 3: Tech innovation is changing the world.`,
       await (controller as any).generateThreadAsync(
         {
           ...generateThreadDto,
-          sourceReferenceIds: [new Types.ObjectId('507f1f77bcf86cd799439099')],
+          sourceReferenceIds: ['507f1f77bcf86cd799439099'],
           sourceUrl: 'https://x.com/example/status/1',
-          trendId: new Types.ObjectId('507f1f77bcf86cd799439098'),
+          trendId: '507f1f77bcf86cd799439098',
         },
         [mockPost],
         {
@@ -503,7 +502,7 @@ Tweet 3: Tech innovation is changing the world.`,
     it('should throw FORBIDDEN when post belongs to different organization', async () => {
       mockPostsService.findOne.mockResolvedValueOnce({
         ...mockPost,
-        organization: new Types.ObjectId(),
+        organization: '507f191e810c19729de860ee',
       });
 
       await expect(
@@ -518,7 +517,7 @@ Tweet 3: Tech innovation is changing the world.`,
       try {
         mockPostsService.findOne.mockResolvedValueOnce({
           ...mockPost,
-          organization: new Types.ObjectId(),
+          organization: '507f191e810c19729de860ee',
         });
         await controller.expandToThread(
           mockRequest,
@@ -566,17 +565,17 @@ Tweet 3: Tech innovation is changing the world.`,
   // ==========================================================================
   describe('batchSchedule', () => {
     const batchScheduleDto = {
-      credential: new Types.ObjectId(credentialId),
+      credential: credentialId,
       tweets: [
         {
-          postId: new Types.ObjectId(postId),
+          postId: postId,
           scheduledDate: new Date().toISOString(),
           text: 'Scheduled tweet 1',
           timezone: 'America/New_York',
         },
         {
           ingredientId: ingredientId,
-          postId: new Types.ObjectId(),
+          postId: '507f191e810c19729de860ee',
           scheduledDate: new Date().toISOString(),
           text: 'Scheduled tweet 2',
           timezone: 'America/New_York',
@@ -641,9 +640,9 @@ Tweet 3: Tech innovation is changing the world.`,
   // ==========================================================================
   describe('addThreadReply', () => {
     const createPostDto = {
-      credential: new Types.ObjectId(credentialId),
+      credential: credentialId,
       description: 'Reply to thread',
-      ingredients: [] as Types.ObjectId[],
+      ingredients: [] as string[],
       label: 'Reply',
       status: PostStatus.DRAFT,
     };
@@ -652,7 +651,7 @@ Tweet 3: Tech innovation is changing the world.`,
       mockPostsService.findOne.mockResolvedValue(mockPost);
       mockPostsService.addThreadReply.mockResolvedValue({
         ...mockPost,
-        parent: new Types.ObjectId(postId),
+        parent: postId,
       });
     });
 
@@ -682,7 +681,7 @@ Tweet 3: Tech innovation is changing the world.`,
     it('should throw FORBIDDEN when parent belongs to different organization', async () => {
       mockPostsService.findOne.mockResolvedValueOnce({
         ...mockPost,
-        organization: new Types.ObjectId(),
+        organization: '507f191e810c19729de860ee',
       });
 
       await expect(
@@ -747,7 +746,7 @@ Tweet 3: Tech innovation is changing the world.`,
 
       const dtoWithIngredient = {
         ...createPostDto,
-        ingredients: [new Types.ObjectId(ingredientId)],
+        ingredients: [ingredientId],
       };
 
       await expect(
@@ -768,7 +767,7 @@ Tweet 3: Tech innovation is changing the world.`,
 
       const dtoWithIngredient = {
         ...createPostDto,
-        ingredients: [new Types.ObjectId(ingredientId)],
+        ingredients: [ingredientId],
       };
 
       await controller.addThreadReply(
@@ -796,7 +795,7 @@ Tweet 3: Tech innovation is changing the world.`,
       mockPostsService.findOne.mockResolvedValue(mockPost);
       mockPostsService.createRemix.mockResolvedValue({
         ...mockPost,
-        _id: new Types.ObjectId(),
+        _id: '507f191e810c19729de860ee',
         description: createRemixDto.description,
         remixOf: mockPost._id,
       });
@@ -818,10 +817,10 @@ Tweet 3: Tech innovation is changing the world.`,
         postId,
         createRemixDto.description,
         expect.objectContaining({
-          brand: new Types.ObjectId(brandId),
+          brand: brandId,
           label: createRemixDto.label,
-          organization: new Types.ObjectId(organizationId),
-          user: new Types.ObjectId(userId),
+          organization: organizationId,
+          user: userId,
         }),
       );
       expect(mockActivitiesService.create).toHaveBeenCalled();
@@ -844,7 +843,7 @@ Tweet 3: Tech innovation is changing the world.`,
     it('should throw FORBIDDEN when post belongs to different organization', async () => {
       mockPostsService.findOne.mockResolvedValueOnce({
         ...mockPost,
-        organization: new Types.ObjectId(),
+        organization: '507f191e810c19729de860ee',
       });
 
       await expect(
@@ -929,7 +928,7 @@ Tweet 3: Tech innovation is changing the world.`,
     it('should throw FORBIDDEN when post belongs to different organization', async () => {
       mockPostsService.findOne.mockResolvedValueOnce({
         ...mockPost,
-        organization: new Types.ObjectId(),
+        organization: '507f191e810c19729de860ee',
       });
 
       await expect(
@@ -1089,7 +1088,7 @@ Tweet 3: Tech innovation is changing the world.`,
     it('should handle missing optional fields in DTOs', async () => {
       const minimalDto = {
         count: 1,
-        credential: new Types.ObjectId(credentialId),
+        credential: credentialId,
         topic: 'Test',
       };
 

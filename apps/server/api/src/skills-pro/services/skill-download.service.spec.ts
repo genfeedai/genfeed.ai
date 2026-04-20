@@ -100,10 +100,7 @@ describe('SkillDownloadService', () => {
             getPresignedDownloadUrl: vi.fn(),
           },
         },
-        {
-          provide: PrismaService,
-          useValue: skillReceiptModel,
-        },
+        { provide: PrismaService, useValue: skillReceiptModel },
       ],
     }).compile();
 

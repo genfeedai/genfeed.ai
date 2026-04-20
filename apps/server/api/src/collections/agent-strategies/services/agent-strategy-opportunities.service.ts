@@ -1,23 +1,17 @@
-import { AgentStrategyDocument } from '@api/collections/agent-strategies/schemas/agent-strategy.schema';
-import {
-  AgentStrategyOpportunity,
-  type AgentStrategyOpportunityDocument,
-} from '@api/collections/agent-strategies/schemas/agent-strategy-opportunity.schema';
+import type { AgentStrategyDocument } from '@api/collections/agent-strategies/schemas/agent-strategy.schema';
+import type { AgentStrategyOpportunityDocument } from '@api/collections/agent-strategies/schemas/agent-strategy-opportunity.schema';
 import type {
   AgentStrategyOpportunitySourceType,
   AgentStrategyOpportunityStatus,
 } from '@api/collections/agent-strategies/schemas/agent-strategy-policy.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Types } from 'mongoose';
 
 type CreateOpportunityInput = {
-  strategy: Types.ObjectId;
-  organization: Types.ObjectId;
-  brand?: Types.ObjectId;
+  strategyId: string;
+  organizationId: string;
+  brandId?: string;
   sourceType: AgentStrategyOpportunitySourceType;
   sourceRef?: string;
   topic: string;
@@ -35,8 +29,7 @@ type CreateOpportunityInput = {
 @Injectable()
 export class AgentStrategyOpportunitiesService {
   constructor(
-    @InjectModel(AgentStrategyOpportunity.name, DB_CONNECTIONS.AGENT)
-    private readonly model: AggregatePaginateModel<AgentStrategyOpportunityDocument>,
+    private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -48,20 +41,20 @@ export class AgentStrategyOpportunitiesService {
       statuses?: AgentStrategyOpportunityStatus[];
     } = {},
   ): Promise<AgentStrategyOpportunityDocument[]> {
-    const query: Record<string, unknown> = {
-      organization: new Types.ObjectId(organizationId),
-      strategy: new Types.ObjectId(strategyId),
+    const where: Record<string, unknown> = {
+      organizationId,
+      strategyId,
       ...(options.includeDeleted ? {} : { isDeleted: false }),
     };
 
     if (options.statuses?.length) {
-      query.status = { $in: options.statuses };
+      where.status = { in: options.statuses };
     }
 
-    return this.model
-      .find(query)
-      .sort({ createdAt: -1, priorityScore: -1 })
-      .exec();
+    return this.prisma.agentStrategyOpportunity.findMany({
+      where,
+      orderBy: [{ createdAt: 'desc' }, { priorityScore: 'desc' }],
+    }) as Promise<AgentStrategyOpportunityDocument[]>;
   }
 
   listOpenByStrategy(
@@ -76,84 +69,79 @@ export class AgentStrategyOpportunitiesService {
   async createIfMissing(
     input: CreateOpportunityInput,
   ): Promise<AgentStrategyOpportunityDocument> {
-    const dedupeQuery: Record<string, unknown> = {
+    const dedupeWhere: Record<string, unknown> = {
       isDeleted: false,
-      organization: input.organization,
+      organizationId: input.organizationId,
       sourceType: input.sourceType,
-      strategy: input.strategy,
+      strategyId: input.strategyId,
       topic: input.topic,
     };
 
     if (input.sourceRef) {
-      dedupeQuery.sourceRef = input.sourceRef;
+      dedupeWhere.sourceRef = input.sourceRef;
     }
 
-    const existing = await this.model.findOne(dedupeQuery).exec();
+    const existing = await this.prisma.agentStrategyOpportunity.findFirst({
+      where: dedupeWhere,
+    });
     if (existing) {
-      return existing;
+      return existing as AgentStrategyOpportunityDocument;
     }
 
-    const created = await this.model.create({
-      ...input,
-      formatCandidates: input.formatCandidates,
-      metadata: input.metadata ?? {},
-      platformCandidates: input.platformCandidates,
+    const created = await this.prisma.agentStrategyOpportunity.create({
+      data: {
+        ...input,
+        formatCandidates: input.formatCandidates,
+        isDeleted: false,
+        metadata: input.metadata ?? {},
+        platformCandidates: input.platformCandidates,
+      },
     });
 
     this.logger.log('Created agent strategy opportunity', {
-      opportunityId: String(created._id),
+      opportunityId: created.id,
       sourceType: input.sourceType,
-      strategyId: String(input.strategy),
+      strategyId: input.strategyId,
       topic: input.topic,
     });
 
-    return created;
+    return created as AgentStrategyOpportunityDocument;
   }
 
   async updateStatus(
     id: string,
     organizationId: string,
     status: AgentStrategyOpportunityStatus,
-    patch: Partial<AgentStrategyOpportunity> = {},
+    patch: Record<string, unknown> = {},
   ): Promise<AgentStrategyOpportunityDocument | null> {
-    const filter = {
-      _id: new Types.ObjectId(id),
-      isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
-    };
-    const update = {
-      $set: {
+    return this.prisma.agentStrategyOpportunity.update({
+      where: { id, isDeleted: false, organizationId },
+      data: {
         ...patch,
         status,
       },
-    };
-
-    return this.model
-      .findOneAndUpdate(filter as never, update as never, { new: true })
-      .exec() as Promise<AgentStrategyOpportunityDocument | null>;
+    }) as Promise<AgentStrategyOpportunityDocument | null>;
   }
 
   async expireStaleOpportunities(
     strategy: AgentStrategyDocument,
   ): Promise<number> {
-    const result = await this.model.updateMany(
-      {
-        expiresAt: { $lte: new Date() },
+    const result = await this.prisma.agentStrategyOpportunity.updateMany({
+      where: {
+        expiresAt: { lte: new Date() },
         isDeleted: false,
-        organization: strategy.organization,
+        organizationId: strategy.organizationId,
         status: {
-          $in: ['approved', 'generating', 'held', 'queued', 'revising'],
+          in: ['approved', 'generating', 'held', 'queued', 'revising'],
         },
-        strategy: strategy._id,
+        strategyId: strategy.id,
       },
-      {
-        $set: {
-          decisionReason: 'Opportunity expired before execution.',
-          status: 'expired',
-        },
+      data: {
+        decisionReason: 'Opportunity expired before execution.',
+        status: 'expired',
       },
-    );
+    });
 
-    return result.modifiedCount;
+    return result.count;
   }
 }

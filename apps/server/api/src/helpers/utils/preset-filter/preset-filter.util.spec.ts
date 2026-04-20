@@ -1,5 +1,4 @@
 import { PresetFilterUtil } from '@api/helpers/utils/preset-filter/preset-filter.util';
-import { Types } from 'mongoose';
 
 describe('PresetFilterUtil', () => {
   afterEach(() => {
@@ -10,8 +9,8 @@ describe('PresetFilterUtil', () => {
 
   describe('buildScopeOrConditions', () => {
     it('includes global, organization, and user scopes', () => {
-      const organization = new Types.ObjectId().toHexString();
-      const user = new Types.ObjectId().toHexString();
+      const organization = '507f191e810c19729de860ee';
+      const user = '507f191e810c19729de860ee';
 
       const conditions = PresetFilterUtil.buildScopeOrConditions({
         organization,
@@ -23,8 +22,8 @@ describe('PresetFilterUtil', () => {
         organization: { $exists: false },
         user: { $exists: false },
       });
-      expect(conditions[1].organization.toHexString()).toBe(organization);
-      expect(conditions[2].user.toHexString()).toBe(user);
+      expect(conditions[1].organization).toBe(organization);
+      expect(conditions[2].user).toBe(user);
     });
 
     it('falls back to global scope when metadata empty', () => {
@@ -53,12 +52,12 @@ describe('PresetFilterUtil', () => {
     });
 
     it('allows modification when organizations match', () => {
-      const orgId = new Types.ObjectId();
+      const orgId = '507f191e810c19729de860ee';
       const canModify = PresetFilterUtil.canUserModifyPreset(
         {
           publicMetadata: {
             isSuperAdmin: false,
-            organization: orgId.toHexString(),
+            organization: orgId,
           },
         },
         { organization: orgId },
@@ -69,16 +68,16 @@ describe('PresetFilterUtil', () => {
 
   describe('enrichPresetDto', () => {
     it('assigns organization/brand for regular users', () => {
-      const orgId = new Types.ObjectId().toHexString();
-      const brandId = new Types.ObjectId().toHexString();
+      const orgId = '507f191e810c19729de860ee';
+      const brandId = '507f191e810c19729de860ee';
 
       const enriched = PresetFilterUtil.enrichPresetDto(
         { brand: brandId, label: 'My Preset' },
         { publicMetadata: { isSuperAdmin: false, organization: orgId } },
       );
 
-      expect(enriched.organization.toHexString()).toBe(orgId);
-      expect(enriched.brand.toHexString()).toBe(brandId);
+      expect(enriched.organization).toBe(orgId);
+      expect(enriched.brand).toBe(brandId);
     });
 
     it('keeps null organization/brand for superadmin global presets', () => {
@@ -92,22 +91,22 @@ describe('PresetFilterUtil', () => {
     });
 
     it('converts provided organization/brand for superadmin org presets', () => {
-      const org = new Types.ObjectId().toHexString();
-      const brand = new Types.ObjectId().toHexString();
+      const org = '507f191e810c19729de860ee';
+      const brand = '507f191e810c19729de860ee';
       const enriched = PresetFilterUtil.enrichPresetDto(
         { brand, label: 'Org preset', organization: org },
         { publicMetadata: { isSuperAdmin: true } },
       );
 
-      expect(enriched.organization.toHexString()).toBe(org);
-      expect(enriched.brand.toHexString()).toBe(brand);
+      expect(enriched.organization).toBe(org);
+      expect(enriched.brand).toBe(brand);
     });
   });
 
   describe('buildBaseMatch', () => {
     it('builds match object with filters and scope', () => {
-      const organization = new Types.ObjectId().toHexString();
-      const user = new Types.ObjectId().toHexString();
+      const organization = '507f191e810c19729de860ee';
+      const user = '507f191e810c19729de860ee';
       const match = PresetFilterUtil.buildBaseMatch(
         { organization, user },
         { category: 'video', isActive: true, isFavorite: false },

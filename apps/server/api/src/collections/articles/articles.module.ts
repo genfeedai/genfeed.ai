@@ -5,14 +5,6 @@ Twitter thread conversion, virality analysis, and public link sharing.
  */
 import { ActivitiesModule } from '@api/collections/activities/activities.module';
 import { ArticlesController } from '@api/collections/articles/controllers/articles.controller';
-import {
-  Article,
-  ArticleSchema,
-} from '@api/collections/articles/schemas/article.schema';
-import {
-  ArticleAnalytics,
-  ArticleAnalyticsSchema,
-} from '@api/collections/articles/schemas/article-analytics.schema';
 import { ArticleAnalyticsService } from '@api/collections/articles/services/article-analytics.service';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { ArticlesAnalyticsService } from '@api/collections/articles/services/articles-analytics.service';
@@ -27,7 +19,6 @@ import { PromptsModule } from '@api/collections/prompts/prompts.module';
 import { TemplatesModule } from '@api/collections/templates/templates.module';
 import { UsersModule } from '@api/collections/users/users.module';
 import { ConfigModule } from '@api/config/config.module';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { ByokModule } from '@api/services/byok/byok.module';
@@ -37,8 +28,6 @@ import { NotificationsModule } from '@api/services/notifications/notifications.m
 import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder.module';
 import { RouterModule } from '@api/services/router/router.module';
 import { forwardRef, Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
-import mongooseAggregatePaginateV2 from 'mongoose-aggregate-paginate-v2';
 
 @Module({
   controllers: [ArticlesController],
@@ -47,7 +36,6 @@ import mongooseAggregatePaginateV2 from 'mongoose-aggregate-paginate-v2';
     ArticlesAnalyticsService,
     ArticlesContentService,
     ArticlesService,
-    MongooseModule,
   ],
   imports: [
     forwardRef(() => ActivitiesModule),
@@ -67,60 +55,6 @@ import mongooseAggregatePaginateV2 from 'mongoose-aggregate-paginate-v2';
     forwardRef(() => TemplatesModule),
     forwardRef(() => UsersModule),
     ContentHarnessModule,
-
-    // Article schema on default (cloud) connection
-    MongooseModule.forFeatureAsync(
-      [
-        {
-          name: Article.name,
-          useFactory: () => {
-            const schema = ArticleSchema;
-            schema.plugin(mongooseAggregatePaginateV2);
-
-            schema.index(
-              { createdAt: -1, isDeleted: 1, organization: 1 },
-              { partialFilterExpression: { isDeleted: false } },
-            );
-
-            // User-scoped queries
-            schema.index(
-              { createdAt: -1, isDeleted: 1, user: 1 },
-              { partialFilterExpression: { isDeleted: false } },
-            );
-
-            // Brand-scoped queries
-            schema.index(
-              { brand: 1, createdAt: -1, isDeleted: 1 },
-              { partialFilterExpression: { isDeleted: false } },
-            );
-
-            // Create indexes for better performance
-            schema.index({ brand: 1, organization: 1, user: 1 });
-            schema.index(
-              { publishedAt: -1, scope: 1, status: 1 },
-              { sparse: true },
-            );
-
-            return schema;
-          },
-        },
-      ],
-      DB_CONNECTIONS.CLOUD,
-    ),
-    // ArticleAnalytics schema on analytics connection
-    MongooseModule.forFeatureAsync(
-      [
-        {
-          name: ArticleAnalytics.name,
-          useFactory: () => {
-            const schema = ArticleAnalyticsSchema;
-            schema.plugin(mongooseAggregatePaginateV2);
-            return schema;
-          },
-        },
-      ],
-      DB_CONNECTIONS.ANALYTICS,
-    ),
   ],
   providers: [
     ArticleAnalyticsService,

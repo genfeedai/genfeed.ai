@@ -6,7 +6,6 @@ import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getQueueToken } from '@nestjs/bullmq';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 interface MockQueue {
   add: ReturnType<typeof vi.fn>;
@@ -139,9 +138,9 @@ describe('ReplyBotQueueService', () => {
     });
 
     it('queues jobs for organizations with active bots and credentials', async () => {
-      const orgId1 = new Types.ObjectId();
-      const orgId2 = new Types.ObjectId();
-      const credId = new Types.ObjectId();
+      const orgId1 = '507f191e810c19729de860ee';
+      const orgId2 = '507f191e810c19729de860ee';
+      const credId = '507f191e810c19729de860ee';
 
       orgsService.findAll.mockResolvedValue({
         docs: [{ _id: orgId1 }, { _id: orgId2 }],
@@ -169,7 +168,7 @@ describe('ReplyBotQueueService', () => {
     });
 
     it('skips organizations without Twitter credentials', async () => {
-      const orgId1 = new Types.ObjectId();
+      const orgId1 = '507f191e810c19729de860ee';
       orgsService.findAll.mockResolvedValue({
         docs: [{ _id: orgId1 }],
       });
@@ -184,7 +183,7 @@ describe('ReplyBotQueueService', () => {
     });
 
     it('looks up Twitter credentials specifically', async () => {
-      const orgId1 = new Types.ObjectId();
+      const orgId1 = '507f191e810c19729de860ee';
       orgsService.findAll.mockResolvedValue({
         docs: [{ _id: orgId1 }],
       });

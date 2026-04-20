@@ -11,7 +11,6 @@ import type {
   Request as ExpressRequest,
   Response as ExpressResponse,
 } from 'express';
-import { Types } from 'mongoose';
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnNotFound: vi.fn((type, id) => ({
@@ -117,7 +116,7 @@ describe('PublicMusicsController', () => {
 
     it('should filter by brand when provided', async () => {
       const query: BaseQueryDto = { limit: 10, page: 1 };
-      const brandId = new Types.ObjectId().toString();
+      const brandId = '507f191e810c19729de860ee'.toString();
       const mockMusics = {
         docs: [{ _id: 'music1', brand: brandId }],
         page: 1,
@@ -153,7 +152,7 @@ describe('PublicMusicsController', () => {
 
   describe('getMusicMetadata', () => {
     it('should return music metadata for valid id', async () => {
-      const musicId = new Types.ObjectId().toString();
+      const musicId = '507f191e810c19729de860ee'.toString();
       const mockMusic = {
         _id: musicId,
         status: PostStatus.PUBLIC,
@@ -203,7 +202,7 @@ describe('PublicMusicsController', () => {
     });
 
     it('should return not found when music does not exist', async () => {
-      const musicId = new Types.ObjectId().toString();
+      const musicId = '507f191e810c19729de860ee'.toString();
       const responseUtil = await import(
         '@api/helpers/utils/response/response.util'
       );
@@ -222,7 +221,7 @@ describe('PublicMusicsController', () => {
 
   describe('getMusic', () => {
     it('should stream music file successfully', async () => {
-      const musicId = new Types.ObjectId().toString();
+      const musicId = '507f191e810c19729de860ee'.toString();
       const mockMusic = {
         _id: musicId,
         status: PostStatus.PUBLIC,
@@ -253,7 +252,7 @@ describe('PublicMusicsController', () => {
     });
 
     it('should return 404 when music not found', async () => {
-      const musicId = new Types.ObjectId().toString();
+      const musicId = '507f191e810c19729de860ee'.toString();
 
       musicsService.findOne.mockResolvedValue(null);
 
@@ -266,7 +265,7 @@ describe('PublicMusicsController', () => {
     });
 
     it('should handle S3 file retrieval error', async () => {
-      const musicId = new Types.ObjectId().toString();
+      const musicId = '507f191e810c19729de860ee'.toString();
       const mockMusic = {
         _id: musicId,
         status: PostStatus.PUBLIC,

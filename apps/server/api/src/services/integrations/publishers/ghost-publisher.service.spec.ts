@@ -11,7 +11,6 @@ import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('GhostPublisherService', () => {
   let service: GhostPublisherService;
@@ -24,11 +23,11 @@ describe('GhostPublisherService', () => {
     debug: ReturnType<typeof vi.fn>;
   };
 
-  const orgId = new Types.ObjectId().toString();
-  const brandId = new Types.ObjectId().toString();
+  const orgId = 'test-object-id';
+  const brandId = 'test-object-id';
 
   const mockCredential = {
-    _id: new Types.ObjectId(),
+    _id: 'test-object-id',
     accessToken: 'encrypted-token',
     externalHandle: 'https://myblog.ghost.io',
     platform: CredentialPlatform.GHOST,
@@ -42,14 +41,14 @@ describe('GhostPublisherService', () => {
     isDraft: false,
     organizationId: orgId,
     post: {
-      _id: new Types.ObjectId().toString(),
+      _id: 'test-object-id',
       category: PostCategory.TEXT,
       description: '<p>Hello world</p>',
       ingredients: [],
       label: 'Test Post',
       status: PostStatus.DRAFT,
     } as never,
-    postId: new Types.ObjectId().toString(),
+    postId: 'test-object-id',
     ...overrides,
   });
 
@@ -147,7 +146,7 @@ describe('GhostPublisherService', () => {
         post: {
           category: PostCategory.IMAGE,
           description: '<p>Image post</p>',
-          ingredients: [new Types.ObjectId()],
+          ingredients: ['test-object-id'],
           label: 'Image Post',
           status: PostStatus.DRAFT,
         } as never,

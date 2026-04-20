@@ -1,10 +1,9 @@
 import { AgentStrategyAutopilotService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot.service';
-import { Types } from 'mongoose';
 
 describe('AgentStrategyAutopilotService', () => {
-  const strategyId = new Types.ObjectId();
-  const organizationId = new Types.ObjectId();
-  const brandId = new Types.ObjectId();
+  const strategyId = 'test-object-id';
+  const organizationId = 'test-object-id';
+  const brandId = 'test-object-id';
 
   const baseStrategy = {
     _id: strategyId,
@@ -53,7 +52,7 @@ describe('AgentStrategyAutopilotService', () => {
     reserveTrendBudgetRemaining: 125,
     runHistory: [],
     topics: ['AI hooks'],
-    user: new Types.ObjectId(),
+    user: 'test-object-id',
     weeklyCreditBudget: 300,
   };
 
@@ -70,11 +69,11 @@ describe('AgentStrategyAutopilotService', () => {
       updateStatus: vi.fn().mockResolvedValue(undefined),
     };
     const reportsService = {
-      createReport: vi.fn().mockResolvedValue({ _id: new Types.ObjectId() }),
+      createReport: vi.fn().mockResolvedValue({ _id: 'test-object-id' }),
       listByStrategy: vi.fn().mockResolvedValue([]),
     };
     const activitiesService = {
-      create: vi.fn().mockResolvedValue({ _id: new Types.ObjectId() }),
+      create: vi.fn().mockResolvedValue({ _id: 'test-object-id' }),
     };
     const trendsService = {
       getTrends: vi.fn().mockResolvedValue([]),
@@ -98,20 +97,20 @@ describe('AgentStrategyAutopilotService', () => {
     };
     const credentialsService = {
       findOne: vi.fn().mockResolvedValue({
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         platform: 'twitter',
       }),
     };
     const postsService = {
-      create: vi.fn().mockResolvedValue({ _id: new Types.ObjectId() }),
+      create: vi.fn().mockResolvedValue({ _id: 'test-object-id' }),
     };
     const batchGenerationService = {
       createManualReviewBatch: vi.fn().mockResolvedValue({
         id: 'batch-1',
         items: [
           {
-            id: new Types.ObjectId().toString(),
-            postId: new Types.ObjectId().toString(),
+            id: 'test-object-id',
+            postId: 'test-object-id',
           },
         ],
       }),
@@ -176,7 +175,7 @@ describe('AgentStrategyAutopilotService', () => {
     });
     deps.opportunitiesService.listOpenByStrategy.mockResolvedValue([
       {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         estimatedCreditCost: 10,
         formatCandidates: ['text'],
         platformCandidates: ['twitter'],
@@ -191,7 +190,7 @@ describe('AgentStrategyAutopilotService', () => {
       organizationId: organizationId.toString(),
       runId: 'run-1',
       strategyId: strategyId.toString(),
-      userId: new Types.ObjectId().toString(),
+      userId: 'test-object-id',
     });
 
     expect(result.creditsUsed).toBe(0);
@@ -202,7 +201,7 @@ describe('AgentStrategyAutopilotService', () => {
 
   it('revises a weak post once and discards it when the revised version still fails', async () => {
     const deps = createService();
-    const opportunityId = new Types.ObjectId();
+    const opportunityId = 'test-object-id';
 
     deps.opportunitiesService.listOpenByStrategy.mockResolvedValue([
       {
@@ -220,7 +219,7 @@ describe('AgentStrategyAutopilotService', () => {
     deps.contentGatewayService.processManualRequest.mockResolvedValue({
       drafts: [
         {
-          _id: new Types.ObjectId(),
+          _id: 'test-object-id',
           content: 'Weak draft',
           mediaUrls: [],
           metadata: {},
@@ -262,7 +261,7 @@ describe('AgentStrategyAutopilotService', () => {
       organizationId: organizationId.toString(),
       runId: 'run-1',
       strategyId: strategyId.toString(),
-      userId: new Types.ObjectId().toString(),
+      userId: 'test-object-id',
     });
 
     expect(result.contentGenerated).toBe(1);
@@ -276,7 +275,7 @@ describe('AgentStrategyAutopilotService', () => {
 
     deps.opportunitiesService.listOpenByStrategy.mockResolvedValue([
       {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         estimatedCreditCost: 24,
         formatCandidates: ['image'],
         platformCandidates: ['instagram'],
@@ -290,7 +289,7 @@ describe('AgentStrategyAutopilotService', () => {
     deps.contentGatewayService.processManualRequest.mockResolvedValue({
       drafts: [
         {
-          _id: new Types.ObjectId(),
+          _id: 'test-object-id',
           content: 'Generated image',
           mediaUrls: ['https://cdn.example.com/image.png'],
           metadata: {},
@@ -313,7 +312,7 @@ describe('AgentStrategyAutopilotService', () => {
       organizationId: organizationId.toString(),
       runId: 'run-1',
       strategyId: strategyId.toString(),
-      userId: new Types.ObjectId().toString(),
+      userId: 'test-object-id',
     });
 
     expect(deps.contentDraftsService.reject).toHaveBeenCalledTimes(1);
@@ -325,7 +324,7 @@ describe('AgentStrategyAutopilotService', () => {
 
     deps.opportunitiesService.listOpenByStrategy.mockResolvedValue([
       {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         estimatedCreditCost: 24,
         formatCandidates: ['image'],
         platformCandidates: ['instagram'],
@@ -339,7 +338,7 @@ describe('AgentStrategyAutopilotService', () => {
     deps.contentGatewayService.processManualRequest.mockResolvedValue({
       drafts: [
         {
-          _id: new Types.ObjectId(),
+          _id: 'test-object-id',
           content: 'Generated image',
           mediaUrls: ['https://cdn.example.com/image.png'],
           metadata: {},
@@ -362,7 +361,7 @@ describe('AgentStrategyAutopilotService', () => {
       organizationId: organizationId.toString(),
       runId: 'run-1',
       strategyId: strategyId.toString(),
-      userId: new Types.ObjectId().toString(),
+      userId: 'test-object-id',
     });
 
     expect(deps.contentDraftsService.approve).toHaveBeenCalledTimes(1);
@@ -404,7 +403,7 @@ describe('AgentStrategyAutopilotService', () => {
     });
     deps.opportunitiesService.listOpenByStrategy.mockResolvedValue([
       {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         estimatedCreditCost: 10,
         formatCandidates: ['text'],
         platformCandidates: ['twitter'],
@@ -418,7 +417,7 @@ describe('AgentStrategyAutopilotService', () => {
     deps.contentGatewayService.processManualRequest.mockResolvedValue({
       drafts: [
         {
-          _id: new Types.ObjectId(),
+          _id: 'test-object-id',
           content: 'Strong post draft',
           mediaUrls: [],
           metadata: {},
@@ -443,7 +442,7 @@ describe('AgentStrategyAutopilotService', () => {
       organizationId: organizationId.toString(),
       runId: 'run-1',
       strategyId: strategyId.toString(),
-      userId: new Types.ObjectId().toString(),
+      userId: 'test-object-id',
     });
 
     expect(deps.contentDraftsService.approve).toHaveBeenCalledTimes(1);
@@ -481,7 +480,7 @@ describe('AgentStrategyAutopilotService', () => {
     deps.credentialsService.findOne.mockResolvedValue(null);
     deps.opportunitiesService.listOpenByStrategy.mockResolvedValue([
       {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         estimatedCreditCost: 10,
         formatCandidates: ['text'],
         platformCandidates: ['twitter'],
@@ -495,7 +494,7 @@ describe('AgentStrategyAutopilotService', () => {
     deps.contentGatewayService.processManualRequest.mockResolvedValue({
       drafts: [
         {
-          _id: new Types.ObjectId(),
+          _id: 'test-object-id',
           content: 'Strong post draft',
           mediaUrls: [],
           metadata: {},
@@ -520,7 +519,7 @@ describe('AgentStrategyAutopilotService', () => {
       organizationId: organizationId.toString(),
       runId: 'run-1',
       strategyId: strategyId.toString(),
-      userId: new Types.ObjectId().toString(),
+      userId: 'test-object-id',
     });
 
     expect(deps.contentDraftsService.approve).toHaveBeenCalledTimes(1);

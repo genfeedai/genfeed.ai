@@ -1,7 +1,6 @@
-import { Bot } from '@api/collections/bots/schemas/bot.schema';
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
 import { BotCategory, BotPlatform, BotStatus } from '@genfeedai/enums';
-import { Types } from 'mongoose';
+import { type Bot } from '@genfeedai/prisma';
 
 export class BotTargetEntity {
   platform!: BotPlatform;
@@ -30,9 +29,9 @@ export class BotEntity extends BaseEntity implements Bot {
   status!: BotStatus;
   platforms!: BotPlatform[];
 
-  organization?: Types.ObjectId;
-  brand?: Types.ObjectId;
-  user?: Types.ObjectId;
+  organization?: string;
+  brand?: string;
+  user?: string;
 
   targets?: BotTargetEntity[];
   settings?: BotSettingsEntity;

@@ -6,7 +6,6 @@ import { YoutubeOAuth2Util } from '@api/shared/utils/youtube-oauth/youtube-oauth
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 // Mock external utils
 vi.mock('@api/shared/utils/encryption/encryption.util', () => ({
@@ -34,11 +33,11 @@ describe('YoutubeAuthService', () => {
     warn: ReturnType<typeof vi.fn>;
   };
 
-  const orgId = new Types.ObjectId().toHexString();
-  const brandId = new Types.ObjectId().toHexString();
+  const orgId = 'test-object-id';
+  const brandId = 'test-object-id';
 
   const mockCredential = {
-    _id: new Types.ObjectId(),
+    _id: 'test-object-id',
     refreshToken: 'encrypted-refresh-token-value-that-is-long-enough',
     refreshTokenExpiry: new Date(),
   };
@@ -134,7 +133,7 @@ describe('YoutubeAuthService', () => {
 
   it('should mark credential as disconnected and throw when refreshToken is missing', async () => {
     credentialsService.findOne.mockResolvedValueOnce({
-      _id: new Types.ObjectId(),
+      _id: 'test-object-id',
       refreshToken: null,
     });
 
@@ -142,7 +141,7 @@ describe('YoutubeAuthService', () => {
       'Youtube refresh token not found',
     );
     expect(credentialsService.patch).toHaveBeenCalledWith(
-      expect.any(Types.ObjectId),
+      expect.any(String),
       expect.objectContaining({ isConnected: false }),
     );
   });

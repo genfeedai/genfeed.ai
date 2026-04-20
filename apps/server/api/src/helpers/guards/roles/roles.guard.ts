@@ -17,7 +17,6 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -93,7 +92,7 @@ export class RolesGuard implements CanActivate {
       );
     }
 
-    if (!Types.ObjectId.isValid(publicMetadata.user)) {
+    if (!/^[0-9a-f]{24}$/i.test(publicMetadata.user)) {
       throw new HttpException(
         {
           detail: 'User context is invalid',
@@ -108,8 +107,8 @@ export class RolesGuard implements CanActivate {
       {
         isActive: true,
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-        user: new Types.ObjectId(publicMetadata.user),
+        organization: organizationId,
+        user: publicMetadata.user,
       },
       [PopulateBuilder.withFields('role', ['_id', 'key', 'label'])], // Populate role with key field
     );
@@ -176,20 +175,20 @@ export class RolesGuard implements CanActivate {
     const explicitOrganizationId = params.organizationId ?? params.orgId;
 
     if (explicitOrganizationId !== undefined) {
-      return Types.ObjectId.isValid(explicitOrganizationId)
+      return /^[0-9a-f]{24}$/i.test(explicitOrganizationId)
         ? explicitOrganizationId
         : null;
     }
 
     // 2. Try to get from request body
     const bodyOrganization = req.body?.organization;
-    if (bodyOrganization && Types.ObjectId.isValid(bodyOrganization)) {
+    if (bodyOrganization && /^[0-9a-f]{24}$/i.test(bodyOrganization)) {
       return bodyOrganization;
     }
 
     // 3. Fallback to publicMetadata (user's current org context)
     const metadataOrganization = publicMetadata.organization;
-    if (metadataOrganization && Types.ObjectId.isValid(metadataOrganization)) {
+    if (metadataOrganization && /^[0-9a-f]{24}$/i.test(metadataOrganization)) {
       return metadataOrganization;
     }
 

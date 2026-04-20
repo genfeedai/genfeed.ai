@@ -8,7 +8,6 @@ import {
   IsString,
   ValidateNested,
 } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class TweetScheduleItemDto {
   @IsMongoId()
@@ -16,7 +15,7 @@ export class TweetScheduleItemDto {
     description: 'Post ID to schedule',
     required: true,
   })
-  readonly postId!: Types.ObjectId;
+  readonly postId!: string;
 
   @IsString()
   @ApiProperty({
@@ -69,5 +68,5 @@ export class BatchScheduleDto {
     description: 'Credential ID (Twitter account) to use for publishing',
     required: true,
   })
-  readonly credential!: Types.ObjectId;
+  readonly credential!: string;
 }

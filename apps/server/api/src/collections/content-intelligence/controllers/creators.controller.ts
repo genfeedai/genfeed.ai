@@ -35,7 +35,11 @@ import {
   Req,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { isValidObjectId, type PipelineStage, Types } from 'mongoose';
+
+const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
+function isValidObjectId(id: unknown): id is string {
+  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
+}
 
 // Simple serializer for creator analysis
 const CreatorAnalysisSerializer = {
@@ -87,7 +91,7 @@ export class CreatorsController {
     @Query() query: CreatorsQueryDto,
   ): Promise<JsonApiCollectionResponse> {
     const publicMetadata = getPublicMetadata(user);
-    const organizationId = new Types.ObjectId(publicMetadata.organization);
+    const organizationId = publicMetadata.organization;
 
     const options = {
       customLabels,
@@ -109,7 +113,7 @@ export class CreatorsController {
       match.tags = { $in: query.tags };
     }
 
-    const pipeline: PipelineStage[] = [
+    const pipeline: Record<string, unknown>[] = [
       { $match: match },
       { $sort: { createdAt: -1 } },
     ];
@@ -135,7 +139,7 @@ export class CreatorsController {
     const data = await this.contentIntelligenceService.findOne({
       _id: id,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     });
 
     if (!data) {
@@ -152,8 +156,8 @@ export class CreatorsController {
     @Body() dto: AddCreatorDto,
   ): Promise<JsonApiSingleResponse> {
     const publicMetadata = getPublicMetadata(user);
-    const organizationId = new Types.ObjectId(publicMetadata.organization);
-    const userId = new Types.ObjectId(publicMetadata.user);
+    const organizationId = publicMetadata.organization;
+    const userId = publicMetadata.user;
 
     // Check if creator already exists
     const existing = await this.contentIntelligenceService.findByHandle(
@@ -182,8 +186,8 @@ export class CreatorsController {
     @Body() dto: ImportCreatorsDto,
   ): Promise<JsonApiCollectionResponse> {
     const publicMetadata = getPublicMetadata(user);
-    const organizationId = new Types.ObjectId(publicMetadata.organization);
-    const userId = new Types.ObjectId(publicMetadata.user);
+    const organizationId = publicMetadata.organization;
+    const userId = publicMetadata.user;
 
     const results: CreatorAnalysisDocument[] = [];
 
@@ -234,7 +238,7 @@ export class CreatorsController {
     const creator = await this.contentIntelligenceService.findOne({
       _id: id,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     });
 
     if (!creator) {
@@ -276,7 +280,7 @@ export class CreatorsController {
     const creator = await this.contentIntelligenceService.findOne({
       _id: id,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     });
 
     if (!creator) {
@@ -284,7 +288,7 @@ export class CreatorsController {
     }
 
     // Delete associated patterns
-    await this.patternStoreService.deleteByCreator(new Types.ObjectId(id));
+    await this.patternStoreService.deleteByCreator(id);
 
     // Soft delete creator
     const deleted = await this.contentIntelligenceService.remove(id);

@@ -9,13 +9,13 @@
  * - Get organization posts
  * - Get organization activities
  */
-import { ActivityDocument } from '@api/collections/activities/schemas/activity.schema';
+import { type ActivityDocument } from '@api/collections/activities/schemas/activity.schema';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
+import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { IngredientsQueryDto } from '@api/collections/ingredients/dto/ingredients-query.dto';
-import { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationQueryDto } from '@api/collections/organizations/dto/organization-query.dto';
@@ -26,10 +26,10 @@ import {
   TopContentQueryDto,
 } from '@api/collections/posts/dto/analytics-query.dto';
 import { PostsQueryDto } from '@api/collections/posts/dto/posts-query.dto';
-import { PostDocument } from '@api/collections/posts/schemas/post.schema';
+import { type PostDocument } from '@api/collections/posts/schemas/post.schema';
 import { AnalyticsAggregationService } from '@api/collections/posts/services/analytics-aggregation.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
-import { TagDocument } from '@api/collections/tags/schemas/tag.schema';
+import { type TagDocument } from '@api/collections/tags/schemas/tag.schema';
 import { TagsService } from '@api/collections/tags/services/tags.service';
 import { VideosQueryDto } from '@api/collections/videos/dto/videos-query.dto';
 import { VideosService } from '@api/collections/videos/services/videos.service';
@@ -87,7 +87,11 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
-import { isValidObjectId, type PipelineStage, Types } from 'mongoose';
+
+const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
+function isValidObjectId(id: unknown): id is string {
+  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
+}
 
 @AutoSwagger()
 @ApiTags('organizations')
@@ -125,12 +129,12 @@ export class OrganizationsRelationshipsController {
     };
 
     const publicMetadata = getPublicMetadata(user);
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: {
           $or: [
-            { user: new Types.ObjectId(publicMetadata.user) },
-            { organization: new Types.ObjectId(organizationId) },
+            { user: publicMetadata.user },
+            { organization: organizationId },
           ],
           isDeleted,
         },
@@ -173,12 +177,12 @@ export class OrganizationsRelationshipsController {
       endDate,
     );
 
-    const pipeline: PipelineStage[] = [
+    const pipeline: Record<string, unknown>[] = [
       {
         $match: {
           isConnected: true,
           isDeleted: false,
-          organization: new Types.ObjectId(organizationId),
+          organization: organizationId,
         },
       },
       { $count: 'total' },
@@ -348,8 +352,8 @@ export class OrganizationsRelationshipsController {
     // Check if the user is a member of the organization
     const member = await this.membersService.findOne({
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
-      user: new Types.ObjectId(publicMetadata.user),
+      organization: organizationId,
+      user: publicMetadata.user,
     });
 
     if (!member) {
@@ -372,7 +376,7 @@ export class OrganizationsRelationshipsController {
 
     const matchConditions = {
       isDeleted,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
       ...statusFilter,
       ...(query.search && {
         $or: [
@@ -383,7 +387,7 @@ export class OrganizationsRelationshipsController {
       ...(query.category && { category: query.category }),
       ...(query.brand &&
         isValidObjectId(query.brand) && {
-          brand: new Types.ObjectId(query.brand),
+          brand: query.brand,
         }),
       ...(Object.keys(parentConditions).length > 0 && {
         $and: [parentConditions],
@@ -418,12 +422,12 @@ export class OrganizationsRelationshipsController {
 
     const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: {
           isDeleted,
-          organization: new Types.ObjectId(organizationId),
-          user: new Types.ObjectId(publicMetadata.user),
+          organization: organizationId,
+          user: publicMetadata.user,
         },
       },
       {
@@ -462,9 +466,9 @@ export class OrganizationsRelationshipsController {
           // Global tags (default/system tags)
           { organization: { $exists: false }, user: { $exists: false } },
           // Tags for this organization
-          { organization: new Types.ObjectId(organizationId) },
+          { organization: organizationId },
           // Tags for the current user
-          { user: new Types.ObjectId(publicMetadata.user) },
+          { user: publicMetadata.user },
         ],
         isDeleted,
       })
@@ -491,13 +495,13 @@ export class OrganizationsRelationshipsController {
     const member = await this.membersService.findOne({
       isActive: true,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
-      user: new Types.ObjectId(publicMetadata.user),
+      organization: organizationId,
+      user: publicMetadata.user,
     });
 
     const isOwner = await this.organizationsService.findOne({
-      _id: new Types.ObjectId(organizationId),
-      user: new Types.ObjectId(publicMetadata.user),
+      _id: organizationId,
+      user: publicMetadata.user,
     });
 
     // Verify user has access to this organization (owner, member, or superadmin)
@@ -524,7 +528,7 @@ export class OrganizationsRelationshipsController {
       // Handle both null and undefined (undefined fields aren't stored in MongoDB)
       $or: [{ parent: null }, { parent: { $exists: false } }],
       isDeleted,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
     };
 
     // Add platform filter if provided
@@ -537,7 +541,7 @@ export class OrganizationsRelationshipsController {
       matchFilter.status = query.status;
     }
 
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: matchFilter,
       },
@@ -656,13 +660,13 @@ export class OrganizationsRelationshipsController {
     const member = await this.membersService.findOne({
       isActive: true,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
-      user: new Types.ObjectId(publicMetadata.user),
+      organization: organizationId,
+      user: publicMetadata.user,
     });
 
     const isOwner = await this.organizationsService.findOne({
-      _id: new Types.ObjectId(organizationId),
-      user: new Types.ObjectId(publicMetadata.user),
+      _id: organizationId,
+      user: publicMetadata.user,
     });
 
     // Verify user has access to this organization (owner, member, or superadmin)
@@ -682,11 +686,11 @@ export class OrganizationsRelationshipsController {
     };
 
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: {
           isDeleted,
-          organization: new Types.ObjectId(organizationId),
+          organization: organizationId,
         },
       },
       ...ActivitiesService.buildEntityLookup(),

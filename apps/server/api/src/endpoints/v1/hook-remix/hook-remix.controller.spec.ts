@@ -8,7 +8,6 @@ import type { User } from '@clerk/backend';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@api/helpers/decorators/swagger/auto-swagger.decorator', () => ({
@@ -29,8 +28,8 @@ vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
 }));
 
 describe('HookRemixController', () => {
-  const orgId = new Types.ObjectId().toString();
-  const userId = new Types.ObjectId().toString();
+  const orgId = '507f191e810c19729de860ee'.toString();
+  const userId = '507f191e810c19729de860ee'.toString();
 
   let controller: HookRemixController;
   let hookRemixService: {

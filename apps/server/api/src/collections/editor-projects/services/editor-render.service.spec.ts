@@ -19,7 +19,6 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('EditorRenderService', () => {
   let service: EditorRenderService;
@@ -54,9 +53,9 @@ describe('EditorRenderService', () => {
     debug: ReturnType<typeof vi.fn>;
   };
 
-  const orgId = new Types.ObjectId().toString();
-  const projectId = new Types.ObjectId().toString();
-  const videoIngredientId = new Types.ObjectId().toString();
+  const orgId = 'test-object-id';
+  const projectId = 'test-object-id';
+  const videoIngredientId = 'test-object-id';
 
   const mockUser = {
     id: 'clerk-user-1',
@@ -80,7 +79,7 @@ describe('EditorRenderService', () => {
     tracks = [makeTrack(EditorTrackType.VIDEO)],
     settings = { fps: 30 },
   ) => ({
-    _id: new Types.ObjectId(projectId),
+    _id: projectId,
     settings,
     tracks,
   });
@@ -105,7 +104,7 @@ describe('EditorRenderService', () => {
     };
     ingredientsService = {
       findOne: vi.fn().mockResolvedValue({
-        _id: new Types.ObjectId(videoIngredientId),
+        _id: videoIngredientId,
         brand: null,
       }),
       patch: vi.fn().mockResolvedValue(undefined),
@@ -118,8 +117,8 @@ describe('EditorRenderService', () => {
     };
     sharedService = {
       saveDocuments: vi.fn().mockResolvedValue({
-        ingredientData: { _id: new Types.ObjectId() },
-        metadataData: { _id: new Types.ObjectId() },
+        ingredientData: { _id: 'test-object-id' },
+        metadataData: { _id: 'test-object-id' },
       }),
     };
     websocketService = {

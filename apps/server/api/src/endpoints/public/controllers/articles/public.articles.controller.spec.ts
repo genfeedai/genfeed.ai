@@ -6,7 +6,6 @@ import { ArticleCategory, ArticleStatus, AssetScope } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnNotFound: vi.fn((type, id) => ({
@@ -30,14 +29,14 @@ describe('PublicArticlesController', () => {
   let articlesService: ArticlesService;
 
   const mockArticle = {
-    _id: new Types.ObjectId('507f1f77bcf86cd799439014'),
+    _id: '507f1f77bcf86cd799439014',
     category: 'Technology',
     content: 'This is a public article',
     createdAt: new Date(),
     isDeleted: false,
     label: 'Public Article',
     organization: {
-      _id: new Types.ObjectId(),
+      _id: '507f191e810c19729de860ee',
       name: 'Test Org',
     },
     publishedAt: new Date(),
@@ -48,7 +47,7 @@ describe('PublicArticlesController', () => {
     tags: [],
     updatedAt: new Date(),
     user: {
-      _id: new Types.ObjectId(),
+      _id: '507f191e810c19729de860ee',
       email: 'john@example.com',
       name: 'John Doe',
     },
@@ -228,7 +227,7 @@ describe('PublicArticlesController', () => {
 
       expect(articlesService.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
-          _id: new Types.ObjectId(id),
+          _id: id,
           isDeleted: false,
           status: ArticleStatus.PUBLIC,
         }),

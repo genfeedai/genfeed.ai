@@ -1,11 +1,11 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreatorScraperService } from '@api/collections/content-intelligence/services/creator-scraper.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
+import { type PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
-import { TrainingDocument } from '@api/collections/trainings/schemas/training.schema';
+import { type TrainingDocument } from '@api/collections/trainings/schemas/training.schema';
 import { TrainingsService } from '@api/collections/trainings/services/trainings.service';
 import { ConfigService } from '@api/config/config.service';
 import { GenerateImageDto } from '@api/endpoints/admin/darkroom/dto/generate-image.dto';
@@ -57,7 +57,6 @@ import {
 } from '@nestjs/common';
 import { SentryTraced } from '@sentry/nestjs';
 import axios from 'axios';
-import type { Types } from 'mongoose';
 
 interface EC2InstanceStatus {
   instanceId: string;
@@ -154,9 +153,9 @@ export class DarkroomService {
    */
   createCharacter(
     data: Partial<PersonaDocument> & {
-      user: Types.ObjectId;
-      organization: Types.ObjectId;
-      brand: Types.ObjectId;
+      user: string;
+      organization: string;
+      brand: string;
     },
   ): Promise<PersonaDocument> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
@@ -1821,9 +1820,9 @@ export class DarkroomService {
   }
 
   private async createDarkroomIngestAsset(params: {
-    organizationId: Types.ObjectId;
-    brandId: Types.ObjectId;
-    userId: Types.ObjectId;
+    organizationId: string;
+    brandId: string;
+    userId: string;
     persona: PersonaDocument;
     sourcePlatform: ContentIntelligencePlatform;
     postId: string;

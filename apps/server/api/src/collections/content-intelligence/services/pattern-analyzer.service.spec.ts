@@ -6,7 +6,6 @@ import {
   ContentPatternType,
   CreatorAnalysisStatus,
 } from '@genfeedai/enums';
-import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // ─── Mocks ─────────────────────────────────────────────────────────────────
@@ -51,8 +50,8 @@ function makeService() {
   );
 }
 
-const orgId = new Types.ObjectId();
-const creatorId = new Types.ObjectId();
+const orgId = 'test-object-id';
+const creatorId = 'test-object-id';
 
 function makePost(overrides: Partial<ScrapedPost> = {}): ScrapedPost {
   return {
@@ -144,7 +143,7 @@ describe('PatternAnalyzerService.analyzeCreator', () => {
       new Error('LLM error'),
     );
     mockPatternStoreService.storeBulkPatterns.mockResolvedValue([
-      { _id: new Types.ObjectId() },
+      { _id: 'test-object-id' },
     ]);
     mockContentIntelligenceService.updateStatus.mockResolvedValue(undefined);
     mockContentIntelligenceService.updateMetrics.mockResolvedValue(undefined);
@@ -197,7 +196,7 @@ describe('PatternAnalyzerService.analyzeCreator', () => {
       new Error('LLM timeout'),
     );
     mockPatternStoreService.storeBulkPatterns.mockResolvedValue([
-      { _id: new Types.ObjectId() },
+      { _id: 'test-object-id' },
     ]);
     mockContentIntelligenceService.updateStatus.mockResolvedValue(undefined);
     mockContentIntelligenceService.updateMetrics.mockResolvedValue(undefined);

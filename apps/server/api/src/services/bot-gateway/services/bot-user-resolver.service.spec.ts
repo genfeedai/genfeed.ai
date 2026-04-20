@@ -4,13 +4,12 @@ import { BotUserResolverService } from '@api/services/bot-gateway/services/bot-u
 import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 const mockCredential = (overrides: Record<string, unknown> = {}) => ({
-  _id: new Types.ObjectId(),
-  brand: new Types.ObjectId(),
-  organization: new Types.ObjectId(),
-  user: new Types.ObjectId(),
+  _id: 'test-object-id',
+  brand: 'test-object-id',
+  organization: 'test-object-id',
+  user: 'test-object-id',
   ...overrides,
 });
 
@@ -119,7 +118,7 @@ describe('BotUserResolverService', () => {
     it('switches brandId when brand found by name', async () => {
       const cred = mockCredential();
       credentialsService.findOne.mockResolvedValue(cred as never);
-      const brandId = new Types.ObjectId();
+      const brandId = 'test-object-id';
       brandsService.findOne.mockResolvedValue({
         _id: brandId,
         label: 'MyBrand',
@@ -164,22 +163,18 @@ describe('BotUserResolverService', () => {
 
   describe('getUserBrands', () => {
     it('returns mapped brand list', async () => {
-      const brandA = { _id: new Types.ObjectId(), label: 'Alpha' };
-      const brandB = { _id: new Types.ObjectId(), label: 'Beta' };
+      const brandA = { _id: 'test-object-id', label: 'Alpha' };
+      const brandB = { _id: 'test-object-id', label: 'Beta' };
       brandsService.find.mockResolvedValue([brandA, brandB] as never);
 
-      const result = await service.getUserBrands(
-        new Types.ObjectId().toString(),
-      );
+      const result = await service.getUserBrands('test-object-id');
       expect(result).toHaveLength(2);
       expect(result[0]).toEqual({ id: brandA._id.toString(), name: 'Alpha' });
     });
 
     it('returns empty array on error', async () => {
       brandsService.find.mockRejectedValue(new Error('fail'));
-      const result = await service.getUserBrands(
-        new Types.ObjectId().toString(),
-      );
+      const result = await service.getUserBrands('test-object-id');
       expect(result).toEqual([]);
     });
   });

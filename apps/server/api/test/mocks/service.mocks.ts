@@ -2,10 +2,10 @@ import { ConfigService } from '@api/config/config.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { FileQueueService } from '@api/services/file-queue/file-queue.service';
 import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { CreditTransactionsService } from '@credits/services/credit-transactions.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
-import { Types } from 'mongoose';
 import { of } from 'rxjs';
 import { vi } from 'vitest';
 
@@ -139,13 +139,13 @@ export const mockFileQueueService = (): Partial<FileQueueService> => ({
 export const mockCreditTransactionsService =
   (): Partial<CreditTransactionsService> => ({
     createTransactionEntry: vi.fn().mockResolvedValue({
-      _id: new Types.ObjectId(),
+      _id: 'test-id-' + Math.random().toString(36).slice(2, 9),
       amount: 100,
       balanceAfter: 100,
       balanceBefore: 0,
       createdAt: new Date(),
       description: 'Credit purchase',
-      organization: new Types.ObjectId(),
+      organization: 'test-id-' + Math.random().toString(36).slice(2, 9),
       source: 'stripe',
       type: 'purchase',
     }),
@@ -206,8 +206,8 @@ export const mockHttpService = (): Partial<HttpService> => ({
 export const mockPublicMetadata = (): unknown => ({
   email: 'test@example.com',
   isOwner: true,
-  organization: new Types.ObjectId().toString(),
-  user: new Types.ObjectId().toString(),
+  organization: 'test-id-' + Math.random().toString(36).slice(2, 9),
+  user: 'test-id-' + Math.random().toString(36).slice(2, 9),
 });
 
 export const mockPaginatedResult = <T = any>(docs: T[] = []) => ({
@@ -223,7 +223,8 @@ export const mockPaginatedResult = <T = any>(docs: T[] = []) => ({
   totalPages: Math.ceil(docs.length / 10) || 1,
 });
 
-export const createMockObjectId = () => new Types.ObjectId();
+export const createMockObjectId = () =>
+  'test-id-' + Math.random().toString(36).slice(2, 9);
 
 export const mockAsyncIterator = <T>(items: T[]) => {
   let index = 0;
@@ -251,3 +252,63 @@ export const mockFile = (
   stream: null,
   ...overrides,
 });
+
+/**
+ * Creates a mock PrismaService for unit tests.
+ * Pass a partial delegate object per model to override specific methods.
+ *
+ * @example
+ * const prisma = createMockPrismaService({ brand: { findMany: vi.fn().mockResolvedValue([]) } });
+ * { provide: PrismaService, useValue: prisma }
+ */
+export const createMockPrismaService = (
+  overrides: Partial<
+    Record<string, Record<string, ReturnType<typeof vi.fn>>>
+  > = {},
+): Partial<PrismaService> => {
+  const modelMock = () => ({
+    count: vi.fn().mockResolvedValue(0),
+    create: vi.fn().mockResolvedValue(null),
+    delete: vi.fn().mockResolvedValue(null),
+    deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+    findFirst: vi.fn().mockResolvedValue(null),
+    findMany: vi.fn().mockResolvedValue([]),
+    findUnique: vi.fn().mockResolvedValue(null),
+    update: vi.fn().mockResolvedValue(null),
+    updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+    upsert: vi.fn().mockResolvedValue(null),
+  });
+
+  return {
+    $connect: vi.fn().mockResolvedValue(undefined),
+    $disconnect: vi.fn().mockResolvedValue(undefined),
+    $transaction: vi
+      .fn()
+      .mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) =>
+        fn({}),
+      ),
+    ...Object.fromEntries(
+      [
+        'activity',
+        'asset',
+        'brand',
+        'credential',
+        'creditBalance',
+        'creditTransaction',
+        'ingredient',
+        'link',
+        'member',
+        'organization',
+        'organizationSetting',
+        'orgIntegration',
+        'post',
+        'role',
+        'schedule',
+        'setting',
+        'tag',
+        'user',
+        'video',
+      ].map((name) => [name, { ...modelMock(), ...(overrides[name] ?? {}) }]),
+    ),
+  } as unknown as Partial<PrismaService>;
+};

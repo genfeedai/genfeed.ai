@@ -10,10 +10,10 @@ import {
   PersonaStatus,
   VideoTaskModel,
 } from '@genfeedai/enums';
+import type { Credential, Persona } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import type { Credential, Persona } from '@prisma/client';
 
 const MAX_PERSONAS_PER_CYCLE = 20;
 

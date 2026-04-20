@@ -14,7 +14,6 @@ import { WebhookEvent } from '@clerk/express/webhooks';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('ClerkWebhookService', () => {
   let service: ClerkWebhookService;
@@ -26,7 +25,7 @@ describe('ClerkWebhookService', () => {
   let membersService: MembersService;
 
   const mockUser = {
-    _id: new Types.ObjectId('507f1f77bcf86cd799439011'),
+    _id: '507f1f77bcf86cd799439011',
     avatar: 'https://example.com/avatar.jpg',
     clerkId: 'user_123456',
     email: 'john.doe@example.com',
@@ -36,7 +35,7 @@ describe('ClerkWebhookService', () => {
   };
 
   const mockOrganization = {
-    _id: new Types.ObjectId('507f1f77bcf86cd799439012'),
+    _id: '507f1f77bcf86cd799439012',
     category: undefined,
     isSelected: true,
     name: 'Test Organization',
@@ -44,7 +43,7 @@ describe('ClerkWebhookService', () => {
   };
 
   const mockBrand = {
-    _id: new Types.ObjectId('507f1f77bcf86cd799439013'),
+    _id: '507f1f77bcf86cd799439013',
     isSelected: true,
     name: 'Test Brand',
     organization: mockOrganization._id,
@@ -213,9 +212,9 @@ describe('ClerkWebhookService', () => {
       (brandsService.findOne as vi.Mock).mockResolvedValue(mockBrand);
       (brandsService.patch as vi.Mock).mockResolvedValue(mockBrand);
       (membersService.findOne as vi.Mock).mockResolvedValue({
-        _id: new Types.ObjectId('507f1f77bcf86cd799439014'),
+        _id: '507f1f77bcf86cd799439014',
         organization: mockOrganization._id,
-        user: new Types.ObjectId('507f1f77bcf86cd799439099'),
+        user: '507f1f77bcf86cd799439099',
       });
       (membersService.patch as vi.Mock).mockResolvedValue({});
       (clerkService.updateUserPublicMetadata as vi.Mock).mockResolvedValue({});

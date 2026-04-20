@@ -6,7 +6,6 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class CreateFolderDto {
   @ApiProperty({
@@ -15,7 +14,7 @@ export class CreateFolderDto {
   })
   @IsOptional()
   @IsMongoId()
-  brand?: Types.ObjectId;
+  brand?: string;
 
   @ApiProperty({
     description: 'Display label for the folder',
@@ -41,5 +40,5 @@ export class CreateFolderDto {
   })
   @IsOptional()
   @IsArray()
-  tags?: Types.ObjectId[];
+  tags?: string[];
 }

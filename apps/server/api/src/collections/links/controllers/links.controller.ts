@@ -30,7 +30,6 @@ import {
   Req,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 @AutoSwagger()
 @Controller('links')
@@ -45,7 +44,7 @@ export class LinksController extends BaseCRUDController<
     public readonly loggerService: LoggerService,
     @Optional() private readonly cacheService?: CacheService,
   ) {
-    super(loggerService, linksService, LinkSerializer, Link.name);
+    super(loggerService, linksService, LinkSerializer, 'Link');
   }
 
   /**
@@ -57,7 +56,7 @@ export class LinksController extends BaseCRUDController<
 
     // Links are associated with accounts, not users
     if (publicMetadata.brand) {
-      enriched.brand = new Types.ObjectId(publicMetadata.brand);
+      enriched.brand = publicMetadata.brand;
     }
 
     // Do NOT add user field - Link schema doesn't have it
@@ -74,7 +73,7 @@ export class LinksController extends BaseCRUDController<
 
     // Only add brand if it's being updated
     if (enriched.brand) {
-      enriched.brand = new Types.ObjectId(enriched.brand);
+      enriched.brand = enriched.brand;
     }
 
     // Do NOT add user field - Link schema doesn't have it

@@ -8,14 +8,13 @@ import { IngredientStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('PollingService', () => {
   let service: PollingService;
   let mockIngredientsService: vi.Mocked<IngredientsService>;
   let mockLogger: vi.Mocked<LoggerService>;
 
-  const mockIngredientId = new Types.ObjectId().toHexString();
+  const mockIngredientId = 'test-object-id';
 
   const asIngredientDocument = (value: unknown): IngredientDocument =>
     value as IngredientDocument;
@@ -27,7 +26,7 @@ describe('PollingService', () => {
     id = mockIngredientId,
   ) =>
     ({
-      _id: new Types.ObjectId(id),
+      _id: id,
       isDeleted: false,
       name: 'Test Ingredient',
       status,
@@ -291,11 +290,7 @@ describe('PollingService', () => {
   });
 
   describe('waitForMultipleIngredientsCompletion', () => {
-    const mockIds = [
-      new Types.ObjectId().toHexString(),
-      new Types.ObjectId().toHexString(),
-      new Types.ObjectId().toHexString(),
-    ];
+    const mockIds = ['test-object-id', 'test-object-id', 'test-object-id'];
 
     it('should return all ingredients when all complete immediately', async () => {
       const ingredients = mockIds.map((id) =>

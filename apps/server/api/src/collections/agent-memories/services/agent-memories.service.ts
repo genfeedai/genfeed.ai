@@ -2,23 +2,19 @@ import {
   AGENT_MEMORY_CONTENT_TYPES,
   AGENT_MEMORY_KINDS,
   AGENT_MEMORY_SCOPES,
-  AgentMemory,
   type AgentMemoryContentType,
-  AgentMemoryDocument,
+  type AgentMemoryDocument,
   type AgentMemoryKind,
   type AgentMemoryScope,
 } from '@api/collections/agent-memories/schemas/agent-memory.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Types } from 'mongoose';
 
 interface CreateAgentMemoryPayload {
   campaignId?: string;
@@ -51,11 +47,10 @@ interface MemoryQueryOptions {
 @Injectable()
 export class AgentMemoriesService extends BaseService<AgentMemoryDocument> {
   constructor(
-    @InjectModel(AgentMemory.name, DB_CONNECTIONS.AGENT)
-    protected readonly model: AggregatePaginateModel<AgentMemoryDocument>,
+    public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
   ) {
-    super(model, logger);
+    super(prisma, 'agentMemory', logger);
   }
 
   async listForUser(
@@ -64,25 +59,15 @@ export class AgentMemoriesService extends BaseService<AgentMemoryDocument> {
     options: { limit?: number } = {},
   ): Promise<AgentMemoryDocument[]> {
     const { limit = 100 } = options;
-    return await (
-      this.model as unknown as {
-        find: (filter: Record<string, unknown>) => {
-          sort: (sort: Record<string, number>) => {
-            limit: (limit: number) => {
-              lean: () => Promise<AgentMemoryDocument[]>;
-            };
-          };
-        };
-      }
-    )
-      .find({
-        organization: new Types.ObjectId(organizationId),
-        scope: { $ne: 'campaign' },
-        user: new Types.ObjectId(userId),
-      })
-      .sort({ createdAt: -1 })
-      .limit(limit)
-      .lean();
+    return this.delegate.findMany({
+      where: {
+        organizationId,
+        scope: { not: 'campaign' },
+        userId,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    }) as Promise<AgentMemoryDocument[]>;
   }
 
   async createMemory(
@@ -97,14 +82,14 @@ export class AgentMemoriesService extends BaseService<AgentMemoryDocument> {
         : undefined;
 
     return this.create({
-      brand: payload.brandId ? new Types.ObjectId(payload.brandId) : undefined,
+      brandId: payload.brandId,
       campaignId,
       confidence: this.normalizeScore(payload.confidence, 0.5),
       content: payload.content,
       contentType: this.normalizeContentType(payload.contentType),
       importance: this.normalizeScore(payload.importance, 0.5),
       kind: this.normalizeKind(payload.kind),
-      organization: new Types.ObjectId(organizationId),
+      organizationId,
       performanceSnapshot: payload.performanceSnapshot,
       platform: payload.platform,
       scope,
@@ -114,7 +99,7 @@ export class AgentMemoriesService extends BaseService<AgentMemoryDocument> {
       sourceUrl: payload.sourceUrl,
       summary: payload.summary,
       tags: payload.tags ?? [],
-      user: new Types.ObjectId(userId),
+      userId,
     } as Record<string, unknown>);
   }
 
@@ -123,9 +108,11 @@ export class AgentMemoriesService extends BaseService<AgentMemoryDocument> {
     organizationId: string,
     contentType?: AgentMemoryContentType,
   ): Promise<AgentMemoryDocument[]> {
+    const validatedCampaignId = this.requireCampaignId(campaignId);
+
     const filter: Record<string, unknown> = {
-      campaignId: this.requireCampaignId(campaignId),
-      organization: new Types.ObjectId(organizationId),
+      campaignId: validatedCampaignId,
+      organizationId,
       scope: 'campaign',
     };
 
@@ -135,21 +122,11 @@ export class AgentMemoriesService extends BaseService<AgentMemoryDocument> {
       filter.contentType = normalizedContentType;
     }
 
-    return await (
-      this.model as unknown as {
-        find: (filter: Record<string, unknown>) => {
-          sort: (sort: Record<string, number>) => {
-            limit: (limit: number) => {
-              lean: () => Promise<AgentMemoryDocument[]>;
-            };
-          };
-        };
-      }
-    )
-      .find(filter)
-      .sort({ createdAt: -1 })
-      .limit(100)
-      .lean();
+    return this.delegate.findMany({
+      where: filter,
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    }) as Promise<AgentMemoryDocument[]>;
   }
 
   async saveCampaignMemory(
@@ -230,21 +207,21 @@ export class AgentMemoriesService extends BaseService<AgentMemoryDocument> {
     userId: string,
     organizationId: string,
   ): Promise<void> {
-    const deleted = await (
-      this.model as unknown as {
-        findOneAndDelete: (
-          filter: Record<string, unknown>,
-        ) => Promise<AgentMemoryDocument | null>;
-      }
-    ).findOneAndDelete({
-      _id: new Types.ObjectId(memoryId),
-      organization: new Types.ObjectId(organizationId),
-      user: new Types.ObjectId(userId),
+    const memory = await this.delegate.findFirst({
+      where: {
+        id: memoryId,
+        organizationId,
+        userId,
+      },
     });
 
-    if (!deleted) {
+    if (!memory) {
       throw new NotFoundException(`Memory entry "${memoryId}" not found`);
     }
+
+    await this.delegate.delete({
+      where: { id: memoryId },
+    });
   }
 
   private normalizeKind(value?: string): AgentMemoryKind {
@@ -287,14 +264,14 @@ export class AgentMemoriesService extends BaseService<AgentMemoryDocument> {
     return undefined;
   }
 
-  private requireCampaignId(campaignId?: string): Types.ObjectId {
-    if (!campaignId || !Types.ObjectId.isValid(campaignId)) {
+  private requireCampaignId(campaignId?: string): string {
+    if (!campaignId || campaignId.trim() === '') {
       throw new BadRequestException(
         'Campaign-scoped memory requires a valid campaignId.',
       );
     }
 
-    return new Types.ObjectId(campaignId);
+    return campaignId;
   }
 
   private normalizeScore(value: number | undefined, fallback: number): number {
@@ -315,7 +292,7 @@ export class AgentMemoriesService extends BaseService<AgentMemoryDocument> {
     },
   ): number {
     let score = 0;
-    const memoryId = String(memory._id);
+    const memoryId = String(memory.id);
 
     if (context.pinnedMemoryIds.has(memoryId)) {
       score += 100;
@@ -323,8 +300,8 @@ export class AgentMemoriesService extends BaseService<AgentMemoryDocument> {
 
     if (
       context.requestedBrandId &&
-      memory.brand &&
-      String(memory.brand) === context.requestedBrandId
+      memory.brandId &&
+      String(memory.brandId) === context.requestedBrandId
     ) {
       score += 5;
     }

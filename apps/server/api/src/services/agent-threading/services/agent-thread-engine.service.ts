@@ -1,35 +1,19 @@
 import { AgentMemoriesService } from '@api/collections/agent-memories/services/agent-memories.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import {
   fromPromiseEffect,
   runEffectPromise,
 } from '@api/helpers/utils/effect/effect.util';
 import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
-import {
-  AgentInputRequest,
-  type AgentInputRequestDocument,
-} from '@api/services/agent-threading/schemas/agent-input-request.schema';
-import {
-  AgentProfileSnapshot,
-  type AgentProfileSnapshotDocument,
-} from '@api/services/agent-threading/schemas/agent-profile-snapshot.schema';
-import {
-  AgentSessionBinding,
-  type AgentSessionBindingDocument,
-} from '@api/services/agent-threading/schemas/agent-session-binding.schema';
-import {
-  AgentThreadEvent,
-  type AgentThreadEventDocument,
-} from '@api/services/agent-threading/schemas/agent-thread-event.schema';
-import {
-  AgentThreadSnapshot,
-  type AgentThreadSnapshotDocument,
-} from '@api/services/agent-threading/schemas/agent-thread-snapshot.schema';
+import type { AgentInputRequestDocument } from '@api/services/agent-threading/schemas/agent-input-request.schema';
+import type { AgentProfileSnapshotDocument } from '@api/services/agent-threading/schemas/agent-profile-snapshot.schema';
+import type { AgentThreadEventDocument } from '@api/services/agent-threading/schemas/agent-thread-event.schema';
+import type { AgentThreadSnapshotDocument } from '@api/services/agent-threading/schemas/agent-thread-snapshot.schema';
 import { AgentRuntimeSessionService } from '@api/services/agent-threading/services/agent-runtime-session.service';
 import { AgentThreadProjectorService } from '@api/services/agent-threading/services/agent-thread-projector.service';
 import { ThreadContextCompressorService } from '@api/services/agent-threading/services/thread-context-compressor.service';
 import { AgentThreadEventType } from '@api/services/agent-threading/types/agent-thread.types';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -37,9 +21,7 @@ import {
   NotFoundException,
   Optional,
 } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
 import { Effect } from 'effect';
-import { type Model, Types } from 'mongoose';
 
 export interface AppendAgentThreadEventParams {
   threadId: string;
@@ -62,19 +44,122 @@ export interface ResolveAgentInputRequestParams {
   userId: string;
 }
 
+/**
+ * Adapts a raw Prisma AgentThreadEvent row into the shape expected by
+ * AgentThreadProjectorService and other callers consuming AgentThreadEventDocument.
+ *
+ * Prisma stores: commandId, runId, type as top-level columns.
+ * Prisma stores: payload, metadata, eventId, userId, occurredAt inside data: Json.
+ */
+function toPrismaEventDocument(
+  row: Record<string, unknown>,
+): AgentThreadEventDocument {
+  const data = (row.data as Record<string, unknown>) ?? {};
+  return {
+    _id: row.id as string,
+    id: row.id as string,
+    organizationId: row.organizationId as string,
+    threadId: row.threadId as string,
+    // Keep Mongoose-compatible reference fields for the projector
+    organization: row.organizationId as unknown,
+    thread: row.threadId as unknown,
+    sequence: row.sequence as number,
+    commandId: row.commandId as string,
+    type: row.type as AgentThreadEventType,
+    runId: (row.runId ?? data.runId) as string | undefined,
+    eventId: data.eventId as string | undefined,
+    userId: data.userId as string | undefined,
+    occurredAt: data.occurredAt as string | undefined,
+    payload: data.payload as Record<string, unknown> | undefined,
+    metadata: data.metadata as Record<string, unknown> | undefined,
+    isDeleted: row.isDeleted as boolean,
+  } as unknown as AgentThreadEventDocument;
+}
+
+/**
+ * Adapts a raw Prisma AgentThreadSnapshot row into AgentThreadSnapshotDocument shape.
+ *
+ * Prisma stores all snapshot fields (lastSequence, pendingInputRequests, etc.)
+ * inside data: Json. This adapter unwraps them so the projector service can
+ * access them as first-class properties.
+ */
+function toPrismaSnapshotDocument(
+  row: Record<string, unknown>,
+): AgentThreadSnapshotDocument {
+  const data = (row.data as Record<string, unknown>) ?? {};
+  return {
+    _id: row.id as string,
+    id: row.id as string,
+    organizationId: row.organizationId as string,
+    threadId: row.threadId as string,
+    organization: row.organizationId as unknown,
+    thread: row.threadId as unknown,
+    lastSequence: (data.lastSequence as number) ?? 0,
+    title: data.title as string | undefined,
+    source: data.source as string | undefined,
+    threadStatus: data.threadStatus as string | undefined,
+    activeRun: data.activeRun as Record<string, unknown> | undefined,
+    pendingApprovals:
+      (data.pendingApprovals as Record<string, unknown>[]) ?? [],
+    pendingInputRequests:
+      (data.pendingInputRequests as Record<string, unknown>[]) ?? [],
+    latestProposedPlan: data.latestProposedPlan as
+      | Record<string, unknown>
+      | undefined,
+    latestUiBlocks: data.latestUiBlocks as Record<string, unknown> | undefined,
+    lastAssistantMessage: data.lastAssistantMessage as
+      | Record<string, unknown>
+      | undefined,
+    memorySummaryRefs: (data.memorySummaryRefs as string[]) ?? [],
+    timeline: (data.timeline as Record<string, unknown>[]) ?? [],
+    sessionBinding: data.sessionBinding as Record<string, unknown> | undefined,
+    profileSnapshot: data.profileSnapshot as
+      | Record<string, unknown>
+      | undefined,
+    isDeleted: row.isDeleted as boolean,
+  } as unknown as AgentThreadSnapshotDocument;
+}
+
+/**
+ * Adapts a raw Prisma AgentThreadSnapshot row into AgentInputRequestDocument shape.
+ * Input requests are stored in snapshot.data.inputRequests[] keyed by requestId.
+ */
+function findInputRequestInSnapshot(
+  snapshot: Record<string, unknown> | null | undefined,
+  requestId: string,
+): AgentInputRequestDocument | null {
+  if (!snapshot) return null;
+  const data = (snapshot.data as Record<string, unknown>) ?? {};
+  const requests = (data.inputRequests as Array<Record<string, unknown>>) ?? [];
+  const req = requests.find((r) => r.requestId === requestId);
+  if (!req) return null;
+  return {
+    _id: `${snapshot.id as string}:${requestId}`,
+    id: `${snapshot.id as string}:${requestId}`,
+    organizationId: snapshot.organizationId as string,
+    threadId: snapshot.threadId as string,
+    organization: snapshot.organizationId as unknown,
+    thread: snapshot.threadId as unknown,
+    requestId: req.requestId as string,
+    status: req.status as string,
+    title: req.title as string,
+    prompt: req.prompt as string,
+    allowFreeText: req.allowFreeText as boolean | undefined,
+    recommendedOptionId: req.recommendedOptionId as string | undefined,
+    options: (req.options as Record<string, unknown>[]) ?? [],
+    fieldId: req.fieldId as string | undefined,
+    metadata: req.metadata as Record<string, unknown> | undefined,
+    answer: req.answer as string | undefined,
+    runId: req.runId as string | undefined,
+    resolvedAt: req.resolvedAt as string | undefined,
+    isDeleted: false,
+  } as unknown as AgentInputRequestDocument;
+}
+
 @Injectable()
 export class AgentThreadEngineService {
   constructor(
-    @InjectModel(AgentThreadEvent.name, DB_CONNECTIONS.AGENT)
-    private readonly eventModel: Model<AgentThreadEventDocument>,
-    @InjectModel(AgentThreadSnapshot.name, DB_CONNECTIONS.AGENT)
-    private readonly snapshotModel: Model<AgentThreadSnapshotDocument>,
-    @InjectModel(AgentSessionBinding.name, DB_CONNECTIONS.AGENT)
-    private readonly sessionBindingModel: Model<AgentSessionBindingDocument>,
-    @InjectModel(AgentInputRequest.name, DB_CONNECTIONS.AGENT)
-    private readonly inputRequestModel: Model<AgentInputRequestDocument>,
-    @InjectModel(AgentProfileSnapshot.name, DB_CONNECTIONS.AGENT)
-    private readonly profileSnapshotModel: Model<AgentProfileSnapshotDocument>,
+    private readonly prisma: PrismaService,
     private readonly agentThreadsService: AgentThreadsService,
     private readonly agentMemoriesService: AgentMemoriesService,
     private readonly runtimeSessionService: AgentRuntimeSessionService,
@@ -92,64 +177,107 @@ export class AgentThreadEngineService {
         params.threadId,
         params.organizationId,
       );
-      const existingEvent = await this.eventModel.findOne({
-        commandId: params.commandId,
-        isDeleted: false,
-        organization: new Types.ObjectId(params.organizationId),
-        thread: new Types.ObjectId(params.threadId),
-        type: params.type,
+
+      // Check idempotency — do not create duplicate events for the same commandId+type
+      const existingRow = await this.prisma.agentThreadEvent.findFirst({
+        where: {
+          commandId: params.commandId,
+          isDeleted: false,
+          organizationId: params.organizationId,
+          threadId: params.threadId,
+          type: params.type,
+        },
       });
 
-      if (existingEvent) {
-        return existingEvent;
+      if (existingRow) {
+        return toPrismaEventDocument(
+          existingRow as unknown as Record<string, unknown>,
+        );
       }
 
-      const currentSnapshot = await this.snapshotModel.findOneAndUpdate(
-        {
-          organization: new Types.ObjectId(params.organizationId),
-          thread: new Types.ObjectId(params.threadId),
+      // Upsert snapshot to increment sequence (atomic increment via update-then-create)
+      let snapshotRow = await this.prisma.agentThreadSnapshot.findFirst({
+        where: {
+          isDeleted: false,
+          organizationId: params.organizationId,
+          threadId: params.threadId,
         },
-        {
-          $inc: { lastSequence: 1 },
-          $set: { updatedAt: new Date() },
-          $setOnInsert: {
-            memorySummaryRefs: [],
-            organization: new Types.ObjectId(params.organizationId),
-            pendingApprovals: [],
-            pendingInputRequests: [],
-            source: thread.source,
-            thread: new Types.ObjectId(params.threadId),
-            threadStatus: thread.status,
-            timeline: [],
-            title: thread.title,
-          },
-        },
-        {
-          new: true,
-          upsert: true,
-        },
-      );
+      });
 
-      if (!currentSnapshot) {
+      if (snapshotRow) {
+        const existingData =
+          (snapshotRow.data as Record<string, unknown>) ?? {};
+        const lastSequence = ((existingData.lastSequence as number) ?? 0) + 1;
+        snapshotRow = await this.prisma.agentThreadSnapshot.update({
+          where: { id: snapshotRow.id },
+          data: {
+            data: { ...existingData, lastSequence },
+            updatedAt: new Date(),
+          },
+        });
+      } else {
+        snapshotRow = await this.prisma.agentThreadSnapshot.create({
+          data: {
+            organizationId: params.organizationId,
+            threadId: params.threadId,
+            isDeleted: false,
+            data: {
+              lastSequence: 1,
+              memorySummaryRefs: [],
+              pendingApprovals: [],
+              pendingInputRequests: [],
+              source: thread.source,
+              threadStatus: thread.status,
+              timeline: [],
+              title: thread.title,
+            },
+          },
+        });
+      }
+
+      if (!snapshotRow) {
         throw new NotFoundException('Unable to allocate thread snapshot');
       }
 
-      const event = await this.eventModel.create({
-        commandId: params.commandId,
-        eventId: params.eventId,
-        isDeleted: false,
-        metadata: params.metadata,
+      const snapshotData = (snapshotRow.data as Record<string, unknown>) ?? {};
+      const sequence = (snapshotData.lastSequence as number) ?? 1;
+
+      // Store all per-event fields in data Json; top-level columns are commandId, runId, type
+      const eventDataPayload: Record<string, unknown> = {
         occurredAt: params.occurredAt ?? new Date().toISOString(),
-        organization: new Types.ObjectId(params.organizationId),
-        payload: params.payload,
-        runId: params.runId,
-        sequence: currentSnapshot.lastSequence,
-        thread: new Types.ObjectId(params.threadId),
-        type: params.type,
-        userId: params.userId,
+      };
+      if (params.payload) eventDataPayload.payload = params.payload;
+      if (params.metadata) eventDataPayload.metadata = params.metadata;
+      if (params.eventId) eventDataPayload.eventId = params.eventId;
+      if (params.userId) eventDataPayload.userId = params.userId;
+      if (params.runId) eventDataPayload.runId = params.runId;
+
+      const createdRow = await this.prisma.agentThreadEvent.create({
+        data: {
+          commandId: params.commandId,
+          isDeleted: false,
+          organizationId: params.organizationId,
+          runId: params.runId,
+          sequence,
+          threadId: params.threadId,
+          type: params.type,
+          data: eventDataPayload,
+        },
       });
 
-      await this.applyProjection(currentSnapshot, event, thread);
+      const event = toPrismaEventDocument(
+        createdRow as unknown as Record<string, unknown>,
+      );
+      const currentSnapshot = toPrismaSnapshotDocument(
+        snapshotRow as unknown as Record<string, unknown>,
+      );
+
+      await this.applyProjection(
+        currentSnapshot,
+        event,
+        thread,
+        snapshotRow.id,
+      );
       await runEffectPromise(
         this.syncSideEffectsEffect(
           event,
@@ -176,19 +304,21 @@ export class AgentThreadEngineService {
     return fromPromiseEffect(async () => {
       await this.ensureThreadAccess(threadId, organizationId);
 
-      const sequenceFilter =
-        typeof afterSequence === 'number' && afterSequence > 0
-          ? { $gt: afterSequence }
-          : undefined;
-
-      return await this.eventModel
-        .find({
-          ...(sequenceFilter ? { sequence: sequenceFilter } : {}),
+      const rows = await this.prisma.agentThreadEvent.findMany({
+        where: {
           isDeleted: false,
-          organization: new Types.ObjectId(organizationId),
-          thread: new Types.ObjectId(threadId),
-        })
-        .sort({ sequence: 1 });
+          organizationId,
+          threadId,
+          ...(typeof afterSequence === 'number' && afterSequence > 0
+            ? { sequence: { gt: afterSequence } }
+            : {}),
+        },
+        orderBy: { sequence: 'asc' },
+      });
+
+      return rows.map((row) =>
+        toPrismaEventDocument(row as unknown as Record<string, unknown>),
+      );
     });
   }
 
@@ -208,75 +338,39 @@ export class AgentThreadEngineService {
   ): Effect.Effect<AgentThreadSnapshotDocument, unknown> {
     return fromPromiseEffect(async () => {
       const thread = await this.ensureThreadAccess(threadId, organizationId);
-      let snapshot = await this.snapshotModel.findOne({
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-        thread: new Types.ObjectId(threadId),
+      let snapshotRow = await this.prisma.agentThreadSnapshot.findFirst({
+        where: {
+          isDeleted: false,
+          organizationId,
+          threadId,
+        },
       });
 
-      if (!snapshot) {
-        snapshot = await this.snapshotModel.create({
-          isDeleted: false,
-          lastSequence: 0,
-          memorySummaryRefs: [],
-          organization: new Types.ObjectId(organizationId),
-          pendingApprovals: [],
-          pendingInputRequests: [],
-          source: thread.source,
-          thread: new Types.ObjectId(threadId),
-          threadStatus: thread.status,
-          timeline: [],
-          title: thread.title,
+      if (!snapshotRow) {
+        snapshotRow = await this.prisma.agentThreadSnapshot.create({
+          data: {
+            organizationId,
+            threadId,
+            isDeleted: false,
+            data: {
+              lastSequence: 0,
+              memorySummaryRefs: [],
+              pendingApprovals: [],
+              pendingInputRequests: [],
+              source: thread.source,
+              threadStatus: thread.status,
+              timeline: [],
+              title: thread.title,
+            },
+          },
         });
       }
 
-      const sessionBinding = await this.sessionBindingModel.findOne({
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-        thread: new Types.ObjectId(threadId),
-      });
-      const profileSnapshot = await this.profileSnapshotModel.findOne({
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-        thread: new Types.ObjectId(threadId),
-      });
-
-      if (sessionBinding || profileSnapshot) {
-        const patch: Record<string, unknown> = {};
-        if (sessionBinding) {
-          patch.sessionBinding = {
-            activeCommandId: sessionBinding.activeCommandId,
-            lastSeenAt: sessionBinding.lastSeenAt,
-            metadata: sessionBinding.metadata,
-            model: sessionBinding.model,
-            resumeCursor: sessionBinding.resumeCursor,
-            runId: sessionBinding.runId,
-            status: sessionBinding.status,
-          };
-        }
-        if (profileSnapshot) {
-          patch.profileSnapshot = {
-            agentType: profileSnapshot.agentType,
-            campaign: profileSnapshot.campaign?.toString(),
-            enabledTools: profileSnapshot.enabledTools,
-            hooks: profileSnapshot.hooks,
-            memoryPolicy: profileSnapshot.memoryPolicy,
-            outputRules: profileSnapshot.outputRules,
-            promptFragments: profileSnapshot.promptFragments,
-            routeKey: profileSnapshot.routeKey,
-            strategy: profileSnapshot.strategy?.toString(),
-          };
-        }
-
-        snapshot = await this.snapshotModel.findOneAndUpdate(
-          {
-            _id: snapshot._id,
-            organization: new Types.ObjectId(organizationId),
-          },
-          { $set: patch },
-          { new: true },
-        );
-      }
+      // Merge sessionBinding and profileSnapshot from snapshot.data into the document
+      // (they are already stored there via upsertBindingEffect / recordProfileSnapshotEffect)
+      const snapshot = toPrismaSnapshotDocument(
+        snapshotRow as unknown as Record<string, unknown>,
+      );
 
       if (!snapshot) {
         throw new NotFoundException('Thread snapshot not found');
@@ -301,26 +395,61 @@ export class AgentThreadEngineService {
         this.ensureThreadAccess(params.threadId, params.organizationId),
       );
 
-      const inputRequest = yield* fromPromiseEffect(() =>
-        this.inputRequestModel.findOneAndUpdate(
-          {
+      // Input requests are stored inside snapshot.data.inputRequests[]
+      const snapshotRow = yield* fromPromiseEffect(() =>
+        this.prisma.agentThreadSnapshot.findFirst({
+          where: {
             isDeleted: false,
-            organization: new Types.ObjectId(params.organizationId),
-            requestId: params.requestId,
-            status: 'pending',
-            thread: new Types.ObjectId(params.threadId),
+            organizationId: params.organizationId,
+            threadId: params.threadId,
           },
-          {
-            $set: {
-              answer: params.answer,
-              resolvedAt: new Date().toISOString(),
-              status: 'resolved',
-            },
+        }),
+      );
+
+      if (!snapshotRow) {
+        return yield* Effect.fail(
+          new NotFoundException('Input request not found'),
+        );
+      }
+
+      const snapshotData = (snapshotRow.data as Record<string, unknown>) ?? {};
+      const inputRequests =
+        (snapshotData.inputRequests as Array<Record<string, unknown>>) ?? [];
+
+      const reqIndex = inputRequests.findIndex(
+        (r) => r.requestId === params.requestId && r.status === 'pending',
+      );
+
+      if (reqIndex === -1) {
+        return yield* Effect.fail(
+          new NotFoundException('Input request not found'),
+        );
+      }
+
+      // Update the request in-place
+      inputRequests[reqIndex] = {
+        ...inputRequests[reqIndex],
+        answer: params.answer,
+        resolvedAt: new Date().toISOString(),
+        status: 'resolved',
+      };
+
+      yield* fromPromiseEffect(() =>
+        this.prisma.agentThreadSnapshot.update({
+          where: { id: snapshotRow.id },
+          data: {
+            data: { ...snapshotData, inputRequests },
+            updatedAt: new Date(),
           },
-          {
-            new: true,
-          },
-        ),
+        }),
+      );
+
+      const inputRequest = findInputRequestInSnapshot(
+        {
+          ...(snapshotRow as unknown as Record<string, unknown>),
+          data: { ...snapshotData, inputRequests },
+        },
+        params.requestId,
       );
 
       if (!inputRequest) {
@@ -359,24 +488,68 @@ export class AgentThreadEngineService {
     return fromPromiseEffect(async () => {
       await this.ensureThreadAccess(threadId, organizationId);
 
-      return await this.profileSnapshotModel.findOneAndUpdate(
-        {
+      const existing = await this.prisma.agentThreadSnapshot.findFirst({
+        where: { isDeleted: false, organizationId, threadId },
+      });
+
+      const profileData = profileSnapshot as Record<string, unknown>;
+
+      if (existing) {
+        const existingData = (existing.data as Record<string, unknown>) ?? {};
+        const updated = await this.prisma.agentThreadSnapshot.update({
+          where: { id: existing.id },
+          data: {
+            data: {
+              ...existingData,
+              profileSnapshot: {
+                ...((existingData.profileSnapshot as Record<string, unknown>) ??
+                  {}),
+                ...profileData,
+                organizationId,
+                threadId,
+              },
+            },
+            updatedAt: new Date(),
+          },
+        });
+
+        const data = (updated.data as Record<string, unknown>) ?? {};
+        const ps = data.profileSnapshot as Record<string, unknown>;
+        return {
+          _id: updated.id,
+          id: updated.id,
+          organizationId,
+          threadId,
+          organization: organizationId as unknown,
+          thread: threadId as unknown,
+          ...ps,
           isDeleted: false,
-          organization: new Types.ObjectId(organizationId),
-          thread: new Types.ObjectId(threadId),
-        },
-        {
-          $set: {
-            ...(profileSnapshot as Record<string, unknown>),
-            organization: new Types.ObjectId(organizationId),
-            thread: new Types.ObjectId(threadId),
+        } as unknown as AgentProfileSnapshotDocument;
+      }
+
+      const created = await this.prisma.agentThreadSnapshot.create({
+        data: {
+          organizationId,
+          threadId,
+          isDeleted: false,
+          data: {
+            profileSnapshot: { ...profileData, organizationId, threadId },
           },
         },
-        {
-          new: true,
-          upsert: true,
-        },
-      );
+      });
+
+      const data = (created.data as Record<string, unknown>) ?? {};
+      const ps = data.profileSnapshot as Record<string, unknown>;
+      return {
+        _id: created.id,
+        id: created.id,
+        organizationId,
+        threadId,
+        organization: organizationId as unknown,
+        thread: threadId as unknown,
+        ...ps,
+        isDeleted: false,
+      } as unknown as AgentProfileSnapshotDocument;
     });
   }
 
@@ -447,7 +620,7 @@ export class AgentThreadEngineService {
     threadId: string,
     organizationId: string,
   ): Promise<{
-    _id: Types.ObjectId;
+    id: string;
     source?: string;
     status?: string;
     title?: string;
@@ -460,9 +633,9 @@ export class AgentThreadEngineService {
     }
 
     const thread = await this.agentThreadsService.findOne({
-      _id: new Types.ObjectId(threadId),
+      _id: threadId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
     });
 
     if (!thread) {
@@ -470,7 +643,7 @@ export class AgentThreadEngineService {
     }
 
     return thread as {
-      _id: Types.ObjectId;
+      id: string;
       source?: string;
       status?: string;
       title?: string;
@@ -485,24 +658,28 @@ export class AgentThreadEngineService {
       source?: string;
       title?: string;
     },
+    snapshotId: string,
   ): Promise<void> {
     const projected = this.projectorService.applyEvent(currentSnapshot, event);
 
-    await this.snapshotModel.updateOne(
-      {
-        _id: currentSnapshot._id,
-        organization: currentSnapshot.organization,
-      },
-      {
-        $set: {
+    const existingRow = await this.prisma.agentThreadSnapshot.findUnique({
+      where: { id: snapshotId },
+    });
+    const existingData = (existingRow?.data as Record<string, unknown>) ?? {};
+
+    await this.prisma.agentThreadSnapshot.update({
+      where: { id: snapshotId },
+      data: {
+        data: {
+          ...existingData,
           ...projected,
           source: thread.source,
           threadStatus: thread.status,
           title: thread.title,
-          updatedAt: new Date(),
         },
+        updatedAt: new Date(),
       },
-    );
+    });
   }
 
   private syncSideEffectsEffect(
@@ -514,42 +691,45 @@ export class AgentThreadEngineService {
       const requestId =
         this.readString(event.payload, 'requestId') ??
         `input:${threadId}:${event.sequence}`;
-      return fromPromiseEffect(() =>
-        this.inputRequestModel.findOneAndUpdate(
-          {
-            isDeleted: false,
-            organization: new Types.ObjectId(organizationId),
-            requestId,
-            thread: new Types.ObjectId(threadId),
+
+      // Store the input request inside snapshot.data.inputRequests[]
+      return fromPromiseEffect(async () => {
+        const snapshotRow = await this.prisma.agentThreadSnapshot.findFirst({
+          where: { isDeleted: false, organizationId, threadId },
+        });
+
+        if (!snapshotRow) return;
+
+        const snapshotData =
+          (snapshotRow.data as Record<string, unknown>) ?? {};
+        const inputRequests = (
+          (snapshotData.inputRequests as Array<Record<string, unknown>>) ?? []
+        ).filter((r) => r.requestId !== requestId);
+
+        inputRequests.push({
+          allowFreeText: this.readBoolean(event.payload, 'allowFreeText'),
+          fieldId: this.readString(event.payload, 'fieldId'),
+          metadata: this.readRecord(event.payload, 'metadata'),
+          options: this.readArray(event.payload, 'options') ?? [],
+          prompt: this.readString(event.payload, 'prompt') ?? '',
+          recommendedOptionId: this.readString(
+            event.payload,
+            'recommendedOptionId',
+          ),
+          requestId,
+          runId: event.runId,
+          status: 'pending',
+          title: this.readString(event.payload, 'title') ?? 'Input requested',
+        });
+
+        await this.prisma.agentThreadSnapshot.update({
+          where: { id: snapshotRow.id },
+          data: {
+            data: { ...snapshotData, inputRequests },
+            updatedAt: new Date(),
           },
-          {
-            $set: {
-              allowFreeText: this.readBoolean(event.payload, 'allowFreeText'),
-              fieldId: this.readString(event.payload, 'fieldId'),
-              metadata: this.readRecord(event.payload, 'metadata'),
-              options: this.readArray(event.payload, 'options') ?? [],
-              prompt: this.readString(event.payload, 'prompt') ?? '',
-              recommendedOptionId: this.readString(
-                event.payload,
-                'recommendedOptionId',
-              ),
-              runId: event.runId,
-              status: 'pending',
-              title:
-                this.readString(event.payload, 'title') ?? 'Input requested',
-            },
-            $setOnInsert: {
-              organization: new Types.ObjectId(organizationId),
-              requestId,
-              thread: new Types.ObjectId(threadId),
-            },
-          },
-          {
-            new: true,
-            upsert: true,
-          },
-        ),
-      ).pipe(
+        });
+      }).pipe(
         Effect.zipRight(
           this.upsertRuntimeBindingEffect({
             organizationId,

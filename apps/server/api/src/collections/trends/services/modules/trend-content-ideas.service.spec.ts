@@ -4,7 +4,6 @@ import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import { describe, expect, it, vi } from 'vitest';
 
 import { TrendContentIdeasService } from './trend-content-ideas.service';
@@ -15,7 +14,7 @@ const makeTrend = (
   viralityScore = 80,
 ): TrendEntity =>
   ({
-    _id: new Types.ObjectId(),
+    _id: 'test-object-id',
     expiresAt: new Date(),
     growthRate: 5,
     isCurrent: true,

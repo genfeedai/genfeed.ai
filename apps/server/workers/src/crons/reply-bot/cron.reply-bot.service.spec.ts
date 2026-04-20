@@ -6,7 +6,6 @@ import { CredentialPlatform, ReplyBotPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { CronReplyBotService } from '@workers/crons/reply-bot/cron.reply-bot.service';
-import { Types } from 'mongoose';
 
 describe('CronReplyBotService', () => {
   let service: CronReplyBotService;
@@ -91,8 +90,8 @@ describe('CronReplyBotService', () => {
   });
 
   it('should group configs by org and credential before polling', async () => {
-    const organizationId = new Types.ObjectId();
-    const credentialId = new Types.ObjectId();
+    const organizationId = 'org-id-1';
+    const credentialId = 'cred-id-1';
 
     replyBotConfigsService.find.mockResolvedValueOnce([
       {
@@ -134,7 +133,7 @@ describe('CronReplyBotService', () => {
     ).toHaveBeenCalledTimes(1);
     expect(
       replyBotOrchestratorService.processOrganizationBots,
-    ).toHaveBeenCalledWith(organizationId.toString(), {
+    ).toHaveBeenCalledWith(organizationId, {
       accessToken: 'token',
       accessTokenSecret: 'secret',
       externalId: 'external',
@@ -145,10 +144,10 @@ describe('CronReplyBotService', () => {
   });
 
   it('should skip missing credentials and continue', async () => {
-    const missingOrgId = new Types.ObjectId();
-    const missingCredentialId = new Types.ObjectId();
-    const goodOrgId = new Types.ObjectId();
-    const goodCredentialId = new Types.ObjectId();
+    const missingOrgId = 'org-id-missing';
+    const missingCredentialId = 'cred-id-missing';
+    const goodOrgId = 'org-id-good';
+    const goodCredentialId = 'cred-id-good';
 
     replyBotConfigsService.find.mockResolvedValueOnce([
       {

@@ -1,6 +1,6 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { GenerateContentDto } from '@api/collections/content-intelligence/dto/generate-content.dto';
-import { ContentPatternDocument } from '@api/collections/content-intelligence/schemas/content-pattern.schema';
+import { type ContentPatternDocument } from '@api/collections/content-intelligence/schemas/content-pattern.schema';
 import { PatternStoreService } from '@api/collections/content-intelligence/services/pattern-store.service';
 import { PlaybookBuilderService } from '@api/collections/content-intelligence/services/playbook-builder.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
@@ -15,7 +15,6 @@ import {
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 export interface GeneratedContent {
   content: string;
@@ -58,7 +57,7 @@ export class ContentGeneratorService {
   }
 
   async generateContent(
-    organizationId: Types.ObjectId,
+    organizationId: string,
     dto: GenerateContentDto,
   ): Promise<GeneratedContent[]> {
     const variationsCount = dto.variationsCount ?? 3;
@@ -107,7 +106,7 @@ export class ContentGeneratorService {
     let playbookInsights: PlaybookInsightsView | undefined;
     if (dto.playbookId) {
       const playbook = await this.playbookBuilderService.findOne({
-        _id: new Types.ObjectId(dto.playbookId),
+        id: dto.playbookId,
         isDeleted: false,
         organization: organizationId,
       });
@@ -150,13 +149,13 @@ export class ContentGeneratorService {
   }
 
   private async selectPatterns(
-    organizationId: Types.ObjectId,
+    organizationId: string,
     dto: GenerateContentDto,
   ): Promise<ContentPatternDocument[]> {
     // If specific pattern is requested
     if (dto.patternId) {
       const pattern = await this.patternStoreService.findOne({
-        _id: new Types.ObjectId(dto.patternId),
+        id: dto.patternId,
         isDeleted: false,
         organization: organizationId,
       });
@@ -172,7 +171,7 @@ export class ContentGeneratorService {
   }
 
   private async buildHarnessSystemPrompt(
-    organizationId: Types.ObjectId,
+    organizationId: string,
     dto: GenerateContentDto,
   ): Promise<string | undefined> {
     if (
@@ -187,7 +186,7 @@ export class ContentGeneratorService {
     try {
       const brand = await this.brandsService.findOne(
         {
-          _id: new Types.ObjectId(dto.brandId),
+          id: dto.brandId,
           isDeleted: false,
           organization: organizationId,
         },
@@ -199,7 +198,7 @@ export class ContentGeneratorService {
       }
 
       const persona = await this.personasService.findOne({
-        brand: new Types.ObjectId(dto.brandId),
+        brandId: dto.brandId,
         isDeleted: false,
         organization: organizationId,
       });

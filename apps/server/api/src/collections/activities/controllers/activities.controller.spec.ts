@@ -20,10 +20,9 @@ import { ActivitiesService } from '@api/collections/activities/services/activiti
 import type { User } from '@clerk/backend';
 import { LoggerService } from '@libs/logger/logger.service';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
-const userId = new Types.ObjectId();
-const orgId = new Types.ObjectId();
+const userId = '507f191e810c19729de860ee';
+const orgId = '507f191e810c19729de860ee';
 
 const makeUser = (): User =>
   ({
@@ -69,8 +68,8 @@ describe('ActivitiesController', () => {
   describe('findAll', () => {
     it('returns serialized collection of activities', async () => {
       const docs = [
-        { _id: new Types.ObjectId(), key: 'a' },
-        { _id: new Types.ObjectId(), key: 'b' },
+        { _id: '507f191e810c19729de860ee', key: 'a' },
+        { _id: '507f191e810c19729de860ee', key: 'b' },
       ];
       service.findAll.mockResolvedValue({
         docs,
@@ -126,7 +125,7 @@ describe('ActivitiesController', () => {
     });
 
     it('patches the activity when ownership is valid', async () => {
-      const activityId = new Types.ObjectId().toString();
+      const activityId = '507f191e810c19729de860ee'.toString();
       const activity = { _id: activityId, organization: orgId, user: userId };
 
       service.findOne.mockResolvedValue(activity as never);
@@ -153,8 +152,8 @@ describe('ActivitiesController', () => {
 
   describe('bulkUpdate', () => {
     it('updates multiple activities and returns counts', async () => {
-      const id1 = new Types.ObjectId().toString();
-      const id2 = new Types.ObjectId().toString();
+      const id1 = '507f191e810c19729de860ee'.toString();
+      const id2 = '507f191e810c19729de860ee'.toString();
 
       const activity1 = {
         _id: id1,
@@ -187,7 +186,7 @@ describe('ActivitiesController', () => {
     });
 
     it('records failed ids when activity is not found', async () => {
-      const id1 = new Types.ObjectId().toString();
+      const id1 = '507f191e810c19729de860ee'.toString();
 
       service.findOne.mockResolvedValue(null);
 
@@ -205,9 +204,9 @@ describe('ActivitiesController', () => {
     });
 
     it('rejects update when user lacks permission', async () => {
-      const id1 = new Types.ObjectId().toString();
-      const otherUser = new Types.ObjectId();
-      const otherOrg = new Types.ObjectId();
+      const id1 = '507f191e810c19729de860ee'.toString();
+      const otherUser = '507f191e810c19729de860ee';
+      const otherOrg = '507f191e810c19729de860ee';
 
       service.findOne.mockResolvedValue({
         _id: id1,
@@ -229,7 +228,7 @@ describe('ActivitiesController', () => {
     });
 
     it('handles errors during individual updates gracefully', async () => {
-      const id1 = new Types.ObjectId().toString();
+      const id1 = '507f191e810c19729de860ee'.toString();
 
       service.findOne.mockResolvedValue({
         _id: id1,

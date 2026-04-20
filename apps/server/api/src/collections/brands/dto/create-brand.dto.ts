@@ -9,7 +9,6 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import type { Types } from 'mongoose';
 
 export class CreateBrandDto {
   @IsString()
@@ -38,7 +37,7 @@ export class CreateBrandDto {
     description: 'Optional voice ID to use for this brand',
     required: false,
   })
-  readonly voice?: Types.ObjectId;
+  readonly voice?: string;
 
   @IsMongoId()
   @IsOptional()
@@ -46,7 +45,7 @@ export class CreateBrandDto {
     description: 'Optional music ID to use for this brand',
     required: false,
   })
-  readonly music?: Types.ObjectId;
+  readonly music?: string;
 
   @IsString()
   @IsOptional()

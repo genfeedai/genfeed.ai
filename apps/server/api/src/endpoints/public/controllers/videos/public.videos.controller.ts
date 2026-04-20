@@ -31,7 +31,11 @@ import type {
   Request as ExpressRequest,
   Response as ExpressResponse,
 } from 'express';
-import { isValidObjectId, type PipelineStage, Types } from 'mongoose';
+
+const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
+function isValidObjectId(id: unknown): id is string {
+  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
+}
 
 @AutoSwagger()
 @Public()
@@ -77,7 +81,7 @@ export class PublicVideosController {
 
     // Filter by brand if provided
     if (brand && isValidObjectId(brand)) {
-      match.brand = new Types.ObjectId(brand);
+      match.brand = brand;
     }
 
     // Filter by tag if provided (assuming tags are stored in metadata)
@@ -85,7 +89,7 @@ export class PublicVideosController {
       match['metadata.tags'] = { $options: 'i', $regex: tag };
     }
 
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       { $match: match },
       {
         $lookup: {
@@ -108,7 +112,7 @@ export class PublicVideosController {
               $match: {
                 $expr: this.getFormatExpression(format),
               },
-            } as PipelineStage,
+            } as Record<string, unknown>,
           ]
         : []),
       { $sort: { createdAt: -1 } },

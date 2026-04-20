@@ -16,7 +16,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 import { firstValueFrom } from 'rxjs';
 
 @Injectable()
@@ -180,8 +179,8 @@ export class InstagramService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     const credential = await this.credentialsService.findOne({
-      brand: new Types.ObjectId(brandId),
-      organization: new Types.ObjectId(organizationId),
+      brand: brandId,
+      organization: organizationId,
       platform: CredentialPlatform.INSTAGRAM,
     });
 
@@ -272,8 +271,8 @@ export class InstagramService {
       if (organizationId && brandId) {
         try {
           const credential = await this.credentialsService.findOne({
-            brand: new Types.ObjectId(brandId),
-            organization: new Types.ObjectId(organizationId),
+            brand: brandId,
+            organization: organizationId,
             platform: CredentialPlatform.INSTAGRAM,
           });
 
@@ -412,8 +411,8 @@ export class InstagramService {
     await this.refreshToken(organizationId, brandId);
 
     const credential = await this.credentialsService.findOne({
-      brand: new Types.ObjectId(brandId),
-      organization: new Types.ObjectId(organizationId),
+      brand: brandId,
+      organization: organizationId,
       platform: CredentialPlatform.INSTAGRAM,
     });
 
@@ -487,8 +486,8 @@ export class InstagramService {
     await this.refreshToken(organizationId, brandId);
 
     const credential = await this.credentialsService.findOne({
-      brand: new Types.ObjectId(brandId),
-      organization: new Types.ObjectId(organizationId),
+      brand: brandId,
+      organization: organizationId,
       platform: CredentialPlatform.INSTAGRAM,
     });
 
@@ -562,8 +561,8 @@ export class InstagramService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     const credential = await this.credentialsService.findOne({
-      brand: new Types.ObjectId(brandId),
-      organization: new Types.ObjectId(organizationId),
+      brand: brandId,
+      organization: organizationId,
       platform: CredentialPlatform.INSTAGRAM,
     });
 
@@ -819,8 +818,8 @@ export class InstagramService {
 
     try {
       const credential = await this.credentialsService.findOne({
-        brand: new Types.ObjectId(brandId),
-        organization: new Types.ObjectId(organizationId),
+        brand: brandId,
+        organization: organizationId,
         platform: CredentialPlatform.INSTAGRAM,
       });
 

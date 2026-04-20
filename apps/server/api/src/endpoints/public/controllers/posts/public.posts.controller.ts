@@ -27,7 +27,11 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Controller, Get, Param, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
-import { isValidObjectId, type PipelineStage } from 'mongoose';
+
+const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
+function isValidObjectId(id: unknown): id is string {
+  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
+}
 
 @AutoSwagger()
 @Public()
@@ -83,7 +87,7 @@ export class PublicPostsController {
       matchQuery['metadata.tags'] = { $options: 'i', $regex: tag };
     }
 
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       { $match: matchQuery },
       { $sort: { createdAt: -1 } },
     ];
@@ -168,7 +172,7 @@ export class PublicPostsController {
       matchQuery['metadata.tags'] = { $options: 'i', $regex: tag };
     }
 
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       { $match: matchQuery },
       // Lookup metadata for label and tags
       {

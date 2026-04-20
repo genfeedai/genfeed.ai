@@ -1,7 +1,6 @@
 // @ts-nocheck - Test utility file with extensive Jest mocking
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 export class TestHelpers {
   /**
@@ -126,7 +125,7 @@ export class TestHelpers {
       (_, index) =>
         ({
           ...baseData,
-          _id: new Types.ObjectId(),
+          _id: '507f191e810c19729de860ee',
           createdAt: new Date(),
           testIndex: index,
           updatedAt: new Date(),

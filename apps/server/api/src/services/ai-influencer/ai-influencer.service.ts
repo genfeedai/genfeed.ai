@@ -1,6 +1,6 @@
-import { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
+import { type PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { ConfigService } from '@api/config/config.service';
 import { FalService } from '@api/services/integrations/fal/fal.service';
@@ -19,7 +19,6 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 /** Supported social platforms for AI influencer posts */
 export type AiInfluencerPlatform =
@@ -494,7 +493,7 @@ export class AiInfluencerService {
       generationSource: `ai-influencer-${persona.slug}`,
       isDeleted: false,
       organization: persona.organization,
-      persona: persona._id as Types.ObjectId,
+      persona: persona._id,
       personaSlug: persona.slug,
       reviewStatus: DarkroomReviewStatus.APPROVED,
       status: IngredientStatus.GENERATED,
@@ -664,7 +663,7 @@ export class AiInfluencerService {
   private async generateVideoPipeline(
     persona: PersonaDocument,
     script: string,
-    ingredientId: Types.ObjectId,
+    ingredientId: string,
   ): Promise<{
     voiceResult: GenerationResult;
     videoResult: GenerationResult;
@@ -672,7 +671,7 @@ export class AiInfluencerService {
     const voiceResult = await this.personaContentService.generateVoice({
       ingredientId,
       organization: persona.organization,
-      personaId: persona._id as Types.ObjectId,
+      personaId: persona._id,
       text: script,
       user: persona.user,
     });
@@ -680,7 +679,7 @@ export class AiInfluencerService {
     const videoResult = await this.personaContentService.generateVideo({
       aspectRatio: '9:16',
       organization: persona.organization,
-      personaId: persona._id as Types.ObjectId,
+      personaId: persona._id,
       script,
       user: persona.user,
     });

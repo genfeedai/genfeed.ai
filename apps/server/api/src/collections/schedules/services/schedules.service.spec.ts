@@ -1,20 +1,10 @@
 import { ModelsService } from '@api/collections/models/services/models.service';
-import {
-  RepurposingJob,
-  type RepurposingJobDocument,
-} from '@api/collections/schedules/schemas/repurposing-job.schema';
-import {
-  Schedule,
-  type ScheduleDocument,
-} from '@api/collections/schedules/schemas/schedule.schema';
 import { SchedulesService } from '@api/collections/schedules/services/schedules.service';
 import { ConfigService } from '@api/config/config.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Model } from 'mongoose';
 
 // Mock OpenAI
 vi.mock('openai', () => {
@@ -32,14 +22,26 @@ vi.mock('openai', () => {
 
 describe('SchedulesService', () => {
   let service: SchedulesService;
-  let scheduleModel: ReturnType<typeof createMockModel>;
-  let repurposingJobModel: ReturnType<typeof createMockModel>;
-  let configService: { get: ReturnType<typeof vi.fn>; isProduction?: boolean };
-  let loggerService: {
-    debug: ReturnType<typeof vi.fn>;
-    error: ReturnType<typeof vi.fn>;
-    log: ReturnType<typeof vi.fn>;
-    warn: ReturnType<typeof vi.fn>;
+
+  const mockPrismaService = {
+    schedule: {
+      count: vi.fn().mockResolvedValue(0),
+      create: vi.fn().mockResolvedValue(null),
+      delete: vi.fn().mockResolvedValue(null),
+      findFirst: vi.fn().mockResolvedValue(null),
+      findMany: vi.fn().mockResolvedValue([]),
+      findUnique: vi.fn().mockResolvedValue(null),
+      update: vi.fn().mockResolvedValue(null),
+    },
+    repurposingJob: {
+      count: vi.fn().mockResolvedValue(0),
+      create: vi.fn().mockResolvedValue(null),
+      delete: vi.fn().mockResolvedValue(null),
+      findFirst: vi.fn().mockResolvedValue(null),
+      findMany: vi.fn().mockResolvedValue([]),
+      findUnique: vi.fn().mockResolvedValue(null),
+      update: vi.fn().mockResolvedValue(null),
+    },
   };
 
   const mockConfigService = {
@@ -53,37 +55,13 @@ describe('SchedulesService', () => {
     warn: vi.fn(),
   };
 
-  const mockScheduleModel = {
-    countDocuments: vi.fn(),
-    create: vi.fn(),
-    find: vi.fn(),
-    findById: vi.fn(),
-    findByIdAndDelete: vi.fn(),
-    findByIdAndUpdate: vi.fn(),
-    findOne: vi.fn(),
-  };
-
-  const mockRepurposingJobModel = {
-    countDocuments: vi.fn(),
-    create: vi.fn(),
-    find: vi.fn(),
-    findById: vi.fn(),
-    findByIdAndDelete: vi.fn(),
-    findByIdAndUpdate: vi.fn(),
-    findOne: vi.fn(),
-  };
-
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         SchedulesService,
         {
-          provide: getModelToken(Schedule.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockScheduleModel,
-        },
-        {
-          provide: getModelToken(RepurposingJob.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockRepurposingJobModel,
+          provide: PrismaService,
+          useValue: mockPrismaService,
         },
         {
           provide: ConfigService,
@@ -109,14 +87,6 @@ describe('SchedulesService', () => {
     }).compile();
 
     service = module.get<SchedulesService>(SchedulesService);
-    scheduleModel = module.get<Model<ScheduleDocument>>(
-      getModelToken(Schedule.name, DB_CONNECTIONS.CLOUD),
-    );
-    repurposingJobModel = module.get<Model<RepurposingJobDocument>>(
-      getModelToken(RepurposingJob.name, DB_CONNECTIONS.CLOUD),
-    );
-    configService = module.get<ConfigService>(ConfigService);
-    loggerService = module.get<LoggerService>(LoggerService);
   });
 
   afterEach(() => {

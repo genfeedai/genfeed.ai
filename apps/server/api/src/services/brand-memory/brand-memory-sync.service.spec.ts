@@ -1,12 +1,11 @@
 import { BrandMemoryService } from '@api/collections/brand-memory/services/brand-memory.service';
-import { ContentPerformance } from '@api/collections/content-performance/schemas/content-performance.schema';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { BrandMemorySyncService } from '@api/services/brand-memory/brand-memory-sync.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ContentType, CredentialPlatform } from '@genfeedai/enums';
+import { type ContentPerformance } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('BrandMemorySyncService', () => {
@@ -29,9 +28,9 @@ describe('BrandMemorySyncService', () => {
     warn: vi.fn(),
   };
 
-  const orgId = new Types.ObjectId().toString();
-  const brandId = new Types.ObjectId().toString();
-  const postId = new Types.ObjectId().toString();
+  const orgId = 'test-object-id'.toString();
+  const brandId = 'test-object-id'.toString();
+  const postId = 'test-object-id'.toString();
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -39,10 +38,7 @@ describe('BrandMemorySyncService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BrandMemorySyncService,
-        {
-          provide: getModelToken(ContentPerformance.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockContentPerformanceModel,
-        },
+        { provide: PrismaService, useValue: mockContentPerformanceModel },
         {
           provide: BrandMemoryService,
           useValue: mockBrandMemoryService,
@@ -62,14 +58,14 @@ describe('BrandMemorySyncService', () => {
       sort: vi.fn().mockReturnValue({
         lean: () => ({
           exec: async () => ({
-            brand: new Types.ObjectId(brandId),
+            brand: new string(brandId),
             comments: 12,
             contentType: ContentType.VIDEO,
             engagementRate: 7.2,
             likes: 100,
             measuredAt: new Date('2026-02-25T10:00:00.000Z'),
             platform: CredentialPlatform.INSTAGRAM,
-            post: new Types.ObjectId(postId),
+            post: new string(postId),
             saves: 9,
             shares: 4,
             views: 1800,

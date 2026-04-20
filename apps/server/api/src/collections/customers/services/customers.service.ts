@@ -1,16 +1,13 @@
 import { CreateCustomerDto } from '@api/collections/customers/dto/create-customer.dto';
 import { UpdateCustomerDto } from '@api/collections/customers/dto/update-customer.dto';
-import {
+import type {
   Customer,
-  type CustomerDocument,
+  CustomerDocument,
 } from '@api/collections/customers/schemas/customer.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Types } from 'mongoose';
 
 @Injectable()
 export class CustomersService extends BaseService<
@@ -19,28 +16,27 @@ export class CustomersService extends BaseService<
   UpdateCustomerDto
 > {
   constructor(
-    @InjectModel(Customer.name, DB_CONNECTIONS.AUTH)
-    protected readonly model: AggregatePaginateModel<CustomerDocument>,
+    public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
   ) {
-    super(model, logger);
+    super(prisma, 'customer', logger);
   }
 
   findByOrganizationId(organizationId: string): Promise<Customer | null> {
-    return this.model
-      .findOne({
+    return this.delegate.findFirst({
+      where: {
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-      })
-      .exec();
+        organizationId,
+      },
+    }) as Promise<Customer | null>;
   }
 
   findByStripeCustomerId(stripeCustomerId: string): Promise<Customer | null> {
-    return this.model
-      .findOne({
+    return this.delegate.findFirst({
+      where: {
         isDeleted: false,
         stripeCustomerId,
-      })
-      .exec();
+      },
+    }) as Promise<Customer | null>;
   }
 }

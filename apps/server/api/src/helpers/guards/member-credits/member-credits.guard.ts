@@ -14,7 +14,6 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 @Injectable()
 export class MemberCreditsGuard extends CreditsGuard implements CanActivate {
@@ -51,7 +50,7 @@ export class MemberCreditsGuard extends CreditsGuard implements CanActivate {
 
     const settings = await this.organizationSettingsService.findOne({
       // @ts-expect-error TS2769
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
     });
 
     if (!settings) {
@@ -64,7 +63,7 @@ export class MemberCreditsGuard extends CreditsGuard implements CanActivate {
           $match: {
             isDeleted: false,
             // @ts-expect-error TS2769
-            organization: new Types.ObjectId(organizationId),
+            organization: organizationId,
           },
         },
       ],

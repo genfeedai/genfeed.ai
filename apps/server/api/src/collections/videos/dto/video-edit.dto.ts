@@ -8,7 +8,6 @@ import {
   Max,
   Min,
 } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class VideoEditDto {
   @IsString()
@@ -49,7 +48,7 @@ export class VideoEditDto {
     description: 'Account ID for the video',
     required: false,
   })
-  readonly brand?: Types.ObjectId;
+  readonly brand?: string;
 
   @IsMongoId()
   @IsOptional()
@@ -57,5 +56,5 @@ export class VideoEditDto {
     description: 'Organization ID for the video',
     required: false,
   })
-  readonly organization?: Types.ObjectId;
+  readonly organization?: string;
 }

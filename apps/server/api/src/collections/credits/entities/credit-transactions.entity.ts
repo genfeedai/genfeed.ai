@@ -1,13 +1,12 @@
-import { CreditTransactions } from '@api/collections/credits/schemas/credit-transactions.schema';
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
 import { CreditTransactionCategory } from '@genfeedai/enums';
-import { Types } from 'mongoose';
+import { type CreditTransaction as CreditTransactions } from '@genfeedai/prisma';
 
 export class CreditTransactionsEntity
   extends BaseEntity
   implements CreditTransactions
 {
-  declare readonly organization: Types.ObjectId;
+  declare readonly organization: string;
   declare readonly category: CreditTransactionCategory;
   declare readonly amount: number;
   declare readonly balanceBefore: number;

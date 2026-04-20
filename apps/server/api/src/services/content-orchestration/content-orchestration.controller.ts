@@ -15,7 +15,6 @@ import {
   Post,
   Req,
 } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 interface GenerateAndPublishDto {
   brandId: string;
@@ -50,8 +49,8 @@ export class ContentOrchestrationController {
     organizationId: string,
   ): Promise<void> {
     const brand = await this.brandsService.findOne({
-      _id: new Types.ObjectId(brandId),
-      organization: new Types.ObjectId(organizationId),
+      _id: brandId,
+      organization: organizationId,
     });
     if (!brand) {
       throw new ForbiddenException(

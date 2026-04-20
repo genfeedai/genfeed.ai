@@ -37,7 +37,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 describe('ImagesTransformationsController', () => {
   let controller: ImagesTransformationsController;
@@ -66,22 +65,22 @@ describe('ImagesTransformationsController', () => {
   } as unknown as Request;
 
   const mockImage = {
-    _id: new Types.ObjectId('507f1f77bcf86cd799439014'),
-    brand: new Types.ObjectId('507f1f77bcf86cd799439013'),
+    _id: '507f1f77bcf86cd799439014',
+    brand: '507f1f77bcf86cd799439013',
     category: 'image',
     metadata: {
-      _id: new Types.ObjectId('507f1f77bcf86cd799439015'),
+      _id: '507f1f77bcf86cd799439015',
       height: 1080,
       width: 1920,
     },
-    organization: new Types.ObjectId('507f1f77bcf86cd799439012'),
-    user: new Types.ObjectId('507f1f77bcf86cd799439011'),
+    organization: '507f1f77bcf86cd799439012',
+    user: '507f1f77bcf86cd799439011',
   };
 
   const mockServices = {
     activitiesService: {
       create: vi.fn().mockResolvedValue({
-        _id: new Types.ObjectId('507f1f77bcf86cd799439020'),
+        _id: '507f1f77bcf86cd799439020',
       }),
     },
     configService: {
@@ -127,7 +126,7 @@ describe('ImagesTransformationsController', () => {
     },
     promptsService: {
       create: vi.fn().mockResolvedValue({
-        _id: new Types.ObjectId('507f1f77bcf86cd799439016'),
+        _id: '507f1f77bcf86cd799439016',
         original: 'Test prompt',
       }),
     },
@@ -143,10 +142,10 @@ describe('ImagesTransformationsController', () => {
     sharedService: {
       saveDocuments: vi.fn().mockResolvedValue({
         ingredientData: {
-          _id: new Types.ObjectId('507f1f77bcf86cd799439017'),
+          _id: '507f1f77bcf86cd799439017',
         },
         metadataData: {
-          _id: new Types.ObjectId('507f1f77bcf86cd799439018'),
+          _id: '507f1f77bcf86cd799439018',
         },
       }),
     },

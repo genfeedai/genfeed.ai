@@ -1,12 +1,11 @@
 import type { ModelCategory, ModelProvider, Platform } from '@genfeedai/enums';
-import type { Types } from 'mongoose';
 
 export class Preset {
   id!: string;
 
-  organization?: Types.ObjectId; // if null, it's a global preset
-  brand?: Types.ObjectId;
-  ingredient?: Types.ObjectId;
+  organization?: string; // if null, it's a global preset
+  brand?: string;
+  ingredient?: string;
 
   label!: string;
   description!: string;

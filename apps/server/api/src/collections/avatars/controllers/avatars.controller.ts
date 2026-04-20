@@ -1,6 +1,6 @@
 import { AvatarsService } from '@api/collections/avatars/services/avatars.service';
 import { CreateAvatarDto } from '@api/collections/ingredients/dto/create-ingredient.dto';
-import { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -41,7 +41,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { type PipelineStage, Types } from 'mongoose';
 
 type HeyGenVoice = Awaited<ReturnType<HeyGenService['getVoices']>>[number];
 type HeyGenAvatar = Awaited<ReturnType<HeyGenService['getAvatars']>>[number];
@@ -258,12 +257,12 @@ export class AvatarsController {
 
     const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: {
           isDeleted,
           type: 'avatar',
-          user: new Types.ObjectId(publicMetadata.user),
+          user: publicMetadata.user,
         },
       },
       {
@@ -297,7 +296,7 @@ export class AvatarsController {
     // }
 
     // const reference = await this.avatarsService.findOne(
-    //   { _id: new Types.ObjectId(createIngredientDto.reference || createIngredientDto.avatar) },
+    //   { _id: createIngredientDto.reference || createIngredientDto.avatar },
     //   [],
     // );
 
@@ -385,7 +384,7 @@ export class AvatarsController {
     //   });
 
     // const publicMetadata = getPublicMetadata(user);
-    // const websocketUrl = `/avatars/${(ingredientData._id as Types.ObjectId).toHexString()}`;
+    // const websocketUrl = `/avatars/${(ingredientData._id as string).toHexString()}`;
 
     // // Determine provider (heygen or hedra)
     // const provider = createAvatarDto.provider || Provider.HEYGEN;

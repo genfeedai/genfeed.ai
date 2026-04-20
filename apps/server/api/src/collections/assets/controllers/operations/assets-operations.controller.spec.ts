@@ -31,7 +31,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 describe('AssetsOperationsController', () => {
   let controller: AssetsOperationsController;
@@ -48,12 +47,12 @@ describe('AssetsOperationsController', () => {
   let loggerService: vi.Mocked<LoggerService>;
   let configService: ConfigService;
 
-  const mockUserId = new Types.ObjectId();
-  const mockOrgId = new Types.ObjectId();
-  const mockBrandId = new Types.ObjectId();
-  const mockIngredientId = new Types.ObjectId();
-  const mockMetadataId = new Types.ObjectId();
-  const mockAssetId = new Types.ObjectId();
+  const mockUserId = '507f191e810c19729de860ee';
+  const mockOrgId = '507f191e810c19729de860ee';
+  const mockBrandId = '507f191e810c19729de860ee';
+  const mockIngredientId = '507f191e810c19729de860ee';
+  const mockMetadataId = '507f191e810c19729de860ee';
+  const mockAssetId = '507f191e810c19729de860ee';
 
   const mockUser = {
     id: 'user_123',
@@ -231,13 +230,13 @@ describe('AssetsOperationsController', () => {
         expect.objectContaining({
           _id: mockBrandId,
           isDeleted: false,
-          organization: expect.any(Types.ObjectId),
+          organization: expect.any(String),
         }),
       );
       expect(assetsService.patchAll).toHaveBeenCalledWith(
         expect.objectContaining({
           category: AssetCategory.BANNER,
-          parent: expect.any(Types.ObjectId),
+          parent: expect.any(String),
         }),
         { isDeleted: true },
       );
@@ -334,7 +333,7 @@ describe('AssetsOperationsController', () => {
         expect.objectContaining({
           category: AssetCategory.LOGO,
           isDeleted: false,
-          parent: expect.any(Types.ObjectId),
+          parent: expect.any(String),
           parentModel: AssetParent.BRAND,
         }),
         { isDeleted: true },
@@ -410,7 +409,7 @@ describe('AssetsOperationsController', () => {
         expect.objectContaining({
           _id: mockIngredientId.toString(),
           isDeleted: false,
-          user: expect.any(Types.ObjectId),
+          user: expect.any(String),
         }),
       );
       expect(metadataService.findOne).toHaveBeenCalledWith({

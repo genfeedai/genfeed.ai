@@ -13,7 +13,7 @@ import {
   GenerateTweetsDto,
   TweetTone,
 } from '@api/collections/posts/dto/generate-tweets.dto';
-import { PostDocument } from '@api/collections/posts/schemas/post.schema';
+import { type PostDocument } from '@api/collections/posts/schemas/post.schema';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
@@ -72,7 +72,6 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 @AutoSwagger()
 @Controller('posts')
@@ -236,7 +235,7 @@ export class PostsOperationsController {
         _id: dto.credential,
         isConnected: true,
         isDeleted: false,
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
       });
 
       if (!credential) {
@@ -252,7 +251,7 @@ export class PostsOperationsController {
 
       // Create posts immediately with PROCESSING status
       const createdPosts = [];
-      const groupId = new Types.ObjectId().toString();
+      const groupId = '507f191e810c19729de860ee'.toString();
 
       // Create placeholder posts with PROCESSING status
       for (let i = 0; i < dto.count; i++) {
@@ -267,11 +266,11 @@ export class PostsOperationsController {
 
         const post = await this.postsService.create({
           ...createPostDto,
-          brand: new Types.ObjectId(publicMetadata.brand),
+          brand: publicMetadata.brand,
           category: PostCategory.TEXT, // AI-generated tweets are text-only
-          organization: new Types.ObjectId(publicMetadata.organization),
+          organization: publicMetadata.organization,
           platform: CredentialPlatform.TWITTER,
-          user: new Types.ObjectId(publicMetadata.user),
+          user: publicMetadata.user,
         });
 
         createdPosts.push(post);
@@ -323,7 +322,7 @@ export class PostsOperationsController {
         _id: dto.credential,
         isConnected: true,
         isDeleted: false,
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
       });
 
       if (!credential) {
@@ -339,32 +338,32 @@ export class PostsOperationsController {
 
       // Create placeholder posts with PROCESSING status, linked as thread
       const createdPosts = [];
-      const groupId = new Types.ObjectId().toString();
+      const groupId = '507f191e810c19729de860ee'.toString();
 
-      let rootPostId: Types.ObjectId | undefined;
+      let rootPostId: string | undefined;
 
       for (let i = 0; i < dto.count; i++) {
         const post = await this.postsService.create({
-          brand: new Types.ObjectId(publicMetadata.brand),
+          brand: publicMetadata.brand,
           category: PostCategory.TEXT,
-          credential: new Types.ObjectId(dto.credential),
+          credential: dto.credential,
           description: 'Generating...',
           groupId,
           ingredients: [],
           label: '',
           order: i,
-          organization: new Types.ObjectId(publicMetadata.organization),
+          organization: publicMetadata.organization,
           parent: i === 0 ? undefined : rootPostId,
           platform: CredentialPlatform.TWITTER,
           status: PostStatus.PROCESSING,
-          user: new Types.ObjectId(publicMetadata.user),
+          user: publicMetadata.user,
         });
 
         createdPosts.push(post);
 
         // Store root post ID after creating first post
         if (i === 0) {
-          rootPostId = post._id as Types.ObjectId;
+          rootPostId = post._id as string;
         }
       }
 
@@ -480,18 +479,18 @@ export class PostsOperationsController {
 
     for (let i = 0; i < additionalCount; i++) {
       const childPost = await this.postsService.create({
-        brand: new Types.ObjectId(publicMetadata.brand),
+        brand: publicMetadata.brand,
         category: PostCategory.TEXT,
-        credential: originalPost.credential as Types.ObjectId,
+        credential: originalPost.credential as string,
         description: 'Generating...',
         ingredients: [],
         label: '',
         order: i + 1, // Original is order 0
-        organization: new Types.ObjectId(publicMetadata.organization),
-        parent: new Types.ObjectId(postId),
+        organization: publicMetadata.organization,
+        parent: postId,
         platform: CredentialPlatform.TWITTER,
         status: PostStatus.PROCESSING,
-        user: new Types.ObjectId(publicMetadata.user),
+        user: publicMetadata.user,
       });
       createdPosts.push(childPost);
     }
@@ -526,11 +525,11 @@ export class PostsOperationsController {
     // Create PROCESSING activity at start
     const activity = await this.activitiesService.create(
       new ActivityEntity({
-        brand: new Types.ObjectId(publicMetadata.brand),
+        brand: publicMetadata.brand,
         key: ActivityKey.POST_PROCESSING,
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
         source: ActivitySource.POST_GENERATION,
-        user: new Types.ObjectId(publicMetadata.user),
+        user: publicMetadata.user,
         value: JSON.stringify({
           count: dto.count,
           originalPostId: String(originalPost._id),
@@ -611,13 +610,13 @@ export class PostsOperationsController {
           // Create POST_GENERATED activity for this post
           await this.activitiesService.create(
             new ActivityEntity({
-              brand: new Types.ObjectId(publicMetadata.brand),
-              entityId: new Types.ObjectId(childId),
+              brand: publicMetadata.brand,
+              entityId: childId,
               entityModel: ActivityEntityModel.POST,
               key: ActivityKey.POST_GENERATED,
-              organization: new Types.ObjectId(publicMetadata.organization),
+              organization: publicMetadata.organization,
               source: ActivitySource.POST_GENERATION,
-              user: new Types.ObjectId(publicMetadata.user),
+              user: publicMetadata.user,
               value: childId,
             }),
           );
@@ -721,11 +720,11 @@ export class PostsOperationsController {
     // Create PROCESSING activity at start
     const activity = await this.activitiesService.create(
       new ActivityEntity({
-        brand: new Types.ObjectId(publicMetadata.brand),
+        brand: publicMetadata.brand,
         key: ActivityKey.POST_PROCESSING,
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
         source: ActivitySource.POST_GENERATION,
-        user: new Types.ObjectId(publicMetadata.user),
+        user: publicMetadata.user,
         value: JSON.stringify({
           count: dto.count,
           topic: dto.topic?.substring(0, 100),
@@ -805,13 +804,13 @@ export class PostsOperationsController {
           // Create POST_GENERATED activity for this post
           await this.activitiesService.create(
             new ActivityEntity({
-              brand: new Types.ObjectId(publicMetadata.brand),
-              entityId: new Types.ObjectId(postId),
+              brand: publicMetadata.brand,
+              entityId: postId,
               entityModel: ActivityEntityModel.POST,
               key: ActivityKey.POST_GENERATED,
-              organization: new Types.ObjectId(publicMetadata.organization),
+              organization: publicMetadata.organization,
               source: ActivitySource.POST_GENERATION,
-              user: new Types.ObjectId(publicMetadata.user),
+              user: publicMetadata.user,
               value: postId,
             }),
           );
@@ -925,11 +924,11 @@ export class PostsOperationsController {
     // Create PROCESSING activity at start
     const activity = await this.activitiesService.create(
       new ActivityEntity({
-        brand: new Types.ObjectId(publicMetadata.brand),
+        brand: publicMetadata.brand,
         key: ActivityKey.POST_PROCESSING,
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
         source: ActivitySource.POST_GENERATION,
-        user: new Types.ObjectId(publicMetadata.user),
+        user: publicMetadata.user,
         value: JSON.stringify({
           count: dto.count,
           topic: dto.topic?.substring(0, 100),
@@ -1007,13 +1006,13 @@ export class PostsOperationsController {
           // Create POST_GENERATED activity for this post
           await this.activitiesService.create(
             new ActivityEntity({
-              brand: new Types.ObjectId(publicMetadata.brand),
-              entityId: new Types.ObjectId(postId),
+              brand: publicMetadata.brand,
+              entityId: postId,
               entityModel: ActivityEntityModel.POST,
               key: ActivityKey.POST_GENERATED,
-              organization: new Types.ObjectId(publicMetadata.organization),
+              organization: publicMetadata.organization,
               source: ActivitySource.POST_GENERATION,
-              user: new Types.ObjectId(publicMetadata.user),
+              user: publicMetadata.user,
               value: postId,
             }),
           );
@@ -1130,7 +1129,7 @@ export class PostsOperationsController {
         _id: dto.credential,
         isConnected: true,
         isDeleted: false,
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
       });
 
       if (!credential) {
@@ -1176,9 +1175,9 @@ export class PostsOperationsController {
           continue;
         }
 
-        const tweetIngredientIds: Types.ObjectId[] = [];
+        const tweetIngredientIds: string[] = [];
         if (tweet.ingredientId && ingredientSet.has(tweet.ingredientId)) {
-          tweetIngredientIds.push(new Types.ObjectId(tweet.ingredientId));
+          tweetIngredientIds.push(tweet.ingredientId);
         }
 
         // Update post to SCHEDULED with scheduledDate
@@ -1205,14 +1204,14 @@ export class PostsOperationsController {
         // Create activity
         await this.activitiesService.create(
           new ActivityEntity({
-            brand: new Types.ObjectId(publicMetadata.brand),
+            brand: publicMetadata.brand,
             entityId: updatedPost._id,
             entityModel: ActivityEntityModel.POST,
             key: ActivityKey.VIDEO_SCHEDULED,
-            organization: new Types.ObjectId(publicMetadata.organization),
+            organization: publicMetadata.organization,
             source: ActivitySource.SCRIPT,
-            user: new Types.ObjectId(publicMetadata.user),
-            value: (updatedPost._id as Types.ObjectId).toString(),
+            user: publicMetadata.user,
+            value: (updatedPost._id as string).toString(),
           }),
         );
       }
@@ -1276,10 +1275,10 @@ export class PostsOperationsController {
       }
 
       const credential = await this.credentialsService.findOne({
-        _id: new Types.ObjectId(createPostDto.credential),
+        _id: createPostDto.credential,
         isConnected: true,
         isDeleted: false,
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
       });
 
       if (!credential) {
@@ -1327,14 +1326,14 @@ export class PostsOperationsController {
       }
 
       let firstIngredient = null;
-      const ingredientIds: Types.ObjectId[] = [];
+      const ingredientIds: string[] = [];
 
       if (createPostDto.ingredients && createPostDto.ingredients.length > 0) {
         for (const ingredientId of createPostDto.ingredients) {
           const ingredient = await this.ingredientsService.findOne({
-            _id: new Types.ObjectId(ingredientId),
+            _id: ingredientId,
             isDeleted: false,
-            organization: new Types.ObjectId(publicMetadata.organization),
+            organization: publicMetadata.organization,
           });
 
           if (!ingredient) {
@@ -1348,7 +1347,7 @@ export class PostsOperationsController {
             );
           }
 
-          ingredientIds.push(new Types.ObjectId(ingredientId));
+          ingredientIds.push(ingredientId);
 
           if (!firstIngredient) {
             firstIngredient = ingredient;
@@ -1363,9 +1362,7 @@ export class PostsOperationsController {
 
       const data = await this.postsService.addThreadReply(parentId, {
         ...createPostDto,
-        brand: firstIngredient
-          ? new Types.ObjectId(firstIngredient.brand)
-          : new Types.ObjectId(publicMetadata.brand),
+        brand: firstIngredient ? firstIngredient.brand : publicMetadata.brand,
         category:
           createPostDto.category ||
           (firstIngredient
@@ -1375,7 +1372,7 @@ export class PostsOperationsController {
                 ? PostCategory.VIDEO
                 : PostCategory.TEXT
             : PostCategory.TEXT),
-        credential: new Types.ObjectId(createPostDto.credential),
+        credential: createPostDto.credential,
         description: createPostDto.description || credential.description || '',
         ingredients: ingredientIds,
         label:
@@ -1385,14 +1382,14 @@ export class PostsOperationsController {
             ? this.extractLabelFromTweet(createPostDto.description.trim())
             : ''),
         organization: firstIngredient
-          ? new Types.ObjectId(firstIngredient.organization)
-          : new Types.ObjectId(publicMetadata.organization),
+          ? firstIngredient.organization
+          : publicMetadata.organization,
         platform: credential.platform,
         publicationDate: createPostDto.publicationDate,
         scheduledDate: createPostDto.scheduledDate,
         status: createPostDto.status,
         tags: createPostDto.tags || [],
-        user: new Types.ObjectId(publicMetadata.user),
+        user: publicMetadata.user,
       });
 
       return serializeSingle(request, this.serializer, data);
@@ -1454,24 +1451,24 @@ export class PostsOperationsController {
         postId,
         dto.description,
         {
-          brand: new Types.ObjectId(publicMetadata.brand),
+          brand: publicMetadata.brand,
           label: dto.label,
-          organization: new Types.ObjectId(publicMetadata.organization),
-          user: new Types.ObjectId(publicMetadata.user),
+          organization: publicMetadata.organization,
+          user: publicMetadata.user,
         },
       );
 
       // Create activity log
       await this.activitiesService.create(
         new ActivityEntity({
-          brand: new Types.ObjectId(publicMetadata.brand),
+          brand: publicMetadata.brand,
           entityId: remixPost._id,
           entityModel: ActivityEntityModel.POST,
           key: ActivityKey.POST_CREATED,
-          organization: new Types.ObjectId(publicMetadata.organization),
+          organization: publicMetadata.organization,
           source: ActivitySource.WEB,
-          user: new Types.ObjectId(publicMetadata.user),
-          value: (remixPost._id as Types.ObjectId).toString(),
+          user: publicMetadata.user,
+          value: (remixPost._id as string).toString(),
         }),
       );
 

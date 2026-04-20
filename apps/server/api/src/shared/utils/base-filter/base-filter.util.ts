@@ -1,4 +1,9 @@
-import { isValidObjectId, type PipelineStage, Types } from 'mongoose';
+const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
+function isValidObjectId(id: unknown): id is string {
+  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
+}
+
+type PipelineStage = Record<string, unknown>;
 
 /**
  * BaseFilterUtil - Utility for building common aggregation pipeline filters
@@ -153,7 +158,7 @@ export class BaseFilterUtil {
       return {};
     }
 
-    return { [field]: new Types.ObjectId(id) };
+    return { [field]: id };
   }
 
   /**
@@ -241,7 +246,7 @@ export class BaseFilterUtil {
   static buildConditionalLookup(
     from: string,
     letVars: Record<string, unknown>,
-    pipeline: PipelineStage.Lookup['$lookup']['pipeline'],
+    pipeline: PipelineStage[],
     as: string,
   ): PipelineStage {
     return {
@@ -281,13 +286,13 @@ export class BaseFilterUtil {
 
     if (publicMetadata.organization) {
       orConditions.push({
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
       });
     }
 
     if (publicMetadata.user) {
       orConditions.push({
-        user: new Types.ObjectId(publicMetadata.user),
+        user: publicMetadata.user,
       });
     }
 

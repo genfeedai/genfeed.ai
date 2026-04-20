@@ -1,18 +1,12 @@
 import { CreateActivityDto } from '@api/collections/activities/dto/create-activity.dto';
 import { UpdateActivityDto } from '@api/collections/activities/dto/update-activity.dto';
-import {
-  Activity,
-  type ActivityDocument,
-} from '@api/collections/activities/schemas/activity.schema';
+import type { ActivityDocument } from '@api/collections/activities/schemas/activity.schema';
 import { StreaksService as StreaksServiceToken } from '@api/collections/streaks/services/streaks.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { ActivityEntityModel } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import type { PipelineStage } from 'mongoose';
 
 type StreaksServiceContract = Pick<
   StreaksServiceToken,
@@ -26,13 +20,12 @@ export class ActivitiesService extends BaseService<
   UpdateActivityDto
 > {
   constructor(
-    @InjectModel(Activity.name, DB_CONNECTIONS.CLOUD)
-    protected readonly model: AggregatePaginateModel<ActivityDocument>,
+    public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
     @Inject(forwardRef(() => StreaksServiceToken))
     private readonly streaksService: StreaksServiceContract,
   ) {
-    super(model, logger);
+    super(prisma, 'activity', logger);
   }
 
   override async create(
@@ -40,9 +33,9 @@ export class ActivitiesService extends BaseService<
   ): Promise<ActivityDocument> {
     const activity = await super.create(createDto);
 
-    const activityUser = activity.user ? String(activity.user) : null;
-    const activityOrganization = activity.organization
-      ? String(activity.organization)
+    const activityUser = activity.userId ? String(activity.userId) : null;
+    const activityOrganization = activity.organizationId
+      ? String(activity.organizationId)
       : null;
 
     if (
@@ -59,7 +52,7 @@ export class ActivitiesService extends BaseService<
         );
       } catch (error) {
         this.logger.warn('Failed to update streak after activity create', {
-          activityId: String(activity._id),
+          activityId: String(activity.id),
           error,
         });
       }
@@ -81,18 +74,18 @@ export class ActivitiesService extends BaseService<
 
       this.logger.debug('Bulk patching activities', { filter, updateData });
 
-      const result = await this.model
-        .updateMany(filter, { $set: updateData })
-        .exec();
+      const result = await this.delegate.updateMany({
+        where: filter,
+        data: updateData,
+      });
 
       this.logger.debug('Bulk patch completed', {
-        matchedCount: result.matchedCount,
-        modifiedCount: result.modifiedCount,
+        count: result.count,
       });
 
       return {
-        matchedCount: result.matchedCount,
-        modifiedCount: result.modifiedCount,
+        matchedCount: result.count,
+        modifiedCount: result.count,
       };
     } catch (error: unknown) {
       this.logger.error('Failed to bulk patch activities', {
@@ -106,17 +99,12 @@ export class ActivitiesService extends BaseService<
   }
 
   /**
-   * Build entity lookup pipeline stages for activities
-   * Optimized: Filters by entityModel early in each lookup pipeline
-   * Populates entity field based on entityModel (Ingredient, Post, or Article)
-   *
-   * Performance notes:
-   * - All three lookups run, but each filters by entityModel early
-   * - Uses $expr with let variables to pass entityId and entityModel
-   * - Requires indexes on entityId + entityModel in activities collection
-   * - Requires indexes on _id + isDeleted in ingredients/posts/articles collections
+   * Build entity lookup pipeline stages for activities.
+   * NOTE: These are MongoDB aggregation pipeline stages kept for reference.
+   * With Prisma, use explicit include/join queries instead of these pipeline stages.
+   * TODO: Migrate callers to use Prisma include queries.
    */
-  static buildEntityLookup(): PipelineStage[] {
+  static buildEntityLookup(): Record<string, unknown>[] {
     return [
       // Lookup ingredients - only matches when entityModel is Ingredient
       {
@@ -209,7 +197,6 @@ export class ActivitiesService extends BaseService<
       },
 
       // Combine all entity types into a single 'entity' field for easier access
-      // This avoids needing to check ingredient/post/article separately in frontend
       {
         $addFields: {
           entity: {

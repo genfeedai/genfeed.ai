@@ -13,7 +13,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 import { GhostController } from './ghost.controller';
 
 vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
@@ -26,10 +25,10 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_req, _s, data) => ({ data })),
 }));
 
-const mockOrgId = new Types.ObjectId().toHexString();
-const mockUserId = new Types.ObjectId().toHexString();
-const mockBrandId = new Types.ObjectId().toHexString();
-const mockBrand = { _id: new Types.ObjectId(mockBrandId), name: 'TestBrand' };
+const mockOrgId = 'test-object-id';
+const mockUserId = 'test-object-id';
+const mockBrandId = 'test-object-id';
+const mockBrand = { _id: mockBrandId, name: 'TestBrand' };
 
 const mockUser = {} as User;
 const mockRequest = {} as Request;

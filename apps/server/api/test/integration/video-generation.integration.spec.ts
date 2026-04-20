@@ -4,9 +4,9 @@ import { CacheService } from '@api/services/cache/services/cache.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { ElevenLabsService } from '@api/services/integrations/elevenlabs/elevenlabs.service';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
+import { PrismaModule } from '@api/shared/modules/prisma/prisma.module';
 import { LoggerService } from '@libs/logger/logger.service';
 import { INestApplication } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 import { MongoIdFactory } from '@test/factories/base.factory';
 import {
@@ -14,7 +14,6 @@ import {
   mockConfigService,
   mockLoggerService,
 } from '@test/mocks/service.mocks';
-import { MongoMemoryServer } from 'mongodb-memory-server';
 
 // Mock AWS Service interface (service doesn't exist in codebase)
 interface AWSService {
@@ -50,7 +49,7 @@ if (process.env.SKIP_MONGODB_MEMORY === 'true') {
 
 describe('Video Generation Integration Tests', () => {
   let app: INestApplication;
-  let mongoServer: MongoMemoryServer;
+
   let elevenLabsService: ElevenLabsService;
   let awsService: AWSService;
   let ffmpegService: MockFFmpegService;
@@ -58,14 +57,9 @@ describe('Video Generation Integration Tests', () => {
 
   beforeAll(async () => {
     // Start in-memory MongoDB
-    mongoServer = await MongoMemoryServer.create();
-    const mongoUri = mongoServer.getUri();
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [
-        MongooseModule.forRoot(mongoUri),
-        // Add necessary schema imports here
-      ],
+      imports: [PrismaModule],
       providers: [
         VideosService,
         {
@@ -141,7 +135,6 @@ describe('Video Generation Integration Tests', () => {
 
   afterAll(async () => {
     await app.close();
-    await mongoServer.stop();
   });
 
   describe('Complete Video Generation Workflow', () => {

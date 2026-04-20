@@ -2,7 +2,6 @@ import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema
 import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
 import { VoiceProvider } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('AvatarVideoGenerationService', () => {
@@ -77,9 +76,9 @@ describe('AvatarVideoGenerationService', () => {
   };
 
   const context = {
-    brandId: new Types.ObjectId().toString(),
-    organizationId: new Types.ObjectId().toString(),
-    userId: new Types.ObjectId().toString(),
+    brandId: 'test-object-id',
+    organizationId: 'test-object-id',
+    userId: 'test-object-id',
   };
 
   beforeEach(() => {

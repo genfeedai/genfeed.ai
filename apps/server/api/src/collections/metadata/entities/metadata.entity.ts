@@ -2,10 +2,9 @@ import type { Ingredient } from '@api/collections/ingredients/schemas/ingredient
 import type { Metadata } from '@api/collections/metadata/schemas/metadata.schema';
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
 import type { MetadataExtension, MetadataStyle } from '@genfeedai/enums';
-import type { Types } from 'mongoose';
 
 export class MetadataEntity extends BaseEntity implements Metadata {
-  declare readonly prompt?: Types.ObjectId;
+  declare readonly prompt?: string;
 
   declare readonly label: string;
   declare readonly description: string;
@@ -26,7 +25,7 @@ export class MetadataEntity extends BaseEntity implements Metadata {
   declare readonly hasAudio: boolean;
   declare readonly fps?: number;
   declare readonly resolution?: string;
-  declare readonly tags: Types.ObjectId[];
+  declare readonly tags: string[];
 
   // Template tracking fields
   declare readonly promptTemplate?: string;

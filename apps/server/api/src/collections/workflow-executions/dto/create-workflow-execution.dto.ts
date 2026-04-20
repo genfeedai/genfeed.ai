@@ -11,12 +11,11 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class CreateWorkflowExecutionDto {
   @IsMongoId()
   @ApiProperty({ description: 'Workflow ID to execute' })
-  readonly workflow!: Types.ObjectId;
+  readonly workflow!: string;
 
   @IsEnum(WorkflowExecutionTrigger)
   @IsOptional()

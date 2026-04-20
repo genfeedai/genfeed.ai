@@ -1,7 +1,6 @@
 import type { BroadcastAnnouncementDto } from '@api/endpoints/admin/announcements/dto/broadcast-announcement.dto';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AnnouncementsController } from './announcements.controller';
 import { AdminAnnouncementsService } from './announcements.service';
@@ -53,7 +52,7 @@ const makeUser = (orgId = 'org_test123') => ({
 });
 
 const makeAnnouncement = () => ({
-  _id: new Types.ObjectId(),
+  _id: '507f191e810c19729de860ee',
   channel: 'discord',
   createdAt: new Date(),
   message: 'Test announcement',

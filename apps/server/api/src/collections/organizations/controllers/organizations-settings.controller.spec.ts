@@ -35,7 +35,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import axios from 'axios';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 describe('OrganizationsSettingsController', () => {
   let controller: OrganizationsSettingsController;
@@ -44,7 +43,7 @@ describe('OrganizationsSettingsController', () => {
   let mockReq: Request;
 
   const mockOrganizationSettings = {
-    _id: new Types.ObjectId('507f1f77bcf86cd799439011'),
+    _id: '507f1f77bcf86cd799439011',
     branding: {
       colors: {
         primary: '#000000',
@@ -57,14 +56,14 @@ describe('OrganizationsSettingsController', () => {
       apiAccess: true,
       customDomain: false,
     },
-    organization: new Types.ObjectId('507f1f77bcf86cd799439012'),
+    organization: '507f1f77bcf86cd799439012',
     updatedAt: new Date(),
   };
 
   const mockSubscription = {
-    _id: new Types.ObjectId('507f1f77bcf86cd799439015'),
+    _id: '507f1f77bcf86cd799439015',
     createdAt: new Date(),
-    organization: new Types.ObjectId('507f1f77bcf86cd799439012'),
+    organization: '507f1f77bcf86cd799439012',
     plan: 'pro',
     status: 'active',
     updatedAt: new Date(),
@@ -182,7 +181,7 @@ describe('OrganizationsSettingsController', () => {
       const result = await controller.getSettings(mockReq, organizationId);
 
       expect(organizationSettingsService.findOne).toHaveBeenCalledWith({
-        organization: new Types.ObjectId(organizationId),
+        organization: organizationId,
       });
       expect(result).toBeDefined();
     });
@@ -264,7 +263,7 @@ describe('OrganizationsSettingsController', () => {
       );
 
       expect(subscriptionsService.findOne).toHaveBeenCalledWith({
-        organization: new Types.ObjectId(organizationId),
+        organization: organizationId,
       });
       expect(result).toBeDefined();
     });
@@ -276,7 +275,7 @@ describe('OrganizationsSettingsController', () => {
 
     it('should return brand flag and fleet availability', async () => {
       mockBrandsService.findOne.mockResolvedValue({
-        _id: new Types.ObjectId(brandId),
+        _id: brandId,
         isDarkroomEnabled: true,
       });
       mockFleetService.isAvailable
@@ -295,9 +294,9 @@ describe('OrganizationsSettingsController', () => {
 
       expect(mockBrandsService.findOne).toHaveBeenCalledWith(
         {
-          _id: new Types.ObjectId(brandId),
+          _id: brandId,
           isDeleted: false,
-          organization: new Types.ObjectId(organizationId),
+          organization: organizationId,
         },
         'none',
       );

@@ -13,7 +13,6 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { Types } from 'mongoose';
 
 export interface ModelValidationOptions {
   category: ModelCategory;
@@ -56,11 +55,11 @@ export class ModelsGuard implements CanActivate {
 
     const rawOrgId = request.context?.organizationId;
 
-    if (!rawOrgId || !Types.ObjectId.isValid(rawOrgId)) {
+    if (!rawOrgId || !/^[0-9a-f]{24}$/i.test(rawOrgId)) {
       throw new ForbiddenException('Organization context is required');
     }
 
-    const organizationId = new Types.ObjectId(rawOrgId);
+    const organizationId = rawOrgId;
     const model = await this.modelRegistrationService.validateModelForOrg(
       modelKey,
       organizationId,

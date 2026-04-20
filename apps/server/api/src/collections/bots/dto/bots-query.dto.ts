@@ -10,7 +10,6 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class BotsQueryDto extends BaseQueryDto {
   @IsString()
@@ -26,17 +25,17 @@ export class BotsQueryDto extends BaseQueryDto {
   @IsMongoId()
   @IsOptional()
   @ApiProperty({ description: 'Organization ID filter', required: false })
-  organization?: Types.ObjectId;
+  organization?: string;
 
   @IsMongoId()
   @IsOptional()
   @ApiProperty({ description: 'Brand ID filter', required: false })
-  brand?: Types.ObjectId;
+  brand?: string;
 
   @IsMongoId()
   @IsOptional()
   @ApiProperty({ description: 'User ID filter', required: false })
-  user?: Types.ObjectId;
+  user?: string;
 
   @IsEnum(BotPlatform)
   @IsOptional()

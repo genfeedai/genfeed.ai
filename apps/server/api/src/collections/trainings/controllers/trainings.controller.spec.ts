@@ -22,7 +22,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { type PipelineStage, Types } from 'mongoose';
 
 const createTrainingsQuery = (
   partial: Partial<TrainingsQueryDto> = {},
@@ -35,11 +34,11 @@ const createTrainingsQuery = (
     ...partial,
   }) as TrainingsQueryDto;
 
-const asMatchStage = (stage: PipelineStage) =>
-  stage as PipelineStage.Match & { $match: Record<string, unknown> };
+const asMatchStage = (stage: Record<string, unknown>) =>
+  stage as Record<string, unknown> & { $match: Record<string, unknown> };
 
-const asSortStage = (stage: PipelineStage) =>
-  stage as PipelineStage.Sort & { $sort: Record<string, unknown> };
+const asSortStage = (stage: Record<string, unknown>) =>
+  stage as Record<string, unknown> & { $sort: Record<string, unknown> };
 
 vi.mock('@genfeedai/helpers', async () => ({
   ...(await vi.importActual('@genfeedai/helpers')),
@@ -63,9 +62,9 @@ describe('TrainingsController', () => {
   const mockUser = {
     id: 'user-123',
     publicMetadata: {
-      brand: new Types.ObjectId().toString(),
-      organization: new Types.ObjectId().toString(),
-      user: new Types.ObjectId().toString(),
+      brand: '507f191e810c19729de860ee'.toString(),
+      organization: '507f191e810c19729de860ee'.toString(),
+      user: '507f191e810c19729de860ee'.toString(),
     } as IClerkPublicMetadata,
   } as unknown as User;
 
@@ -171,13 +170,13 @@ describe('TrainingsController', () => {
             isDeleted: false,
             label: 'Training 1',
             model: 'replicate/fast-flux-trainer:test',
-            organization: new Types.ObjectId(
+            organization: 
               mockUser.publicMetadata.organization as string,
-            ),
+            ,
             sources: [],
             steps: 1000,
             trigger: 'TOK1',
-            user: new Types.ObjectId(mockUser.publicMetadata.user as string),
+            user: mockUser.publicMetadata.user as string,
           },
         ],
         hasNextPage: false,
@@ -245,7 +244,7 @@ describe('TrainingsController', () => {
         label: 'New Training',
         sources: Array(10)
           .fill(null)
-          .map(() => new Types.ObjectId().toString()),
+          .map(() => '507f191e810c19729de860ee'.toString()),
         steps: 1000,
         trigger: 'NEWTOK',
         type: 'subject',
@@ -254,7 +253,7 @@ describe('TrainingsController', () => {
       const mockSources = Array(10)
         .fill(null)
         .map(() => ({
-          _id: new Types.ObjectId(),
+          _id: '507f191e810c19729de860ee',
           category: IngredientCategory.IMAGE,
           metadata: { extension: 'jpg' },
         }));
@@ -264,10 +263,10 @@ describe('TrainingsController', () => {
       } as never);
 
       const mockTraining = {
-        _id: new Types.ObjectId(),
+        _id: '507f191e810c19729de860ee',
         ...createDto,
         status: IngredientStatus.PROCESSING,
-        user: new Types.ObjectId(),
+        user: '507f191e810c19729de860ee',
       };
 
       trainingsService.create.mockResolvedValueOnce(mockTraining as never);
@@ -302,7 +301,7 @@ describe('TrainingsController', () => {
         label: 'New Training',
         sources: Array(10)
           .fill(null)
-          .map(() => new Types.ObjectId().toString()),
+          .map(() => '507f191e810c19729de860ee'.toString()),
         trigger: 'NEWTOK',
       } as unknown as CreateTrainingDto;
 
@@ -318,7 +317,7 @@ describe('TrainingsController', () => {
         label: 'New Training',
         sources: Array(10)
           .fill(null)
-          .map(() => new Types.ObjectId().toString()),
+          .map(() => '507f191e810c19729de860ee'.toString()),
         steps: 1000,
         trigger: 'NEWTOK',
         type: 'subject',
@@ -327,7 +326,7 @@ describe('TrainingsController', () => {
       const mockSources = Array(10)
         .fill(null)
         .map(() => ({
-          _id: new Types.ObjectId(),
+          _id: '507f191e810c19729de860ee',
           category: IngredientCategory.IMAGE,
           metadata: { extension: 'jpg' },
         }));
@@ -341,10 +340,10 @@ describe('TrainingsController', () => {
       } as never);
 
       const mockTraining = {
-        _id: new Types.ObjectId(),
+        _id: '507f191e810c19729de860ee',
         ...createDto,
         status: IngredientStatus.PROCESSING,
-        user: new Types.ObjectId(),
+        user: '507f191e810c19729de860ee',
       };
 
       trainingsService.create.mockResolvedValueOnce(mockTraining as never);
@@ -380,8 +379,8 @@ describe('TrainingsController', () => {
 
     it('should return false when user does not own the entity', () => {
       const entity = {
-        organization: new Types.ObjectId().toString(),
-        user: new Types.ObjectId().toString(),
+        organization: '507f191e810c19729de860ee'.toString(),
+        user: '507f191e810c19729de860ee'.toString(),
       };
 
       const result = controller.canUserModifyEntity(mockUser, entity);

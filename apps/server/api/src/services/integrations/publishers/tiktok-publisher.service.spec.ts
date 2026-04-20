@@ -16,7 +16,6 @@ import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('TikTokPublisherService', () => {
   let service: TikTokPublisherService;
@@ -25,12 +24,12 @@ describe('TikTokPublisherService', () => {
   let tiktokService: vi.Mocked<TiktokService>;
 
   // Test IDs
-  const mockOrganizationId = new Types.ObjectId('507f1f77bcf86cd799439011');
-  const mockBrandId = new Types.ObjectId('507f1f77bcf86cd799439012');
-  const mockPostId = new Types.ObjectId('507f1f77bcf86cd799439013');
-  const mockUserId = new Types.ObjectId('507f1f77bcf86cd799439014');
-  const mockCredentialId = new Types.ObjectId('507f1f77bcf86cd799439015');
-  const mockIngredientId = new Types.ObjectId('507f1f77bcf86cd799439016');
+  const mockOrganizationId = '507f1f77bcf86cd799439011';
+  const mockBrandId = '507f1f77bcf86cd799439012';
+  const mockPostId = '507f1f77bcf86cd799439013';
+  const mockUserId = '507f1f77bcf86cd799439014';
+  const mockCredentialId = '507f1f77bcf86cd799439015';
+  const mockIngredientId = '507f1f77bcf86cd799439016';
 
   // Mock credential
   const mockCredential = {
@@ -99,9 +98,9 @@ describe('TikTokPublisherService', () => {
     category: PostCategory.IMAGE,
     description: '<p>Photo carousel</p>',
     ingredients: [
-      new Types.ObjectId('507f1f77bcf86cd799439020'),
-      new Types.ObjectId('507f1f77bcf86cd799439021'),
-      new Types.ObjectId('507f1f77bcf86cd799439022'),
+      '507f1f77bcf86cd799439020',
+      '507f1f77bcf86cd799439021',
+      '507f1f77bcf86cd799439022',
     ],
     isDeleted: false,
     organization: mockOrganizationId,

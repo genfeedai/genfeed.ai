@@ -17,7 +17,6 @@ import {
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('DmCampaignExecutorService', () => {
@@ -58,10 +57,10 @@ describe('DmCampaignExecutorService', () => {
     sendDm: vi.fn(),
   };
 
-  const campaignId = new Types.ObjectId();
-  const targetId = new Types.ObjectId();
-  const credentialId = new Types.ObjectId();
-  const orgId = new Types.ObjectId();
+  const campaignId = 'test-object-id';
+  const targetId = 'test-object-id';
+  const credentialId = 'test-object-id';
+  const orgId = 'test-object-id';
 
   const fakeCredential = {
     _id: credentialId,
@@ -359,9 +358,9 @@ describe('DmCampaignExecutorService', () => {
 
     it('should process multiple targets and track counts', async () => {
       const campaign = makeCampaign();
-      const t1 = makeTarget({ _id: new Types.ObjectId() });
-      const t2 = makeTarget({ _id: new Types.ObjectId() });
-      const t3 = makeTarget({ _id: new Types.ObjectId() });
+      const t1 = makeTarget({ _id: 'test-object-id' });
+      const t2 = makeTarget({ _id: 'test-object-id' });
+      const t3 = makeTarget({ _id: 'test-object-id' });
       mockCampaignTargetsService.getPendingTargets.mockResolvedValue([
         t1,
         t2,

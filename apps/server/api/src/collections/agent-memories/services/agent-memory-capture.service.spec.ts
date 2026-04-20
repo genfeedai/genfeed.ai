@@ -3,7 +3,6 @@ import { BrandMemoryService } from '@api/collections/brand-memory/services/brand
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import { describe, expect, it, vi } from 'vitest';
 
 import { AgentMemoryCaptureService } from './agent-memory-capture.service';
@@ -27,14 +26,14 @@ describe('AgentMemoryCaptureService', () => {
     warn: ReturnType<typeof vi.fn>;
   };
 
-  const userId = new Types.ObjectId().toHexString();
-  const orgId = new Types.ObjectId().toHexString();
-  const brandId = new Types.ObjectId().toHexString();
-  const campaignId = new Types.ObjectId().toHexString();
-  const memoryId = new Types.ObjectId().toHexString();
-  const contextId = new Types.ObjectId().toHexString();
+  const userId = 'test-object-id';
+  const orgId = 'test-object-id';
+  const brandId = 'test-object-id';
+  const campaignId = 'test-object-id';
+  const memoryId = 'test-object-id';
+  const contextId = 'test-object-id';
 
-  const mockMemory = { _id: new Types.ObjectId(memoryId) };
+  const mockMemory = { _id: memoryId };
 
   beforeEach(async () => {
     agentMemoriesService = {
@@ -42,7 +41,7 @@ describe('AgentMemoryCaptureService', () => {
     };
     contextsService = {
       addEntry: vi.fn().mockResolvedValue(undefined),
-      create: vi.fn().mockResolvedValue({ _id: new Types.ObjectId(contextId) }),
+      create: vi.fn().mockResolvedValue({ _id: contextId }),
       findAll: vi.fn().mockResolvedValue([]),
     };
     brandMemoryService = {
@@ -163,9 +162,9 @@ describe('AgentMemoryCaptureService', () => {
 
     it('reuses existing context base when one already exists for the brand', async () => {
       const existingContext = {
-        _id: new Types.ObjectId(contextId),
+        _id: contextId,
         isDeleted: false,
-        sourceBrand: new Types.ObjectId(brandId),
+        sourceBrand: brandId,
       };
       contextsService.findAll.mockResolvedValue([existingContext]);
 

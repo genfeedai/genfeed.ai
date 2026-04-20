@@ -12,7 +12,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 vi.mock('@genfeedai/helpers', async () => ({
   ...(await vi.importActual('@genfeedai/helpers')),
@@ -40,24 +39,24 @@ describe('ModelsController', () => {
   const mockSuperAdminUser = {
     id: 'user-123',
     publicMetadata: {
-      brand: new Types.ObjectId().toString(),
+      brand: '507f191e810c19729de860ee'.toString(),
       isSuperAdmin: true,
-      organization: new Types.ObjectId().toString(),
-      user: new Types.ObjectId().toString(),
+      organization: '507f191e810c19729de860ee'.toString(),
+      user: '507f191e810c19729de860ee'.toString(),
     } as IClerkPublicMetadata,
   } as unknown as User;
 
   const mockRegularUser = {
     id: 'user-456',
     publicMetadata: {
-      brand: new Types.ObjectId().toString(),
+      brand: '507f191e810c19729de860ee'.toString(),
       isSuperAdmin: false,
-      organization: new Types.ObjectId().toString(),
-      user: new Types.ObjectId().toString(),
+      organization: '507f191e810c19729de860ee'.toString(),
+      user: '507f191e810c19729de860ee'.toString(),
     } as IClerkPublicMetadata,
   } as unknown as User;
 
-  const mockOrgId = new Types.ObjectId().toString();
+  const mockOrgId = '507f191e810c19729de860ee'.toString();
 
   const mockRequest = {
     context: {
@@ -178,7 +177,7 @@ describe('ModelsController', () => {
       const userWithoutSuperAdmin = {
         id: 'user-789',
         publicMetadata: {
-          user: new Types.ObjectId().toString(),
+          user: '507f191e810c19729de860ee'.toString(),
         },
       } as unknown as User;
 
@@ -296,7 +295,7 @@ describe('ModelsController', () => {
           $or: [
             { organization: null },
             { organization: { $exists: false } },
-            { organization: new Types.ObjectId(mockOrgId) },
+            { organization: mockOrgId },
           ],
         },
       });
@@ -336,9 +335,9 @@ describe('ModelsController', () => {
     it('should filter foreign org models even when enabledModels is present', async () => {
       // Simulates a scenario where enabledModels references a model from a different
       // org (e.g. data corruption). The org filter is the last line of defense.
-      const mockOrgObjectId = new Types.ObjectId(mockOrgId);
-      const foreignOrgId = new Types.ObjectId();
-      const enabledModelId = new Types.ObjectId();
+      const mockOrgObjectId = mockOrgId;
+      const foreignOrgId = '507f191e810c19729de860ee';
+      const enabledModelId = '507f191e810c19729de860ee';
 
       const moduleRefMock = {
         findOne: vi.fn().mockResolvedValue({
@@ -397,7 +396,7 @@ describe('ModelsController', () => {
       };
 
       const mockCreatedModel = {
-        _id: new Types.ObjectId(),
+        _id: '507f191e810c19729de860ee',
         ...createDto,
       };
 
@@ -416,7 +415,7 @@ describe('ModelsController', () => {
 
   describe('patch', () => {
     it('should allow superadmin to update a model', async () => {
-      const id = new Types.ObjectId().toString();
+      const id = '507f191e810c19729de860ee'.toString();
       const updateDto: UpdateModelDto = {
         label: 'Updated Model',
       };
@@ -448,7 +447,7 @@ describe('ModelsController', () => {
     });
 
     it('should throw forbidden error for non-superadmin users', async () => {
-      const id = new Types.ObjectId().toString();
+      const id = '507f191e810c19729de860ee'.toString();
       const updateDto: UpdateModelDto = {
         label: 'Updated Model',
       };
@@ -463,7 +462,7 @@ describe('ModelsController', () => {
 
   describe('remove', () => {
     it('should allow superadmin to remove a model', async () => {
-      const id = new Types.ObjectId().toString();
+      const id = '507f191e810c19729de860ee'.toString();
       const mockModel = {
         _id: id,
         isDefault: false,
@@ -486,7 +485,7 @@ describe('ModelsController', () => {
     });
 
     it('should throw forbidden error for non-superadmin users', async () => {
-      const id = new Types.ObjectId().toString();
+      const id = '507f191e810c19729de860ee'.toString();
 
       await expect(
         controller.remove(mockRequest, mockRegularUser, id),

@@ -1,11 +1,10 @@
 import { MemberEntity } from '@api/collections/members/entities/member.entity';
-import { Types } from 'mongoose';
 
 describe('MemberEntity', () => {
   it('should be defined with role', () => {
-    const roleId = new Types.ObjectId();
-    const orgId = new Types.ObjectId();
-    const userId = new Types.ObjectId();
+    const roleId = '507f191e810c19729de860ee';
+    const orgId = '507f191e810c19729de860ee';
+    const userId = '507f191e810c19729de860ee';
     const entity = new MemberEntity({
       organization: orgId,
       role: roleId,

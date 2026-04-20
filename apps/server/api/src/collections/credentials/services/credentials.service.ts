@@ -1,18 +1,15 @@
 import { CreateCredentialDto } from '@api/collections/credentials/dto/create-credential.dto';
 import { UpdateCredentialDto } from '@api/collections/credentials/dto/update-credential.dto';
 import { CredentialEntity } from '@api/collections/credentials/entities/credential.entity';
-import {
+import type {
   Credential,
-  type CredentialDocument,
+  CredentialDocument,
 } from '@api/collections/credentials/schemas/credential.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Types } from 'mongoose';
 
 @Injectable()
 export class CredentialsService extends BaseService<
@@ -21,11 +18,10 @@ export class CredentialsService extends BaseService<
   UpdateCredentialDto
 > {
   constructor(
-    @InjectModel(Credential.name, DB_CONNECTIONS.CLOUD)
-    model: AggregatePaginateModel<CredentialDocument>,
-    logger: LoggerService,
+    public readonly prisma: PrismaService,
+    public readonly logger: LoggerService,
   ) {
-    super(model, logger);
+    super(prisma, 'credential', logger);
   }
 
   findByHandle(
@@ -35,45 +31,53 @@ export class CredentialsService extends BaseService<
     const normalizedHandle = handle.replace(/^@/, '');
 
     return this.findOne({
-      externalHandle: { $regex: new RegExp(`^@?${normalizedHandle}$`, 'i') },
+      externalHandle: { contains: normalizedHandle, mode: 'insensitive' },
       isConnected: true,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organizationId,
     });
   }
 
   async saveCredentials(
-    brand: { _id: unknown; organization: unknown; [key: string]: unknown },
+    brand: {
+      id?: unknown;
+      _id?: unknown;
+      organizationId?: unknown;
+      organization?: unknown;
+      userId?: unknown;
+      user?: unknown;
+      [key: string]: unknown;
+    },
     platform: CredentialPlatform,
-    fields: Partial<Credential>,
+    fields: Partial<Record<string, unknown>>,
   ): Promise<CredentialDocument> {
-    const brandId = new Types.ObjectId(String(brand._id));
-    const organizationId = new Types.ObjectId(String(brand.organization));
-    const userId = new Types.ObjectId(String(brand.user));
+    const brandId = String(brand.id ?? brand._id);
+    const organizationId = String(brand.organizationId ?? brand.organization);
+    const userId = String(brand.userId ?? brand.user);
 
     const existing = await this.findOne({
-      brand: brandId,
-      organization: organizationId,
+      brandId,
+      organizationId,
       platform,
     });
 
     const { ...tokenData } = fields;
 
     const entity = new CredentialEntity({
-      brand: brandId,
-      organization: organizationId,
+      brandId,
+      organizationId,
       platform,
-      user: userId,
+      userId,
       ...tokenData,
     });
 
     if (existing) {
-      return this.patch(existing._id, {
+      return this.patch((existing as Record<string, unknown>).id as string, {
         ...entity,
         isDeleted: false,
       });
     }
 
-    return this.create(entity);
+    return this.create(entity as CreateCredentialDto);
   }
 }

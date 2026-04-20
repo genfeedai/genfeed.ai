@@ -5,7 +5,6 @@ import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import { of, throwError } from 'rxjs';
 
 vi.mock('@api/shared/utils/encryption/encryption.util', () => ({
@@ -236,13 +235,13 @@ describe('FanvueService', () => {
   });
 
   describe('refreshToken', () => {
-    const orgId = new Types.ObjectId().toString();
-    const brandId = new Types.ObjectId().toString();
+    const orgId = 'test-object-id';
+    const brandId = 'test-object-id';
 
     it('should return existing token when it does not need refresh', async () => {
       const futureDate = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
       const mockCredential = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         accessToken: 'encrypted-access-token',
         accessTokenExpiry: futureDate,
         platform: CredentialPlatform.FANVUE,
@@ -261,7 +260,7 @@ describe('FanvueService', () => {
     it('should refresh token when it expires within 10 minutes', async () => {
       const nearExpiry = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes from now
       const mockCredential = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         accessToken: 'encrypted-old-token',
         accessTokenExpiry: nearExpiry,
         platform: CredentialPlatform.FANVUE,
@@ -317,7 +316,7 @@ describe('FanvueService', () => {
 
     it('should disconnect and throw when tokens are missing', async () => {
       const mockCredential = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         accessToken: undefined,
         platform: CredentialPlatform.FANVUE,
         refreshToken: undefined,
@@ -337,7 +336,7 @@ describe('FanvueService', () => {
     it('should disconnect when token refresh API call fails', async () => {
       const nearExpiry = new Date(Date.now() + 2 * 60 * 1000); // 2 minutes from now
       const mockCredential = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         accessToken: 'encrypted-token',
         accessTokenExpiry: nearExpiry,
         platform: CredentialPlatform.FANVUE,
@@ -362,7 +361,7 @@ describe('FanvueService', () => {
     it('should use old refresh token when new one is not returned', async () => {
       const nearExpiry = new Date(Date.now() + 3 * 60 * 1000);
       const mockCredential = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         accessToken: 'encrypted-token',
         accessTokenExpiry: nearExpiry,
         platform: CredentialPlatform.FANVUE,
@@ -652,14 +651,14 @@ describe('FanvueService', () => {
   });
 
   describe('createPost', () => {
-    const orgId = new Types.ObjectId().toString();
-    const brandId = new Types.ObjectId().toString();
+    const orgId = 'test-object-id';
+    const brandId = 'test-object-id';
 
     it('should create a post successfully', async () => {
       // Mock refreshToken internals
       const futureDate = new Date(Date.now() + 60 * 60 * 1000);
       const mockCredential = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         accessToken: 'encrypted-token',
         accessTokenExpiry: futureDate,
         platform: CredentialPlatform.FANVUE,
@@ -707,7 +706,7 @@ describe('FanvueService', () => {
     it('should include mediaUuids when provided', async () => {
       const futureDate = new Date(Date.now() + 60 * 60 * 1000);
       const mockCredential = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         accessToken: 'encrypted-token',
         accessTokenExpiry: futureDate,
         platform: CredentialPlatform.FANVUE,
@@ -748,7 +747,7 @@ describe('FanvueService', () => {
     it('should not include mediaUuids when not provided', async () => {
       const futureDate = new Date(Date.now() + 60 * 60 * 1000);
       const mockCredential = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         accessToken: 'encrypted-token',
         accessTokenExpiry: futureDate,
         platform: CredentialPlatform.FANVUE,
@@ -792,7 +791,7 @@ describe('FanvueService', () => {
     it('should throw and log error when post creation API fails', async () => {
       const futureDate = new Date(Date.now() + 60 * 60 * 1000);
       const mockCredential = {
-        _id: new Types.ObjectId(),
+        _id: 'test-object-id',
         accessToken: 'encrypted-token',
         accessTokenExpiry: futureDate,
         platform: CredentialPlatform.FANVUE,

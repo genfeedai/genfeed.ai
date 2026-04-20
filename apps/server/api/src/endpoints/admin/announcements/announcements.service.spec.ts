@@ -9,7 +9,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 vi.mock('@api/shared/utils/encryption/encryption.util');
 
@@ -27,11 +26,11 @@ describe('AdminAnnouncementsService', () => {
   let loggerService: vi.Mocked<LoggerService>;
   let redisService: vi.Mocked<RedisService>;
 
-  const authorId = new Types.ObjectId().toString();
-  const organizationId = new Types.ObjectId().toString();
+  const authorId = '507f191e810c19729de860ee'.toString();
+  const organizationId = '507f191e810c19729de860ee'.toString();
 
   const mockAnnouncement = {
-    _id: new Types.ObjectId(),
+    _id: '507f191e810c19729de860ee',
     body: 'Test announcement',
     channels: ['discord'],
   };

@@ -1,10 +1,9 @@
 import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
-import { ClipResultDocument } from '@api/collections/clip-results/schemas/clip-result.schema';
+import { type ClipResultDocument } from '@api/collections/clip-results/schemas/clip-result.schema';
 import { AvatarVideoService } from '@api/services/avatar-video/avatar-video.service';
 import { AvatarVideoProviderName } from '@api/services/avatar-video/avatar-video-provider.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 /**
  * A single highlight as produced by the HighlightDetectorService in the clips
@@ -91,18 +90,20 @@ export class ClipGenerationService {
           duration: highlight.end_time - highlight.start_time,
           endTime: highlight.end_time,
           index: i,
-          organization: new Types.ObjectId(orgId),
-          project: new Types.ObjectId(projectId),
+          organizationId: orgId,
+          projectId: projectId,
           startTime: highlight.start_time,
           status: 'pending',
           summary: highlight.summary,
           tags: highlight.tags,
           title: highlight.title,
-          user: new Types.ObjectId(userId),
+          userId: userId,
           viralityScore: highlight.virality_score,
         });
 
-      const clipResultId = String(clipResult._id);
+      const clipResultId = String(
+        (clipResult as Record<string, unknown>).id ?? clipResult._id,
+      );
       clipResultIds.push(clipResultId);
 
       // 2. Fire avatar video generation via the selected provider

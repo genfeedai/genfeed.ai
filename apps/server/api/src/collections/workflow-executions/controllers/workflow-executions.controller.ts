@@ -34,7 +34,6 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import type { Request } from 'express';
-import { PipelineStage, Types } from 'mongoose';
 
 @ApiTags('Workflow Executions')
 @ApiBearerAuth()
@@ -48,14 +47,14 @@ export class WorkflowExecutionsController {
   private buildFindAllPipeline(
     organizationId: string,
     query: WorkflowExecutionQueryDto,
-  ): PipelineStage[] {
+  ): Record<string, unknown>[] {
     const match: Record<string, unknown> = {
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
     };
 
     if (query.workflow) {
-      match.workflow = new Types.ObjectId(query.workflow);
+      match.workflow = query.workflow;
     }
 
     if (query.status) {

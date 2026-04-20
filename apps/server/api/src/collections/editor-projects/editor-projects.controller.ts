@@ -1,7 +1,7 @@
 import { CreateEditorProjectDto } from '@api/collections/editor-projects/dto/create-editor-project.dto';
 import { UpdateEditorProjectDto } from '@api/collections/editor-projects/dto/update-editor-project.dto';
 import { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
-import { EditorProjectDocument } from '@api/collections/editor-projects/schemas/editor-project.schema';
+import { type EditorProjectDocument } from '@api/collections/editor-projects/schemas/editor-project.schema';
 import { EditorRenderService } from '@api/collections/editor-projects/services/editor-render.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
@@ -49,7 +49,6 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
-import { type PipelineStage, Types } from 'mongoose';
 import { v4 as uuidv4 } from 'uuid';
 
 @AutoSwagger()
@@ -82,20 +81,18 @@ export class EditorProjectsController {
 
     const projectPayload: Record<string, unknown> = {
       ...createDto,
-      ...(publicMetadata.brand
-        ? { brand: new Types.ObjectId(publicMetadata.brand) }
-        : {}),
-      organization: new Types.ObjectId(orgId),
-      user: new Types.ObjectId(publicMetadata.user),
+      ...(publicMetadata.brand ? { brand: publicMetadata.brand } : {}),
+      organization: orgId,
+      user: publicMetadata.user,
     };
 
     // If sourceVideoId is provided, build initial video track from real data
     if (createDto.sourceVideoId) {
       const video = await this.ingredientsService.findOne({
-        _id: new Types.ObjectId(createDto.sourceVideoId),
+        _id: createDto.sourceVideoId,
         category: IngredientCategory.VIDEO,
         isDeleted: false,
-        organization: new Types.ObjectId(orgId),
+        organization: orgId,
       });
 
       if (!video) {
@@ -178,14 +175,12 @@ export class EditorProjectsController {
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: {
-          ...(publicMetadata.brand
-            ? { brand: new Types.ObjectId(publicMetadata.brand) }
-            : {}),
+          ...(publicMetadata.brand ? { brand: publicMetadata.brand } : {}),
           isDeleted: false,
-          organization: new Types.ObjectId(publicMetadata.organization),
+          organization: publicMetadata.organization,
         },
       },
       {
@@ -210,12 +205,10 @@ export class EditorProjectsController {
     const publicMetadata = getPublicMetadata(user);
 
     const data = await this.editorProjectsService.findOne({
-      ...(publicMetadata.brand
-        ? { brand: new Types.ObjectId(publicMetadata.brand) }
-        : {}),
+      ...(publicMetadata.brand ? { brand: publicMetadata.brand } : {}),
       _id: id,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     });
 
     if (!data) {
@@ -236,12 +229,10 @@ export class EditorProjectsController {
     const publicMetadata = getPublicMetadata(user);
 
     const existing = await this.editorProjectsService.findOne({
-      ...(publicMetadata.brand
-        ? { brand: new Types.ObjectId(publicMetadata.brand) }
-        : {}),
+      ...(publicMetadata.brand ? { brand: publicMetadata.brand } : {}),
       _id: id,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     });
 
     if (!existing) {
@@ -266,12 +257,10 @@ export class EditorProjectsController {
     const publicMetadata = getPublicMetadata(user);
 
     const existing = await this.editorProjectsService.findOne({
-      ...(publicMetadata.brand
-        ? { brand: new Types.ObjectId(publicMetadata.brand) }
-        : {}),
+      ...(publicMetadata.brand ? { brand: publicMetadata.brand } : {}),
       _id: id,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     });
 
     if (!existing) {

@@ -1,5 +1,6 @@
 import type { PopulateOption } from '@genfeedai/interfaces';
-import type { PipelineStage } from 'mongoose';
+
+type PipelineStage = Record<string, unknown>;
 
 /**
  * Creates selective populate options for MongoDB queries

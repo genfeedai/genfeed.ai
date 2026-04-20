@@ -17,7 +17,6 @@ import {
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 interface ExtractedPattern {
   patternType: ContentPatternType;
@@ -45,7 +44,7 @@ export class PatternAnalyzerService {
       this.configService.get('XAI_MODEL') || 'x-ai/grok-4-fast';
   }
 
-  async analyzeCreator(creatorId: Types.ObjectId | string): Promise<{
+  async analyzeCreator(creatorId: string): Promise<{
     patternsExtracted: number;
     patterns: CreatePatternDto[];
   }> {
@@ -81,7 +80,7 @@ export class PatternAnalyzerService {
       const patterns = await this.extractPatterns(
         scrapeResult.posts,
         creator.organization,
-        new Types.ObjectId(creatorId.toString()),
+        creatorId.toString(),
         creator.platform,
       );
 
@@ -126,8 +125,8 @@ export class PatternAnalyzerService {
 
   private async extractPatterns(
     posts: ScrapedPost[],
-    organizationId: Types.ObjectId,
-    creatorId: Types.ObjectId,
+    organizationId: string,
+    creatorId: string,
     platform: ContentIntelligencePlatform,
   ): Promise<CreatePatternDto[]> {
     const patterns: CreatePatternDto[] = [];

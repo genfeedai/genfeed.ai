@@ -166,9 +166,7 @@ vi.mock('@ui/menus/sidebar-action-trigger/SidebarActionTrigger', () => ({
 }));
 
 vi.mock('@ui/topbars/workspace-switcher/TopbarWorkspaceSwitcher', () => ({
-  default: () => (
-    <div data-testid="workspace-switcher">Workspace Switcher</div>
-  ),
+  default: () => <div data-testid="workspace-switcher">Workspace Switcher</div>,
 }));
 
 vi.mock('@app-config/menu-items.config', () => ({

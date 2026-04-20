@@ -1,7 +1,6 @@
 import { AuthWhoamiController } from '@api/auth/controllers/auth-whoami.controller';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 const buildReq = (
   user?: Record<string, unknown> & {
@@ -29,7 +28,7 @@ describe('AuthWhoamiController', () => {
   });
 
   describe('whoami', () => {
-    const mongoUserId = new Types.ObjectId().toString();
+    const mongoUserId = '507f191e810c19729de860ee'.toString();
 
     it('should return full user context for authenticated user', () => {
       const req = buildReq({

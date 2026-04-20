@@ -65,6 +65,8 @@ export interface MenuSharedProps extends BaseMenuProps, SidebarSizingProps {
   sectionLabel?: string;
   /** Action buttons to render inline with the Conversations collapsible header */
   conversationActions?: ReactNode;
+  /** Renders content in the sidebar footer, above the user profile row */
+  renderFooterSlot?: () => ReactNode;
 }
 
 export interface MenuItemProps {

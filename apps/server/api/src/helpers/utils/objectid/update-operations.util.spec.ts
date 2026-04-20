@@ -1,6 +1,5 @@
 import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
 import { buildUpdateOperations } from '@api/helpers/utils/objectid/update-operations.util';
-import { Types } from 'mongoose';
 
 describe('buildUpdateOperations', () => {
   afterEach(() => {
@@ -11,7 +10,7 @@ describe('buildUpdateOperations', () => {
   });
 
   it('converts relationship fields into $set entries', async () => {
-    const folderId = new Types.ObjectId();
+    const folderId = '507f191e810c19729de860ee';
     const spy = vi
       .spyOn(ObjectIdUtil, 'convertRelationshipField')
       .mockResolvedValue(folderId);
@@ -32,7 +31,7 @@ describe('buildUpdateOperations', () => {
   it('moves null relationship values into $unset', async () => {
     vi.spyOn(ObjectIdUtil, 'convertRelationshipField')
       .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(new Types.ObjectId());
+      .mockResolvedValueOnce('507f191e810c19729de860ee');
 
     const result = await buildUpdateOperations(
       { folder: 'to-keep', parent: null },
@@ -40,7 +39,7 @@ describe('buildUpdateOperations', () => {
     );
 
     expect(result.$set).toEqual({
-      folder: expect.any(Types.ObjectId),
+      folder: expect.any(String),
     });
     expect(result.$unset).toEqual({ parent: '' });
   });

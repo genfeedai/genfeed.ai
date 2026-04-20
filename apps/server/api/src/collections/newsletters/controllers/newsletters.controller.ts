@@ -40,8 +40,7 @@ export class NewslettersController {
     @Query() query: NewslettersQueryDto,
   ) {
     const ctx = extractRequestContext(user, query);
-    const pipeline = this.newslettersService.buildListPipeline(ctx, query);
-    const data = await this.newslettersService.findAll(pipeline, {
+    const data = await this.newslettersService.findAllScoped(ctx, query, {
       limit: query.limit,
       page: query.page,
       pagination: query.pagination,

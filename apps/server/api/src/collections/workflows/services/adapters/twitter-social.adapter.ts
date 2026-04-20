@@ -12,7 +12,6 @@ import type {
 } from '@genfeedai/workflow-engine';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 /**
  * Twitter Social Adapter
@@ -147,7 +146,7 @@ export class TwitterSocialAdapter {
       // Get the brand's Twitter username from credentials
       const credential = await this.credentialsService.findOne({
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
+        organization: organizationId,
         platform: 'twitter',
       });
 
@@ -202,7 +201,7 @@ export class TwitterSocialAdapter {
 
       const credential = await this.credentialsService.findOne({
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
+        organization: organizationId,
         platform: 'twitter',
       });
 

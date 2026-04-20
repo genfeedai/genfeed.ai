@@ -22,7 +22,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 describe('LinkedInController', () => {
   let controller: LinkedInController;
@@ -44,9 +43,9 @@ describe('LinkedInController', () => {
   };
   const mockLoggerService = { error: vi.fn(), log: vi.fn() };
 
-  const brandId = new Types.ObjectId();
-  const orgId = new Types.ObjectId();
-  const userId = new Types.ObjectId();
+  const brandId = 'test-object-id';
+  const orgId = 'test-object-id';
+  const userId = 'test-object-id';
   const mockUser = {
     publicMetadata: {
       organization: orgId.toString(),
@@ -134,7 +133,7 @@ describe('LinkedInController', () => {
 
   describe('verify', () => {
     it('should exchange code, get profile, and update credential', async () => {
-      const credId = new Types.ObjectId();
+      const credId = 'test-object-id';
       const state = JSON.stringify({
         brandId: brandId.toString(),
         organizationId: orgId.toString(),

@@ -1,11 +1,10 @@
 import { ModelsService } from '@api/collections/models/services/models.service';
-import { ContentScore } from '@api/collections/optimizers/schemas/content-score.schema';
-import { Optimization } from '@api/collections/optimizers/schemas/optimization.schema';
 import { OptimizersService } from '@api/collections/optimizers/services/optimizers.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { type ContentScore, type Optimization } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('OptimizersService', () => {
@@ -57,12 +56,8 @@ describe('OptimizersService', () => {
       providers: [
         OptimizersService,
         {
-          provide: getModelToken(ContentScore.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockContentScoreModel,
-        },
-        {
-          provide: getModelToken(Optimization.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockOptimizationModel,
+          provide: PrismaService,
+          useValue: { ...mockContentScoreModel, ...mockOptimizationModel },
         },
         {
           provide: LoggerService,

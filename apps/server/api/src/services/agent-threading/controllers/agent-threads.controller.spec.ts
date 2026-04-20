@@ -6,7 +6,6 @@ import type { User } from '@clerk/backend';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import { Effect } from 'effect';
-import { Types } from 'mongoose';
 
 vi.mock('@api/helpers/utils/error-response/error-response.util', () => ({
   ErrorResponse: {
@@ -17,9 +16,9 @@ vi.mock('@api/helpers/utils/error-response/error-response.util', () => ({
 }));
 
 describe('Threading AgentThreadsController', () => {
-  const organizationId = new Types.ObjectId().toString();
-  const userId = new Types.ObjectId().toString();
-  const threadId = new Types.ObjectId().toString();
+  const organizationId = '507f191e810c19729de860ea';
+  const userId = '507f191e810c19729de860eb';
+  const threadId = '507f191e810c19729de860ec';
   const mockUser = {
     id: 'clerk_123',
     publicMetadata: {

@@ -12,7 +12,6 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class ContentQuotaConfigDto {
   @IsNumber()
@@ -47,7 +46,7 @@ export class CreateAgentCampaignDto {
   @IsMongoId()
   @IsOptional()
   @ApiProperty({ description: 'Brand ID', required: false })
-  brand?: Types.ObjectId;
+  brand?: string;
 
   @IsArray()
   @IsMongoId({ each: true })
@@ -56,7 +55,7 @@ export class CreateAgentCampaignDto {
     description: 'Agent strategy IDs included in this campaign',
     required: false,
   })
-  agents?: Types.ObjectId[];
+  agents?: string[];
 
   @IsMongoId()
   @IsOptional()
@@ -64,7 +63,7 @@ export class CreateAgentCampaignDto {
     description: 'Optional presentation-only lead strategy ID',
     required: false,
   })
-  campaignLeadStrategyId?: Types.ObjectId;
+  campaignLeadStrategyId?: string;
 
   @IsDate()
   @Type(() => Date)

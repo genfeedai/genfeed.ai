@@ -1,10 +1,9 @@
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaModule } from '@api/shared/modules/prisma/prisma.module';
 import { EventBusModule } from '@api/shared/services/event-bus/event-bus.module';
 import { SharedModule } from '@api/shared/shared.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { RedisModule } from '@libs/redis/redis.module';
 import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
 import { ScheduleModule } from '@nestjs/schedule';
 import { SentryModule } from '@sentry/nestjs/setup';
 import { ConfigModule } from '@workers/config/config.module';
@@ -54,103 +53,8 @@ import { CronSchedulerControlService } from '@workers/scheduling/cron-scheduler-
     SharedModule,
     EventBusModule,
 
-    // Database Connections (same as API)
-    MongooseModule.forRootAsync({
-      connectionName: DB_CONNECTIONS.CLOUD,
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        connectTimeoutMS: 10_000,
-        dbName: DB_CONNECTIONS.CLOUD,
-        maxPoolSize: 20,
-        serverSelectionTimeoutMS: 5_000,
-        uri: config.get('MONGODB_URI'),
-      }),
-    }),
-    MongooseModule.forRootAsync({
-      connectionName: DB_CONNECTIONS.AUTH,
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        connectTimeoutMS: 10_000,
-        dbName: DB_CONNECTIONS.AUTH,
-        maxPoolSize: 10,
-        serverSelectionTimeoutMS: 5_000,
-        uri: config.get('MONGODB_URI'),
-      }),
-    }),
-    MongooseModule.forRootAsync({
-      connectionName: DB_CONNECTIONS.AGENT,
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        connectTimeoutMS: 10_000,
-        dbName: DB_CONNECTIONS.AGENT,
-        maxPoolSize: 5,
-        serverSelectionTimeoutMS: 5_000,
-        uri: config.get('MONGODB_URI'),
-      }),
-    }),
-    MongooseModule.forRootAsync({
-      connectionName: DB_CONNECTIONS.MARKETPLACE,
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        connectTimeoutMS: 10_000,
-        dbName: DB_CONNECTIONS.MARKETPLACE,
-        maxPoolSize: 5,
-        serverSelectionTimeoutMS: 5_000,
-        uri: config.get('MONGODB_URI'),
-      }),
-    }),
-    MongooseModule.forRootAsync({
-      connectionName: DB_CONNECTIONS.FANVUE,
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        connectTimeoutMS: 10_000,
-        dbName: DB_CONNECTIONS.FANVUE,
-        maxPoolSize: 5,
-        serverSelectionTimeoutMS: 5_000,
-        uri: config.get('MONGODB_URI'),
-      }),
-    }),
-    MongooseModule.forRootAsync({
-      connectionName: DB_CONNECTIONS.ANALYTICS,
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        connectTimeoutMS: 10_000,
-        dbName: DB_CONNECTIONS.ANALYTICS,
-        maxPoolSize: 10,
-        serverSelectionTimeoutMS: 5_000,
-        uri: config.get('MONGODB_URI'),
-      }),
-    }),
-    MongooseModule.forRootAsync({
-      connectionName: DB_CONNECTIONS.CLIPS,
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        connectTimeoutMS: 10_000,
-        dbName: DB_CONNECTIONS.CLIPS,
-        maxPoolSize: 5,
-        serverSelectionTimeoutMS: 5_000,
-        uri: config.get('MONGODB_URI'),
-      }),
-    }),
-    MongooseModule.forRootAsync({
-      connectionName: DB_CONNECTIONS.CRM,
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        connectTimeoutMS: 10_000,
-        dbName: DB_CONNECTIONS.CRM,
-        maxPoolSize: 5,
-        serverSelectionTimeoutMS: 5_000,
-        uri: config.get('MONGODB_URI'),
-      }),
-    }),
+    // Database (Prisma — replaces all MongoDB/Mongoose connections)
+    PrismaModule,
 
     // BullMQ Processor Modules (moved from API — issue #84)
     ProcessorsModule,

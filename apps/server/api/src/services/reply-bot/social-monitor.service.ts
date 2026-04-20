@@ -10,7 +10,7 @@
  *
  * Supported platforms: Twitter/X, Instagram, TikTok, YouTube, Reddit
  */
-import { MonitoredAccountFilters } from '@api/collections/monitored-accounts/schemas/monitored-account.schema';
+import type { MonitoredAccountFilters } from '@api/collections/monitored-accounts/schemas/monitored-account.schema';
 import { ProcessedTweetsService } from '@api/collections/processed-tweets/services/processed-tweets.service';
 import { ConfigService } from '@api/config/config.service';
 import type {

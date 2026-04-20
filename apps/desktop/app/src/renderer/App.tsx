@@ -3,7 +3,6 @@ import type {
   IDesktopSession,
 } from '@genfeedai/desktop-contracts';
 import { startTransition, useCallback, useEffect, useState } from 'react';
-import { AuthScreen } from './auth/AuthScreen';
 import { Sidebar } from './components/Sidebar';
 import { useThreads } from './hooks/useThreads';
 import type { NavView } from './nav-view';
@@ -17,6 +16,7 @@ import { TrendsView } from './views/TrendsView';
 import { WorkflowsView } from './views/WorkflowsView';
 
 const emptyBootstrap: IDesktopBootstrap = {
+  clerkId: null,
   environment: {
     apiEndpoint: '',
     appEndpoint: '',
@@ -26,6 +26,7 @@ const emptyBootstrap: IDesktopBootstrap = {
     cdnUrl: '',
     wsEndpoint: '',
   },
+  localUserId: '',
   preferences: { nativeNotificationsEnabled: false },
   recents: [],
   session: null,
@@ -177,10 +178,6 @@ export const App = () => {
   );
 
   /* ─── Render ─── */
-
-  if (!bootstrap.session) {
-    return <AuthScreen />;
-  }
 
   const renderMainView = () => {
     switch (activeView) {

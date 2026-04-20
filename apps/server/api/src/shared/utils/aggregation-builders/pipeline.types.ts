@@ -1,4 +1,7 @@
-import type { PipelineStage } from 'mongoose';
+/**
+ * MongoDB aggregation pipeline stage - a raw document passed to the driver
+ */
+export type PipelineStage = Record<string, unknown>;
 
 /**
  * Options for lookup builders

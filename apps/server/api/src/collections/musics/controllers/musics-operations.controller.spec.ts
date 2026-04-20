@@ -30,7 +30,6 @@ import type { User } from '@clerk/backend';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('MusicsOperationsController', () => {
   let controller: MusicsOperationsController;
@@ -53,11 +52,11 @@ describe('MusicsOperationsController', () => {
 
   const mockServices = {
     activitiesService: {
-      create: vi.fn().mockResolvedValue({ _id: new Types.ObjectId() }),
+      create: vi.fn().mockResolvedValue({ _id: '507f191e810c19729de860ee' }),
     },
     brandsService: {
       findOne: vi.fn().mockResolvedValue({
-        _id: new Types.ObjectId('507f1f77bcf86cd799439013'),
+        _id: '507f1f77bcf86cd799439013',
       }),
     },
     creditsUtilsService: { deductCreditsFromOrganization: vi.fn() },
@@ -82,7 +81,7 @@ describe('MusicsOperationsController', () => {
     },
     promptsService: {
       create: vi.fn().mockResolvedValue({
-        _id: new Types.ObjectId('507f1f77bcf86cd799439016'),
+        _id: '507f1f77bcf86cd799439016',
         original: mockCreateMusicDto.text,
       }),
     },
@@ -99,10 +98,10 @@ describe('MusicsOperationsController', () => {
     sharedService: {
       saveDocuments: vi.fn().mockResolvedValue({
         ingredientData: {
-          _id: new Types.ObjectId('507f1f77bcf86cd799439014'),
+          _id: '507f1f77bcf86cd799439014',
         },
         metadataData: {
-          _id: new Types.ObjectId('507f1f77bcf86cd799439015'),
+          _id: '507f1f77bcf86cd799439015',
         },
       }),
     },

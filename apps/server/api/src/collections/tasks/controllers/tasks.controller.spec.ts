@@ -10,12 +10,12 @@ import { TasksController } from '@api/collections/tasks/controllers/tasks.contro
 import { CreateTaskDto } from '@api/collections/tasks/dto/create-task.dto';
 import type { TaskDocument } from '@api/collections/tasks/schemas/task.schema';
 import { TasksService } from '@api/collections/tasks/services/tasks.service';
+import type { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import type { User } from '@clerk/backend';
 import { TaskSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { NotFoundException } from '@nestjs/common';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 describe('TasksController', () => {
   let controller: TasksController;
@@ -29,6 +29,9 @@ describe('TasksController', () => {
   };
   let taskCountersService: { getNextNumber: ReturnType<typeof vi.fn> };
   let organizationsService: { findOne: ReturnType<typeof vi.fn> };
+  let agentOrchestratorService: {
+    runAgent: ReturnType<typeof vi.fn>;
+  };
   let loggerService: {
     debug: ReturnType<typeof vi.fn>;
     error: ReturnType<typeof vi.fn>;
@@ -36,8 +39,8 @@ describe('TasksController', () => {
     warn: ReturnType<typeof vi.fn>;
   };
 
-  const organizationId = new Types.ObjectId().toString();
-  const userId = new Types.ObjectId().toString();
+  const organizationId = '507f191e810c19729de860ee'.toString();
+  const userId = '507f191e810c19729de860ee'.toString();
 
   const mockUser = {
     id: 'user-1',
@@ -66,6 +69,9 @@ describe('TasksController', () => {
     organizationsService = {
       findOne: vi.fn(),
     };
+    agentOrchestratorService = {
+      runAgent: vi.fn(),
+    };
     loggerService = {
       debug: vi.fn(),
       error: vi.fn(),
@@ -78,6 +84,7 @@ describe('TasksController', () => {
       tasksService as unknown as TasksService,
       taskCountersService as unknown as TaskCountersService,
       organizationsService as unknown as OrganizationsService,
+      agentOrchestratorService as unknown as AgentOrchestratorService,
     );
 
     vi.spyOn(TaskSerializer, 'serialize').mockImplementation(
@@ -100,7 +107,7 @@ describe('TasksController', () => {
   describe('create', () => {
     it('creates a task with organization prefix and next counter number', async () => {
       const createdTask = {
-        _id: new Types.ObjectId(),
+        _id: '507f191e810c19729de860ee',
         identifier: 'GENA-18',
         taskNumber: 18,
         title: 'Add task tests',
@@ -115,7 +122,7 @@ describe('TasksController', () => {
       } as CreateTaskDto);
 
       expect(organizationsService.findOne).toHaveBeenCalledWith({
-        _id: expect.any(Types.ObjectId),
+        _id: expect.any(String),
         isDeleted: false,
       });
       expect(taskCountersService.getNextNumber).toHaveBeenCalledWith(
@@ -124,14 +131,14 @@ describe('TasksController', () => {
       expect(tasksService.create).toHaveBeenCalledWith(
         expect.objectContaining({
           identifier: 'GENA-18',
-          organization: expect.any(Types.ObjectId),
+          organization: expect.any(String),
           taskNumber: 18,
           title: 'Add task tests',
         }),
       );
 
       const payload = tasksService.create.mock.calls[0]?.[0] as {
-        organization: Types.ObjectId;
+        organization: string;
       };
       expect(payload.organization.toString()).toBe(organizationId);
       expect(result).toEqual({ data: createdTask });
@@ -155,7 +162,7 @@ describe('TasksController', () => {
 
   describe('buildFindAllPipeline', () => {
     it('adds organization scope and optional filters to the match stage', () => {
-      const parentId = new Types.ObjectId().toString();
+      const parentId = '507f191e810c19729de860ee'.toString();
       const pipeline = controller.buildFindAllPipeline(mockUser, {
         assigneeAgentId: 'agent-1',
         assigneeUserId: 'user-2',
@@ -177,21 +184,19 @@ describe('TasksController', () => {
         projectId: 'project-1',
         status: 'todo',
       });
-      expect(matchStage.$match.organization).toBeInstanceOf(Types.ObjectId);
-      expect(
-        (matchStage.$match.organization as Types.ObjectId).toString(),
-      ).toBe(organizationId);
-      expect(matchStage.$match.parentId).toBeInstanceOf(Types.ObjectId);
-      expect((matchStage.$match.parentId as Types.ObjectId).toString()).toBe(
-        parentId,
+      expect(matchStage.$match.organization).toEqual(expect.any(String));
+      expect((matchStage.$match.organization as string).toString()).toBe(
+        organizationId,
       );
+      expect(matchStage.$match.parentId).toEqual(expect.any(String));
+      expect((matchStage.$match.parentId as string).toString()).toBe(parentId);
     });
   });
 
   describe('canUserModifyEntity', () => {
     it('allows modification when the task stores organization as an ObjectId', () => {
       const entity = {
-        organization: new Types.ObjectId(organizationId),
+        organization: organizationId,
       } as TaskDocument;
 
       expect(controller.canUserModifyEntity(mockUser, entity)).toBe(true);
@@ -200,7 +205,7 @@ describe('TasksController', () => {
     it('allows modification when the task stores a populated organization object', () => {
       const entity = {
         organization: {
-          _id: new Types.ObjectId(organizationId),
+          _id: organizationId,
         },
       } as unknown as TaskDocument;
 
@@ -209,7 +214,7 @@ describe('TasksController', () => {
 
     it('rejects modification when organizations differ', () => {
       const entity = {
-        organization: new Types.ObjectId(),
+        organization: '607f191e810c19729de860ff',
       } as TaskDocument;
 
       expect(controller.canUserModifyEntity(mockUser, entity)).toBe(false);
@@ -219,7 +224,7 @@ describe('TasksController', () => {
   describe('findByIdentifier', () => {
     it('returns a serialized task when found', async () => {
       const task = {
-        _id: new Types.ObjectId(),
+        _id: '507f191e810c19729de860ee',
         identifier: 'GENA-18',
       } as TaskDocument;
       tasksService.findByIdentifier.mockResolvedValue(task);
@@ -241,10 +246,10 @@ describe('TasksController', () => {
 
   describe('findChildren', () => {
     it('loads children in the current organization scope', async () => {
-      const taskId = new Types.ObjectId().toString();
+      const taskId = '507f191e810c19729de860ee'.toString();
       const children = [
         {
-          _id: new Types.ObjectId(),
+          _id: '507f191e810c19729de860ee',
           title: 'Child task',
         },
       ] as TaskDocument[];

@@ -13,7 +13,6 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { ModuleRef } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('SharedService', () => {
   let service: SharedService;
@@ -33,7 +32,7 @@ describe('SharedService', () => {
     _id: '507f1f77bcf86cd799439013',
     brand: null,
     prompt: null,
-    user: new Types.ObjectId('507f1f77bcf86cd799439011'),
+    user: '507f1f77bcf86cd799439011',
   };
 
   const mockIngredient = {
@@ -41,13 +40,13 @@ describe('SharedService', () => {
     brand: null,
     frame: null,
     isDefault: false,
-    metadata: new Types.ObjectId('507f1f77bcf86cd799439013'),
+    metadata: '507f1f77bcf86cd799439013',
     organization: null,
     parent: null,
     prompt: null,
     script: null,
     status: IngredientStatus.PROCESSING,
-    user: new Types.ObjectId('507f1f77bcf86cd799439011'),
+    user: '507f1f77bcf86cd799439011',
     version: 1,
   };
 
@@ -148,18 +147,18 @@ describe('SharedService', () => {
       );
       (ingredientsService.create as vi.Mock).mockResolvedValue({
         ...mockIngredient,
-        parent: new Types.ObjectId('507f1f77bcf86cd799439020'),
+        parent: '507f1f77bcf86cd799439020',
         version: 6,
       });
 
       await service.saveDocuments(mockUser, body);
 
       expect(ingredientsService.findOne).toHaveBeenCalledWith({
-        _id: new Types.ObjectId('507f1f77bcf86cd799439020'),
+        _id: '507f1f77bcf86cd799439020',
       });
       expect(ingredientsService.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          parent: new Types.ObjectId('507f1f77bcf86cd799439020'),
+          parent: '507f1f77bcf86cd799439020',
           version: 6,
         }),
       );
@@ -207,7 +206,7 @@ describe('SharedService', () => {
         _id: '507f1f77bcf86cd799439014',
       });
       const result = 'Updated result';
-      const promptId = new Types.ObjectId('507f1f77bcf86cd799439015');
+      const promptId = '507f1f77bcf86cd799439015';
 
       (metadataService.patch as vi.Mock).mockResolvedValue(mockMetadata);
       (ingredientsService.patch as vi.Mock).mockResolvedValue(mockIngredient);
@@ -282,7 +281,7 @@ describe('SharedService', () => {
         metadataData,
         ingredientData,
         result,
-        invalidPromptId as unknown as Types.ObjectId,
+        invalidPromptId as unknown as string,
       );
 
       expect(metadataService.patch).toHaveBeenCalledWith(
@@ -305,11 +304,11 @@ describe('SharedService', () => {
   describe('saveDocumentsInternal', () => {
     it('should create metadata and ingredient without user context', async () => {
       const body = {
-        brand: new Types.ObjectId('507f1f77bcf86cd799439016'),
+        brand: '507f1f77bcf86cd799439016',
         category: IngredientCategory.IMAGE,
         extension: IngredientExtension.JPG,
-        organization: new Types.ObjectId('507f1f77bcf86cd799439017'),
-        user: new Types.ObjectId('507f1f77bcf86cd799439011'),
+        organization: '507f1f77bcf86cd799439017',
+        user: '507f1f77bcf86cd799439011',
       };
 
       (metadataService.create as vi.Mock).mockResolvedValue(mockMetadata);
@@ -329,7 +328,7 @@ describe('SharedService', () => {
         expect.objectContaining({
           brand: body.brand,
           isDefault: false,
-          metadata: new Types.ObjectId('507f1f77bcf86cd799439013'),
+          metadata: '507f1f77bcf86cd799439013',
           organization: body.organization,
           status: IngredientStatus.PROCESSING,
           user: body.user,
@@ -343,14 +342,14 @@ describe('SharedService', () => {
     });
 
     it('should handle parent versioning in saveDocumentsInternal', async () => {
-      const parentId = new Types.ObjectId('507f1f77bcf86cd799439020');
+      const parentId = '507f1f77bcf86cd799439020';
       const body = {
-        brand: new Types.ObjectId('507f1f77bcf86cd799439016'),
+        brand: '507f1f77bcf86cd799439016',
         category: IngredientCategory.IMAGE,
         extension: IngredientExtension.JPG,
-        organization: new Types.ObjectId('507f1f77bcf86cd799439017'),
+        organization: '507f1f77bcf86cd799439017',
         parent: parentId,
-        user: new Types.ObjectId('507f1f77bcf86cd799439011'),
+        user: '507f1f77bcf86cd799439011',
       };
 
       const parentIngredient = {
@@ -383,14 +382,14 @@ describe('SharedService', () => {
     });
 
     it('should default to version 1 when parent not found', async () => {
-      const parentId = new Types.ObjectId('507f1f77bcf86cd799439020');
+      const parentId = '507f1f77bcf86cd799439020';
       const body = {
-        brand: new Types.ObjectId('507f1f77bcf86cd799439016'),
+        brand: '507f1f77bcf86cd799439016',
         category: IngredientCategory.IMAGE,
         extension: IngredientExtension.JPG,
-        organization: new Types.ObjectId('507f1f77bcf86cd799439017'),
+        organization: '507f1f77bcf86cd799439017',
         parent: parentId,
-        user: new Types.ObjectId('507f1f77bcf86cd799439011'),
+        user: '507f1f77bcf86cd799439011',
       };
 
       (metadataService.create as vi.Mock).mockResolvedValue(mockMetadata);
@@ -408,12 +407,12 @@ describe('SharedService', () => {
 
     it('should handle custom status in saveDocumentsInternal', async () => {
       const body = {
-        brand: new Types.ObjectId('507f1f77bcf86cd799439016'),
+        brand: '507f1f77bcf86cd799439016',
         category: IngredientCategory.IMAGE,
         extension: IngredientExtension.JPG,
-        organization: new Types.ObjectId('507f1f77bcf86cd799439017'),
+        organization: '507f1f77bcf86cd799439017',
         status: IngredientStatus.UPLOADED,
-        user: new Types.ObjectId('507f1f77bcf86cd799439011'),
+        user: '507f1f77bcf86cd799439011',
       };
 
       (metadataService.create as vi.Mock).mockResolvedValue(mockMetadata);
@@ -432,14 +431,14 @@ describe('SharedService', () => {
     });
 
     it('should include prompt when provided', async () => {
-      const promptId = new Types.ObjectId('507f1f77bcf86cd799439015');
+      const promptId = '507f1f77bcf86cd799439015';
       const body = {
-        brand: new Types.ObjectId('507f1f77bcf86cd799439016'),
+        brand: '507f1f77bcf86cd799439016',
         category: IngredientCategory.IMAGE,
         extension: IngredientExtension.JPG,
-        organization: new Types.ObjectId('507f1f77bcf86cd799439017'),
+        organization: '507f1f77bcf86cd799439017',
         prompt: promptId,
-        user: new Types.ObjectId('507f1f77bcf86cd799439011'),
+        user: '507f1f77bcf86cd799439011',
       };
 
       (metadataService.create as vi.Mock).mockResolvedValue(mockMetadata);
@@ -456,16 +455,16 @@ describe('SharedService', () => {
 
     it('should include sources when provided', async () => {
       const sourceIds = [
-        new Types.ObjectId('507f1f77bcf86cd799439021'),
-        new Types.ObjectId('507f1f77bcf86cd799439022'),
+        '507f1f77bcf86cd799439021',
+        '507f1f77bcf86cd799439022',
       ];
       const body = {
-        brand: new Types.ObjectId('507f1f77bcf86cd799439016'),
+        brand: '507f1f77bcf86cd799439016',
         category: IngredientCategory.IMAGE,
         extension: IngredientExtension.JPG,
-        organization: new Types.ObjectId('507f1f77bcf86cd799439017'),
+        organization: '507f1f77bcf86cd799439017',
         sources: sourceIds,
-        user: new Types.ObjectId('507f1f77bcf86cd799439011'),
+        user: '507f1f77bcf86cd799439011',
       };
 
       (metadataService.create as vi.Mock).mockResolvedValue(mockMetadata);
@@ -482,12 +481,12 @@ describe('SharedService', () => {
 
     it('should pass through additional body properties', async () => {
       const body = {
-        brand: new Types.ObjectId('507f1f77bcf86cd799439016'),
+        brand: '507f1f77bcf86cd799439016',
         category: IngredientCategory.IMAGE,
         customField: 'custom value',
         extension: IngredientExtension.JPG,
-        organization: new Types.ObjectId('507f1f77bcf86cd799439017'),
-        user: new Types.ObjectId('507f1f77bcf86cd799439011'),
+        organization: '507f1f77bcf86cd799439017',
+        user: '507f1f77bcf86cd799439011',
       };
 
       (metadataService.create as vi.Mock).mockResolvedValue(mockMetadata);
@@ -512,7 +511,7 @@ describe('SharedService', () => {
         _id: '507f1f77bcf86cd799439014',
       });
       const result = 'Updated result';
-      const promptId = new Types.ObjectId('507f1f77bcf86cd799439015');
+      const promptId = '507f1f77bcf86cd799439015';
 
       const mockPromptsService = {
         patch: vi.fn().mockResolvedValue({}),
@@ -534,7 +533,7 @@ describe('SharedService', () => {
       );
 
       expect(mockPromptsService.patch).toHaveBeenCalledWith(promptId, {
-        ingredient: new Types.ObjectId(ingredientData._id),
+        ingredient: ingredientData._id,
       });
     });
 
@@ -564,7 +563,7 @@ describe('SharedService', () => {
         metadataData,
         ingredientData,
         result,
-        invalidPromptId as unknown as Types.ObjectId,
+        invalidPromptId as unknown as string,
       );
 
       expect(mockPromptsService.patch).not.toHaveBeenCalled();

@@ -10,9 +10,8 @@ import type { ByokService } from '@api/services/byok/byok.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { Types } from 'mongoose';
 
-const orgId = new Types.ObjectId().toString();
+const orgId = '507f191e810c19729de860ee'.toString();
 
 const createContext = (
   body: Record<string, unknown> = {},

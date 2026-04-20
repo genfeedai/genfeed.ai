@@ -20,7 +20,6 @@ import { AgentToolName } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Effect } from 'effect';
-import { Types } from 'mongoose';
 
 const ORG_ID = '67a123456789012345678901';
 const USER_ID = '67a123456789012345678902';
@@ -844,7 +843,7 @@ describe('AgentOrchestratorService', () => {
   });
 
   it('should apply org agent policy defaults for strategy-driven runs', async () => {
-    const strategyBrandId = new Types.ObjectId();
+    const strategyBrandId = 'test-object-id';
     organizationsService.findOne.mockResolvedValue({
       onboardingCompleted: true,
     } as never);
@@ -862,7 +861,7 @@ describe('AgentOrchestratorService', () => {
       },
     } as never);
     agentStrategiesService.findOneById.mockResolvedValue({
-      _id: new Types.ObjectId(),
+      _id: 'test-object-id',
       autonomyMode: AgentAutonomyMode.SUPERVISED,
       brand: strategyBrandId,
       platforms: ['linkedin'],
@@ -966,7 +965,7 @@ describe('AgentOrchestratorService', () => {
       },
     } as never);
     agentStrategiesService.findOneById.mockResolvedValue({
-      _id: new Types.ObjectId(),
+      _id: 'test-object-id',
       autonomyMode: AgentAutonomyMode.SUPERVISED,
       model: 'deepseek/deepseek-chat',
       platforms: ['twitter'],

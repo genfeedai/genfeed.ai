@@ -58,7 +58,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 @AutoSwagger()
 @Controller('musics')
@@ -115,14 +114,14 @@ export class MusicsOperationsController {
 
     // Fetch brand for default model
     const brand = await this.brandsService.findOne({
-      _id: new Types.ObjectId(brandId),
+      _id: brandId,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     });
     const organizationSettings = await this.organizationSettingsService.findOne(
       {
         isDeleted: false,
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
       },
     );
 
@@ -162,22 +161,22 @@ export class MusicsOperationsController {
     // Save prompt first
     const promptData = await this.promptsService.create(
       new PromptEntity({
-        brand: new Types.ObjectId(brandId),
+        brand: brandId,
         category: PromptCategory.MODELS_PROMPT_MUSIC,
         model,
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
         original: createMusicDto.text,
-        user: new Types.ObjectId(publicMetadata.user),
+        user: publicMetadata.user,
       }),
     );
 
     const { metadataData, ingredientData } =
       await this.sharedService.saveDocuments(user, {
         ...createMusicDto,
-        brand: new Types.ObjectId(publicMetadata.brand),
+        brand: publicMetadata.brand,
         category: IngredientCategory.MUSIC,
         extension: MetadataExtension.MP3,
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
         prompt: promptData._id,
         status: IngredientStatus.PROCESSING,
       });
@@ -185,13 +184,13 @@ export class MusicsOperationsController {
     // Create activity for music generation start (after ingredientData is available)
     const activity = await this.activitiesService.create(
       new ActivityEntity({
-        brand: new Types.ObjectId(publicMetadata.brand),
+        brand: publicMetadata.brand,
         entityId: ingredientData._id,
         entityModel: ActivityEntityModel.INGREDIENT,
         key: ActivityKey.MUSIC_PROCESSING,
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
         source: ActivitySource.MUSIC_GENERATION,
-        user: new Types.ObjectId(publicMetadata.user),
+        user: publicMetadata.user,
         value: JSON.stringify({
           ingredientId: ingredientData._id.toString(),
           model,
@@ -221,8 +220,8 @@ export class MusicsOperationsController {
       typeof createMusicDto.seed === 'number' ? createMusicDto.seed : -1;
 
     const runMusicGeneration = async (
-      metadataId: Types.ObjectId,
-      ingredientId: Types.ObjectId,
+      metadataId: string,
+      ingredientId: string,
       outputIndex: number,
       seedValue: number,
     ): Promise<string | null> => {
@@ -346,10 +345,10 @@ export class MusicsOperationsController {
 
         if (outputs > 1) {
           for (let i = 1; i < outputs; i++) {
-            let additionalMetadataId: Types.ObjectId | null = null;
-            let additionalIngredientId: Types.ObjectId | null = null;
+            let additionalMetadataId: string | null = null;
+            let additionalIngredientId: string | null = null;
 
-            const promptId = new Types.ObjectId(promptData._id);
+            const promptId = promptData._id;
 
             try {
               const {
@@ -357,10 +356,10 @@ export class MusicsOperationsController {
                 ingredientData: additionalIngredient,
               } = await this.sharedService.saveDocuments(user, {
                 ...createMusicDto,
-                brand: new Types.ObjectId(publicMetadata.brand),
+                brand: publicMetadata.brand,
                 category: IngredientCategory.MUSIC,
                 extension: MetadataExtension.MP3,
-                organization: new Types.ObjectId(publicMetadata.organization),
+                organization: publicMetadata.organization,
                 prompt: promptId,
                 status: IngredientStatus.PROCESSING,
               });
@@ -378,7 +377,7 @@ export class MusicsOperationsController {
               const seedForOutput = baseSeed >= 0 ? baseSeed + i : -1;
 
               await runMusicGeneration(
-                new Types.ObjectId(additionalMetadata._id),
+                additionalMetadata._id,
                 additionalIngredient._id,
                 i,
                 seedForOutput,

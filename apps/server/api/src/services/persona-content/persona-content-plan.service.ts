@@ -1,4 +1,4 @@
-import { PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
+import { type PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import {
@@ -9,15 +9,14 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 export interface ContentPlanInput {
-  personaId: Types.ObjectId;
-  organization: Types.ObjectId;
-  user: Types.ObjectId;
-  brand: Types.ObjectId;
+  personaId: string;
+  organization: string;
+  user: string;
+  brand: string;
   days: number;
-  credentialId?: Types.ObjectId;
+  credentialId?: string;
 }
 
 export interface ContentPlanEntry {
@@ -119,7 +118,7 @@ export class PersonaContentPlanService {
         await this.postsService.create({
           brand: input.brand,
           category: entry.category,
-          credential: input.credentialId as Types.ObjectId,
+          credential: input.credentialId,
           description: entry.description,
           label: `${entry.topic} - ${entry.format}`,
           organization: input.organization,
@@ -159,8 +158,8 @@ export class PersonaContentPlanService {
   }
 
   private async getPersonaOrFail(
-    personaId: Types.ObjectId,
-    organization: Types.ObjectId,
+    personaId: string,
+    organization: string,
   ): Promise<PersonaDocument> {
     const persona = await this.personasService.findOne({
       _id: personaId,

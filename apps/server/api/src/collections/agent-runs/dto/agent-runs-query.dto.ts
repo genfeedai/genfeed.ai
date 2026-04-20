@@ -14,7 +14,6 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class AgentRunsQueryDto extends BaseQueryDto {
   @ApiProperty({
@@ -78,7 +77,7 @@ export class AgentRunsQueryDto extends BaseQueryDto {
   })
   @IsOptional()
   @IsMongoId()
-  strategy?: string | Types.ObjectId;
+  strategy?: string;
 
   @ApiProperty({
     description: 'Filter by trigger',

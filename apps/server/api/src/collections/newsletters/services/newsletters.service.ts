@@ -9,13 +9,13 @@ import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.co
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import type { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import type { PipelineStage } from 'mongoose';
 
 type TenantContext = {
   organizationId: string;
@@ -44,7 +44,7 @@ export class NewslettersService extends BaseService<
     super(prisma, 'newsletter', logger);
   }
 
-  buildListPipeline(
+  buildListQuery(
     ctx: TenantContext,
     query: {
       isDeleted?: boolean;
@@ -52,45 +52,105 @@ export class NewslettersService extends BaseService<
       sort?: string;
       status?: string[];
     },
-  ): PipelineStage[] {
-    const match: Record<string, unknown> = {
-      brand: ctx.brandId,
+  ): {
+    where: Record<string, unknown>;
+    orderBy: Record<string, 'asc' | 'desc'>[];
+  } {
+    const where: Record<string, unknown> = {
+      brandId: ctx.brandId,
       isDeleted: query.isDeleted ?? false,
-      organization: ctx.organizationId,
+      organizationId: ctx.organizationId,
     };
 
     if (query.status?.length) {
-      match.status = { $in: query.status };
+      where.status = { in: query.status };
     }
 
     if (query.search?.trim()) {
       const search = query.search.trim();
-      match.$or = [
-        { label: { $options: 'i', $regex: search } },
-        { topic: { $options: 'i', $regex: search } },
-        { content: { $options: 'i', $regex: search } },
+      where.OR = [
+        { label: { contains: search, mode: 'insensitive' } },
+        { topic: { contains: search, mode: 'insensitive' } },
+        { content: { contains: search, mode: 'insensitive' } },
       ];
     }
 
-    return [{ $match: match }, { $sort: this.parseSort(query.sort) }];
+    return { where, orderBy: this.parseSortPrisma(query.sort) };
   }
 
   async findOneScoped(
     id: string,
     ctx: TenantContext,
   ): Promise<NewsletterDocument> {
-    const data = await this.findOne({
-      _id: id,
-      brand: ctx.brandId,
-      isDeleted: false,
-      organization: ctx.organizationId,
+    const data = await this.delegate.findFirst({
+      where: {
+        id,
+        brandId: ctx.brandId,
+        isDeleted: false,
+        organizationId: ctx.organizationId,
+      },
     });
 
     if (!data) {
       throw new NotFoundException(`Newsletter ${id} not found`);
     }
 
-    return data;
+    return data as unknown as NewsletterDocument;
+  }
+
+  async findAllScoped(
+    ctx: TenantContext,
+    query: {
+      isDeleted?: boolean;
+      search?: string;
+      sort?: string;
+      status?: string[];
+    },
+    pagination: { page?: number; limit?: number; pagination?: boolean },
+  ): Promise<AggregatePaginateResult<NewsletterDocument>> {
+    const { where, orderBy } = this.buildListQuery(ctx, query);
+    const page = pagination.page ?? 1;
+    const limit = pagination.limit ?? 20;
+    const skip = (page - 1) * limit;
+    const isPaginated = pagination.pagination !== false;
+
+    if (!isPaginated) {
+      const docs = (await this.delegate.findMany({
+        where,
+        orderBy,
+      })) as unknown as NewsletterDocument[];
+      return {
+        docs,
+        hasNextPage: false,
+        hasPrevPage: false,
+        limit: docs.length,
+        nextPage: null,
+        page: 1,
+        pagingCounter: 1,
+        prevPage: null,
+        totalDocs: docs.length,
+        totalPages: 1,
+      };
+    }
+
+    const [docs, totalDocs] = await Promise.all([
+      this.delegate.findMany({ where, orderBy, skip, take: limit }),
+      this.delegate.count({ where }),
+    ]);
+
+    const totalPages = Math.ceil(totalDocs / limit);
+    return {
+      docs: docs as unknown as NewsletterDocument[],
+      hasNextPage: page * limit < totalDocs,
+      hasPrevPage: page > 1,
+      limit,
+      nextPage: page * limit < totalDocs ? page + 1 : null,
+      page,
+      pagingCounter: (page - 1) * limit + 1,
+      prevPage: page > 1 ? page - 1 : null,
+      totalDocs,
+      totalPages,
+    };
   }
 
   async createScoped(
@@ -344,20 +404,22 @@ export class NewslettersService extends BaseService<
     }
   }
 
-  private parseSort(sort?: string): Record<string, 1 | -1> {
+  private parseSortPrisma(sort?: string): Record<string, 'asc' | 'desc'>[] {
     if (!sort?.trim()) {
-      return { createdAt: -1 };
+      return [{ createdAt: 'desc' }];
     }
 
-    return sort.split(',').reduce<Record<string, 1 | -1>>((acc, part) => {
-      const [fieldRaw, orderRaw] = part.split(':');
-      const field = fieldRaw?.trim();
-      if (!field) {
+    return sort
+      .split(',')
+      .reduce<Record<string, 'asc' | 'desc'>[]>((acc, part) => {
+        const [fieldRaw, orderRaw] = part.split(':');
+        const field = fieldRaw?.trim();
+        if (!field) {
+          return acc;
+        }
+        acc.push({ [field]: orderRaw?.trim() === '1' ? 'asc' : 'desc' });
         return acc;
-      }
-      acc[field] = orderRaw?.trim() === '1' ? 1 : -1;
-      return acc;
-    }, {});
+      }, []);
   }
 
   private async getBrandContext(ctx: TenantContext) {
@@ -372,37 +434,35 @@ export class NewslettersService extends BaseService<
     ctx: TenantContext,
     limit = 5,
   ): Promise<NewsletterDocument[]> {
-    const results = await this.findAll(
-      [
-        {
-          $match: {
-            brand: ctx.brandId,
-            isDeleted: false,
-            organization: ctx.organizationId,
-            status: 'published',
-          },
-        },
-        { $sort: { createdAt: -1, publishedAt: -1 } },
-        { $limit: limit },
-      ],
-      { pagination: false },
-    );
+    const results = await this.delegate.findMany({
+      where: {
+        brandId: ctx.brandId,
+        isDeleted: false,
+        organizationId: ctx.organizationId,
+        status: 'published',
+      },
+      orderBy: [{ publishedAt: 'desc' }, { createdAt: 'desc' }],
+      take: limit,
+    });
 
-    return results.docs;
+    return results as unknown as NewsletterDocument[];
   }
 
   private async findContextNewsletters(
     ids: string[],
     ctx: TenantContext,
   ): Promise<NewsletterDocument[]> {
-    const documents = await this.find({
-      _id: { $in: ids },
-      brand: ctx.brandId,
-      isDeleted: false,
-      organization: ctx.organizationId,
+    const documents = await this.delegate.findMany({
+      where: {
+        id: { in: ids },
+        brandId: ctx.brandId,
+        isDeleted: false,
+        organizationId: ctx.organizationId,
+      },
     });
 
-    return documents.sort(
+    const docs = documents as unknown as NewsletterDocument[];
+    return docs.sort(
       (left, right) =>
         ids.findIndex((item) => item === left._id.toString()) -
         ids.findIndex((item) => item === right._id.toString()),

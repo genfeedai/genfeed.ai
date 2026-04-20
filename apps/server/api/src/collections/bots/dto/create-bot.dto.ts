@@ -13,7 +13,6 @@ import {
   MaxLength,
   ValidateNested,
 } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class CreateBotDto {
   @IsMongoId()
@@ -22,7 +21,7 @@ export class CreateBotDto {
     description: 'Organization that owns the bot',
     required: false,
   })
-  organization?: Types.ObjectId;
+  organization?: string;
 
   @IsMongoId()
   @IsOptional()
@@ -30,7 +29,7 @@ export class CreateBotDto {
     description: 'Brand the bot is scoped to',
     required: false,
   })
-  brand?: Types.ObjectId;
+  brand?: string;
 
   @IsMongoId()
   @IsOptional()
@@ -38,7 +37,7 @@ export class CreateBotDto {
     description: 'User that configured the bot',
     required: false,
   })
-  user?: Types.ObjectId;
+  user?: string;
 
   @IsString()
   @MaxLength(120)

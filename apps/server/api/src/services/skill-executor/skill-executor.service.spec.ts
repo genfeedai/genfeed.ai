@@ -7,13 +7,12 @@ import { TrendDiscoveryHandler } from '@api/services/skill-executor/handlers/tre
 import { SkillExecutorService } from '@api/services/skill-executor/skill-executor.service';
 import { ByokProvider, ContentRunStatus } from '@genfeedai/enums';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('SkillExecutorService', () => {
-  const orgId = new Types.ObjectId().toString();
-  const brandId = new Types.ObjectId().toString();
-  const runId = new Types.ObjectId().toString();
+  const orgId = 'test-object-id';
+  const brandId = 'test-object-id';
+  const runId = 'test-object-id';
 
   const baseContext = {
     brandId,

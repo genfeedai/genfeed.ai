@@ -1,6 +1,6 @@
 /**
  * Brands E2E Tests
- * Tests brand CRUD operations with real database (MongoMemoryServer)
+ * Tests brand CRUD operations with real database (Prisma)
  * All external services are mocked to prevent real API calls
  */
 
@@ -23,6 +23,7 @@ import {
   createTestOrganization,
   createTestOrganizationSetting,
   createTestUser,
+  generateIdString,
 } from '@api-test/e2e/e2e-test.utils';
 import {
   createTestDatabaseHelper,
@@ -31,7 +32,6 @@ import {
 } from '@api-test/e2e-test.module';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import request from 'supertest';
 
 describe('Brands E2E Tests', () => {
@@ -88,21 +88,21 @@ describe('Brands E2E Tests', () => {
 
     // Create test user
     testUser = createTestUser({
-      _id: new Types.ObjectId(),
+      _id: generateIdString(),
       clerkId: 'clerk_brand_test_user',
       email: 'brand-test@example.com',
     });
 
     // Create test organization
     testOrganization = createTestOrganization({
-      _id: new Types.ObjectId(),
+      _id: generateIdString(),
       label: 'Brand Test Organization',
       user: testUser._id,
     });
 
     // Create test member (owner)
     testMember = createTestMember({
-      _id: new Types.ObjectId(),
+      _id: generateIdString(),
       organization: testOrganization._id,
       role: 'owner',
       user: testUser._id,
@@ -110,7 +110,7 @@ describe('Brands E2E Tests', () => {
 
     // Create test brand
     testBrand = createTestBrand({
-      _id: new Types.ObjectId(),
+      _id: generateIdString(),
       description: 'A test brand for E2E testing',
       label: 'Test Brand',
       organization: testOrganization._id,
@@ -125,13 +125,13 @@ describe('Brands E2E Tests', () => {
     await dbHelper.seedCollection('brands', [testBrand]);
     await dbHelper.seedCollection('organization-settings', [
       createTestOrganizationSetting({
-        _id: new Types.ObjectId(),
+        _id: generateIdString(),
         organization: testOrganization._id,
       }),
     ]);
     await dbHelper.seedCollection('credit-balances', [
       createTestCredit({
-        _id: new Types.ObjectId(),
+        _id: generateIdString(),
         balance: 50000,
         organization: testOrganization._id,
       }),
@@ -154,14 +154,14 @@ describe('Brands E2E Tests', () => {
       // Add more brands for testing
       const additionalBrands = [
         createTestBrand({
-          _id: new Types.ObjectId(),
+          _id: generateIdString(),
           label: 'Alpha Brand',
           organization: testOrganization._id,
           slug: `brand-alpha-${Date.now()}`,
           user: testUser._id,
         }),
         createTestBrand({
-          _id: new Types.ObjectId(),
+          _id: generateIdString(),
           label: 'Beta Brand',
           organization: testOrganization._id,
           slug: `brand-beta-${Date.now()}`,
@@ -212,7 +212,7 @@ describe('Brands E2E Tests', () => {
     it('should filter out deleted brands by default', async () => {
       // Create a deleted brand
       const deletedBrand = createTestBrand({
-        _id: new Types.ObjectId(),
+        _id: generateIdString(),
         isDeleted: true,
         label: 'Deleted Brand',
         organization: testOrganization._id,
@@ -297,7 +297,7 @@ describe('Brands E2E Tests', () => {
     });
 
     it('should return 404 for non-existent brand', async () => {
-      const nonExistentId = new Types.ObjectId();
+      const nonExistentId = generateIdString();
 
       const response = await authenticatedRequest().get(
         `/v1/brands/${nonExistentId}`,
@@ -309,7 +309,7 @@ describe('Brands E2E Tests', () => {
     it('should return brand with populated assets', async () => {
       // Create logo asset
       const logoAsset = createTestAsset({
-        _id: new Types.ObjectId(),
+        _id: generateIdString(),
         category: 'image',
         organization: testOrganization._id,
         type: 'logo',
@@ -508,7 +508,7 @@ describe('Brands E2E Tests', () => {
     });
 
     it('should return 404 for non-existent brand', async () => {
-      const nonExistentId = new Types.ObjectId();
+      const nonExistentId = generateIdString();
       const updateData = {
         data: {
           attributes: {
@@ -572,7 +572,7 @@ describe('Brands E2E Tests', () => {
     });
 
     it('should return 404 for non-existent brand', async () => {
-      const nonExistentId = new Types.ObjectId();
+      const nonExistentId = generateIdString();
 
       const response = await authenticatedRequest().delete(
         `/v1/brands/${nonExistentId}`,
@@ -584,7 +584,7 @@ describe('Brands E2E Tests', () => {
     it('should not affect other brands when deleting', async () => {
       // Create another brand
       const anotherBrand = createTestBrand({
-        _id: new Types.ObjectId(),
+        _id: generateIdString(),
         label: 'Another Brand',
         organization: testOrganization._id,
         slug: `another-brand-${Date.now()}`,
@@ -610,7 +610,7 @@ describe('Brands E2E Tests', () => {
       // Create credentials for the brand
       const credentials = [
         createTestCredential({
-          _id: new Types.ObjectId(),
+          _id: generateIdString(),
           brand: testBrand._id,
           externalHandle: '@testchannel',
           isConnected: true,
@@ -619,7 +619,7 @@ describe('Brands E2E Tests', () => {
           user: testUser._id,
         }),
         createTestCredential({
-          _id: new Types.ObjectId(),
+          _id: generateIdString(),
           brand: testBrand._id,
           externalHandle: '@testtiktok',
           isConnected: true,
@@ -651,26 +651,26 @@ describe('Brands E2E Tests', () => {
     beforeEach(async () => {
       // Create another organization with a brand
       otherUser = createTestUser({
-        _id: new Types.ObjectId(),
+        _id: generateIdString(),
         clerkId: 'clerk_other_brand_user',
         email: 'other-brand@example.com',
       });
 
       otherOrganization = createTestOrganization({
-        _id: new Types.ObjectId(),
+        _id: generateIdString(),
         label: 'Other Organization',
         user: otherUser._id,
       });
 
       const otherMember = createTestMember({
-        _id: new Types.ObjectId(),
+        _id: generateIdString(),
         organization: otherOrganization._id,
         role: 'owner',
         user: otherUser._id,
       });
 
       otherBrand = createTestBrand({
-        _id: new Types.ObjectId(),
+        _id: generateIdString(),
         label: 'Other Org Brand',
         organization: otherOrganization._id,
         slug: `other-org-brand-${Date.now()}`,
@@ -683,7 +683,7 @@ describe('Brands E2E Tests', () => {
       await dbHelper.seedCollection('brands', [otherBrand]);
       await dbHelper.seedCollection('organization-settings', [
         createTestOrganizationSetting({
-          _id: new Types.ObjectId(),
+          _id: generateIdString(),
           organization: otherOrganization._id,
         }),
       ]);
@@ -745,7 +745,7 @@ describe('Brands E2E Tests', () => {
       // Create brands with searchable names
       const searchableBrands = [
         createTestBrand({
-          _id: new Types.ObjectId(),
+          _id: generateIdString(),
           description: 'A technology focused startup',
           label: 'Tech Startup Brand',
           organization: testOrganization._id,
@@ -753,7 +753,7 @@ describe('Brands E2E Tests', () => {
           user: testUser._id,
         }),
         createTestBrand({
-          _id: new Types.ObjectId(),
+          _id: generateIdString(),
           description: 'A food and beverage company',
           label: 'Food Company Brand',
           organization: testOrganization._id,

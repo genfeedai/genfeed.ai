@@ -1,4 +1,4 @@
-import { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
+import { type CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { ConfigService } from '@api/config/config.service';
 import { FanvueService } from '@api/services/integrations/fanvue/services/fanvue.service';
 import { BasePublisherService } from '@api/services/integrations/publishers/base-publisher.service';

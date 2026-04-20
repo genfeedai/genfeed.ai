@@ -16,7 +16,6 @@ import { TelegramAuthUtil } from '@api/shared/utils/telegram-auth/telegram-auth.
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('TelegramService', () => {
   let service: TelegramService;
@@ -78,16 +77,16 @@ describe('TelegramService', () => {
   });
 
   describe('verifyAndSaveAuth', () => {
-    const orgId = new Types.ObjectId().toString();
-    const brandId = new Types.ObjectId().toString();
-    const userId = new Types.ObjectId().toString();
+    const orgId = 'test-object-id';
+    const brandId = 'test-object-id';
+    const userId = 'test-object-id';
 
     it('should verify auth data and create new credential', async () => {
       vi.mocked(TelegramAuthUtil.hasRequiredFields).mockReturnValue(true);
       vi.mocked(TelegramAuthUtil.isAuthDateValid).mockReturnValue(true);
       vi.mocked(TelegramAuthUtil.verifyAuthData).mockReturnValue(true);
       mockCredentialsService.findOne.mockResolvedValue(null);
-      const newCredential = { _id: new Types.ObjectId(), isConnected: true };
+      const newCredential = { _id: 'test-object-id', isConnected: true };
       mockCredentialsService.create.mockResolvedValue(newCredential);
 
       const result = await service.verifyAndSaveAuth(
@@ -111,7 +110,7 @@ describe('TelegramService', () => {
       vi.mocked(TelegramAuthUtil.hasRequiredFields).mockReturnValue(true);
       vi.mocked(TelegramAuthUtil.isAuthDateValid).mockReturnValue(true);
       vi.mocked(TelegramAuthUtil.verifyAuthData).mockReturnValue(true);
-      const existingId = new Types.ObjectId();
+      const existingId = 'test-object-id';
       mockCredentialsService.findOne.mockResolvedValue({
         _id: existingId,
       });
@@ -210,11 +209,11 @@ describe('TelegramService', () => {
   });
 
   describe('disconnect', () => {
-    const orgId = new Types.ObjectId().toString();
-    const brandId = new Types.ObjectId().toString();
+    const orgId = 'test-object-id';
+    const brandId = 'test-object-id';
 
     it('should disconnect and soft-delete credential', async () => {
-      const credentialId = new Types.ObjectId();
+      const credentialId = 'test-object-id';
       mockCredentialsService.findOne.mockResolvedValue({
         _id: credentialId,
       });

@@ -25,10 +25,10 @@ import { FacebookService } from '@api/services/integrations/facebook/services/fa
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
+import { PrismaModule } from '@api/shared/modules/prisma/prisma.module';
 import { IngredientStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { INestApplication } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 import { MongoIdFactory } from '@test/factories/base.factory';
 import {
@@ -36,7 +36,6 @@ import {
   mockConfigService,
   mockLoggerService,
 } from '@test/mocks/service.mocks';
-import { MongoMemoryServer } from 'mongodb-memory-server';
 
 // Mock Accounts Service interface (service doesn't exist in codebase)
 interface AccountsService {
@@ -123,7 +122,7 @@ describe('Social Media Publishing Integration Tests', () => {
 
   let app: INestApplication;
   let moduleRef: TestingModule;
-  let mongoServer: MongoMemoryServer;
+
   let twitterService: MockTwitterService;
   let instagramService: MockInstagramService;
   let tiktokService: MockTiktokService;
@@ -133,11 +132,8 @@ describe('Social Media Publishing Integration Tests', () => {
   let accountsService: AccountsService;
 
   beforeAll(async () => {
-    mongoServer = await MongoMemoryServer.create();
-    const mongoUri = mongoServer.getUri();
-
     moduleRef = await Test.createTestingModule({
-      imports: [MongooseModule.forRoot(mongoUri)],
+      imports: [PrismaModule],
       providers: [
         {
           provide: TwitterService,
@@ -279,15 +275,6 @@ describe('Social Media Publishing Integration Tests', () => {
       }
     } catch {
       // Ignore close errors
-    }
-
-    try {
-      if (mongoServer) {
-        await mongoServer.stop({ doCleanup: true, force: true });
-        mongoServer = null as any;
-      }
-    } catch {
-      // Ignore stop errors
     }
 
     // Allow event loop to clear pending handles

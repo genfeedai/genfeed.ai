@@ -1,5 +1,4 @@
 import { CredentialPlatform } from '@genfeedai/enums';
-import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@api/shared/utils/encryption/encryption.util', () => ({
@@ -12,14 +11,14 @@ import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 
 import { CredentialHelper } from './credential-helper.util';
 
-const orgId = new Types.ObjectId().toHexString();
-const brandId = new Types.ObjectId().toHexString();
+const orgId = '507f191e810c19729de860ee';
+const brandId = '507f191e810c19729de860ee';
 const platform = CredentialPlatform.INSTAGRAM;
 
 const baseOptions = { brandId, organizationId: orgId, platform };
 
 const mockCredential = {
-  _id: new Types.ObjectId(),
+  _id: '507f191e810c19729de860ee',
   accessToken: 'encrypted-token',
   platform,
 };
@@ -57,9 +56,9 @@ describe('CredentialHelper', () => {
 
       expect(service.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
-          brand: expect.any(Types.ObjectId),
+          brand: expect.any(String),
           isDeleted: false,
-          organization: expect.any(Types.ObjectId),
+          organization: expect.any(String),
           platform,
         }),
       );
@@ -105,8 +104,8 @@ describe('CredentialHelper', () => {
     it('builds a query with ObjectId fields', () => {
       const query = CredentialHelper.buildQuery(baseOptions);
 
-      expect(query.brand).toBeInstanceOf(Types.ObjectId);
-      expect(query.organization).toBeInstanceOf(Types.ObjectId);
+      expect(query.brand).toEqual(expect.any(String));
+      expect(query.organization).toEqual(expect.any(String));
       expect(String(query.brand)).toBe(brandId);
       expect(String(query.organization)).toBe(orgId);
       expect(query.platform).toBe(platform);

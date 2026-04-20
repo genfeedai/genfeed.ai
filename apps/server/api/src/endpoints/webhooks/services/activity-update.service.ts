@@ -1,5 +1,4 @@
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
-import { Activity } from '@api/collections/activities/schemas/activity.schema';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import {
   getActivityLabel,
@@ -23,6 +22,7 @@ import {
   IngredientCategory,
   MetadataExtension,
 } from '@genfeedai/enums';
+import { type Activity } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable } from '@nestjs/common';

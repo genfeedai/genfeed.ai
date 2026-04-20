@@ -1,4 +1,4 @@
-import { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { CloneVoiceDto } from '@api/collections/voices/dto/clone-voice.dto';
 import { GenerateVoiceDto } from '@api/collections/voices/dto/generate-voice.dto';
@@ -70,7 +70,11 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Request } from 'express';
-import { isValidObjectId, type PipelineStage, Types } from 'mongoose';
+
+const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
+function isValidObjectId(id: unknown): id is string {
+  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
+}
 
 interface UploadedAudioFile {
   buffer: Buffer;
@@ -108,8 +112,8 @@ export class VoicesController {
     try {
       const isSuperAdmin = getIsSuperAdmin(user, request);
       const publicMetadata = getPublicMetadata(user);
-      const brand = new Types.ObjectId(publicMetadata.brand);
-      const organization = new Types.ObjectId(publicMetadata.organization);
+      const brand = publicMetadata.brand;
+      const organization = publicMetadata.organization;
       const requestedProviders = this.parseProviders(query.providers);
       const requestedSources = query.voiceSource;
       const normalizedSearch = query.search?.trim();
@@ -159,7 +163,7 @@ export class VoicesController {
         match.voiceSource = { $in: requestedSources };
       }
 
-      const aggregate: PipelineStage[] = [
+      const aggregate: Record<string, unknown>[] = [
         {
           $match: match,
         },
@@ -281,7 +285,7 @@ export class VoicesController {
       }
     }
 
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: {
           isDeleted: false,
@@ -342,7 +346,7 @@ export class VoicesController {
     }
 
     const voice = await this.voicesService.findOne({
-      _id: new Types.ObjectId(id),
+      _id: id,
       isDeleted: false,
       type: 'voice',
       voiceSource: 'catalog',
@@ -376,15 +380,11 @@ export class VoicesController {
       );
     }
 
-    await this.voicesService.patchAll(
-      { _id: new Types.ObjectId(id) },
-      { $set: updates },
-    );
+    await this.voicesService.patchAll({ _id: id }, { $set: updates });
 
-    const updatedVoice = await this.voicesService.findOne(
-      { _id: new Types.ObjectId(id) },
-      [PopulatePatterns.metadataFull],
-    );
+    const updatedVoice = await this.voicesService.findOne({ _id: id }, [
+      PopulatePatterns.metadataFull,
+    ]);
 
     if (!updatedVoice) {
       return returnNotFound(this.constructorName, id);
@@ -433,10 +433,10 @@ export class VoicesController {
 
     // Create ingredient record with PROCESSING status
     const { ingredientData } = await this.sharedService.saveDocuments(user, {
-      brand: new Types.ObjectId(publicMetadata.brand),
+      brand: publicMetadata.brand,
       category: IngredientCategory.VOICE,
       extension: MetadataExtension.MP3,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
       status: IngredientStatus.PROCESSING,
       voiceSource: 'generated',
     });
@@ -571,11 +571,8 @@ export class VoicesController {
       [PopulatePatterns.metadataFull],
     )) as
       | (IngredientDocument & {
-          _id: Types.ObjectId;
-          metadata?:
-            | { _id?: Types.ObjectId | string }
-            | Types.ObjectId
-            | string;
+          _id: string;
+          metadata?: { _id?: string | string } | string;
         })
       | null;
 
@@ -615,11 +612,11 @@ export class VoicesController {
 
     const { ingredientData, metadataData } =
       await this.sharedService.saveDocuments(user, {
-        brand: new Types.ObjectId(publicMetadata.brand),
+        brand: publicMetadata.brand,
         category: IngredientCategory.VOICE,
         extension: MetadataExtension.MP3,
         label: input.label,
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
         scope: AssetScope.ORGANIZATION,
         status: IngredientStatus.UPLOADED,
       });
@@ -653,12 +650,12 @@ export class VoicesController {
 
     const voice = (await this.voicesService.findOne(
       {
-        _id: new Types.ObjectId(id),
+        _id: id,
         type: 'voice',
       },
       [PopulatePatterns.metadataFull],
     )) as unknown as {
-      _id: Types.ObjectId;
+      _id: string;
       metadata: { externalId: string };
     };
 
@@ -763,12 +760,12 @@ export class VoicesController {
     try {
       const publicMetadata = getPublicMetadata(user);
 
-      const aggregate: PipelineStage[] = [
+      const aggregate: Record<string, unknown>[] = [
         {
           $match: {
             isCloned: true,
             isDeleted: false,
-            organization: new Types.ObjectId(publicMetadata.organization),
+            organization: publicMetadata.organization,
             type: 'voice',
           },
         },
@@ -806,10 +803,10 @@ export class VoicesController {
     }
 
     const voice = await this.voicesService.findOne({
-      _id: new Types.ObjectId(id),
+      _id: id,
       isCloned: true,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
       type: 'voice',
     });
 
@@ -818,7 +815,7 @@ export class VoicesController {
     }
 
     const voiceDoc = voice as unknown as {
-      _id: Types.ObjectId;
+      _id: string;
       externalVoiceId?: string;
       provider?: VoiceProvider;
     };
@@ -890,10 +887,10 @@ export class VoicesController {
 
     // Create ingredient record
     const { ingredientData } = await this.sharedService.saveDocuments(user, {
-      brand: new Types.ObjectId(publicMetadata.brand),
+      brand: publicMetadata.brand,
       category: IngredientCategory.VOICE,
       label: dto.name,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
       status: IngredientStatus.GENERATED,
     });
 
@@ -971,10 +968,10 @@ export class VoicesController {
 
     // Create ingredient record with PROCESSING status (async clone)
     const { ingredientData } = await this.sharedService.saveDocuments(user, {
-      brand: new Types.ObjectId(publicMetadata.brand),
+      brand: publicMetadata.brand,
       category: IngredientCategory.VOICE,
       label: dto.name,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
       status: IngredientStatus.PROCESSING,
     });
 

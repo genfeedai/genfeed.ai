@@ -32,7 +32,6 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
-import type { PipelineStage } from 'mongoose';
 
 @AutoSwagger()
 @Controller('elements/lenses')
@@ -49,7 +48,7 @@ export class ElementsLensesController extends BaseCRUDController<
     public readonly lensesService: ElementsLensesService,
     public readonly loggerService: LoggerService,
   ) {
-    super(loggerService, lensesService, LensSerializer, ElementLens.name);
+    super(loggerService, lensesService, LensSerializer, 'ElementLens');
   }
 
   @Get(':lensId')
@@ -107,7 +106,7 @@ export class ElementsLensesController extends BaseCRUDController<
   public buildFindAllPipeline(
     user: User,
     query: BaseQueryDto,
-  ): PipelineStage[] {
+  ): Record<string, unknown>[] {
     const publicMetadata = getPublicMetadata(user);
     const adminFilter = CollectionFilterUtil.buildAdminFilter(
       publicMetadata,

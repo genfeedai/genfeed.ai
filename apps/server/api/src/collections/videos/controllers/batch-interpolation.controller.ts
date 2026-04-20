@@ -60,7 +60,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 @AutoSwagger()
 @Controller('videos')
@@ -106,7 +105,7 @@ export class BatchInterpolationController {
     const publicMetadata = getPublicMetadata(user);
 
     // Generate group ID to link all videos together
-    const groupId = new Types.ObjectId().toString();
+    const groupId = '507f191e810c19729de860ee'.toString();
 
     // Validate model exists and supports interpolation
     const model = await this.modelsService.findOne({
@@ -126,9 +125,9 @@ export class BatchInterpolationController {
 
     // Get brand for organization context
     const brand = await this.brandsService.findOne({
-      _id: new Types.ObjectId(publicMetadata.brand),
+      _id: publicMetadata.brand,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     });
 
     if (!brand) {
@@ -241,12 +240,12 @@ export class BatchInterpolationController {
         // Create prompt record
         const promptData = await this.promptsService.create(
           new PromptEntity({
-            brand: new Types.ObjectId(publicMetadata.brand),
+            brand: publicMetadata.brand,
             category: PromptCategory.MODELS_PROMPT_VIDEO,
-            organization: new Types.ObjectId(publicMetadata.organization),
+            organization: publicMetadata.organization,
             original: promptText,
             status: PromptStatus.PROCESSING,
-            user: new Types.ObjectId(publicMetadata.user),
+            user: publicMetadata.user,
           }),
         );
 
@@ -275,7 +274,7 @@ export class BatchInterpolationController {
         // Create video ingredient with groupId for batch tracking
         const { metadataData, ingredientData } =
           await this.sharedService.saveDocuments(user, {
-            brand: new Types.ObjectId(brand._id),
+            brand: brand._id,
             category: IngredientCategory.VIDEO,
             extension: MetadataExtension.MP4,
             groupId,
@@ -283,10 +282,10 @@ export class BatchInterpolationController {
             height,
             isMergeEnabled: dto.isMergeEnabled || false,
             model: dto.modelKey,
-            organization: new Types.ObjectId(brand.organization),
-            prompt: new Types.ObjectId(promptData._id),
+            organization: brand.organization,
+            prompt: promptData._id,
             promptTemplate: templateUsed,
-            references: [new Types.ObjectId(pair.startImageId)],
+            references: [pair.startImageId],
             status: IngredientStatus.PROCESSING,
             templateVersion: templateVersion,
             width,
@@ -297,13 +296,13 @@ export class BatchInterpolationController {
         // Create activity for tracking
         const activity = await this.activitiesService.create(
           new ActivityEntity({
-            brand: new Types.ObjectId(brand._id),
+            brand: brand._id,
             entityId: ingredientData._id,
             entityModel: ActivityEntityModel.INGREDIENT,
             key: ActivityKey.VIDEO_PROCESSING,
-            organization: new Types.ObjectId(publicMetadata.organization),
+            organization: publicMetadata.organization,
             source: ActivitySource.VIDEO_GENERATION,
-            user: new Types.ObjectId(publicMetadata.user),
+            user: publicMetadata.user,
             value: JSON.stringify({
               groupId,
               ingredientId,

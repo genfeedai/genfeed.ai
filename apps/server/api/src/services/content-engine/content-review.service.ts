@@ -1,12 +1,9 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
-import {
-  type ContentDraftDocument,
-  ContentDraftStatus,
-} from '@api/collections/content-drafts/schemas/content-draft.schema';
+import { type ContentDraftDocument } from '@api/collections/content-drafts/schemas/content-draft.schema';
 import { ContentDraftsService } from '@api/collections/content-drafts/services/content-drafts.service';
+import { ContentDraftStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 @Injectable()
 export class ContentReviewService {
@@ -68,9 +65,9 @@ export class ContentReviewService {
     }
 
     const brand = await this.brandsService.findOne({
-      _id: new Types.ObjectId(brandId),
+      _id: brandId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
     });
 
     if (!brand) {

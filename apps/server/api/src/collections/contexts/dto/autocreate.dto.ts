@@ -7,7 +7,6 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class AutoCreateContextDto {
   @ApiProperty({
@@ -33,7 +32,7 @@ export class AutoCreateContextDto {
     description: 'Brand ID to auto-create context from',
   })
   @IsMongoId()
-  brandId!: Types.ObjectId;
+  brandId!: string;
 
   @ApiProperty({
     default: true,

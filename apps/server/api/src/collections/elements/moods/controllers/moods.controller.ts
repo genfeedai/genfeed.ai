@@ -33,7 +33,6 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
-import { type PipelineStage, Types } from 'mongoose';
 
 @AutoSwagger()
 @Controller('elements/moods')
@@ -50,7 +49,7 @@ export class ElementsMoodsController extends BaseCRUDController<
     public readonly moodsService: ElementsMoodsService,
     public readonly loggerService: LoggerService,
   ) {
-    super(loggerService, moodsService, MoodSerializer, ElementMood.name);
+    super(loggerService, moodsService, MoodSerializer, 'ElementMood');
   }
 
   @Get(':moodId')
@@ -108,7 +107,7 @@ export class ElementsMoodsController extends BaseCRUDController<
   public buildFindAllPipeline(
     user: User,
     query: BaseQueryDto,
-  ): PipelineStage[] {
+  ): Record<string, unknown>[] {
     const publicMetadata = getPublicMetadata(user);
     const adminFilter = CollectionFilterUtil.buildAdminFilter(
       publicMetadata,
@@ -122,12 +121,12 @@ export class ElementsMoodsController extends BaseCRUDController<
 
     if (publicMetadata.organization) {
       orConditions.push({
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
       });
     }
 
     if (publicMetadata.user) {
-      orConditions.push({ user: new Types.ObjectId(publicMetadata.user) });
+      orConditions.push({ user: publicMetadata.user });
     }
 
     return PipelineBuilder.create()

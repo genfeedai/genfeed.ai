@@ -1,27 +1,25 @@
 import { AgentStrategyReportType } from '@api/collections/agent-strategies/schemas/agent-strategy-policy.schema';
-import {
+import type {
   AgentStrategyReport,
-  type AgentStrategyReportDocument,
+  AgentStrategyReportDocument,
 } from '@api/collections/agent-strategies/schemas/agent-strategy-report.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Types } from 'mongoose';
 
 type CreateReportInput = Omit<
   AgentStrategyReport,
-  '_id' | 'createdAt' | 'isDeleted' | 'updatedAt'
+  'id' | 'createdAt' | 'isDeleted' | 'updatedAt'
 > & {
+  strategyId: string;
+  organizationId: string;
   metadata?: Record<string, unknown>;
 };
 
 @Injectable()
 export class AgentStrategyReportsService {
   constructor(
-    @InjectModel(AgentStrategyReport.name, DB_CONNECTIONS.AGENT)
-    private readonly model: AggregatePaginateModel<AgentStrategyReportDocument>,
+    private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -30,17 +28,20 @@ export class AgentStrategyReportsService {
     organizationId: string,
     reportType?: AgentStrategyReportType,
   ): Promise<AgentStrategyReportDocument[]> {
-    const query: Record<string, unknown> = {
+    const where: Record<string, unknown> = {
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
-      strategy: new Types.ObjectId(strategyId),
+      organizationId,
+      strategyId,
     };
 
     if (reportType) {
-      query.reportType = reportType;
+      where.reportType = reportType;
     }
 
-    return this.model.find(query).sort({ periodEnd: -1 }).exec();
+    return this.prisma.agentStrategyReport.findMany({
+      where,
+      orderBy: { periodEnd: 'desc' },
+    }) as Promise<AgentStrategyReportDocument[]>;
   }
 
   getLatest(
@@ -48,34 +49,39 @@ export class AgentStrategyReportsService {
     organizationId: string,
     reportType?: AgentStrategyReportType,
   ): Promise<AgentStrategyReportDocument | null> {
-    const query: Record<string, unknown> = {
+    const where: Record<string, unknown> = {
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
-      strategy: new Types.ObjectId(strategyId),
+      organizationId,
+      strategyId,
     };
 
     if (reportType) {
-      query.reportType = reportType;
+      where.reportType = reportType;
     }
 
-    return this.model.findOne(query).sort({ periodEnd: -1 }).exec();
+    return this.prisma.agentStrategyReport.findFirst({
+      where,
+      orderBy: { periodEnd: 'desc' },
+    }) as Promise<AgentStrategyReportDocument | null>;
   }
 
   async createReport(
     input: CreateReportInput,
   ): Promise<AgentStrategyReportDocument> {
-    const created = await this.model.create({
-      ...input,
-      isDeleted: false,
-      metadata: input.metadata ?? {},
+    const created = await this.prisma.agentStrategyReport.create({
+      data: {
+        ...input,
+        isDeleted: false,
+        metadata: input.metadata ?? {},
+      },
     });
 
     this.logger.log('Created agent strategy report', {
-      reportId: String(created._id),
+      reportId: created.id,
       reportType: input.reportType,
-      strategyId: String(input.strategy),
+      strategyId: input.strategyId,
     });
 
-    return created;
+    return created as AgentStrategyReportDocument;
   }
 }

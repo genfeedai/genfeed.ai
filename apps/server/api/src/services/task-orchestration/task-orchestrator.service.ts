@@ -16,7 +16,6 @@ import {
 import { AgentExecutionStatus, AgentExecutionTrigger } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { forwardRef, Inject, Injectable, Optional } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 export interface OrchestrateTaskParams {
   /** Workspace task ID */
@@ -138,7 +137,7 @@ export class TaskOrchestratorService {
         type: 'runs_linked',
       },
       {
-        linkedRunIds: runIds.map((id) => new Types.ObjectId(id)),
+        linkedRunIds: runIds.map((id) => id),
         progress: {
           activeRunCount: runIds.length,
           message: `Queued ${runIds.length} run${runIds.length === 1 ? '' : 's'} for execution.`,
@@ -164,8 +163,8 @@ export class TaskOrchestratorService {
     // Find the workspace task that links to this run
     const task = await this.tasksService.findOne({
       isDeleted: false,
-      linkedRunIds: new Types.ObjectId(runId),
-      organization: new Types.ObjectId(organizationId),
+      linkedRunIds: runId,
+      organization: organizationId,
     });
 
     if (!task) {
@@ -331,9 +330,9 @@ export class TaskOrchestratorService {
         workspaceTaskId: params.taskId,
       },
       objective: subtask.brief,
-      organization: new Types.ObjectId(params.organizationId) as never,
+      organization: params.organizationId as never,
       trigger: AgentExecutionTrigger.EVENT,
-      user: new Types.ObjectId(params.userId) as never,
+      user: params.userId as never,
     });
 
     const runId = run._id.toString();
@@ -374,8 +373,8 @@ export class TaskOrchestratorService {
   async handleRunStarted(runId: string, organizationId: string): Promise<void> {
     const task = await this.tasksService.findOne({
       isDeleted: false,
-      linkedRunIds: new Types.ObjectId(runId),
-      organization: new Types.ObjectId(organizationId),
+      linkedRunIds: runId,
+      organization: organizationId,
     });
 
     if (!task) {

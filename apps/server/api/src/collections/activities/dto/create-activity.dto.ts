@@ -9,12 +9,11 @@ import {
   IsString,
   ValidateIf,
 } from 'class-validator';
-import type { Types } from 'mongoose';
 
 export class CreateActivityDto extends OrganizationalCreateDto {
   @IsMongoId()
   @ApiProperty({ required: true })
-  readonly brand!: Types.ObjectId;
+  readonly brand!: string;
 
   @IsString()
   @ApiProperty({ required: true })
@@ -49,5 +48,5 @@ export class CreateActivityDto extends OrganizationalCreateDto {
     description: 'Entity ID reference',
     required: false,
   })
-  readonly entityId?: Types.ObjectId;
+  readonly entityId?: string;
 }

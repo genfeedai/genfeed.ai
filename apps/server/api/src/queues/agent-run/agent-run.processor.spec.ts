@@ -2,7 +2,6 @@ import { AgentRunProcessor } from '@api/queues/agent-run/agent-run.processor';
 import type { AgentRunJobData } from '@api/queues/agent-run/agent-run-queue.service';
 import { AgentRunStatus } from '@genfeedai/enums';
 import { Job } from 'bullmq';
-import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('AgentRunProcessor', () => {
@@ -92,10 +91,10 @@ describe('AgentRunProcessor', () => {
   });
 
   it('persists thread linkage and derives summary from assistant message content', async () => {
-    const runId = new Types.ObjectId().toString();
-    const threadId = new Types.ObjectId().toString();
-    const organizationId = new Types.ObjectId().toString();
-    const userId = new Types.ObjectId().toString();
+    const runId = '507f191e810c19729de860ee'.toString();
+    const threadId = '507f191e810c19729de860ee'.toString();
+    const organizationId = '507f191e810c19729de860ee'.toString();
+    const userId = '507f191e810c19729de860ee'.toString();
 
     const job = {
       data: {
@@ -138,7 +137,7 @@ describe('AgentRunProcessor', () => {
     expect(agentRunsService.patch).toHaveBeenCalledTimes(1);
     expect(
       (
-        agentRunsService.patch.mock.calls[0]?.[1] as { thread: Types.ObjectId }
+        agentRunsService.patch.mock.calls[0]?.[1] as { thread: string }
       ).thread.toString(),
     ).toBe(threadId);
     expect(agentRunsService.mergeMetadata).toHaveBeenCalledWith(

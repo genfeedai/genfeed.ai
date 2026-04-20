@@ -66,7 +66,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { type PipelineStage, Types } from 'mongoose';
 
 @AutoSwagger()
 @Controller('posts')
@@ -86,7 +85,7 @@ export class PostsController extends BaseCRUDController<
     public readonly postsService: PostsService,
     public readonly loggerService: LoggerService,
   ) {
-    super(loggerService, postsService, PostSerializer, PostModel.name, [
+    super(loggerService, postsService, PostSerializer, 'Post', [
       'ingredients',
       'credential',
     ]);
@@ -130,10 +129,10 @@ export class PostsController extends BaseCRUDController<
 
     try {
       const credential = await this.credentialsService.findOne({
-        _id: new Types.ObjectId(createPostDto.credential),
+        _id: createPostDto.credential,
         isConnected: true,
         isDeleted: false,
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
       });
 
       if (!credential) {
@@ -181,7 +180,7 @@ export class PostsController extends BaseCRUDController<
       }
 
       let firstIngredient = null;
-      let ingredientIds: Types.ObjectId[] = [];
+      let ingredientIds: string[] = [];
 
       if (createPostDto.ingredients && createPostDto.ingredients.length > 0) {
         // Batch fetch all ingredients in one query (avoids N+1 problem)
@@ -212,9 +211,7 @@ export class PostsController extends BaseCRUDController<
         const ingredientMap = new Map(
           ingredients.map((i) => [i._id.toString(), i]),
         );
-        ingredientIds = createPostDto.ingredients.map(
-          (id) => new Types.ObjectId(id),
-        );
+        ingredientIds = createPostDto.ingredients.map((id) => id);
         firstIngredient = ingredientMap.get(
           createPostDto.ingredients[0].toString(),
         );
@@ -237,9 +234,7 @@ export class PostsController extends BaseCRUDController<
           );
         }
 
-        ingredientIds = campaignIngredients.map(
-          (ingredient) => new Types.ObjectId(ingredient._id),
-        );
+        ingredientIds = campaignIngredients.map((ingredient) => ingredient._id);
         [firstIngredient] = campaignIngredients;
       }
 
@@ -250,9 +245,7 @@ export class PostsController extends BaseCRUDController<
 
       const data = await this.postsService.create({
         ...createPostDto,
-        brand: firstIngredient
-          ? new Types.ObjectId(firstIngredient.brand)
-          : new Types.ObjectId(publicMetadata.brand),
+        brand: firstIngredient ? firstIngredient.brand : publicMetadata.brand,
         category:
           createPostDto.category ||
           (firstIngredient
@@ -262,7 +255,7 @@ export class PostsController extends BaseCRUDController<
                 ? PostCategory.VIDEO
                 : PostCategory.TEXT
             : PostCategory.TEXT),
-        credential: new Types.ObjectId(createPostDto.credential),
+        credential: createPostDto.credential,
         description: createPostDto.description || credential.description || '',
         ingredients: ingredientIds,
         label:
@@ -272,30 +265,28 @@ export class PostsController extends BaseCRUDController<
             ? this.extractLabelFromText(createPostDto.description.trim())
             : ''),
         organization: firstIngredient
-          ? new Types.ObjectId(firstIngredient.organization)
-          : new Types.ObjectId(publicMetadata.organization),
+          ? firstIngredient.organization
+          : publicMetadata.organization,
         platform: credential.platform, // Save platform from credential
         publicationDate: createPostDto.publicationDate,
         scheduledDate: createPostDto.scheduledDate,
         status: createPostDto.status,
         tags: createPostDto.tags || [],
-        user: new Types.ObjectId(publicMetadata.user),
+        user: publicMetadata.user,
       });
 
       await this.activitiesService.create(
         new ActivityEntity({
-          brand: firstIngredient
-            ? new Types.ObjectId(firstIngredient.brand)
-            : new Types.ObjectId(publicMetadata.brand),
+          brand: firstIngredient ? firstIngredient.brand : publicMetadata.brand,
           entityId: data._id,
           entityModel: ActivityEntityModel.POST,
           key: ActivityKey.VIDEO_SCHEDULED,
           organization: firstIngredient
-            ? new Types.ObjectId(firstIngredient.organization)
-            : new Types.ObjectId(publicMetadata.organization),
+            ? firstIngredient.organization
+            : publicMetadata.organization,
           source: ActivitySource.SCRIPT,
-          user: new Types.ObjectId(publicMetadata.user),
-          value: (data._id as Types.ObjectId).toString(),
+          user: publicMetadata.user,
+          value: (data._id as string).toString(),
         }),
       );
 
@@ -324,7 +315,7 @@ export class PostsController extends BaseCRUDController<
   public buildFindAllPipeline(
     user: User,
     query: PostsQueryDto,
-  ): PipelineStage[] {
+  ): Record<string, unknown>[] {
     const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
 
@@ -371,7 +362,7 @@ export class PostsController extends BaseCRUDController<
     }
 
     if (query.credential) {
-      matchFilter.credential = new Types.ObjectId(query.credential);
+      matchFilter.credential = query.credential;
     }
 
     return [
@@ -438,7 +429,7 @@ export class PostsController extends BaseCRUDController<
                 totalViews: { $sum: '$totalViews' },
               },
             },
-          ] as PipelineStage[],
+          ] as Record<string, unknown>[],
         },
       },
       // Flatten analytics data to top level
@@ -538,10 +529,10 @@ export class PostsController extends BaseCRUDController<
     const publicMetadata = getPublicMetadata(user);
 
     // Build aggregation pipeline to fetch post with ingredients, credential, and evaluation
-    const pipeline: PipelineStage[] = [
+    const pipeline: Record<string, unknown>[] = [
       {
         $match: {
-          _id: new Types.ObjectId(postId),
+          _id: postId,
           isDeleted: false,
         },
       },

@@ -1,7 +1,6 @@
-import { Setting } from '@api/collections/settings/schemas/setting.schema';
-import { User } from '@api/collections/users/schemas/user.schema';
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
 import { AppSource } from '@genfeedai/enums';
+import { type Setting, type User } from '@genfeedai/prisma';
 
 export class UserEntity extends BaseEntity implements User {
   declare readonly clerkId?: string;

@@ -106,7 +106,6 @@ import { RequestContextMiddleware } from '@api/common/middleware/request-context
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
 import { ConfigModule } from '@api/config/config.module';
 import { ConfigService } from '@api/config/config.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { AdminModule } from '@api/endpoints/admin/admin.module';
 import { AdsResearchModule } from '@api/endpoints/ads-research/ads-research.module';
 import { AiActionsModule } from '@api/endpoints/ai-actions/ai-actions.module';
@@ -178,6 +177,7 @@ import { TelegramBotModule } from '@api/services/telegram-bot/telegram-bot.modul
 import { TwitterPipelineModule } from '@api/services/twitter-pipeline/twitter-pipeline.module';
 import { VideoCompletionModule } from '@api/services/video-completion/video-completion.module';
 import { WorkflowExecutorModule } from '@api/services/workflow-executor/workflow-executor.module';
+import { PrismaModule } from '@api/shared/modules/prisma/prisma.module';
 import { RateLimitModule } from '@api/shared/modules/rate-limit/rate-limit.module';
 import { EventBusModule } from '@api/shared/services/event-bus/event-bus.module';
 import { SharedModule } from '@api/shared/shared.module';
@@ -190,7 +190,6 @@ import { LoggerModule } from '@libs/logger/logger.module';
 import { RedisModule } from '@libs/redis/redis.module';
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
-import { MongooseModule } from '@nestjs/mongoose';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { TerminusModule } from '@nestjs/terminus';
@@ -209,6 +208,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
       configService: ConfigService,
     }),
     SharedModule,
+    PrismaModule,
     EventBusModule,
     SentryModule.forRoot(),
     ScheduleModule.forRoot(),
@@ -219,124 +219,6 @@ import { SentryModule } from '@sentry/nestjs/setup';
       exclude: ['/v1/{*path}', '/openapi.json'],
       rootPath: join(__dirname, '..', 'public'),
       serveRoot: '/',
-    }),
-    MongooseModule.forRootAsync({
-      connectionName: DB_CONNECTIONS.CLOUD,
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        connectTimeoutMS: 10_000,
-        dbName: DB_CONNECTIONS.CLOUD,
-        maxPoolSize: 50,
-        serverSelectionTimeoutMS: 5_000,
-        uri: config.get('MONGODB_URI'),
-        ...(config.isProduction && {
-          tls: true,
-          tlsAllowInvalidCertificates: false,
-        }),
-      }),
-    }),
-    // Auth database (users, orgs, members, roles, billing, settings)
-    MongooseModule.forRootAsync({
-      connectionName: DB_CONNECTIONS.AUTH,
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        connectTimeoutMS: 10_000,
-        dbName: DB_CONNECTIONS.AUTH,
-        maxPoolSize: 30,
-        serverSelectionTimeoutMS: 5_000,
-        uri: config.get('MONGODB_URI'),
-        ...(config.isProduction && {
-          tls: true,
-          tlsAllowInvalidCertificates: false,
-        }),
-      }),
-    }),
-    // Agent database (agent conversations, chat, knowledge bases)
-    MongooseModule.forRootAsync({
-      connectionName: DB_CONNECTIONS.AGENT,
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        connectTimeoutMS: 10_000,
-        dbName: DB_CONNECTIONS.AGENT,
-        maxPoolSize: 10,
-        serverSelectionTimeoutMS: 5_000,
-        uri: config.get('MONGODB_URI'),
-        ...(config.isProduction && {
-          tls: true,
-          tlsAllowInvalidCertificates: false,
-        }),
-      }),
-    }),
-    // Fanvue database (subscribers, content, earnings)
-    MongooseModule.forRootAsync({
-      connectionName: DB_CONNECTIONS.FANVUE,
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        connectTimeoutMS: 10_000,
-        dbName: DB_CONNECTIONS.FANVUE,
-        maxPoolSize: 10,
-        serverSelectionTimeoutMS: 5_000,
-        uri: config.get('MONGODB_URI'),
-        ...(config.isProduction && {
-          tls: true,
-          tlsAllowInvalidCertificates: false,
-        }),
-      }),
-    }),
-    // Analytics database (analytics, insights, forecasts)
-    MongooseModule.forRootAsync({
-      connectionName: DB_CONNECTIONS.ANALYTICS,
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        connectTimeoutMS: 10_000,
-        dbName: DB_CONNECTIONS.ANALYTICS,
-        maxPoolSize: 20,
-        serverSelectionTimeoutMS: 5_000,
-        uri: config.get('MONGODB_URI'),
-        ...(config.isProduction && {
-          tls: true,
-          tlsAllowInvalidCertificates: false,
-        }),
-      }),
-    }),
-    // Clips database (clip projects, clip results)
-    MongooseModule.forRootAsync({
-      connectionName: DB_CONNECTIONS.CLIPS,
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        connectTimeoutMS: 10_000,
-        dbName: DB_CONNECTIONS.CLIPS,
-        maxPoolSize: 10,
-        serverSelectionTimeoutMS: 5_000,
-        uri: config.get('MONGODB_URI'),
-        ...(config.isProduction && {
-          tls: true,
-          tlsAllowInvalidCertificates: false,
-        }),
-      }),
-    }),
-    // CRM database (leads, companies, tasks, costs, revenue)
-    MongooseModule.forRootAsync({
-      connectionName: DB_CONNECTIONS.CRM,
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        connectTimeoutMS: 10_000,
-        dbName: DB_CONNECTIONS.CRM,
-        maxPoolSize: 10,
-        serverSelectionTimeoutMS: 5_000,
-        uri: config.get('MONGODB_URI'),
-        ...(config.isProduction && {
-          tls: true,
-          tlsAllowInvalidCertificates: false,
-        }),
-      }),
     }),
 
     // Docs (OpenAPI, GPT Actions)

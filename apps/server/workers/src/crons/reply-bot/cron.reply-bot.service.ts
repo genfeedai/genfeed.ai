@@ -6,7 +6,6 @@ import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { Types } from 'mongoose';
 
 interface ReplyBotCronTarget {
   organizationId: string;
@@ -143,9 +142,9 @@ export class CronReplyBotService {
     target: ReplyBotCronTarget,
   ): Promise<IReplyBotCredentialData | null> {
     const credential = await this.credentialsService.findOne({
-      _id: new Types.ObjectId(target.credentialId),
+      _id: target.credentialId,
       isDeleted: false,
-      organization: new Types.ObjectId(target.organizationId),
+      organization: target.organizationId,
     });
 
     if (!credential) {

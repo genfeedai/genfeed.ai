@@ -80,7 +80,11 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { isValidObjectId, Types } from 'mongoose';
+
+const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
+function isValidObjectId(id: unknown): id is string {
+  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
+}
 
 /**
  * ImagesTransformationsController
@@ -123,7 +127,7 @@ export class ImagesTransformationsController {
 
     const image = await this.imagesService.findOne({
       _id: imageId,
-      user: new Types.ObjectId(publicMetadata.user),
+      user: publicMetadata.user,
     });
 
     if (!image) {
@@ -133,11 +137,11 @@ export class ImagesTransformationsController {
     try {
       const { metadataData, ingredientData } =
         await this.sharedService.saveDocuments(user, {
-          brand: new Types.ObjectId(publicMetadata.brand),
+          brand: publicMetadata.brand,
           category: IngredientCategory.IMAGE,
           extension: MetadataExtension.JPG,
-          organization: new Types.ObjectId(publicMetadata.organization),
-          parent: new Types.ObjectId(imageId),
+          organization: publicMetadata.organization,
+          parent: imageId,
           status: IngredientStatus.PROCESSING,
         });
 
@@ -211,9 +215,9 @@ export class ImagesTransformationsController {
 
     const parent = await this.imagesService.findOne(
       {
-        _id: new Types.ObjectId(imageId),
+        _id: imageId,
         category: IngredientCategory.IMAGE,
-        user: new Types.ObjectId(publicMetadata.user),
+        user: publicMetadata.user,
       },
       [PopulatePatterns.metadataFull],
     );
@@ -256,17 +260,17 @@ export class ImagesTransformationsController {
     const promptData = await this.promptsService.create(
       new PromptEntity({
         brand: isValidObjectId(parent.brand)
-          ? new Types.ObjectId(parent.brand)
-          : new Types.ObjectId(publicMetadata.brand),
+          ? parent.brand
+          : publicMetadata.brand,
         category: PromptCategory.MODELS_PROMPT_IMAGE,
         model: MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE,
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
         original:
           typeof promptText === 'string'
             ? promptText
             : promptText?.toString() || '',
         status: PromptStatus.PROCESSING,
-        user: new Types.ObjectId(publicMetadata.user),
+        user: publicMetadata.user,
       }),
     );
 
@@ -275,24 +279,24 @@ export class ImagesTransformationsController {
       await this.sharedService.saveDocuments(user, {
         ...createImageDto,
         brand: isValidObjectId(parent.brand)
-          ? new Types.ObjectId(parent.brand)
-          : new Types.ObjectId(publicMetadata.brand),
+          ? parent.brand
+          : publicMetadata.brand,
         category: IngredientCategory.IMAGE,
         extension: MetadataExtension.JPEG,
         height: targetHeight,
         model: MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE,
         organization: isValidObjectId(parent.organization)
-          ? new Types.ObjectId(parent.organization)
-          : new Types.ObjectId(publicMetadata.organization),
+          ? parent.organization
+          : publicMetadata.organization,
         parent: parent._id,
-        prompt: new Types.ObjectId(promptData._id),
+        prompt: promptData._id,
         status: IngredientStatus.PROCESSING,
         transformations: [TransformationCategory.REFRAMED],
         width: targetWidth,
       });
 
     await this.imagesService.patch(ingredientData._id, {
-      prompt: new Types.ObjectId(promptData._id),
+      prompt: promptData._id,
     });
 
     const websocketUrl = WebSocketPaths.image(ingredientData._id);
@@ -301,14 +305,14 @@ export class ImagesTransformationsController {
     const activity = await this.activitiesService.create(
       new ActivityEntity({
         brand: isValidObjectId(parent.brand)
-          ? new Types.ObjectId(parent.brand)
-          : new Types.ObjectId(publicMetadata.brand),
+          ? parent.brand
+          : publicMetadata.brand,
         entityId: ingredientData._id,
         entityModel: ActivityEntityModel.INGREDIENT,
         key: ActivityKey.IMAGE_REFRAME_PROCESSING,
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
         source: ActivitySource.IMAGE_REFRAME,
-        user: new Types.ObjectId(publicMetadata.user),
+        user: publicMetadata.user,
         value: JSON.stringify({
           ingredientId: ingredientData._id.toString(),
           model: MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE,
@@ -364,7 +368,7 @@ export class ImagesTransformationsController {
           metadataData._id,
           new MetadataEntity({
             externalId: generationId,
-            prompt: new Types.ObjectId(promptData._id),
+            prompt: promptData._id,
           }),
         );
       } else {
@@ -415,10 +419,10 @@ export class ImagesTransformationsController {
 
     const parent = await this.imagesService.findOne(
       {
-        _id: new Types.ObjectId(imageId),
+        _id: imageId,
         $or: [
-          { user: new Types.ObjectId(publicMetadata.user) },
-          { organization: new Types.ObjectId(publicMetadata.organization) },
+          { user: publicMetadata.user },
+          { organization: publicMetadata.organization },
         ],
         category: IngredientCategory.IMAGE,
       },
@@ -448,14 +452,12 @@ export class ImagesTransformationsController {
     const { metadataData, ingredientData } =
       await this.sharedService.saveDocuments(user, {
         ...imageEditDto,
-        brand: isValidObjectId(parent.brand)
-          ? new Types.ObjectId(parent.brand)
-          : null,
+        brand: isValidObjectId(parent.brand) ? parent.brand : null,
         category: IngredientCategory.IMAGE,
         extension: imageEditDto.outputFormat || 'jpg',
         model,
         organization: isValidObjectId(parent.organization)
-          ? new Types.ObjectId(parent.organization)
+          ? parent.organization
           : null,
         parent: parent._id,
         status: IngredientStatus.PROCESSING,
@@ -468,14 +470,14 @@ export class ImagesTransformationsController {
     const activity = await this.activitiesService.create(
       new ActivityEntity({
         brand: isValidObjectId(parent.brand)
-          ? new Types.ObjectId(parent.brand)
-          : new Types.ObjectId(publicMetadata.brand),
+          ? parent.brand
+          : publicMetadata.brand,
         entityId: ingredientData._id,
         entityModel: ActivityEntityModel.INGREDIENT,
         key: ActivityKey.IMAGE_UPSCALE_PROCESSING,
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
         source: ActivitySource.IMAGE_UPSCALE,
-        user: new Types.ObjectId(publicMetadata.user),
+        user: publicMetadata.user,
         value: JSON.stringify({
           ingredientId: ingredientData._id.toString(),
           model,

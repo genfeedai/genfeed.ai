@@ -16,7 +16,6 @@ import type {
 } from '@api/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
 import type { DefaultVoiceRef } from '@api/shared/default-voice-ref/default-voice-ref.schema';
 import { AgentAutonomyMode } from '@genfeedai/enums';
-import type { Types } from 'mongoose';
 
 type BrandSource = Pick<Brand, 'agentConfig'> | null | undefined;
 type AgentStrategySource =
@@ -45,9 +44,9 @@ type PlatformOverride = Pick<
 >;
 
 export interface AgentIdentityDefaults {
-  defaultAvatarIngredientId?: Types.ObjectId;
+  defaultAvatarIngredientId?: string;
   defaultAvatarPhotoUrl?: string;
-  defaultVoiceId?: Types.ObjectId;
+  defaultVoiceId?: string;
   defaultVoiceRef?: DefaultVoiceRef;
 }
 

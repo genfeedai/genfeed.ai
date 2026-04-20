@@ -6,7 +6,6 @@ import { PostCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { NotFoundException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('PersonaPublisherService', () => {
   let service: PersonaPublisherService;
@@ -47,13 +46,13 @@ describe('PersonaPublisherService', () => {
   });
 
   it('publishes only matching platform credentials when platforms filter is provided', async () => {
-    const personaId = new Types.ObjectId();
-    const organizationId = new Types.ObjectId();
-    const userId = new Types.ObjectId();
-    const brandId = new Types.ObjectId();
-    const ingredientId = new Types.ObjectId();
-    const instagramCredentialId = new Types.ObjectId();
-    const tiktokCredentialId = new Types.ObjectId();
+    const personaId = 'test-object-id';
+    const organizationId = 'test-object-id';
+    const userId = 'test-object-id';
+    const brandId = 'test-object-id';
+    const ingredientId = 'test-object-id';
+    const instagramCredentialId = 'test-object-id';
+    const tiktokCredentialId = 'test-object-id';
 
     personasService.findOne.mockResolvedValue({
       credentials: [instagramCredentialId, tiktokCredentialId],
@@ -68,7 +67,7 @@ describe('PersonaPublisherService', () => {
         _id: tiktokCredentialId,
         platform: 'tiktok',
       });
-    postsService.create.mockResolvedValueOnce({ _id: new Types.ObjectId() });
+    postsService.create.mockResolvedValueOnce({ _id: 'test-object-id' });
 
     const result = await service.publishToAll({
       brand: brandId,
@@ -97,18 +96,18 @@ describe('PersonaPublisherService', () => {
 
     await expect(
       service.publishToAll({
-        brand: new Types.ObjectId(),
+        brand: 'test-object-id',
         description: 'Test post',
-        organization: new Types.ObjectId(),
-        personaId: new Types.ObjectId(),
-        user: new Types.ObjectId(),
+        organization: 'test-object-id',
+        personaId: 'test-object-id',
+        user: 'test-object-id',
       }),
     ).rejects.toThrow(NotFoundException);
   });
 
   it('publishes to all credentials when no platforms filter', async () => {
-    const credId1 = new Types.ObjectId();
-    const credId2 = new Types.ObjectId();
+    const credId1 = 'test-object-id';
+    const credId2 = 'test-object-id';
 
     personasService.findOne.mockResolvedValue({
       credentials: [credId1, credId2],
@@ -118,15 +117,15 @@ describe('PersonaPublisherService', () => {
       .mockResolvedValueOnce({ _id: credId1, platform: 'instagram' })
       .mockResolvedValueOnce({ _id: credId2, platform: 'twitter' });
     postsService.create
-      .mockResolvedValueOnce({ _id: new Types.ObjectId() })
-      .mockResolvedValueOnce({ _id: new Types.ObjectId() });
+      .mockResolvedValueOnce({ _id: 'test-object-id' })
+      .mockResolvedValueOnce({ _id: 'test-object-id' });
 
     const result = await service.publishToAll({
-      brand: new Types.ObjectId(),
+      brand: 'test-object-id',
       description: 'Post everywhere',
-      organization: new Types.ObjectId(),
-      personaId: new Types.ObjectId(),
-      user: new Types.ObjectId(),
+      organization: 'test-object-id',
+      personaId: 'test-object-id',
+      user: 'test-object-id',
     });
 
     expect(result.totalCreated).toBe(2);
@@ -134,7 +133,7 @@ describe('PersonaPublisherService', () => {
   });
 
   it('tracks failed credentials when post creation throws', async () => {
-    const credId = new Types.ObjectId();
+    const credId = 'test-object-id';
 
     personasService.findOne.mockResolvedValue({
       credentials: [credId],
@@ -147,11 +146,11 @@ describe('PersonaPublisherService', () => {
     postsService.create.mockRejectedValue(new Error('DB error'));
 
     const result = await service.publishToAll({
-      brand: new Types.ObjectId(),
+      brand: 'test-object-id',
       description: 'Will fail',
-      organization: new Types.ObjectId(),
-      personaId: new Types.ObjectId(),
-      user: new Types.ObjectId(),
+      organization: 'test-object-id',
+      personaId: 'test-object-id',
+      user: 'test-object-id',
     });
 
     expect(result.failedCredentials).toContain(String(credId));
@@ -159,7 +158,7 @@ describe('PersonaPublisherService', () => {
   });
 
   it('skips credentials not found in database', async () => {
-    const credId = new Types.ObjectId();
+    const credId = 'test-object-id';
 
     personasService.findOne.mockResolvedValue({
       credentials: [credId],
@@ -168,11 +167,11 @@ describe('PersonaPublisherService', () => {
     credentialsService.findOne.mockResolvedValue(null);
 
     const result = await service.publishToAll({
-      brand: new Types.ObjectId(),
+      brand: 'test-object-id',
       description: 'No cred',
-      organization: new Types.ObjectId(),
-      personaId: new Types.ObjectId(),
-      user: new Types.ObjectId(),
+      organization: 'test-object-id',
+      personaId: 'test-object-id',
+      user: 'test-object-id',
     });
 
     expect(result.failedCredentials).toContain(String(credId));
@@ -181,7 +180,7 @@ describe('PersonaPublisherService', () => {
   });
 
   it('sets SCHEDULED status when scheduledDate is provided', async () => {
-    const credId = new Types.ObjectId();
+    const credId = 'test-object-id';
     const futureDate = new Date('2026-12-31');
 
     personasService.findOne.mockResolvedValue({
@@ -192,15 +191,15 @@ describe('PersonaPublisherService', () => {
       _id: credId,
       platform: 'instagram',
     });
-    postsService.create.mockResolvedValue({ _id: new Types.ObjectId() });
+    postsService.create.mockResolvedValue({ _id: 'test-object-id' });
 
     await service.publishToAll({
-      brand: new Types.ObjectId(),
+      brand: 'test-object-id',
       description: 'Scheduled post',
-      organization: new Types.ObjectId(),
-      personaId: new Types.ObjectId(),
+      organization: 'test-object-id',
+      personaId: 'test-object-id',
       scheduledDate: futureDate,
-      user: new Types.ObjectId(),
+      user: 'test-object-id',
     });
 
     expect(postsService.create).toHaveBeenCalledWith(

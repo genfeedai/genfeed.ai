@@ -3,9 +3,9 @@ import { ModelsService } from '@api/collections/models/services/models.service';
 import { baseModelKey } from '@api/collections/models/utils/model-key.util';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
-import { TrendingHashtagDocument } from '@api/collections/trends/schemas/trending-hashtag.schema';
-import { TrendingSoundDocument } from '@api/collections/trends/schemas/trending-sound.schema';
-import { TrendingVideoDocument } from '@api/collections/trends/schemas/trending-video.schema';
+import { type TrendingHashtagDocument } from '@api/collections/trends/schemas/trending-hashtag.schema';
+import { type TrendingSoundDocument } from '@api/collections/trends/schemas/trending-sound.schema';
+import { type TrendingVideoDocument } from '@api/collections/trends/schemas/trending-video.schema';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { InsufficientCreditsException } from '@api/helpers/exceptions/business/business-logic.exception';
@@ -18,7 +18,6 @@ import { NotificationsService } from '@api/services/notifications/notifications.
 import { ActivitySource } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 export interface TrendVideoInspirationInput {
   trendId?: string;
@@ -665,7 +664,7 @@ Return ONLY the prompt text, no explanations.`;
     userId: string;
   }> {
     const organization = await this.organizationsService.findOne({
-      _id: new Types.ObjectId(organizationId),
+      _id: organizationId,
     });
 
     const userId = organization?.user?.toString();

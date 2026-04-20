@@ -1,9 +1,7 @@
 import { ModelsService } from '@api/collections/models/services/models.service';
-import { Workflow } from '@api/collections/workflows/schemas/workflow.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ModelCategory, WorkflowStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 import { CronModelDeprecationService } from '@workers/crons/model-deprecation/cron.model-deprecation.service';
 
@@ -40,8 +38,10 @@ describe('CronModelDeprecationService', () => {
     count: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
   };
-  let workflowModel: {
-    countDocuments: ReturnType<typeof vi.fn>;
+  let prismaService: {
+    workflow: {
+      findMany: ReturnType<typeof vi.fn>;
+    };
   };
   let loggerService: {
     log: ReturnType<typeof vi.fn>;
@@ -59,8 +59,10 @@ describe('CronModelDeprecationService', () => {
       patch: vi.fn().mockResolvedValue({}),
     };
 
-    workflowModel = {
-      countDocuments: vi.fn().mockResolvedValue(0),
+    prismaService = {
+      workflow: {
+        findMany: vi.fn().mockResolvedValue([]),
+      },
     };
 
     loggerService = {
@@ -78,8 +80,8 @@ describe('CronModelDeprecationService', () => {
           useValue: modelsService,
         },
         {
-          provide: getModelToken(Workflow.name, DB_CONNECTIONS.CLOUD),
-          useValue: workflowModel,
+          provide: PrismaService,
+          useValue: prismaService,
         },
         {
           provide: LoggerService,
@@ -129,7 +131,7 @@ describe('CronModelDeprecationService', () => {
       });
 
       // No active workflows reference this model
-      workflowModel.countDocuments.mockResolvedValue(0);
+      prismaService.workflow.findMany.mockResolvedValue([]);
 
       const result = await service.deprecateSupersededModels();
 
@@ -163,7 +165,11 @@ describe('CronModelDeprecationService', () => {
       });
 
       // Model IS referenced in active workflows
-      workflowModel.countDocuments.mockResolvedValue(3);
+      prismaService.workflow.findMany.mockResolvedValue([
+        { nodes: [{ config: { model: 'old-model-v1' } }] },
+        { nodes: [{ config: { model: 'old-model-v1' } }] },
+        { nodes: [{ config: { model: 'old-model-v1' } }] },
+      ]);
 
       const result = await service.deprecateSupersededModels();
 
@@ -227,7 +233,7 @@ describe('CronModelDeprecationService', () => {
       modelsService.findAll.mockResolvedValue({
         docs: [{ total: 100 }],
       });
-      workflowModel.countDocuments.mockResolvedValue(0);
+      prismaService.workflow.findMany.mockResolvedValue([]);
 
       await service.deprecateSupersededModels();
 
@@ -317,7 +323,7 @@ describe('CronModelDeprecationService', () => {
       modelsService.findAll.mockResolvedValue({
         docs: [{ total: 100 }],
       });
-      workflowModel.countDocuments.mockResolvedValue(0);
+      prismaService.workflow.findMany.mockResolvedValue([]);
 
       const result = await service.deprecateSupersededModels();
 
@@ -352,17 +358,23 @@ describe('CronModelDeprecationService', () => {
       modelsService.findAll.mockResolvedValue({
         docs: [{ total: 100 }],
       });
-      workflowModel.countDocuments.mockResolvedValue(0);
+      prismaService.workflow.findMany.mockResolvedValue([]);
 
       await service.deprecateSupersededModels();
 
-      expect(workflowModel.countDocuments).toHaveBeenCalledWith({
-        isDeleted: false,
-        status: {
-          $in: [WorkflowStatus.ACTIVE, WorkflowStatus.RUNNING],
-        },
-        'steps.config.model': 'old-model-v1',
-      });
+      expect(prismaService.workflow.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            isDeleted: false,
+            status: {
+              in: [
+                WorkflowStatus.ACTIVE as never,
+                WorkflowStatus.RUNNING as never,
+              ],
+            },
+          }),
+        }),
+      );
     });
   });
 });

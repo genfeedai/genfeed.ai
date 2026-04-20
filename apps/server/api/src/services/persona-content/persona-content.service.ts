@@ -7,29 +7,28 @@ import { AvatarProvider, VoiceProvider } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 export interface GeneratePhotoInput {
-  personaId: Types.ObjectId;
-  organization: Types.ObjectId;
-  user: Types.ObjectId;
+  personaId: string;
+  organization: string;
+  user: string;
   prompt?: string;
 }
 
 export interface GenerateVideoInput {
-  personaId: Types.ObjectId;
-  organization: Types.ObjectId;
-  user: Types.ObjectId;
+  personaId: string;
+  organization: string;
+  user: string;
   script: string;
   aspectRatio?: string;
 }
 
 export interface GenerateVoiceInput {
-  personaId: Types.ObjectId;
-  organization: Types.ObjectId;
-  user: Types.ObjectId;
+  personaId: string;
+  organization: string;
+  user: string;
   text: string;
-  ingredientId?: Types.ObjectId;
+  ingredientId?: string;
 }
 
 export interface GenerationResult {
@@ -219,8 +218,8 @@ export class PersonaContentService {
   }
 
   private async getPersonaOrFail(
-    personaId: Types.ObjectId,
-    organization: Types.ObjectId,
+    personaId: string,
+    organization: string,
   ): Promise<PersonaDocument> {
     const persona = await this.personasService.findOne({
       _id: personaId,
