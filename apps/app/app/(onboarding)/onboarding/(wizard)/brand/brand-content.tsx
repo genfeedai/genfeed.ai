@@ -170,7 +170,6 @@ export default function BrandContent() {
     return () => {
       controller.abort();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [getToken]);
 
   const handleAccountTypeSelect = useCallback(
@@ -275,7 +274,6 @@ export default function BrandContent() {
         logger.error('Failed to continue auto onboarding flow', error);
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [handleContinue, searchParams.get]);
 
   return (

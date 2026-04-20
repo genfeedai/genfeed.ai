@@ -138,7 +138,6 @@ export default function ModalTag({
     } else {
       form.reset(defaultValuesRef.current);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     item?.id,
     form,

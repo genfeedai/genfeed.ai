@@ -56,8 +56,7 @@ describe('TikTokAdsService', () => {
     logger = module.get(LoggerService);
 
     // Default: no rate-limit wait — patch lastRequestTime to well in the past
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (service as any).lastRequestTime = 0;
+    (service as unknown as { lastRequestTime: number }).lastRequestTime = 0;
   });
 
   afterEach(() => {

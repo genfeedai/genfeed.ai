@@ -83,7 +83,6 @@ export default function ModalPost({
       scheduledDate: '',
       status: PostStatus.DRAFT,
     }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [credential?.id, ingredient, parentPost?.id],
   );
   const defaultValuesRef = useRef(defaultValues);

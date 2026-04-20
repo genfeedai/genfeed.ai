@@ -183,10 +183,10 @@ export function evaluateCondition(
 ): boolean {
   switch (operator) {
     case 'equals':
-      return actual === expected; // eslint-disable-line eqeqeq
+      return actual === expected;
 
     case 'notEquals':
-      return actual !== expected; // eslint-disable-line eqeqeq
+      return actual !== expected;
 
     case 'greaterThan':
       return Number(actual) > Number(expected);

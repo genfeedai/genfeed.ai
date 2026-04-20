@@ -108,9 +108,10 @@ export function useGalleryList<T>({
         };
 
         const methodName = SERVICE_METHOD_MAP[type];
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const data = await (
-          publicService[methodName] as (params: IQueryParams) => Promise<any[]>
+          publicService[methodName] as (
+            params: IQueryParams,
+          ) => Promise<unknown[]>
         )(baseParams);
 
         if (signal?.aborted) {

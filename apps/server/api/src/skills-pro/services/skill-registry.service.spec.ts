@@ -193,7 +193,6 @@ describe('SkillRegistryService', () => {
       await service.getRegistry();
 
       // Expire cache by setting cacheExpiresAt to the past
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       getMutableService().cacheExpiresAt = 0;
 
       await service.getRegistry();

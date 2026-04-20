@@ -10,7 +10,6 @@ vi.mock('@services/core/interceptor.service', () => {
         patch: ReturnType<typeof vi.fn>;
         delete: ReturnType<typeof vi.fn>;
       };
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       constructor(_baseUrl: string, _token: string) {
         this.instance = {
           delete: vi.fn(),

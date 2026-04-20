@@ -284,7 +284,14 @@ function AppLayoutWithDynamicMenu({
   const shouldInitAgentApiService = shouldMountAgentPanel || isChatRoute;
 
   const router = useRouter();
-  const { getToken } = useOptionalAuth();
+  const { getToken, isSignedIn } = useOptionalAuth();
+  const prevIsSignedInRef = useRef(false);
+  useEffect(() => {
+    if (isSignedIn && !prevIsSignedInRef.current) {
+      router.refresh();
+    }
+    prevIsSignedInRef.current = isSignedIn ?? false;
+  }, [isSignedIn, router]);
   const taskContextSearchParams = useMemo(
     () =>
       pickOperatorTaskContextSearchParams(
@@ -591,6 +598,7 @@ function AppLayoutWithDynamicMenu({
           backLabel="Library"
           sectionLabel="Studio"
           shellChromeVariant={shellChromeVariant}
+          renderFooterSlot={() => <ModeIndicator />}
         />
       );
     }
@@ -622,6 +630,7 @@ function AppLayoutWithDynamicMenu({
           backLabel="Posts"
           sectionLabel="Compose"
           shellChromeVariant={shellChromeVariant}
+          renderFooterSlot={() => <ModeIndicator />}
         />
       );
     }
@@ -641,6 +650,7 @@ function AppLayoutWithDynamicMenu({
           backLabel="Workspace"
           sectionLabel="Workflows"
           shellChromeVariant={shellChromeVariant}
+          renderFooterSlot={() => <ModeIndicator />}
         />
       );
     }
@@ -660,6 +670,7 @@ function AppLayoutWithDynamicMenu({
           backLabel="Workspace"
           sectionLabel="Editor"
           shellChromeVariant={shellChromeVariant}
+          renderFooterSlot={() => <ModeIndicator />}
         />
       );
     }
@@ -679,6 +690,7 @@ function AppLayoutWithDynamicMenu({
           backLabel="Workspace"
           sectionLabel="Analytics"
           shellChromeVariant={shellChromeVariant}
+          renderFooterSlot={() => <ModeIndicator />}
         />
       );
     }
@@ -698,6 +710,7 @@ function AppLayoutWithDynamicMenu({
           backLabel="Workspace"
           sectionLabel="Organization"
           shellChromeVariant={shellChromeVariant}
+          renderFooterSlot={() => <ModeIndicator />}
         />
       );
     }
@@ -717,6 +730,7 @@ function AppLayoutWithDynamicMenu({
           backLabel="Workspace"
           sectionLabel="Settings"
           shellChromeVariant={shellChromeVariant}
+          renderFooterSlot={() => <ModeIndicator />}
         />
       );
     }

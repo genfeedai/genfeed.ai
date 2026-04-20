@@ -120,11 +120,7 @@ export function useModalForm<TEntity, TFormValues extends FieldValues>({
     () => JSON.stringify(defaultValues),
     [defaultValues],
   );
-  const stableDefaultValues = useMemo(
-    () => defaultValues,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [defaultValues],
-  );
+  const stableDefaultValues = useMemo(() => defaultValues, [defaultValues]);
   const defaultValuesRef = useRef(stableDefaultValues);
   defaultValuesRef.current = stableDefaultValues;
 

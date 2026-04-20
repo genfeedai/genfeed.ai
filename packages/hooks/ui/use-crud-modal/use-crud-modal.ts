@@ -85,11 +85,7 @@ export function useCrudModal<
     () => JSON.stringify(defaultValues),
     [defaultValues],
   );
-  const stableDefaultValues = useMemo(
-    () => defaultValues,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [defaultValues],
-  );
+  const stableDefaultValues = useMemo(() => defaultValues, [defaultValues]);
 
   const closeModal = useCallback(
     (isSuccess: boolean = false) => {
