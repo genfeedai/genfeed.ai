@@ -22,7 +22,7 @@ export class TestHelpers {
   }
 
   /**
-   * Creates a mock Mongoose model for testing
+   * Creates a mock document-style model for testing
    */
   static createMockModel(modelName: string = 'TestModel') {
     return {

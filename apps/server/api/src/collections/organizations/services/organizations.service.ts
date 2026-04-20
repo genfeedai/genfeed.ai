@@ -13,9 +13,8 @@ export class OrganizationsService extends BaseService<
   UpdateOrganizationDto
 > {
   private readonly populate = [
-    // NOTE: logo and banner are Asset documents on the 'cloud' DB connection.
-    // Organization is on 'auth' — Mongoose cannot populate across connections.
-    // Logo/banner are fetched separately via asset lookups where needed.
+    // NOTE: logo and banner live in the 'cloud' database while Organization is
+    // stored in 'auth', so those relations are fetched separately where needed.
     {
       path: 'settings',
       select: [

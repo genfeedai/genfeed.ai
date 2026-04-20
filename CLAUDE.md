@@ -67,7 +67,7 @@ bun run test --filter=@genfeedai/[name]  # Run specific package tests
 
 ### Serializers (ALWAYS)
 - Serializers live in `packages/serializers/`, NEVER in API modules
-- Never return raw Mongoose documents — serialize first
+- Never return raw database records — serialize first
 - Flow: DB Document → Serializer → Client Response
 
 ### Frontend (ALWAYS)

@@ -342,6 +342,8 @@ export class PromptsController {
       [{ path: 'ingredient' }],
     );
 
+    let prompt = data;
+
     // If prompt exists but has no ingredient, check if any ingredient references this prompt
     if (data && !data.ingredient) {
       const ingredient = await this.ingredientsService.findOne({
@@ -351,14 +353,12 @@ export class PromptsController {
       });
 
       if (ingredient) {
-        // Add the ingredient to the prompt data
-        // _doc is a Mongoose internal property, so we need to cast to any
-        (data as unknown)._doc.ingredient = ingredient;
+        prompt = { ...data, ingredient } as Prompt;
       }
     }
 
-    return data
-      ? serializeSingle(request, PromptSerializer, data)
+    return prompt
+      ? serializeSingle(request, PromptSerializer, prompt)
       : returnNotFound(this.constructorName, promptId);
   }
 

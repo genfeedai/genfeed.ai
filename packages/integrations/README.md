@@ -22,7 +22,7 @@ Put these here:
 Do not put these here:
 
 - Nest controllers, modules, guards, interceptors, schedulers, or decorators.
-- Mongoose schemas, collection services, credential persistence, or org/brand authorization.
+- Database schemas, collection services, credential persistence, or org/brand authorization.
 - Queue processors or cron jobs tied to a specific app runtime.
 - Provider OAuth callback handlers or API endpoint wiring.
 - UI components or app-facing serializer logic.

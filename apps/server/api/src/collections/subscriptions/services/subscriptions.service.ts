@@ -42,10 +42,10 @@ type ClerkSyncSubscription = {
  * `ee/packages/billing/` in Phase C Layer 2 (tracked in issue #87).
  *
  * `findOne` here is inherited from `BaseService<SubscriptionDocument>`, which
- * returns `Promise<SubscriptionDocument | null>`. Mongoose documents are
- * structurally assignable to `ISubscription | null` because they expose the
- * same public fields; the compiler validates the conformance via the
- * `implements` clause below.
+ * returns `Promise<SubscriptionDocument | null>`. The service entity type is
+ * structurally assignable to `ISubscription | null` because it exposes the same
+ * public fields; the compiler validates the conformance via the `implements`
+ * clause below.
  */
 @Injectable()
 export class SubscriptionsService

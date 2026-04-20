@@ -1,6 +1,6 @@
 // ─────────────────────────────────────────────────────────────
 // Genfeed.ai — Prisma Schema (PostgreSQL)
-// Migrated from Mongoose/MongoDB — ownership integrity is #1 priority
+// Migrated from the legacy MongoDB stack — ownership integrity is #1 priority
 // ─────────────────────────────────────────────────────────────
 
 generator client {

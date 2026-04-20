@@ -1,5 +1,4 @@
 import { MembersService } from '@api/collections/members/services/members.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { createMockModel } from '@api/shared/testing/mock-model.factory';
 import { type Member } from '@genfeedai/prisma';

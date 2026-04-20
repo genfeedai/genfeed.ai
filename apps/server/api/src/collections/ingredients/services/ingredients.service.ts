@@ -41,8 +41,8 @@ export class IngredientsService extends BaseService<
   ): PopulateOption[] {
     // NOTE: User populate is intentionally excluded from all contexts.
     // The User model is on the AUTH connection, but Ingredients are on CLOUD.
-    // Mongoose .populate() fails across connections. Use createUserLookupPipeline()
-    // in aggregation pipelines instead ($lookup works across collections).
+    // Cross-database relation loading is not supported here. Use
+    // createUserLookupPipeline() in aggregation pipelines instead.
     switch (context) {
       case 'list':
         return [

@@ -53,7 +53,7 @@ import { CronSchedulerControlService } from '@workers/scheduling/cron-scheduler-
     SharedModule,
     EventBusModule,
 
-    // Database (Prisma — replaces all MongoDB/Mongoose connections)
+    // Database (Prisma — replaces the legacy document-store connections)
     PrismaModule,
 
     // BullMQ Processor Modules (moved from API — issue #84)

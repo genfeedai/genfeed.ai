@@ -66,15 +66,15 @@ export async function runEffectAsPromise<A, E>(
  * Wrap a Promise-returning function as an Effect.
  *
  * This is the primary on-ramp from existing Promise-based service calls
- * (Mongoose queries, external API calls, etc.) into Effect composition.
+ * (database queries, external API calls, etc.) into Effect composition.
  *
  * The resulting Effect fails with `EffectServiceError` when the Promise
  * rejects, preserving the original error as the `cause` field.
  *
  * @example
  * ```ts
- * const findByIdEffect = promiseToEffect(
- *   () => this.model.findById(id).exec(),
+ * const loadThreadEffect = promiseToEffect(
+ *   () => this.threadService.findOne({ id }),
  *   'Thread not found',
  * );
  * ```

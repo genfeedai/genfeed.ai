@@ -66,7 +66,7 @@ export class AnalyticsTwitterProcessor extends WorkerHost {
         return;
       }
 
-      // Fetch credential with proper decryption via Mongoose getters
+      // Fetch credential through the service layer so decryption accessors run.
       const credential: unknown = await this.credentialsService.findOne({
         _id: credentialId,
       });
