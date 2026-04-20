@@ -39,7 +39,7 @@ That tag triggers `.github/workflows/desktop-release.yml`, which now:
 - requires the Apple signing secrets up front
 - builds the macOS artifact
 - uploads the artifact to the workflow run
-- attaches the artifact to the GitHub release for `desktop-v1.2.3`
+- creates or updates the GitHub release for `desktop-v1.2.3` and attaches the artifact automatically
 
 Required GitHub Actions secrets:
 
