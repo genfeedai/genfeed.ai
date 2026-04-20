@@ -7,7 +7,7 @@
  * - Managing rate-limited job execution
  */
 import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
-import { CampaignProcessingJobData } from '@api/queues/campaign/campaign.processor';
+import type { CampaignProcessingJobData } from '@api/queues/campaign/campaign-job.interface';
 import { CampaignStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';

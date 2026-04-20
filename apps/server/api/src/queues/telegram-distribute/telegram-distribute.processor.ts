@@ -4,16 +4,11 @@ import {
   createProcessorCircuitBreaker,
   type ProcessorCircuitBreaker,
 } from '@api/shared/utils/circuit-breaker/circuit-breaker.util';
-import { DistributionPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 
-export interface TelegramDistributeJobData {
-  distributionId: string;
-  organizationId: string;
-  platform: DistributionPlatform;
-}
+import type { TelegramDistributeJobData } from './telegram-distribute-job.interface';
 
 @Processor('telegram-distribute')
 export class TelegramDistributeProcessor extends WorkerHost {

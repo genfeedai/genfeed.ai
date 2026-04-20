@@ -19,18 +19,10 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 
-export interface CampaignProcessingJobData {
-  campaignId: string;
-  organizationId: string;
-}
-
-export interface CampaignProcessingResult {
-  campaignId: string;
-  processed: number;
-  successful: number;
-  failed: number;
-  skipped: number;
-}
+import type {
+  CampaignProcessingJobData,
+  CampaignProcessingResult,
+} from './campaign-job.interface';
 
 @Processor('campaign-processing')
 export class CampaignProcessor extends WorkerHost {

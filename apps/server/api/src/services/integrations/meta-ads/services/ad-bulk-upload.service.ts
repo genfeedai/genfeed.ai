@@ -1,6 +1,6 @@
 import type { CreativeSource } from '@api/collections/ad-bulk-upload-jobs/schemas/ad-bulk-upload-job.schema';
 import { AdBulkUploadJobsService } from '@api/collections/ad-bulk-upload-jobs/services/ad-bulk-upload-jobs.service';
-import { AdBulkUploadJobData } from '@api/queues/ad-bulk-upload/ad-bulk-upload.processor';
+import type { AdBulkUploadJobData } from '@api/queues/ad-bulk-upload/ad-bulk-upload-job.interface';
 import { QueueService } from '@api/queues/core/queue.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';

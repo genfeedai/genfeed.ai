@@ -9,22 +9,7 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import { Job } from 'bullmq';
 
-export interface AdBulkUploadJobData {
-  jobId: string;
-  organizationId: string;
-  brandId?: string;
-  credentialId: string;
-  accessToken: string;
-  adAccountId: string;
-  campaignId: string;
-  adSetId: string;
-  images: string[];
-  videos: string[];
-  headlines: string[];
-  bodyCopies: string[];
-  callToAction?: string;
-  linkUrl: string;
-}
+import type { AdBulkUploadJobData } from './ad-bulk-upload-job.interface';
 
 interface BulkPermutation {
   mediaType: 'image' | 'video';
