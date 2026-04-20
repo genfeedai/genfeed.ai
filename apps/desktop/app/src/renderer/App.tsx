@@ -3,9 +3,12 @@ import type {
   IDesktopSession,
 } from '@genfeedai/desktop-contracts';
 import { startTransition, useCallback, useEffect, useState } from 'react';
+import OnboardingWizard from './components/OnboardingWizard';
+import ReconnectBanner from './components/ReconnectBanner';
 import { Sidebar } from './components/Sidebar';
 import { useThreads } from './hooks/useThreads';
 import type { NavView } from './nav-view';
+import { useSyncEngine } from './sync/useSyncEngine';
 import { initializeRendererTelemetry } from './telemetry';
 import { AgentsView } from './views/AgentsView';
 import { AnalyticsView } from './views/AnalyticsView';
@@ -39,6 +42,11 @@ const emptyBootstrap: IDesktopBootstrap = {
   workspaces: [],
 };
 
+interface OnboardingState {
+  completed: boolean;
+  loaded: boolean;
+}
+
 export const App = () => {
   const [bootstrap, setBootstrap] = useState<IDesktopBootstrap>(emptyBootstrap);
   const [activeView, setActiveView] = useState<NavView>('conversation');
@@ -50,7 +58,13 @@ export const App = () => {
     platform: 'instagram' | 'linkedin' | 'twitter' | 'tiktok' | 'youtube';
     topic: string;
   } | null>(null);
+  const [onboardingState, setOnboardingState] = useState<OnboardingState>({
+    completed: false,
+    loaded: false,
+  });
+  const [isDismissedReconnect, setIsDismissedReconnect] = useState(false);
 
+  const localUserId = bootstrap.localUserId || null;
   const selectedWorkspaceId = bootstrap.workspaces[0]?.id ?? null;
 
   const {
@@ -61,7 +75,18 @@ export const App = () => {
     setActiveThreadId,
     setThreadStatus,
     threads,
-  } = useThreads(selectedWorkspaceId);
+  } = useThreads(selectedWorkspaceId, localUserId);
+
+  const {
+    errors: syncErrors,
+    isSyncing,
+    lastSyncAt,
+    triggerSync,
+  } = useSyncEngine({
+    apiEndpoint: bootstrap.environment.apiEndpoint,
+    localUserId,
+    session: bootstrap.session,
+  });
 
   /* ─── Bootstrap ─── */
 
@@ -75,7 +100,24 @@ export const App = () => {
   }, []);
 
   useEffect(() => {
-    void loadBootstrap();
+    const run = async () => {
+      await loadBootstrap();
+
+      // Load onboarding state after bootstrap
+      try {
+        const onboardingData =
+          await window.genfeedDesktop.onboarding.getState();
+        setOnboardingState({
+          completed: onboardingData.completed,
+          loaded: true,
+        });
+      } catch {
+        // If IPC fails, treat as completed to avoid blocking the user
+        setOnboardingState({ completed: true, loaded: true });
+      }
+    };
+
+    void run();
 
     const disposeSession = window.genfeedDesktop.auth.onDidChangeSession(
       (session: IDesktopSession | null) => {
@@ -127,10 +169,21 @@ export const App = () => {
     initializeRendererTelemetry(bootstrap.environment, bootstrap.session);
   }, [bootstrap.environment, bootstrap.session]);
 
+  /* ─── Onboarding ─── */
+
+  const handleOnboardingComplete = useCallback(async () => {
+    await window.genfeedDesktop.onboarding.setCompleted();
+    setOnboardingState({ completed: true, loaded: true });
+  }, []);
+
   /* ─── Auth ─── */
 
   const handleLogout = useCallback(async () => {
     await window.genfeedDesktop.auth.logout();
+  }, []);
+
+  const handleReconnect = useCallback(async () => {
+    await window.genfeedDesktop.auth.login();
   }, []);
 
   /* ─── Navigation ─── */
@@ -177,7 +230,29 @@ export const App = () => {
     [createThread, addMessage],
   );
 
+  /* ─── Derived state ─── */
+
+  const shouldShowWizard =
+    onboardingState.loaded && !onboardingState.completed && !bootstrap.clerkId;
+
+  const shouldShowReconnect =
+    !isDismissedReconnect &&
+    bootstrap.clerkId !== null &&
+    bootstrap.session === null;
+
   /* ─── Render ─── */
+
+  // Loading state — wait for onboarding IPC
+  if (!onboardingState.loaded) {
+    return <div className="desktop-loading" />;
+  }
+
+  // Wizard — first time user, never connected
+  if (shouldShowWizard) {
+    return (
+      <OnboardingWizard onComplete={() => void handleOnboardingComplete()} />
+    );
+  }
 
   const renderMainView = () => {
     switch (activeView) {
@@ -228,15 +303,25 @@ export const App = () => {
           fail until your connection returns.
         </div>
       )}
+      {shouldShowReconnect && (
+        <ReconnectBanner
+          onDismiss={() => setIsDismissedReconnect(true)}
+          onReconnect={() => void handleReconnect()}
+        />
+      )}
       <Sidebar
         activeThreadId={activeThreadId}
         activeView={activeView}
+        isSyncing={isSyncing}
+        lastSyncAt={lastSyncAt}
         onLogout={() => void handleLogout()}
         onNavigate={handleNavigate}
         onNewThread={handleNewThread}
         onOpenWorkspace={() => void handleOpenWorkspace()}
         onSelectThread={handleSelectThread}
+        onTriggerSync={triggerSync}
         session={bootstrap.session}
+        syncErrors={syncErrors}
         syncState={bootstrap.syncState}
         threads={threads}
         workspaces={bootstrap.workspaces}

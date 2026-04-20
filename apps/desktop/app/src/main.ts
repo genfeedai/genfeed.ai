@@ -456,6 +456,31 @@ const registerIpcHandlers = (): void => {
     DESKTOP_IPC_CHANNELS.getPlatform,
     async () => process.platform,
   );
+
+  // Onboarding
+  ipcMain.handle(DESKTOP_IPC_CHANNELS.appGetOnboardingState, async () => ({
+    completed: localIdentityService.getOnboardingCompleted(),
+  }));
+  ipcMain.handle(DESKTOP_IPC_CHANNELS.appSetOnboardingCompleted, async () => {
+    localIdentityService.setOnboardingCompleted();
+  });
+
+  // Sync cursor (durable storage in main-process KV)
+  ipcMain.handle(DESKTOP_IPC_CHANNELS.syncGetCursor, async () =>
+    localIdentityService.getSyncCursor(),
+  );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.syncSetCursor,
+    async (_event: unknown, cursor: string) => {
+      localIdentityService.setSyncCursor(cursor);
+    },
+  );
+
+  // Sync trigger — pushes an event to the renderer which owns PGlite
+  ipcMain.handle(DESKTOP_IPC_CHANNELS.syncTriggerThreads, async () => {
+    mainWindow?.webContents.send(DESKTOP_IPC_CHANNELS.syncThreadsRequested);
+    return { ok: true };
+  });
 };
 
 app.on('before-quit', (event) => {

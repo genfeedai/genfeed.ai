@@ -37,12 +37,16 @@ function timeAgo(dateStr: string): string {
 interface SidebarProps {
   activeView: NavView;
   activeThreadId: string | null;
+  isSyncing: boolean;
+  lastSyncAt: string | null;
   onNavigate: (view: NavView) => void;
   onSelectThread: (threadId: string) => void;
   onNewThread: () => void;
   onOpenWorkspace: () => void;
   onLogout: () => void;
+  onTriggerSync: () => void;
   session: IDesktopSession | null;
+  syncErrors: string[];
   syncState: IDesktopSyncState;
   threads: IDesktopThread[];
   workspaces: IDesktopWorkspace[];
@@ -51,12 +55,16 @@ interface SidebarProps {
 export const Sidebar = ({
   activeView,
   activeThreadId,
+  isSyncing,
+  lastSyncAt,
   onNavigate,
   onSelectThread,
   onNewThread,
   onOpenWorkspace,
   onLogout,
+  onTriggerSync,
   session,
+  syncErrors,
   syncState,
   threads,
   workspaces,
@@ -222,6 +230,41 @@ export const Sidebar = ({
 
       {/* Footer */}
       <div className="sidebar-footer">
+        {/* Cloud sync status */}
+        {isSyncing && (
+          <div className="sync-indicator">
+            <span className="sync-dot sync-dot-active" />⟳ Syncing...
+          </div>
+        )}
+        {!isSyncing && syncErrors.length > 0 && (
+          <div className="sync-indicator sync-indicator-error">
+            <span>⚠ Sync error</span>
+            <Button
+              className="sync-retry-btn"
+              onClick={onTriggerSync}
+              type="button"
+              variant={ButtonVariant.UNSTYLED}
+            >
+              · Retry
+            </Button>
+          </div>
+        )}
+        {!isSyncing && syncErrors.length === 0 && lastSyncAt && (
+          <div className="sync-indicator sync-indicator-success">
+            <span>✓ Synced {timeAgo(lastSyncAt)}</span>
+            <Button
+              className="sync-manual-btn"
+              onClick={onTriggerSync}
+              title="Sync now"
+              type="button"
+              variant={ButtonVariant.UNSTYLED}
+            >
+              ⟳
+            </Button>
+          </div>
+        )}
+
+        {/* Local job queue indicator */}
         {syncState.pendingCount > 0 && (
           <div className="sync-indicator">
             <span className="sync-dot" />
