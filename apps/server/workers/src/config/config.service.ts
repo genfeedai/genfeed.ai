@@ -2,7 +2,7 @@ import {
   BaseConfigService,
   baseSchema,
   type IEnvConfig,
-  mongodbSchema,
+  postgresSchema,
   redisSchema,
   sentryOptionalSchema,
 } from '@genfeedai/config';
@@ -22,7 +22,7 @@ const workersSpecificSchema = {
 
 const workersSchema = Joi.object({
   ...baseSchema,
-  ...mongodbSchema,
+  ...postgresSchema,
   ...redisSchema,
   ...sentryOptionalSchema,
   ...workersSpecificSchema,

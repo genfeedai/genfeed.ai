@@ -22,8 +22,8 @@ import {
   leonardoSchema,
   microservicesSchema,
   // Infrastructure
-  mongodbSchema,
   newsApiSchema,
+  postgresSchema,
   redisSchema,
   replicateSchema,
   sentrySchema,
@@ -86,9 +86,7 @@ const apiSpecificSchema = {
  */
 const apiSchema = Joi.object({
   ...baseSchema,
-  ...mongodbSchema,
-  // Override MONGODB_URI to be optional — desktop / self-hosted (Prisma-only) mode has no MongoDB.
-  MONGODB_URI: Joi.string().optional().allow(''),
+  ...postgresSchema,
   ...redisSchema,
   ...awsSchema,
   ...clerkSchema,

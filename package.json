@@ -32,7 +32,7 @@
     "packages/*",
     "ee/packages/*"
   ],
-  "packageManager": "bun@1.3.12",
+  "packageManager": "bun@1.3.13",
   "scripts": {
     "build": "bunx turbo build --filter='./packages/*'",
     "build:app": "bunx turbo build --filter",
@@ -163,7 +163,7 @@
     "@nestjs/platform-socket.io": "11.1.19",
     "@nestjs/schedule": "6.1.3",
     "@nestjs/serve-static": "5.0.5",
-    "@nestjs/swagger": "11.3.0",
+    "@nestjs/swagger": "11.3.1",
     "@nestjs/terminus": "11.1.1",
     "@nestjs/websockets": "11.1.19",
     "@next/third-parties": "16.2.4",
@@ -195,7 +195,7 @@
     "archiver": "7.0.1",
     "axios": "1.15.1",
     "bcrypt": "6.0.0",
-    "bullmq": "5.74.2",
+    "bullmq": "5.75.2",
     "cache-manager": "7.2.8",
     "cheerio": "1.2.0",
     "class-transformer": "0.5.1",

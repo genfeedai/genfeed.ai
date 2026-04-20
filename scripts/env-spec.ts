@@ -60,7 +60,6 @@ const backendSharedKeys = [
   'GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL',
   'GENFEEDAI_PUBLIC_URL',
   'GENFEEDAI_WEBHOOKS_URL',
-  'MONGODB_URI',
   'REDIS_URL',
   'SENTRY_AUTH_TOKEN',
   'SENTRY_ENVIRONMENT',
@@ -169,6 +168,7 @@ export const ENV_TARGETS: EnvTarget[] = [
       'MARKETPLACE_API_URL',
       'MEDIUM_CLIENT_ID',
       'MEDIUM_CLIENT_SECRET',
+      'MONGODB_URI',
       'NEWS_API_KEY',
       'NEWS_API_URL',
       'OPENAI_API_KEY',
@@ -315,7 +315,6 @@ export const ENV_TARGETS: EnvTarget[] = [
     },
     sharedKeys: [
       'DATABASE_URL',
-      'MONGODB_URI',
       'REDIS_URL',
       'SENTRY_AUTH_TOKEN',
       'SENTRY_ENVIRONMENT',
@@ -474,7 +473,11 @@ export const LEGACY_ENV_HEADER = [
 export const ROOT_ENV_SECTIONS: EnvSection[] = [
   {
     title: 'Shared Runtime',
-    keys: ['NODE_ENV', 'DATABASE_URL', 'REDIS_URL', 'MONGODB_URI'],
+    keys: ['NODE_ENV', 'DATABASE_URL', 'REDIS_URL'],
+  },
+  {
+    title: 'Legacy Mongo Tooling',
+    keys: ['MONGODB_URI'],
   },
   {
     title: 'Shared URLs',

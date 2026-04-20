@@ -55,10 +55,13 @@ function generateEncryptionKey(): string {
 }
 
 const DEFAULT_ENV = `# ─── Required ───────────────────────────────────────────────────────
-MONGODB_URI=mongodb://127.0.0.1:27017/genfeed
+DATABASE_URL=postgresql://user:pass@localhost:5432/genfeed
 REDIS_URL=redis://localhost:6379
 PORT=3010
 TOKEN_ENCRYPTION_KEY=${generateEncryptionKey()}
+
+# ─── Legacy Mongo Tooling (optional API scripts) ───────────────────
+MONGODB_URI=mongodb://127.0.0.1:27017/genfeed
 
 # ─── Internal Services ──────────────────────────────────────────────
 GENFEEDAI_API_URL=http://localhost:3010

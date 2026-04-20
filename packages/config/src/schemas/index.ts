@@ -42,6 +42,7 @@ export {
   telegramBotSchema,
   twitchSchema,
 } from './notifications.schema';
+export { postgresSchema } from './postgres.schema';
 export { redisSchema } from './redis.schema';
 export {
   sentryOptionalSchema,

@@ -13,11 +13,11 @@ describe('ConfigService', () => {
     env.GENFEEDAI_APP_URL = 'http://localhost:3000';
     env.GENFEEDAI_CDN_URL = 'http://localhost:3002';
     env.GENFEEDAI_WEBHOOKS_URL = 'http://localhost:3010';
+    env.DATABASE_URL = 'postgresql://user:pass@localhost:5432/genfeed';
     env.AWS_REGION = 'us-west-1';
     env.AWS_S3_BUCKET = 'test-bucket';
     env.AWS_ACCESS_KEY_ID = 'test-key';
     env.AWS_SECRET_ACCESS_KEY = 'test-secret';
-    env.MONGODB_URI = 'mongodb://mongo.internal:27017/test-db';
     delete env.DB_MODE;
     env.PORT = '3010';
     env.CLERK_PUBLISHABLE_KEY = 'pk_test_test';
@@ -88,6 +88,7 @@ describe('ConfigService', () => {
 
   afterEach(() => {
     // Clean up environment variables
+    delete env.DATABASE_URL;
     delete env.NODE_ENV;
   });
 
@@ -98,6 +99,12 @@ describe('ConfigService', () => {
 
     it('should validate required environment variables', () => {
       expect(() => new ConfigService()).not.toThrow();
+    });
+
+    it('should require DATABASE_URL', () => {
+      delete env.DATABASE_URL;
+
+      expect(() => new ConfigService()).toThrow(/DATABASE_URL/);
     });
   });
 
