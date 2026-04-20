@@ -1,52 +1,23 @@
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { User } from '@clerk/backend';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import type { Model } from 'mongoose';
 import type { PushDesktopThreadsDto } from './dto/push-desktop-threads.dto';
-import type { DesktopMessageDocument } from './schemas/desktop-message.schema';
-import { DesktopMessage } from './schemas/desktop-message.schema';
-import type { DesktopThreadDocument } from './schemas/desktop-thread.schema';
-import { DesktopThread } from './schemas/desktop-thread.schema';
 
 @Injectable()
 export class DesktopSyncService {
-  constructor(
-    @InjectModel(DesktopThread.name)
-    private readonly threadModel: Model<DesktopThreadDocument>,
-    @InjectModel(DesktopMessage.name)
-    private readonly messageModel: Model<DesktopMessageDocument>,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   @LogMethod()
   async pullThreads(user: User, cursor?: string) {
-    const filter: Record<string, unknown> = { clerkUserId: user.id };
-    if (cursor) {
-      filter.updatedAt = { $gt: cursor };
-    }
-
-    const threads = await this.threadModel
-      .find(filter)
-      .sort({ updatedAt: -1 })
-      .lean()
-      .exec();
-
-    const threadIds = threads.map((t) => t.id);
-    const messages =
-      threadIds.length > 0
-        ? await this.messageModel
-            .find({ threadId: { $in: threadIds } })
-            .sort({ createdAt: 1 })
-            .lean()
-            .exec()
-        : [];
-
-    const msgsByThread = new Map<string, typeof messages>();
-    for (const msg of messages) {
-      const list = msgsByThread.get(msg.threadId) ?? [];
-      list.push(msg);
-      msgsByThread.set(msg.threadId, list);
-    }
+    const threads = await this.prisma.desktopThread.findMany({
+      include: { messages: { orderBy: { createdAt: 'asc' } } },
+      orderBy: { updatedAt: 'desc' },
+      where: {
+        clerkUserId: user.id,
+        ...(cursor ? { updatedAt: { gt: new Date(cursor) } } : {}),
+      },
+    });
 
     const updatedCursor = new Date().toISOString();
 
@@ -55,7 +26,7 @@ export class DesktopSyncService {
         threads: threads.map((t) => ({
           createdAt: t.createdAt,
           id: t.id,
-          messages: (msgsByThread.get(t.id) ?? []).map((m) => ({
+          messages: t.messages.map((m) => ({
             content: m.content,
             createdAt: m.createdAt,
             draftId: m.draftId,
@@ -80,46 +51,48 @@ export class DesktopSyncService {
 
     for (const thread of dto.threads) {
       try {
-        const existing = await this.threadModel
-          .findOne({ id: thread.id })
-          .lean()
-          .exec();
+        const existing = await this.prisma.desktopThread.findUnique({
+          select: { updatedAt: true },
+          where: { id: thread.id },
+        });
 
-        if (!existing || thread.updatedAt > existing.updatedAt) {
-          await this.threadModel.findOneAndUpdate(
-            { id: thread.id },
-            {
-              $set: {
-                clerkUserId: user.id,
-                createdAt: thread.createdAt,
-                id: thread.id,
-                status: thread.status ?? 'idle',
-                title: thread.title,
-                updatedAt: thread.updatedAt,
-                workspaceId: thread.workspaceId,
-              },
+        if (!existing || thread.updatedAt > existing.updatedAt.toISOString()) {
+          await this.prisma.desktopThread.upsert({
+            create: {
+              clerkUserId: user.id,
+              createdAt: new Date(thread.createdAt),
+              id: thread.id,
+              status: thread.status ?? 'idle',
+              title: thread.title,
+              updatedAt: new Date(thread.updatedAt),
+              workspaceId: thread.workspaceId,
             },
-            { upsert: true },
-          );
+            update: {
+              clerkUserId: user.id,
+              createdAt: new Date(thread.createdAt),
+              status: thread.status ?? 'idle',
+              title: thread.title,
+              updatedAt: new Date(thread.updatedAt),
+              workspaceId: thread.workspaceId,
+            },
+            where: { id: thread.id },
+          });
 
-          for (const msg of thread.messages) {
-            const existingMsg = await this.messageModel
-              .findOne({ id: msg.id })
-              .lean()
-              .exec();
-
-            if (!existingMsg) {
-              await this.messageModel.create({
+          if (thread.messages.length > 0) {
+            await this.prisma.desktopMessage.createMany({
+              data: thread.messages.map((msg) => ({
                 content: msg.content,
-                createdAt: msg.createdAt,
+                createdAt: new Date(msg.createdAt),
                 draftId: msg.draftId,
-                generatedContent: msg.generatedContent,
+                generatedContent: msg.generatedContent ?? undefined,
                 id: msg.id,
                 role: msg.role,
                 threadId: thread.id,
-              });
-            }
+              })),
+              skipDuplicates: true,
+            });
           }
+
           accepted++;
         } else {
           rejected++;

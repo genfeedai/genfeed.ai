@@ -3721,3 +3721,31 @@ model Analytic {
 
   @@map("analytics")
 }
+
+model DesktopThread {
+  id          String           @id
+  clerkUserId String
+  title       String           @default("New conversation")
+  status      String           @default("idle")
+  workspaceId String?
+  createdAt   DateTime
+  updatedAt   DateTime
+  messages    DesktopMessage[]
+
+  @@index([clerkUserId, updatedAt(sort: Desc)])
+  @@map("desktop_threads")
+}
+
+model DesktopMessage {
+  id               String        @id
+  threadId         String
+  role             String
+  content          String
+  createdAt        DateTime
+  draftId          String?
+  generatedContent Json?
+  thread           DesktopThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@index([threadId, createdAt])
+  @@map("desktop_messages")
+}
