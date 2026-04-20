@@ -142,12 +142,29 @@ jobs:
   # Build single unified server image containing all 10 services
   build-unified-image:
     name: Build Unified Server Image
-    needs: [test-changed]
+    needs: [detect-changes, test-changed]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     if: |
       always() &&
-      (needs.test-changed.result == 'success' || needs.test-changed.result == 'skipped')
+      (needs.test-changed.result == 'success' || needs.test-changed.result == 'skipped') &&
+      (
+        needs.detect-changes.outputs.api_changed == 'true' ||
+        needs.detect-changes.outputs.files_changed == 'true' ||
+        needs.detect-changes.outputs.mcp_changed == 'true' ||
+        needs.detect-changes.outputs.notifications_changed == 'true' ||
+        needs.detect-changes.outputs.telegram_changed == 'true' ||
+        needs.detect-changes.outputs.discord_changed == 'true' ||
+        needs.detect-changes.outputs.slack_changed == 'true' ||
+        needs.detect-changes.outputs.fanvue_changed == 'true' ||
+        needs.detect-changes.outputs.workers_changed == 'true' ||
+        needs.detect-changes.outputs.clips_changed == 'true' ||
+        inputs.force_all == true ||
+        inputs.force_api == true ||
+        inputs.force_bots == true ||
+        inputs.force_workers == true ||
+        inputs.force_redis == true
+      )
     permissions:
       contents: read
       packages: write
@@ -384,6 +401,43 @@ jobs:
           echo "**Environment:** ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
           echo "**Services:** ${{ steps.services.outputs.changed }}" >> $GITHUB_STEP_SUMMARY
           echo "**Result:** ${{ steps.deploy.outcome }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Author:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Triggered:** $(date -u)" >> $GITHUB_STEP_SUMMARY
+
+  report-noop:
+    name: Report No Deployment Needed
+    needs: [detect-changes, test-changed, build-unified-image]
+    runs-on: ubuntu-latest
+    if: |
+      always() &&
+      (needs.test-changed.result == 'skipped' || needs.test-changed.result == 'success') &&
+      needs.build-unified-image.result == 'skipped' &&
+      !(
+        needs.detect-changes.outputs.api_changed == 'true' ||
+        needs.detect-changes.outputs.files_changed == 'true' ||
+        needs.detect-changes.outputs.mcp_changed == 'true' ||
+        needs.detect-changes.outputs.notifications_changed == 'true' ||
+        needs.detect-changes.outputs.telegram_changed == 'true' ||
+        needs.detect-changes.outputs.discord_changed == 'true' ||
+        needs.detect-changes.outputs.slack_changed == 'true' ||
+        needs.detect-changes.outputs.fanvue_changed == 'true' ||
+        needs.detect-changes.outputs.workers_changed == 'true' ||
+        needs.detect-changes.outputs.clips_changed == 'true' ||
+        inputs.force_all == true ||
+        inputs.force_api == true ||
+        inputs.force_bots == true ||
+        inputs.force_workers == true ||
+        inputs.force_redis == true
+      )
+    steps:
+      - name: Write no-op deployment summary
+        run: |
+          echo "## Deployment Report (${{ inputs.environment }})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Result:** skipped" >> $GITHUB_STEP_SUMMARY
+          echo "**Reason:** no services changed and no force flags were set." >> $GITHUB_STEP_SUMMARY
           echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Author:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
           echo "**Triggered:** $(date -u)" >> $GITHUB_STEP_SUMMARY

@@ -6,6 +6,9 @@ on:
     tags:
       - "desktop-v*"
 
+permissions:
+  contents: write
+
 jobs:
   desktop-macos:
     runs-on: macos-latest
@@ -26,8 +29,32 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Validate Apple release secrets
+        env:
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_SIGNING_CERTIFICATE_BASE64: ${{ secrets.APPLE_SIGNING_CERTIFICATE_BASE64 }}
+          APPLE_SIGNING_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_SIGNING_CERTIFICATE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          missing=()
+          for var in \
+            APPLE_ID \
+            APPLE_APP_SPECIFIC_PASSWORD \
+            APPLE_TEAM_ID \
+            APPLE_SIGNING_CERTIFICATE_BASE64 \
+            APPLE_SIGNING_CERTIFICATE_PASSWORD; do
+            if [ -z "${!var}" ]; then
+              missing+=("$var")
+            fi
+          done
+
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "Missing required Apple release secrets: ${missing[*]}" >&2
+            exit 1
+          fi
+
       - name: Install Apple signing certificate
-        if: ${{ env.APPLE_SIGNING_CERTIFICATE_BASE64 != '' }}
         env:
           APPLE_SIGNING_CERTIFICATE_BASE64: ${{ secrets.APPLE_SIGNING_CERTIFICATE_BASE64 }}
           APPLE_SIGNING_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_SIGNING_CERTIFICATE_PASSWORD }}
@@ -66,3 +93,11 @@ jobs:
           name: genfeed-desktop-macos
           path: apps/desktop/app/release/*
           if-no-files-found: error
+
+      - name: Attach macOS artifacts to GitHub release
+        if: startsWith(github.ref, 'refs/tags/desktop-v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: apps/desktop/app/release/*
+          fail_on_unmatched_files: true
+          tag_name: ${{ github.ref_name }}
