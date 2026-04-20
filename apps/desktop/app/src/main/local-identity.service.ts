@@ -5,7 +5,7 @@ import type { CloudDatabaseService } from './cloud-database.service';
  * Manages the stable local identity for this desktop installation.
  *
  * Two KV keys — permanent, never rename:
- *   local.user.id    — stable UUID set on first boot, never changes
+ *   local.user.id      — stable UUID set on first boot, never changes
  *   local.user.clerkId — Clerk user ID persisted after first cloud sign-in,
  *                        survives sign-out and token expiry
  *
