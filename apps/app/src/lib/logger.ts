@@ -39,7 +39,6 @@ class Logger {
 
   debug(message: string, options?: LoggerOptions): void {
     if (this.isDev) {
-      // eslint-disable-next-line no-console
       console.debug(
         this.formatMessage('debug', message, options),
         options?.metadata,
@@ -49,7 +48,6 @@ class Logger {
 
   info(message: string, options?: LoggerOptions): void {
     if (this.isDev) {
-      // eslint-disable-next-line no-console
       console.info(
         this.formatMessage('info', message, options),
         options?.metadata,
@@ -58,7 +56,6 @@ class Logger {
   }
 
   warn(message: string, options?: LoggerOptions): void {
-    // eslint-disable-next-line no-console
     console.warn(
       this.formatMessage('warn', message, options),
       options?.metadata,
@@ -71,7 +68,6 @@ class Logger {
         ? { message: error.message, stack: error.stack }
         : error;
 
-    // eslint-disable-next-line no-console
     console.error(this.formatMessage('error', message, options), {
       error: formattedError,
       ...options?.metadata,

@@ -5,6 +5,7 @@ import type { IIngredient } from '@genfeedai/interfaces';
 import type { MediaLightboxProps } from '@genfeedai/props/layout/media-lightbox.props';
 import dynamic from 'next/dynamic';
 import { useEffect, useMemo, useState } from 'react';
+import type { Plugin } from 'yet-another-react-lightbox';
 import 'yet-another-react-lightbox/plugins/captions.css';
 import 'yet-another-react-lightbox/plugins/thumbnails.css';
 import 'yet-another-react-lightbox/styles.css';
@@ -39,9 +40,7 @@ export default function MediaLightbox({
   open,
   onClose,
 }: MediaLightboxProps) {
-  // Load plugins dynamically on client side
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [plugins, setPlugins] = useState<any[]>([]);
+  const [plugins, setPlugins] = useState<Plugin[]>([]);
 
   useEffect(() => {
     // Dynamically import ESM plugins on the client side

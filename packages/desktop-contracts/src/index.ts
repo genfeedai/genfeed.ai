@@ -32,9 +32,15 @@ export const DESKTOP_IPC_CHANNELS = {
   notify: 'desktop:notify',
   openFileDialog: 'desktop:openFileDialog',
   quickGenerate: 'desktop:quickGenerate',
+  appGetOnboardingState: 'desktop:app:getOnboardingState',
+  appSetOnboardingCompleted: 'desktop:app:setOnboardingCompleted',
+  syncGetCursor: 'desktop:sync:getCursor',
   syncGetJobs: 'desktop:sync:getJobs',
   syncGetState: 'desktop:sync:getState',
   syncQueueJob: 'desktop:sync:queueJob',
+  syncSetCursor: 'desktop:sync:setCursor',
+  syncThreadsRequested: 'desktop:sync:threadsRequested',
+  syncTriggerThreads: 'desktop:sync:triggerThreads',
   toggleSidebar: 'desktop:view:toggleSidebar',
   workspaceLinkProject: 'desktop:workspace:linkProject',
   workspaceOpen: 'desktop:workspace:open',
@@ -409,15 +415,23 @@ export interface IGenfeedDesktopBridge {
   notifications: {
     notify: (title: string, body: string) => Promise<void>;
   };
+  onboarding: {
+    getState: () => Promise<{ completed: boolean }>;
+    setCompleted: () => Promise<void>;
+  };
   platform: string;
   sync: {
+    getCursor: () => Promise<string | null>;
     getJobs: (workspaceId?: string) => Promise<IDesktopSyncJob[]>;
     getState: () => Promise<IDesktopSyncState>;
+    onSyncThreadsRequested: (callback: () => void) => () => void;
     queueJob: (
       type: string,
       payload: string,
       workspaceId?: string,
     ) => Promise<IDesktopSyncJob>;
+    setCursor: (cursor: string) => Promise<void>;
+    triggerThreads: () => Promise<{ ok: boolean; error?: string }>;
   };
   workspace: {
     getRecentWorkspaces: () => Promise<IDesktopWorkspace[]>;

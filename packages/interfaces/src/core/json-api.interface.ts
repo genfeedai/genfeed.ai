@@ -23,7 +23,7 @@ export interface JsonApiMeta {
   page?: number;
   limit?: number;
   totalPages?: number;
-  [key: string]: unknown; // eslint-disable-line @typescript-eslint/no-explicit-any -- JSON:API spec allows arbitrary meta
+  [key: string]: unknown;
 }
 
 /**

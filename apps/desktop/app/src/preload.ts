@@ -113,6 +113,12 @@ const desktopBridge: IGenfeedDesktopBridge = {
     notify: async (title, body) =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.notify, title, body),
   },
+  onboarding: {
+    getState: async () =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.appGetOnboardingState),
+    setCompleted: async () =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.appSetOnboardingCompleted),
+  },
   onQuickGenerate: (callback) => {
     const listener = () => callback();
     ipcRenderer.on(DESKTOP_IPC_CHANNELS.quickGenerate, listener);
@@ -123,9 +129,17 @@ const desktopBridge: IGenfeedDesktopBridge = {
   },
   platform: process.platform,
   sync: {
+    getCursor: async () =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncGetCursor),
     getJobs: async (workspaceId) =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncGetJobs, workspaceId),
     getState: async () => ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncGetState),
+    onSyncThreadsRequested: (callback) => {
+      const listener = () => callback();
+      ipcRenderer.on(DESKTOP_IPC_CHANNELS.syncThreadsRequested, listener);
+      return () =>
+        ipcRenderer.off(DESKTOP_IPC_CHANNELS.syncThreadsRequested, listener);
+    },
     queueJob: async (type, payload, workspaceId) =>
       ipcRenderer.invoke(
         DESKTOP_IPC_CHANNELS.syncQueueJob,
@@ -133,6 +147,10 @@ const desktopBridge: IGenfeedDesktopBridge = {
         payload,
         workspaceId,
       ),
+    setCursor: async (cursor: string) =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncSetCursor, cursor),
+    triggerThreads: async () =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncTriggerThreads),
   },
   workspace: {
     getRecentWorkspaces: async () =>

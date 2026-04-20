@@ -199,7 +199,6 @@ export function useCloudWorkflow({
       abortRef.current?.abort();
       useCloudWorkflowStore.getState().resetCloudState();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workflowId, templateId, getService, bindSharedWorkflowApi]);
 
   useEffect(() => {

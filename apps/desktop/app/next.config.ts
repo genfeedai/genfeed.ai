@@ -28,6 +28,11 @@ const nextConfig: NextConfig = {
       '@ui-constants': path.join(packagesRoot, 'ui/src/components/constants'),
     };
 
+    config.experiments = {
+      ...config.experiments,
+      asyncWebAssembly: true,
+    };
+
     return config;
   },
 };

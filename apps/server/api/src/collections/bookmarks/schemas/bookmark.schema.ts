@@ -1,1 +1,1 @@
-export type { Bookmark as BookmarkDocument } from '@genfeedai/prisma';
+export type { Bookmark, Bookmark as BookmarkDocument } from '@genfeedai/prisma';
