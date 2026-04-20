@@ -7,7 +7,7 @@ import {
   type MemberEditSchema,
   memberEditSchema,
 } from '@genfeedai/client/schemas';
-import { AlertCategory, ModalEnum } from '@genfeedai/enums';
+import { AlertCategory, ButtonVariant, ModalEnum } from '@genfeedai/enums';
 import type { IBrand, IRole } from '@genfeedai/interfaces';
 import {
   hasFormErrors,
@@ -204,7 +204,7 @@ export default function ModalMember({
       {!member ? (
         <form ref={formRef} onSubmit={onSubmit} className="space-y-4">
           {hasFormErrors(form.formState.errors) && (
-            <Alert type={AlertCategory.ERROR} className="alert-error mb-4">
+            <Alert type={AlertCategory.ERROR} className="mb-4">
               <div className="space-y-1">
                 {parseFormErrors(form.formState.errors).map((error, index) => (
                   <div key={index}>{error}</div>
@@ -254,7 +254,7 @@ export default function ModalMember({
           <ModalActions>
             <Button
               label="Cancel"
-              className="btn-secondary"
+              variant={ButtonVariant.SECONDARY}
               onClick={() => closeMemberModal()}
             />
 
@@ -265,7 +265,7 @@ export default function ModalMember({
                   <HiUserPlus /> Send Invitation
                 </>
               }
-              className="btn-primary"
+              variant={ButtonVariant.DEFAULT}
               isLoading={isSubmitting}
               isDisabled={!form.formState.isValid || isLoadingRoles}
             />
@@ -282,7 +282,7 @@ export default function ModalMember({
 
             <form onSubmit={onSubmit} className="space-y-4">
               {hasFormErrors(editForm.formState.errors) && (
-                <Alert type={AlertCategory.ERROR} className="alert-error mb-4">
+                <Alert type={AlertCategory.ERROR} className="mb-4">
                   <div className="space-y-1">
                     {parseFormErrors(editForm.formState.errors).map(
                       (error, index) => (
@@ -293,9 +293,9 @@ export default function ModalMember({
                 </Alert>
               )}
 
-              <div className="form-control w-full mb-5">
-                <label className="label">
-                  <span className="label-text capitalize font-semibold">
+              <div className="w-full mb-5">
+                <label>
+                  <span className="text-sm capitalize font-semibold">
                     Brands
                   </span>
                 </label>
@@ -304,7 +304,7 @@ export default function ModalMember({
                   {brands.map((brand: IBrand) => (
                     <div
                       key={brand.id}
-                      className="p-3 hover:bg-base-200 rounded-lg"
+                      className="p-3 hover:bg-secondary rounded-lg"
                     >
                       <Checkbox
                         name={`account-${brand.id}`}
@@ -339,14 +339,14 @@ export default function ModalMember({
                 </div>
               </div>
 
-              <div className="modal-action">
+              <div className="flex justify-end gap-2">
                 <Button
                   label={
                     <>
                       <HiXMark /> Cancel
                     </>
                   }
-                  className="btn-ghost"
+                  variant={ButtonVariant.GHOST}
                   onClick={() => closeMemberModal()}
                   isDisabled={isSubmitting}
                 />
@@ -358,7 +358,7 @@ export default function ModalMember({
                       <HiCheck /> Save
                     </>
                   }
-                  className="btn-primary"
+                  variant={ButtonVariant.DEFAULT}
                   isLoading={isSubmitting}
                   isDisabled={isSubmitting}
                 />
