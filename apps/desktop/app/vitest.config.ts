@@ -80,6 +80,10 @@ export default defineConfig({
         replacement: packagePath('agent', 'src/$1'),
       },
       {
+        find: '@genfeedai/desktop-prisma',
+        replacement: packagePath('desktop-prisma', 'src/index.ts'),
+      },
+      {
         find: /^@genfeedai\/contexts\/(.*)$/,
         replacement: packagePath('contexts', '$1'),
       },

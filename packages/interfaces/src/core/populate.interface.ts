@@ -1,6 +1,6 @@
 /**
- * Configuration for Mongoose population (joins).
- * Used across all services that need to populate related documents.
+ * Configuration for relation population / nested fetches.
+ * Used across services that need to load related documents.
  */
 export interface PopulateOption {
   path: string;

@@ -12,7 +12,7 @@ export class DesktopDraftsService {
   private async readDraftsFile(
     workspaceId: string,
   ): Promise<IDesktopContentRunDraft[]> {
-    const workspace = this.workspaceService.getWorkspace(workspaceId);
+    const workspace = await this.workspaceService.getWorkspace(workspaceId);
     const metadataDir = buildWorkspaceMetadataDir(workspace.path);
     const draftsPath = buildWorkspaceDraftsPath(workspace.path);
 
@@ -31,7 +31,7 @@ export class DesktopDraftsService {
     workspaceId: string,
     drafts: IDesktopContentRunDraft[],
   ): Promise<void> {
-    const workspace = this.workspaceService.getWorkspace(workspaceId);
+    const workspace = await this.workspaceService.getWorkspace(workspaceId);
     const draftsPath = buildWorkspaceDraftsPath(workspace.path);
 
     await fs.writeFile(draftsPath, JSON.stringify(drafts, null, 2), 'utf8');

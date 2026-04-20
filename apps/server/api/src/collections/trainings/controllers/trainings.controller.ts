@@ -30,7 +30,7 @@ import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { TrainingFilterUtil } from '@api/helpers/utils/training-filter/training-filter.util';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { User } from '@clerk/backend';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {

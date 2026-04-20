@@ -35,7 +35,7 @@ import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { MarketplaceApiClient } from '@api/marketplace-integration/marketplace-api-client';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { User } from '@clerk/backend';
 import {
   ActivitySource,

@@ -33,7 +33,7 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
-import { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { User } from '@clerk/backend';
 import {
   ActivitySource,

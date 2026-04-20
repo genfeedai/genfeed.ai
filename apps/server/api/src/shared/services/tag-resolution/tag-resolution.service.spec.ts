@@ -1,6 +1,6 @@
 import { TagsService } from '@api/collections/tags/services/tags.service';
 import { TagResolutionService } from '@api/shared/services/tag-resolution/tag-resolution.service';
-import type { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
+import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('TagResolutionService', () => {

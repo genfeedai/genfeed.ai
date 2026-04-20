@@ -23,20 +23,20 @@ const createDatabaseMock = () => {
   const recentItemsById = new Map<string, RecentItemRow>();
 
   return {
-    getWorkspaceById: (workspaceId: string) =>
+    getWorkspaceById: async (workspaceId: string) =>
       workspacesById.get(workspaceId) ?? null,
-    listRecentItems: () =>
+    listRecentItems: async () =>
       Array.from(recentItemsById.values()).sort((left, right) =>
         right.openedAt.localeCompare(left.openedAt),
       ),
-    listWorkspaces: () =>
+    listWorkspaces: async () =>
       Array.from(workspacesById.values()).sort((left, right) =>
         right.lastOpenedAt.localeCompare(left.lastOpenedAt),
       ),
-    upsertRecentItem: (item: RecentItemRow) => {
+    upsertRecentItem: async (item: RecentItemRow) => {
       recentItemsById.set(item.id, item);
     },
-    upsertWorkspace: (workspace: WorkspaceRow) => {
+    upsertWorkspace: async (workspace: WorkspaceRow) => {
       workspacesById.set(workspace.id, workspace);
     },
     workspacesById,
@@ -89,16 +89,16 @@ describe('DesktopWorkspaceService', () => {
       workspace?.fileIndex.some((file) => file.relativePath.includes('.git')),
     ).toBe(false);
     expect(fs.existsSync(path.join(workspaceDir, '.genfeed'))).toBe(true);
-    expect(service.listRecents()[0]?.value).toBe(workspaceDir);
+    expect((await service.listRecents())[0]?.value).toBe(workspaceDir);
   });
 
-  it('links a project, resolves workspace paths, and reveals the folder in Finder', () => {
+  it('links a project, resolves workspace paths, and reveals the folder in Finder', async () => {
     const workspaceDir = path.join(temporaryRoot, 'linked-workspace');
     fs.mkdirSync(workspaceDir, { recursive: true });
 
     const now = '2026-04-01T10:00:00.000Z';
     const database = createDatabaseMock();
-    database.upsertWorkspace({
+    await database.upsertWorkspace({
       createdAt: now,
       fileIndex: '[]',
       id: 'workspace-1',
@@ -116,17 +116,20 @@ describe('DesktopWorkspaceService', () => {
       database as unknown as DesktopDatabaseService,
     );
 
-    const linkedWorkspace = service.linkProject('workspace-1', 'project-9');
+    const linkedWorkspace = await service.linkProject(
+      'workspace-1',
+      'project-9',
+    );
 
     expect(linkedWorkspace.linkedProjectId).toBe('project-9');
     expect(
-      service.assertInsideWorkspace(
+      await service.assertInsideWorkspace(
         'workspace-1',
         path.join('docs', 'plan.md'),
       ),
     ).toBe(path.join(workspaceDir, 'docs', 'plan.md'));
 
-    service.revealInFinder('workspace-1');
+    await service.revealInFinder('workspace-1');
     expect(electronMockState.shell.revealedPaths).toEqual([workspaceDir]);
   });
 });

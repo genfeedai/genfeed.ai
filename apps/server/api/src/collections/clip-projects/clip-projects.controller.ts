@@ -29,7 +29,7 @@ import {
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { ClipAnalyzeQueueService } from '@api/queues/clip-analyze/clip-analyze.queue.service';
 import { ClipFactoryQueueService } from '@api/queues/clip-factory/clip-factory-queue.service';
-import { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { User } from '@clerk/backend';
 import type {
   JsonApiCollectionResponse,

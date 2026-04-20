@@ -9,7 +9,7 @@ import type { TranscriptEntity } from '@api/collections/transcripts/entities/tra
 import { TranscriptsService } from '@api/collections/transcripts/services/transcripts.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import type { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
-import type { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
+import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { User } from '@clerk/backend';
 import { TranscriptStatus } from '@genfeedai/enums';
 import { BadRequestException } from '@nestjs/common';

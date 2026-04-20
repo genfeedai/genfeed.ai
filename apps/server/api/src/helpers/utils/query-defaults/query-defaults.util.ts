@@ -10,7 +10,7 @@ export class QueryDefaultsUtil {
    * Get default pagination options from BaseQueryDto
    */
   static getPaginationDefaults(query: Partial<BaseQueryDto> = {}) {
-    // Ensure pagination is a boolean value for mongoose-paginate
+    // Normalize pagination to a boolean value before shaping query options.
     let paginationValue =
       query.pagination ?? QueryDefaultsUtil.defaults.pagination;
 

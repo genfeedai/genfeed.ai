@@ -8,11 +8,11 @@ const createDatabaseMock = () => {
   const values = new Map<string, string>();
 
   return {
-    deleteValue: (key: string) => {
+    deleteValue: async (key: string) => {
       values.delete(key);
     },
-    getValue: (key: string) => values.get(key) ?? null,
-    setValue: (key: string, value: string) => {
+    getValue: async (key: string) => values.get(key) ?? null,
+    setValue: async (key: string, value: string) => {
       values.set(key, value);
     },
     values,
@@ -103,7 +103,7 @@ describe('DesktopSessionService', () => {
       userId: 'user-123',
       userName: 'Desktop User',
     });
-    expect(database.getValue('desktop.session')).toContain('gf_desktop_key');
+    expect(database.values.get('desktop.session')).toContain('gf_desktop_key');
   });
 
   it('validates and refreshes an existing desktop session on startup', async () => {
@@ -117,7 +117,7 @@ describe('DesktopSessionService', () => {
       wsEndpoint: 'https://notifications.genfeed.ai',
     });
 
-    service.setSession({
+    await service.setSession({
       issuedAt: '2026-04-01T09:00:00.000Z',
       token: 'persisted_desktop_key',
       userEmail: 'old@example.com',
@@ -196,7 +196,7 @@ describe('DesktopSessionService', () => {
       wsEndpoint: 'https://notifications.genfeed.ai',
     });
 
-    service.setSession({
+    await service.setSession({
       issuedAt: '2026-04-01T09:00:00.000Z',
       token: 'stale_desktop_key',
       userEmail: 'desktop@example.com',
@@ -225,7 +225,7 @@ describe('DesktopSessionService', () => {
       wsEndpoint: 'https://notifications.genfeed.ai',
     });
 
-    service.setSession({
+    await service.setSession({
       issuedAt: '2026-04-01T09:00:00.000Z',
       token: 'stale_desktop_key',
       userEmail: 'desktop@example.com',

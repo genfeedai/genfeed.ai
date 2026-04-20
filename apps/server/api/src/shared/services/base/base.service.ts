@@ -5,7 +5,7 @@ import { QueryBuilder } from '@api/helpers/utils/query-builder.util';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { AggregationCacheUtil } from '@api/shared/utils/aggregation-cache/aggregation-cache.util';
-import type { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
+import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { PopulateOption } from '@genfeedai/interfaces';
 import { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';

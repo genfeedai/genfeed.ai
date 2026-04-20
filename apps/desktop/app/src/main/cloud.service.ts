@@ -3,6 +3,7 @@ import type {
   IDesktopAgentRunResult,
   IDesktopAnalytics,
   IDesktopCloudProject,
+  IDesktopDataService,
   IDesktopEnvironment,
   IDesktopGeneratedContent,
   IDesktopGenerationOptions,
@@ -14,8 +15,11 @@ import type {
   IDesktopWorkflowRunResult,
 } from '@genfeedai/desktop-contracts';
 
-export class DesktopCloudService {
-  constructor(private readonly environment: IDesktopEnvironment) {}
+export class DesktopCloudService implements IDesktopDataService {
+  constructor(
+    private readonly environment: IDesktopEnvironment,
+    private readonly getSession: () => IDesktopSession | null,
+  ) {}
 
   private requireSession(session: IDesktopSession | null): IDesktopSession {
     if (!session) {
@@ -25,12 +29,8 @@ export class DesktopCloudService {
     return session;
   }
 
-  private async fetchJson<T>(
-    session: IDesktopSession | null,
-    pathname: string,
-    init?: RequestInit,
-  ): Promise<T> {
-    const activeSession = this.requireSession(session);
+  private async fetchJson<T>(pathname: string, init?: RequestInit): Promise<T> {
+    const activeSession = this.requireSession(this.getSession());
     const response = await fetch(`${this.environment.apiEndpoint}${pathname}`, {
       ...init,
       headers: {
@@ -49,15 +49,13 @@ export class DesktopCloudService {
     return (await response.json()) as T;
   }
 
-  async listProjects(
-    session: IDesktopSession | null,
-  ): Promise<IDesktopCloudProject[]> {
+  async listProjects(): Promise<IDesktopCloudProject[]> {
     const response = await this.fetchJson<{
       data?: Array<{
         attributes?: Record<string, unknown>;
         id?: string;
       }>;
-    }>(session, '/editor-projects');
+    }>('/editor-projects');
 
     return (response.data ?? []).map((project) => ({
       id: project.id ?? '',
@@ -68,12 +66,8 @@ export class DesktopCloudService {
     }));
   }
 
-  async generateHooks(
-    session: IDesktopSession | null,
-    topic: string,
-  ): Promise<string[]> {
+  async generateHooks(topic: string): Promise<string[]> {
     const response = await this.fetchJson<{ hooks: string[] }>(
-      session,
       '/posts/hook-generations',
       {
         body: JSON.stringify({
@@ -88,7 +82,6 @@ export class DesktopCloudService {
   }
 
   async generateContent(
-    session: IDesktopSession | null,
     params: IDesktopGenerationOptions,
   ): Promise<IDesktopGeneratedContent> {
     const response = await this.fetchJson<{
@@ -96,7 +89,7 @@ export class DesktopCloudService {
         attributes?: Record<string, unknown>;
         id?: string;
       };
-    }>(session, '/posts', {
+    }>('/posts', {
       body: JSON.stringify({
         content: params.prompt,
         contentType: params.type,
@@ -125,16 +118,13 @@ export class DesktopCloudService {
     };
   }
 
-  async getTrends(
-    session: IDesktopSession | null,
-    platform: string,
-  ): Promise<IDesktopTrend[]> {
+  async getTrends(platform: string): Promise<IDesktopTrend[]> {
     const response = await this.fetchJson<{
       data?: Array<{
         attributes?: Record<string, unknown>;
         id?: string;
       }>;
-    }>(session, `/trends?platform=${encodeURIComponent(platform)}`);
+    }>(`/trends?platform=${encodeURIComponent(platform)}`);
 
     return (response.data ?? []).map((item) => ({
       engagementScore: Number(item.attributes?.engagementScore ?? 0),
@@ -148,10 +138,10 @@ export class DesktopCloudService {
     }));
   }
 
-  async getIngredients(
-    session: IDesktopSession | null,
-    filter?: { limit?: number; platform?: string },
-  ): Promise<IDesktopIngredient[]> {
+  async getIngredients(filter?: {
+    limit?: number;
+    platform?: string;
+  }): Promise<IDesktopIngredient[]> {
     const params = new URLSearchParams();
     if (filter?.platform) {
       params.set('platform', filter.platform);
@@ -167,7 +157,7 @@ export class DesktopCloudService {
         attributes?: Record<string, unknown>;
         id?: string;
       }>;
-    }>(session, pathname);
+    }>(pathname);
 
     return (response.data ?? []).map((item) => ({
       content: String(item.attributes?.content ?? ''),
@@ -180,16 +170,17 @@ export class DesktopCloudService {
     }));
   }
 
-  async publishPost(
-    session: IDesktopSession | null,
-    params: { content: string; draftId?: string; platform: string },
-  ): Promise<IDesktopPublishResult> {
+  async publishPost(params: {
+    content: string;
+    draftId?: string;
+    platform: string;
+  }): Promise<IDesktopPublishResult> {
     const publishedAt = new Date().toISOString();
 
     if (params.draftId) {
       const response = await this.fetchJson<{
         data?: { id?: string };
-      }>(session, `/posts/${params.draftId}/publish`, {
+      }>(`/posts/${params.draftId}/publish`, {
         body: JSON.stringify({
           content: params.content,
           platform: params.platform,
@@ -206,7 +197,7 @@ export class DesktopCloudService {
 
     const response = await this.fetchJson<{
       data?: { id?: string };
-    }>(session, '/posts', {
+    }>('/posts', {
       body: JSON.stringify({
         content: params.content,
         platform: params.platform,
@@ -222,10 +213,7 @@ export class DesktopCloudService {
     };
   }
 
-  async getAnalytics(
-    session: IDesktopSession | null,
-    params: { days: number },
-  ): Promise<IDesktopAnalytics> {
+  async getAnalytics(params: { days: number }): Promise<IDesktopAnalytics> {
     const response = await this.fetchJson<{
       recentPosts?: Array<{
         content?: string;
@@ -237,7 +225,7 @@ export class DesktopCloudService {
       totalEngagements?: number;
       totalPosts?: number;
       totalViews?: number;
-    }>(session, `/analytics/overview?days=${params.days}`);
+    }>(`/analytics/overview?days=${params.days}`);
 
     return {
       recentPosts: (response.recentPosts ?? []).map((post) => ({
@@ -253,13 +241,13 @@ export class DesktopCloudService {
     };
   }
 
-  async listAgents(session: IDesktopSession | null): Promise<IDesktopAgent[]> {
+  async listAgents(): Promise<IDesktopAgent[]> {
     const response = await this.fetchJson<{
       data?: Array<{
         attributes?: Record<string, unknown>;
         id?: string;
       }>;
-    }>(session, '/agent-strategies');
+    }>('/agent-strategies');
 
     return (response.data ?? []).map((item) => {
       const attrs = item.attributes ?? {};
@@ -294,13 +282,10 @@ export class DesktopCloudService {
     });
   }
 
-  async runAgent(
-    session: IDesktopSession | null,
-    agentId: string,
-  ): Promise<IDesktopAgentRunResult> {
+  async runAgent(agentId: string): Promise<IDesktopAgentRunResult> {
     const response = await this.fetchJson<{
       data?: { id?: string; attributes?: Record<string, unknown> };
-    }>(session, `/agent-strategies/${agentId}/run-now`, {
+    }>(`/agent-strategies/${agentId}/run-now`, {
       method: 'POST',
     });
 
@@ -312,15 +297,13 @@ export class DesktopCloudService {
     };
   }
 
-  async listWorkflows(
-    session: IDesktopSession | null,
-  ): Promise<IDesktopWorkflow[]> {
+  async listWorkflows(): Promise<IDesktopWorkflow[]> {
     const response = await this.fetchJson<{
       data?: Array<{
         attributes?: Record<string, unknown>;
         id?: string;
       }>;
-    }>(session, '/workflows');
+    }>('/workflows');
 
     return (response.data ?? []).map((item) => {
       const attrs = item.attributes ?? {};
@@ -361,10 +344,10 @@ export class DesktopCloudService {
     });
   }
 
-  async runWorkflow(
-    session: IDesktopSession | null,
-    params: { batch?: boolean; workflowId: string },
-  ): Promise<IDesktopWorkflowRunResult> {
+  async runWorkflow(params: {
+    batch?: boolean;
+    workflowId: string;
+  }): Promise<IDesktopWorkflowRunResult> {
     const endpoint = params.batch
       ? `/workflows/${params.workflowId}/batch`
       : '/workflow-executions';
@@ -373,7 +356,7 @@ export class DesktopCloudService {
     const response = await this.fetchJson<{
       data?: { id?: string; attributes?: Record<string, unknown> };
       runId?: string;
-    }>(session, endpoint, {
+    }>(endpoint, {
       body: JSON.stringify(body),
       method: 'POST',
     });

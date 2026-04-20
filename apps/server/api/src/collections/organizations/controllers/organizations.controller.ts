@@ -52,7 +52,7 @@ import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { generateLabel } from '@api/shared/utils/label/label.util';
 import { PipelineBuilder } from '@api/shared/utils/pipeline-builder/pipeline-builder.util';
-import { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { User } from '@clerk/backend';
 import type {
   JsonApiCollectionResponse,

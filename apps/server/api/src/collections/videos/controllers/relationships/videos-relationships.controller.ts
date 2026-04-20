@@ -37,7 +37,7 @@ import { FileQueueService } from '@api/services/files-microservice/queue/file-qu
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { WhisperService } from '@api/services/whisper/whisper.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
-import { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { User } from '@clerk/backend';
 import { JOB_TYPES } from '@files/queues/queue.constants';
 import {

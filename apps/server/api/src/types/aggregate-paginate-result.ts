@@ -1,7 +1,6 @@
 /**
  * Type definitions for aggregate pagination results.
- * Previously wrapping mongoose-aggregate-paginate-v2 — now a standalone type
- * used for Prisma-based aggregation result shaping.
+ * Shared by legacy aggregation call sites and Prisma-based result shaping.
  */
 
 export interface CustomLabels<T = string | undefined | boolean> {

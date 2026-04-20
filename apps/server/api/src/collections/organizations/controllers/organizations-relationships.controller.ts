@@ -54,7 +54,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { PipelineBuilder } from '@api/shared/utils/pipeline-builder/pipeline-builder.util';
-import { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { User } from '@clerk/backend';
 import { MemberRole } from '@genfeedai/enums';
 import type {

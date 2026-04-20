@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { CloudDatabaseService } from './cloud-database.service';
+import type { DesktopDatabaseService } from './database.service';
 
 /**
  * Manages the stable local identity for this desktop installation.
@@ -11,7 +11,8 @@ import type { CloudDatabaseService } from './cloud-database.service';
  *   onboarding.completed   — '1' once the onboarding wizard is dismissed
  *   sync.threads.cursor    — ISO timestamp cursor for bidirectional thread sync
  *
- * All methods are synchronous (better-sqlite3 is sync).
+ * Values are cached in memory after initialize() so callers can read them
+ * synchronously while persistence stays async on the PGlite layer.
  */
 const LOCAL_USER_ID_KEY = 'local.user.id';
 const LOCAL_CLERK_ID_KEY = 'local.user.clerkId';
@@ -19,41 +20,68 @@ const ONBOARDING_COMPLETED_KEY = 'onboarding.completed';
 const SYNC_THREADS_CURSOR_KEY = 'sync.threads.cursor';
 
 export class LocalIdentityService {
-  constructor(private readonly database: CloudDatabaseService) {}
+  private clerkId: string | null = null;
+  private localUserId: string | null = null;
+  private onboardingCompleted = false;
+  private syncCursor: string | null = null;
+
+  constructor(private readonly database: DesktopDatabaseService) {}
+
+  async initialize(): Promise<void> {
+    const [
+      storedLocalUserId,
+      storedClerkId,
+      storedOnboardingCompleted,
+      storedSyncCursor,
+    ] = await Promise.all([
+      this.database.getValue(LOCAL_USER_ID_KEY),
+      this.database.getValue(LOCAL_CLERK_ID_KEY),
+      this.database.getValue(ONBOARDING_COMPLETED_KEY),
+      this.database.getValue(SYNC_THREADS_CURSOR_KEY),
+    ]);
+
+    this.localUserId = storedLocalUserId ?? randomUUID();
+    this.clerkId = storedClerkId ?? null;
+    this.onboardingCompleted = storedOnboardingCompleted === '1';
+    this.syncCursor = storedSyncCursor ?? null;
+
+    if (!storedLocalUserId) {
+      await this.database.setValue(LOCAL_USER_ID_KEY, this.localUserId);
+    }
+  }
 
   getLocalUserId(): string {
-    const stored = this.database.getValue(LOCAL_USER_ID_KEY);
-
-    if (stored) {
-      return stored;
+    if (!this.localUserId) {
+      throw new Error('Local identity service not initialized');
     }
 
-    const id = randomUUID();
-    this.database.setValue(LOCAL_USER_ID_KEY, id);
-    return id;
+    return this.localUserId;
   }
 
   getClerkId(): string | null {
-    return this.database.getValue(LOCAL_CLERK_ID_KEY) ?? null;
+    return this.clerkId;
   }
 
-  setClerkId(clerkId: string): void {
-    this.database.setValue(LOCAL_CLERK_ID_KEY, clerkId);
+  async setClerkId(clerkId: string): Promise<void> {
+    this.clerkId = clerkId;
+    await this.database.setValue(LOCAL_CLERK_ID_KEY, clerkId);
   }
 
   getOnboardingCompleted(): boolean {
-    return this.database.getValue(ONBOARDING_COMPLETED_KEY) === '1';
+    return this.onboardingCompleted;
   }
 
-  setOnboardingCompleted(): void {
-    this.database.setValue(ONBOARDING_COMPLETED_KEY, '1');
+  async setOnboardingCompleted(): Promise<void> {
+    this.onboardingCompleted = true;
+    await this.database.setValue(ONBOARDING_COMPLETED_KEY, '1');
   }
 
   getSyncCursor(): string | null {
-    return this.database.getValue(SYNC_THREADS_CURSOR_KEY) ?? null;
+    return this.syncCursor;
   }
 
-  setSyncCursor(cursor: string): void {
-    this.database.setValue(SYNC_THREADS_CURSOR_KEY, cursor);
+  async setSyncCursor(cursor: string): Promise<void> {
+    this.syncCursor = cursor;
+    await this.database.setValue(SYNC_THREADS_CURSOR_KEY, cursor);
   }
 }

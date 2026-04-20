@@ -31,7 +31,7 @@ import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { QuotaService } from '@api/services/quota/quota.service';
-import { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { User } from '@clerk/backend';
 import { CredentialPlatform } from '@genfeedai/enums';
 import type {

@@ -3,6 +3,7 @@ import path from 'node:path';
 import type {
   IDesktopBootstrap,
   IDesktopContentRunDraft,
+  IDesktopDataService,
   IDesktopGenerationOptions,
 } from '@genfeedai/desktop-contracts';
 import { DESKTOP_IPC_CHANNELS } from '@genfeedai/desktop-contracts';
@@ -16,12 +17,14 @@ import {
 } from 'electron';
 import { DesktopAppShellService } from './main/app-shell.service';
 import { DesktopCloudService } from './main/cloud.service';
-import { CloudDatabaseService } from './main/cloud-database.service';
 import { DesktopConfigService } from './main/config.service';
+import { DesktopDatabaseService } from './main/database.service';
 import { DesktopDraftsService } from './main/drafts.service';
 import { DesktopFilesService } from './main/files.service';
+import { DesktopLocalService } from './main/local.service';
 import { LocalIdentityService } from './main/local-identity.service';
 import { buildDesktopMenu } from './main/menu.service';
+import { DesktopPrismaService } from './main/prisma.service';
 import { DesktopSessionService } from './main/session.service';
 import { DesktopShortcutsService } from './main/shortcuts.service';
 import { DesktopSyncService } from './main/sync.service';
@@ -34,13 +37,22 @@ const environment = configService.getEnvironment();
 
 let mainWindow: BrowserWindow | null = null;
 
-const database = new CloudDatabaseService();
+const prismaService = new DesktopPrismaService();
+const database = new DesktopDatabaseService(prismaService);
 const localIdentityService = new LocalIdentityService(database);
 const sessionService = new DesktopSessionService(database, environment);
 const workspaceService = new DesktopWorkspaceService(database);
 const filesService = new DesktopFilesService(workspaceService);
 const syncService = new DesktopSyncService(database);
-const cloudService = new DesktopCloudService(environment);
+const cloudService = new DesktopCloudService(environment, () =>
+  sessionService.getSession(),
+);
+const localService = new DesktopLocalService(prismaService, () => ({
+  clerkId: localIdentityService.getClerkId(),
+  localUserId: localIdentityService.getLocalUserId(),
+  userEmail: sessionService.getSession()?.userEmail,
+  userName: sessionService.getSession()?.userName,
+}));
 const draftsService = new DesktopDraftsService(workspaceService);
 const appShellService = new DesktopAppShellService(
   environment,
@@ -68,25 +80,36 @@ const emitSession = (): void => {
   mainWindow?.webContents.send(DESKTOP_IPC_CHANNELS.authChanged, session);
 };
 
-const emitBootstrap = (): void => {
+const emitBootstrap = async (): Promise<void> => {
   mainWindow?.webContents.send(
     DESKTOP_IPC_CHANNELS.bootstrapChanged,
-    getBootstrap(),
+    await getBootstrap(),
   );
 };
 
-const getBootstrap = (): IDesktopBootstrap => ({
-  clerkId: localIdentityService.getClerkId(),
-  environment: sessionService.getEnvironment(),
-  localUserId: localIdentityService.getLocalUserId(),
-  preferences: {
-    nativeNotificationsEnabled: Notification.isSupported(),
-  },
-  recents: workspaceService.listRecents(),
-  session: sessionService.getSession(),
-  syncState: syncService.getState(),
-  workspaces: workspaceService.listRecentWorkspaces(),
-});
+const getBootstrap = async (): Promise<IDesktopBootstrap> => {
+  const [recents, syncState, workspaces] = await Promise.all([
+    workspaceService.listRecents(),
+    syncService.getState(),
+    workspaceService.listRecentWorkspaces(),
+  ]);
+
+  return {
+    clerkId: localIdentityService.getClerkId(),
+    environment: sessionService.getEnvironment(),
+    localUserId: localIdentityService.getLocalUserId(),
+    preferences: {
+      nativeNotificationsEnabled: Notification.isSupported(),
+    },
+    recents,
+    session: sessionService.getSession(),
+    syncState,
+    workspaces,
+  };
+};
+
+const getDataService = (): IDesktopDataService =>
+  sessionService.getSession() ? cloudService : localService;
 
 const acquiredSingleInstanceLock = app.requestSingleInstanceLock();
 
@@ -204,8 +227,12 @@ const createWindow = async (): Promise<void> => {
   }
 
   buildDesktopMenu(mainWindow, () => {
-    void workspaceService.openWorkspace().then(() => {
-      emitBootstrap();
+    void workspaceService.openWorkspace().then(async (workspace) => {
+      if (!workspace) {
+        return;
+      }
+
+      await emitBootstrap();
       mainWindow?.webContents.send(DESKTOP_IPC_CHANNELS.toggleSidebar);
     });
   });
@@ -222,7 +249,7 @@ const handleAuthCallback = async (rawUrl: string): Promise<void> => {
       },
     );
     emitSession();
-    emitBootstrap();
+    await emitBootstrap();
     if (Notification.isSupported()) {
       void new Notification({
         body: 'The browser returned an invalid or expired desktop sign-in key. Start sign-in again from the desktop app.',
@@ -232,9 +259,10 @@ const handleAuthCallback = async (rawUrl: string): Promise<void> => {
     return;
   }
 
-  localIdentityService.setClerkId(session.userId);
+  await localIdentityService.setClerkId(session.userId);
+  await localService.ensureBootstrapData();
   emitSession();
-  emitBootstrap();
+  await emitBootstrap();
   void new Notification({
     body: session.userEmail || 'Authenticated successfully.',
     title: 'Genfeed Desktop',
@@ -265,64 +293,65 @@ const registerIpcHandlers = (): void => {
     await shell.openExternal(sessionService.getLoginUrl());
   });
   ipcMain.handle(DESKTOP_IPC_CHANNELS.authLogout, async () => {
-    sessionService.clearSession();
+    await sessionService.clearSession();
+    await localService.ensureBootstrapData();
     emitSession();
-    emitBootstrap();
+    await emitBootstrap();
   });
   ipcMain.handle(DESKTOP_IPC_CHANNELS.cloudListProjects, async () =>
-    cloudService.listProjects(sessionService.getSession()),
+    getDataService().listProjects(),
   );
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.cloudGenerateHooks,
     async (_event: unknown, topic: string) =>
-      cloudService.generateHooks(sessionService.getSession(), topic),
+      getDataService().generateHooks(topic),
   );
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.cloudGenerateContent,
     async (_event: unknown, params: IDesktopGenerationOptions) =>
-      cloudService.generateContent(sessionService.getSession(), params),
+      getDataService().generateContent(params),
   );
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.cloudGetTrends,
     async (_event: unknown, platform: string) =>
-      cloudService.getTrends(sessionService.getSession(), platform),
+      getDataService().getTrends(platform),
   );
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.cloudGetIngredients,
     async (_event: unknown, filter?: { limit?: number; platform?: string }) =>
-      cloudService.getIngredients(sessionService.getSession(), filter),
+      getDataService().getIngredients(filter),
   );
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.cloudPublishPost,
     async (
       _event: unknown,
       params: { content: string; draftId?: string; platform: string },
-    ) => cloudService.publishPost(sessionService.getSession(), params),
+    ) => getDataService().publishPost(params),
   );
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.cloudGetAnalytics,
     async (_event: unknown, params: { days: number }) =>
-      cloudService.getAnalytics(sessionService.getSession(), params),
+      getDataService().getAnalytics(params),
   );
   ipcMain.handle(DESKTOP_IPC_CHANNELS.cloudListAgents, async () =>
-    cloudService.listAgents(sessionService.getSession()),
+    getDataService().listAgents(),
   );
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.cloudRunAgent,
     async (_event: unknown, agentId: string) =>
-      cloudService.runAgent(sessionService.getSession(), agentId),
+      getDataService().runAgent(agentId),
   );
   ipcMain.handle(DESKTOP_IPC_CHANNELS.cloudListWorkflows, async () =>
-    cloudService.listWorkflows(sessionService.getSession()),
+    getDataService().listWorkflows(),
   );
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.cloudRunWorkflow,
     async (_event: unknown, params: { batch?: boolean; workflowId: string }) =>
-      cloudService.runWorkflow(sessionService.getSession(), params),
+      getDataService().runWorkflow(params),
   );
   ipcMain.handle(DESKTOP_IPC_CHANNELS.workspaceOpen, async () => {
     const workspace = await workspaceService.openWorkspace();
-    emitBootstrap();
+    await emitBootstrap();
     return workspace;
   });
   ipcMain.handle(DESKTOP_IPC_CHANNELS.workspaceRecent, async () =>
@@ -336,15 +365,18 @@ const registerIpcHandlers = (): void => {
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.workspaceLinkProject,
     async (_event: unknown, workspaceId: string, projectId: string) => {
-      const workspace = workspaceService.linkProject(workspaceId, projectId);
-      emitBootstrap();
+      const workspace = await workspaceService.linkProject(
+        workspaceId,
+        projectId,
+      );
+      await emitBootstrap();
       return workspace;
     },
   );
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.workspaceReveal,
     async (_event: unknown, workspaceId: string) => {
-      workspaceService.revealInFinder(workspaceId);
+      await workspaceService.revealInFinder(workspaceId);
     },
   );
   ipcMain.handle(
@@ -369,7 +401,7 @@ const registerIpcHandlers = (): void => {
     DESKTOP_IPC_CHANNELS.draftsDelete,
     async (_event: unknown, workspaceId: string, draftId: string) => {
       await draftsService.deleteDraft(workspaceId, draftId);
-      emitBootstrap();
+      await emitBootstrap();
     },
   );
   ipcMain.handle(
@@ -386,7 +418,7 @@ const registerIpcHandlers = (): void => {
       contents: string,
     ) => {
       await filesService.writeFile(workspaceId, relativePath, contents);
-      emitBootstrap();
+      await emitBootstrap();
     },
   );
   ipcMain.handle(
@@ -396,7 +428,7 @@ const registerIpcHandlers = (): void => {
         workspaceId,
         filePaths,
       );
-      emitBootstrap();
+      await emitBootstrap();
       return importedAssets;
     },
   );
@@ -424,8 +456,8 @@ const registerIpcHandlers = (): void => {
       payload: string,
       workspaceId?: string,
     ) => {
-      const job = syncService.queueJob(type, payload, workspaceId);
-      emitBootstrap();
+      const job = await syncService.queueJob(type, payload, workspaceId);
+      await emitBootstrap();
       return job;
     },
   );
@@ -462,7 +494,7 @@ const registerIpcHandlers = (): void => {
     completed: localIdentityService.getOnboardingCompleted(),
   }));
   ipcMain.handle(DESKTOP_IPC_CHANNELS.appSetOnboardingCompleted, async () => {
-    localIdentityService.setOnboardingCompleted();
+    await localIdentityService.setOnboardingCompleted();
   });
 
   // Sync cursor (durable storage in main-process KV)
@@ -472,7 +504,7 @@ const registerIpcHandlers = (): void => {
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.syncSetCursor,
     async (_event: unknown, cursor: string) => {
-      localIdentityService.setSyncCursor(cursor);
+      await localIdentityService.setSyncCursor(cursor);
     },
   );
 
@@ -491,16 +523,27 @@ app.on('before-quit', (event) => {
   event.preventDefault();
   isQuitting = true;
 
-  void appShellService.stop().finally(() => {
-    shortcutsService.unregister();
-    trayService.destroy();
-    app.quit();
-  });
+  void (async () => {
+    try {
+      await appShellService.stop();
+    } finally {
+      shortcutsService.unregister();
+      trayService.destroy();
+      await database.close();
+      app.quit();
+    }
+  })();
 });
 
 app.whenReady().then(async () => {
   telemetryService.init();
-  await sessionService.validateStoredSession();
+  await localIdentityService.initialize();
+  await sessionService.initialize();
+  const session = await sessionService.validateStoredSession();
+  if (session) {
+    await localIdentityService.setClerkId(session.userId);
+  }
+  await localService.ensureBootstrapData();
   telemetryService.setUser(sessionService.getSession());
   process.on('uncaughtException', (error) => {
     telemetryService.captureException(error, { source: 'uncaughtException' });
@@ -522,7 +565,7 @@ app.whenReady().then(async () => {
   );
 
   if (deepLinkArgument) {
-    handleAuthCallback(deepLinkArgument);
+    void handleAuthCallback(deepLinkArgument);
   }
 
   app.on('activate', () => {
@@ -541,7 +584,7 @@ app.on('second-instance', (_event: unknown, argv: string[]) => {
   );
 
   if (deepLinkArgument) {
-    handleAuthCallback(deepLinkArgument);
+    void handleAuthCallback(deepLinkArgument);
   }
 
   if (mainWindow) {

@@ -20,7 +20,7 @@
  *
  * The concrete `SubscriptionsService` extends `BaseService<SubscriptionDocument>`
  * and inherits `findOne()` returning `Promise<SubscriptionDocument | null>`.
- * `SubscriptionDocument` is a Mongoose document type with raw `ObjectId`
+ * `SubscriptionDocument` is a database document type with raw identifier
  * fields — **not** the full JSON:API `ISubscription` shape which uses nested
  * `IOrganization` / `IUser` objects and string timestamps.
  *
@@ -32,15 +32,15 @@
  * inherited generic methods, not because the types actually matched.
  *
  * The fix is a minimal **OSS read model** that describes only what OSS
- * consumers read. Both the Mongoose document (enterprise) and a POJO OSS no-op
- * can satisfy it without either side lying about its shape.
+ * consumers read. Both the enterprise document and a POJO OSS no-op can
+ * satisfy it without either side lying about its shape.
  */
 
 /**
  * ID-like reference — accepts `string` or any object with a stable
- * `toString()` representation (for example Mongoose `Types.ObjectId`).
- * OSS either passes this straight into another Mongoose query or stringifies
- * it; it never relies on a more specific runtime shape.
+ * `toString()` representation (for example an ObjectId-like wrapper).
+ * OSS either passes this straight into another query or stringifies it; it
+ * never relies on a more specific runtime shape.
  */
 export type SubscriptionRefId = string | { toString(): string };
 
