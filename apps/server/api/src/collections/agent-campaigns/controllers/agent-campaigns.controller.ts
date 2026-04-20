@@ -1,10 +1,7 @@
 import { AgentCampaignsQueryDto } from '@api/collections/agent-campaigns/dto/agent-campaigns-query.dto';
 import { CreateAgentCampaignDto } from '@api/collections/agent-campaigns/dto/create-agent-campaign.dto';
 import { UpdateAgentCampaignDto } from '@api/collections/agent-campaigns/dto/update-agent-campaign.dto';
-import {
-  AgentCampaign,
-  type AgentCampaignDocument,
-} from '@api/collections/agent-campaigns/schemas/agent-campaign.schema';
+import type { AgentCampaignDocument } from '@api/collections/agent-campaigns/schemas/agent-campaign.schema';
 import { AgentCampaignExecutionService } from '@api/collections/agent-campaigns/services/agent-campaign-execution.service';
 import { AgentCampaignsService } from '@api/collections/agent-campaigns/services/agent-campaigns.service';
 import { UsersService } from '@api/collections/users/services/users.service';
@@ -46,7 +43,7 @@ export class AgentCampaignsController extends BaseCRUDController<
       loggerService,
       agentCampaignsService,
       AgentCampaignSerializer,
-      AgentCampaign.name,
+      'AgentCampaign',
       ['organization', 'brand', 'user'],
     );
   }

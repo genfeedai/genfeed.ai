@@ -31,6 +31,9 @@ export interface IEnvConfig {
   // === MongoDB ===
   MONGODB_URI?: string; // Base connection string — all named DBs derived at runtime
 
+  // === PostgreSQL / Prisma ===
+  DATABASE_URL?: string;
+
   // === Redis ===
   REDIS_URL?: string;
   REDIS_PASSWORD?: string;

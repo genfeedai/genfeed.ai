@@ -13,10 +13,7 @@ import { CreateOrganizationDto } from '@api/collections/organizations/dto/create
 import { OrganizationQueryDto } from '@api/collections/organizations/dto/organization-query.dto';
 import { UpdateOrganizationDto } from '@api/collections/organizations/dto/update-organization.dto';
 import { OrganizationEntity } from '@api/collections/organizations/entities/organization.entity';
-import {
-  Organization,
-  type OrganizationDocument,
-} from '@api/collections/organizations/schemas/organization.schema';
+import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { type PostDocument } from '@api/collections/posts/schemas/post.schema';
 import { PostsService } from '@api/collections/posts/services/posts.service';
@@ -122,7 +119,7 @@ export class OrganizationsController extends BaseCRUDController<
       loggerService,
       organizationsService,
       OrganizationSerializer,
-      Organization.name,
+      'Organization',
       ['settings'], // Populate settings virtual field
     );
   }

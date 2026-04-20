@@ -50,6 +50,7 @@ const backendSharedKeys = [
   'CLERK_PUBLISHABLE_KEY',
   'CLERK_SECRET_KEY',
   'CLERK_WEBHOOK_SIGNING_SECRET',
+  'DATABASE_URL',
   'GENFEEDAI_API_KEY',
   'GENFEEDAI_API_URL',
   'GENFEEDAI_APP_URL',
@@ -313,6 +314,7 @@ export const ENV_TARGETS: EnvTarget[] = [
       production: 'apps/server/workers/.env.production',
     },
     sharedKeys: [
+      'DATABASE_URL',
       'MONGODB_URI',
       'REDIS_URL',
       'SENTRY_AUTH_TOKEN',
@@ -472,7 +474,7 @@ export const LEGACY_ENV_HEADER = [
 export const ROOT_ENV_SECTIONS: EnvSection[] = [
   {
     title: 'Shared Runtime',
-    keys: ['NODE_ENV', 'REDIS_URL', 'MONGODB_URI'],
+    keys: ['NODE_ENV', 'DATABASE_URL', 'REDIS_URL', 'MONGODB_URI'],
   },
   {
     title: 'Shared URLs',

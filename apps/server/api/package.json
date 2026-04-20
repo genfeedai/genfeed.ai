@@ -1,8 +1,8 @@
 {
   "dependencies": {
     "@anthropic-ai/sdk": "0.90.0",
-    "@aws-sdk/client-cloudfront": "3.1031.0",
-    "@aws-sdk/client-ec2": "3.1031.0",
+    "@aws-sdk/client-cloudfront": "3.1032.0",
+    "@aws-sdk/client-ec2": "3.1032.0",
     "@genfeedai/config": "workspace:*",
     "@genfeedai/harness": "workspace:*",
     "@genfeedai/integrations": "workspace:*",
@@ -19,7 +19,7 @@
     "@genfeedai/tools": "workspace:*",
     "@nestjs/event-emitter": "3.0.1",
     "@prisma/adapter-pg": "7.7.0",
-    "effect": "3.21.0",
+    "effect": "3.21.1",
     "openai": "6.34.0",
     "rss": "1.2.2"
   },
