@@ -186,9 +186,7 @@ describe('ElementsScenesController', () => {
       const mockExistingScene = {
         _id: sceneId,
         name: 'Old Scene',
-        organization: 
-          mockUser.publicMetadata.organization as string,
-        ,
+        organization: mockUser.publicMetadata.organization as string,
         user: mockUser.publicMetadata.user as string,
       };
 
@@ -236,9 +234,7 @@ describe('ElementsScenesController', () => {
       const mockScene = {
         _id: sceneId,
         name: 'Scene to Delete',
-        organization: 
-          mockUser.publicMetadata.organization as string,
-        ,
+        organization: mockUser.publicMetadata.organization as string,
         user: mockUser.publicMetadata.user as string,
       };
 

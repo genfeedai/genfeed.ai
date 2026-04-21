@@ -1,14 +1,17 @@
+import { vi } from 'vitest';
+
 /**
  * Creates a mock document-style model that works with BaseService.
  * Supports both `new Model()` constructor calls and static methods.
  */
 export function createMockModel(defaults: Record<string, unknown> = {}) {
+  const mockId = `mock-id-${Math.random().toString(36).slice(2, 10)}`;
   const savedDoc = {
-    _id: 'mock-id-' + Math.random().toString(36).slice(2, 10),
+    _id: mockId,
     ...defaults,
     populate: vi.fn().mockReturnThis(),
     save: vi.fn().mockResolvedValue({
-      _id: savedDoc._id,
+      _id: mockId,
       ...defaults,
     }),
     toObject: vi.fn().mockReturnValue(defaults),
@@ -20,7 +23,7 @@ export function createMockModel(defaults: Record<string, unknown> = {}) {
       ...savedDoc,
       ...data,
       save: vi.fn().mockResolvedValue({
-        _id: savedDoc._id,
+        _id: mockId,
         ...data,
       }),
     };

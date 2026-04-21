@@ -1,3 +1,5 @@
+import { vi } from 'vitest';
+
 /**
  * Creates a mock PrismaService delegate for a single model.
  * Returns an object with all Prisma query methods stubbed with vi.fn().

@@ -196,11 +196,11 @@ export default function MenuShared({
     [groupedItems],
   );
 
-  const handleLinkClick = () => {
+  const handleLinkClick = useCallback(() => {
     if (onClose) {
       onClose();
     }
-  };
+  }, [onClose]);
 
   const renderGroupedItems = useCallback(
     (groups: { group: string; items: MenuItemConfig[] }[]) => (
@@ -265,7 +265,7 @@ export default function MenuShared({
         ))}
       </>
     ),
-    [enterNestedGroup, handleLinkClick, isActive, prefixHref],
+    [enterNestedGroup, handleLinkClick, isActive, prefixHref, isWorkspaceShell],
   );
 
   // Get the nested group (for SidebarNested)
@@ -325,14 +325,14 @@ export default function MenuShared({
           <Link
             href={prefixHref(backHref)}
             className={cn(
-              'flex h-9 w-full items-center gap-3 rounded-lg px-3 py-2 transition-colors duration-200 group',
-              'text-white/80 hover:bg-white/[0.04]',
+              'group flex h-10 w-full items-center gap-3 rounded-xl px-3.5 py-2 transition-colors duration-200',
+              'text-foreground/72 hover:bg-white/[0.035] hover:text-foreground',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
             )}
             aria-label={`Back to ${backLabel ?? 'previous page'}`}
           >
-            <HiOutlineArrowLeft className="w-4 h-4 text-white/60 group-hover:text-white transition-colors duration-200" />
-            <span className="text-sm font-medium text-white/90">
+            <HiOutlineArrowLeft className="h-4 w-4 text-foreground/42 transition-colors duration-200 group-hover:text-foreground/78" />
+            <span className="text-[13px] font-medium tracking-[-0.01em] text-foreground/88">
               {backLabel ?? 'Back'}
             </span>
           </Link>
@@ -362,7 +362,7 @@ export default function MenuShared({
       variant={ButtonVariant.UNSTYLED}
       withWrapper={false}
       onClick={onToggleCollapse}
-      className="group w-8 h-8 rounded-lg flex items-center justify-center text-white/30 hover:text-white/60 hover:bg-white/[0.06] transition-colors duration-200 flex-shrink-0 cursor-pointer"
+      className="gen-shell-control group flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl text-foreground/56 cursor-pointer"
       ariaLabel={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
     >
       <span className="relative flex h-4 w-4 items-center justify-center">
@@ -389,10 +389,7 @@ export default function MenuShared({
   return (
     <div
       data-testid="sidebar-shell"
-      className={cn(
-        'flex h-full min-h-0 flex-1 flex-shrink-0',
-        shellChromeVariant === 'default' ? 'bg-background' : 'bg-transparent',
-      )}
+      className="flex h-full min-h-0 flex-1 flex-shrink-0 bg-transparent"
       style={{
         minWidth:
           isWorkspaceShell && isCollapsed
@@ -409,21 +406,9 @@ export default function MenuShared({
       {isWorkspaceShell ? (
         <div
           data-testid="sidebar-brand-rail"
-          className={cn(
-            'flex h-full w-16 flex-col border-r border-white/[0.08]',
-            shellChromeVariant === 'default'
-              ? 'bg-background'
-              : 'bg-transparent',
-          )}
+          className="flex h-full w-16 flex-col border-r border-white/[0.06] bg-transparent"
         >
-          <div
-            className={cn(
-              'flex h-16 items-center justify-center border-b border-white/[0.08]',
-              shellChromeVariant === 'default'
-                ? 'bg-background'
-                : 'bg-transparent',
-            )}
-          >
+          <div className="gen-shell-toolbar flex h-16 items-center justify-center border-b border-white/[0.06]">
             {sharedCollapseControl}
           </div>
           <SidebarBrandRail />
@@ -446,9 +431,9 @@ export default function MenuShared({
           <div
             data-testid="sidebar-header-shell"
             className={cn(
-              'flex h-16 flex-shrink-0 items-center gap-2 px-3',
+              'gen-shell-toolbar flex h-16 flex-shrink-0 items-center gap-2 px-3',
               shellChromeVariant === 'default' &&
-                'border-b border-white/[0.08]',
+                'border-b border-white/[0.06]',
             )}
           >
             {sharedCollapseControl}
@@ -466,7 +451,7 @@ export default function MenuShared({
           )}
         >
           {renderTopSlot ? (
-            <div className="px-3 pt-3 pb-1">
+            <div className="px-3 pb-2 pt-3">
               <div className="space-y-3">{renderTopSlot()}</div>
             </div>
           ) : null}
@@ -479,7 +464,8 @@ export default function MenuShared({
                   data-testid="sidebar-primary-action"
                   href={prefixHref(config.primaryAction.href)}
                   onClick={handleLinkClick}
-                  className="flex h-10 w-full items-center gap-3 rounded-sm bg-white px-3 py-2 text-left text-sm font-semibold text-black transition-colors duration-200 hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+                  className="gen-shell-control flex h-11 w-full items-center gap-3 rounded-xl px-3.5 py-2 text-left text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+                  data-tone="accent"
                 >
                   {config.primaryAction.icon ? (
                     config.primaryAction.icon
@@ -494,7 +480,7 @@ export default function MenuShared({
                   <Kbd
                     variant="subtle"
                     size="xs"
-                    className="bg-black/[0.08] text-black/45"
+                    className="bg-black/10 text-black/52"
                   >
                     {'\u2318\u21E7'}N
                   </Kbd>
@@ -508,7 +494,8 @@ export default function MenuShared({
                     handleLinkClick();
                     config.primaryAction?.onClick?.();
                   }}
-                  className="flex h-10 w-full items-center gap-3 rounded-sm bg-white px-3 py-2 text-left text-sm font-semibold text-black transition-colors duration-200 hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+                  className="gen-shell-control flex h-11 w-full items-center gap-3 rounded-xl px-3.5 py-2 text-left text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+                  data-tone="accent"
                 >
                   {config.primaryAction.icon ? (
                     config.primaryAction.icon
@@ -523,7 +510,7 @@ export default function MenuShared({
                   <Kbd
                     variant="subtle"
                     size="xs"
-                    className="bg-black/[0.08] text-black/45"
+                    className="bg-black/10 text-black/52"
                   >
                     {'\u2318\u21E7'}N
                   </Kbd>
@@ -629,15 +616,15 @@ export default function MenuShared({
                       <div className="pb-1">
                         <Link
                           href={orgHref('/chat/new')}
-                          className="flex h-9 w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-white/80 transition-colors duration-200 group cursor-pointer hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+                          className="group flex h-10 w-full items-center gap-3 rounded-xl px-3.5 py-2 text-left text-foreground/72 transition-colors duration-200 cursor-pointer hover:bg-white/[0.035] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
                         >
-                          <HiPlus className="h-4 w-4 text-white/80 group-hover:text-white" />
-                          <span className="text-sm font-medium text-white/90">
+                          <HiPlus className="h-4 w-4 text-foreground/42 group-hover:text-foreground/78" />
+                          <span className="text-[13px] font-medium tracking-[-0.01em] text-foreground/88">
                             New Chat
                           </span>
                           <Kbd
                             variant="ghost"
-                            className="ml-auto text-[11px] opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                            className="ml-auto rounded-md border border-white/[0.08] bg-white/[0.03] text-[10px] text-foreground/36 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
                           >
                             ⌘⇧N
                           </Kbd>
@@ -679,11 +666,11 @@ function SidebarUserProfile() {
   }
 
   return (
-    <div className="border-t border-white/[0.08] px-3 py-3">
+    <div className="border-t border-white/[0.06] px-3 py-3">
       <div className="flex items-center gap-2.5">
         {isSignedIn ? <UserButton /> : null}
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-white/90 truncate">
+          <p className="truncate text-sm font-medium text-foreground/88">
             {user.fullName ?? user.primaryEmailAddress?.emailAddress ?? 'User'}
           </p>
         </div>

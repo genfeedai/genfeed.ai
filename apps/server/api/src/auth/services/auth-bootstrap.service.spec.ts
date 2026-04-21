@@ -446,13 +446,12 @@ describe('AuthBootstrapService', () => {
     );
   });
 
-  it('keeps member brand scoping when the user is not a super admin', async () => {
+  it('loads organization brands for non-super-admin users without legacy member brand scoping', async () => {
     const userId = 'test-object-id';
     const organizationId = 'test-object-id';
-    const restrictedBrandId = 'test-object-id';
 
     membersService.findOne.mockResolvedValue({
-      brands: [restrictedBrandId],
+      lastUsedBrandId: 'test-object-id',
     });
 
     await service.getBootstrap({
@@ -473,7 +472,7 @@ describe('AuthBootstrapService', () => {
     expect(brandsService.findForOrganization).toHaveBeenCalledWith(
       organizationId,
       {
-        brandIds: [restrictedBrandId],
+        brandIds: undefined,
       },
     );
   });

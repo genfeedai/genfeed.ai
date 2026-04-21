@@ -86,8 +86,8 @@ export class AuthCliController {
       .match({
         isRevoked: false,
         label: { $options: 'i', $regex: 'CLI' },
-        organization: organizationId,
-        user: userId,
+        organizationId,
+        userId,
       })
       .build();
 
@@ -97,7 +97,7 @@ export class AuthCliController {
     );
 
     for (const existingKey of existingKeys.docs) {
-      await this.apiKeysService.revoke(existingKey._id.toString());
+      await this.apiKeysService.revoke(existingKey.id.toString());
     }
 
     // Determine scopes based on admin status
@@ -109,9 +109,9 @@ export class AuthCliController {
       category: ApiKeyCategory.GENFEEDAI,
       description: 'Auto-generated key for gf CLI',
       label: 'CLI',
-      organization: organizationId,
+      organizationId,
       scopes,
-      user: userId,
+      userId,
     });
 
     return { key: plainKey };

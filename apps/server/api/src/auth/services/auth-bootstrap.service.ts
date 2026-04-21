@@ -41,6 +41,25 @@ export interface OverviewBootstrapPayload {
   timeSeries: unknown[];
 }
 
+function getBrandId(
+  record: { id?: unknown; _id?: unknown } | null | undefined,
+): string {
+  if (typeof record?.id === 'string') {
+    return record.id;
+  }
+
+  if (
+    record &&
+    typeof record === 'object' &&
+    '_id' in record &&
+    typeof record._id === 'string'
+  ) {
+    return record._id;
+  }
+
+  return '';
+}
+
 type BootstrapBaseData = Pick<
   AccessBootstrapCachePayload,
   'access' | 'brands' | 'currentUser' | 'settings'
@@ -112,24 +131,16 @@ export class AuthBootstrapService {
     userId: string,
     isSuperAdmin: boolean,
   ) {
-    let restrictedBrandIds: string[] | undefined;
-
-    const member = await this.membersService.findOne({
-      isDeleted: false,
-      organization: organizationId,
-      user: userId,
-    });
-
-    if (
-      !isSuperAdmin &&
-      Array.isArray(member?.brands) &&
-      member.brands.length > 0
-    ) {
-      restrictedBrandIds = member.brands.map((brandId) => String(brandId));
+    if (!isSuperAdmin) {
+      await this.membersService.findOne({
+        isDeleted: false,
+        organization: organizationId,
+        user: userId,
+      });
     }
 
     return await this.brandsService.findForOrganization(organizationId, {
-      brandIds: restrictedBrandIds,
+      brandIds: undefined,
     });
   }
 
@@ -214,10 +225,10 @@ export class AuthBootstrapService {
       ]);
 
     const matchedBrand = brands.find(
-      (candidate) => String(candidate._id) === brandId,
+      (candidate) => getBrandId(candidate) === brandId,
     );
     const resolvedBrandId = brandId
-      ? (matchedBrand?._id?.toString() ?? brands[0]?._id?.toString() ?? brandId)
+      ? getBrandId(matchedBrand) || getBrandId(brands[0]) || brandId
       : '';
 
     return {
@@ -234,8 +245,12 @@ export class AuthBootstrapService {
         userId,
       },
       brands: toPlainJson(brands) as unknown as IBrand[],
-      currentUser: this.serializeRecord(dbUser),
-      settings: this.serializeRecord(organizationSettings),
+      currentUser: this.serializeRecord(
+        dbUser,
+      ) as AccessBootstrapCachePayload['currentUser'],
+      settings: this.serializeRecord(
+        organizationSettings,
+      ) as AccessBootstrapCachePayload['settings'],
     };
   }
 
@@ -252,7 +267,7 @@ export class AuthBootstrapService {
 
     const hasValidOrganizationId = true;
     const selectedBrand = base.brands.find(
-      (candidate) => String(candidate._id) === base.access.brandId,
+      (candidate) => getBrandId(candidate) === base.access.brandId,
     );
 
     const [darkroomCapabilities, streak] = await Promise.all([

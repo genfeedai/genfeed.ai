@@ -111,9 +111,7 @@ describe('BookmarksController', () => {
       expect(bookmarksService.create).toHaveBeenCalledWith(
         expect.objectContaining({
           ...createDto,
-          organization: 
-            mockUser.publicMetadata.organization,
-          ,
+          organization: mockUser.publicMetadata.organization,
           savedAt: expect.any(Date),
           user: mockUser.publicMetadata.user,
         }),

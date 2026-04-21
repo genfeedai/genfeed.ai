@@ -20,8 +20,8 @@ describe('SidebarActionTrigger', () => {
     expect(screen.getByText('⌘⇧N')).toHaveClass('opacity-0');
     expect(screen.getByText('New Task')).toHaveClass('min-w-0', 'flex-1');
     expect(button).toHaveClass(
-      'rounded',
-      'hover:bg-white/[0.04]',
+      'rounded-xl',
+      'hover:bg-white/[0.035]',
       'focus-visible:ring-offset-background',
     );
   });

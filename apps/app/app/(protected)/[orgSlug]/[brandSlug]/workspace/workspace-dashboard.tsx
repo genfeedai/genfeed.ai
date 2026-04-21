@@ -86,10 +86,10 @@ function AgentRunCard({ run }: { run: IAgentRun }) {
       : (run.label?.split(' ')?.[0] ?? 'Agent');
 
   return (
-    <div className="group relative flex flex-col gap-3 rounded-lg border border-white/[0.08] bg-white/[0.02] p-4 transition-colors hover:border-white/[0.14] hover:bg-white/[0.04]">
+    <div className="group relative flex flex-col gap-3 rounded-[1.3rem] border border-white/[0.06] bg-background-secondary/55 p-4 shadow-[0_20px_50px_-38px_rgba(0,0,0,0.88)] transition-all duration-200 hover:border-white/[0.12] hover:bg-background-secondary/72">
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full border border-white/[0.12] bg-white/[0.06]">
+          <div className="gen-shell-surface flex h-9 w-9 items-center justify-center rounded-xl">
             <HiOutlineCpuChip className="h-4 w-4 text-foreground/60" />
           </div>
           <div>
@@ -124,7 +124,7 @@ function AgentRunCard({ run }: { run: IAgentRun }) {
         </Button>
       </div>
 
-      <div className="min-h-[60px] rounded border border-white/[0.06] bg-black/40 px-3 py-2">
+      <div className="min-h-[60px] rounded-xl border border-white/[0.05] bg-black/28 px-3 py-2.5">
         <p className="line-clamp-1 text-xs font-medium text-foreground/70">
           {run.label}
         </p>
@@ -168,7 +168,7 @@ export function DashboardAgentCards({
   return (
     <section data-testid="dashboard-agents">
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-foreground/35">
+        <h2 className="text-[10px] font-bold uppercase tracking-[0.22em] text-foreground/35">
           Agents
         </h2>
         {(activeRuns.length > 3 || runs.length > 3) && (
@@ -246,11 +246,11 @@ export function DashboardStatsStrip({
         {items.map((item) => (
           <Card
             key={item.label}
-            className="min-h-[100px] shadow-none"
-            bodyClassName="p-4"
+            className="gen-shell-panel min-h-[112px] rounded-[1.35rem] border-white/[0.06] bg-transparent shadow-none"
+            bodyClassName="p-5"
           >
             <div className="space-y-1">
-              <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-foreground/35">
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-foreground/35">
                 {item.label}
               </p>
               <div className="text-2xl font-semibold tracking-[-0.03em] text-foreground">
@@ -276,7 +276,6 @@ const CHART_COLORS = {
   blue: '#60a5fa',
   cyan: '#22d3ee',
   emerald: '#34d399',
-  purple: '#a78bfa',
   rose: '#fb7185',
 };
 
@@ -288,7 +287,10 @@ interface MiniChartCardProps {
 
 function MiniChartCard({ children, subtitle, title }: MiniChartCardProps) {
   return (
-    <Card className="shadow-none" bodyClassName="p-4">
+    <Card
+      className="gen-shell-panel rounded-[1.35rem] border-white/[0.06] bg-transparent shadow-none"
+      bodyClassName="p-5"
+    >
       <div className="mb-3 space-y-0.5">
         <h3 className="text-sm font-semibold text-foreground">{title}</h3>
         <p className="text-[11px] text-foreground/35">{subtitle}</p>
@@ -334,9 +336,9 @@ function RunActivityChart({ trends }: { trends: AgentRunTrendPoint[] }) {
         />
         <Tooltip
           contentStyle={{
-            background: '#1a1a1a',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: '8px',
+            background: '#111111',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: '12px',
             color: '#fff',
             fontSize: '12px',
           }}
@@ -383,9 +385,9 @@ function RunsByStatusChart({ runs }: { runs: IAgentRun[] }) {
         />
         <Tooltip
           contentStyle={{
-            background: '#1a1a1a',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: '8px',
+            background: '#111111',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: '12px',
             color: '#fff',
             fontSize: '12px',
           }}
@@ -435,9 +437,9 @@ function SuccessRateChart({ trends }: { trends: AgentRunTrendPoint[] }) {
         />
         <Tooltip
           contentStyle={{
-            background: '#1a1a1a',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: '8px',
+            background: '#111111',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: '12px',
             color: '#fff',
             fontSize: '12px',
           }}
@@ -484,16 +486,16 @@ function CreditsByDayChart({ trends }: { trends: AgentRunTrendPoint[] }) {
         />
         <Tooltip
           contentStyle={{
-            background: '#1a1a1a',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: '8px',
+            background: '#111111',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: '12px',
             color: '#fff',
             fontSize: '12px',
           }}
         />
         <Bar
           dataKey="credits"
-          fill={CHART_COLORS.purple}
+          fill={CHART_COLORS.amber}
           radius={[3, 3, 0, 0]}
         />
       </BarChart>
@@ -503,7 +505,7 @@ function CreditsByDayChart({ trends }: { trends: AgentRunTrendPoint[] }) {
 
 function EmptyChartPlaceholder() {
   return (
-    <div className="flex h-full items-center justify-center text-xs text-foreground/30">
+    <div className="gen-shell-empty-state flex h-full items-center justify-center rounded-[1rem] text-xs text-foreground/32">
       No data for this period
     </div>
   );
@@ -569,7 +571,7 @@ function ActivityRow({ task }: { task: Task }) {
         : task.progress?.message || task.request;
 
   return (
-    <div className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
+    <div className="-mx-2.5 flex items-start justify-between gap-3 rounded-xl px-2.5 py-3 transition-colors first:pt-0 last:pb-0 hover:bg-white/[0.03]">
       <div className="flex items-center gap-2.5 min-w-0">
         <span
           className={cn(
@@ -621,6 +623,7 @@ export function DashboardRecentActivity({
           <Link href="/workspace/inbox/unread">View All</Link>
         </Button>
       }
+      className="gen-shell-panel rounded-[1.35rem] border-white/[0.06] bg-transparent shadow-none"
       bodyClassName="p-5 sm:p-6"
     >
       {sortedTasks.length > 0 ? (
@@ -630,9 +633,9 @@ export function DashboardRecentActivity({
           ))}
         </div>
       ) : (
-        <p className="text-sm text-foreground/45">
+        <div className="gen-shell-empty-state rounded-[1rem] px-4 py-8 text-center text-sm text-foreground/45">
           Activity will appear here once workspace tasks start running.
-        </p>
+        </div>
       )}
     </Card>
   );
@@ -640,7 +643,7 @@ export function DashboardRecentActivity({
 
 function TaskRow({ task }: { task: Task }) {
   return (
-    <div className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
+    <div className="-mx-2.5 flex items-center justify-between gap-3 rounded-xl px-2.5 py-3 transition-colors first:pt-0 last:pb-0 hover:bg-white/[0.03]">
       <div className="flex items-center gap-3 min-w-0">
         <span
           className={cn(
@@ -705,6 +708,7 @@ export function DashboardRecentTasks({
           <Link href="/workspace/inbox/unread">View All</Link>
         </Button>
       }
+      className="gen-shell-panel rounded-[1.35rem] border-white/[0.06] bg-transparent shadow-none"
       bodyClassName="p-5 sm:p-6"
     >
       {sortedTasks.length > 0 ? (
@@ -714,9 +718,9 @@ export function DashboardRecentTasks({
           ))}
         </div>
       ) : (
-        <p className="text-sm text-foreground/45">
+        <div className="gen-shell-empty-state rounded-[1rem] px-4 py-8 text-center text-sm text-foreground/45">
           Recent tasks will appear here once work begins.
-        </p>
+        </div>
       )}
     </Card>
   );
@@ -734,7 +738,7 @@ export function WorkspaceDashboard({
   workspaceTasks,
 }: DashboardProps) {
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-5">
       <DashboardAgentCards activeRuns={activeRuns} runs={runs} />
 
       <DashboardStatsStrip

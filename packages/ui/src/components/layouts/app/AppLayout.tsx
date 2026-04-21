@@ -150,9 +150,8 @@ function DesktopSidebar({
       className={cn(
         'fixed inset-y-0 left-0 z-30 hidden flex-col overflow-hidden md:flex',
         shellChromeVariant === 'default'
-          ? 'bg-background/95 shadow-[18px_0_48px_rgba(0,0,0,0.18)]'
+          ? 'gen-shell-panel border-r border-white/[0.06] bg-background/92 shadow-[18px_0_48px_rgba(0,0,0,0.28)] backdrop-blur-xl'
           : 'bg-transparent shadow-none',
-        !isCollapsed && 'border-r border-white/[0.08]',
       )}
       style={{
         minWidth: targetWidth,
@@ -444,7 +443,7 @@ export default function AppLayout({
 
               <div
                 className={cn(
-                  'relative h-full max-w-[85vw] bg-background shadow-2xl transition-transform duration-200',
+                  'gen-shell-panel relative h-full max-w-[85vw] rounded-r-[1.25rem] border-r border-white/[0.06] shadow-2xl transition-transform duration-200',
                   isSidebarOpen ? 'translate-x-0' : '-translate-x-full',
                 )}
                 style={{ width: mobileSidebarWidth }}
@@ -468,7 +467,7 @@ export default function AppLayout({
               className={cn(
                 'fixed top-0 right-0 left-0 z-50 h-16 md:left-[var(--desktop-sidebar-width)]',
                 shouldRenderTopbarChrome &&
-                  'border-b border-white/[0.08] bg-background/80 backdrop-blur-xl',
+                  'gen-shell-toolbar border-b border-white/[0.06] bg-background/84 shadow-[0_18px_40px_-32px_rgba(0,0,0,0.88)] backdrop-blur-xl',
               )}
             >
               {topbarContent}
@@ -498,12 +497,12 @@ export default function AppLayout({
               shellChromeVariant === 'transparent'
                 ? !isAgentCollapsed &&
                     'border-t border-white/[0.08] bg-transparent shadow-none'
-                : 'border-t border-white/[0.08]',
+                : 'gen-shell-toolbar border-t border-white/[0.06] shadow-[0_-18px_40px_-28px_rgba(0,0,0,0.88)] backdrop-blur-xl',
               shellChromeVariant === 'transparent'
                 ? 'shadow-none'
                 : isAgentCollapsed
-                  ? 'bg-background'
-                  : 'bg-background/95',
+                  ? 'bg-background/92'
+                  : 'bg-background/90',
               menuComponent && 'md:left-[var(--desktop-sidebar-width)]',
             )}
             style={{
@@ -519,7 +518,7 @@ export default function AppLayout({
             {!isAgentCollapsed ? (
               <div
                 data-testid="agent-panel-resize-handle"
-                className="absolute top-0 left-0 right-0 z-10 h-2 cursor-row-resize border-t border-white/[0.08] bg-white/[0.02]"
+                className="absolute top-0 left-0 right-0 z-10 h-2 cursor-row-resize border-t border-white/[0.06] bg-white/[0.03]"
                 onMouseDown={handleAgentPanelResizeStart}
               />
             ) : null}

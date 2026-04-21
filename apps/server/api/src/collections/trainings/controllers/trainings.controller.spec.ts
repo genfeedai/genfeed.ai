@@ -170,9 +170,7 @@ describe('TrainingsController', () => {
             isDeleted: false,
             label: 'Training 1',
             model: 'replicate/fast-flux-trainer:test',
-            organization: 
-              mockUser.publicMetadata.organization as string,
-            ,
+            organization: mockUser.publicMetadata.organization as string,
             sources: [],
             steps: 1000,
             trigger: 'TOK1',
@@ -379,8 +377,8 @@ describe('TrainingsController', () => {
 
     it('should return false when user does not own the entity', () => {
       const entity = {
-        organization: '507f191e810c19729de860ee'.toString(),
-        user: '507f191e810c19729de860ee'.toString(),
+        organization: '507f191e810c19729de860ff'.toString(),
+        user: '507f191e810c19729de860aa'.toString(),
       };
 
       const result = controller.canUserModifyEntity(mockUser, entity);

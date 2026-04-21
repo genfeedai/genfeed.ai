@@ -236,9 +236,7 @@ describe('ElementsCamerasController', () => {
         _id: id,
         key: 'delete-camera',
         label: 'Camera to Delete',
-        user: 
-          mockSuperAdminUser.publicMetadata.user as string,
-        ,
+        user: mockSuperAdminUser.publicMetadata.user as string,
       };
 
       camerasService.findOne.mockResolvedValue(mockCamera as never);

@@ -63,7 +63,7 @@ export class ApiKeysController {
         {
           $match: {
             isRevoked: false,
-            user: publicMetadata.user,
+            userId: publicMetadata.user,
           },
         },
       ],
@@ -82,13 +82,13 @@ export class ApiKeysController {
 
     const { apiKey, plainKey } = await this.apiKeysService.createWithKey({
       ...createApiKeyDto,
-      organization: publicMetadata.organization,
-      user: publicMetadata.user,
+      organizationId: publicMetadata.organization,
+      userId: publicMetadata.user,
     });
 
     // Add the plain key to the document for serialization (only on creation)
     const apiKeyWithPlainKey = {
-      ...apiKey.toObject(),
+      ...apiKey,
       key: plainKey, // This will only be shown once
     };
 
@@ -116,7 +116,7 @@ export class ApiKeysController {
     const pipeline = PipelineBuilder.create()
       .match({
         isRevoked: false,
-        user: publicMetadata.user,
+        userId: publicMetadata.user,
         ...(queryAny.label && {
           label: { $options: 'i', $regex: queryAny.label },
         }),
@@ -158,7 +158,7 @@ export class ApiKeysController {
           { description: { $options: 'i', $regex: 'mcp' } },
         ],
         isRevoked: false,
-        user: publicMetadata.user,
+        userId: publicMetadata.user,
       })
       .build();
 
@@ -182,8 +182,8 @@ export class ApiKeysController {
     const publicMetadata = getPublicMetadata(user);
 
     const apiKey = await this.apiKeysService.findOne({
-      _id: apiKeyId,
-      user: publicMetadata.user,
+      id: apiKeyId,
+      userId: publicMetadata.user,
     });
 
     if (!apiKey) {
@@ -216,8 +216,8 @@ export class ApiKeysController {
 
     // Verify ownership before updating
     const existingKey = await this.apiKeysService.findOne({
-      _id: apiKeyId,
-      user: publicMetadata.user,
+      id: apiKeyId,
+      userId: publicMetadata.user,
     });
 
     if (!existingKey) {
@@ -254,9 +254,9 @@ export class ApiKeysController {
 
     // Verify ownership before revoking
     const existingKey = await this.apiKeysService.findOne({
-      _id: apiKeyId,
+      id: apiKeyId,
       isRevoked: false,
-      user: publicMetadata.user,
+      userId: publicMetadata.user,
     });
 
     if (!existingKey) {

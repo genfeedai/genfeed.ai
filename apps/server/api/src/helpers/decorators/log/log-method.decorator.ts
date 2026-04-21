@@ -119,57 +119,44 @@ function createLoggedWrapper(
  * @param options Configuration options for logging behavior
  * @returns Method decorator
  */
-export function LogMethod(options: LogMethodOptions = {}) {
+export function LogMethod(options: LogMethodOptions = {}): MethodDecorator {
+  const opts = { ...defaultOptions, ...options };
+
+  // In production, automatically disable logStart and logEnd, but keep error logging
+  // Only apply defaults if not explicitly configured (respect explicit decorator settings)
+  const isProduction = process.env.NODE_ENV === 'production';
+  if (isProduction) {
+    if (options.logStart === undefined) {
+      opts.logStart = false;
+    }
+
+    if (options.logEnd === undefined) {
+      opts.logEnd = false;
+    }
+
+    if (options.logError !== false) {
+      opts.logError = true;
+    }
+  }
+
   return (
-    targetOrMethod: object | LoggedMethod,
-    propertyNameOrContext: string | ClassMethodDecoratorContext,
-    descriptor?: PropertyDescriptor,
-  ) => {
-    const opts = { ...defaultOptions, ...options };
-
-    // In production, automatically disable logStart and logEnd, but keep error logging
-    // Only apply defaults if not explicitly configured (respect explicit decorator settings)
-    const isProduction = process.env.NODE_ENV === 'production';
-    if (isProduction) {
-      // Only override logStart if not explicitly set
-      if (options.logStart === undefined) {
-        opts.logStart = false;
-      }
-      // Only override logEnd if not explicitly set (allows LogPerformance to work)
-      if (options.logEnd === undefined) {
-        opts.logEnd = false;
-      }
-      // Always log errors in production unless explicitly disabled
-      if (options.logError !== false) {
-        opts.logError = true;
-      }
-    }
-
-    if (descriptor) {
-      const propertyName = propertyNameOrContext as string;
-      const originalMethod = descriptor.value as LoggedMethod;
-      const wrapper = createLoggedWrapper(originalMethod, propertyName, opts);
-
-      // Preserve the original function name and method metadata for NestJS reflection
-      copyMethodMetadata(originalMethod, wrapper);
-      Object.defineProperty(wrapper, 'name', { value: propertyName });
-      descriptor.value = wrapper;
-
-      return descriptor;
-    }
-
-    const context = propertyNameOrContext as ClassMethodDecoratorContext;
-    if (typeof targetOrMethod !== 'function' || context.kind !== 'method') {
+    _target: object,
+    propertyKey: string | symbol,
+    descriptor: PropertyDescriptor,
+  ): PropertyDescriptor | void => {
+    if (typeof descriptor.value !== 'function') {
       throw new TypeError('LogMethod can only decorate methods');
     }
 
-    const propertyName = String(context.name);
-    const originalMethod = targetOrMethod as LoggedMethod;
+    const propertyName = String(propertyKey);
+    const originalMethod = descriptor.value as LoggedMethod;
     const wrapper = createLoggedWrapper(originalMethod, propertyName, opts);
 
     copyMethodMetadata(originalMethod, wrapper);
     Object.defineProperty(wrapper, 'name', { value: propertyName });
-    return wrapper;
+    descriptor.value = wrapper;
+
+    return descriptor;
   };
 }
 

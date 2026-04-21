@@ -250,9 +250,7 @@ describe('ElementsLensesController', () => {
         _id: id,
         key: 'delete-lens',
         label: 'Lens to Delete',
-        user: 
-          mockSuperAdminUser.publicMetadata.user as string,
-        ,
+        user: mockSuperAdminUser.publicMetadata.user as string,
       };
 
       lensesService.findOne.mockResolvedValue(mockLens as never);

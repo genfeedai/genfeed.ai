@@ -10,20 +10,26 @@ export default function ContainerTitle({
 }: ContainerTitleProps) {
   const titleContent = (
     <>
-      <h1 className="text-3xl font-serif-italic">{title}</h1>
-      {description && <div className="text-foreground">{description}</div>}
+      <h1 className="text-[1.75rem] font-semibold leading-none tracking-[-0.045em] text-foreground lg:text-[2.1rem]">
+        {title}
+      </h1>
+      {description ? (
+        <p className="mt-2 max-w-3xl text-sm leading-5 text-foreground/54">
+          {description}
+        </p>
+      ) : null}
     </>
   );
 
   if (!icon) {
-    return <div className="mb-2">{titleContent}</div>;
+    return <div className="mb-1">{titleContent}</div>;
   }
 
   return (
-    <div className="mb-2">
-      <div className="flex items-center gap-4 mb-2">
-        <CardIcon icon={icon} className="p-3 bg-white/5" />
-        <div>{titleContent}</div>
+    <div className="mb-1">
+      <div className="flex items-start gap-4">
+        <CardIcon icon={icon} className="gen-shell-surface rounded-2xl p-3" />
+        <div className="min-w-0">{titleContent}</div>
       </div>
     </div>
   );

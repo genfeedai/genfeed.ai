@@ -30,12 +30,12 @@ export default function Container({
 
   return (
     <div
-      className={`mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8 ${className}`}
+      className={`mx-auto w-full max-w-[1560px] px-4 py-5 sm:px-6 sm:py-6 lg:px-8 ${className}`}
     >
       {(label || hasHeaderRight) && (
         <div
           className={cn(
-            'flex items-center mb-4 capitalize',
+            'mb-5 flex items-start gap-4',
             label ? 'justify-between' : 'justify-end',
           )}
         >
@@ -48,7 +48,7 @@ export default function Container({
           )}
 
           {(headerTabs || hasHeaderRight) && (
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2.5">
               {headerTabs && (
                 <Tabs {...headerTabs} className={cn(headerTabs.className)} />
               )}
@@ -61,7 +61,7 @@ export default function Container({
       {hasLeft && <div className="mb-4">{left}</div>}
 
       {tabs && tabs.length > 0 && (
-        <div className="border-b border-white/5 mb-6">
+        <div className="mb-6 border-b border-white/5">
           <Tabs
             tabs={tabs}
             className="mb-0"

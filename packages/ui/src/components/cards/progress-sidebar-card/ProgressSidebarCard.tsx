@@ -96,7 +96,7 @@ export default function ProgressSidebarCard() {
     <Card
       variant={CardVariant.DEFAULT}
       className={cn(
-        'mx-3 mb-3 shadow-none hover:border-white/[0.08]',
+        'gen-shell-panel mx-3 mb-3 rounded-[1.4rem] border-white/[0.06] bg-transparent shadow-[0_18px_50px_-32px_rgba(0,0,0,0.88)] hover:border-white/[0.08]',
         SCROLL_FOCUS_OUTER_SHADOW,
       )}
       bodyClassName="gap-0 p-0 sm:p-0"
@@ -112,24 +112,24 @@ export default function ProgressSidebarCard() {
           aria-controls="sidebar-progress-panel"
           isDisabled={isSavingCollapsedPreference}
         >
-          <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center border border-orange-400/20 bg-orange-400/10 text-orange-200">
+          <div className="gen-shell-surface mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl border-orange-400/20 bg-orange-400/10 text-orange-200">
             <HiMiniSparkles className="h-4 w-4" />
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/45">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-foreground/36">
                 Progress
               </p>
-              <span className="rounded-full border border-white/10 px-1.5 py-0.5 text-[10px] font-medium text-white/40">
+              <span className="gen-shell-chip px-1.5 py-0.5 text-[10px] font-medium text-foreground/42">
                 {completedCount}/{totalCount}
               </span>
             </div>
-            <p className="mt-1 truncate text-sm font-medium text-white/90">
+            <p className="mt-1 truncate text-sm font-semibold tracking-[-0.02em] text-foreground">
               {completedCount}/{totalCount} setup
-              <span className="mx-2 text-white/25">·</span>
+              <span className="mx-2 text-foreground/22">·</span>
               {isLoading ? 'Loading streak...' : `${currentStreak}d streak`}
             </p>
-            <p className="mt-1 text-xs text-white/50">
+            <p className="mt-1 text-xs text-foreground/46">
               {nextSetupStep
                 ? `${nextSetupStep.label} next`
                 : hasStreakContext && nextMilestone
@@ -149,7 +149,7 @@ export default function ProgressSidebarCard() {
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}
           onClick={() => void hideProgress()}
-          className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center text-white/35 transition-colors duration-150 hover:bg-white/[0.06] hover:text-white/70"
+          className="gen-shell-control mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg text-foreground/42"
           ariaLabel="Hide progress"
           isDisabled={isSaving}
           icon={<HiXMark className="h-4 w-4" />}
@@ -164,14 +164,14 @@ export default function ProgressSidebarCard() {
         )}
       >
         <div className="overflow-hidden">
-          <div className="border-t border-white/[0.06] px-3 pb-3 pt-2">
+          <div className="border-t border-white/[0.05] px-3 pb-3 pt-2">
             <section className="py-2">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-xs font-medium text-white/88">
+                  <p className="text-xs font-medium text-foreground/88">
                     Complete setup
                   </p>
-                  <p className="mt-0.5 text-[11px] text-white/45">
+                  <p className="mt-0.5 text-[11px] text-foreground/45">
                     {allSetupComplete
                       ? 'Setup complete.'
                       : nextSetupStep
@@ -180,16 +180,19 @@ export default function ProgressSidebarCard() {
                   </p>
                 </div>
                 {allSetupComplete ? (
-                  <span className="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-emerald-400/10 px-2 py-1 text-[10px] font-semibold text-emerald-200">
+                  <span
+                    className="gen-shell-chip inline-flex flex-shrink-0 items-center gap-1 px-2 py-1 text-[10px] font-semibold"
+                    data-tone="success"
+                  >
                     <HiMiniCheckCircle className="h-3.5 w-3.5" />
                     Ready
                   </span>
                 ) : null}
               </div>
 
-              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/[0.08]">
+              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
                 <div
-                  className="h-full rounded-full bg-[linear-gradient(90deg,rgba(251,146,60,0.95),rgba(249,115,22,0.65))] transition-[width] duration-500 ease-out"
+                  className="h-full rounded-full bg-[linear-gradient(90deg,rgba(251,146,60,0.95),rgba(217,119,6,0.7))] transition-[width] duration-500 ease-out"
                   style={{
                     width: `${totalCount > 0 ? (completedCount / totalCount) * 100 : 0}%`,
                   }}
@@ -200,31 +203,33 @@ export default function ProgressSidebarCard() {
                 {nextSetupStep ? (
                   <Link
                     href={nextSetupStep.href}
-                    className="inline-flex min-w-0 items-center gap-1.5 border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-[11px] font-medium text-white/80 transition-colors hover:bg-white/[0.08]"
+                    className="gen-shell-control inline-flex min-w-0 items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-[11px] font-medium text-foreground/78"
                   >
                     <span className="truncate">Finish setup</span>
                     <HiMiniArrowUpRight className="h-3.5 w-3.5 flex-shrink-0" />
                   </Link>
                 ) : (
-                  <span className="text-[11px] text-white/45">All done</span>
+                  <span className="text-[11px] text-foreground/45">
+                    All done
+                  </span>
                 )}
 
                 <Link
                   href={orgHref('/settings/personal')}
-                  className="text-[11px] font-medium text-orange-200/80 transition-colors hover:text-orange-100"
+                  className="text-[11px] font-medium text-foreground/55 transition-colors hover:text-foreground"
                 >
                   View all
                 </Link>
               </div>
             </section>
 
-            <section className="border-t border-white/[0.06] py-3">
+            <section className="border-t border-white/[0.05] py-3">
               <div className="flex items-end justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-xs font-medium text-white/82">
+                  <p className="text-xs font-medium text-foreground/82">
                     Daily streak
                   </p>
-                  <p className="mt-0.5 text-[11px] text-white/45">
+                  <p className="mt-0.5 text-[11px] text-foreground/45">
                     {isLoading
                       ? 'Loading streak...'
                       : nextMilestone
@@ -235,19 +240,19 @@ export default function ProgressSidebarCard() {
 
                 <div className="flex items-baseline gap-5">
                   <div className="text-right">
-                    <p className="text-lg font-semibold text-white">
+                    <p className="text-lg font-semibold text-foreground">
                       {isLoading ? '...' : currentStreak}
                     </p>
-                    <p className="mt-0.5 text-[10px] uppercase tracking-[0.16em] text-white/35">
+                    <p className="mt-0.5 text-[10px] uppercase tracking-[0.16em] text-foreground/35">
                       streak
                     </p>
                   </div>
 
                   <div className="text-right">
-                    <p className="text-lg font-semibold text-white">
+                    <p className="text-lg font-semibold text-foreground">
                       {isLoading ? '...' : streakFreezes}
                     </p>
-                    <p className="mt-0.5 text-[10px] uppercase tracking-[0.16em] text-white/35">
+                    <p className="mt-0.5 text-[10px] uppercase tracking-[0.16em] text-foreground/35">
                       freeze{streakFreezes === 1 ? '' : 's'}
                     </p>
                   </div>

@@ -106,7 +106,7 @@ describe('AppLayout', () => {
     const rail = screen.getByTestId('desktop-sidebar-rail');
 
     expect(rail).toHaveClass('bg-transparent', 'shadow-none');
-    expect(rail).toHaveClass('border-r');
+    expect(rail).not.toHaveClass('border-r');
     expect(rail).not.toHaveClass('bg-background/95');
   });
 
@@ -140,9 +140,11 @@ describe('AppLayout', () => {
     expect(rail).toHaveStyle({ minHeight: '48px', height: '48px' });
     expect(shell).toHaveStyle({ minHeight: '380px', height: '380px' });
     expect(shell).toHaveClass('absolute', 'bottom-0', 'inset-x-0');
-    expect(rail).toHaveClass('bg-background');
-    expect(rail).toHaveClass('border-t');
-    expect(rail).not.toHaveClass('bg-background/95');
+    expect(rail).toHaveClass(
+      'gen-shell-toolbar',
+      'border-t',
+      'bg-background/92',
+    );
   });
 
   it('keeps the collapsed agent rail borderless in transparent shell mode', () => {
@@ -211,8 +213,9 @@ describe('AppLayout', () => {
     );
 
     expect(screen.getByTestId('app-topbar-shell')).toHaveClass(
+      'gen-shell-toolbar',
       'border-b',
-      'bg-background/80',
+      'bg-background/84',
       'backdrop-blur-xl',
     );
   });
@@ -258,8 +261,9 @@ describe('AppLayout', () => {
       'z-50',
     );
     expect(topbarShell).not.toHaveClass(
+      'gen-shell-toolbar',
       'border-b',
-      'bg-background/80',
+      'bg-background/84',
       'backdrop-blur-xl',
     );
   });
@@ -278,8 +282,9 @@ describe('AppLayout', () => {
     );
 
     expect(screen.getByTestId('app-topbar-shell')).toHaveClass(
+      'gen-shell-toolbar',
       'border-b',
-      'bg-background/80',
+      'bg-background/84',
       'backdrop-blur-xl',
     );
   });
@@ -298,8 +303,9 @@ describe('AppLayout', () => {
     );
 
     expect(screen.getByTestId('app-topbar-shell')).toHaveClass(
+      'gen-shell-toolbar',
       'border-b',
-      'bg-background/80',
+      'bg-background/84',
       'backdrop-blur-xl',
     );
   });
@@ -316,8 +322,9 @@ describe('AppLayout', () => {
     const topbarShell = screen.getByTestId('app-topbar-shell');
 
     expect(topbarShell).not.toHaveClass(
+      'gen-shell-toolbar',
       'border-b',
-      'bg-background/80',
+      'bg-background/84',
       'backdrop-blur-xl',
     );
   });

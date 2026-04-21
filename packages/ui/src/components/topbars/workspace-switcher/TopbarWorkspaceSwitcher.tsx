@@ -291,14 +291,13 @@ export default function TopbarWorkspaceSwitcher() {
             withWrapper={false}
             ariaLabel="Open projects switcher"
             className={cn(
-              'flex h-10 w-full items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 transition-colors',
-              'hover:border-white/[0.12] hover:bg-white/[0.06]',
-              isOpen && 'border-white/[0.12] bg-white/[0.06]',
+              'gen-shell-control flex h-11 w-full items-center gap-2.5 rounded-2xl px-3.5 text-left',
               isBusy && 'cursor-not-allowed opacity-60',
             )}
+            data-active={isOpen ? 'true' : 'false'}
             isDisabled={isBusy}
           >
-            <div className="flex h-6 w-6 items-center justify-center overflow-hidden rounded-md bg-white/[0.08]">
+            <div className="gen-shell-surface flex h-7 w-7 items-center justify-center overflow-hidden rounded-lg">
               {logoUrl ? (
                 <Image
                   src={logoUrl}
@@ -313,13 +312,13 @@ export default function TopbarWorkspaceSwitcher() {
               )}
             </div>
 
-            <span className="min-w-0 flex-1 truncate text-left text-sm font-medium text-white/90">
+            <span className="min-w-0 flex-1 truncate text-left text-sm font-semibold tracking-[-0.01em] text-foreground">
               All Projects
             </span>
 
             <HiChevronDown
               className={cn(
-                'h-3.5 w-3.5 flex-shrink-0 text-white/40 transition-transform duration-200',
+                'h-3.5 w-3.5 flex-shrink-0 text-foreground/38 transition-transform duration-200',
                 isOpen && 'rotate-180',
               )}
             />
@@ -328,10 +327,10 @@ export default function TopbarWorkspaceSwitcher() {
 
         <PopoverPanelContent
           align="start"
-          className="w-[420px] p-0"
+          className="w-[420px] rounded-[1.5rem] p-0"
           sideOffset={10}
         >
-          <div className="border-b border-white/[0.08] p-3">
+          <div className="border-b border-white/[0.06] p-3">
             <div className="relative">
               <Input
                 ref={searchInputRef}
@@ -339,7 +338,7 @@ export default function TopbarWorkspaceSwitcher() {
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
                 placeholder="Find Project..."
-                className="h-11 rounded-xl border-white/[0.08] bg-white/[0.02] pr-14 text-sm"
+                className="gen-shell-control h-11 rounded-2xl border-white/[0.06] bg-background/44 pr-14 text-sm placeholder:text-foreground/28"
                 onKeyDown={(event) => {
                   if (event.key === 'Escape') {
                     event.preventDefault();
@@ -352,14 +351,14 @@ export default function TopbarWorkspaceSwitcher() {
                 variant={ButtonVariant.UNSTYLED}
                 withWrapper={false}
                 onClick={handleEscAction}
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md border border-white/[0.08] bg-white/[0.03] px-2 py-1 text-[11px] font-medium text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/80"
+                className="gen-shell-control absolute right-2 top-1/2 -translate-y-1/2 rounded-lg px-2.5 py-1 text-[11px] font-semibold tracking-[0.08em] text-foreground/52"
               >
                 Esc
               </Button>
             </div>
           </div>
 
-          <div className="max-h-[30rem] overflow-y-auto px-2 py-2">
+          <div className="max-h-[30rem] overflow-y-auto px-2.5 py-2.5">
             <WorkspaceSwitcherSection
               emptyMessage={
                 organizationsError ?? 'No organizations available right now'
@@ -396,7 +395,7 @@ export default function TopbarWorkspaceSwitcher() {
             />
           </div>
 
-          <div className="border-t border-white/[0.08] p-2">
+          <div className="border-t border-white/[0.06] p-2">
             <WorkspaceActionButton
               label="Create Project"
               onClick={() => {
@@ -516,13 +515,15 @@ function WorkspaceSwitcherSection({
   onSelect: (id: string) => void;
 }) {
   return (
-    <div className="border-b border-white/[0.08] px-2 py-2 last:border-b-0">
-      <p className="px-2 pb-1 text-[11px] font-medium uppercase tracking-[0.14em] text-white/35">
+    <div className="border-b border-white/[0.06] px-1 pb-2 pt-1 last:border-b-0">
+      <p className="px-2.5 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-foreground/32">
         {title}
       </p>
 
       {items.length === 0 ? (
-        <div className="px-2 py-2 text-xs text-white/40">{emptyMessage}</div>
+        <div className="gen-shell-empty-state rounded-xl px-3 py-3 text-xs text-foreground/42">
+          {emptyMessage}
+        </div>
       ) : (
         <div className="space-y-1">
           {items.map((item) => (
@@ -538,14 +539,14 @@ function WorkspaceSwitcherSection({
               }}
               isDisabled={item.isActive}
               className={cn(
-                'flex w-full items-center gap-3 rounded-lg px-2.5 py-2.5 text-left transition-colors',
+                'flex w-full items-center gap-3 rounded-xl px-2.5 py-2.5 text-left transition-all duration-200',
                 item.isActive
-                  ? 'bg-white/[0.08] text-white'
-                  : 'text-white/70 hover:bg-white/[0.05] hover:text-white',
+                  ? 'gen-shell-surface text-foreground shadow-[0_18px_40px_-32px_rgba(0,0,0,0.88)]'
+                  : 'text-foreground/68 hover:bg-white/[0.035] hover:text-foreground',
               )}
             >
               {item.imageUrl ? (
-                <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-background">
+                <div className="gen-shell-surface flex h-5 w-5 flex-shrink-0 items-center justify-center overflow-hidden rounded-full">
                   <Image
                     src={item.imageUrl}
                     alt={item.label}
@@ -557,7 +558,7 @@ function WorkspaceSwitcherSection({
                   />
                 </div>
               ) : item.icon ? (
-                <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center">
+                <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center text-foreground/42">
                   {item.icon}
                 </div>
               ) : (
@@ -565,8 +566,8 @@ function WorkspaceSwitcherSection({
                   className={cn(
                     'flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold',
                     item.isActive
-                      ? 'bg-primary/30 text-primary'
-                      : 'bg-white/10 text-white/60',
+                      ? 'bg-white text-background'
+                      : 'bg-white/[0.08] text-foreground/58',
                   )}
                 >
                   {item.label.charAt(0).toUpperCase()}
@@ -574,14 +575,18 @@ function WorkspaceSwitcherSection({
               )}
 
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm">{item.label}</p>
+                <p className="truncate text-sm font-medium tracking-[-0.01em]">
+                  {item.label}
+                </p>
                 {item.meta ? (
-                  <p className="truncate text-xs text-white/40">{item.meta}</p>
+                  <p className="truncate text-xs text-foreground/42">
+                    {item.meta}
+                  </p>
                 ) : null}
               </div>
 
               {item.isActive ? (
-                <HiCheck className="h-4 w-4 flex-shrink-0 text-primary" />
+                <HiCheck className="h-4 w-4 flex-shrink-0 text-emerald-300" />
               ) : null}
             </Button>
           ))}
@@ -604,7 +609,7 @@ function WorkspaceActionButton({
       variant={ButtonVariant.UNSTYLED}
       withWrapper={false}
       onClick={onClick}
-      className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm text-white/65 transition-colors hover:bg-white/[0.05] hover:text-white"
+      className="gen-shell-control flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2.5 text-left text-sm font-medium text-foreground/72"
     >
       <HiPlus className="h-4 w-4 flex-shrink-0" />
       <span>{label}</span>

@@ -41,25 +41,24 @@ export default function MenuItem({
   })();
 
   const iconWrapperClass = cn(
-    'flex items-center justify-center transition-all duration-200 relative',
+    'relative flex items-center justify-center transition-all duration-200',
     isIconVariant
       ? isHorizontalLayout
         ? [
-            // Horizontal layout (desktop expanded): smaller icon, accent color when active
-            'w-4 h-4',
+            'h-4 w-4 shrink-0',
             isActive
-              ? 'text-primary scale-110'
-              : 'text-white/80 group-hover:text-white group-hover:scale-105',
+              ? 'text-foreground'
+              : 'text-foreground/42 group-hover:text-foreground/78',
           ]
         : [
-            // Vertical card layout (collapsed or mobile): larger icon with border/bg
-            'h-11 w-11 border border-white/[0.08] bg-white/5 text-white/80',
-            'group-hover:border-white/30 group-hover:bg-white/10 group-hover:text-white',
-            isActive && 'border-white bg-white text-black scale-105',
+            'gen-shell-surface h-11 w-11 rounded-2xl text-foreground/78',
+            'group-hover:border-white/[0.14] group-hover:bg-white/[0.07] group-hover:text-foreground',
+            isActive &&
+              'border-white/[0.14] bg-white text-background shadow-[0_18px_42px_-30px_rgba(0,0,0,0.88)]',
           ]
       : isActive
-        ? 'text-black scale-105'
-        : 'group-hover:text-white group-hover:scale-105',
+        ? 'text-foreground'
+        : 'text-foreground/42 group-hover:text-foreground/78',
   );
 
   const iconNode = renderedIcon ? (
@@ -69,26 +68,24 @@ export default function MenuItem({
   const baseClasses = isIconVariant
     ? isHorizontalLayout
       ? cn(
-          // Horizontal layout (desktop expanded)
-          'relative flex h-9 w-full flex-row items-center gap-3 rounded px-3 py-2 text-left transition group',
+          'group relative flex h-10 w-full flex-row items-center gap-3 rounded-xl px-3.5 py-2 text-left transition-[background-color,color,transform] duration-200',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         )
       : cn(
-          // Vertical card layout (collapsed or mobile)
-          'relative flex w-full flex-col items-center gap-2 border border-transparent p-2 text-center transition group',
+          'group relative flex w-full flex-col items-center gap-2 p-2 text-center transition-all duration-200',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         )
-    : 'flex h-9 items-center gap-3 rounded px-3 py-2 text-left transition group';
+    : 'group flex h-10 items-center gap-3 rounded-xl px-3.5 py-2 text-left transition-[background-color,color] duration-200';
 
   const activeClasses = isIconVariant
     ? isHorizontalLayout
       ? isActive
-        ? 'bg-white/[0.08] text-white'
-        : 'hover:bg-white/[0.04]'
+        ? 'bg-white/[0.06] text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]'
+        : 'hover:bg-white/[0.035] hover:text-foreground'
       : '' // No outer wrapper styling for vertical card variant - highlighting is on the icon itself
     : isActive
-      ? 'bg-white/[0.08] text-white font-semibold'
-      : 'hover:bg-white/[0.04]';
+      ? 'bg-white/[0.06] text-foreground font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]'
+      : 'text-foreground/72 hover:bg-white/[0.035] hover:text-foreground';
 
   const listItemClass = cn(
     'list-none overflow-visible',
@@ -103,8 +100,8 @@ export default function MenuItem({
       <div className="flex min-w-0 flex-1 items-center gap-2">
         <span
           className={cn(
-            'min-w-0 truncate text-sm font-medium text-white/90 transition-colors duration-200',
-            isActive && 'text-white font-semibold',
+            'min-w-0 truncate text-[13px] font-medium tracking-[-0.01em] text-foreground/88 transition-colors duration-200',
+            isActive && 'text-foreground font-semibold',
           )}
         >
           {label}
@@ -123,8 +120,8 @@ export default function MenuItem({
       // Vertical card layout: uppercase small label
       <span
         className={cn(
-          'text-xs font-semibold uppercase tracking-wide text-white/70 transition-colors duration-200',
-          isActive && 'text-black',
+          'text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground/58 transition-colors duration-200',
+          isActive && 'text-foreground',
         )}
       >
         {label}

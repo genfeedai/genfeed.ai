@@ -2,11 +2,7 @@
 
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { ButtonVariant } from '@genfeedai/enums';
-import {
-  BG_BLUR,
-  BORDER_WHITE_30,
-  cn,
-} from '@genfeedai/helpers/formatting/cn/cn.util';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import {
   formatCompactNumber,
   formatNumberWithCommas,
@@ -151,46 +147,55 @@ export default function TopbarCreditsBar() {
           withWrapper={false}
           variant={ButtonVariant.UNSTYLED}
           className={cn(
-            'hidden md:flex items-center gap-2.5 px-3 py-1.5 transition-all hover:bg-white/[0.06]',
-            isOpen && 'bg-white/[0.06]',
+            'gen-shell-control hidden h-10 items-center gap-3 rounded-xl px-3.5 text-left md:flex',
           )}
+          data-active={isOpen ? 'true' : 'false'}
           title={`${fullBalance} ${EnvironmentService.CREDITS_LABEL}`}
           ariaLabel={`${fullBalance} ${EnvironmentService.CREDITS_LABEL}`}
         >
+          <div className="flex min-w-0 flex-col items-start">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-foreground/36">
+              Credits
+            </span>
+            <span className="text-sm font-semibold tracking-[-0.02em] text-foreground">
+              {compactBalance}
+            </span>
+          </div>
           {planLimit > 0 && (
-            <div className="h-1.5 w-16 overflow-hidden rounded-full bg-white/[0.08]">
+            <div className="ml-1 h-1.5 w-14 overflow-hidden rounded-full bg-white/[0.08]">
               <div
                 className="h-full rounded-full bg-primary transition-all duration-500"
                 style={{ width: `${remainingPercent}%` }}
               />
             </div>
           )}
-          <span className="text-xs font-medium text-white/60">
-            {compactBalance}
-          </span>
         </Button>
       </PopoverTrigger>
 
-      <PopoverPanelContent
-        align="end"
-        className={cn(BG_BLUR, BORDER_WHITE_30, 'w-72 p-3')}
-      >
-        <div role="dialog">
-          {/* Balance Display */}
-          <div className="mb-3">
-            <div className="flex items-baseline gap-2 justify-center">
-              <span className="text-3xl font-bold text-white">
+      <PopoverPanelContent align="end" className="w-80 rounded-[1.5rem] p-4">
+        <div role="dialog" className="space-y-4">
+          <div className="gen-shell-surface rounded-[1.25rem] p-4 text-center">
+            <div className="flex items-baseline justify-center gap-2">
+              <span className="text-4xl font-semibold tracking-[-0.05em] text-foreground">
                 {fullBalance}
               </span>
-              <span className="text-sm text-white/60 uppercase tracking-wide">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground/42">
                 {EnvironmentService.CREDITS_LABEL}
               </span>
             </div>
           </div>
 
-          {/* Usage Bar */}
           {planLimit > 0 && (
-            <div className="mb-3">
+            <div className="gen-shell-surface rounded-[1.15rem] p-3">
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground/36">
+                  Plan usage
+                </span>
+                <span className="text-[11px] text-foreground/42">
+                  {formatCompactNumber(planLimit - planBalance)} /{' '}
+                  {formatCompactNumber(planLimit)} used
+                </span>
+              </div>
               <div className="flex h-2 w-full overflow-hidden rounded-full bg-white/[0.06]">
                 <div
                   className="relative transition-all duration-300"
@@ -212,7 +217,7 @@ export default function TopbarCreditsBar() {
                 </div>
                 {extraBalance > 0 && (
                   <div
-                    className="ml-[2px] rounded-r-full transition-all duration-300 bg-primary/40"
+                    className="ml-[2px] rounded-r-full bg-primary/32 transition-all duration-300"
                     style={{
                       width: `${(extraBalance / (planLimit + extraBalance)) * 100}%`,
                     }}
@@ -220,28 +225,28 @@ export default function TopbarCreditsBar() {
                 )}
               </div>
 
-              <div className="flex items-center justify-between mt-1.5">
+              <div className="mt-2 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-1.5">
-                    <div className="w-1.5 h-1.5 rounded-full bg-white/50" />
-                    <span className="text-[11px] text-white/40">Plan</span>
+                    <div className="h-1.5 w-1.5 rounded-full bg-white/50" />
+                    <span className="text-[11px] text-foreground/40">Plan</span>
                   </div>
                   {extraBalance > 0 && (
                     <div className="flex items-center gap-1.5">
-                      <div className="w-1.5 h-1.5 rounded-full bg-primary/60" />
-                      <span className="text-[11px] text-white/40">Extra</span>
+                      <div className="h-1.5 w-1.5 rounded-full bg-primary/60" />
+                      <span className="text-[11px] text-foreground/40">
+                        Extra
+                      </span>
                     </div>
                   )}
                 </div>
-                <span className="text-[11px] text-white/30">
-                  {formatCompactNumber(planLimit - planBalance)} /{' '}
-                  {formatCompactNumber(planLimit)} used
+                <span className="text-[11px] text-foreground/32">
+                  {Math.round(remainingPercent)}% left
                 </span>
               </div>
             </div>
           )}
 
-          {/* Actions */}
           <div className="flex gap-2">
             <Button
               withWrapper={false}
@@ -251,8 +256,7 @@ export default function TopbarCreditsBar() {
               }}
               isDisabled={isLoading}
               className={cn(
-                'flex-1 flex items-center justify-center gap-2 px-3 py-2.5 transition-all text-white',
-                'hover:bg-white/10 border border-white/[0.08]',
+                'gen-shell-control flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium',
                 isLoading && 'opacity-50 cursor-not-allowed',
               )}
               title="Refresh Balance"
@@ -272,9 +276,9 @@ export default function TopbarCreditsBar() {
               target="_blank"
               rel="noopener noreferrer"
               className={cn(
-                'flex-1 flex items-center justify-center gap-2 px-3 py-2.5 transition-all text-white',
-                'bg-primary/10 hover:bg-primary/20 border border-primary/30',
+                'gen-shell-control flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold',
               )}
+              data-tone="accent"
               onClick={() => setIsOpen(false)}
               title="Top Up Credits"
             >

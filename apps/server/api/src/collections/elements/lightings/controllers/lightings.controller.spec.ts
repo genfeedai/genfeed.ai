@@ -252,9 +252,7 @@ describe('ElementsLightingsController', () => {
         _id: id,
         key: 'delete-lighting',
         label: 'Lighting to Delete',
-        user: 
-          mockSuperAdminUser.publicMetadata.user as string,
-        ,
+        user: mockSuperAdminUser.publicMetadata.user as string,
       };
 
       lightingsService.findOne.mockResolvedValue(mockLighting as never);

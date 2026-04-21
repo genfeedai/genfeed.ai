@@ -128,9 +128,7 @@ describe('ElementsMoodsController', () => {
         _id: '507f191e810c19729de860ee',
         ...createDto,
         isDeleted: false,
-        organization: 
-          mockUser.publicMetadata.organization as string,
-        ,
+        organization: mockUser.publicMetadata.organization as string,
         user: mockUser.publicMetadata.user as string,
       };
 
@@ -154,9 +152,7 @@ describe('ElementsMoodsController', () => {
         _id: '507f191e810c19729de860ee',
         ...createDto,
         isDeleted: false,
-        organization: 
-          mockUser.publicMetadata.organization as string,
-        ,
+        organization: mockUser.publicMetadata.organization as string,
         user: mockUser.publicMetadata.user as string,
       };
 
@@ -183,9 +179,7 @@ describe('ElementsMoodsController', () => {
         isDeleted: false,
         key: 'old-mood',
         label: 'Old Mood',
-        organization: 
-          mockUser.publicMetadata.organization as string,
-        ,
+        organization: mockUser.publicMetadata.organization as string,
         user: mockUser.publicMetadata.user as string,
       };
 
@@ -235,9 +229,7 @@ describe('ElementsMoodsController', () => {
         isDeleted: false,
         key: 'mood-to-delete',
         label: 'Mood to Delete',
-        organization: 
-          mockUser.publicMetadata.organization as string,
-        ,
+        organization: mockUser.publicMetadata.organization as string,
         user: mockUser.publicMetadata.user as string,
       };
 
