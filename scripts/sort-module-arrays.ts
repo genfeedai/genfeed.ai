@@ -61,7 +61,7 @@ function getSortKey(code: string): string | null {
     return code;
   }
 
-  // Complex expression (e.g. MongooseModule.forFeatureAsync(...)) → keep in place
+  // Complex expression (e.g. dynamic factory calls) → keep in place
   return null;
 }
 

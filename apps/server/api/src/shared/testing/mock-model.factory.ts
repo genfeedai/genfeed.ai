@@ -1,5 +1,5 @@
 /**
- * Creates a mock Mongoose model that works with BaseService.
+ * Creates a mock document-style model that works with BaseService.
  * Supports both `new Model()` constructor calls and static methods.
  */
 export function createMockModel(defaults: Record<string, unknown> = {}) {

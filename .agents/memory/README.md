@@ -58,7 +58,9 @@ If a rule in `.agents/memory/` conflicts with a rule in `CLAUDE.md` or `AGENTS.m
 
 ## Related
 
-- `.agents/rules/` — static coding rules (security, backend, frontend, packages) — stable, slowly-changing
-- `.agents/context/` — project structure, patterns, style guide — stable reference docs
+- `rules/` — coding rules (security, backend, frontend, packages) — symlinked to `.claude/rules/`
+- `context/` — project structure, patterns, style guide
+- `system/` — critical rules, agent runtime, architecture
+- `features/` — feature architecture docs
+- `architecture/` — ADRs
 - `.agents/SESSIONS/` — daily session logs — ephemeral journal, not memory
-- `.agents/SYSTEM/` — architecture, critical never-do rules, ADRs

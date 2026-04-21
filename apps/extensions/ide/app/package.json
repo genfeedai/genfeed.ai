@@ -300,7 +300,7 @@
     }
   },
   "dependencies": {
-    "@clerk/clerk-js": "6.7.3",
+    "@clerk/clerk-js": "6.7.4",
     "@genfeedai/ui": "workspace:*",
     "@sentry/node": "10.49.0"
   },
@@ -309,7 +309,7 @@
     "@biomejs/biome": "2.4.12",
     "@types/node": "25.6.0",
     "@types/vscode": "1.116.0",
-    "@vscode/vsce": "3.9.0",
+    "@vscode/vsce": "3.9.1",
     "bun-types": "latest",
     "esbuild": "0.28.0",
     "typescript": "6.0.2"

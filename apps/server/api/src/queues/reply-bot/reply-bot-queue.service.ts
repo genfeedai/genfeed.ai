@@ -1,7 +1,7 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/services/reply-bot-configs.service';
-import { ReplyBotPollingJobData } from '@api/queues/reply-bot/reply-bot-polling.processor';
+import type { ReplyBotPollingJobData } from '@api/queues/reply-bot/reply-bot-polling-job.interface';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';

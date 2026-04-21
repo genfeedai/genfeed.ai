@@ -16,18 +16,6 @@ vi.mock(
     AgentMemoriesService: class {},
   }),
 );
-vi.mock('mongoose', () => ({
-  Types: {
-    ObjectId: class {
-      constructor(id?: string) {
-        return { toString: () => id ?? '' };
-      }
-      static isValid(id: string) {
-        return typeof id === 'string' && /^[0-9a-f]{24}$/i.test(id);
-      }
-    },
-  },
-}));
 
 import { AgentMemoriesService } from '@api/collections/agent-memories/services/agent-memories.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
@@ -41,7 +29,7 @@ import { Effect } from 'effect';
 
 import { AgentThreadEngineService } from './agent-thread-engine.service';
 
-// Valid 24-char hex strings for ObjectId validation (ObjectIdUtil.isValid checks /^[0-9a-f]{24}$/i)
+// Valid 24-char hex strings for ObjectId validation.
 const orgId = 'a'.repeat(24);
 const threadId = 'b'.repeat(24);
 const commandId = 'cmd-abc';

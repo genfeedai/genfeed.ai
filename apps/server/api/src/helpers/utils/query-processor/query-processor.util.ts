@@ -177,7 +177,7 @@ export class QueryProcessor {
   }
 
   /**
-   * Create aggregation options for mongoose-aggregate-paginate-v2
+   * Create aggregation options for aggregate pagination helpers.
    */
   static createAggregationOptions(
     processedQuery: ProcessedPaginationQuery,

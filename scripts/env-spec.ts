@@ -16,6 +16,7 @@ export interface EnvSection {
 }
 
 export const DEPRECATED_ENV_KEYS = [
+  'MONGODB_URI',
   'SENTRY_AUTH_TOKEN_API',
   'SENTRY_AUTH_TOKEN_FILES',
   'SENTRY_AUTH_TOKEN_MCP',
@@ -50,6 +51,7 @@ const backendSharedKeys = [
   'CLERK_PUBLISHABLE_KEY',
   'CLERK_SECRET_KEY',
   'CLERK_WEBHOOK_SIGNING_SECRET',
+  'DATABASE_URL',
   'GENFEEDAI_API_KEY',
   'GENFEEDAI_API_URL',
   'GENFEEDAI_APP_URL',
@@ -59,7 +61,6 @@ const backendSharedKeys = [
   'GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL',
   'GENFEEDAI_PUBLIC_URL',
   'GENFEEDAI_WEBHOOKS_URL',
-  'MONGODB_URI',
   'REDIS_URL',
   'SENTRY_AUTH_TOKEN',
   'SENTRY_ENVIRONMENT',
@@ -313,7 +314,7 @@ export const ENV_TARGETS: EnvTarget[] = [
       production: 'apps/server/workers/.env.production',
     },
     sharedKeys: [
-      'MONGODB_URI',
+      'DATABASE_URL',
       'REDIS_URL',
       'SENTRY_AUTH_TOKEN',
       'SENTRY_ENVIRONMENT',
@@ -472,7 +473,7 @@ export const LEGACY_ENV_HEADER = [
 export const ROOT_ENV_SECTIONS: EnvSection[] = [
   {
     title: 'Shared Runtime',
-    keys: ['NODE_ENV', 'REDIS_URL', 'MONGODB_URI'],
+    keys: ['NODE_ENV', 'DATABASE_URL', 'REDIS_URL'],
   },
   {
     title: 'Shared URLs',

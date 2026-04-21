@@ -22,7 +22,6 @@ import {
   internalAuthSchema,
   microservicesSchema,
 } from '@config/schemas/genfeedai.schema';
-import { mongodbSchema } from '@config/schemas/mongodb.schema';
 import {
   discordBotSchema,
   resendSchema,
@@ -653,26 +652,6 @@ describe('Config Schemas', () => {
 
     it('should validate with defaults when optional', () => {
       const schema = Joi.object(baseSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
-      }
-    });
-  });
-
-  describe('mongodbSchema', () => {
-    it('should be a non-empty object of Joi schemas', () => {
-      expect(typeof mongodbSchema).toBe('object');
-      const keys = Object.keys(mongodbSchema);
-      expect(keys.length).toBeGreaterThan(0);
-      for (const key of keys) {
-        expect(Joi.isSchema((mongodbSchema as any)[key])).toBe(true);
-      }
-    });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(mongodbSchema);
       const { error } = schema.validate({}, { allowUnknown: true });
       // Some schemas have required fields, so error is acceptable
       if (error) {

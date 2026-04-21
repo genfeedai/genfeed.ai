@@ -157,6 +157,32 @@ export interface IDesktopCloudProject {
   status?: string;
 }
 
+export interface IDesktopDataService {
+  generateContent: (
+    params: IDesktopGenerationOptions,
+  ) => Promise<IDesktopGeneratedContent>;
+  generateHooks: (topic: string) => Promise<string[]>;
+  getAnalytics: (params: { days: number }) => Promise<IDesktopAnalytics>;
+  getIngredients: (filter?: {
+    limit?: number;
+    platform?: string;
+  }) => Promise<IDesktopIngredient[]>;
+  getTrends: (platform: string) => Promise<IDesktopTrend[]>;
+  listAgents: () => Promise<IDesktopAgent[]>;
+  listProjects: () => Promise<IDesktopCloudProject[]>;
+  listWorkflows: () => Promise<IDesktopWorkflow[]>;
+  publishPost: (params: {
+    content: string;
+    draftId?: string;
+    platform: DesktopContentPlatform | string;
+  }) => Promise<IDesktopPublishResult>;
+  runAgent: (agentId: string) => Promise<IDesktopAgentRunResult>;
+  runWorkflow: (params: {
+    batch?: boolean;
+    workflowId: string;
+  }) => Promise<IDesktopWorkflowRunResult>;
+}
+
 /* ─── Preferences ─── */
 
 export interface IDesktopPreferences {

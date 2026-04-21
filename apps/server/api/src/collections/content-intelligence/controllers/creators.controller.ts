@@ -1,10 +1,7 @@
 import { AddCreatorDto } from '@api/collections/content-intelligence/dto/add-creator.dto';
 import { ImportCreatorsDto } from '@api/collections/content-intelligence/dto/import-creators.dto';
 import { CreatorsQueryDto } from '@api/collections/content-intelligence/dto/patterns-query.dto';
-import {
-  CreatorAnalysis,
-  type CreatorAnalysisDocument,
-} from '@api/collections/content-intelligence/schemas/creator-analysis.schema';
+import type { CreatorAnalysisDocument } from '@api/collections/content-intelligence/schemas/creator-analysis.schema';
 import { ContentIntelligenceService } from '@api/collections/content-intelligence/services/content-intelligence.service';
 import { PatternAnalyzerService } from '@api/collections/content-intelligence/services/pattern-analyzer.service';
 import { PatternStoreService } from '@api/collections/content-intelligence/services/pattern-store.service';
@@ -132,7 +129,7 @@ export class CreatorsController {
     @Param('id') id: string,
   ): Promise<JsonApiSingleResponse> {
     if (!isValidObjectId(id)) {
-      ErrorResponse.notFound(CreatorAnalysis.name, id);
+      ErrorResponse.notFound('CreatorAnalysis', id);
     }
 
     const publicMetadata = getPublicMetadata(user);
@@ -143,7 +140,7 @@ export class CreatorsController {
     });
 
     if (!data) {
-      ErrorResponse.notFound(CreatorAnalysis.name, id);
+      ErrorResponse.notFound('CreatorAnalysis', id);
     }
 
     return serializeSingle(request, CreatorAnalysisSerializer, data);
@@ -231,7 +228,7 @@ export class CreatorsController {
     @Param('id') id: string,
   ): Promise<JsonApiSingleResponse> {
     if (!isValidObjectId(id)) {
-      ErrorResponse.notFound(CreatorAnalysis.name, id);
+      ErrorResponse.notFound('CreatorAnalysis', id);
     }
 
     const publicMetadata = getPublicMetadata(user);
@@ -242,7 +239,7 @@ export class CreatorsController {
     });
 
     if (!creator) {
-      ErrorResponse.notFound(CreatorAnalysis.name, id);
+      ErrorResponse.notFound('CreatorAnalysis', id);
     }
 
     // Trigger analysis (async)
@@ -273,7 +270,7 @@ export class CreatorsController {
     @Param('id') id: string,
   ): Promise<JsonApiSingleResponse> {
     if (!isValidObjectId(id)) {
-      ErrorResponse.notFound(CreatorAnalysis.name, id);
+      ErrorResponse.notFound('CreatorAnalysis', id);
     }
 
     const publicMetadata = getPublicMetadata(user);
@@ -284,7 +281,7 @@ export class CreatorsController {
     });
 
     if (!creator) {
-      ErrorResponse.notFound(CreatorAnalysis.name, id);
+      ErrorResponse.notFound('CreatorAnalysis', id);
     }
 
     // Delete associated patterns

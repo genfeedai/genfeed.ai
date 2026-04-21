@@ -8,7 +8,7 @@ export class DesktopFilesService {
   constructor(private readonly workspaceService: DesktopWorkspaceService) {}
 
   async readFile(workspaceId: string, relativePath: string): Promise<string> {
-    const absolutePath = this.workspaceService.assertInsideWorkspace(
+    const absolutePath = await this.workspaceService.assertInsideWorkspace(
       workspaceId,
       relativePath,
     );
@@ -21,7 +21,7 @@ export class DesktopFilesService {
     relativePath: string,
     contents: string,
   ): Promise<void> {
-    const absolutePath = this.workspaceService.assertInsideWorkspace(
+    const absolutePath = await this.workspaceService.assertInsideWorkspace(
       workspaceId,
       relativePath,
     );
@@ -34,7 +34,7 @@ export class DesktopFilesService {
     workspaceId: string,
     filePaths?: string[],
   ): Promise<string[]> {
-    const workspace = this.workspaceService.getWorkspace(workspaceId);
+    const workspace = await this.workspaceService.getWorkspace(workspaceId);
     const selectedFilePaths =
       filePaths && filePaths.length > 0
         ? filePaths

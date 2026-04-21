@@ -547,7 +547,7 @@ export class CollectionFilterUtil {
   /**
    * Build pagination options
    *
-   * Creates pagination options object for mongoose-paginate-v2.
+   * Creates pagination options for paginated list responses.
    * Includes custom labels for consistency.
    *
    * @param query - Query params with pagination options

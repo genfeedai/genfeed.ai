@@ -16,7 +16,6 @@ import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/interfaces';
-import { type ContentPattern } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Controller, Delete, Get, Param, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
@@ -189,7 +188,7 @@ export class PatternsController {
     @Param('id') id: string,
   ): Promise<JsonApiSingleResponse> {
     if (!isValidObjectId(id)) {
-      ErrorResponse.notFound(ContentPattern.name, id);
+      ErrorResponse.notFound('ContentPattern', id);
     }
 
     const publicMetadata = getPublicMetadata(user);
@@ -200,7 +199,7 @@ export class PatternsController {
     });
 
     if (!data) {
-      ErrorResponse.notFound(ContentPattern.name, id);
+      ErrorResponse.notFound('ContentPattern', id);
     }
 
     return serializeSingle(request, ContentPatternSerializer, data);
@@ -213,7 +212,7 @@ export class PatternsController {
     @Param('id') id: string,
   ): Promise<JsonApiSingleResponse> {
     if (!isValidObjectId(id)) {
-      ErrorResponse.notFound(ContentPattern.name, id);
+      ErrorResponse.notFound('ContentPattern', id);
     }
 
     const publicMetadata = getPublicMetadata(user);
@@ -224,7 +223,7 @@ export class PatternsController {
     });
 
     if (!pattern) {
-      ErrorResponse.notFound(ContentPattern.name, id);
+      ErrorResponse.notFound('ContentPattern', id);
     }
 
     const deleted = await this.patternStoreService.remove(id);

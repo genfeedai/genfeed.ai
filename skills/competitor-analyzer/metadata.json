@@ -1,0 +1,30 @@
+{
+  "name": "competitor-analyzer",
+  "version": "1.0.0",
+  "description": "Analyze competitors' content strategies, identify gaps and opportunities, and deliver actionable competitive intelligence reports",
+  "author": "genfeedai",
+  "license": "MIT",
+  "triggers": [
+    "analyze competitor",
+    "competitive analysis",
+    "competitor content",
+    "gap analysis",
+    "what are competitors doing",
+    "competitor research",
+    "competitive intelligence",
+    "competitor audit",
+    "content gap analysis",
+    "competitor strategy",
+    "market research",
+    "who are my competitors"
+  ],
+  "references": {},
+  "outputs": ["text"],
+  "tags": [
+    "competitive-analysis",
+    "market-research",
+    "content-strategy",
+    "competitor-intelligence",
+    "gap-analysis"
+  ]
+}

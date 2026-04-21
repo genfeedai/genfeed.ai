@@ -9,7 +9,7 @@ describe('ConfigService (Workers)', () => {
     process.env.PORT = '3000';
     process.env.SENTRY_ENVIRONMENT = 'test';
     process.env.SENTRY_DSN = 'https://test@sentry.io/test';
-    process.env.MONGODB_URI = 'mongodb://mongo.internal:27017/test-db';
+    process.env.DATABASE_URL = 'postgresql://user:pass@localhost:5432/genfeed';
     process.env.REDIS_URL = 'redis://localhost:6379';
     process.env.PORT = '3000';
 
@@ -18,6 +18,7 @@ describe('ConfigService (Workers)', () => {
 
   afterEach(() => {
     delete process.env.GF_DEV_ENABLE_SCHEDULERS;
+    delete process.env.DATABASE_URL;
     delete process.env.NODE_ENV;
     delete process.env.PORT;
   });
@@ -30,17 +31,23 @@ describe('ConfigService (Workers)', () => {
     it('should validate required environment variables', () => {
       expect(() => new ConfigService()).not.toThrow();
     });
+
+    it('should require DATABASE_URL', () => {
+      delete process.env.DATABASE_URL;
+
+      expect(() => new ConfigService()).toThrow(/DATABASE_URL/);
+    });
   });
 
   describe('get', () => {
-    it('should return environment variable value', () => {
-      const mongoUrl = configService.get('MONGODB_URI');
-      expect(mongoUrl).toBe('mongodb://mongo.internal:27017/test-db');
-    });
-
     it('should return REDIS_URL', () => {
       const redisUrl = configService.get('REDIS_URL');
       expect(redisUrl).toBe('redis://localhost:6379');
+    });
+
+    it('should return DATABASE_URL', () => {
+      const databaseUrl = configService.get('DATABASE_URL');
+      expect(databaseUrl).toBe('postgresql://user:pass@localhost:5432/genfeed');
     });
 
     it('should return undefined for non-existent key', () => {

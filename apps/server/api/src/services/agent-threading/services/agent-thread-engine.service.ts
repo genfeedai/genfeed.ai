@@ -60,7 +60,7 @@ function toPrismaEventDocument(
     id: row.id as string,
     organizationId: row.organizationId as string,
     threadId: row.threadId as string,
-    // Keep Mongoose-compatible reference fields for the projector
+    // Keep legacy reference fields for the projector contract.
     organization: row.organizationId as unknown,
     thread: row.threadId as unknown,
     sequence: row.sequence as number,

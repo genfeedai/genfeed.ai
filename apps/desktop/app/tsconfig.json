@@ -13,6 +13,9 @@
       "@genfeedai/desktop-core": [
         "../../../packages/desktop-core/src/index.ts"
       ],
+      "@genfeedai/desktop-prisma": [
+        "../../../packages/desktop-prisma/src/index.ts"
+      ],
       "@genfeedai/client": ["../../../packages/client/src/index.ts"],
       "@genfeedai/client/*": ["../../../packages/client/src/*"],
       "@genfeedai/constants": ["../../../packages/constants/src/index.ts"],

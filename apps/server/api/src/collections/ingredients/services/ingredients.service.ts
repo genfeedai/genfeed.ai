@@ -6,7 +6,7 @@ import { NotFoundException } from '@api/helpers/exceptions/http/not-found.except
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
-import type { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
+import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import {
   DarkroomReviewStatus,
   IngredientCategory,
@@ -41,8 +41,8 @@ export class IngredientsService extends BaseService<
   ): PopulateOption[] {
     // NOTE: User populate is intentionally excluded from all contexts.
     // The User model is on the AUTH connection, but Ingredients are on CLOUD.
-    // Mongoose .populate() fails across connections. Use createUserLookupPipeline()
-    // in aggregation pipelines instead ($lookup works across collections).
+    // Cross-database relation loading is not supported here. Use
+    // createUserLookupPipeline() in aggregation pipelines instead.
     switch (context) {
       case 'list':
         return [

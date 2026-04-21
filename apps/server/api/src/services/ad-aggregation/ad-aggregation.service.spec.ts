@@ -1,4 +1,3 @@
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { AdAggregationService } from '@api/services/ad-aggregation/ad-aggregation.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { type AdPerformance } from '@genfeedai/prisma';

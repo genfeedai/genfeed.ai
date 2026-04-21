@@ -11,18 +11,10 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 
-export interface ReplyBotPollingJobData {
-  organizationId: string;
-  credentialId: string;
-}
-
-export interface ReplyBotPollingResult {
-  organizationId: string;
-  botsProcessed: number;
-  totalReplies: number;
-  totalDms: number;
-  errors: number;
-}
+import type {
+  ReplyBotPollingJobData,
+  ReplyBotPollingResult,
+} from './reply-bot-polling-job.interface';
 
 @Processor('reply-bot-polling')
 export class ReplyBotPollingProcessor extends WorkerHost {

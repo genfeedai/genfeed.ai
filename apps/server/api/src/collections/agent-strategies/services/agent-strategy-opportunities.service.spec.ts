@@ -1,5 +1,4 @@
 import { AgentStrategyOpportunitiesService } from '@api/collections/agent-strategies/services/agent-strategy-opportunities.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { type AgentStrategyOpportunity } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';

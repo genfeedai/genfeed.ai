@@ -1,0 +1,23 @@
+{
+  "name": "node-creator",
+  "version": "1.0.0",
+  "description": "Create custom Genfeed nodes using the SDK",
+  "author": "genfeedai",
+  "license": "MIT",
+  "triggers": [
+    "create a new node",
+    "add a custom node type",
+    "build a node for",
+    "create a node that",
+    "make a custom node",
+    "implement a node"
+  ],
+  "references": {
+    "nodeBuilder": "packages/sdk/src/node-builder.ts",
+    "sdkTypes": "packages/sdk/src/types.ts",
+    "registry": "packages/sdk/src/registry.ts",
+    "handleTypes": "packages/types/src/nodes.ts"
+  },
+  "outputs": ["typescript"],
+  "tags": ["sdk", "node", "custom", "development", "extension"]
+}

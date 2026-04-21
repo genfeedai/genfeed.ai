@@ -14,7 +14,6 @@ import { dirname, join, resolve } from 'node:path';
 import { Command } from 'commander';
 import { consola } from 'consola';
 import { downloadTemplate } from 'giget';
-import { MongoBinary } from 'mongodb-memory-server';
 
 interface InstallCommand {
   command: string;
@@ -23,7 +22,8 @@ interface InstallCommand {
 }
 
 const TEMPLATE_REPOSITORY = 'github:genfeedai/genfeed.ai#develop';
-const MANAGED_MONGO_URI = 'mongodb://127.0.0.1:27017/genfeed';
+const DEFAULT_DATABASE_URL =
+  'postgresql://genfeed:genfeed_local@localhost:5432/genfeed';
 const ONBOARDING_URL = 'http://localhost:3000/onboarding';
 const GENFEED_DATA_DIR = join(homedir(), '.genfeed', 'data');
 
@@ -55,7 +55,7 @@ function generateEncryptionKey(): string {
 }
 
 const DEFAULT_ENV = `# ─── Required ───────────────────────────────────────────────────────
-MONGODB_URI=mongodb://127.0.0.1:27017/genfeed
+DATABASE_URL=${DEFAULT_DATABASE_URL}
 REDIS_URL=redis://localhost:6379
 PORT=3010
 TOKEN_ENCRYPTION_KEY=${generateEncryptionKey()}
@@ -193,34 +193,6 @@ async function replaceEnvValue(
 }
 
 /**
- * Start a persistent mongod process using the binary from mongodb-memory-server.
- * Data is stored at ~/.genfeed/data/db and survives restarts.
- */
-async function startManagedMongo(): Promise<void> {
-  const dbPath = join(GENFEED_DATA_DIR, 'db');
-  await mkdir(dbPath, { recursive: true });
-
-  consola.start('Downloading MongoDB binary (cached after first run)…');
-  const mongodPath = await MongoBinary.getPath({});
-  consola.success('MongoDB binary ready');
-
-  const mongod = spawn(
-    mongodPath,
-    ['--dbpath', dbPath, '--port', '27017', '--wiredTigerCacheSizeGB', '0.5'],
-    {
-      detached: true,
-      stdio: 'ignore',
-    },
-  );
-
-  mongod.unref();
-
-  // Wait for mongod to be ready
-  await new Promise((r) => setTimeout(r, 2000));
-  consola.success('MongoDB started (persistent data at ~/.genfeed/data/db)');
-}
-
-/**
  * Start a persistent redis-server process.
  * Data is stored at ~/.genfeed/data/redis with AOF persistence.
  */
@@ -257,26 +229,27 @@ async function startManagedRedis(): Promise<void> {
   consola.success('Redis started (persistent data at ~/.genfeed/data/redis)');
 }
 
-export async function setupMongoDB(projectDirectory: string): Promise<void> {
-  const hasOwnMongo = await consola.prompt(
-    'Do you have an existing MongoDB instance? (press Enter to use managed MongoDB)',
+export async function setupPostgres(projectDirectory: string): Promise<void> {
+  const hasOwnPostgres = await consola.prompt(
+    'Do you have an existing PostgreSQL instance? (press Enter to use local defaults)',
     { initial: false, type: 'confirm' },
   );
 
-  if (hasOwnMongo) {
-    const uri = await consola.prompt('Enter your MongoDB URI:', {
-      initial: MANAGED_MONGO_URI,
+  if (hasOwnPostgres) {
+    const uri = await consola.prompt('Enter your DATABASE_URL:', {
+      initial: DEFAULT_DATABASE_URL,
       type: 'text',
     });
 
-    await replaceEnvValue(projectDirectory, 'MONGODB_URI', String(uri));
-    consola.success('MongoDB URI saved to .env');
+    await replaceEnvValue(projectDirectory, 'DATABASE_URL', String(uri));
+    consola.success('DATABASE_URL saved to .env');
     return;
   }
 
-  await startManagedMongo();
-  await replaceEnvValue(projectDirectory, 'MONGODB_URI', MANAGED_MONGO_URI);
-  await replaceEnvValue(projectDirectory, 'GENFEED_MANAGED_MONGO', 'true');
+  await replaceEnvValue(projectDirectory, 'DATABASE_URL', DEFAULT_DATABASE_URL);
+  consola.info(
+    'Using the default local PostgreSQL URL. Start Postgres with `docker compose -f docker/local/docker-compose.yml up -d postgres` if it is not already running.',
+  );
 }
 
 export async function setupRedis(projectDirectory: string): Promise<void> {
@@ -316,7 +289,7 @@ async function scaffoldProject(projectName: string): Promise<void> {
   const installCommand = await runInstall(projectDirectory);
   consola.success(`Dependencies installed with ${installCommand.label}`);
 
-  await setupMongoDB(projectDirectory);
+  await setupPostgres(projectDirectory);
   await setupRedis(projectDirectory);
 
   // Start all services

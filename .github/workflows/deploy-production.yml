@@ -52,7 +52,7 @@ jobs:
     with:
       environment: production
       workers_follow_api: true
-      force_all: ${{ (github.event_name == 'release' && startsWith(github.event.release.tag_name, 'v')) || inputs.force_all }}
+      force_all: ${{ (github.event_name == 'release' && startsWith(github.event.release.tag_name, 'v')) || inputs.force_all || false }}
       force_api: ${{ inputs.force_api || false }}
       force_bots: ${{ inputs.force_bots || false }}
       force_workers: ${{ inputs.force_workers || false }}

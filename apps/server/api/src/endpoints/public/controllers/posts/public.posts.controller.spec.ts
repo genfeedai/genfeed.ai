@@ -4,7 +4,7 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import { PublicPostsController } from '@api/endpoints/public/controllers/posts/public.posts.controller';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import type { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
+import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { AssetScope, PostStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';

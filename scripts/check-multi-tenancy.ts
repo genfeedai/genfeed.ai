@@ -1,7 +1,7 @@
 /**
- * MongoDB Multi-Tenancy Safety Analyzer
+ * Database Multi-Tenancy Safety Analyzer
  *
- * Scans NestJS service files for direct Mongoose model query calls
+ * Scans NestJS service files for direct model query calls
  * missing `organization` or `isDeleted` filters — the two critical
  * multi-tenancy guards in this codebase.
  *
@@ -38,7 +38,7 @@ const IGNORE_GLOBS = [
 ];
 
 /**
- * Mongoose methods that accept a filter/query as first arg.
+ * Model methods that accept a filter/query as first arg.
  */
 const QUERY_METHODS = [
   'find',
@@ -134,7 +134,7 @@ function isExemptFromOrgFilter(filePath: string): boolean {
 }
 
 /**
- * Detect if a .find() / .findOne() call is on a Mongoose model
+ * Detect if a .find() / .findOne() call is on a model-like property
  * (this.model, this.xyzModel, this.someNameModel) vs a JS array
  * or service delegation.
  *

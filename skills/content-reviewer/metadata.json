@@ -1,0 +1,27 @@
+{
+  "name": "content-reviewer",
+  "version": "1.0.0",
+  "description": "Review and score content quality across six dimensions with actionable feedback",
+  "author": "genfeedai",
+  "license": "MIT",
+  "triggers": [
+    "review this content",
+    "score this post",
+    "check content quality",
+    "review my copy",
+    "is this post ready to publish",
+    "critique this content",
+    "grade this post",
+    "content review",
+    "does this content pass"
+  ],
+  "references": {},
+  "outputs": ["text"],
+  "tags": [
+    "content-review",
+    "quality",
+    "editing",
+    "brand-voice",
+    "content-optimization"
+  ]
+}

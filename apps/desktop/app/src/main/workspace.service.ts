@@ -12,15 +12,12 @@ import {
   resolvePathInsideRoot,
 } from '@genfeedai/desktop-core';
 import { dialog, shell } from 'electron';
-import type {
-  CloudDatabaseService,
-  WorkspaceRow,
-} from './cloud-database.service';
+import type { DesktopDatabaseService, WorkspaceRow } from './database.service';
 
 const toIso = (): string => new Date().toISOString();
 
 export class DesktopWorkspaceService {
-  constructor(private readonly database: CloudDatabaseService) {}
+  constructor(private readonly database: DesktopDatabaseService) {}
 
   private ensureWorkspaceMetadataFolder(workspacePath: string): void {
     fs.mkdirSync(buildWorkspaceMetadataDir(workspacePath), {
@@ -88,17 +85,18 @@ export class DesktopWorkspaceService {
     };
   }
 
-  private persistWorkspace(input: {
+  private async persistWorkspace(input: {
     id?: string;
     linkedProjectId?: string;
     name: string;
     path: string;
-  }): IDesktopWorkspace {
+  }): Promise<IDesktopWorkspace> {
     this.ensureWorkspaceMetadataFolder(input.path);
     const now = toIso();
-    const existing = this.database
-      .listWorkspaces()
-      .find((workspace) => workspace.path === input.path);
+    const workspaces = await this.database.listWorkspaces();
+    const existing = workspaces.find(
+      (workspace) => workspace.path === input.path,
+    );
     const fileIndex = this.indexWorkspaceFiles(input.path);
 
     const row: WorkspaceRow = {
@@ -116,8 +114,8 @@ export class DesktopWorkspaceService {
       updatedAt: now,
     };
 
-    this.database.upsertWorkspace(row);
-    this.database.upsertRecentItem({
+    await this.database.upsertWorkspace(row);
+    await this.database.upsertRecentItem({
       id: row.id,
       kind: 'workspace',
       label: row.name,
@@ -146,12 +144,13 @@ export class DesktopWorkspaceService {
     });
   }
 
-  listRecentWorkspaces(): IDesktopWorkspace[] {
-    return this.database.listWorkspaces().map((row) => this.toWorkspace(row));
+  async listRecentWorkspaces(): Promise<IDesktopWorkspace[]> {
+    const workspaces = await this.database.listWorkspaces();
+    return workspaces.map((row) => this.toWorkspace(row));
   }
 
-  getWorkspace(id: string): IDesktopWorkspace {
-    const row = this.database.getWorkspaceById(id);
+  async getWorkspace(id: string): Promise<IDesktopWorkspace> {
+    const row = await this.database.getWorkspaceById(id);
 
     if (!row) {
       throw new Error(`Workspace not found: ${id}`);
@@ -160,8 +159,11 @@ export class DesktopWorkspaceService {
     return this.toWorkspace(row);
   }
 
-  linkProject(workspaceId: string, projectId: string): IDesktopWorkspace {
-    const workspace = this.getWorkspace(workspaceId);
+  async linkProject(
+    workspaceId: string,
+    projectId: string,
+  ): Promise<IDesktopWorkspace> {
+    const workspace = await this.getWorkspace(workspaceId);
 
     return this.persistWorkspace({
       id: workspace.id,
@@ -171,18 +173,22 @@ export class DesktopWorkspaceService {
     });
   }
 
-  revealInFinder(workspaceId: string): void {
-    const workspace = this.getWorkspace(workspaceId);
+  async revealInFinder(workspaceId: string): Promise<void> {
+    const workspace = await this.getWorkspace(workspaceId);
     void shell.showItemInFolder(workspace.path);
   }
 
-  assertInsideWorkspace(workspaceId: string, relativePath: string): string {
-    const workspace = this.getWorkspace(workspaceId);
+  async assertInsideWorkspace(
+    workspaceId: string,
+    relativePath: string,
+  ): Promise<string> {
+    const workspace = await this.getWorkspace(workspaceId);
     return resolvePathInsideRoot(workspace.path, relativePath);
   }
 
-  listRecents(): IDesktopRecentItem[] {
-    return this.database.listRecentItems().map((item) => ({
+  async listRecents(): Promise<IDesktopRecentItem[]> {
+    const recentItems = await this.database.listRecentItems();
+    return recentItems.map((item) => ({
       id: item.id,
       kind: item.kind as 'project' | 'workspace',
       label: item.label,

@@ -1,5 +1,4 @@
 import { BrandMemoryService } from '@api/collections/brand-memory/services/brand-memory.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { BrandMemorySyncService } from '@api/services/brand-memory/brand-memory-sync.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ContentType, CredentialPlatform } from '@genfeedai/enums';

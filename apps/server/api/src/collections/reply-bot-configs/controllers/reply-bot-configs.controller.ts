@@ -1,10 +1,7 @@
 import { CreateReplyBotConfigDto } from '@api/collections/reply-bot-configs/dto/create-reply-bot-config.dto';
 import { ReplyBotConfigsQueryDto } from '@api/collections/reply-bot-configs/dto/reply-bot-configs-query.dto';
 import { UpdateReplyBotConfigDto } from '@api/collections/reply-bot-configs/dto/update-reply-bot-config.dto';
-import {
-  ReplyBotConfig,
-  type ReplyBotConfigDocument,
-} from '@api/collections/reply-bot-configs/schemas/reply-bot-config.schema';
+import type { ReplyBotConfigDocument } from '@api/collections/reply-bot-configs/schemas/reply-bot-config.schema';
 import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/services/reply-bot-configs.service';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -52,7 +49,7 @@ export class ReplyBotConfigsController extends BaseCRUDController<
       loggerService,
       replyBotConfigsService,
       ReplyBotConfigSerializer,
-      ReplyBotConfig.name,
+      'ReplyBotConfig',
       ['organization', 'brand', 'user', 'credential', 'monitoredAccounts'],
     );
   }

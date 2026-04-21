@@ -37,7 +37,7 @@ import {
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
-import { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { User } from '@clerk/backend';
 import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/enums';
 import {

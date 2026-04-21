@@ -79,9 +79,9 @@ export abstract class BaseCRUDController<
   ) {
     this.constructorName = this.constructor.name;
 
-    // Convert string populate fields to optimized versions
-    // NOTE: 'user' is excluded — User model is on AUTH connection,
-    // cannot .populate() from CLOUD connection. Use $lookup in aggregation instead.
+    // Convert string populate fields to optimized versions.
+    // NOTE: 'user' is excluded because User data lives on the AUTH database.
+    // Use $lookup-based aggregation when a CLOUD record needs user details.
     this.optimizedPopulateFields = populateFields
       .filter((field) => field !== 'user')
       .map((field) => {

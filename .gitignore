@@ -24,6 +24,7 @@ apps/desktop/app/release/
 .env.staging
 .env.local
 .claude/worktrees/
+.claude/skills/
 .worktrees/
 .agents/SESSIONS/
 

@@ -1,8 +1,8 @@
 {
   "dependencies": {
     "@anthropic-ai/sdk": "0.90.0",
-    "@aws-sdk/client-cloudfront": "3.1031.0",
-    "@aws-sdk/client-ec2": "3.1031.0",
+    "@aws-sdk/client-cloudfront": "3.1032.0",
+    "@aws-sdk/client-ec2": "3.1032.0",
     "@genfeedai/config": "workspace:*",
     "@genfeedai/harness": "workspace:*",
     "@genfeedai/integrations": "workspace:*",
@@ -19,7 +19,7 @@
     "@genfeedai/tools": "workspace:*",
     "@nestjs/event-emitter": "3.0.1",
     "@prisma/adapter-pg": "7.7.0",
-    "effect": "3.21.0",
+    "effect": "3.21.1",
     "openai": "6.34.0",
     "rss": "1.2.2"
   },
@@ -27,7 +27,6 @@
   "devDependencies": {
     "@nestjs/testing": "11.1.19",
     "@types/rss": "0.0.32",
-    "mongodb": "7.1.1",
     "unplugin-swc": "1.5.9",
     "vitest": "4.1.4"
   },
@@ -37,25 +36,10 @@
   "scripts": {
     "build": "cd .. && nest build api",
     "build:prod": "cd .. && nest build api && cd api && (bun run sentry:sourcemaps || true)",
-    "db:check-orphans": "bun run scripts/mongodb/check-orphans.ts",
-    "db:cleanup-broken-knowledge-bases": "bun run scripts/mongodb/cleanup-broken-knowledge-bases.ts",
-    "db:cleanup-orphaned-user-cluster": "bun run scripts/mongodb/cleanup-orphaned-user-cluster.ts",
-    "db:collection-normalization-audit": "bun run ../../scripts/migrations/collection-normalization-audit.ts",
-    "db:fix-agent-collections": "bun run scripts/mongodb/fix-agent-collections.ts",
-    "db:normalize-agent-objectids": "bun run scripts/mongodb/normalize-agent-objectids.ts",
-    "db:normalize-collections": "bun run ../../scripts/migrations/normalize-mongo-collection-names.ts",
-    "db:normalize-enabled-models": "bun run scripts/mongodb/normalize-enabled-models.ts",
-    "db:remove-tasks": "bun run scripts/mongodb/remove-tasks.ts",
-    "db:repair-catalog-voice-ownership": "bun run scripts/mongodb/repair-catalog-voice-ownership.ts",
-    "db:repair-post-credentials": "bun run scripts/mongodb/repair-post-credentials.ts",
     "deps:update": "bunx npm-check-updates -u --reject typescript && bun install",
     "dev": "cd .. && NODE_OPTIONS=\"--max-old-space-size=4096 --expose-gc\" nest start api --watch",
     "dev:webpack": "cd .. && NODE_OPTIONS=\"--max-old-space-size=4096 --expose-gc\" nest start api --watch",
     "lint": "bun run scripts/check-request-context-usage.ts && biome lint --write src --no-errors-on-unmatched",
-    "seed:demo": "bun run scripts/seeds/demo.seed.ts",
-    "seed:demo:dry": "bun run scripts/seeds/demo.seed.ts --dry-run",
-    "seed:models": "bun run scripts/seeds/models.seed.ts",
-    "seed:models:dry": "bun run scripts/seeds/models.seed.ts --dry-run",
     "seed:workflows": "bun run scripts/seeds/workflows.seed.ts",
     "seed:workflows:dry": "bun run scripts/seeds/workflows.seed.ts --dry-run",
     "sentry:inject": "sentry-cli sourcemaps inject --org genfeedai --project api-genfeed-ai ../dist",

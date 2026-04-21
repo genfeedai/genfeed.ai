@@ -5,7 +5,7 @@ services:
     env_file: .env
     environment:
       - PORT=${API_PORT:-3010}
-    depends_on: [mongo, redis]
+    depends_on: [postgres, redis]
 
   web:
     build: { context: .., dockerfile: docker/Dockerfile, target: web }
@@ -20,7 +20,7 @@ services:
     env_file: .env
     environment:
       - PORT=${WORKERS_PORT:-3013}
-    depends_on: [redis, mongo]
+    depends_on: [redis, postgres]
 
   files:
     build: { context: .., dockerfile: docker/Dockerfile, target: files }
@@ -28,7 +28,7 @@ services:
     env_file: .env
     environment:
       - PORT=${FILES_PORT:-3012}
-    depends_on: [redis, mongo]
+    depends_on: [redis, postgres]
 
   notifications:
     build: { context: .., dockerfile: docker/Dockerfile, target: notifications }
@@ -92,10 +92,14 @@ services:
     profiles: [gpu]
 
   # Infrastructure
-  mongo:
-    image: mongo:7
-    volumes: ["mongo_data:/data/db"]
-    ports: ["${MONGODB_PORT:-27017}:27017"]
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-genfeed}
+      - POSTGRES_USER=${POSTGRES_USER:-genfeed}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-genfeed_local}
+    volumes: ["postgres_data:/var/lib/postgresql/data"]
+    ports: ["${POSTGRES_PORT:-5432}:5432"]
 
   redis:
     image: redis:7-alpine
@@ -103,5 +107,5 @@ services:
     ports: ["${REDIS_PORT:-6379}:6379"]
 
 volumes:
-  mongo_data:
+  postgres_data:
   redis_data:

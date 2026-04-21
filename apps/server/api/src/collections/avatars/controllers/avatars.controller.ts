@@ -19,7 +19,7 @@ import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { ElevenLabsService } from '@api/services/integrations/elevenlabs/elevenlabs.service';
 import { HedraService } from '@api/services/integrations/hedra/services/hedra.service';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
-import { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { User } from '@clerk/backend';
 import { ActivitySource } from '@genfeedai/enums';
 import type {

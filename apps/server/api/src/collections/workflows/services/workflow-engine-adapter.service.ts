@@ -195,7 +195,7 @@ const NODE_TYPE_TO_EXECUTOR: Record<string, string> = {
 
 /**
  * Bridges NestJS service layer with the pure workflow-engine package.
- * Converts Mongoose documents to engine-compatible format and wires
+ * Converts workflow records to engine-compatible format and wires
  * NestJS services as node executors.
  */
 @Injectable()
@@ -1280,7 +1280,7 @@ export class WorkflowEngineAdapterService {
   }
 
   /**
-   * Converts a workflow Mongoose document to the engine-compatible format.
+   * Converts a workflow record to the engine-compatible format.
    */
   convertToExecutableWorkflow(
     workflowDoc: WorkflowDocumentShape,

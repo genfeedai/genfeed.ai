@@ -79,7 +79,7 @@ async function seed(): Promise<void> {
   }
 
   // Connect to MongoDB and upsert listings
-  // This requires MONGODB_URI to be set in the environment
+  // This requires MONGODB_MARKETPLACE_URI to be set in the environment
   const mongoUri = process.env.MONGODB_MARKETPLACE_URI;
   if (!mongoUri) {
     console.error('MONGODB_MARKETPLACE_URI environment variable is required');

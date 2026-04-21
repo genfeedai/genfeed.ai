@@ -215,12 +215,16 @@ function parseArgs(): ParsedArgs {
   };
 }
 
-function loadMongoUri(
+function loadLegacyMongoUri(
   envSuffix: ParsedArgs['env'],
   overrideUri?: string,
 ): string {
   if (overrideUri) {
     return overrideUri;
+  }
+
+  if (process.env.LEGACY_MONGODB_URI) {
+    return process.env.LEGACY_MONGODB_URI;
   }
 
   const envPath = resolve(__dirname, `../../apps/server/api/.env.${envSuffix}`);
@@ -239,12 +243,14 @@ function loadMongoUri(
 
     const key = trimmed.slice(0, eqIndex).trim();
     const value = trimmed.slice(eqIndex + 1).trim();
-    if (key === 'MONGODB_URI' && value) {
+    if (key === 'LEGACY_MONGODB_URI' && value) {
       return value;
     }
   }
 
-  throw new Error(`MONGODB_URI not found in ${envPath}`);
+  throw new Error(
+    `LEGACY_MONGODB_URI is required for this legacy migration (${envPath})`,
+  );
 }
 
 function maskMongoUri(uri: string): string {
@@ -466,7 +472,7 @@ function logResults(database: DatabaseName, results: ActionResult[]): void {
 
 async function main(): Promise<void> {
   const args = parseArgs();
-  const uri = loadMongoUri(args.env, args.uri);
+  const uri = loadLegacyMongoUri(args.env, args.uri);
 
   logger.log(`Environment: ${args.env}`);
   logger.log(`Mode: ${args.dryRun ? 'dry-run' : 'live'}`);

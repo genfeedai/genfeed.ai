@@ -2,10 +2,7 @@ import { CreateMonitoredAccountDto } from '@api/collections/monitored-accounts/d
 import { MonitoredAccountsQueryDto } from '@api/collections/monitored-accounts/dto/monitored-accounts-query.dto';
 import { UpdateMonitoredAccountDto } from '@api/collections/monitored-accounts/dto/update-monitored-account.dto';
 import { ValidateTwitterUsernameDto } from '@api/collections/monitored-accounts/dto/validate-twitter-username.dto';
-import {
-  MonitoredAccount,
-  type MonitoredAccountDocument,
-} from '@api/collections/monitored-accounts/schemas/monitored-account.schema';
+import type { MonitoredAccountDocument } from '@api/collections/monitored-accounts/schemas/monitored-account.schema';
 import { MonitoredAccountsService } from '@api/collections/monitored-accounts/services/monitored-accounts.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -49,7 +46,7 @@ export class MonitoredAccountsController extends BaseCRUDController<
       loggerService,
       monitoredAccountsService,
       MonitoredAccountSerializer,
-      MonitoredAccount.name,
+      'MonitoredAccount',
       ['organization', 'brand', 'user', 'credential', 'botConfig'],
     );
   }

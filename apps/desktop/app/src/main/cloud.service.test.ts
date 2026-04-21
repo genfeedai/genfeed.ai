@@ -60,9 +60,9 @@ describe('DesktopCloudService', () => {
       );
     }) as typeof fetch;
 
-    const service = new DesktopCloudService(environment);
+    const service = new DesktopCloudService(environment, () => session);
 
-    await expect(service.listProjects(session)).resolves.toEqual([
+    await expect(service.listProjects()).resolves.toEqual([
       {
         id: 'project-1',
         name: 'Desktop Launch',
@@ -100,8 +100,8 @@ describe('DesktopCloudService', () => {
       );
     }) as typeof fetch;
 
-    const service = new DesktopCloudService(environment);
-    const result = await service.publishPost(session, {
+    const service = new DesktopCloudService(environment, () => session);
+    const result = await service.publishPost({
       content: 'Ship the desktop release today.',
       draftId: 'draft-9',
       platform: 'twitter',
@@ -113,9 +113,9 @@ describe('DesktopCloudService', () => {
   });
 
   it('rejects cloud calls without a session', async () => {
-    const service = new DesktopCloudService(environment);
+    const service = new DesktopCloudService(environment, () => null);
 
-    await expect(service.listProjects(null)).rejects.toThrow(
+    await expect(service.listProjects()).rejects.toThrow(
       'Desktop session is required',
     );
   });

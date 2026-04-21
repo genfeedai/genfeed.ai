@@ -296,7 +296,8 @@ export class WorkflowExecutionsService extends BaseService<
       ];
 
       if (userIds.length > 0) {
-        // Fetch users individually since usersService.findAll uses Mongoose aggregation
+        // Fetch users individually because usersService.findAll still uses
+        // aggregation-oriented query building for list endpoints.
         const usersMap = new Map<string, unknown>();
         for (const userId of userIds) {
           const user = await this.usersService.findOne({ _id: userId }, []);

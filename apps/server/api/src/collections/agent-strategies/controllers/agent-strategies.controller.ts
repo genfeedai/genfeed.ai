@@ -1,10 +1,7 @@
 import { AgentStrategiesQueryDto } from '@api/collections/agent-strategies/dto/agent-strategies-query.dto';
 import { CreateAgentStrategyDto } from '@api/collections/agent-strategies/dto/create-agent-strategy.dto';
 import { UpdateAgentStrategyDto } from '@api/collections/agent-strategies/dto/update-agent-strategy.dto';
-import {
-  AgentStrategy,
-  type AgentStrategyDocument,
-} from '@api/collections/agent-strategies/schemas/agent-strategy.schema';
+import type { AgentStrategyDocument } from '@api/collections/agent-strategies/schemas/agent-strategy.schema';
 import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
 import { AgentStrategyAutopilotService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot.service';
 import { AgentStrategyReportsService } from '@api/collections/agent-strategies/services/agent-strategy-reports.service';
@@ -49,7 +46,7 @@ export class AgentStrategiesController extends BaseCRUDController<
       loggerService,
       agentStrategiesService,
       AgentStrategySerializer,
-      AgentStrategy.name,
+      'AgentStrategy',
       ['organization', 'brand', 'user'],
     );
   }

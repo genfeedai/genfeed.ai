@@ -267,8 +267,9 @@ export class BrandsController extends BaseCRUDController<
    * Override findOne WITHOUT caching
    *
    * IMPORTANT: Caching disabled because brand has virtual populated fields
-   * (links, credentials, references, logo, banner) fetched via Mongoose virtuals.
-   * Caching populated virtuals causes stale data when related collections update.
+   * (links, credentials, references, logo, banner) resolved from related data.
+   * Caching those relation-heavy payloads causes stale data when related
+   * collections update.
    * This matches the org.settings solution where we bypass population for fresh data.
    */
   @Get(':brandId')

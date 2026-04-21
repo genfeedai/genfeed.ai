@@ -28,8 +28,8 @@ export interface IEnvConfig {
   TOKEN_ENCRYPTION_KEY?: string;
   BULL_BOARD_AUTH_TOKEN?: string;
 
-  // === MongoDB ===
-  MONGODB_URI?: string; // Base connection string — all named DBs derived at runtime
+  // === PostgreSQL / Prisma ===
+  DATABASE_URL?: string;
 
   // === Redis ===
   REDIS_URL?: string;

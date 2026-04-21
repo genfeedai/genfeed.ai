@@ -1,6 +1,5 @@
 import { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   type Brand,

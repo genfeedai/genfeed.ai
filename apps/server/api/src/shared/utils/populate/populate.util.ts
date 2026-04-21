@@ -152,11 +152,11 @@ export function getPopulationLevel(
 
 /**
  * Creates a $lookup pipeline to resolve user data from the 'users' collection.
- * Use this instead of .populate('user') when the document is on a different
- * Mongoose connection than the User model (e.g., CLOUD vs AUTH).
+ * Use this instead of relation loading when the document lives in a different
+ * database than the User record (e.g., CLOUD vs AUTH).
  *
  * All DB connections use the same MongoDB URL, so $lookup works across
- * collection boundaries even though Mongoose model registries are separate.
+ * collection boundaries even though the models are split by database.
  */
 export function createUserLookupPipeline(
   mode: 'minimal' | 'full' = 'minimal',

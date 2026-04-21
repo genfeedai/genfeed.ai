@@ -1,7 +1,7 @@
 /**
  * Serializer Drift Detector
  *
- * Compares top-level Mongoose schema fields against serializer attribute
+ * Compares top-level schema fields against serializer attribute
  * definitions and reports any missing or extra fields.
  */
 import fs from 'node:fs';

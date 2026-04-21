@@ -328,7 +328,7 @@ const sort = CollectionFilterUtil.buildSortObject(query.sort, {
 
 #### `buildPaginationOptions(query, customLabels)`
 
-Creates pagination options for mongoose-paginate-v2.
+Creates pagination options for paginated list responses.
 
 ```typescript
 const options = CollectionFilterUtil.buildPaginationOptions(

@@ -1,0 +1,30 @@
+{
+  "name": "youtube-content-creator",
+  "version": "1.0.0",
+  "description": "Create YouTube content including titles, descriptions, tags, thumbnail briefs, Shorts scripts, and retention strategies",
+  "author": "genfeedai",
+  "license": "MIT",
+  "triggers": [
+    "write a youtube title",
+    "create youtube description",
+    "youtube tags",
+    "thumbnail brief",
+    "write a shorts script",
+    "youtube content",
+    "video title ideas",
+    "youtube seo",
+    "create video description",
+    "youtube chapter timestamps"
+  ],
+  "references": {},
+  "outputs": ["text"],
+  "tags": [
+    "youtube",
+    "video",
+    "seo",
+    "content-creation",
+    "thumbnails",
+    "shorts",
+    "descriptions"
+  ]
+}

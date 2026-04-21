@@ -1,49 +1,46 @@
 # Genfeed.ai Agent Documentation Hub
 
-Project-level `.agents/` for architecture, rules, context, and operational docs.
+Project-level `.agents/` for all AI agent knowledge, skills, and operational docs.
 
 ## Last Verified
 
-- **Date:** 2026-04-07
+- **Date:** 2026-04-21
 - **Verified against:** local codebase + GitHub issues
 
 ## Read First
 
-1. `SYSTEM/critical/PRIORITY-READING.md`
-2. `SYSTEM/critical/CRITICAL-NEVER-DO.md`
-3. `SYSTEM/OPEN-SOURCE-CONTEXT.md`
+1. `memory/system/PRIORITY-READING.md`
+2. `memory/system/CRITICAL-NEVER-DO.md`
+3. `memory/system/OPEN-SOURCE-CONTEXT.md`
 
-## Core Navigation
+## Directory Structure
 
-- `context/` — project context files (product, structure, patterns, tech, vision)
-- `rules/` — coding rules (security, backend, frontend, packages)
-- `skills/` — canonical repo-local skill bundles shared across agents
-- `agents/` — specialist agent definitions (7 agents)
-- `SYSTEM/` — architecture, critical rules, ADRs, agent runtime
-- `SYSTEM/critical/` — production-breaking violation rules
-- `SYSTEM/architecture/` — architectural decision records
-- `features/` — feature-specific architecture docs
-- `QA/` — QA workflow and report templates
-- `SESSIONS/` — daily session logs
-- `TASKS/README.md` — task policy
-
-## Task Policy
-
-GitHub Issues/Projects are the canonical task system.
-
-- Do not treat local markdown files as canonical backlog.
-- `TASKS/` exists for policy compatibility only.
-
-## Historical Content Policy
-
-`SESSIONS/` contains historical session records.
-
-- Do not rewrite historical narratives to match current structure.
-- Add forward-looking notes in canonical docs instead of retro-editing logs.
+```
+.agents/
+├── agents/      # 7 specialist agent definitions
+├── memory/      # All project knowledge
+│   ├── MEMORY.md           # Index — start here
+│   ├── feedback_*.md       # User corrections (permanent)
+│   ├── project_*.md        # Project state
+│   ├── reference_*.md      # References
+│   ├── context/            # Project context (structure, patterns, style)
+│   ├── features/           # Feature architecture docs
+│   ├── architecture/       # ADRs
+│   ├── rules/              # Coding rules (symlinked to .claude/rules/)
+│   └── system/             # Critical rules, agent runtime
+├── SESSIONS/    # Daily session logs (gitignored)
+├── skills/      # Dev/build skills (25 skills)
+└── README.md    # This file
+```
 
 ## Tool Integration
 
-This directory is the canonical documentation home for all AI tools:
-- **Claude Code**: `CLAUDE.md` uses `@imports` to pull from `context/`. `.claude/rules/` symlinks to `rules/`.
-- **Codex**: `CODEX.md` and `AGENTS.md` reference docs here. `.agents/skills/` is canonical and `.codex/skills/` is a symlink alias for runtime discovery.
-- **Other tools**: Read `AGENTS.md` at repo root for the universal entry point.
+| Tool | Memory | Skills | Rules |
+|------|--------|--------|-------|
+| Claude Code | `CLAUDE.md` @imports from `memory/` | `.claude/skills/` → `.agents/skills/` | `.claude/rules/` → `.agents/memory/rules/` |
+| Codex | `.codex/memory/` → `.agents/memory/` | `.codex/skills/` → `.agents/skills/` | — |
+| Other | `AGENTS.md` at repo root | — | — |
+
+## Task Policy
+
+GitHub Issues/Projects are the canonical task system. No local task markdown files.

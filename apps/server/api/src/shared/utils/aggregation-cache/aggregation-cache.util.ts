@@ -10,7 +10,7 @@ export interface AggregationCacheOptions {
 
 /**
  * Utility class for caching paginated query results.
- * Previously worked with Mongoose aggregate pipelines; now operates on plain
+ * Previously worked with ODM aggregate pipelines; now operates on plain
  * collection names and pre-fetched result data.
  */
 export class AggregationCacheUtil {

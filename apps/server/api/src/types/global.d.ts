@@ -1,4 +1,4 @@
 /**
  * Global type definitions
- * Pagination result types are in ./mongoose-aggregate-paginate-v2.ts
+ * Pagination result types are in ./aggregate-paginate-result.ts
  */

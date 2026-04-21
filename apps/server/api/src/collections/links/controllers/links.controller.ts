@@ -110,7 +110,7 @@ export class LinksController extends BaseCRUDController<
 
     // Invalidate brands and links cache for brand list endpoints
     // Note: Brand findOne is not cached (see brands.controller.ts) to avoid stale
-    // Mongoose virtuals, so no need to invalidate specific brand cache keys
+    // relation-heavy payloads, so no need to invalidate specific brand cache keys
     // @ts-expect-error TS2532
     await this.cacheService.invalidateByTags(['brands', 'links']);
 
@@ -129,7 +129,7 @@ export class LinksController extends BaseCRUDController<
 
     // Invalidate brands and links cache for brand list endpoints
     // Note: Brand findOne is not cached (see brands.controller.ts) to avoid stale
-    // Mongoose virtuals, so no need to invalidate specific brand cache keys
+    // relation-heavy payloads, so no need to invalidate specific brand cache keys
     // @ts-expect-error TS2532
     await this.cacheService.invalidateByTags(['brands', 'links']);
 
@@ -147,7 +147,7 @@ export class LinksController extends BaseCRUDController<
 
     // Invalidate brands and links cache for brand list endpoints
     // Note: Brand findOne is not cached (see brands.controller.ts) to avoid stale
-    // Mongoose virtuals, so no need to invalidate specific brand cache keys
+    // relation-heavy payloads, so no need to invalidate specific brand cache keys
     // @ts-expect-error TS2532
     await this.cacheService.invalidateByTags(['brands', 'links']);
 

@@ -38,7 +38,7 @@ describe('ToolCallDetailPanel', () => {
     render(
       <ToolCallDetailPanel
         error='Schema has not been registered for model "User".'
-        resultSummary="Use mongoose.model(name, schema)"
+        resultSummary='Register the "User" model before use'
       />,
     );
 
@@ -46,7 +46,7 @@ describe('ToolCallDetailPanel', () => {
 
     await waitFor(() => {
       expect(writeText).toHaveBeenCalledWith(
-        'Schema has not been registered for model "User".\n\nUse mongoose.model(name, schema)',
+        'Schema has not been registered for model "User".\n\nRegister the "User" model before use',
       );
     });
   });

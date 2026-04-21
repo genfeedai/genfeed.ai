@@ -19,7 +19,7 @@ import { TwitterService } from '@api/services/integrations/twitter/services/twit
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import type { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
+import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import {
   AnalyticsMetric,
   CredentialPlatform,

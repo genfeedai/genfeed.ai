@@ -5,17 +5,7 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { firstValueFrom } from 'rxjs';
 
-export interface WebhookJobData {
-  endpoint: string;
-  secret: string;
-  payload: {
-    event: string;
-    timestamp: string;
-    [key: string]: unknown;
-  };
-  organizationId: string;
-  ingredientId?: string;
-}
+import type { WebhookJobData } from './webhook-client-job.interface';
 
 @Processor('webhook-client')
 export class WebhookClientProcessor extends WorkerHost {

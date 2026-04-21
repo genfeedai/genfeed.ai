@@ -1,0 +1,23 @@
+{
+  "name": "onboarding",
+  "version": "1.0.0",
+  "description": "Quick onboarding for Genfeed focused on first content creation",
+  "author": "genfeedai",
+  "license": "MIT",
+  "triggers": [
+    "how do I use genfeed",
+    "getting started",
+    "what is this app",
+    "help me create my first content",
+    "new to genfeed",
+    "tutorial",
+    "how does this work",
+    "beginner guide"
+  ],
+  "references": {
+    "studioApp": "apps/web/src/app/studio",
+    "workflowEditor": "apps/web/src/components/workflow"
+  },
+  "outputs": ["instructions"],
+  "tags": ["onboarding", "tutorial", "getting-started", "beginner"]
+}

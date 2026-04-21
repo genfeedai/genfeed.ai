@@ -38,7 +38,7 @@ import {
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { generateLabel } from '@api/shared/utils/label/label.util';
-import { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { User } from '@clerk/backend';
 import type { JsonApiCollectionResponse } from '@genfeedai/interfaces';
 import { MemberSerializer } from '@genfeedai/serializers';

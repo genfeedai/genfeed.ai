@@ -18,7 +18,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { WhisperService } from '@api/services/whisper/whisper.service';
-import { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { User } from '@clerk/backend';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
 import type {

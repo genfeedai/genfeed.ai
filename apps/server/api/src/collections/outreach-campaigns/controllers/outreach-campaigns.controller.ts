@@ -2,10 +2,7 @@ import { CampaignTargetsService } from '@api/collections/campaign-targets/servic
 import { CreateOutreachCampaignDto } from '@api/collections/outreach-campaigns/dto/create-outreach-campaign.dto';
 import { OutreachCampaignsQueryDto } from '@api/collections/outreach-campaigns/dto/outreach-campaigns-query.dto';
 import { UpdateOutreachCampaignDto } from '@api/collections/outreach-campaigns/dto/update-outreach-campaign.dto';
-import {
-  OutreachCampaign,
-  type OutreachCampaignDocument,
-} from '@api/collections/outreach-campaigns/schemas/outreach-campaign.schema';
+import type { OutreachCampaignDocument } from '@api/collections/outreach-campaigns/schemas/outreach-campaign.schema';
 import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -60,7 +57,7 @@ export class OutreachCampaignsController extends BaseCRUDController<
       loggerService,
       outreachCampaignsService as unknown,
       OutreachCampaignSerializer,
-      OutreachCampaign.name,
+      'OutreachCampaign',
       ['organization', 'brand', 'user', 'credential'],
     );
   }

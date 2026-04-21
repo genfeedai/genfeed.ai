@@ -14,7 +14,7 @@ import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import type { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
-import type { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
+import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { User } from '@clerk/backend';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';

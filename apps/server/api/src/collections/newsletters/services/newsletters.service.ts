@@ -9,7 +9,7 @@ import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.co
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import type { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
+import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,

@@ -27,7 +27,7 @@ For EC2 deploys, prefer AWS Systems Manager Parameter Store over a persistent `.
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `MONGODB_URI` | Yes | -- | MongoDB connection string (e.g. `mongodb://localhost:27017/genfeed`) |
+| `DATABASE_URL` | Yes | -- | PostgreSQL connection string (e.g. `postgresql://genfeed:genfeed_local@localhost:5432/genfeed`) |
 | `REDIS_URL` | Yes | -- | Redis connection string for BullMQ job queues and caching (e.g. `redis://localhost:6379`) |
 
 ---
@@ -128,15 +128,19 @@ That script fetches SSM values into the root env file for the target environment
 
 ## Database Setup
 
-### MongoDB
+### PostgreSQL
 
 ```bash
 # macOS
-brew install mongodb-community
-brew services start mongodb-community
+brew install postgresql@17
+brew services start postgresql@17
 
 # Docker
-docker run -d -p 27017:27017 mongo:6
+docker run -d -p 5432:5432 \
+  -e POSTGRES_DB=genfeed \
+  -e POSTGRES_USER=genfeed \
+  -e POSTGRES_PASSWORD=genfeed_local \
+  postgres:17-alpine
 ```
 
 ### Redis

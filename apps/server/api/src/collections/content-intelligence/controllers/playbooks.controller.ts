@@ -17,7 +17,6 @@ import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/interfaces';
-import { type PatternPlaybook } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,
@@ -103,7 +102,7 @@ export class PlaybooksController {
     @Param('id') id: string,
   ): Promise<JsonApiSingleResponse> {
     if (!isValidObjectId(id)) {
-      ErrorResponse.notFound(PatternPlaybook.name, id);
+      ErrorResponse.notFound('PatternPlaybook', id);
     }
 
     const publicMetadata = getPublicMetadata(user);
@@ -114,7 +113,7 @@ export class PlaybooksController {
     });
 
     if (!data) {
-      ErrorResponse.notFound(PatternPlaybook.name, id);
+      ErrorResponse.notFound('PatternPlaybook', id);
     }
 
     return serializeSingle(request, PatternPlaybookSerializer, data);
@@ -147,7 +146,7 @@ export class PlaybooksController {
     @Body() dto: UpdatePlaybookDto,
   ): Promise<JsonApiSingleResponse> {
     if (!isValidObjectId(id)) {
-      ErrorResponse.notFound(PatternPlaybook.name, id);
+      ErrorResponse.notFound('PatternPlaybook', id);
     }
 
     const publicMetadata = getPublicMetadata(user);
@@ -158,7 +157,7 @@ export class PlaybooksController {
     });
 
     if (!existing) {
-      ErrorResponse.notFound(PatternPlaybook.name, id);
+      ErrorResponse.notFound('PatternPlaybook', id);
     }
 
     const data = await this.playbookBuilderService.patch(id, dto);
@@ -173,7 +172,7 @@ export class PlaybooksController {
     @Param('id') id: string,
   ): Promise<JsonApiSingleResponse> {
     if (!isValidObjectId(id)) {
-      ErrorResponse.notFound(PatternPlaybook.name, id);
+      ErrorResponse.notFound('PatternPlaybook', id);
     }
 
     const publicMetadata = getPublicMetadata(user);
@@ -184,7 +183,7 @@ export class PlaybooksController {
     });
 
     if (!existing) {
-      ErrorResponse.notFound(PatternPlaybook.name, id);
+      ErrorResponse.notFound('PatternPlaybook', id);
     }
 
     // @ts-expect-error TS2554
@@ -200,7 +199,7 @@ export class PlaybooksController {
     @Param('id') id: string,
   ): Promise<JsonApiSingleResponse> {
     if (!isValidObjectId(id)) {
-      ErrorResponse.notFound(PatternPlaybook.name, id);
+      ErrorResponse.notFound('PatternPlaybook', id);
     }
 
     const publicMetadata = getPublicMetadata(user);
@@ -211,7 +210,7 @@ export class PlaybooksController {
     });
 
     if (!existing) {
-      ErrorResponse.notFound(PatternPlaybook.name, id);
+      ErrorResponse.notFound('PatternPlaybook', id);
     }
 
     const deleted = await this.playbookBuilderService.remove(id);

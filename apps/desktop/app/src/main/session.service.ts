@@ -3,7 +3,7 @@ import type {
   IDesktopSession,
 } from '@genfeedai/desktop-contracts';
 import { safeStorage } from 'electron';
-import type { CloudDatabaseService } from './cloud-database.service';
+import type { DesktopDatabaseService } from './database.service';
 
 const SESSION_STORAGE_KEY = 'desktop.session';
 const DESKTOP_AUTH_SCHEME = 'genfeedai-desktop';
@@ -26,8 +26,10 @@ const deserializeSession = (value: string): IDesktopSession =>
   JSON.parse(value) as IDesktopSession;
 
 export class DesktopSessionService {
+  private currentSession: IDesktopSession | null = null;
+
   constructor(
-    private readonly database: CloudDatabaseService,
+    private readonly database: DesktopDatabaseService,
     private readonly environment: IDesktopEnvironment,
   ) {}
 
@@ -35,41 +37,48 @@ export class DesktopSessionService {
     return this.environment;
   }
 
-  getSession(): IDesktopSession | null {
-    const stored = this.database.getValue(SESSION_STORAGE_KEY);
+  async initialize(): Promise<IDesktopSession | null> {
+    const stored = await this.database.getValue(SESSION_STORAGE_KEY);
 
     if (!stored) {
+      this.currentSession = null;
       return null;
     }
 
     try {
-      if (safeStorage.isEncryptionAvailable()) {
-        const decrypted = safeStorage.decryptString(
-          Buffer.from(stored, 'base64'),
-        );
-        return deserializeSession(decrypted);
-      }
+      const session = safeStorage.isEncryptionAvailable()
+        ? deserializeSession(
+            safeStorage.decryptString(Buffer.from(stored, 'base64')),
+          )
+        : deserializeSession(stored);
 
-      return deserializeSession(stored);
+      this.currentSession = session;
+      return session;
     } catch {
-      this.database.deleteValue(SESSION_STORAGE_KEY);
+      this.currentSession = null;
+      await this.database.deleteValue(SESSION_STORAGE_KEY);
       return null;
     }
   }
 
-  setSession(session: IDesktopSession): IDesktopSession {
+  getSession(): IDesktopSession | null {
+    return this.currentSession;
+  }
+
+  async setSession(session: IDesktopSession): Promise<IDesktopSession> {
     const payload = serializeSession(session);
     const encryptedPayload = safeStorage.isEncryptionAvailable()
       ? safeStorage.encryptString(payload).toString('base64')
       : payload;
 
-    this.database.setValue(SESSION_STORAGE_KEY, encryptedPayload);
-
+    this.currentSession = session;
+    await this.database.setValue(SESSION_STORAGE_KEY, encryptedPayload);
     return session;
   }
 
-  clearSession(): void {
-    this.database.deleteValue(SESSION_STORAGE_KEY);
+  async clearSession(): Promise<void> {
+    this.currentSession = null;
+    await this.database.deleteValue(SESSION_STORAGE_KEY);
   }
 
   getLoginUrl(): string {
@@ -132,7 +141,7 @@ export class DesktopSessionService {
     );
 
     if (!validatedSession) {
-      this.clearSession();
+      await this.clearSession();
     }
 
     return validatedSession;
@@ -150,7 +159,7 @@ export class DesktopSessionService {
       const session = await this.resolveSessionFromToken(key);
 
       if (!session) {
-        this.clearSession();
+        await this.clearSession();
       }
 
       return session;

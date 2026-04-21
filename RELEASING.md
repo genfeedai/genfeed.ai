@@ -1,5 +1,7 @@
 # Releasing Genfeed.ai
 
+Use one tag family per surface. Do not reuse a single tag for unrelated release flows.
+
 This repo promotes changes through `develop` -> `staging` -> `master`.
 
 - Contributors open PRs against `develop`.
@@ -49,6 +51,22 @@ Required GitHub Actions secrets:
 - `APPLE_SIGNING_CERTIFICATE_BASE64`
 - `APPLE_SIGNING_CERTIFICATE_PASSWORD`
 
+## Mobile Release
+
+Mobile releases are shipped separately from the main production release.
+
+1. Start from the `master` commit you want to ship.
+2. Create and push a mobile tag such as `mobile-v1.2.3`.
+
+```bash
+git checkout master
+git pull --ff-only origin master
+git tag mobile-v1.2.3
+git push origin mobile-v1.2.3
+```
+
+That tag triggers the Expo/EAS mobile build workflow.
+
 ## Browser Extension Release
 
 Browser extension releases are also shipped separately.
@@ -71,6 +89,7 @@ If a release needs to cover the hosted product, desktop app, and browser extensi
 
 1. Create the main GitHub release tag, for example `v1.2.3`.
 2. Push `desktop-v1.2.3`.
-3. Push `extension-browser-v1.2.3`.
+3. Push `mobile-v1.2.3`.
+4. Push `extension-browser-v1.2.3`.
 
 The version numbers should match, but the workflows are intentionally separate so each surface can be shipped independently when needed.

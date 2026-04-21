@@ -5,7 +5,7 @@ import type { MetadataEntity } from '@api/collections/metadata/entities/metadata
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
-import type { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
+import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';

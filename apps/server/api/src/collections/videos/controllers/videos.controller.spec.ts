@@ -42,7 +42,7 @@ import { RouterService } from '@api/services/router/router.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { PollingService } from '@api/shared/services/polling/polling.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
-import type { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
+import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { User } from '@clerk/backend';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {

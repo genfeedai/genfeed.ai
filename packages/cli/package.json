@@ -7,7 +7,7 @@
   "dependencies": {
     "@genfeedai/serializers": "workspace:*",
     "@genfeedai/tools": "workspace:*",
-    "@inquirer/prompts": "8.4.1",
+    "@inquirer/prompts": "8.4.2",
     "chalk": "5.6.2",
     "commander": "14.0.3",
     "ofetch": "1.5.1",

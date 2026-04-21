@@ -93,7 +93,7 @@ export function resolveRef(
  * Recursively convert a MongoDB sub-document to a JSON-safe plain object.
  * - ObjectIds → hex strings
  * - Maps → plain objects
- * - Mongoose __v fields → stripped
+ * - Legacy __v fields → stripped
  */
 export function toJsonSafe(value: unknown): unknown {
   if (value === null || value === undefined) return value;
@@ -587,8 +587,8 @@ export const COLLECTION_MAPPINGS: CollectionMapping[] = [
         idMap,
         'organizations',
       );
-      const brandId = resolveDocRef(doc, 'brand', idMap, 'brands');
-      const userId = resolveDocRef(doc, 'user', idMap, 'users');
+      const _brandId = resolveDocRef(doc, 'brand', idMap, 'brands');
+      const _userId = resolveDocRef(doc, 'user', idMap, 'users');
       // tags is M2M — handled in Phase 4
 
       return {
@@ -1052,8 +1052,6 @@ export const COLLECTION_MAPPINGS: CollectionMapping[] = [
         idMap,
         'organizations',
       );
-      const brandId = resolveDocRef(doc, 'brand', idMap, 'brands');
-      const userId = resolveDocRef(doc, 'user', idMap, 'users');
       return {
         mongoId,
         organizationId,
@@ -1952,8 +1950,8 @@ export const COLLECTION_MAPPINGS: CollectionMapping[] = [
         idMap,
         'organizations',
       );
-      const brandId = resolveDocRef(doc, 'brand', idMap, 'brands');
-      const userId = resolveDocRef(doc, 'user', idMap, 'users');
+      const _brandId = resolveDocRef(doc, 'brand', idMap, 'brands');
+      const _userId = resolveDocRef(doc, 'user', idMap, 'users');
       return {
         mongoId,
         organizationId,

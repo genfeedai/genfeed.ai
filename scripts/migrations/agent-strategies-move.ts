@@ -42,9 +42,11 @@ config({
   path: resolve(__dirname, `../../apps/server/api/.env.${envSuffix}`),
 });
 
-const MONGODB_URI = process.env.MONGODB_URI;
-if (!MONGODB_URI) {
-  throw new Error(`MONGODB_URI is required (loaded from .env.${envSuffix})`);
+const LEGACY_MONGODB_URI = process.env.LEGACY_MONGODB_URI;
+if (!LEGACY_MONGODB_URI) {
+  throw new Error(
+    `LEGACY_MONGODB_URI is required for this legacy migration (loaded from .env.${envSuffix})`,
+  );
 }
 
 const DRY_RUN = !process.argv.includes('--live');
@@ -117,7 +119,7 @@ async function main() {
   );
   logger.log('='.repeat(70));
 
-  const client = new MongoClient(MONGODB_URI as string);
+  const client = new MongoClient(LEGACY_MONGODB_URI);
   await client.connect();
   logger.log('Connected to MongoDB\n');
 

@@ -1,0 +1,22 @@
+{
+  "name": "prompt-generator",
+  "version": "1.0.0",
+  "description": "Generate optimized image and video prompts for AI generation",
+  "author": "genfeedai",
+  "license": "MIT",
+  "triggers": [
+    "generate a prompt for",
+    "write me a prompt",
+    "create an image prompt",
+    "create a video prompt",
+    "optimize this prompt",
+    "improve this prompt",
+    "make a prompt for",
+    "prompt for generating"
+  ],
+  "references": {
+    "promptLibraryTypes": "packages/types/src/prompt-library.ts"
+  },
+  "outputs": ["json", "text"],
+  "tags": ["prompt", "image-generation", "video-generation", "ai", "creative"]
+}

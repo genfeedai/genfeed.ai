@@ -6,7 +6,9 @@
     "artifactName": "Genfeed-Desktop-${version}-${arch}.${ext}",
     "asar": true,
     "asarUnpack": [
-      "dist/app-shell/**/*"
+      "dist/app-shell/**/*",
+      "node_modules/@electric-sql/pglite/**/*",
+      "node_modules/.bun/@electric-sql+pglite@*/node_modules/@electric-sql/pglite/**/*"
     ],
     "directories": {
       "output": "release"
@@ -43,10 +45,9 @@
     "@electric-sql/pglite": "0.4.4",
     "@genfeedai/desktop-contracts": "workspace:*",
     "@genfeedai/desktop-core": "workspace:*",
-    "@genfeedai/desktop-shell": "workspace:*",
+    "@genfeedai/desktop-prisma": "workspace:*",
     "@genfeedai/enums": "workspace:*",
     "@sentry/browser": "10.49.0",
-    "better-sqlite3": "12.9.0",
     "next": "16.2.4",
     "react": "19.2.5",
     "react-dom": "19.2.5"
@@ -78,7 +79,7 @@
   "scripts": {
     "build": "bun run build:native && bun run build:app-shell && bun run copy:app-shell",
     "build:app-shell": "node ./scripts/build-app-shell.cjs",
-    "build:main": "bunx esbuild src/main.ts --bundle --platform=node --target=node20 --outfile=dist/main.js --external:electron --external:better-sqlite3 --external:@electric-sql/pglite --external:@electric-sql/pglite-socket --tsconfig=tsconfig.json",
+    "build:main": "bunx esbuild src/main.ts --bundle --platform=node --target=node20 --outfile=dist/main.js --external:electron --external:@electric-sql/pglite --external:@electric-sql/pglite/* --external:@electric-sql/pglite-socket --tsconfig=tsconfig.json",
     "build:preload": "bunx esbuild src/preload.ts --bundle --platform=node --target=node20 --outfile=dist/preload.js --external:electron --tsconfig=tsconfig.json",
     "build:release": "bun run build && bun run prepare:release",
     "build:native": "bun run clean && bun run build:main && bun run build:preload && bun run copy:assets",
