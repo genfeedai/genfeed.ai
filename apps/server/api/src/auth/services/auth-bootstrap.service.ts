@@ -133,6 +133,22 @@ export class AuthBootstrapService {
     });
   }
 
+  private serializeRecord<T>(value: T | null | undefined): T | null {
+    if (value == null) {
+      return null;
+    }
+
+    const recordWithToObject = value as T & {
+      toObject?: () => unknown;
+    };
+    const serializableValue =
+      typeof recordWithToObject.toObject === 'function'
+        ? recordWithToObject.toObject()
+        : value;
+
+    return toPlainJson(serializableValue) as T;
+  }
+
   private async resolveBootstrapBase(
     request: AuthBootstrapRequest,
   ): Promise<BootstrapBaseData> {
@@ -218,10 +234,8 @@ export class AuthBootstrapService {
         userId,
       },
       brands: toPlainJson(brands) as unknown as IBrand[],
-      currentUser: dbUser ? toPlainJson(dbUser.toObject()) : null,
-      settings: organizationSettings
-        ? toPlainJson(organizationSettings.toObject())
-        : null,
+      currentUser: this.serializeRecord(dbUser),
+      settings: this.serializeRecord(organizationSettings),
     };
   }
 

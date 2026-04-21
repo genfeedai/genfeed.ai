@@ -15,6 +15,9 @@ export class OrganizationsService extends BaseService<
   private readonly populate = [
     // NOTE: logo and banner live in the 'cloud' database while Organization is
     // stored in 'auth', so those relations are fetched separately where needed.
+    // Credit balances are fetched through the dedicated credits services in the
+    // Prisma runtime, so keep organization reads limited to relations that
+    // actually exist on the model.
     {
       path: 'settings',
       select: [
@@ -45,7 +48,6 @@ export class OrganizationsService extends BaseService<
         'enabledModels',
       ].join(' '),
     },
-    { path: 'credits', select: '_id balance' },
   ];
 
   constructor(

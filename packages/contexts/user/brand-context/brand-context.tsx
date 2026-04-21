@@ -62,8 +62,26 @@ interface BrandProviderProps extends PropsWithChildren<LayoutProps> {
   initialBootstrap?: ProtectedBootstrapData | null;
 }
 
+function getBrandEntityId(brand: IBrand | null | undefined): string {
+  if (typeof brand?.id === 'string') {
+    return brand.id;
+  }
+
+  if (
+    typeof (brand as { _id?: unknown } | null | undefined)?._id === 'string'
+  ) {
+    return (brand as { _id: string })._id;
+  }
+
+  return '';
+}
+
 function getBrandOrganizationId(brand: IBrand | null | undefined): string {
   const organization = brand?.organization;
+
+  if (typeof organization === 'string') {
+    return organization;
+  }
 
   if (
     organization &&
@@ -72,6 +90,15 @@ function getBrandOrganizationId(brand: IBrand | null | undefined): string {
     typeof organization.id === 'string'
   ) {
     return organization.id;
+  }
+
+  if (
+    organization &&
+    typeof organization === 'object' &&
+    '_id' in organization &&
+    typeof organization._id === 'string'
+  ) {
+    return organization._id;
   }
 
   return '';
@@ -148,13 +175,6 @@ export function BrandProvider({
     initialOrganizationId || clerkData.organization || effectiveOrgId || '',
   );
   const shouldFetchBrands = effectiveIsAuthLoaded && effectiveIsSignedIn;
-  const shouldFetchSettings =
-    effectiveIsAuthLoaded && effectiveIsSignedIn && !!organizationId;
-  const shouldFetchDarkroom =
-    effectiveIsAuthLoaded &&
-    effectiveIsSignedIn &&
-    !!organizationId &&
-    !!brandId;
 
   useEffect(() => {
     const resolvedOrganizationId =
@@ -183,7 +203,11 @@ export function BrandProvider({
     effectiveOrgId,
   ]);
 
-  const { data: brandsData, refresh: refreshBrands } = useContextResource(
+  const {
+    data: brandsData,
+    isLoading: brandsLoading,
+    refresh: refreshBrands,
+  } = useContextResource(
     async () => {
       if (!shouldFetchBrands) {
         return [];
@@ -205,27 +229,128 @@ export function BrandProvider({
     },
   );
 
+  const brands = useMemo(() => brandsData ?? [], [brandsData]);
+  const routeOrgSlug =
+    typeof params?.orgSlug === 'string' ? params.orgSlug : '';
+  const routeBrandSlug =
+    typeof params?.brandSlug === 'string' ? params.brandSlug : '';
+  const isOrgRoute = routeOrgSlug.length > 0 && routeBrandSlug.length === 0;
+  const selectedBrand = useMemo(
+    () => brands.find((brand: Brand) => getBrandEntityId(brand) === brandId),
+    [brands, brandId],
+  );
+
+  const routeOrganizationBrand = useMemo(() => {
+    if (!routeOrgSlug || routeBrandSlug || brands.length === 0) {
+      return undefined;
+    }
+
+    return (
+      (selectedBrand && getBrandOrganizationSlug(selectedBrand) === routeOrgSlug
+        ? selectedBrand
+        : undefined) ??
+      brands.find((brand) => getBrandOrganizationSlug(brand) === routeOrgSlug)
+    );
+  }, [brands, routeBrandSlug, routeOrgSlug, selectedBrand]);
+
+  const routeBrand = useMemo(() => {
+    if (!routeOrgSlug || !routeBrandSlug || brands.length === 0) {
+      return undefined;
+    }
+
+    return (
+      (selectedBrand &&
+      getBrandOrganizationSlug(selectedBrand) === routeOrgSlug &&
+      selectedBrand.slug === routeBrandSlug
+        ? selectedBrand
+        : undefined) ??
+      brands.find((brand) => {
+        if (getBrandOrganizationSlug(brand) !== routeOrgSlug) {
+          return false;
+        }
+
+        return brand.slug === routeBrandSlug;
+      })
+    );
+  }, [brands, routeBrandSlug, routeOrgSlug, selectedBrand]);
+
+  const effectiveSelectedBrand = useMemo(() => {
+    if (routeBrand) {
+      return routeBrand;
+    }
+
+    if (selectedBrand) {
+      return selectedBrand;
+    }
+
+    if (!isOrgRoute && brands.length > 0) {
+      return brands[0];
+    }
+
+    return undefined;
+  }, [brands, isOrgRoute, routeBrand, selectedBrand]);
+
+  const effectiveBrandId = useMemo(() => {
+    if (isOrgRoute) {
+      return '';
+    }
+
+    return getBrandEntityId(effectiveSelectedBrand) || brandId;
+  }, [brandId, effectiveSelectedBrand, isOrgRoute]);
+
+  const effectiveOrganizationId = useMemo(() => {
+    if (routeOrganizationBrand) {
+      return getBrandOrganizationId(routeOrganizationBrand) || organizationId;
+    }
+
+    if (routeBrand) {
+      return getBrandOrganizationId(routeBrand) || organizationId;
+    }
+
+    if (effectiveSelectedBrand) {
+      return getBrandOrganizationId(effectiveSelectedBrand) || organizationId;
+    }
+
+    return organizationId;
+  }, [
+    effectiveSelectedBrand,
+    organizationId,
+    routeBrand,
+    routeOrganizationBrand,
+  ]);
+
+  const isScopeReady = initialBrands.length > 0 || !brandsLoading;
+  const scopedBrandId = isScopeReady ? effectiveBrandId : '';
+  const scopedOrganizationId = isScopeReady ? effectiveOrganizationId : '';
+  const shouldFetchSettings =
+    effectiveIsAuthLoaded && effectiveIsSignedIn && !!scopedOrganizationId;
+  const shouldFetchDarkroom =
+    effectiveIsAuthLoaded &&
+    effectiveIsSignedIn &&
+    !!scopedOrganizationId &&
+    !!scopedBrandId;
+
   const {
     data: settings,
     isLoading: settingsLoading,
     refresh: refreshSettings,
   } = useContextResource(
     async () => {
-      if (!shouldFetchSettings) {
+      if (!shouldFetchSettings || !scopedOrganizationId) {
         return null;
       }
 
       try {
         const service = await getOrganizationsService();
-        return await service.getSettings(organizationId);
+        return await service.getSettings(scopedOrganizationId);
       } catch (error) {
         logger.error('Failed to fetch organization settings', error);
         return null;
       }
     },
     {
-      dependencies: [organizationId],
-      enabled: shouldFetchSettings,
+      dependencies: [scopedOrganizationId],
+      enabled: shouldFetchSettings && !!scopedOrganizationId,
       initialData: initialSettings,
       revalidateOnMount: initialSettings == null,
     },
@@ -234,32 +359,29 @@ export function BrandProvider({
   const { data: darkroomCapabilities, isLoading: darkroomCapabilitiesLoading } =
     useContextResource(
       async () => {
-        if (!shouldFetchDarkroom) {
+        if (!shouldFetchDarkroom || !scopedOrganizationId || !scopedBrandId) {
           return null;
         }
 
         try {
           const service = await getOrganizationsService();
-          return await service.getDarkroomCapabilities(organizationId, brandId);
+          return await service.getDarkroomCapabilities(
+            scopedOrganizationId,
+            scopedBrandId,
+          );
         } catch (error) {
           logger.error('Failed to fetch darkroom capabilities', error);
           return null;
         }
       },
       {
-        dependencies: [organizationId, brandId],
-        enabled: shouldFetchDarkroom,
+        dependencies: [scopedOrganizationId, scopedBrandId],
+        enabled:
+          shouldFetchDarkroom && !!scopedOrganizationId && !!scopedBrandId,
         initialData: initialDarkroomCapabilities,
         revalidateOnMount: initialDarkroomCapabilities == null,
       },
     );
-
-  const brands = useMemo(() => brandsData ?? [], [brandsData]);
-  const routeOrgSlug =
-    typeof params?.orgSlug === 'string' ? params.orgSlug : '';
-  const routeBrandSlug =
-    typeof params?.brandSlug === 'string' ? params.brandSlug : '';
-  const isOrgRoute = routeOrgSlug.length > 0 && routeBrandSlug.length === 0;
 
   useEffect(() => {
     if (effectiveIsAuthLoaded && !effectiveIsSignedIn) {
@@ -273,159 +395,83 @@ export function BrandProvider({
   }, [effectiveIsAuthLoaded, effectiveIsSignedIn]);
 
   useEffect(() => {
-    if (!brandId && brands.length > 0 && brandsData && !isOrgRoute) {
-      const firstBrand = brands[0];
-      startTransition(() => {
-        setBrandId(firstBrand.id);
-      });
-    }
-  }, [brandsData, brandId, brands.length, brands[0], isOrgRoute]);
-
-  const selectedBrand = useMemo(
-    () => brands.find((brand: Brand) => brand.id === brandId),
-    [brands, brandId],
-  );
-
-  useEffect(() => {
-    if (!routeOrgSlug || brands.length === 0) {
+    if (!isScopeReady) {
       return;
     }
 
-    if (!routeBrandSlug) {
-      const routeOrganizationBrand =
-        (selectedBrand &&
-        getBrandOrganizationSlug(selectedBrand) === routeOrgSlug
-          ? selectedBrand
-          : undefined) ??
-        brands.find(
-          (brand) => getBrandOrganizationSlug(brand) === routeOrgSlug,
-        );
-
-      if (!routeOrganizationBrand) {
-        return;
-      }
-
-      const routeOrganizationId = getBrandOrganizationId(
-        routeOrganizationBrand,
-      );
-      const shouldClearBrand = brandId.length > 0;
-      const shouldUpdateOrganization =
-        routeOrganizationId.length > 0 &&
-        routeOrganizationId !== organizationId;
-
-      if (!shouldClearBrand && !shouldUpdateOrganization) {
-        return;
-      }
-
-      startTransition(() => {
-        if (shouldClearBrand) {
-          setBrandId('');
-        }
-
-        if (shouldUpdateOrganization) {
-          setOrganizationId(routeOrganizationId);
-        }
-      });
-
-      return;
-    }
-
-    const routeBrand =
-      (selectedBrand &&
-      getBrandOrganizationSlug(selectedBrand) === routeOrgSlug &&
-      (!routeBrandSlug || selectedBrand.slug === routeBrandSlug)
-        ? selectedBrand
-        : undefined) ??
-      brands.find((brand) => {
-        if (getBrandOrganizationSlug(brand) !== routeOrgSlug) {
-          return false;
-        }
-
-        return routeBrandSlug ? brand.slug === routeBrandSlug : true;
-      });
-
-    if (!routeBrand) {
-      return;
-    }
-
-    const routeOrganizationId = getBrandOrganizationId(routeBrand);
-    const shouldUpdateBrand = routeBrand.id !== brandId;
-    const shouldUpdateOrganization =
-      routeOrganizationId.length > 0 && routeOrganizationId !== organizationId;
-
-    if (!shouldUpdateBrand && !shouldUpdateOrganization) {
+    if (scopedBrandId === brandId && scopedOrganizationId === organizationId) {
       return;
     }
 
     startTransition(() => {
-      if (shouldUpdateBrand) {
-        setBrandId(routeBrand.id);
+      if (scopedBrandId !== brandId) {
+        setBrandId(scopedBrandId);
       }
 
-      if (shouldUpdateOrganization) {
-        setOrganizationId(routeOrganizationId);
+      if (scopedOrganizationId !== organizationId) {
+        setOrganizationId(scopedOrganizationId);
       }
     });
   }, [
     brandId,
-    brands,
+    isScopeReady,
     organizationId,
-    routeBrandSlug,
-    routeOrgSlug,
-    selectedBrand,
+    scopedBrandId,
+    scopedOrganizationId,
   ]);
 
   const credentials = useMemo<ICredential[]>(
     () =>
-      selectedBrand && Array.isArray(selectedBrand.credentials)
-        ? selectedBrand.credentials
+      effectiveSelectedBrand &&
+      Array.isArray(effectiveSelectedBrand.credentials)
+        ? effectiveSelectedBrand.credentials
         : [],
-    [selectedBrand],
+    [effectiveSelectedBrand],
   );
 
   const isReady = useMemo(
     () =>
       effectiveIsAuthLoaded &&
       effectiveIsSignedIn &&
-      !!organizationId &&
-      (isOrgRoute || !!brandId),
+      !!scopedOrganizationId &&
+      (isOrgRoute || !!scopedBrandId),
     [
       effectiveIsAuthLoaded,
       effectiveIsSignedIn,
-      brandId,
       isOrgRoute,
-      organizationId,
+      scopedBrandId,
+      scopedOrganizationId,
     ],
   );
 
   const contextValue = useMemo<BrandContextType>(
     () => ({
-      brandId,
+      brandId: scopedBrandId,
       brands,
       credentials,
       darkroomCapabilities,
       darkroomCapabilitiesLoading,
       isReady,
-      organizationId,
+      organizationId: scopedOrganizationId,
       refreshBrands,
       refreshSettings,
-      selectedBrand,
+      selectedBrand: effectiveSelectedBrand,
       setBrandId,
       setOrganizationId,
       settings,
       settingsLoading,
     }),
     [
-      brandId,
       brands,
       credentials,
       darkroomCapabilities,
       darkroomCapabilitiesLoading,
+      effectiveSelectedBrand,
       isReady,
-      organizationId,
       refreshBrands,
       refreshSettings,
-      selectedBrand,
+      scopedBrandId,
+      scopedOrganizationId,
       settings,
       settingsLoading,
     ],

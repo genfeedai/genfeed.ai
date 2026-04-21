@@ -1,7 +1,6 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/enums';
-import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { TopbarProps } from '@props/navigation/topbar.props';
 import { Button } from '@ui/primitives/button';
@@ -45,7 +44,8 @@ export default function AppProtectedTopbar({
             <Button
               type="button"
               variant={ButtonVariant.UNSTYLED}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground md:hidden"
+              className="gen-shell-control inline-flex h-10 w-10 items-center justify-center rounded-xl md:hidden"
+              data-active={isMenuOpen ? 'true' : 'false'}
               ariaLabel={
                 isMenuOpen ? 'Close navigation menu' : 'Open navigation menu'
               }
@@ -62,7 +62,7 @@ export default function AppProtectedTopbar({
 
         <div className="flex min-w-0 items-center gap-3">
           {taskId ? (
-            <div className="hidden items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-1.5 text-xs text-emerald-100 lg:flex">
+            <div className="gen-shell-surface hidden items-center gap-2 rounded-full px-3 py-1.5 text-xs lg:flex">
               <span className="font-semibold uppercase tracking-[0.14em] text-emerald-200/80">
                 Task context
               </span>
@@ -95,12 +95,8 @@ export default function AppProtectedTopbar({
             <Button
               type="button"
               variant={ButtonVariant.UNSTYLED}
-              className={cn(
-                'inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.03] transition-colors hover:bg-white/[0.06]',
-                isAgentCollapsed
-                  ? 'text-white/70'
-                  : 'bg-white/[0.08] text-white',
-              )}
+              className="gen-shell-control inline-flex h-10 w-10 items-center justify-center rounded-xl"
+              data-active={isAgentCollapsed ? 'false' : 'true'}
               ariaLabel={
                 isAgentCollapsed ? 'Open terminal dock' : 'Close terminal dock'
               }

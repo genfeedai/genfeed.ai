@@ -17,6 +17,7 @@ describe('BaseService', () => {
   let prisma: PrismaService;
   let delegate: Record<string, ReturnType<typeof vi.fn>>;
   let logger: LoggerService;
+  let setModelFields: (...fields: string[]) => void;
 
   beforeEach(() => {
     logger = {
@@ -39,10 +40,33 @@ describe('BaseService', () => {
 
     // PrismaService with a dynamic delegate accessible via modelName key
     prisma = {
+      _runtimeDataModel: {
+        models: {
+          TestModel: {
+            fields: [],
+          },
+        },
+      },
       testModel: delegate,
     } as unknown as PrismaService;
 
     service = new TestService(prisma, 'testModel', logger);
+    setModelFields = (...fields: string[]) => {
+      (
+        prisma as PrismaService & {
+          _runtimeDataModel: {
+            models: {
+              TestModel: {
+                fields: Array<{ name: string }>;
+              };
+            };
+          };
+        }
+      )._runtimeDataModel.models.TestModel.fields = fields.map((name) => ({
+        name,
+      }));
+    };
+    setModelFields('id', 'organizationId', 'isDeleted');
   });
 
   it('should be defined', () => {
@@ -127,6 +151,22 @@ describe('BaseService', () => {
       expect(result.totalDocs).toBe(2);
       expect(result.totalPages).toBe(1);
       expect(delegate.count).not.toHaveBeenCalled();
+    });
+
+    it('omits soft-delete filters for models without isDeleted', async () => {
+      setModelFields('id', 'organizationId');
+      delegate.findMany.mockResolvedValue([{ id: '1' }]);
+      delegate.count.mockResolvedValue(1);
+
+      await service.findAll([], { page: 1, limit: 10 });
+
+      expect(delegate.findMany).toHaveBeenCalledWith({
+        where: {},
+        orderBy: { createdAt: 'desc' },
+        skip: 0,
+        take: 10,
+      });
+      expect(delegate.count).toHaveBeenCalledWith({ where: {} });
     });
 
     it('computes hasNextPage / prevPage correctly', async () => {
@@ -312,6 +352,57 @@ describe('BaseService', () => {
         status: 'ok',
       });
       expect(result).toEqual({ id: 'abc123', status: 'ok' });
+    });
+
+    it('remaps legacy organization string filters to organizationId', () => {
+      const result = service.processSearchParams({
+        organization: 'org1',
+        type: 'post',
+      });
+      expect(result).toEqual({ organizationId: 'org1', type: 'post' });
+    });
+
+    it('remaps legacy user string filters to userId', () => {
+      setModelFields('id', 'organizationId', 'userId', 'isDeleted');
+
+      const result = service.processSearchParams({
+        status: 'active',
+        user: 'user1',
+      });
+
+      expect(result).toEqual({ status: 'active', userId: 'user1' });
+    });
+
+    it('preserves organization relation filters when they are objects', () => {
+      const result = service.processSearchParams({
+        organization: { is: { id: 'org1' } },
+      });
+      expect(result).toEqual({
+        organization: { is: { id: 'org1' } },
+      });
+    });
+
+    it('preserves user relation filters when they are objects', () => {
+      setModelFields('id', 'organizationId', 'user', 'isDeleted');
+
+      const result = service.processSearchParams({
+        user: { is: { id: 'user1' } },
+      });
+
+      expect(result).toEqual({
+        user: { is: { id: 'user1' } },
+      });
+    });
+
+    it('drops isDeleted filters for models without soft-delete support', () => {
+      setModelFields('id', 'organizationId');
+
+      const result = service.processSearchParams({
+        isDeleted: false,
+        status: 'ok',
+      });
+
+      expect(result).toEqual({ status: 'ok' });
     });
 
     it('passes through other fields unchanged', () => {

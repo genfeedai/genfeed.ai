@@ -1,0 +1,6 @@
+{
+  "name": "new-entity",
+  "version": "1.0.0",
+  "description": "Scaffold a new Prisma entity end-to-end across all 13 layers",
+  "tags": ["scaffolding", "prisma", "full-stack"]
+}

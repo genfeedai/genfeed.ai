@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import {
@@ -53,48 +53,43 @@ function AgentPanelShell({
   );
 
   return (
-    <div className="flex h-full flex-col overflow-hidden bg-[#07111f] text-white">
-      {/* Header */}
-      <div className="flex h-[4.5rem] shrink-0 items-center justify-between border-b border-white/[0.08] bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01))] px-3">
+    <div className="gen-shell-panel gen-shell-panel--terminal flex h-full min-h-0 flex-col overflow-hidden text-foreground">
+      <div className="gen-shell-toolbar flex min-h-[4.5rem] shrink-0 items-center justify-between gap-3 px-4 py-3">
         <div
           className={cn(
-            'flex min-w-0 flex-1 items-center gap-3 transition-all duration-200',
+            'flex min-w-0 flex-1 items-center gap-3.5 transition-all duration-200',
             !isOpen && 'w-0 overflow-hidden opacity-0 pointer-events-none',
           )}
         >
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-white/90">
+            <p className="truncate text-[1.02rem] font-semibold tracking-[-0.02em] text-foreground">
               {title}
             </p>
-            <p className="truncate text-xs text-white/45">{subtitle}</p>
+            <p className="truncate text-xs text-foreground/55">{subtitle}</p>
           </div>
 
           {headerContent}
 
           {onExpand && (
             <Button
-              variant={ButtonVariant.GHOST}
-              size={ButtonSize.ICON}
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
               onClick={onExpand}
-              className="h-7 w-7 shrink-0 text-white/40 hover:text-white"
+              className="gen-shell-control h-9 w-9 shrink-0 rounded-xl"
               ariaLabel="Open full chat workspace"
             >
-              <HiArrowsPointingOut className="h-3.5 w-3.5" />
+              <HiArrowsPointingOut className="h-4 w-4" />
             </Button>
           )}
         </div>
 
         <div className="flex items-center">
           <Button
-            variant={ButtonVariant.GHOST}
-            size={ButtonSize.ICON}
+            variant={ButtonVariant.UNSTYLED}
+            withWrapper={false}
             onClick={onToggle}
-            className={cn(
-              'h-8 w-8 bg-transparent',
-              isOpen
-                ? 'text-white hover:bg-white/[0.06]'
-                : 'text-primary hover:bg-primary/10',
-            )}
+            className="gen-shell-control h-10 w-10 rounded-xl"
+            data-active={isOpen ? 'true' : 'false'}
             ariaLabel={
               isOpen ? 'Collapse quick ask panel' : 'Expand quick ask panel'
             }
@@ -108,41 +103,30 @@ function AgentPanelShell({
         </div>
       </div>
 
-      {/* Body */}
       <div
         data-panel-body=""
         className={cn(
-          'flex flex-1 flex-col overflow-hidden transition-opacity duration-200',
+          'flex min-h-0 flex-1 flex-col overflow-hidden transition-opacity duration-200',
           !isOpen && 'opacity-0 pointer-events-none',
         )}
       >
-        <div className="shrink-0 border-b border-white/[0.08] px-3 py-2">
-          <div className="grid grid-cols-2 gap-2 rounded-xl bg-black/20 p-1">
+        <div className="shrink-0 px-4 py-3">
+          <div className="gen-shell-segmented grid grid-cols-2 gap-1 rounded-2xl p-1">
             <Button
-              variant={ButtonVariant.GHOST}
-              size={ButtonSize.SM}
+              variant={ButtonVariant.UNSTYLED}
               withWrapper={false}
               onClick={() => handleTabChange('chat')}
-              className={cn(
-                'w-full rounded-lg px-3 py-2 text-sm font-medium',
-                activeTab === 'chat'
-                  ? 'bg-white/[0.08] text-white'
-                  : 'text-white/50 hover:text-white',
-              )}
+              className="gen-shell-segmented-button h-10 w-full rounded-xl px-4 text-sm font-semibold tracking-[-0.01em]"
+              data-active={activeTab === 'chat' ? 'true' : 'false'}
             >
               Terminal
             </Button>
             <Button
-              variant={ButtonVariant.GHOST}
-              size={ButtonSize.SM}
+              variant={ButtonVariant.UNSTYLED}
               withWrapper={false}
               onClick={() => handleTabChange('outputs')}
-              className={cn(
-                'w-full rounded-lg px-3 py-2 text-sm font-medium',
-                activeTab === 'outputs'
-                  ? 'bg-white/[0.08] text-white'
-                  : 'text-white/50 hover:text-white',
-              )}
+              className="gen-shell-segmented-button h-10 w-full rounded-xl px-4 text-sm font-semibold tracking-[-0.01em]"
+              data-active={activeTab === 'outputs' ? 'true' : 'false'}
             >
               Outputs
             </Button>

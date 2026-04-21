@@ -1,8 +1,8 @@
 {
   "dependencies": {
     "@anthropic-ai/sdk": "0.90.0",
-    "@aws-sdk/client-cloudfront": "3.1032.0",
-    "@aws-sdk/client-ec2": "3.1032.0",
+    "@aws-sdk/client-cloudfront": "3.1033.0",
+    "@aws-sdk/client-ec2": "3.1033.0",
     "@genfeedai/config": "workspace:*",
     "@genfeedai/harness": "workspace:*",
     "@genfeedai/integrations": "workspace:*",
@@ -28,7 +28,7 @@
     "@nestjs/testing": "11.1.19",
     "@types/rss": "0.0.32",
     "unplugin-swc": "1.5.9",
-    "vitest": "4.1.4"
+    "vitest": "4.1.5"
   },
   "main": "../dist/apps/api/main.js",
   "name": "@genfeedai/api",

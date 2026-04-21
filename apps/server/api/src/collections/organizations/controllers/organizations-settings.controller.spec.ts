@@ -186,6 +186,26 @@ describe('OrganizationsSettingsController', () => {
       expect(result).toBeDefined();
     });
 
+    it('prefers the repaired request context organization id when the path is stale', async () => {
+      mockOrganizationSettingsService.findOne.mockResolvedValue(
+        mockOrganizationSettings,
+      );
+
+      const result = await controller.getSettings(
+        {
+          context: {
+            organizationId: 'org_current',
+          },
+        } as Request,
+        'org_legacy',
+      );
+
+      expect(organizationSettingsService.findOne).toHaveBeenCalledWith({
+        organization: 'org_current',
+      });
+      expect(result).toBeDefined();
+    });
+
     it('should return not found when settings do not exist', async () => {
       mockOrganizationSettingsService.findOne.mockResolvedValue(null);
 
@@ -315,6 +335,36 @@ describe('OrganizationsSettingsController', () => {
         },
         organizationId,
       });
+    });
+
+    it('uses the repaired request context organization id for brand lookups', async () => {
+      mockBrandsService.findOne.mockResolvedValue({
+        _id: brandId,
+        isDarkroomEnabled: false,
+      });
+      mockFleetService.isAvailable.mockResolvedValue(false);
+      (axios.get as ReturnType<typeof vi.fn>).mockRejectedValue(
+        new Error('offline'),
+      );
+
+      await controller.getDarkroomCapabilities(
+        {
+          context: {
+            organizationId: 'org_current',
+          },
+        } as Request,
+        'org_legacy',
+        brandId,
+      );
+
+      expect(mockBrandsService.findOne).toHaveBeenCalledWith(
+        {
+          _id: brandId,
+          isDeleted: false,
+          organization: 'org_current',
+        },
+        'none',
+      );
     });
   });
 });

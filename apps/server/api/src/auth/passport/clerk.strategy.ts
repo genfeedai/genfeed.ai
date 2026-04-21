@@ -75,7 +75,21 @@ export class ClerkStrategy extends PassportStrategy(Strategy, 'clerk') {
       if (hasClerkHotPathClaims(sessionClaims)) {
         const hotPathUser = buildClerkHotPathUser(sessionClaims);
         if (hotPathUser) {
-          return hotPathUser as unknown as User;
+          const resolvedIdentity =
+            await this.authIdentityResolverService.resolve(
+              hotPathUser as unknown as User,
+            );
+
+          return {
+            ...hotPathUser,
+            publicMetadata: {
+              ...(hotPathUser.publicMetadata as Record<string, unknown>),
+              brand: resolvedIdentity.brandId,
+              clerkId: hotPathUser.id,
+              organization: resolvedIdentity.organizationId,
+              user: resolvedIdentity.userId,
+            },
+          } as unknown as User;
         }
       }
 
@@ -87,8 +101,10 @@ export class ClerkStrategy extends PassportStrategy(Strategy, 'clerk') {
         ...user,
         publicMetadata: {
           ...(user.publicMetadata as Record<string, unknown>),
+          brand: resolvedIdentity.brandId,
           clerkId: user.id,
-          user: resolvedIdentity.mongoUserId,
+          organization: resolvedIdentity.organizationId,
+          user: resolvedIdentity.userId,
         },
       } as unknown as User;
 

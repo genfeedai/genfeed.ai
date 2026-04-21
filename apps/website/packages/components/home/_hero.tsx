@@ -176,15 +176,25 @@ export default function HomeHero(): React.ReactElement {
                 asChild
                 size={ButtonSize.PUBLIC}
                 className="hero-cta opacity-0 shadow-[var(--shadow-glow-md)]"
-                trackingData={{ action: 'signup_hero' }}
+                trackingData={{
+                  action: EnvironmentService.isPreLaunch
+                    ? 'book_call_hero'
+                    : 'signup_hero',
+                }}
                 trackingName="hero_cta_click"
               >
                 <a
-                  href={`${EnvironmentService.apps.app}/sign-up`}
+                  href={
+                    EnvironmentService.isPreLaunch
+                      ? EnvironmentService.calendly
+                      : `${EnvironmentService.apps.app}/sign-up`
+                  }
                   rel="noopener noreferrer"
                   target="_blank"
                 >
-                  Start Creating
+                  {EnvironmentService.isPreLaunch
+                    ? 'Book a Call'
+                    : 'Start Creating'}
                   <LuArrowRight className="h-4 w-4" />
                 </a>
               </ButtonTracked>

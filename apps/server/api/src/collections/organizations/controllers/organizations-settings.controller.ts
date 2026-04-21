@@ -12,6 +12,7 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { UpdateOrganizationSettingDto } from '@api/collections/organization-settings/dto/update-organization-setting.dto';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { SubscriptionsService } from '@api/collections/subscriptions/services/subscriptions.service';
+import { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { ConfigService } from '@api/config/config.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -52,7 +53,6 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiParam, ApiTags } from '@nestjs/swagger';
 import axios from 'axios';
-import type { Request } from 'express';
 
 @AutoSwagger()
 @ApiTags('organizations')
@@ -106,19 +106,30 @@ export class OrganizationsSettingsController {
     }
   }
 
+  private resolveOrganizationId(
+    request: RequestWithContext,
+    organizationId: string,
+  ): string {
+    return request.context?.organizationId || organizationId;
+  }
+
   @Get(':organizationId/settings')
   // No @SetMetadata = available to all organization members (guard checks membership)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getSettings(
-    @Req() req: Request,
+    @Req() req: RequestWithContext,
     @Param('organizationId') organizationId: string,
   ): Promise<JsonApiSingleResponse> {
+    const resolvedOrganizationId = this.resolveOrganizationId(
+      req,
+      organizationId,
+    );
     const data = await this.organizationSettingsService.findOne({
-      organization: organizationId,
+      organization: resolvedOrganizationId,
     });
 
     if (!data) {
-      return returnNotFound('Organization Settings', organizationId);
+      return returnNotFound('Organization Settings', resolvedOrganizationId);
     }
 
     return serializeSingle(req, OrganizationSettingSerializer, data);
@@ -128,22 +139,26 @@ export class OrganizationsSettingsController {
   @SetMetadata('roles', ['superadmin', MemberRole.OWNER, MemberRole.ADMIN])
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async updateSettings(
-    @Req() req: Request,
+    @Req() req: RequestWithContext,
     @Param('organizationId') organizationId: string,
     @Body() settingsDto: UpdateOrganizationSettingDto,
   ): Promise<JsonApiSingleResponse> {
+    const resolvedOrganizationId = this.resolveOrganizationId(
+      req,
+      organizationId,
+    );
     const organizationSettings = await this.organizationSettingsService.findOne(
       {
-        organization: organizationId,
+        organization: resolvedOrganizationId,
       },
     );
 
     if (!organizationSettings) {
-      return returnNotFound('Organization Settings', organizationId);
+      return returnNotFound('Organization Settings', resolvedOrganizationId);
     }
 
     await this.validateDefaultAvatarIngredient(
-      organizationId,
+      resolvedOrganizationId,
       settingsDto.defaultAvatarIngredientId?.toString(),
     );
 
@@ -158,15 +173,19 @@ export class OrganizationsSettingsController {
   @Get(':organizationId/brands/:brandId/darkroom-capabilities')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getDarkroomCapabilities(
-    @Req() req: Request,
+    @Req() req: RequestWithContext,
     @Param('organizationId') organizationId: string,
     @Param('brandId') brandId: string,
   ): Promise<JsonApiSingleResponse> {
+    const resolvedOrganizationId = this.resolveOrganizationId(
+      req,
+      organizationId,
+    );
     const brandSettings = await this.brandsService.findOne(
       {
         _id: brandId,
         isDeleted: false,
-        organization: organizationId,
+        organization: resolvedOrganizationId,
       },
       'none',
     );
@@ -183,7 +202,7 @@ export class OrganizationsSettingsController {
     ]);
 
     return serializeSingle(req, DarkroomCapabilitiesSerializer, {
-      _id: `darkroom-capabilities:${organizationId}:${brandId}`,
+      _id: `darkroom-capabilities:${resolvedOrganizationId}:${brandId}`,
       brandEnabled: Boolean(brandSettings.isDarkroomEnabled),
       brandId,
       fleet: {
@@ -192,18 +211,22 @@ export class OrganizationsSettingsController {
         videos,
         voices,
       },
-      organizationId,
+      organizationId: resolvedOrganizationId,
     });
   }
 
   @Get(':organizationId/subscription')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findOneSubscription(
-    @Req() req: Request,
+    @Req() req: RequestWithContext,
     @Param('organizationId') organizationId: string,
   ): Promise<JsonApiSingleResponse> {
+    const resolvedOrganizationId = this.resolveOrganizationId(
+      req,
+      organizationId,
+    );
     const data = await this.subscriptionsService.findOne({
-      organization: organizationId,
+      organization: resolvedOrganizationId,
     });
 
     return serializeSingle(req, SubscriptionSerializer, data);

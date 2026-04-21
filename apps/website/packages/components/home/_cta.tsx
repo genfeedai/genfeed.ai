@@ -36,14 +36,24 @@ export default function HomeCTA(): React.ReactElement {
             asChild
             size={ButtonSize.PUBLIC}
             trackingName="cta_final_click"
-            trackingData={{ action: 'signup_bottom_cta' }}
+            trackingData={{
+              action: EnvironmentService.isPreLaunch
+                ? 'book_call_bottom_cta'
+                : 'signup_bottom_cta',
+            }}
           >
             <a
-              href={`${EnvironmentService.apps.app}/sign-up`}
+              href={
+                EnvironmentService.isPreLaunch
+                  ? EnvironmentService.calendly
+                  : `${EnvironmentService.apps.app}/sign-up`
+              }
               target="_blank"
               rel="noopener noreferrer"
             >
-              Start Your Workflow
+              {EnvironmentService.isPreLaunch
+                ? 'Book a Call'
+                : 'Start Your Workflow'}
               <LuArrowRight className="h-4 w-4" />
             </a>
           </ButtonTracked>

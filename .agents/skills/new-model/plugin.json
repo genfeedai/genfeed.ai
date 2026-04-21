@@ -1,0 +1,6 @@
+{
+  "name": "new-model",
+  "version": "1.0.0",
+  "description": "Add a new AI generation model (Replicate, fal.ai) to the cloud platform",
+  "tags": ["ai-models", "replicate", "fal", "generation", "cloud"]
+}

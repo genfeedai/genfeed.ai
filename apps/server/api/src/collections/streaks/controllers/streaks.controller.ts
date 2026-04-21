@@ -28,10 +28,14 @@ export class StreaksController {
     @CurrentUser() user: User,
     @Req() request: RequestWithContext,
   ) {
-    this.assertUserOrgAccess(organizationId, user, request);
+    const resolvedOrganizationId = this.assertUserOrgAccess(
+      organizationId,
+      user,
+      request,
+    );
     return this.streaksService.getStreakSummary(
       this.resolveUserId(user, request),
-      organizationId,
+      resolvedOrganizationId,
     );
   }
 
@@ -43,11 +47,15 @@ export class StreaksController {
     @Req() request: RequestWithContext,
     @Query() query: StreakCalendarQueryDto,
   ) {
-    this.assertUserOrgAccess(organizationId, user, request);
+    const resolvedOrganizationId = this.assertUserOrgAccess(
+      organizationId,
+      user,
+      request,
+    );
 
     return this.streaksService.getCalendar(
       this.resolveUserId(user, request),
-      organizationId,
+      resolvedOrganizationId,
       query.from ? new Date(query.from) : undefined,
       query.to ? new Date(query.to) : undefined,
     );
@@ -60,10 +68,14 @@ export class StreaksController {
     @CurrentUser() user: User,
     @Req() request: RequestWithContext,
   ) {
-    this.assertUserOrgAccess(organizationId, user, request);
+    const resolvedOrganizationId = this.assertUserOrgAccess(
+      organizationId,
+      user,
+      request,
+    );
     const streak = await this.streaksService.useFreeze(
       this.resolveUserId(user, request),
-      organizationId,
+      resolvedOrganizationId,
     );
 
     return {
@@ -93,9 +105,21 @@ export class StreaksController {
     organizationId: string,
     user: User,
     request: RequestWithContext,
-  ): void {
-    if (this.resolveOrganizationId(user, request) !== organizationId) {
+  ): string {
+    const resolvedOrganizationId = this.resolveOrganizationId(user, request);
+
+    if (!resolvedOrganizationId) {
       throw new BadRequestException('Organization mismatch');
     }
+
+    if (request.context?.organizationId) {
+      return resolvedOrganizationId;
+    }
+
+    if (resolvedOrganizationId !== organizationId) {
+      throw new BadRequestException('Organization mismatch');
+    }
+
+    return resolvedOrganizationId;
   }
 }

@@ -125,6 +125,43 @@ export abstract class BaseService<
     ];
   }
 
+  private get runtimeModel(): { fields?: Array<{ name: string }> } | undefined {
+    const runtimeModels = (
+      this.prisma as PrismaService & {
+        _runtimeDataModel?: {
+          models?: Record<string, { fields?: Array<{ name: string }> }>;
+        };
+      }
+    )._runtimeDataModel?.models;
+
+    if (!runtimeModels) {
+      return undefined;
+    }
+
+    const prismaModelName = `${this.modelName[0]?.toUpperCase() ?? ''}${this.modelName.slice(1)}`;
+    return runtimeModels[prismaModelName];
+  }
+
+  protected modelHasField(fieldName: string): boolean {
+    const fields = this.runtimeModel?.fields;
+    if (!fields) {
+      return true;
+    }
+
+    return fields.some((field) => field.name === fieldName);
+  }
+
+  private withSoftDeleteFilter(where: PrismaFilter = {}): PrismaFilter {
+    if (!this.modelHasField('isDeleted')) {
+      return where;
+    }
+
+    return {
+      ...where,
+      isDeleted: false,
+    };
+  }
+
   public logOperation(
     operation: string,
     stage: 'started' | 'completed' | 'failed',
@@ -207,7 +244,7 @@ export abstract class BaseService<
           )
         : { createdAt: 'desc' };
 
-      const where = { isDeleted: false };
+      const where = this.withSoftDeleteFilter();
 
       const cacheKey =
         enableCache && this.cacheService
@@ -483,12 +520,38 @@ export abstract class BaseService<
   /**
    * Process search parameters for Prisma where clauses.
    * Converts `_id` → `id` (Prisma uses `id`, not `_id`).
+   * Converts legacy scalar `organization` / `user` filters to scalar foreign keys.
    * Strips ObjectId conversion — Prisma uses string IDs natively.
    */
   public processSearchParams(params: PrismaFilter): PrismaFilter {
     const processed: PrismaFilter = {};
+    const legacyRelationFields = {
+      organization: 'organizationId',
+      user: 'userId',
+    } as const;
 
     for (const [key, value] of Object.entries(params)) {
+      if (key === 'isDeleted' && !this.modelHasField('isDeleted')) {
+        continue;
+      }
+
+      if (key in legacyRelationFields && typeof value === 'string') {
+        const relationKey = key as keyof typeof legacyRelationFields;
+        const scalarKey = legacyRelationFields[relationKey];
+
+        if (this.modelHasField(scalarKey)) {
+          processed[scalarKey] = value;
+          continue;
+        }
+
+        if (this.modelHasField(relationKey)) {
+          processed[relationKey] = { is: { id: value } };
+          continue;
+        }
+
+        continue;
+      }
+
       // Remap MongoDB _id field to Prisma id field
       const prismaKey = key === '_id' ? 'id' : key;
       processed[prismaKey] = value;
@@ -508,7 +571,7 @@ export abstract class BaseService<
   ): Promise<T> {
     const include = populateToInclude(populate);
     const item = await this.delegate.findFirst({
-      where: { id, organizationId, isDeleted: false },
+      where: this.withSoftDeleteFilter({ id, organizationId }),
       ...(include ? { include } : {}),
     });
 
@@ -543,7 +606,7 @@ export abstract class BaseService<
       });
     }
 
-    const query = queryBuilder.build();
+    const query = this.processSearchParams(queryBuilder.build());
     const include = populateToInclude(populate);
 
     const orderBy = Object.entries(sort).reduce<Record<string, string>>(
@@ -588,7 +651,7 @@ export abstract class BaseService<
 
       // Verify ownership first, then update
       const existing = await this.delegate.findFirst({
-        where: { id, organizationId, isDeleted: false },
+        where: this.withSoftDeleteFilter({ id, organizationId }),
         select: { id: true },
       });
 
@@ -634,11 +697,10 @@ export abstract class BaseService<
       });
 
       const result = await this.delegate.updateMany({
-        where: {
+        where: this.withSoftDeleteFilter({
           id: { in: ids },
           organizationId,
-          isDeleted: false,
-        },
+        }),
         data: { [field]: value },
       });
 

@@ -38,6 +38,10 @@ vi.mock('@api/config/config.service', () => ({
   })),
 }));
 
+vi.mock('@genfeedai/config', () => ({
+  IS_LOCAL_MODE: false,
+}));
+
 import { ClerkStrategy } from '@api/auth/passport/clerk.strategy';
 import { verifyToken } from '@clerk/backend';
 
@@ -56,9 +60,11 @@ function createClerkStrategy() {
   };
   const mockAuthIdentityResolverService = {
     resolve: vi.fn().mockResolvedValue({
+      brandId: 'brand_current',
       clerkUserId: 'user_123',
-      mongoUserId: '507f1f77bcf86cd799439011',
+      organizationId: 'org_current',
       resolvedBy: 'metadata',
+      userId: 'user_current',
     }),
   };
 
@@ -109,36 +115,25 @@ describe('ClerkStrategy', () => {
     it('throws UnauthorizedException with "No token provided" for missing auth header', async () => {
       const { strategy } = createClerkStrategy();
       const req = { headers: {} };
-      try {
-        await strategy.validate(req as never);
-        expect.fail('Should have thrown');
-      } catch (e) {
-        expect((e as UnauthorizedException).message).toBe('No token provided');
-      }
+      await expect(strategy.validate(req as never)).rejects.toMatchObject({
+        message: 'No token provided',
+      });
     });
 
     it('throws UnauthorizedException for invalid JWT format (not 3 parts)', async () => {
       const { strategy } = createClerkStrategy();
       const req = { headers: { authorization: 'Bearer notavalidjwt' } };
-      try {
-        await strategy.validate(req as never);
-        expect.fail('Should have thrown');
-      } catch (e) {
-        expect((e as UnauthorizedException).message).toBe(
-          'Invalid token format',
-        );
-      }
+      await expect(strategy.validate(req as never)).rejects.toMatchObject({
+        message: 'Invalid token format',
+      });
     });
 
     it('throws UnauthorizedException for empty token parts in JWT', async () => {
       const { strategy } = createClerkStrategy();
       const req = { headers: { authorization: 'Bearer ..' } };
-      try {
-        await strategy.validate(req as never);
-        expect.fail('Should have thrown');
-      } catch (e) {
-        expect(e).toBeInstanceOf(UnauthorizedException);
-      }
+      await expect(strategy.validate(req as never)).rejects.toBeInstanceOf(
+        UnauthorizedException,
+      );
     });
 
     it('validates and returns user for valid JWT token', async () => {
@@ -167,8 +162,20 @@ describe('ClerkStrategy', () => {
         mockUser,
       );
       expect(
-        (result as { publicMetadata?: { user?: string } }).publicMetadata?.user,
-      ).toBe('507f1f77bcf86cd799439011');
+        (
+          result as {
+            publicMetadata?: {
+              brand?: string;
+              organization?: string;
+              user?: string;
+            };
+          }
+        ).publicMetadata,
+      ).toMatchObject({
+        brand: 'brand_current',
+        organization: 'org_current',
+        user: 'user_current',
+      });
     });
 
     it('returns a synthetic Clerk user from verified hot-path claims without fetching Clerk user details', async () => {
@@ -201,15 +208,15 @@ describe('ClerkStrategy', () => {
         emailAddresses: [{ emailAddress: 'owner@example.com' }],
         id: 'user_123',
         publicMetadata: {
-          brand: 'brand_123',
+          brand: 'brand_current',
           clerkId: 'user_123',
           isSuperAdmin: true,
-          organization: 'org_123',
-          user: '507f1f77bcf86cd799439011',
+          organization: 'org_current',
+          user: 'user_current',
         },
       });
       expect(mockClerkService.getUser).not.toHaveBeenCalled();
-      expect(mockAuthIdentityResolverService.resolve).not.toHaveBeenCalled();
+      expect(mockAuthIdentityResolverService.resolve).toHaveBeenCalledOnce();
     });
 
     it('falls back to Clerk user fetch and repair when verified claims are incomplete', async () => {
@@ -242,12 +249,19 @@ describe('ClerkStrategy', () => {
       expect(
         (
           result as {
-            publicMetadata?: { clerkId?: string; user?: string };
+            publicMetadata?: {
+              brand?: string;
+              clerkId?: string;
+              organization?: string;
+              user?: string;
+            };
           }
         ).publicMetadata,
       ).toEqual({
+        brand: 'brand_current',
         clerkId: 'user_123',
-        user: '507f1f77bcf86cd799439011',
+        organization: 'org_current',
+        user: 'user_current',
       });
     });
 
@@ -317,11 +331,9 @@ describe('ClerkStrategy', () => {
         },
       };
 
-      try {
-        await strategy.validate(req as never);
-      } catch {
-        // expected
-      }
+      await expect(strategy.validate(req as never)).rejects.toThrow(
+        UnauthorizedException,
+      );
 
       expect(mockLoggerService.error).toHaveBeenCalled();
     });

@@ -5,6 +5,8 @@ import {
   LogPerformance,
   LogVerbose,
 } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequestMethod } from '@nestjs/common';
+import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants';
 
 describe('LogMethod Decorator', () => {
   let mockLogger: {
@@ -275,6 +277,37 @@ describe('LogMethod Decorator', () => {
 
       await expect(instance.testMethod()).rejects.toThrow('Test error');
       expect(mockLogger.error).not.toHaveBeenCalled();
+    });
+
+    it('preserves Nest route metadata on wrapped controller methods', () => {
+      class TestController {
+        async status() {
+          await Promise.resolve();
+          return 'ok';
+        }
+      }
+
+      const descriptor = Object.getOwnPropertyDescriptor(
+        TestController.prototype,
+        'status',
+      );
+
+      expect(descriptor).toBeDefined();
+      Reflect.defineMetadata(PATH_METADATA, 'status', descriptor!.value);
+      Reflect.defineMetadata(
+        METHOD_METADATA,
+        RequestMethod.GET,
+        descriptor!.value,
+      );
+
+      LogMethod()(TestController.prototype, 'status', descriptor!);
+
+      expect(Reflect.getMetadata(PATH_METADATA, descriptor!.value)).toBe(
+        'status',
+      );
+      expect(Reflect.getMetadata(METHOD_METADATA, descriptor!.value)).toBe(
+        RequestMethod.GET,
+      );
     });
   });
 

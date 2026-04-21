@@ -16,12 +16,14 @@ vi.mock('../../../primitives/button', () => ({
     ariaLabel,
     className,
     'aria-current': ariaCurrent,
+    'data-active': dataActive,
   }: {
     children: React.ReactNode;
     onClick?: () => void;
     ariaLabel?: string;
     className?: string;
     'aria-current'?: string;
+    'data-active'?: string;
   }) => (
     <button
       type="button"
@@ -29,6 +31,7 @@ vi.mock('../../../primitives/button', () => ({
       aria-label={ariaLabel}
       className={className}
       aria-current={ariaCurrent}
+      data-active={dataActive}
     >
       {children}
     </button>
@@ -104,20 +107,20 @@ describe('AppSwitcher', () => {
     ).not.toHaveAttribute('aria-current');
   });
 
-  it('active app button carries ring design-token class', () => {
+  it('active app button carries the shared shell active state', () => {
     render(<AppSwitcher orgSlug="acme" currentApp="compose" />);
     const btn = screen
       .getAllByRole('button', { name: 'Compose' })
       .find((button) => button.getAttribute('aria-current') === 'page');
     expect(btn).toBeDefined();
-    expect(btn?.className).toContain('bg-white/10');
-    expect(btn?.className).toContain('text-white');
+    expect(btn?.className).toContain('gen-shell-surface');
+    expect(btn).toHaveAttribute('data-active', 'true');
   });
 
   it('inactive app button does not have active-state classes', () => {
     render(<AppSwitcher orgSlug="acme" currentApp="compose" />);
     const btn = screen.getByRole('button', { name: 'Editor' });
-    expect(btn.className).not.toContain('bg-white/10');
+    expect(btn).not.toHaveAttribute('data-active', 'true');
   });
 
   describe('route generation', () => {

@@ -345,4 +345,67 @@ describe('BrandProvider', () => {
       expect(screen.getByTestId('is-ready')).toHaveTextContent('true');
     });
   });
+
+  it('reconciles stale Clerk ids against the fetched brand scope before exposing context', async () => {
+    const fetchedBrands = [
+      {
+        id: 'brand_current',
+        label: 'Current Brand',
+        organization: {
+          id: 'org_current',
+          slug: 'current-org',
+        },
+        slug: 'current-brand',
+      },
+    ];
+
+    useUserMock.mockReturnValue({
+      user: {
+        publicMetadata: {
+          brand: 'brand_old',
+          organization: 'org_old',
+        },
+      },
+    });
+
+    useResourceMock.mockImplementation(
+      (_fetcher: unknown, options?: Record<string, unknown>) => ({
+        data: Array.isArray(options?.initialData)
+          ? fetchedBrands
+          : (options?.initialData ?? null),
+        isLoading: false,
+        refresh: vi.fn().mockResolvedValue(undefined),
+      }),
+    );
+
+    function Consumer() {
+      const { brandId, organizationId, selectedBrand } = useBrand();
+
+      return (
+        <div>
+          <span data-testid="brand-id">{brandId}</span>
+          <span data-testid="organization-id">{organizationId}</span>
+          <span data-testid="selected-brand">
+            {selectedBrand?.label ?? 'none'}
+          </span>
+        </div>
+      );
+    }
+
+    render(
+      <BrandProvider initialBootstrap={null}>
+        <Consumer />
+      </BrandProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('brand-id')).toHaveTextContent('brand_current');
+      expect(screen.getByTestId('organization-id')).toHaveTextContent(
+        'org_current',
+      );
+      expect(screen.getByTestId('selected-brand')).toHaveTextContent(
+        'Current Brand',
+      );
+    });
+  });
 });

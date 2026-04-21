@@ -3,6 +3,18 @@ import type { AccessBootstrapCachePayload } from '@api/common/services/access-bo
 import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/enums';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+const {
+  mockGetIsSuperAdmin,
+  mockGetPublicMetadata,
+  mockGetStripeSubscriptionStatus,
+  mockGetSubscriptionTier,
+} = vi.hoisted(() => ({
+  mockGetIsSuperAdmin: vi.fn(),
+  mockGetPublicMetadata: vi.fn(),
+  mockGetStripeSubscriptionStatus: vi.fn(),
+  mockGetSubscriptionTier: vi.fn(),
+}));
+
 vi.mock('@genfeedai/enums', () => ({
   SubscriptionStatus: {
     ACTIVE: 'active',
@@ -69,11 +81,6 @@ vi.mock('@api/common/services/access-bootstrap-cache.service', () => ({
 vi.mock('@api/config/config.service', () => ({
   ConfigService: class ConfigService {},
 }));
-
-const mockGetIsSuperAdmin = vi.hoisted(() => vi.fn());
-const mockGetPublicMetadata = vi.hoisted(() => vi.fn());
-const mockGetStripeSubscriptionStatus = vi.hoisted(() => vi.fn());
-const mockGetSubscriptionTier = vi.hoisted(() => vi.fn());
 
 vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
   getIsSuperAdmin: mockGetIsSuperAdmin,
@@ -376,6 +383,66 @@ describe('AuthBootstrapService', () => {
       'clerk_2',
       organizationId,
       result,
+    );
+  });
+
+  it('serializes Prisma-style plain objects without requiring toObject()', async () => {
+    const userId = 'test-object-id';
+    const organizationId = 'test-object-id';
+    const brandId = 'test-object-id';
+
+    usersService.findOne.mockResolvedValue({
+      id: userId,
+      isOnboardingCompleted: true,
+      settings: { locale: 'en' },
+    });
+    organizationSettingsService.findOne.mockResolvedValue({
+      enabledModels: ['model_1'],
+      hasEverHadCredits: false,
+      organization: organizationId,
+      subscriptionTier: SubscriptionTier.PRO,
+    });
+    creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(10);
+    brandsService.findForOrganization.mockResolvedValue([
+      {
+        _id: brandId,
+        id: brandId,
+        isDarkroomEnabled: false,
+        label: 'Primary Brand',
+      },
+    ]);
+
+    const result = await service.getBootstrap({
+      context: {
+        brandId,
+        isSuperAdmin: false,
+        organizationId,
+        stripeSubscriptionStatus: SubscriptionStatus.ACTIVE,
+        subscriptionTier: '',
+        userId,
+      },
+      user: {
+        id: 'clerk_plain',
+        publicMetadata: {
+          brand: brandId,
+          organization: organizationId,
+          user: userId,
+        },
+      },
+    } as never);
+
+    expect(result.currentUser).toEqual(
+      expect.objectContaining({
+        id: userId,
+        isOnboardingCompleted: true,
+        settings: { locale: 'en' },
+      }),
+    );
+    expect(result.settings).toEqual(
+      expect.objectContaining({
+        enabledModels: ['model_1'],
+        organization: organizationId,
+      }),
     );
   });
 

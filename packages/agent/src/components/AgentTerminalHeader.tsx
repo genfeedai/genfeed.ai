@@ -24,22 +24,25 @@ export function AgentTerminalHeader({
   return (
     <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <span
             className={cn(
-              'rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em]',
+              'gen-shell-chip px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em]',
               catalog.environmentLabel === 'local'
-                ? 'border-emerald-400/20 bg-emerald-400/10 text-emerald-200'
-                : 'border-sky-400/20 bg-sky-400/10 text-sky-200',
+                ? 'text-success'
+                : 'text-info',
             )}
+            data-tone={
+              catalog.environmentLabel === 'local' ? 'success' : 'info'
+            }
           >
             {catalog.environmentLabel}
           </span>
-          <p className="truncate font-mono text-xs text-white/70">
+          <p className="truncate font-mono text-[13px] text-foreground/72">
             {threadLabel || 'new-session'}
           </p>
         </div>
-        <p className="truncate pt-1 text-[11px] text-white/45">
+        <p className="truncate pt-1 text-[11px] text-foreground/52">
           {catalog.providerSummary}
         </p>
       </div>

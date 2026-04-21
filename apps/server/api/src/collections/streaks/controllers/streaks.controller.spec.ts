@@ -20,6 +20,7 @@ const mockRequestWithContext = {
     userId: USER_ID,
   },
 } as const;
+const LEGACY_ORG_ID = '68474055fb92be1d22932fb6';
 
 describe('StreaksController', () => {
   let controller: StreaksController;
@@ -78,6 +79,19 @@ describe('StreaksController', () => {
 
       await expect(
         controller.getMyStreak(ORG_ID, mockUser, mockRequestWithContext),
+      ).resolves.toEqual({});
+
+      expect(streaksService.getStreakSummary).toHaveBeenCalledWith(
+        USER_ID,
+        ORG_ID,
+      );
+    });
+
+    it('accepts a stale legacy org path when request context already resolved the current org', async () => {
+      streaksService.getStreakSummary.mockResolvedValue({} as never);
+
+      await expect(
+        controller.getMyStreak(LEGACY_ORG_ID, mockUser, mockRequestWithContext),
       ).resolves.toEqual({});
 
       expect(streaksService.getStreakSummary).toHaveBeenCalledWith(

@@ -138,17 +138,18 @@ export function AppSwitcher({
         <Button
           ariaLabel={`Current app: ${activeApp?.label ?? currentApp}. Click to switch apps.`}
           size={ButtonSize.SM}
-          variant={ButtonVariant.GHOST}
+          variant={ButtonVariant.UNSTYLED}
           withWrapper={false}
-          className="inline-flex h-9 items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 text-sm font-medium text-white/85 hover:bg-white/[0.06]"
+          className="gen-shell-control inline-flex h-10 items-center gap-2.5 rounded-xl px-3 text-sm font-medium text-foreground/90"
+          data-active={isOpen ? 'true' : 'false'}
         >
           {activeApp ? (
-            <activeApp.icon className="h-4 w-4 text-white/55" />
+            <activeApp.icon className="h-4 w-4 text-foreground/55" />
           ) : null}
           <span>{activeApp?.label ?? currentApp}</span>
           <HiChevronDown
             className={cn(
-              'h-3.5 w-3.5 text-white/40 transition-transform duration-200',
+              'h-3.5 w-3.5 text-foreground/42 transition-transform duration-200',
               isOpen && 'rotate-180',
             )}
           />
@@ -156,9 +157,9 @@ export function AppSwitcher({
       </PopoverTrigger>
       <PopoverContent
         align="start"
-        className="w-56 p-1.5"
+        className="gen-shell-panel w-60 rounded-[1.25rem] p-1.5"
         side="bottom"
-        sideOffset={8}
+        sideOffset={10}
       >
         <nav className="flex flex-col gap-1">
           {APP_SECTIONS.map((section, sectionIndex) => (
@@ -179,18 +180,14 @@ export function AppSwitcher({
                     withWrapper={false}
                     size={ButtonSize.SM}
                     aria-current={isActive ? 'page' : undefined}
-                    className={cn(
-                      'flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors',
-                      isActive
-                        ? 'bg-white/10 text-white'
-                        : 'text-white/60 hover:bg-white/[0.05] hover:text-white/85',
-                    )}
+                    className="gen-shell-surface flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-sm transition-colors"
+                    data-active={isActive ? 'true' : 'false'}
                     onClick={() => handleAppSelect(app)}
                   >
                     <Icon
                       className={cn(
                         'h-4 w-4 shrink-0',
-                        isActive ? 'text-white' : 'text-white/40',
+                        isActive ? 'text-foreground' : 'text-foreground/42',
                       )}
                     />
                     <span>{app.label}</span>

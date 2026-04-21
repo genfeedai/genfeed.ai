@@ -11,6 +11,7 @@ import { CredentialsModule } from '@api/collections/credentials/credentials.modu
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { MembersModule } from '@api/collections/members/members.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
+import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { StreaksModule } from '@api/collections/streaks/streaks.module';
 import { SubscriptionsModule } from '@api/collections/subscriptions/subscriptions.module';
@@ -43,6 +44,7 @@ import { PassportModule } from '@nestjs/passport';
     CreditsModule,
     FleetModule,
     MembersModule,
+    OrganizationsModule,
     OrganizationSettingsModule,
     PostsModule,
     StreaksModule,

@@ -18,6 +18,101 @@ const defaultOptions: LogMethodOptions = {
   logStart: true,
 };
 
+function copyMethodMetadata(source: Function, target: Function): void {
+  for (const metadataKey of Reflect.getMetadataKeys(source)) {
+    Reflect.defineMetadata(
+      metadataKey,
+      Reflect.getMetadata(metadataKey, source),
+      target,
+    );
+  }
+}
+
+type LoggedMethod = (
+  this: Record<string, unknown>,
+  ...args: unknown[]
+) => unknown;
+
+function createLoggedWrapper(
+  originalMethod: LoggedMethod,
+  propertyName: string,
+  opts: LogMethodOptions,
+): LoggedMethod {
+  return async function (this: Record<string, unknown>, ...args: unknown[]) {
+    const className = this.constructor.name;
+    const methodName = `${className}.${propertyName}`;
+    const baseContext: Record<string, unknown> = {
+      operation: propertyName,
+      service: className,
+    };
+    const logger: LoggerService | undefined =
+      (this.logger as LoggerService) || (this.loggerService as LoggerService);
+
+    if (!logger) {
+      // If no logger is available, just execute the method
+      return originalMethod.apply(this, args);
+    }
+
+    const startTime = Date.now();
+    const logAtLevel =
+      typeof logger[opts.level!] === 'function'
+        ? logger[opts.level!].bind(logger)
+        : typeof logger.log === 'function'
+          ? logger.log.bind(logger)
+          : undefined;
+
+    // Log method start
+    if (opts.logStart && logAtLevel) {
+      const logData: Record<string, unknown> = { ...baseContext };
+      if (opts.logArgs && args.length > 0) {
+        logData.args = args;
+      }
+      logAtLevel(`${methodName} started`, logData);
+    }
+
+    try {
+      // Execute the original method
+      const result = await originalMethod.apply(this, args);
+      const executionTime = Date.now() - startTime;
+
+      // Log method completion
+      if (opts.logEnd && logAtLevel) {
+        const logData: Record<string, unknown> = {
+          ...baseContext,
+          executionTime: `${executionTime}ms`,
+        };
+        if (opts.logResult && result !== undefined) {
+          logData.result = result;
+        }
+        logAtLevel(`${methodName} completed`, logData);
+      }
+
+      return result;
+    } catch (error: unknown) {
+      const executionTime = Date.now() - startTime;
+
+      // Log method failure
+      if (opts.logError && typeof logger.error === 'function') {
+        logger.error(`${methodName} failed`, {
+          ...baseContext,
+          error:
+            error instanceof Error
+              ? {
+                  message: error.message,
+                  name: error.name,
+                  stack: error.stack,
+                }
+              : error,
+          executionTime: `${executionTime}ms`,
+          ...(opts.logArgs && args.length > 0 && { args }),
+        });
+      }
+
+      throw error;
+    }
+  };
+}
+
 /**
  * Method decorator for automatic logging of method execution
  *
@@ -26,11 +121,10 @@ const defaultOptions: LogMethodOptions = {
  */
 export function LogMethod(options: LogMethodOptions = {}) {
   return (
-    _target: object,
-    propertyName: string,
-    descriptor: PropertyDescriptor,
+    targetOrMethod: object | LoggedMethod,
+    propertyNameOrContext: string | ClassMethodDecoratorContext,
+    descriptor?: PropertyDescriptor,
   ) => {
-    const originalMethod = descriptor.value;
     const opts = { ...defaultOptions, ...options };
 
     // In production, automatically disable logStart and logEnd, but keep error logging
@@ -51,90 +145,31 @@ export function LogMethod(options: LogMethodOptions = {}) {
       }
     }
 
-    // Create wrapper function and preserve the original function name
-    // This is critical for NestJS guards/interceptors that use context.getHandler().name
-    const wrapper = async function (
-      this: Record<string, unknown>,
-      ...args: unknown[]
-    ) {
-      const className = this.constructor.name;
-      const methodName = `${className}.${propertyName}`;
-      const baseContext: Record<string, unknown> = {
-        operation: propertyName,
-        service: className,
-      };
-      const logger: LoggerService | undefined =
-        (this.logger as LoggerService) || (this.loggerService as LoggerService);
+    if (descriptor) {
+      const propertyName = propertyNameOrContext as string;
+      const originalMethod = descriptor.value as LoggedMethod;
+      const wrapper = createLoggedWrapper(originalMethod, propertyName, opts);
 
-      if (!logger) {
-        // If no logger is available, just execute the method
-        return originalMethod.apply(this, args);
-      }
+      // Preserve the original function name and method metadata for NestJS reflection
+      copyMethodMetadata(originalMethod, wrapper);
+      Object.defineProperty(wrapper, 'name', { value: propertyName });
+      descriptor.value = wrapper;
 
-      const startTime = Date.now();
-      const logAtLevel =
-        typeof logger[opts.level!] === 'function'
-          ? logger[opts.level!].bind(logger)
-          : typeof logger.log === 'function'
-            ? logger.log.bind(logger)
-            : undefined;
+      return descriptor;
+    }
 
-      // Log method start
-      if (opts.logStart && logAtLevel) {
-        const logData: Record<string, unknown> = { ...baseContext };
-        if (opts.logArgs && args.length > 0) {
-          logData.args = args;
-        }
-        logAtLevel(`${methodName} started`, logData);
-      }
+    const context = propertyNameOrContext as ClassMethodDecoratorContext;
+    if (typeof targetOrMethod !== 'function' || context.kind !== 'method') {
+      throw new TypeError('LogMethod can only decorate methods');
+    }
 
-      try {
-        // Execute the original method
-        const result = await originalMethod.apply(this, args);
-        const executionTime = Date.now() - startTime;
+    const propertyName = String(context.name);
+    const originalMethod = targetOrMethod as LoggedMethod;
+    const wrapper = createLoggedWrapper(originalMethod, propertyName, opts);
 
-        // Log method completion
-        if (opts.logEnd && logAtLevel) {
-          const logData: Record<string, unknown> = {
-            ...baseContext,
-            executionTime: `${executionTime}ms`,
-          };
-          if (opts.logResult && result !== undefined) {
-            logData.result = result;
-          }
-          logAtLevel(`${methodName} completed`, logData);
-        }
-
-        return result;
-      } catch (error: unknown) {
-        const executionTime = Date.now() - startTime;
-
-        // Log method failure
-        if (opts.logError && typeof logger.error === 'function') {
-          logger.error(`${methodName} failed`, {
-            ...baseContext,
-            error:
-              error instanceof Error
-                ? {
-                    message: error.message,
-                    name: error.name,
-                    stack: error.stack,
-                  }
-                : error,
-            executionTime: `${executionTime}ms`,
-            ...(opts.logArgs && args.length > 0 && { args }),
-          });
-        }
-
-        throw error;
-      }
-    };
-
-    // Preserve the original function name for NestJS reflection
+    copyMethodMetadata(originalMethod, wrapper);
     Object.defineProperty(wrapper, 'name', { value: propertyName });
-    descriptor.value = wrapper;
-
-    return descriptor;
+    return wrapper;
   };
 }
 

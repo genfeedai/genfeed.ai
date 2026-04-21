@@ -196,8 +196,15 @@ export default function HomeSaaS() {
               typeLabel="Managed Cloud"
               productName="Genfeed Cloud"
               features={CLOUD_FEATURES}
-              ctaLabel="Get Started"
-              ctaHref={`${EnvironmentService.apps.app}/sign-up`}
+              ctaLabel={
+                EnvironmentService.isPreLaunch ? 'Book a Call' : 'Get Started'
+              }
+              ctaHref={
+                EnvironmentService.isPreLaunch
+                  ? EnvironmentService.calendly
+                  : `${EnvironmentService.apps.app}/sign-up`
+              }
+              ctaExternal={EnvironmentService.isPreLaunch}
               isPrimary
             />
           </div>

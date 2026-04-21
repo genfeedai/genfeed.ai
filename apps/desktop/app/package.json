@@ -61,13 +61,13 @@
     "@types/node": "25.6.0",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
-    "electron": "41.2.1",
+    "electron": "41.2.2",
     "electron-builder": "26.8.1",
     "esbuild": "0.28.0",
     "jsdom": "29.0.2",
     "sass": "1.99.0",
     "typescript": "6.0.2",
-    "vitest": "4.1.4"
+    "vitest": "4.1.5"
   },
   "main": "dist/main.js",
   "name": "@genfeedai/desktop",

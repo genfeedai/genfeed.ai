@@ -22,8 +22,10 @@ export class MembersService extends BaseService<
   }
 
   async find(filter: Record<string, unknown>): Promise<MemberDocument[]> {
+    const where = this.processSearchParams(filter);
+
     const members = await this.prisma.member.findMany({
-      where: filter as never,
+      where: where as never,
     });
 
     return members as unknown as MemberDocument[];

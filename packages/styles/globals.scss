@@ -222,3 +222,177 @@ a {
     app-region: no-drag;
   }
 }
+
+/* Shared operator-shell surfaces for docked tools, switchers, and prompt chrome */
+.gen-shell-panel,
+.gen-shell-surface,
+.gen-shell-control,
+.gen-shell-segmented {
+  border: 1px solid hsl(var(--border) / 0.82);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.gen-shell-panel {
+  position: relative;
+  isolation: isolate;
+  background:
+    linear-gradient(
+      180deg,
+      hsl(var(--background-tertiary) / 0.96) 0%,
+      hsl(var(--background-secondary) / 0.98) 100%
+    );
+  box-shadow:
+    0 28px 72px -48px rgba(0, 0, 0, 0.92),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(24px);
+}
+
+.gen-shell-panel::before {
+  position: absolute;
+  inset: 0;
+  content: '';
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 24%);
+}
+
+.gen-shell-panel > * {
+  position: relative;
+  z-index: 1;
+}
+
+.gen-shell-panel--terminal::after {
+  position: absolute;
+  top: -11rem;
+  right: -4rem;
+  width: 18rem;
+  height: 18rem;
+  content: '';
+  pointer-events: none;
+  background: radial-gradient(
+    circle,
+    rgba(52, 211, 153, 0.16) 0%,
+    rgba(56, 189, 248, 0.08) 38%,
+    transparent 72%
+  );
+  filter: blur(22px);
+  opacity: 0.92;
+}
+
+.gen-shell-toolbar {
+  border-bottom: 1px solid hsl(var(--border) / 0.82);
+  background: linear-gradient(
+    180deg,
+    hsl(var(--background-tertiary) / 0.92) 0%,
+    hsl(var(--background-secondary) / 0.72) 100%
+  );
+}
+
+.gen-shell-segmented {
+  background: hsl(var(--background) / 0.54);
+}
+
+.gen-shell-segmented-button {
+  color: hsl(var(--foreground) / 0.58);
+  transition:
+    background-color 180ms var(--motion-ease-standard),
+    color 180ms var(--motion-ease-standard),
+    box-shadow 180ms var(--motion-ease-standard),
+    transform 180ms var(--motion-ease-standard);
+}
+
+.gen-shell-segmented-button:hover {
+  color: hsl(var(--foreground) / 0.84);
+}
+
+.gen-shell-segmented-button[data-active='true'] {
+  background: hsl(var(--background-tertiary) / 0.96);
+  color: hsl(var(--foreground));
+  box-shadow:
+    0 12px 28px -20px rgba(0, 0, 0, 0.72),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.gen-shell-control {
+  background: hsl(var(--background) / 0.48);
+  color: hsl(var(--foreground) / 0.78);
+  transition:
+    background-color 180ms var(--motion-ease-standard),
+    border-color 180ms var(--motion-ease-standard),
+    color 180ms var(--motion-ease-standard),
+    box-shadow 180ms var(--motion-ease-standard),
+    transform 180ms var(--motion-ease-standard);
+}
+
+.gen-shell-control:hover,
+.gen-shell-control:focus-visible {
+  border-color: hsl(var(--foreground) / 0.16);
+  background: hsl(var(--background) / 0.74);
+  color: hsl(var(--foreground));
+}
+
+.gen-shell-control[data-active='true'] {
+  border-color: hsl(var(--foreground) / 0.16);
+  background: hsl(var(--background-tertiary) / 0.94);
+  color: hsl(var(--foreground));
+  box-shadow:
+    0 12px 26px -22px rgba(0, 0, 0, 0.76),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.gen-shell-control[data-tone='accent'] {
+  border-color: hsl(var(--foreground) / 0.18);
+  background: hsl(var(--foreground));
+  color: hsl(var(--background));
+  box-shadow: 0 18px 40px -28px rgba(0, 0, 0, 0.88);
+}
+
+.gen-shell-control[data-tone='accent']:hover,
+.gen-shell-control[data-tone='accent']:focus-visible {
+  background: hsl(var(--foreground) / 0.92);
+  color: hsl(var(--background));
+}
+
+.gen-shell-surface {
+  background: hsl(var(--background) / 0.44);
+}
+
+.gen-shell-surface[data-active='true'] {
+  border-color: hsl(var(--primary) / 0.26);
+  background: hsl(var(--background-tertiary) / 0.92);
+  box-shadow:
+    0 18px 40px -30px rgba(0, 0, 0, 0.82),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.gen-shell-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 999px;
+  border: 1px solid hsl(var(--border) / 0.82);
+  background: hsl(var(--background) / 0.44);
+  color: hsl(var(--foreground) / 0.66);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.gen-shell-chip[data-tone='success'] {
+  border-color: hsl(var(--success) / 0.24);
+  background: hsl(var(--success) / 0.12);
+  color: hsl(var(--success));
+}
+
+.gen-shell-chip[data-tone='info'] {
+  border-color: hsl(var(--info) / 0.24);
+  background: hsl(var(--info) / 0.12);
+  color: hsl(var(--info));
+}
+
+.gen-shell-empty-state {
+  border: 1px dashed hsl(var(--border) / 0.72);
+  background: linear-gradient(
+    180deg,
+    hsl(var(--background) / 0.5) 0%,
+    hsl(var(--background-secondary) / 0.74) 100%
+  );
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}

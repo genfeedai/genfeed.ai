@@ -1,23 +1,62 @@
 import { createPageMetadataWithCanonical } from '@helpers/media/metadata/page-metadata.helper';
 import PricingContent from '@public/pricing/pricing-content';
 
+const isPreLaunch = process.env.NEXT_PUBLIC_LAUNCH_MODE !== 'open';
+
 export const generateMetadata = createPageMetadataWithCanonical(
   'Pricing',
-  'Simple pricing that scales with you. Free self-hosted or managed cloud plans from $499/mo.',
+  isPreLaunch
+    ? 'AI content services — managed Studio access or Done-For-You content creation.'
+    : 'Simple pricing that scales with you. Free self-hosted or managed cloud plans from $499/mo.',
   '/pricing',
 );
 
-const pricingJsonLd = {
+const preLaunchJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebPage',
+  description: 'AI content services. Book a call to discuss fit.',
+  mainEntity: {
+    '@type': 'Product',
+    brand: { '@type': 'Organization', name: 'Genfeed' },
+    description: 'Managed AI content creation for agencies and brands.',
+    name: 'Genfeed Studio',
+    offers: [
+      {
+        '@type': 'Offer',
+        name: 'Studio',
+        price: '9999',
+        priceCurrency: 'USD',
+        priceSpecification: {
+          '@type': 'UnitPriceSpecification',
+          billingDuration: 'P1M',
+        },
+        url: 'https://genfeed.ai/pricing',
+      },
+      {
+        '@type': 'Offer',
+        name: 'Done-For-You Content',
+        price: '2500',
+        priceCurrency: 'USD',
+        priceSpecification: {
+          '@type': 'UnitPriceSpecification',
+          billingDuration: 'P1M',
+        },
+        url: 'https://genfeed.ai/services',
+      },
+    ],
+  },
+  name: 'Genfeed Services & Pricing',
+  url: 'https://genfeed.ai/pricing',
+};
+
+const saasJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'WebPage',
   description:
     'AI content generation pricing. Self-host free or subscribe to managed cloud plans.',
   mainEntity: {
     '@type': 'Product',
-    brand: {
-      '@type': 'Organization',
-      name: 'Genfeed',
-    },
+    brand: { '@type': 'Organization', name: 'Genfeed' },
     description:
       'AI-powered content generation platform for creating professional videos, images, and marketing materials at scale.',
     name: 'Genfeed',
@@ -70,6 +109,8 @@ const pricingJsonLd = {
   name: 'Genfeed Pricing',
   url: 'https://genfeed.ai/pricing',
 };
+
+const pricingJsonLd = isPreLaunch ? preLaunchJsonLd : saasJsonLd;
 
 export default function Pricing() {
   return (

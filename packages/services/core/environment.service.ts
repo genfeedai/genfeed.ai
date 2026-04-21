@@ -138,6 +138,11 @@ export const EnvironmentService = {
   // Feature flags
   ENABLE_SUBSCRIPTIONS: true,
 
+  /** Pre-launch mode: hides SaaS pricing tiers and sign-up entry points. Set NEXT_PUBLIC_LAUNCH_MODE=open to disable. */
+  get isPreLaunch(): boolean {
+    return process.env.NEXT_PUBLIC_LAUNCH_MODE !== 'open';
+  },
+
   GA_ID: process.env.NEXT_PUBLIC_GA_ID || '',
 
   getApiUrl(): string {

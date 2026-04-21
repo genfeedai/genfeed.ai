@@ -60,7 +60,7 @@ function renderVariantPreview(
       <video
         src={variant.url}
         controls
-        className="aspect-[4/5] w-full border border-white/[0.08] bg-black/20 object-cover"
+        className="gen-shell-surface aspect-[4/5] w-full rounded-[1.25rem] object-cover"
       >
         <track kind="captions" />
       </video>
@@ -69,8 +69,8 @@ function renderVariantPreview(
 
   if (variant.kind === 'audio' && variant.url) {
     return (
-      <div className="border border-white/[0.08] bg-white/[0.03] p-4">
-        <div className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground">
+      <div className="gen-shell-surface rounded-[1.25rem] p-4">
+        <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
           <HiOutlineMusicalNote className="h-4 w-4 text-primary/80" />
           {variant.title ?? group.title}
         </div>
@@ -83,8 +83,8 @@ function renderVariantPreview(
 
   if (variant.kind === 'text') {
     return (
-      <div className="border border-white/[0.08] bg-white/[0.03] p-4">
-        <div className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground">
+      <div className="gen-shell-surface rounded-[1.25rem] p-4">
+        <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
           <HiOutlineDocumentText className="h-4 w-4 text-primary/80" />
           {variant.title ?? group.title}
         </div>
@@ -104,13 +104,13 @@ function renderVariantPreview(
       <img
         src={variant.url}
         alt={variant.title ?? group.title}
-        className="aspect-[4/5] w-full border border-white/[0.08] bg-black/20 object-cover"
+        className="gen-shell-surface aspect-[4/5] w-full rounded-[1.25rem] object-cover"
       />
     );
   }
 
   return (
-    <div className="border border-dashed border-white/[0.12] bg-white/[0.03] p-8 text-center text-sm text-foreground/55">
+    <div className="gen-shell-empty-state rounded-[1.25rem] p-8 text-center text-sm text-foreground/55">
       No preview available.
     </div>
   );
@@ -182,19 +182,24 @@ export function AgentOutputsPanel({
     return (
       <section
         className={cn(
-          'flex h-full flex-col items-center justify-center px-6 text-center',
+          'flex h-full flex-col items-center justify-center p-6 text-center',
           className,
         )}
       >
-        <div className="mb-4 flex h-12 w-12 items-center justify-center bg-white/[0.04] ring-1 ring-inset ring-white/[0.08]">
-          <HiOutlinePhoto className="h-6 w-6 text-foreground/35" />
+        <div className="gen-shell-empty-state w-full max-w-sm rounded-[1.75rem] px-6 py-7">
+          <div className="gen-shell-surface mx-auto flex h-14 w-14 items-center justify-center rounded-2xl">
+            <HiOutlinePhoto className="h-6 w-6 text-foreground/38" />
+          </div>
+          <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-foreground/38">
+            Outputs
+          </p>
+          <h2 className="mt-3 text-lg font-semibold tracking-[-0.02em] text-foreground">
+            {emptyTitle}
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-foreground/56">
+            {emptyDescription}
+          </p>
         </div>
-        <h2 className="text-base font-semibold text-foreground">
-          {emptyTitle}
-        </h2>
-        <p className="mt-2 max-w-sm text-sm text-foreground/55">
-          {emptyDescription}
-        </p>
       </section>
     );
   }
@@ -203,7 +208,7 @@ export function AgentOutputsPanel({
     <section className={cn('flex h-full min-h-0 flex-col', className)}>
       <div
         className={cn(
-          'border-b border-white/[0.08] px-4 py-4',
+          'gen-shell-toolbar shrink-0 px-4 py-4',
           isCompact ? 'space-y-3' : 'space-y-4',
         )}
       >
@@ -221,7 +226,10 @@ export function AgentOutputsPanel({
               </p>
             ) : null}
           </div>
-          <span className="shrink-0 rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-1 text-[11px] text-foreground/55">
+          <span
+            className="gen-shell-chip shrink-0 px-2.5 py-1 text-[11px]"
+            data-tone="neutral"
+          >
             {selectedGroup?.variants.length ?? 0} variant
             {selectedGroup?.variants.length === 1 ? '' : 's'}
           </span>
@@ -239,12 +247,10 @@ export function AgentOutputsPanel({
                 variant={ButtonVariant.UNSTYLED}
                 withWrapper={false}
                 onClick={() => setSelectedVariantId(variant.id)}
-                className={cn(
-                  'inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
-                  variant.id === selectedVariantId
-                    ? 'border-primary/35 bg-primary/10 text-primary'
-                    : 'border-white/[0.08] bg-white/[0.03] text-foreground/60 hover:bg-white/[0.06] hover:text-foreground',
-                )}
+                className="gen-shell-control inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold"
+                data-active={
+                  variant.id === selectedVariantId ? 'true' : 'false'
+                }
               >
                 <VariantIcon kind={variant.kind} />
                 {getVariantLabel(selectedGroup, variant, index)}
@@ -256,8 +262,10 @@ export function AgentOutputsPanel({
         {selectedGroup && selectedVariant ? (
           <div className="flex flex-wrap gap-2">
             <Button
-              variant={ButtonVariant.OUTLINE}
-              className="h-9 px-3 text-xs"
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
+              className="gen-shell-control h-9 rounded-xl px-3 text-xs font-semibold"
+              data-tone="accent"
               onClick={() =>
                 seedComposer(
                   buildAttachContent(selectedGroup, selectedVariant),
@@ -274,7 +282,7 @@ export function AgentOutputsPanel({
                 <a
                   href={selectedVariant.url}
                   download
-                  className="inline-flex h-9 items-center border border-white/[0.12] px-3 text-xs font-medium text-foreground/70 transition-colors hover:bg-white/[0.06] hover:text-foreground"
+                  className="gen-shell-control inline-flex h-9 items-center rounded-xl px-3 text-xs font-semibold"
                 >
                   <HiOutlineArrowDownTray className="mr-1.5 h-4 w-4" />
                   Download
@@ -283,7 +291,7 @@ export function AgentOutputsPanel({
                   href={selectedVariant.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex h-9 items-center border border-white/[0.12] px-3 text-xs font-medium text-foreground/70 transition-colors hover:bg-white/[0.06] hover:text-foreground"
+                  className="gen-shell-control inline-flex h-9 items-center rounded-xl px-3 text-xs font-semibold"
                 >
                   <HiOutlineArrowTopRightOnSquare className="mr-1.5 h-4 w-4" />
                   Open asset
@@ -300,7 +308,7 @@ export function AgentOutputsPanel({
                   href={cta.href}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex h-9 items-center border border-white/[0.12] px-3 text-xs font-medium text-foreground/70 transition-colors hover:bg-white/[0.06] hover:text-foreground"
+                  className="gen-shell-control inline-flex h-9 items-center rounded-xl px-3 text-xs font-semibold"
                 >
                   <HiOutlineArrowTopRightOnSquare className="mr-1.5 h-4 w-4" />
                   {cta.label}
@@ -311,7 +319,7 @@ export function AgentOutputsPanel({
       </div>
 
       <div className="flex-1 overflow-y-auto px-3 py-3">
-        <div className="space-y-2">
+        <div className="space-y-2.5">
           {outputs.map((group) => {
             const previewVariant = group.variants[0];
             return (
@@ -323,23 +331,22 @@ export function AgentOutputsPanel({
                   setSelectedGroupId(group.id);
                   setSelectedVariantId(group.variants[0]?.id ?? null);
                 }}
-                className={cn(
-                  'flex w-full items-start gap-3 border px-3 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
-                  group.id === selectedGroupId
-                    ? 'border-primary/25 bg-primary/10'
-                    : 'border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.04]',
-                )}
+                className="gen-shell-surface flex w-full items-start gap-3 rounded-2xl px-3 py-3.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+                data-active={group.id === selectedGroupId ? 'true' : 'false'}
               >
                 <div className="mt-0.5 shrink-0">
                   <VariantIcon kind={previewVariant.kind} />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <p className="truncate text-sm font-medium text-foreground">
+                    <p className="truncate text-sm font-semibold tracking-[-0.01em] text-foreground">
                       {group.title}
                     </p>
                     {group.status ? (
-                      <span className="rounded-full border border-white/[0.08] bg-white/[0.03] px-2 py-0.5 text-[10px] uppercase tracking-wide text-foreground/45">
+                      <span
+                        className="gen-shell-chip px-2 py-0.5 text-[10px] uppercase tracking-wide"
+                        data-tone="neutral"
+                      >
                         {group.status}
                       </span>
                     ) : null}
