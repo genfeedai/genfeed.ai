@@ -1,0 +1,28 @@
+{
+  "name": "newsletter-creator",
+  "version": "1.0.0",
+  "description": "Create high-performing email newsletters with subject lines, editorial structures, and subscriber growth tactics",
+  "author": "genfeedai",
+  "license": "MIT",
+  "triggers": [
+    "write a newsletter",
+    "create a newsletter",
+    "draft newsletter",
+    "email newsletter",
+    "newsletter edition",
+    "write a newsletter subject line",
+    "create newsletter content",
+    "draft an email newsletter",
+    "help me with my newsletter",
+    "newsletter about"
+  ],
+  "references": {},
+  "outputs": ["text"],
+  "tags": [
+    "newsletter",
+    "email",
+    "content-creation",
+    "email-marketing",
+    "subscriber-growth"
+  ]
+}

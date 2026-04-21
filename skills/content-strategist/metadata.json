@@ -1,0 +1,30 @@
+{
+  "name": "content-strategist",
+  "version": "1.0.0",
+  "description": "Build comprehensive content strategies including audience definition, content pillars, platform selection, posting cadence, and editorial calendars",
+  "author": "genfeedai",
+  "license": "MIT",
+  "triggers": [
+    "content strategy",
+    "editorial calendar",
+    "content plan",
+    "what should I post",
+    "posting schedule",
+    "content pillars",
+    "content calendar",
+    "social media strategy",
+    "platform strategy",
+    "content mix",
+    "posting frequency",
+    "build a content plan"
+  ],
+  "references": {},
+  "outputs": ["text"],
+  "tags": [
+    "content-strategy",
+    "editorial-calendar",
+    "content-planning",
+    "social-media-strategy",
+    "marketing"
+  ]
+}

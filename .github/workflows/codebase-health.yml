@@ -52,3 +52,12 @@ jobs:
         with:
           command: dupes --mode mild
           format: annotations
+
+  skills:
+    name: Skills Integrity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Validate skills
+        run: scripts/setup-skills.sh --check

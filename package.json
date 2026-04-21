@@ -34,6 +34,10 @@
   ],
   "packageManager": "bun@1.3.13",
   "scripts": {
+    "postinstall": "scripts/setup-skills.sh",
+    "setup:skills": "scripts/setup-skills.sh",
+    "setup:skills:sync": "scripts/setup-skills.sh --sync",
+    "check:skills": "scripts/setup-skills.sh --check",
     "build": "bunx turbo build --filter='./packages/*'",
     "build:app": "bunx turbo build --filter",
     "build:backend:parallel": "bunx turbo build --filter='./apps/server/*'",
@@ -78,7 +82,6 @@
     "format": "biome format --write .",
     "format:check": "biome format .",
     "lint": "bunx turbo lint",
-    "seed:models": "bun run apps/server/api/scripts/seeds/models.seed.ts",
     "sort-modules": "bun scripts/sort-module-arrays.ts",
     "test": "bunx turbo test",
     "test:e2e": "bunx playwright test",

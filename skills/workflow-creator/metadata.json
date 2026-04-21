@@ -1,0 +1,23 @@
+{
+  "name": "workflow-creator",
+  "version": "1.0.0",
+  "description": "Create Genfeed workflows from natural language descriptions",
+  "author": "genfeedai",
+  "license": "MIT",
+  "triggers": [
+    "create a workflow",
+    "build a content pipeline",
+    "make a video generation workflow",
+    "design a workflow",
+    "create a pipeline for",
+    "workflow that generates",
+    "workflow for creating"
+  ],
+  "references": {
+    "nodeTypes": "packages/types/src/nodes.ts",
+    "workflowSchema": "packages/types/src/workflow.ts",
+    "sdkBuilder": "packages/sdk/src/node-builder.ts"
+  },
+  "outputs": ["json"],
+  "tags": ["workflow", "content-creation", "automation", "ai-generation"]
+}

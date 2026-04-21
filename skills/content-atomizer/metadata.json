@@ -1,0 +1,28 @@
+{
+  "name": "content-atomizer",
+  "version": "1.0.0",
+  "description": "Repurpose one piece of content into dozens of platform-optimized derivatives with scheduling cadence",
+  "author": "genfeedai",
+  "license": "MIT",
+  "triggers": [
+    "atomize content",
+    "repurpose content",
+    "turn this into",
+    "create derivatives",
+    "cross-platform content",
+    "repurpose this blog post",
+    "atomize this article",
+    "create social posts from this",
+    "break this into pieces",
+    "content repurposing"
+  ],
+  "references": {},
+  "outputs": ["text"],
+  "tags": [
+    "content-repurposing",
+    "atomization",
+    "cross-platform",
+    "content-strategy",
+    "social-media"
+  ]
+}

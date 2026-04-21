@@ -1,0 +1,21 @@
+{
+  "name": "scope-validator",
+  "version": "1.0.0",
+  "description": "Validate feature requests against Genfeed OSS core vs Cloud scope",
+  "author": "genfeedai",
+  "license": "MIT",
+  "triggers": [
+    "should this be in core or cloud",
+    "is this feature OSS or cloud",
+    "can I contribute this to core",
+    "where should I submit this feature",
+    "is this in scope for core",
+    "feature request triage"
+  ],
+  "references": {
+    "nodeTypes": "packages/types/src/nodes.ts",
+    "cloudNodes": "cloud/packages/types/src/cloud-nodes.ts"
+  },
+  "outputs": ["text"],
+  "tags": ["scope", "oss", "cloud", "contribution", "triage"]
+}

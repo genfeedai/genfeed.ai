@@ -1,0 +1,30 @@
+{
+  "name": "image-prompt-engineer",
+  "version": "1.0.0",
+  "description": "Craft optimized prompts for AI image generation across all major models",
+  "author": "genfeedai",
+  "license": "MIT",
+  "triggers": [
+    "write an image prompt",
+    "create a prompt for",
+    "optimize this image prompt",
+    "prompt for flux",
+    "prompt for dall-e",
+    "prompt for midjourney",
+    "generate image prompt",
+    "improve this prompt",
+    "image prompt for",
+    "make a prompt for"
+  ],
+  "references": {},
+  "outputs": ["text"],
+  "tags": [
+    "image-generation",
+    "prompt-engineering",
+    "ai-art",
+    "creative",
+    "flux",
+    "dall-e",
+    "midjourney"
+  ]
+}

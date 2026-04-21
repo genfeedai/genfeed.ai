@@ -1,0 +1,30 @@
+{
+  "name": "instagram-content-creator",
+  "version": "1.0.0",
+  "description": "Create Instagram content including captions, carousel outlines, Reels scripts, and hashtag strategies",
+  "author": "genfeedai",
+  "license": "MIT",
+  "triggers": [
+    "write an instagram caption",
+    "create instagram content",
+    "draft a carousel",
+    "write a reel script",
+    "create reels content",
+    "instagram post",
+    "write ig caption",
+    "plan instagram stories",
+    "hashtag strategy",
+    "carousel outline"
+  ],
+  "references": {},
+  "outputs": ["text"],
+  "tags": [
+    "instagram",
+    "social-media",
+    "content-creation",
+    "reels",
+    "carousel",
+    "captions",
+    "hashtags"
+  ]
+}

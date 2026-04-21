@@ -1,0 +1,29 @@
+{
+  "name": "blog-content-creator",
+  "version": "1.0.0",
+  "description": "Create SEO-optimized blog posts in multiple formats with heading hierarchy, meta descriptions, and internal link strategy",
+  "author": "genfeedai",
+  "license": "MIT",
+  "triggers": [
+    "write a blog post",
+    "create a blog article",
+    "draft a blog",
+    "write an article",
+    "blog about",
+    "create blog content",
+    "write a how-to guide",
+    "draft a listicle",
+    "write a comparison post",
+    "create a pillar page"
+  ],
+  "references": {},
+  "outputs": ["text"],
+  "tags": [
+    "blog",
+    "seo",
+    "content-creation",
+    "long-form",
+    "articles",
+    "copywriting"
+  ]
+}

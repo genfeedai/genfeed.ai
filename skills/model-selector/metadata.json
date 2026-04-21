@@ -1,0 +1,28 @@
+{
+  "name": "model-selector",
+  "version": "1.0.0",
+  "description": "Recommend the best AI model for image, video, and audio generation tasks",
+  "author": "genfeedai",
+  "license": "MIT",
+  "triggers": [
+    "which model should I use",
+    "recommend a model",
+    "best model for",
+    "what model for",
+    "model recommendation",
+    "choose a model",
+    "compare models",
+    "model selector",
+    "fastest model for",
+    "cheapest model for"
+  ],
+  "references": {},
+  "outputs": ["text"],
+  "tags": [
+    "model-selection",
+    "ai-models",
+    "image-generation",
+    "video-generation",
+    "decision-making"
+  ]
+}

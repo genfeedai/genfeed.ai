@@ -12,3 +12,4 @@
 - [Codex adversarial review](feedback_codex_adversarial_review.md) — MANDATORY before ExitPlanMode; use Agent(codex:codex-rescue) not Skill tool; strip --write for read-only reviews
 - [GitHub issue worktree workflow](feedback_gh_issue_worktree_workflow.md) — Assigned GitHub issues use worktrees from develop, PR to develop, CI, then merge
 - [MongoDB Atlas URI](reference_mongodb_atlas.md) — Atlas connection string for `cloud` DB, use with mongosh
+- [No external symlinks](feedback_no_external_symlinks.md) — Open source repo. All skills committed as real files. .claude/skills/ symlinks to ../../skills/ ONLY. Never link outside monorepo.

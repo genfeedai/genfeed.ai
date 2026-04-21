@@ -1,0 +1,29 @@
+{
+  "name": "linkedin-content-creator",
+  "version": "1.0.0",
+  "description": "Create LinkedIn content including posts, articles, carousels, and newsletter editions for professional growth",
+  "author": "genfeedai",
+  "license": "MIT",
+  "triggers": [
+    "write a linkedin post",
+    "create linkedin content",
+    "draft a linkedin article",
+    "linkedin carousel",
+    "write for linkedin",
+    "linkedin newsletter",
+    "professional post",
+    "thought leadership post",
+    "linkedin update",
+    "compose linkedin post"
+  ],
+  "references": {},
+  "outputs": ["text"],
+  "tags": [
+    "linkedin",
+    "social-media",
+    "content-creation",
+    "professional",
+    "articles",
+    "b2b"
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "name": "ad-copy-creator",
+  "version": "1.0.0",
+  "description": "Create high-converting ad copy for Meta, Google, LinkedIn, TikTok, and X using proven direct response frameworks",
+  "author": "genfeedai",
+  "license": "MIT",
+  "triggers": [
+    "write ad copy",
+    "create an ad",
+    "write a facebook ad",
+    "google ad copy",
+    "ad headline",
+    "write ad creative",
+    "ad variants",
+    "create meta ad",
+    "linkedin ad copy",
+    "tiktok ad script",
+    "write google ads",
+    "PAS ad copy",
+    "AIDA ad"
+  ],
+  "references": {},
+  "outputs": ["text"],
+  "tags": [
+    "advertising",
+    "copywriting",
+    "direct-response",
+    "ads",
+    "meta-ads",
+    "google-ads",
+    "facebook-ads",
+    "ppc"
+  ]
+}

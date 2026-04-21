@@ -1,0 +1,29 @@
+{
+  "name": "content-seo-optimizer",
+  "version": "1.0.0",
+  "description": "Analyze and optimize content for SEO with a 0-100 scoring rubric and actionable improvement priorities",
+  "author": "genfeedai",
+  "license": "MIT",
+  "triggers": [
+    "optimize for SEO",
+    "SEO score",
+    "check SEO",
+    "audit content",
+    "improve search ranking",
+    "SEO audit",
+    "analyze SEO",
+    "content optimization",
+    "keyword optimization",
+    "check my SEO score"
+  ],
+  "references": {},
+  "outputs": ["text"],
+  "tags": [
+    "seo",
+    "optimization",
+    "content-optimization",
+    "keywords",
+    "meta-tags",
+    "search"
+  ]
+}

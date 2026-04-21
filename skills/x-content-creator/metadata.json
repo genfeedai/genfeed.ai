@@ -1,0 +1,29 @@
+{
+  "name": "x-content-creator",
+  "version": "1.0.0",
+  "description": "Create high-performing X/Twitter content including tweets, threads, and engagement strategies",
+  "author": "genfeedai",
+  "license": "MIT",
+  "triggers": [
+    "write a tweet",
+    "create a thread",
+    "draft a tweet",
+    "write a twitter thread",
+    "compose a tweet",
+    "create x content",
+    "write a quote tweet",
+    "draft a twitter post",
+    "help me tweet",
+    "tweet about"
+  ],
+  "references": {},
+  "outputs": ["text"],
+  "tags": [
+    "x",
+    "twitter",
+    "social-media",
+    "content-creation",
+    "threads",
+    "tweets"
+  ]
+}

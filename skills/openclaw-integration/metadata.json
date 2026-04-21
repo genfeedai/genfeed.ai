@@ -1,0 +1,21 @@
+{
+  "name": "openclaw-integration",
+  "version": "1.0.0",
+  "description": "Connect to Genfeed.ai content creation platform via MCP",
+  "author": "genfeedai",
+  "license": "MIT",
+  "triggers": [
+    "connect to genfeed",
+    "use genfeed",
+    "genfeed mcp",
+    "create content with genfeed",
+    "generate image",
+    "generate video"
+  ],
+  "references": {
+    "mcpServer": "cloud/apps/server/mcp/",
+    "cli": "cli/"
+  },
+  "outputs": ["instructions", "configuration"],
+  "tags": ["mcp", "integration", "openclaw", "agent", "content-creation"]
+}

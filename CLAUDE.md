@@ -4,6 +4,7 @@
 @.agents/context/system-patterns.md
 @.agents/context/project-structure.md
 @.agents/context/project-style-guide.md
+@.agents/context/skills-architecture.md
 
 TypeScript monorepo: 6 app surfaces, 12 backend services, 45+ shared packages.
 Stack: Next.js + NestJS + MongoDB + Redis + BullMQ
