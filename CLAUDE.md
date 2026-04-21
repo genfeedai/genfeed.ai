@@ -1,10 +1,10 @@
 # Genfeed.ai — Open Source AI OS for Content Creation
 
 @.agents/memory/MEMORY.md
-@.agents/context/system-patterns.md
-@.agents/context/project-structure.md
-@.agents/context/project-style-guide.md
-@.agents/context/skills-architecture.md
+@.agents/memory/context/system-patterns.md
+@.agents/memory/context/project-structure.md
+@.agents/memory/context/project-style-guide.md
+@.agents/memory/context/skills-architecture.md
 
 TypeScript monorepo: 6 app surfaces, 12 backend services, 45+ shared packages.
 Stack: Next.js + NestJS + MongoDB + Redis + BullMQ
@@ -134,9 +134,9 @@ bun run test --filter=@genfeedai/[name]  # Run specific package tests
 ## Essential Reading
 
 Before making changes, check:
-1. `.agents/SYSTEM/critical/CRITICAL-NEVER-DO.md` — Production-breaking violations
-2. `.agents/SYSTEM/critical/RULES.md` — Coding standards and patterns
-3. `.agents/SYSTEM/AGENT-RUNTIME.md` — Task loop, context checkpoints
+1. `.agents/memory/system/CRITICAL-NEVER-DO.md` — Production-breaking violations
+2. `.agents/memory/system/SYSTEM-RULES.md` — Coding standards and patterns
+3. `.agents/memory/system/AGENT-RUNTIME.md` — Task loop, context checkpoints
 
 ## Green-Field Philosophy
 
@@ -150,4 +150,4 @@ Early-stage open-source project. Delete dead code aggressively. No legacy suppor
 ## Tracking Policy
 
 - GitHub Issues/Projects are canonical for task and status tracking.
-- Do not create or maintain local task queues such as `.agents/TASKS/INBOX.md`.
+- Do not create or maintain local task markdown files.

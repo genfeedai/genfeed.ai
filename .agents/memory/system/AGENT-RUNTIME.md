@@ -81,7 +81,7 @@ Minimum checks by change type:
 
 - Frontend (`apps/app/*`, `apps/admin/*`, `packages/ui/*`, `packages/hooks/*`)
   - `fast`: lint/type checks
-  - `strict`: add affected tests + QA flow from `.agents/QA/README.md`
+  - `strict`: add affected tests + QA flow
 
 - Backend (`apps/server/*`, backend packages)
   - `fast`: lint/type checks

@@ -19,7 +19,7 @@ Codex-specific fast reference. See `AGENTS.md` for full project context.
 - Never run unscoped root `build` in local workflows
 - Keep docs and code consistent when changing architecture claims
 - GitHub Issues/Projects are the canonical backlog
-- `.agents/TASKS/INBOX.md` is allowed for immediate triage only
+- Do not create local task markdown files
 
 ## Automation Decision Matrix
 
@@ -51,6 +51,6 @@ bun run test --filter=@genfeedai/[changed-package]
 
 - `AGENTS.md` — Universal project reference
 - `CLAUDE.md` — Claude Code reference
-- `.agents/SYSTEM/critical/CRITICAL-NEVER-DO.md` — Production-breaking violations
-- `.agents/SYSTEM/AGENT-RUNTIME.md` — Task loop and recovery protocol
+- `.agents/memory/system/CRITICAL-NEVER-DO.md` — Production-breaking violations
+- `.agents/memory/system/AGENT-RUNTIME.md` — Task loop and recovery protocol
 - `.agents/README.md` — Full documentation navigation

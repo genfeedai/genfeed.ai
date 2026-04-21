@@ -6,8 +6,8 @@ Violations that break builds, lose data, or violate architecture. For positive c
 
 Read BOTH this file and the project's own critical doc before coding.
 
-- Frontend (`apps/app`): NEVER run unscoped full builds at repo root. Use scoped Bun/Turbo app builds (for example `bunx turbo build --filter=@genfeedai/app`). See: `.agents/SYSTEM/CRITICAL-NEVER-DO.md`
-- Backend (`apps/server`): Scoped tests allowed (single file/module). NEVER unscoped `bun test`. Enforce `isDeleted: false`. See: `.agents/SYSTEM/CRITICAL-NEVER-DO.md`
+- Frontend (`apps/app`): NEVER run unscoped full builds at repo root. Use scoped Bun/Turbo app builds (for example `bunx turbo build --filter=@genfeedai/app`). See: `.agents/memory/system/CRITICAL-NEVER-DO.md`
+- Backend (`apps/server`): Scoped tests allowed (single file/module). NEVER unscoped `bun test`. Enforce `isDeleted: false`. See: `.agents/memory/system/CRITICAL-NEVER-DO.md`
 
 ---
 
@@ -15,7 +15,7 @@ Read BOTH this file and the project's own critical doc before coding.
 
 ### NEVER Work Outside Workspace Directory
 
-All operations within the workspace root only. If temp files needed, use `.agents/SYSTEM/temp/`. NEVER use `/tmp`, `/private/tmp`, or any external directory.
+All operations within the workspace root only. NEVER use `/tmp`, `/private/tmp`, or any external directory.
 
 ### NEVER DELETE Protected Root Files
 
@@ -85,7 +85,7 @@ Without `isDeleted: false`, soft-deleted items appear in results.
 
 ### NEVER Skip AbortController in Frontend useEffect
 
-Every `useEffect` with async calls must use `AbortController` and clean up on unmount. See repo `CLAUDE.md` or `.agents/SYSTEM/critical/CROSS-PROJECT-RULES.md` for the full pattern.
+Every `useEffect` with async calls must use `AbortController` and clean up on unmount. See repo `CLAUDE.md` or `.agents/memory/system/CROSS-PROJECT-RULES.md` for the full pattern.
 
 ### NEVER Return Raw Mongoose Documents
 

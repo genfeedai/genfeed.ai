@@ -82,7 +82,7 @@ bun run test --filter=@genfeedai/[changed-package]
 
 - Canonical tasks: GitHub issues/projects.
 - Local markdown task files are not canonical backlog and should not be used for task tracking.
-- Do not create or maintain `.agents/TASKS/INBOX.md`.
+- Do not create local task markdown files.
 
 ## Release Branch Workflow
 
@@ -93,12 +93,11 @@ bun run test --filter=@genfeedai/[changed-package]
 ## Documentation
 
 - `.agents/README.md` — Navigation hub for all project docs
-- `.agents/context/` — Project context (product, structure, patterns, tech)
-- `.agents/rules/` — Coding rules (security, backend, frontend, packages)
-- `.agents/skills/` — Canonical repo-local skill bundles shared across agents
+- `.agents/memory/` — All project knowledge (context, rules, features, system, ADRs)
+- `.agents/skills/` — Dev/build skills for the monorepo
 - `.agents/agents/` — Specialist agent definitions
-- `.agents/SYSTEM/` — Architecture, critical rules, ADRs
-- `.agents/features/` — Feature-specific architecture docs
+- `.claude/memory` → symlink to `.agents/memory/`
+- `.codex/memory` → symlink to `.agents/memory/`
 
 ## Skills Layout
 
