@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'bun:test';
 import type { SyncJobRow, WorkspaceRow } from './database.service';
-import { DesktopDatabaseService } from './database.service';
 import type { DesktopPrismaService } from './prisma.service';
+import './test-support/electron.mock';
+
+const { DesktopDatabaseService } = await import('./database.service');
 
 type RecentItemRow = {
   id: string;

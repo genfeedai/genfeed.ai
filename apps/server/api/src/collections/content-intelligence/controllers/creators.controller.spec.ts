@@ -11,9 +11,12 @@ vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
   ),
 }));
 
-vi.mock('@api/collections/content-intelligence/schemas/creator-analysis.schema', () => ({
-  CreatorAnalysis: { name: 'CreatorAnalysis' },
-}));
+vi.mock(
+  '@api/collections/content-intelligence/schemas/creator-analysis.schema',
+  () => ({
+    CreatorAnalysis: { name: 'CreatorAnalysis' },
+  }),
+);
 
 vi.mock('@api/helpers/utils/error-response/error-response.util', () => {
   const { HttpException, HttpStatus } = require('@nestjs/common');
@@ -21,7 +24,10 @@ vi.mock('@api/helpers/utils/error-response/error-response.util', () => {
     ErrorResponse: {
       notFound: vi.fn((resource: string, id: string) => {
         throw new HttpException(
-          { detail: `${resource} with ID '${id}' not found`, status: HttpStatus.NOT_FOUND },
+          {
+            detail: `${resource} with ID '${id}' not found`,
+            status: HttpStatus.NOT_FOUND,
+          },
           HttpStatus.NOT_FOUND,
         );
       }),
