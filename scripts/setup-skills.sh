@@ -27,6 +27,13 @@ log()  { echo -e "${GREEN}[✓]${NC} $*"; }
 warn() { echo -e "${YELLOW}[!]${NC} $*"; }
 err()  { echo -e "${RED}[✗]${NC} $*" >&2; }
 
+# CI does not need Claude skill symlink generation during install.
+# Keep explicit subcommands available so validation can still run when requested.
+if [[ -z "${1:-}" ]] && [[ "${CI:-}" == "true" || "${GITHUB_ACTIONS:-}" == "true" ]]; then
+  log "Skipping .claude/skills generation in CI"
+  exit 0
+fi
+
 # Skills to sync from shipshitdev (dev/build skills only)
 SYNC_SKILLS=(
   api-design-expert
