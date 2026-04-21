@@ -8,7 +8,7 @@ Use one tag family per surface. Do not reuse a single tag for unrelated release 
 
 - `desktop-vX.Y.Z`
   Push this tag to build the macOS desktop app.
-  The desktop workflow uploads the signed `.dmg` / `.zip` artifacts to the matching GitHub release.
+  The desktop workflow creates or updates the matching GitHub release and uploads the signed `.dmg` / `.zip` artifacts there.
 
 - `mobile-vX.Y.Z`
   Push this tag to trigger the Expo/EAS mobile build workflow.
