@@ -62,3 +62,7 @@ See `packages/integrations/README.md` for how to add shared platform integration
 ## Adding AI Models
 
 See `docs/adding-models.md` for the model integration pipeline.
+
+## Releasing
+
+See [RELEASING.md](RELEASING.md) for the production, desktop, and browser-extension release flow.
