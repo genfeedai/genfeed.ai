@@ -12,7 +12,7 @@ Before you begin, ensure you have:
 |-------------|---------|-------|
 | **Node.js** | 18.0+ | [Download](https://nodejs.org/) |
 | **Bun** | 1.0+ | [Install](https://bun.sh/) (recommended) or use npm |
-| **MongoDB** | 6.0+ | [Install](https://www.mongodb.com/try/download/community) |
+| **PostgreSQL** | 17+ | [Install](https://www.postgresql.org/download/) |
 | **Redis** | 7.0+ | [Install](https://redis.io/download/) |
 | **Git** | Latest | [Download](https://git-scm.com/) |
 
@@ -63,7 +63,7 @@ Edit the root `.env.local` with your settings. See [Configuration](/core/configu
 
 ```env
 # Database
-MONGODB_URI=mongodb://localhost:27017/genfeed
+DATABASE_URL=postgresql://genfeed:genfeed_local@localhost:5432/genfeed
 REDIS_URL=redis://localhost:6379
 
 # API Keys (add the ones you need)
@@ -89,13 +89,13 @@ JWT_SECRET=your-secure-random-string
 
 ### 4. Start Services
 
-Make sure MongoDB and Redis are running:
+Make sure PostgreSQL and Redis are running:
 
 ```bash
-# Start MongoDB (if not running)
-mongod --dbpath /path/to/your/data
+# Start PostgreSQL (if not running)
+docker compose -f docker/local/docker-compose.yml up -d postgres redis
 
-# Start Redis (if not running)
+# Or start only Redis if Postgres is already running elsewhere
 redis-server
 ```
 
@@ -117,7 +117,7 @@ You should see:
 [Nest] Starting...
 [API] Listening on http://localhost:3010
 [Queue] BullMQ connected to Redis
-[DB] MongoDB connected
+[DB] PostgreSQL connected
 ```
 
 ### 6. Verify Installation
@@ -176,18 +176,22 @@ services:
     ports:
       - "3010:3010"
     environment:
-      - MONGODB_URI=mongodb://mongo:27017/genfeed
+      - DATABASE_URL=postgresql://genfeed:genfeed_local@postgres:5432/genfeed
       - REDIS_URL=redis://redis:6379
     depends_on:
-      - mongo
+      - postgres
       - redis
 
-  mongo:
-    image: mongo:6
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      - POSTGRES_DB=genfeed
+      - POSTGRES_USER=genfeed
+      - POSTGRES_PASSWORD=genfeed_local
     volumes:
-      - mongo_data:/data/db
+      - postgres_data:/var/lib/postgresql/data
     ports:
-      - "27017:27017"
+      - "5432:5432"
 
   redis:
     image: redis:7-alpine
@@ -197,7 +201,7 @@ services:
       - "6379:6379"
 
 volumes:
-  mongo_data:
+  postgres_data:
   redis_data:
 ```
 
@@ -215,14 +219,14 @@ volumes:
 
 ## Troubleshooting
 
-### MongoDB Connection Failed
+### PostgreSQL Connection Failed
 
 ```bash
-# Check if MongoDB is running
-mongosh --eval "db.adminCommand('ping')"
+# Check if PostgreSQL is running
+pg_isready -h localhost -p 5432
 
-# If not, start it
-mongod --dbpath /your/data/path
+# If not, start the local stack
+docker compose -f docker/local/docker-compose.yml up -d postgres
 ```
 
 ### Redis Connection Failed

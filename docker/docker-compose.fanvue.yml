@@ -9,7 +9,6 @@ services:
     env_file:
       - ../.env.production
     environment:
-      - MONGODB_URI=${MONGODB_URI}
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
       - API_URL=http://api:${API_PORT:-3010}
       - NODE_ENV=production

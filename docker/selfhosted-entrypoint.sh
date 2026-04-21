@@ -2,7 +2,7 @@
 set -e
 
 # Defaults (all overridable via environment variables)
-export MONGODB_URI=${MONGODB_URI:-mongodb://localhost:27017/genfeed}
+export DATABASE_URL=${DATABASE_URL:-postgresql://genfeed:genfeed_local@postgres:5432/genfeed}
 export REDIS_URL=${REDIS_URL:-redis://localhost:6379}
 # Persist auto-generated key so restarts can still decrypt existing data
 if [ -z "$TOKEN_ENCRYPTION_KEY" ]; then
@@ -33,7 +33,6 @@ export GENFEEDAI_PUBLIC_URL=${GENFEEDAI_PUBLIC_URL:-http://localhost:3000}
 # When unset, the app runs in LOCAL mode (fully offline, no account needed).
 
 # Start infrastructure
-mongod --dbpath /data/db --wiredTigerCacheSizeGB 0.5 --fork --logpath /data/mongod.log
 redis-server --dir /data/redis --appendonly yes --daemonize yes
 
 # Derive service ports from their env URLs

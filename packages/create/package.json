@@ -8,8 +8,7 @@
   "dependencies": {
     "commander": "14.0.3",
     "consola": "3.4.2",
-    "giget": "3.2.0",
-    "mongodb-memory-server": "11.0.1"
+    "giget": "3.2.0"
   },
   "description": "Genfeed.ai — AI OS for content creation. Self-host for free.",
   "devDependencies": {

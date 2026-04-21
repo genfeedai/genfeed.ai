@@ -34,7 +34,6 @@ export {
   microservicesSchema,
 } from './genfeedai.schema';
 // Infrastructure
-export { mongodbSchema } from './mongodb.schema';
 // Notifications service
 export {
   discordBotSchema,

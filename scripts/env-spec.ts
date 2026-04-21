@@ -16,6 +16,7 @@ export interface EnvSection {
 }
 
 export const DEPRECATED_ENV_KEYS = [
+  'MONGODB_URI',
   'SENTRY_AUTH_TOKEN_API',
   'SENTRY_AUTH_TOKEN_FILES',
   'SENTRY_AUTH_TOKEN_MCP',
@@ -168,7 +169,6 @@ export const ENV_TARGETS: EnvTarget[] = [
       'MARKETPLACE_API_URL',
       'MEDIUM_CLIENT_ID',
       'MEDIUM_CLIENT_SECRET',
-      'MONGODB_URI',
       'NEWS_API_KEY',
       'NEWS_API_URL',
       'OPENAI_API_KEY',
@@ -474,10 +474,6 @@ export const ROOT_ENV_SECTIONS: EnvSection[] = [
   {
     title: 'Shared Runtime',
     keys: ['NODE_ENV', 'DATABASE_URL', 'REDIS_URL'],
-  },
-  {
-    title: 'Legacy Mongo Tooling',
-    keys: ['MONGODB_URI'],
   },
   {
     title: 'Shared URLs',

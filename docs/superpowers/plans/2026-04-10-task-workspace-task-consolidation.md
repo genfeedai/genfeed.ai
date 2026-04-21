@@ -867,8 +867,8 @@ const PRIORITY_MAP: Record<string, string> = {
 };
 
 async function run() {
-  const uri = process.env.MONGODB_URI;
-  if (!uri) throw new Error('MONGODB_URI env var required');
+  const uri = process.env.LEGACY_MONGODB_URI;
+  if (!uri) throw new Error('LEGACY_MONGODB_URI env var required');
 
   const client = new MongoClient(uri);
   await client.connect();
@@ -972,7 +972,7 @@ run().catch(console.error);
 - [ ] **Step 2: Run dry-run against local Atlas to verify document shape**
 
 ```bash
-MONGODB_URI="<local-atlas-uri>" bun scripts/migrate-workspace-tasks-to-tasks.ts 2>&1 | tail -5
+LEGACY_MONGODB_URI="<local-atlas-uri>" bun scripts/migrate-workspace-tasks-to-tasks.ts 2>&1 | tail -5
 ```
 
 Expected: `Done: migrated=N skipped=0`

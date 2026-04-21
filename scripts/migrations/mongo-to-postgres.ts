@@ -17,7 +17,7 @@
  * - Final summary table + enum validation report
  *
  * Prerequisites:
- * - MONGODB_URI in apps/server/api/.env.{local|production}
+ * - LEGACY_MONGODB_URI in apps/server/api/.env.{local|production}
  * - DATABASE_URL in apps/server/api/.env.{local|production}
  *
  * Usage:
@@ -61,9 +61,11 @@ const envArg = process.argv.find((a) => a.startsWith('--env='))?.split('=')[1];
 const envSuffix = envArg || 'local';
 config({ path: resolve(__dirname, `../../apps/server/api/.env.${envSuffix}`) });
 
-const MONGODB_URI = process.env.MONGODB_URI;
-if (!MONGODB_URI) {
-  throw new Error(`MONGODB_URI is required (loaded from .env.${envSuffix})`);
+const LEGACY_MONGODB_URI = process.env.LEGACY_MONGODB_URI;
+if (!LEGACY_MONGODB_URI) {
+  throw new Error(
+    `LEGACY_MONGODB_URI is required for this legacy migration (loaded from .env.${envSuffix})`,
+  );
 }
 
 const DRY_RUN = !process.argv.includes('--live');
@@ -864,7 +866,7 @@ async function main(): Promise<void> {
 
   // Connect to MongoDB (read-only usage)
   logger.log('Connecting to MongoDB Atlas...');
-  const mongoClient = new MongoClient(MONGODB_URI!, {
+  const mongoClient = new MongoClient(LEGACY_MONGODB_URI, {
     // Connect once; switch databases via client.db(dbName)
   });
   await mongoClient.connect();

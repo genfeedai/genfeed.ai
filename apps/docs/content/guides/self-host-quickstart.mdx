@@ -11,7 +11,7 @@ Get GenFeed Core running on your own infrastructure. Generate AI content with fu
 ## Prerequisites
 
 - Node.js 18+ (or Bun)
-- MongoDB 7+
+- PostgreSQL 17+
 - Redis 7+
 - At least one AI provider API key (Replicate, fal.ai, or OpenAI)
 
@@ -52,7 +52,7 @@ Edit the root `.env.local` with your settings:
 
 ```bash
 # Required
-MONGODB_URI=mongodb://localhost:27017/genfeed
+DATABASE_URL=postgresql://genfeed:genfeed_local@localhost:5432/genfeed
 REDIS_URL=redis://localhost:6379
 
 # AI Providers (at least one required)
@@ -108,19 +108,23 @@ services:
     ports:
       - "3010:3010"
     environment:
-      - MONGODB_URI=mongodb://mongo:27017/genfeed
+      - DATABASE_URL=postgresql://genfeed:genfeed_local@postgres:5432/genfeed
       - REDIS_URL=redis://redis:6379
       - REPLICATE_API_TOKEN=${REPLICATE_API_TOKEN}
     depends_on:
-      - mongo
+      - postgres
       - redis
 
-  mongo:
-    image: mongo:7
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      - POSTGRES_DB=genfeed
+      - POSTGRES_USER=genfeed
+      - POSTGRES_PASSWORD=genfeed_local
     volumes:
-      - mongo_data:/data/db
+      - postgres_data:/var/lib/postgresql/data
     ports:
-      - "27017:27017"
+      - "5432:5432"
 
   redis:
     image: redis:7-alpine
@@ -128,7 +132,7 @@ services:
       - "6379:6379"
 
 volumes:
-  mongo_data:
+  postgres_data:
 ```
 
 ```bash

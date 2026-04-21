@@ -33,7 +33,9 @@ describe('writeDefaultEnv', () => {
     await writeDefaultEnv(directory);
 
     const content = await readFile(join(directory, '.env'), 'utf8');
-    expect(content).toContain('MONGODB_URI=mongodb://127.0.0.1:27017/genfeed');
+    expect(content).toContain(
+      'DATABASE_URL=postgresql://genfeed:genfeed_local@localhost:5432/genfeed',
+    );
     expect(content).toContain('PORT=3010');
     expect(content).toContain(
       'NEXT_PUBLIC_API_ENDPOINT=http://localhost:3010/v1',
@@ -44,12 +46,12 @@ describe('writeDefaultEnv', () => {
     const directory = await mkdtemp(join(tmpdir(), 'genfeedai-test-'));
     const envPath = join(directory, '.env');
 
-    await writeFile(envPath, 'MONGODB_URI=mongodb+srv://custom\n');
+    await writeFile(envPath, 'DATABASE_URL=postgresql://custom\n');
 
     await writeDefaultEnv(directory);
 
     const content = await readFile(envPath, 'utf8');
-    expect(content).toBe('MONGODB_URI=mongodb+srv://custom\n');
+    expect(content).toBe('DATABASE_URL=postgresql://custom\n');
   });
 });
 
