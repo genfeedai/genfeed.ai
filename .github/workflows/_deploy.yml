@@ -396,13 +396,14 @@ jobs:
 
   deployment-summary:
     name: Deployment Summary
-    needs: [detect-changes, deploy-services]
+    needs: [detect-changes, test-changed, build-unified-image, deploy-services]
     runs-on: ubuntu-latest
     if: always()
     steps:
       - name: Write deployment summary
         env:
           API_CHANGED: ${{ needs.detect-changes.outputs.api_changed }}
+          BUILD_RESULT: ${{ needs.build-unified-image.result }}
           BOTS_CHANGED: ${{ needs.detect-changes.outputs.telegram_changed == 'true' || needs.detect-changes.outputs.discord_changed == 'true' || needs.detect-changes.outputs.slack_changed == 'true' || needs.detect-changes.outputs.fanvue_changed == 'true' || needs.detect-changes.outputs.clips_changed == 'true' }}
           CHANGED_SERVICES: ${{ needs.deploy-services.outputs.changed_services }}
           DEPLOY_RESULT: ${{ needs.deploy-services.result }}
@@ -414,6 +415,7 @@ jobs:
           FORCE_WORKERS: ${{ inputs.force_workers }}
           MCP_CHANGED: ${{ needs.detect-changes.outputs.mcp_changed }}
           NOTIFICATIONS_CHANGED: ${{ needs.detect-changes.outputs.notifications_changed }}
+          TEST_RESULT: ${{ needs.test-changed.result }}
           WORKERS_CHANGED: ${{ needs.detect-changes.outputs.workers_changed }}
         run: |
           echo "## Deployment Report (${{ inputs.environment }})" >> "$GITHUB_STEP_SUMMARY"
@@ -429,5 +431,11 @@ jobs:
 
           if [ "${DEPLOY_RESULT}" = "skipped" ]; then
             echo "" >> "$GITHUB_STEP_SUMMARY"
-            echo "Backend deploy was a no-op: no services matched the deploy conditions and no force flag applied." >> "$GITHUB_STEP_SUMMARY"
+            if [ "${TEST_RESULT}" = "failure" ]; then
+              echo "Backend deploy was skipped because the changed-service test job failed." >> "$GITHUB_STEP_SUMMARY"
+            elif [ "${BUILD_RESULT}" = "failure" ]; then
+              echo "Backend deploy was skipped because the unified server image build failed." >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "Backend deploy was a no-op: no services matched the deploy conditions and no force flag applied." >> "$GITHUB_STEP_SUMMARY"
+            fi
           fi
