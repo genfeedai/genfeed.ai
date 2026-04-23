@@ -1020,17 +1020,17 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
       }
 
       this.chatAuthContexts.set(chatId, {
-        apiKeyId: String(apiKey._id),
+        apiKeyId: apiKey.id,
         authType: RunAuthType.API_KEY,
-        organizationId: String(apiKey.organization),
+        organizationId: apiKey.organizationId,
         scopes: apiKey.scopes ?? [],
-        userId: String(apiKey.user),
+        userId: apiKey.userId,
       });
 
       await ctx.reply(
         `✅ Connected.\n` +
-          `🏢 Org: ${String(apiKey.organization)}\n` +
-          `👤 User: ${String(apiKey.user)}\n` +
+          `🏢 Org: ${apiKey.organizationId}\n` +
+          `👤 User: ${apiKey.userId}\n` +
           `🔐 Scopes: ${(apiKey.scopes || []).slice(0, 8).join(', ') || 'none'}`,
       );
     });

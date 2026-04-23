@@ -21,6 +21,7 @@ import {
   HiSparkles,
   HiVideoCamera,
 } from 'react-icons/hi2';
+import { ONBOARDING_STORAGE_KEYS } from '@/lib/onboarding/onboarding-access.util';
 
 const CONTENT_TYPES = [
   { icon: HiPhoto, id: 'image', title: 'Images' },
@@ -78,7 +79,7 @@ export default function SuccessContent() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    const preview = localStorage.getItem('gf_onboarding_preview_url');
+    const preview = localStorage.getItem(ONBOARDING_STORAGE_KEYS.previewUrl);
     if (preview) {
       setPreviewUrl(preview);
     }
@@ -126,9 +127,12 @@ export default function SuccessContent() {
     }
 
     // Clean up localStorage keys
-    localStorage.removeItem('gf_onboarding_preview_url');
-    localStorage.removeItem('gf_brand_domain');
-    localStorage.removeItem('gf_onboarding_content_type');
+    localStorage.removeItem(ONBOARDING_STORAGE_KEYS.previewUrl);
+    localStorage.removeItem(ONBOARDING_STORAGE_KEYS.brandDomain);
+    localStorage.removeItem(ONBOARDING_STORAGE_KEYS.brandName);
+    localStorage.removeItem(ONBOARDING_STORAGE_KEYS.accessMode);
+    localStorage.removeItem(ONBOARDING_STORAGE_KEYS.source);
+    localStorage.removeItem(ONBOARDING_STORAGE_KEYS.contentType);
 
     const org = selectedBrand?.organization;
     const orgSlug =

@@ -2,6 +2,10 @@ import { BulkDeleteIngredientsDto } from '@api/collections/ingredients/dto/bulk-
 import { CreateIngredientDto } from '@api/collections/ingredients/dto/create-ingredient.dto';
 import { UpdateIngredientDto } from '@api/collections/ingredients/dto/update-ingredient.dto';
 import { UpdateTagsDto } from '@api/collections/ingredients/dto/update-tags.dto';
+import type {
+  IngredientMetadataDocument,
+  IngredientRefDocument,
+} from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { UpdateMetadataDto } from '@api/collections/metadata/dto/update-metadata.dto';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
@@ -129,7 +133,7 @@ export class IngredientsOperationsController {
       return returnNotFound(this.constructorName, ingredientId);
     }
 
-    const metadata: unknown = ingredient.metadata;
+    const metadata = (ingredient.metadata ?? {}) as IngredientMetadataDocument;
 
     // Create ingredient with PROCESSING status
     const { metadataData, ingredientData } =
@@ -148,7 +152,7 @@ export class IngredientsOperationsController {
         status: IngredientStatus.PROCESSING,
         style: metadata.style,
         width: metadata.width,
-      } as CreateIngredientDto);
+      } as unknown as Record<string, unknown>);
 
     // Start async processing (fire and forget)
     this.processCloneAsync(
@@ -329,7 +333,16 @@ export class IngredientsOperationsController {
       }
 
       // Update the metadata
-      const metadataId = ingredient.metadata._id.toString();
+      const metadataId = this.getRefId(ingredient.metadata);
+      if (!metadataId) {
+        throw new HttpException(
+          {
+            detail: 'Metadata not found',
+            title: 'Metadata not found',
+          },
+          HttpStatus.NOT_FOUND,
+        );
+      }
       await this.metadataService.patch(metadataId, updateData);
 
       // Fetch the updated ingredient with metadata
@@ -392,7 +405,17 @@ export class IngredientsOperationsController {
     }
 
     // Update the metadata
-    const metadataId = ingredient.metadata._id.toString();
+    const metadataId = this.getRefId(ingredient.metadata);
+
+    if (!metadataId) {
+      throw new HttpException(
+        {
+          detail: 'Metadata not found',
+          title: 'Metadata not found',
+        },
+        HttpStatus.NOT_FOUND,
+      );
+    }
 
     await this.metadataService.patch(metadataId, metadataDto);
 
@@ -476,11 +499,11 @@ export class IngredientsOperationsController {
         // Check if user has permission to delete
         // User must be the owner or in the same organization
         const isOwner =
-          publicMetadata.user.toString() === ingredient.user.id.toString();
+          publicMetadata.user.toString() === this.getRefId(ingredient.user);
 
         const isSameOrg =
           publicMetadata.organization.toString() ===
-          ingredient.organization.id.toString();
+          this.getRefId(ingredient.organization);
 
         if (!isOwner && !isSameOrg) {
           this.loggerService.warn(`${url} permission denied`, {
@@ -522,5 +545,15 @@ export class IngredientsOperationsController {
       failed,
       message,
     };
+  }
+
+  private getRefId(
+    ref: string | IngredientRefDocument | null | undefined,
+  ): string | undefined {
+    if (typeof ref === 'string') {
+      return ref;
+    }
+
+    return ref?._id?.toString() ?? ref?.id?.toString();
   }
 }

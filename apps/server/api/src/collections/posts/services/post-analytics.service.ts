@@ -11,9 +11,17 @@ import { TwitterService } from '@api/services/integrations/twitter/services/twit
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { CredentialPlatform } from '@genfeedai/enums';
+import type { CredentialPlatform } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
+
+const CREDENTIAL_PLATFORM = {
+  INSTAGRAM: 'INSTAGRAM' as CredentialPlatform,
+  PINTEREST: 'PINTEREST' as CredentialPlatform,
+  TIKTOK: 'TIKTOK' as CredentialPlatform,
+  TWITTER: 'TWITTER' as CredentialPlatform,
+  YOUTUBE: 'YOUTUBE' as CredentialPlatform,
+};
 
 @Injectable()
 export class PostAnalyticsService extends BaseService<
@@ -326,7 +334,7 @@ export class PostAnalyticsService extends BaseService<
       }
 
       switch (platform) {
-        case CredentialPlatform.YOUTUBE:
+        case CREDENTIAL_PLATFORM.YOUTUBE:
           analytics = await this.getYoutubeAnalytics(
             post.organization.toString(),
             post.brand.toString(),
@@ -334,7 +342,7 @@ export class PostAnalyticsService extends BaseService<
           );
           break;
 
-        case CredentialPlatform.TIKTOK:
+        case CREDENTIAL_PLATFORM.TIKTOK:
           analytics = await this.getTiktokAnalytics(
             post.organization.toString(),
             post.brand.toString(),
@@ -342,7 +350,7 @@ export class PostAnalyticsService extends BaseService<
           );
           break;
 
-        case CredentialPlatform.INSTAGRAM:
+        case CREDENTIAL_PLATFORM.INSTAGRAM:
           analytics = await this.getInstagramAnalytics(
             post.organization.toString(),
             post.brand.toString(),
@@ -350,11 +358,11 @@ export class PostAnalyticsService extends BaseService<
           );
           break;
 
-        case CredentialPlatform.TWITTER:
+        case CREDENTIAL_PLATFORM.TWITTER:
           analytics = await this.getTwitterAnalytics(post.externalId);
           break;
 
-        case CredentialPlatform.PINTEREST:
+        case CREDENTIAL_PLATFORM.PINTEREST:
           analytics = await this.getPinterestAnalytics(
             post.organization.toString(),
             post.brand.toString(),
@@ -367,12 +375,10 @@ export class PostAnalyticsService extends BaseService<
       }
 
       if (analytics) {
-        if (
-          !post._id ||
-          !post.ingredients ||
-          post.ingredients.length === 0 ||
-          !post.user
-        ) {
+        const postIngredients = Array.isArray(post.ingredients)
+          ? post.ingredients
+          : [];
+        if (!post._id || postIngredients.length === 0 || !post.user) {
           this.logger.error(`${url} Missing required post fields`, {
             postId: postId,
           });
@@ -589,7 +595,7 @@ export class PostAnalyticsService extends BaseService<
     },
   ): Promise<void> {
     try {
-      await this.updateTodayAnalytics(postId, CredentialPlatform.TWITTER, {
+      await this.updateTodayAnalytics(postId, CREDENTIAL_PLATFORM.TWITTER, {
         totalComments: analytics.comments,
         totalLikes: analytics.likes,
         totalShares: analytics.retweets || 0,
@@ -631,7 +637,7 @@ export class PostAnalyticsService extends BaseService<
     },
   ): Promise<void> {
     try {
-      await this.updateTodayAnalytics(postId, CredentialPlatform.YOUTUBE, {
+      await this.updateTodayAnalytics(postId, CREDENTIAL_PLATFORM.YOUTUBE, {
         totalComments: analytics.comments,
         totalLikes: analytics.likes,
         totalShares: analytics.shares || 0,
@@ -666,7 +672,7 @@ export class PostAnalyticsService extends BaseService<
     },
   ): Promise<void> {
     try {
-      await this.updateTodayAnalytics(postId, CredentialPlatform.INSTAGRAM, {
+      await this.updateTodayAnalytics(postId, CREDENTIAL_PLATFORM.INSTAGRAM, {
         totalComments: analytics.comments,
         totalLikes: analytics.likes,
         totalShares: analytics.shares || 0,
@@ -702,7 +708,7 @@ export class PostAnalyticsService extends BaseService<
     },
   ): Promise<void> {
     try {
-      await this.updateTodayAnalytics(postId, CredentialPlatform.TIKTOK, {
+      await this.updateTodayAnalytics(postId, CREDENTIAL_PLATFORM.TIKTOK, {
         totalComments: analytics.comments,
         totalLikes: analytics.likes,
         totalShares: analytics.shares,
@@ -735,7 +741,7 @@ export class PostAnalyticsService extends BaseService<
     },
   ): Promise<void> {
     try {
-      await this.updateTodayAnalytics(postId, CredentialPlatform.PINTEREST, {
+      await this.updateTodayAnalytics(postId, CREDENTIAL_PLATFORM.PINTEREST, {
         totalComments: analytics.comments,
         totalLikes: analytics.likes,
         totalShares: 0,

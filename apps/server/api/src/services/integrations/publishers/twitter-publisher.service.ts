@@ -7,6 +7,7 @@ import type {
   MediaInfo,
   PublishContext,
   PublishResult,
+  ThreadChild,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
@@ -17,14 +18,6 @@ import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
-
-type ThreadChild = {
-  _id: { toString(): string } | string;
-  category?: PostCategory;
-  description?: string;
-  ingredients?: Array<{ _id?: { toString(): string } | string } | string>;
-  order?: number;
-};
 
 type TwitterClient = {
   v2: {
@@ -349,6 +342,10 @@ export class TwitterPublisherService extends BasePublisherService {
     credential: CredentialDocument,
     _externalShortcode?: string,
   ): string {
+    if (!credential.externalHandle) {
+      return this.twitterService.buildTweetUrl(externalId, 'i');
+    }
+
     return this.twitterService.buildTweetUrl(
       externalId,
       credential.externalHandle,
@@ -378,6 +375,10 @@ export class TwitterPublisherService extends BasePublisherService {
   private async getTwitterClientFromCredential(
     credential: CredentialDocument,
   ): Promise<TwitterClient> {
+    if (!credential.accessToken) {
+      throw new Error('Twitter credential is missing an access token');
+    }
+
     const decryptedAccessToken = EncryptionUtil.decrypt(credential.accessToken);
 
     const { TwitterApi } = await import('twitter-api-v2');

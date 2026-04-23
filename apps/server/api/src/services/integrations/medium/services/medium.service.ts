@@ -145,6 +145,10 @@ export class MediumService {
         throw new Error('Medium credential not found');
       }
 
+      if (!credential.accessToken) {
+        throw new Error('Medium credential is missing an access token');
+      }
+
       // Decrypt the access token
       const decryptedAccessToken = EncryptionUtil.decrypt(
         credential.accessToken,

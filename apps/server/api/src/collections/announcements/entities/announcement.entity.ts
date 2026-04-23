@@ -2,6 +2,13 @@ import type { Announcement } from '@api/collections/announcements/schemas/announ
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
 
 export class AnnouncementEntity extends BaseEntity implements Announcement {
+  id!: string;
+  mongoId!: string | null;
+  organizationId!: string;
+  title!: string | null;
+  content!: string | null;
+  config!: Announcement['config'];
+
   body!: string;
   tweetText?: string;
   channels!: string[];

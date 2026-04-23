@@ -1,3 +1,4 @@
+import type { BrandAgentConfig } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { type ContentDraftDocument } from '@api/collections/content-drafts/schemas/content-draft.schema';
 import { ContentDraftsService } from '@api/collections/content-drafts/services/content-drafts.service';
@@ -74,13 +75,22 @@ export class ContentReviewService {
       return false;
     }
 
-    const autoPublish = brand.agentConfig?.autoPublish;
+    const agentConfig =
+      brand.agentConfig &&
+      typeof brand.agentConfig === 'object' &&
+      !Array.isArray(brand.agentConfig)
+        ? (brand.agentConfig as BrandAgentConfig)
+        : undefined;
+    const autoPublish = agentConfig?.autoPublish;
 
     if (!autoPublish?.enabled) {
       return false;
     }
 
-    const threshold = autoPublish.confidenceThreshold ?? 0.8;
+    const threshold =
+      typeof autoPublish.confidenceThreshold === 'number'
+        ? autoPublish.confidenceThreshold
+        : 0.8;
 
     if (confidence >= threshold) {
       await this.contentDraftsService.approve(

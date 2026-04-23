@@ -196,7 +196,7 @@ export class WorkflowsService extends BaseService<
 
       // Execute steps in dependency order
       while (completed.size + failed.size < steps.length) {
-        const readySteps = steps.filter((step) => {
+        const readySteps = steps.filter((step: WorkflowStep) => {
           if (completed.has(step.id) || failed.has(step.id)) {
             return false;
           }
@@ -208,7 +208,7 @@ export class WorkflowsService extends BaseService<
 
         if (readySteps.length === 0) {
           const hasBlockedByFailure = steps.some(
-            (step) =>
+            (step: WorkflowStep) =>
               !completed.has(step.id) &&
               !failed.has(step.id) &&
               step.dependsOn?.some((depId: string) => failed.has(depId)),
@@ -234,7 +234,7 @@ export class WorkflowsService extends BaseService<
         }
 
         await Promise.all(
-          readySteps.map(async (step) => {
+          readySteps.map(async (step: WorkflowStep) => {
             try {
               await this.updateWorkflowStep(workflowId, step.id, {
                 startedAt: new Date(),
@@ -288,7 +288,7 @@ export class WorkflowsService extends BaseService<
 
       await this.patch(workflowId, {
         completedAt: new Date(),
-        executionCount: workflow.executionCount + 1,
+        executionCount: (workflow.executionCount ?? 0) + 1,
         lastExecutedAt: new Date(),
         progress: 100,
         status: finalStatus,
@@ -434,7 +434,7 @@ export class WorkflowsService extends BaseService<
   // Generic queue job executor for workflow steps
   private async executeQueuedJob(
     stepType: string,
-    assetId: string,
+    assetId: string | undefined,
     config: Record<string, unknown>,
     queueMethod: keyof TaskQueueClientService,
     resultKey: string,
@@ -442,6 +442,12 @@ export class WorkflowsService extends BaseService<
     if (!this.taskQueueClient) {
       throw new Error(
         `Cannot execute ${stepType} step: task queue client is not available`,
+      );
+    }
+
+    if (!assetId) {
+      throw new BadRequestException(
+        `Cannot execute ${stepType} step without a source asset`,
       );
     }
 
@@ -516,13 +522,14 @@ export class WorkflowsService extends BaseService<
     >;
 
     if (this.postsService) {
+      const postsService = this.postsService;
       const posts = await Promise.all(
         (platforms as string[]).map((platform: string) =>
-          this.postsService?.create({
+          postsService.create({
             brand: workflow.brands?.[0],
             credential: config.credential,
             description: config.description as string,
-            ingredients: [assetId],
+            ingredients: assetId ? [assetId] : [],
             label: config.label as string,
             organization: workflow.organization,
             platform: platform as CredentialPlatform,
@@ -532,7 +539,7 @@ export class WorkflowsService extends BaseService<
                 : (config.scheduledAt as Date),
             status: (visibility as PostStatus) || PostStatus.SCHEDULED,
             user: workflow.user,
-          } as unknown),
+          } as never),
         ),
       );
       return { posts } as Record<string, unknown>;
@@ -704,7 +711,7 @@ export class WorkflowsService extends BaseService<
       startedAt: undefined,
       status: WorkflowStatus.DRAFT,
       user: userId,
-    });
+    } as unknown as CreateWorkflowDto);
 
     return EntityFactory.fromDocument(WorkflowEntity, clonedWorkflow);
   }
@@ -740,23 +747,25 @@ export class WorkflowsService extends BaseService<
     userId: string,
     organizationId: string,
   ): Promise<Array<{ _id: string; count: number }>> {
-    const stats = await this.model.aggregate([
-      {
-        $match: {
-          isDeleted: false,
-          organization: organizationId,
-          user: userId,
-        },
+    const workflows = await this.prisma.workflow.findMany({
+      select: { status: true },
+      where: {
+        isDeleted: false,
+        organizationId,
+        userId,
       },
-      {
-        $group: {
-          _id: '$status',
-          count: { $sum: 1 },
-        },
-      },
-    ]);
+    });
 
-    return stats as Array<{ _id: string; count: number }>;
+    const counts = workflows.reduce<Map<string, number>>((acc, workflow) => {
+      const status = String(workflow.status);
+      acc.set(status, (acc.get(status) ?? 0) + 1);
+      return acc;
+    }, new Map());
+
+    return Array.from(counts.entries()).map(([_id, count]) => ({
+      _id,
+      count,
+    }));
   }
 
   // =============================================================================
@@ -1005,7 +1014,7 @@ export class WorkflowsService extends BaseService<
       throw new NotFoundException(`Execution run ${runId} not found`);
     }
 
-    if (failedRun.status !== WorkflowExecutionStatus.FAILED) {
+    if (String(failedRun.status) !== WorkflowExecutionStatus.FAILED) {
       throw new BadRequestException(`Run ${runId} is not in failed state`);
     }
 
@@ -1021,7 +1030,11 @@ export class WorkflowsService extends BaseService<
     );
 
     if ('runId' in resumedExecution) {
-      return resumedExecution;
+      return {
+        message: String(resumedExecution.message),
+        runId: String(resumedExecution.runId),
+        status: String(resumedExecution.status),
+      };
     }
 
     return {
@@ -1241,7 +1254,7 @@ export class WorkflowsService extends BaseService<
       authType !== 'none' ? this.generateWebhookSecret() : null;
     const baseUrl = process.env.API_URL || 'https://api.genfeed.ai';
 
-    await this.patch(workflowId, {
+    await this.patchWorkflowConfig(workflowId, {
       webhookAuthType: authType,
       webhookId,
       webhookSecret,
@@ -1264,7 +1277,7 @@ export class WorkflowsService extends BaseService<
   ): Promise<{ webhookSecret: string }> {
     const webhookSecret = this.generateWebhookSecret();
 
-    await this.patch(workflowId, { webhookSecret });
+    await this.patchWorkflowConfig(workflowId, { webhookSecret });
 
     return { webhookSecret };
   }
@@ -1274,26 +1287,38 @@ export class WorkflowsService extends BaseService<
    */
   @HandleErrors('delete webhook', 'workflows')
   async deleteWebhook(workflowId: string): Promise<void> {
-    await this.model.updateOne(
-      { _id: workflowId, isDeleted: false },
-      {
-        $set: {
-          webhookAuthType: 'secret',
-        },
-        $unset: {
-          webhookId: '',
-          webhookSecret: '',
-        },
-      },
-    );
+    await this.patchWorkflowConfig(workflowId, {
+      webhookAuthType: 'secret',
+      webhookId: null,
+      webhookLastTriggeredAt: null,
+      webhookSecret: null,
+      webhookTriggerCount: 0,
+    });
   }
 
   /**
    * Find workflow by webhook ID (for public trigger endpoint)
    */
   @HandleErrors('find by webhook', 'workflows')
-  findByWebhookId(webhookId: string): Promise<WorkflowDocument | null> {
-    return this.model.findOne({ isDeleted: false, webhookId });
+  async findByWebhookId(webhookId: string): Promise<WorkflowDocument | null> {
+    const workflows = await this.prisma.workflow.findMany({
+      select: { config: true, id: true },
+      where: { isDeleted: false },
+    });
+
+    const match = workflows.find((workflow) => {
+      const config = this.getWorkflowConfigRecord(workflow.config);
+      return config.webhookId === webhookId;
+    });
+
+    if (!match) {
+      return null;
+    }
+
+    return this.findOne({
+      _id: match.id,
+      isDeleted: false,
+    });
   }
 
   /**
@@ -1311,16 +1336,14 @@ export class WorkflowsService extends BaseService<
     }
 
     // Update webhook stats
-    await this.model.updateOne(
-      {
-        _id: workflow._id,
-        isDeleted: false,
-      },
-      {
-        $inc: { webhookTriggerCount: 1 },
-        $set: { webhookLastTriggeredAt: new Date() },
-      },
-    );
+    const currentWebhookTriggerCount =
+      typeof workflow.webhookTriggerCount === 'number'
+        ? workflow.webhookTriggerCount
+        : 0;
+    await this.patchWorkflowConfig(workflow._id.toString(), {
+      webhookLastTriggeredAt: new Date().toISOString(),
+      webhookTriggerCount: currentWebhookTriggerCount + 1,
+    });
 
     if (!workflow.user || !workflow.organization) {
       throw new Error(
@@ -1405,6 +1428,40 @@ export class WorkflowsService extends BaseService<
     const timestamp = Date.now().toString(36);
     const random = Math.random().toString(36).substring(2, 10);
     return `wh_${timestamp}_${random}`;
+  }
+
+  private getWorkflowConfigRecord(config: unknown): Record<string, unknown> {
+    if (config && typeof config === 'object' && !Array.isArray(config)) {
+      return { ...(config as Record<string, unknown>) };
+    }
+
+    return {};
+  }
+
+  private async patchWorkflowConfig(
+    workflowId: string,
+    updates: Record<string, unknown>,
+  ): Promise<void> {
+    const workflow = await this.prisma.workflow.findFirst({
+      select: { config: true, id: true },
+      where: { id: workflowId, isDeleted: false },
+    });
+
+    if (!workflow) {
+      throw new NotFoundException('Workflow not found');
+    }
+
+    const nextConfig = {
+      ...this.getWorkflowConfigRecord(workflow.config),
+      ...updates,
+    };
+
+    await this.prisma.workflow.update({
+      data: {
+        config: nextConfig as never,
+      },
+      where: { id: workflow.id },
+    });
   }
 
   /**

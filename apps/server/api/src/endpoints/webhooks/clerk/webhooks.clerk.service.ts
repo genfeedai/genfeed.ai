@@ -1,7 +1,11 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { MemberEntity } from '@api/collections/members/entities/member.entity';
 import { MembersService } from '@api/collections/members/services/members.service';
+import { OrganizationEntity } from '@api/collections/organizations/entities/organization.entity';
+import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { RolesService } from '@api/collections/roles/services/roles.service';
+import { SettingEntity } from '@api/collections/settings/entities/setting.entity';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
 import { UserEntity } from '@api/collections/users/entities/user.entity';
 import { type UserDocument } from '@api/collections/users/schemas/user.schema';
@@ -10,8 +14,7 @@ import { TransactionUtil } from '@api/helpers/utils/transaction/transaction.util
 import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { generateLabel } from '@api/shared/utils/label/label.util';
-import type { UserJSON } from '@clerk/backend/dist/api/resources/JSON';
-import { WebhookEvent } from '@clerk/express/webhooks';
+import type { UserJSON, WebhookEvent } from '@clerk/backend';
 import { AppSource, OrganizationCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -156,11 +159,11 @@ export class ClerkWebhookService {
       if (user) {
         // Update the pre-created user with the real Clerk ID
         user = await this.usersService.patch(user._id, {
-          avatar: avatar || user.avatar,
+          avatar: avatar ?? user.avatar ?? undefined,
           clerkId: clerkUserId,
-          email: email || user.email,
-          firstName: firstName || user.firstName,
-          lastName: lastName || user.lastName,
+          email: email ?? user.email ?? undefined,
+          firstName: firstName ?? user.firstName ?? undefined,
+          lastName: lastName ?? user.lastName ?? undefined,
         });
 
         this.loggerService.log(
@@ -188,7 +191,7 @@ export class ClerkWebhookService {
           handle: generateLabel('user'),
           isInvited: isInvited || isConsumerSignup, // Mark consumer users as "invited" to skip post-save hook org creation
           lastName: lastName || undefined,
-        }),
+        }) as Parameters<UsersService['create']>[0],
       );
     } else {
       // Update existing user profile (for both sign-ins and invitations)
@@ -225,11 +228,7 @@ export class ClerkWebhookService {
     // Consumer users are added to the shared GetShareable organization without signup credits
     if (type === 'user.created' && isConsumerSignup) {
       try {
-        await this.handleConsumerSignup(user, url);
-
-        // Get the GetShareable organization for metadata
-        const getShareableOrg =
-          await this.getOrCreateGetShareableOrganization();
+        const getShareableOrg = await this.handleConsumerSignup(user, url);
         organizationId = getShareableOrg._id;
 
         this.loggerService.log(`${url} consumer signup completed`, {
@@ -317,11 +316,15 @@ export class ClerkWebhookService {
             user: user._id,
           });
         } else {
-          await this.membersService.create({
-            isActive: true,
-            organization: orgId,
-            user: user._id,
-          });
+          const roleId = await this.resolveRoleId(['admin', 'user']);
+          await this.membersService.create(
+            new MemberEntity({
+              isActive: true,
+              organization: orgId,
+              role: roleId,
+              user: user._id,
+            }),
+          );
         }
 
         // 3. Transfer brand ownership
@@ -487,11 +490,11 @@ export class ClerkWebhookService {
       try {
         await this.notificationsService.sendUserCreatedNotification({
           _id: user._id,
-          avatar: user.avatar,
-          email: user.email,
-          firstName: user.firstName,
+          avatar: user.avatar ?? undefined,
+          email: user.email ?? undefined,
+          firstName: user.firstName ?? undefined,
           isInvited,
-          lastName: user.lastName,
+          lastName: user.lastName ?? undefined,
         });
       } catch (error: unknown) {
         // Don't fail the webhook if notification fails
@@ -514,21 +517,27 @@ export class ClerkWebhookService {
    * Get or create the shared GetShareable organization for consumer users
    * This organization is used for all getshareable.app users
    */
-  private async getOrCreateGetShareableOrganization() {
+  private async getOrCreateGetShareableOrganization(
+    ownerUserId: string,
+  ): Promise<OrganizationDocument> {
     // Find existing GetShareable organization
     let organization = await this.organizationsService.findOne({
       isDeleted: false,
-      name: GETSHAREABLE_ORG_NAME,
+      label: GETSHAREABLE_ORG_NAME,
     });
 
     if (!organization) {
       // Create the GetShareable organization (should only happen once)
-      organization = await this.organizationsService.create({
-        isDeleted: false,
-        isSelected: false,
-        name: GETSHAREABLE_ORG_NAME,
-        // No user owner - this is a system-level organization
-      } as unknown);
+      organization = await this.organizationsService.create(
+        new OrganizationEntity({
+          category: OrganizationCategory.BUSINESS,
+          isSelected: false,
+          label: GETSHAREABLE_ORG_NAME,
+          onboardingCompleted: true,
+          slug: 'getshareable',
+          user: ownerUserId,
+        }) as unknown as Parameters<OrganizationsService['create']>[0],
+      );
 
       this.loggerService.log(
         `Created GetShareable organization: ${organization._id}`,
@@ -544,41 +553,44 @@ export class ClerkWebhookService {
    * 2. Add user to GetShareable organization as member
    * 3. Link user to the shared organization without free signup credits
    */
-  private async handleConsumerSignup(user: UserDocument, url: string) {
+  private async handleConsumerSignup(
+    user: UserDocument,
+    url: string,
+  ): Promise<OrganizationDocument> {
     const userId = user._id.toString();
 
     // 1. Create user settings
-    await this.settingsService.create({
-      isFirstLogin: true,
-      isVerified: false,
-      theme: 'dark',
-      user: userId,
-    } as unknown);
+    await this.settingsService.create(
+      new SettingEntity({
+        favoriteModelKeys: [],
+        isAdvancedMode: true,
+        isFirstLogin: true,
+        isMenuCollapsed: false,
+        isSidebarProgressCollapsed: false,
+        isVerified: false,
+        theme: 'dark',
+        user: userId,
+      }) as unknown as Parameters<SettingsService['create']>[0],
+    );
 
     // 2. Get or create the GetShareable organization
-    const getShareableOrg = await this.getOrCreateGetShareableOrganization();
+    const getShareableOrg =
+      await this.getOrCreateGetShareableOrganization(userId);
 
     // 3. Get viewer role (read-only access)
-    const viewerRole = await this.rolesService.findOne({
-      isDeleted: false,
-      key: 'viewer',
-    });
-
-    if (!viewerRole) {
-      this.loggerService.warn(
-        `${url} viewer role not found for consumer signup`,
-      );
-    }
+    const viewerRoleId = await this.resolveRoleId(['viewer', 'user', 'admin']);
 
     // Core signup logic (steps 4-5) — runs atomically inside a transaction when available
     const signupCore = async () => {
       // 4. Create member linking user to GetShareable org
-      await this.membersService.create({
-        isActive: true,
-        organization: getShareableOrg._id,
-        role: viewerRole ? viewerRole._id : (undefined as unknown),
-        user: userId,
-      });
+      await this.membersService.create(
+        new MemberEntity({
+          isActive: true,
+          organization: getShareableOrg._id,
+          role: viewerRoleId,
+          user: userId,
+        }),
+      );
     };
 
     // Use transaction if available (requires replica set), otherwise fallback
@@ -590,5 +602,25 @@ export class ClerkWebhookService {
       organizationId: getShareableOrg._id,
       userId,
     });
+
+    return getShareableOrg;
+  }
+
+  private async resolveRoleId(keys: string[]): Promise<string> {
+    for (const key of keys) {
+      const role = await this.rolesService.findOne({
+        isDeleted: false,
+        key,
+      });
+
+      if (role?._id) {
+        return role._id.toString();
+      }
+    }
+
+    throw new HttpException(
+      { detail: 'No role found to assign', title: 'Internal Server Error' },
+      HttpStatus.INTERNAL_SERVER_ERROR,
+    );
   }
 }

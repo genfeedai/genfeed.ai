@@ -101,11 +101,24 @@ export class ReplyBotConfigsController extends BaseCRUDController<
 
   public canUserModifyEntity(user: User, entity: unknown): boolean {
     const publicMetadata = getPublicMetadata(user);
+    const entityRecord = entity as {
+      organization?: { _id?: { toString?: () => string } } | string | null;
+      brand?: { _id?: { toString?: () => string } } | string | null;
+    };
 
     const entityOrganizationId =
-      entity.organization?._id?.toString() || entity.organization?.toString();
+      (typeof entityRecord.organization === 'object' &&
+      entityRecord.organization !== null
+        ? entityRecord.organization._id?.toString?.()
+        : undefined) ||
+      (typeof entityRecord.organization === 'string'
+        ? entityRecord.organization
+        : undefined);
     const entityBrandId =
-      entity.brand?._id?.toString() || entity.brand?.toString();
+      (typeof entityRecord.brand === 'object' && entityRecord.brand !== null
+        ? entityRecord.brand._id?.toString?.()
+        : undefined) ||
+      (typeof entityRecord.brand === 'string' ? entityRecord.brand : undefined);
     if (
       entityOrganizationId &&
       publicMetadata.organization &&
@@ -141,7 +154,6 @@ export class ReplyBotConfigsController extends BaseCRUDController<
       throw new Error('Reply bot config not found');
     }
 
-    // @ts-expect-error TS2554
     const data = await this.replyBotConfigsService.toggleActive(
       id,
       publicMetadata.organization,

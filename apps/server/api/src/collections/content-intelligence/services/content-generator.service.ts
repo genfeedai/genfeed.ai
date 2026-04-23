@@ -249,7 +249,7 @@ export class ContentGeneratorService {
         hashtags: dto.hashtags ?? this.extractHashtags(parsed.content),
         hook: parsed.hook,
         patternId: pattern._id?.toString(),
-        patternUsed: pattern.extractedFormula,
+        patternUsed: pattern.extractedFormula ?? 'pattern',
       };
     } catch (error: unknown) {
       this.logger.error(`${this.constructorName}: Generation failed`, error);
@@ -296,13 +296,14 @@ export class ContentGeneratorService {
     // Sanitize user-provided inputs to prevent prompt injection
     const safeTopic = SecurityUtil.sanitizePromptInput(dto.topic, 500);
     const safeFormula = SecurityUtil.sanitizePromptInput(
-      pattern.extractedFormula,
+      pattern.extractedFormula ?? '',
       1000,
     );
     const safeExample = SecurityUtil.sanitizePromptInput(
-      pattern.rawExample.slice(0, 500),
+      pattern.rawExample?.slice(0, 500) ?? '',
       500,
     );
+    const placeholders = pattern.placeholders ?? [];
 
     let prompt = `Generate a ${dto.platform} post about: "${safeTopic}"
 
@@ -310,7 +311,7 @@ Use this proven pattern:
 FORMULA: ${safeFormula}
 EXAMPLE: ${safeExample}
 
-PLACEHOLDERS TO FILL: ${pattern.placeholders.join(', ')}`;
+PLACEHOLDERS TO FILL: ${placeholders.join(', ')}`;
 
     if (playbookInsights) {
       prompt += `
@@ -462,10 +463,11 @@ Respond with JSON array:
     dto: GenerateContentDto,
     pattern: ContentPatternDocument,
   ): GeneratedContent {
-    let content = pattern.extractedFormula;
+    let content = pattern.extractedFormula ?? dto.topic;
+    const placeholders = pattern.placeholders ?? [];
 
     // Simple placeholder replacement
-    for (const placeholder of pattern.placeholders) {
+    for (const placeholder of placeholders) {
       content = content.replace(
         new RegExp(`\\[${placeholder}\\]`, 'gi'),
         dto.topic,
@@ -476,7 +478,7 @@ Respond with JSON array:
       content,
       hashtags: dto.hashtags ?? [],
       patternId: pattern._id?.toString(),
-      patternUsed: pattern.extractedFormula,
+      patternUsed: pattern.extractedFormula ?? 'pattern',
     };
   }
 

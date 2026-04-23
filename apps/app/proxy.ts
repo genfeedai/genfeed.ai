@@ -122,35 +122,80 @@ type WorkspaceSlugs = {
   orgSlug: string;
 };
 
+const WORKSPACE_SLUG_CACHE_TTL_MS = 30_000;
+const workspaceSlugCache = new Map<
+  string,
+  {
+    expiresAt: number;
+    slugs: WorkspaceSlugs;
+  }
+>();
+
+function readWorkspaceSlugCache(
+  cacheKey?: string | null,
+): WorkspaceSlugs | null {
+  if (!cacheKey || process.env.NODE_ENV === 'test') {
+    return null;
+  }
+
+  const entry = workspaceSlugCache.get(cacheKey);
+  if (!entry) {
+    return null;
+  }
+
+  if (entry.expiresAt <= Date.now()) {
+    workspaceSlugCache.delete(cacheKey);
+    return null;
+  }
+
+  return entry.slugs;
+}
+
+function writeWorkspaceSlugCache(
+  cacheKey: string | null | undefined,
+  slugs: WorkspaceSlugs,
+) {
+  if (!cacheKey || process.env.NODE_ENV === 'test') {
+    return;
+  }
+
+  workspaceSlugCache.set(cacheKey, {
+    expiresAt: Date.now() + WORKSPACE_SLUG_CACHE_TTL_MS,
+    slugs,
+  });
+}
+
 async function resolveActiveWorkspaceSlugs(
   token: string,
+  cacheKey?: string | null,
 ): Promise<WorkspaceSlugs | null> {
+  const cached = readWorkspaceSlugCache(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   const headers = {
     Authorization: `Bearer ${token}`,
     Accept: 'application/json',
   };
 
-  const [bootstrapResponse, organizationsResponse] = await Promise.all([
-    fetch(`${getApiBaseUrl()}/auth/bootstrap`, {
-      cache: 'no-store',
-      headers,
-    }),
-    fetch(`${getApiBaseUrl()}/organizations/mine`, {
-      cache: 'no-store',
-      headers,
-    }),
-  ]);
+  let bootstrapResponse: Response;
 
-  if (!bootstrapResponse.ok || !organizationsResponse.ok) {
+  try {
+    bootstrapResponse = await fetch(`${getApiBaseUrl()}/auth/bootstrap`, {
+      cache: 'no-store',
+      headers,
+    });
+  } catch {
+    return null;
+  }
+
+  if (!bootstrapResponse.ok) {
     return null;
   }
 
   const bootstrap =
     (await bootstrapResponse.json()) as BootstrapResponse | null;
-  const organizations = (await organizationsResponse.json()) as
-    | OrganizationMineResponseItem[]
-    | null;
-
   const brands = bootstrap?.brands ?? [];
   const activeBrandId = bootstrap?.access?.brandId ?? '';
   const matchedBrand = brands.find((brand) => {
@@ -161,24 +206,51 @@ async function resolveActiveWorkspaceSlugs(
     brands.find((brand) => Boolean(brand.slug)) ??
     matchedBrand;
   const brandSlug = resolvedBrand?.slug;
-  const orgSlug =
-    resolvedBrand?.organization?.slug ??
-    organizations?.find((organization) => organization.isActive)?.slug ??
-    organizations?.[0]?.slug;
+  let orgSlug = resolvedBrand?.organization?.slug;
+
+  if (!orgSlug) {
+    let organizationsResponse: Response;
+
+    try {
+      organizationsResponse = await fetch(
+        `${getApiBaseUrl()}/organizations/mine`,
+        {
+          cache: 'no-store',
+          headers,
+        },
+      );
+    } catch {
+      return null;
+    }
+
+    if (!organizationsResponse.ok) {
+      return null;
+    }
+
+    const organizations = (await organizationsResponse.json()) as
+      | OrganizationMineResponseItem[]
+      | null;
+    orgSlug =
+      organizations?.find((organization) => organization.isActive)?.slug ??
+      organizations?.[0]?.slug;
+  }
 
   if (!orgSlug || !brandSlug) {
     return null;
   }
 
-  return { brandCount: brands.length, brandSlug, orgSlug };
+  const slugs = { brandCount: brands.length, brandSlug, orgSlug };
+  writeWorkspaceSlugCache(cacheKey, slugs);
+  return slugs;
 }
 
 async function resolveCanonicalProtectedPath(
   pathname: string,
   token: string,
+  cacheKey?: string | null,
 ): Promise<string | null> {
   const canonicalPath = canonicalizeFlatProtectedPath(pathname);
-  const slugs = await resolveActiveWorkspaceSlugs(token);
+  const slugs = await resolveActiveWorkspaceSlugs(token, cacheKey);
 
   if (!slugs) {
     return null;
@@ -234,7 +306,7 @@ const clerkProxy = isCloudConnected
 
           const token = await session.getToken?.();
           if (token) {
-            const slugs = await resolveActiveWorkspaceSlugs(token);
+            const slugs = await resolveActiveWorkspaceSlugs(token, sessionId);
             if (slugs) {
               return redirectPreservingSearch(
                 req,
@@ -256,6 +328,7 @@ const clerkProxy = isCloudConnected
               ? await resolveCanonicalProtectedPath(
                   '/workspace/overview',
                   token,
+                  sessionId,
                 )
               : null;
 
@@ -279,7 +352,7 @@ const clerkProxy = isCloudConnected
         if (isBareProtectedPath(pathname)) {
           const token = await session.getToken?.();
           const resolvedPath = token
-            ? await resolveCanonicalProtectedPath(pathname, token)
+            ? await resolveCanonicalProtectedPath(pathname, token, sessionId)
             : null;
 
           if (!resolvedPath) {

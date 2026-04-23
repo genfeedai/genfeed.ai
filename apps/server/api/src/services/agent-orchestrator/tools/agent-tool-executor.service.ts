@@ -2,6 +2,11 @@ import { randomUUID } from 'node:crypto';
 import { CreateAgentGoalDto } from '@api/collections/agent-goals/dto/create-agent-goal.dto';
 import { UpdateAgentGoalDto } from '@api/collections/agent-goals/dto/update-agent-goal.dto';
 import { AgentGoalsService } from '@api/collections/agent-goals/services/agent-goals.service';
+import type {
+  AgentMemoryContentType,
+  AgentMemoryKind,
+  AgentMemoryScope,
+} from '@api/collections/agent-memories/schemas/agent-memory.schema';
 import { AgentMemoryCaptureService } from '@api/collections/agent-memories/services/agent-memory-capture.service';
 import { resolveEffectiveBrandAgentConfig } from '@api/collections/brands/utils/brand-agent-config-resolution.util';
 import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
@@ -721,7 +726,7 @@ export class AgentToolExecutorService {
     }
   }
 
-  private dispatch(
+  private async dispatch(
     toolName: AgentToolName,
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
@@ -1007,13 +1012,10 @@ export class AgentToolExecutorService {
         confidence:
           typeof params.confidence === 'number' ? params.confidence : undefined,
         content,
-        contentType:
-          typeof params.contentType === 'string'
-            ? params.contentType
-            : undefined,
+        contentType: this.normalizeAgentMemoryContentType(params.contentType),
         importance:
           typeof params.importance === 'number' ? params.importance : undefined,
-        kind: typeof params.kind === 'string' ? params.kind : undefined,
+        kind: this.normalizeAgentMemoryKind(params.kind),
         performanceSnapshot:
           params.performanceSnapshot &&
           typeof params.performanceSnapshot === 'object'
@@ -1022,7 +1024,7 @@ export class AgentToolExecutorService {
         platform:
           typeof params.platform === 'string' ? params.platform : undefined,
         saveToContextMemory: params.saveToContextMemory === true,
-        scope: typeof params.scope === 'string' ? params.scope : undefined,
+        scope: this.normalizeAgentMemoryScope(params.scope),
         sourceContentId:
           typeof params.sourceContentId === 'string'
             ? params.sourceContentId
@@ -1536,7 +1538,7 @@ export class AgentToolExecutorService {
     }
 
     const missions = this.organizationSettingsService.normalizeJourneyState(
-      settings.onboardingJourneyMissions as
+      settings.onboardingJourneyMissions as unknown as
         | IOnboardingJourneyMissionState[]
         | undefined,
     );
@@ -2030,16 +2032,18 @@ export class AgentToolExecutorService {
     });
   }
 
-  private formatBrandVoiceProfile(profile: BrandVoiceProfileDraft): string {
+  private formatBrandVoiceProfile(
+    profile: Partial<BrandVoiceProfileDraft>,
+  ): string {
     const sections = [
       `Tone: ${profile.tone || 'Not set'}`,
       `Style: ${profile.style || 'Not set'}`,
-      `Audience: ${profile.audience.join(', ') || 'Not set'}`,
-      `Messaging pillars: ${profile.messagingPillars.join(', ') || 'Not set'}`,
-      `Core values: ${profile.values.join(', ') || 'Not set'}`,
-      `Avoid: ${profile.doNotSoundLike.join(', ') || 'Not set'}`,
-      `Taglines: ${profile.taglines.join(', ') || 'Not set'}`,
-      `Hashtags: ${profile.hashtags.join(', ') || 'Not set'}`,
+      `Audience: ${profile.audience?.join(', ') || 'Not set'}`,
+      `Messaging pillars: ${profile.messagingPillars?.join(', ') || 'Not set'}`,
+      `Core values: ${profile.values?.join(', ') || 'Not set'}`,
+      `Avoid: ${profile.doNotSoundLike?.join(', ') || 'Not set'}`,
+      `Taglines: ${profile.taglines?.join(', ') || 'Not set'}`,
+      `Hashtags: ${profile.hashtags?.join(', ') || 'Not set'}`,
       `Sample output:\n${profile.sampleOutput || 'Not set'}`,
     ];
 
@@ -8280,9 +8284,13 @@ export class AgentToolExecutorService {
       });
 
       if (existing) {
+        const existingRecord = existing as Record<string, unknown>;
+        const existingVoteId = String(
+          existingRecord.id ?? existingRecord.mongoId ?? '',
+        );
         await this.votesService.patchAll(
           {
-            _id: existing._id,
+            _id: existingVoteId,
           },
           { $set: { isDeleted: true } },
         );
@@ -8302,15 +8310,16 @@ export class AgentToolExecutorService {
           entity: ingredientId,
           entityModel: VoteEntityModel.INGREDIENT,
           user: ctx.userId,
-        }),
+        }) as unknown as Parameters<VotesService['create']>[0],
       );
+      const voteRecord = vote as Record<string, unknown>;
 
       return {
         creditsUsed: 0,
         data: {
           action: 'added',
           ingredientId,
-          voteId: String(vote._id),
+          voteId: String(voteRecord.id ?? voteRecord.mongoId ?? ''),
         },
         success: true,
       };
@@ -8464,6 +8473,52 @@ export class AgentToolExecutorService {
         error: `Replicate ingredient failed: ${errorMessage}`,
         success: false,
       };
+    }
+  }
+
+  private normalizeAgentMemoryContentType(
+    value: unknown,
+  ): AgentMemoryContentType | undefined {
+    switch (value) {
+      case 'article':
+      case 'generic':
+      case 'newsletter':
+      case 'post':
+      case 'thread':
+      case 'tweet':
+        return value;
+      default:
+        return undefined;
+    }
+  }
+
+  private normalizeAgentMemoryKind(
+    value: unknown,
+  ): AgentMemoryKind | undefined {
+    switch (value) {
+      case 'instruction':
+      case 'negative_example':
+      case 'pattern':
+      case 'positive_example':
+      case 'preference':
+      case 'reference':
+      case 'winner':
+        return value;
+      default:
+        return undefined;
+    }
+  }
+
+  private normalizeAgentMemoryScope(
+    value: unknown,
+  ): AgentMemoryScope | undefined {
+    switch (value) {
+      case 'brand':
+      case 'campaign':
+      case 'user':
+        return value;
+      default:
+        return undefined;
     }
   }
 }

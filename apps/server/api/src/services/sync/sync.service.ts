@@ -1,4 +1,8 @@
 import type { WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
+import type {
+  CloudWorkflowEdge,
+  CloudWorkflowNode,
+} from '@api/collections/workflows/services/workflow-format-converter.service';
 import { WorkflowFormatConverterService } from '@api/collections/workflows/services/workflow-format-converter.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { ConfigService } from '@api/config/config.service';
@@ -33,6 +37,79 @@ export class SyncService {
     private readonly logger: LoggerService,
     private readonly workflowsService: WorkflowsService,
   ) {}
+
+  private isPlainObject(value: unknown): value is Record<string, unknown> {
+    return value !== null && typeof value === 'object' && !Array.isArray(value);
+  }
+
+  private toCloudWorkflowEdges(edges: unknown[]): CloudWorkflowEdge[] {
+    return edges.flatMap((edge) => {
+      if (
+        !this.isPlainObject(edge) ||
+        typeof edge.id !== 'string' ||
+        typeof edge.source !== 'string' ||
+        typeof edge.target !== 'string'
+      ) {
+        return [];
+      }
+
+      return [
+        {
+          id: edge.id,
+          source: edge.source,
+          sourceHandle:
+            typeof edge.sourceHandle === 'string'
+              ? edge.sourceHandle
+              : undefined,
+          target: edge.target,
+          targetHandle:
+            typeof edge.targetHandle === 'string'
+              ? edge.targetHandle
+              : undefined,
+        },
+      ];
+    });
+  }
+
+  private toCloudWorkflowNodes(nodes: unknown[]): CloudWorkflowNode[] {
+    return nodes.flatMap((node) => {
+      if (
+        !this.isPlainObject(node) ||
+        typeof node.id !== 'string' ||
+        typeof node.type !== 'string' ||
+        !this.isPlainObject(node.position) ||
+        typeof node.position.x !== 'number' ||
+        typeof node.position.y !== 'number'
+      ) {
+        return [];
+      }
+
+      const nodeData = this.isPlainObject(node.data) ? node.data : {};
+
+      return [
+        {
+          data: {
+            config: this.isPlainObject(nodeData.config)
+              ? nodeData.config
+              : nodeData,
+            inputVariableKeys: Array.isArray(nodeData.inputVariableKeys)
+              ? nodeData.inputVariableKeys.filter(
+                  (key): key is string => typeof key === 'string',
+                )
+              : undefined,
+            label:
+              typeof nodeData.label === 'string' ? nodeData.label : node.type,
+          },
+          id: node.id,
+          position: {
+            x: node.position.x,
+            y: node.position.y,
+          },
+          type: node.type,
+        },
+      ];
+    });
+  }
 
   /**
    * Deep-scan an object for string values matching a pattern and replace them.
@@ -102,7 +179,7 @@ export class SyncService {
     // 2. Convert to portable cloud format
     const cloudFormat = this.formatConverterService.ensureCloudFormat({
       edges: workflow.edges ?? [],
-      name: workflow.name,
+      name: workflow.name ?? workflow.label ?? undefined,
       nodes: workflow.nodes ?? [],
     });
 
@@ -232,9 +309,9 @@ export class SyncService {
     };
 
     const cloudFormat = this.formatConverterService.ensureCloudFormat({
-      edges: (workflowData.edges ?? []) as Record<string, unknown>[],
+      edges: this.toCloudWorkflowEdges(workflowData.edges ?? []),
       name: workflowData.name ?? 'Pulled Workflow',
-      nodes: (workflowData.nodes ?? []) as Record<string, unknown>[],
+      nodes: this.toCloudWorkflowNodes(workflowData.nodes ?? []),
     });
 
     const created = await this.workflowsService.createWorkflow(
@@ -243,8 +320,10 @@ export class SyncService {
       {
         description: workflowData.description,
         edges: cloudFormat.workflow.edges,
-        label: cloudFormat.workflow.name,
+        label: cloudFormat.workflow.name ?? 'Pulled Workflow',
         nodes: cloudFormat.workflow.nodes,
+        organization,
+        user: userId,
       },
     );
 

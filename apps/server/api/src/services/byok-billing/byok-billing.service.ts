@@ -291,12 +291,11 @@ export class ByokBillingService {
 
         invoiceItemId = invoiceItem.id;
 
-        // @ts-expect-error TS2769
         const invoice = await this.stripeService.stripe.invoices.create({
           auto_advance: true,
           collection_method: 'charge_automatically',
           customer: subscription.stripeCustomerId,
-          metadata,
+          metadata: metadata as unknown as Record<string, string>,
         });
 
         await this.stripeService.stripe.invoices.finalizeInvoice(invoice.id);

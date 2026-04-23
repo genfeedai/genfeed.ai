@@ -200,7 +200,6 @@ export abstract class BaseIntegrationController {
 
     try {
       const brand = await this.validateBrand(
-        // @ts-expect-error TS2345
         createCredentialDto.brand,
         publicMetadata.organization,
       );

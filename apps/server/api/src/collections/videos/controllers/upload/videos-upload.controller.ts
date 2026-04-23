@@ -116,12 +116,9 @@ export class VideosUploadController {
         type: FileInputType.BUFFER,
       })
       .then(async (res) => {
-        await this.ingredientsService.patch(
-          ingredientData._id,
-          new IngredientEntity({
-            status: IngredientStatus.UPLOADED,
-          }),
-        );
+        await this.ingredientsService.patch(ingredientData._id, {
+          status: IngredientStatus.UPLOADED,
+        });
 
         await this.metadataService.patch(
           metadataData._id,

@@ -1,3 +1,4 @@
+import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ConfigService } from '@api/config/config.service';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
@@ -45,6 +46,17 @@ export class ThreadsService {
       this.configService.get('THREADS_GRAPH_URL') ||
       'https://graph.threads.net';
     this.apiVersion = this.configService.get('THREADS_API_VERSION') || 'v1.0';
+  }
+
+  private requireString(
+    value: string | null | undefined,
+    label: string,
+  ): string {
+    if (!value) {
+      throw new Error(`${label} is required`);
+    }
+
+    return value;
   }
 
   /**
@@ -158,7 +170,13 @@ export class ThreadsService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     const credential = await this.getCredential(organizationId, brandId);
-    const decryptedAccessToken = EncryptionUtil.decrypt(credential.accessToken);
+    const decryptedAccessToken = EncryptionUtil.decrypt(
+      this.requireString(credential.accessToken, 'Threads access token'),
+    );
+    const externalId = this.requireString(
+      credential.externalId,
+      'Threads externalId',
+    );
 
     try {
       const params: Record<string, string> = {
@@ -174,7 +192,7 @@ export class ThreadsService {
 
       const response = await firstValueFrom(
         this.httpService.post(
-          `${this.graphUrl}/${this.apiVersion}/${credential.externalId}/threads`,
+          `${this.graphUrl}/${this.apiVersion}/${externalId}/threads`,
           null,
           { params },
         ),
@@ -203,7 +221,13 @@ export class ThreadsService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     const credential = await this.getCredential(organizationId, brandId);
-    const decryptedAccessToken = EncryptionUtil.decrypt(credential.accessToken);
+    const decryptedAccessToken = EncryptionUtil.decrypt(
+      this.requireString(credential.accessToken, 'Threads access token'),
+    );
+    const externalId = this.requireString(
+      credential.externalId,
+      'Threads externalId',
+    );
 
     try {
       const params: Record<string, string> = {
@@ -222,7 +246,7 @@ export class ThreadsService {
 
       const response = await firstValueFrom(
         this.httpService.post(
-          `${this.graphUrl}/${this.apiVersion}/${credential.externalId}/threads`,
+          `${this.graphUrl}/${this.apiVersion}/${externalId}/threads`,
           null,
           { params },
         ),
@@ -249,12 +273,18 @@ export class ThreadsService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     const credential = await this.getCredential(organizationId, brandId);
-    const decryptedAccessToken = EncryptionUtil.decrypt(credential.accessToken);
+    const decryptedAccessToken = EncryptionUtil.decrypt(
+      this.requireString(credential.accessToken, 'Threads access token'),
+    );
+    const externalId = this.requireString(
+      credential.externalId,
+      'Threads externalId',
+    );
 
     try {
       const response = await firstValueFrom(
         this.httpService.post(
-          `${this.graphUrl}/${this.apiVersion}/${credential.externalId}/threads_publish`,
+          `${this.graphUrl}/${this.apiVersion}/${externalId}/threads_publish`,
           null,
           {
             params: {
@@ -285,7 +315,9 @@ export class ThreadsService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     const credential = await this.getCredential(organizationId, brandId);
-    const decryptedAccessToken = EncryptionUtil.decrypt(credential.accessToken);
+    const decryptedAccessToken = EncryptionUtil.decrypt(
+      this.requireString(credential.accessToken, 'Threads access token'),
+    );
 
     try {
       const response = await firstValueFrom(
@@ -413,7 +445,9 @@ export class ThreadsService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     const credential = await this.getCredential(organizationId, brandId);
-    const decryptedAccessToken = EncryptionUtil.decrypt(credential.accessToken);
+    const decryptedAccessToken = EncryptionUtil.decrypt(
+      this.requireString(credential.accessToken, 'Threads access token'),
+    );
 
     try {
       const response = await firstValueFrom(
@@ -430,8 +464,31 @@ export class ThreadsService {
 
       const metrics = response.data.data || [];
       const getMetricValue = (name: string): number => {
-        const metric = metrics.find((m: unknown) => m.name === name);
-        return metric?.values?.[0]?.value || 0;
+        const metric = Array.isArray(metrics)
+          ? metrics.find((entry) => {
+              if (typeof entry !== 'object' || entry === null) {
+                return false;
+              }
+
+              return (entry as Record<string, unknown>).name === name;
+            })
+          : undefined;
+
+        const metricRecord =
+          typeof metric === 'object' && metric !== null
+            ? (metric as Record<string, unknown>)
+            : {};
+        const values = Array.isArray(metricRecord.values)
+          ? metricRecord.values
+          : [];
+        const firstValue =
+          values.length > 0 &&
+          typeof values[0] === 'object' &&
+          values[0] !== null
+            ? (values[0] as Record<string, unknown>).value
+            : undefined;
+
+        return typeof firstValue === 'number' ? firstValue : 0;
       };
 
       this.loggerService.log(`${url} succeeded`, response.data);
@@ -489,7 +546,7 @@ export class ThreadsService {
   private async getCredential(
     organizationId: string,
     brandId: string,
-  ): Promise<unknown> {
+  ): Promise<CredentialDocument> {
     const credential = await this.credentialsService.findOne({
       brand: brandId,
       organization: organizationId,
@@ -504,6 +561,6 @@ export class ThreadsService {
       throw new Error('Threads access token not found');
     }
 
-    return credential;
+    return credential as CredentialDocument;
   }
 }

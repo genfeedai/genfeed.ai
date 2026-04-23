@@ -25,8 +25,8 @@ interface LinkedInTrendTopic {
 
 interface LinkedInCredential {
   _id: string;
-  accessToken?: string;
-  refreshToken?: string;
+  accessToken?: string | null;
+  refreshToken?: string | null;
 }
 
 type LinkedInReactionCounts = {
@@ -869,7 +869,9 @@ export class LinkedInService {
           reactionsSummary.aggregatedTotalReactions,
         )) {
           const type = reactionType.toLowerCase().replace('reaction_type_', '');
-          reactions[type] = count;
+          if (typeof count === 'number') {
+            reactions[type] = count;
+          }
         }
       }
 

@@ -193,7 +193,7 @@ export class PostsAnalyticsController {
     const trackUrl = `${url} trackPostAnalytics`;
     await this.postAnalyticsService.trackPostAnalytics(
       post,
-      credential as unknown,
+      credential as unknown as CredentialEntity,
       trackUrl,
     );
 

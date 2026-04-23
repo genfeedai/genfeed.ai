@@ -79,16 +79,13 @@ export class VideosGifController {
       .waitForJob(jobResponse.jobId, 60000)
       .then(async (result) => {
         await this.filesClientService.uploadToS3(ingredientData._id, `gifs`, {
-          path: result.outputPath,
+          path: String(result.outputPath ?? ''),
           type: FileInputType.FILE,
         });
 
-        await this.ingredientsService.patch(
-          ingredientData._id,
-          new IngredientEntity({
-            status: IngredientStatus.GENERATED,
-          }),
-        );
+        await this.ingredientsService.patch(ingredientData._id, {
+          status: IngredientStatus.GENERATED,
+        });
 
         await this.metadataService.patch(
           metadataData._id,

@@ -14,7 +14,6 @@ import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/colle
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { PipelineBuilder } from '@api/shared/utils/pipeline-builder/pipeline-builder.util';
-import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
 import type { User } from '@clerk/backend';
 import { MemberRole } from '@genfeedai/enums';
 import type { PopulateOption } from '@genfeedai/interfaces';
@@ -51,12 +50,7 @@ export class ElementsSoundsController extends BaseCRUDController<
     public readonly soundsService: ElementsSoundsService,
     public readonly loggerService: LoggerService,
   ) {
-    super(
-      loggerService,
-      soundsService as unknown,
-      SoundSerializer,
-      'ElementSound',
-    );
+    super(loggerService, soundsService, SoundSerializer, 'ElementSound');
   }
 
   @Get(':soundId')
@@ -122,18 +116,12 @@ export class ElementsSoundsController extends BaseCRUDController<
     );
 
     // Build OR conditions: global items OR user's org items OR user's items
-    const orConditions: Record<string, unknown>[] = [
-      { organization: { $exists: false }, user: { $exists: false } }, // global items
-    ];
+    const orConditions: Record<string, unknown>[] = [];
 
     if (publicMetadata.organization) {
       orConditions.push({
-        organization: publicMetadata.organization,
+        organizationId: publicMetadata.organization,
       });
-    }
-
-    if (publicMetadata.user) {
-      orConditions.push({ user: publicMetadata.user });
     }
 
     return PipelineBuilder.create()
@@ -142,7 +130,8 @@ export class ElementsSoundsController extends BaseCRUDController<
         ...(typeof query.isFavorite === 'boolean' && {
           isFavorite: query.isFavorite,
         }),
-        ...(adminFilter ?? { $or: orConditions }),
+        ...(adminFilter ??
+          (orConditions.length > 0 ? { $or: orConditions } : {})),
       })
       .sort(
         query.sort ? handleQuerySort(query.sort) : { createdAt: -1, label: 1 },
@@ -158,15 +147,17 @@ export class ElementsSoundsController extends BaseCRUDController<
     user: User,
   ): CreateElementSoundDto {
     const publicMetadata = getPublicMetadata(user);
-    const enriched: unknown = { ...createDto };
+    const enriched: CreateElementSoundDto & { organizationId?: string } = {
+      ...createDto,
+    };
 
     // Add organization if not super admin
     if (!getIsSuperAdmin(user) && publicMetadata.organization) {
-      enriched.organization = publicMetadata.organization;
+      enriched.organizationId = publicMetadata.organization;
     }
 
     // Sounds don't have a user field
-    return enriched;
+    return enriched as CreateElementSoundDto;
   }
 
   /**
@@ -174,22 +165,15 @@ export class ElementsSoundsController extends BaseCRUDController<
    */
   public enrichUpdateDto(
     updateDto: UpdateElementSoundDto,
+    _user?: User,
   ): Promise<UpdateElementSoundDto> {
-    const enriched: unknown = { ...updateDto };
-
-    // Only add organization if it's being updated
-    if (enriched.organization) {
-      enriched.organization = enriched.organization;
-    }
-
-    // Sounds don't have a user field
-    return enriched;
+    return Promise.resolve({ ...updateDto });
   }
 
   /**
    * Override canUserModifyEntity to use organization authorization
    */
-  public canUserModifyEntity(user: User, entity: unknown): boolean {
+  public canUserModifyEntity(user: User, entity: ElementSound): boolean {
     const publicMetadata = getPublicMetadata(user);
 
     // Superadmins can modify any sound
@@ -198,8 +182,7 @@ export class ElementsSoundsController extends BaseCRUDController<
     }
 
     // Check organization ownership
-    const entityOrgId =
-      entity.organization?._id?.toString() || entity.organization?.toString();
+    const entityOrgId = entity.organizationId;
     if (entityOrgId && entityOrgId === publicMetadata.organization) {
       return true;
     }
@@ -213,6 +196,6 @@ export class ElementsSoundsController extends BaseCRUDController<
    * Only populate organization field for ownership checks
    */
   public getPopulateForOwnershipCheck(): PopulateOption[] {
-    return [PopulateBuilder.idOnly('organization')];
+    return [];
   }
 }

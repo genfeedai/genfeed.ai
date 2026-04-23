@@ -201,6 +201,9 @@ export class ContentExecutionService {
   ): Promise<ExecutionResult> {
     const itemId = String(item._id);
     const skillSlug = item.skillSlug ?? 'content-writing';
+    const itemPlatforms = item.platforms ?? [];
+    const itemPrompt = item.prompt ?? undefined;
+    const itemTopic = item.topic ?? undefined;
 
     const result = await this.skillExecutorService.execute(
       skillSlug,
@@ -208,17 +211,17 @@ export class ContentExecutionService {
         brandId,
         brandVoice: '',
         organizationId,
-        platforms: item.platforms,
+        platforms: itemPlatforms,
       },
       {
-        platforms: item.platforms,
-        prompt: item.prompt,
-        topic: item.topic,
+        platforms: itemPlatforms,
+        prompt: itemPrompt,
+        topic: itemTopic,
       },
     );
 
     const draft = await this.contentDraftsService.createFromContentEngine({
-      brand: brandId,
+      brandId,
       confidence: result.draft.confidence,
       content: result.draft.content,
       generatedBy: `content-engine:${skillSlug}`,
@@ -229,8 +232,8 @@ export class ContentExecutionService {
         contentPlanItemId: itemId,
         source: result.source,
       },
-      organization: organizationId,
-      platforms: item.platforms,
+      organizationId,
+      platforms: itemPlatforms,
       skillSlug,
       status: ContentDraftStatus.PENDING,
       type: result.draft.type,
@@ -262,6 +265,9 @@ export class ContentExecutionService {
     item: ContentPlanItemDocument,
   ): Promise<ExecutionResult> {
     const itemId = String(item._id);
+    const itemPlatforms = item.platforms ?? [];
+    const itemPrompt = item.prompt ?? undefined;
+    const itemTopic = item.topic ?? undefined;
 
     if (!item.pipelineSteps || item.pipelineSteps.length === 0) {
       throw new Error(
@@ -275,7 +281,7 @@ export class ContentExecutionService {
           return {
             aspectRatio: step.aspectRatio,
             model: step.model as ImageTaskModel,
-            prompt: step.prompt ?? item.prompt,
+            prompt: step.prompt ?? itemPrompt,
             type: 'text-to-image' as const,
           };
         case 'image-to-video':
@@ -290,7 +296,7 @@ export class ContentExecutionService {
         case 'text-to-speech':
           return {
             model: step.model as MusicTaskModel,
-            text: step.text ?? item.prompt,
+            text: step.text ?? itemPrompt,
             type: 'text-to-speech' as const,
             voiceId: step.voiceId ?? '',
           };
@@ -298,13 +304,13 @@ export class ContentExecutionService {
           return {
             duration: step.duration,
             model: step.model as MusicTaskModel,
-            prompt: step.prompt ?? item.prompt,
+            prompt: step.prompt ?? itemPrompt,
             type: 'text-to-music' as const,
           };
         default:
           return {
             model: step.model as ImageTaskModel,
-            prompt: step.prompt ?? item.prompt,
+            prompt: step.prompt ?? itemPrompt,
             type: 'text-to-image' as const,
           };
       }
@@ -319,8 +325,8 @@ export class ContentExecutionService {
         // The orchestration service requires a personaId — use brandId as a proxy.
         // In production, this should be resolved from the brand's linked persona.
         personaId: brandId,
-        platforms: item.platforms,
-        prompt: item.prompt,
+        platforms: itemPlatforms,
+        prompt: itemPrompt,
         publishMode: 'none',
         steps,
         userId,
@@ -333,8 +339,8 @@ export class ContentExecutionService {
     }
 
     const draft = await this.contentDraftsService.createFromContentEngine({
-      brand: brandId,
-      content: item.prompt ?? item.topic,
+      brandId,
+      content: item.prompt ?? item.topic ?? '',
       generatedBy: 'content-engine:media-pipeline',
       isDeleted: false,
       mediaUrls: pipelineResult.steps
@@ -346,8 +352,8 @@ export class ContentExecutionService {
         pipelineStatus: pipelineResult.status,
         postIds: pipelineResult.postIds,
       },
-      organization: organizationId,
-      platforms: item.platforms,
+      organizationId,
+      platforms: itemPlatforms,
       skillSlug: 'media-pipeline',
       status: ContentDraftStatus.PENDING,
       type: 'media',

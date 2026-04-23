@@ -1,6 +1,8 @@
 import { AdOptimizationAuditLogsService } from '@api/collections/ad-optimization-audit-logs/services/ad-optimization-audit-logs.service';
+import type { AdOptimizationConfigDocument } from '@api/collections/ad-optimization-configs/schemas/ad-optimization-config.schema';
 import { AdOptimizationConfigsService } from '@api/collections/ad-optimization-configs/services/ad-optimization-configs.service';
 import type {
+  AdOptimizationRecommendationDocument,
   RecommendationStatus,
   RecommendationType,
 } from '@api/collections/ad-optimization-recommendations/schemas/ad-optimization-recommendation.schema';
@@ -16,7 +18,6 @@ import { MetaAdsService } from '@api/services/integrations/meta-ads/services/met
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import type { User } from '@clerk/backend';
 import { CredentialPlatform } from '@genfeedai/enums';
-import { type AdOptimizationConfig } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
@@ -120,10 +121,10 @@ export class MetaAdsOptimizationController {
     this.loggerService.log(`${url} started`);
 
     const ctx = extractRequestContext(user);
-    const rec = await this.recommendationsService.findById(
+    const rec = (await this.recommendationsService.findById(
       id,
       ctx.organizationId,
-    );
+    )) as AdOptimizationRecommendationDocument | null;
 
     if (!rec) {
       throw new NotFoundException(`Recommendation ${id} not found`);
@@ -132,6 +133,12 @@ export class MetaAdsOptimizationController {
     if (rec.status !== 'approved') {
       throw new BadRequestException(
         `Recommendation must be approved before execution. Current status: ${rec.status}`,
+      );
+    }
+
+    if (!rec.entityId) {
+      throw new BadRequestException(
+        `Recommendation ${id} is missing an entityId`,
       );
     }
 
@@ -148,9 +155,9 @@ export class MetaAdsOptimizationController {
 
       case 'budget_increase': {
         const suggestedAction = rec.suggestedAction || {};
-        const increasePct = (suggestedAction.budgetIncreasePct as number) || 20;
-        const maxBudget = (suggestedAction.maxDailyBudget as number) || 500;
-        const currentSpend = rec.metrics.spend || 0;
+        const increasePct = suggestedAction.budgetIncreasePct || 20;
+        const maxBudget = suggestedAction.maxDailyBudget || 500;
+        const currentSpend = rec.metrics?.spend || 0;
         const daysInWindow = 7;
         const estimatedDailyBudget =
           daysInWindow > 0 ? currentSpend / daysInWindow : 0;
@@ -206,7 +213,7 @@ export class MetaAdsOptimizationController {
   @Put('config')
   async updateConfig(
     @CurrentUser() user: User,
-    @Body() body: Partial<AdOptimizationConfig>,
+    @Body() body: Partial<AdOptimizationConfigDocument>,
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${url} started`);

@@ -48,7 +48,11 @@ export class TelegramService {
 
     try {
       // Validate required fields
-      if (!TelegramAuthUtil.hasRequiredFields(authData)) {
+      if (
+        !TelegramAuthUtil.hasRequiredFields(
+          authData as unknown as Record<string, unknown>,
+        )
+      ) {
         this.loggerService.error(`${url} missing required fields`, {
           authData,
         });
@@ -76,7 +80,12 @@ export class TelegramService {
       }
 
       // Verify HMAC signature
-      if (!TelegramAuthUtil.verifyAuthData(authData, this.botToken!)) {
+      if (
+        !TelegramAuthUtil.verifyAuthData(
+          authData as unknown as Record<string, unknown>,
+          this.botToken!,
+        )
+      ) {
         this.loggerService.error(`${url} invalid HMAC signature`);
         throw new HttpException(
           {

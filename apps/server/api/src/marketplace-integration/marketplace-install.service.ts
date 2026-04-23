@@ -165,14 +165,14 @@ export class MarketplaceInstallService {
     const slug =
       (downloadData.slug as string) || title.toLowerCase().replace(/\s+/g, '-');
 
-    const skill = await this.skillsService.createSkill(userId, organizationId, {
+    const skill = await this.skillsService.createSkill(organizationId, {
       description: downloadData.description as string | undefined,
       files:
         (downloadData.files as Array<{ path: string; content: string }>) || [],
       slug,
       sourceListingId: listingId,
       title,
-    });
+    } as unknown as Parameters<SkillsService['createSkill']>[1]);
 
     return {
       resourceId: skill._id.toString(),

@@ -8,6 +8,10 @@
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import type {
+  IngredientDocument,
+  IngredientRefDocument,
+} from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { CreatePostDto } from '@api/collections/posts/dto/create-post.dto';
 import { PostsQueryDto } from '@api/collections/posts/dto/posts-query.dto';
@@ -16,10 +20,7 @@ import {
   type PostDocument,
   Post as PostModel,
 } from '@api/collections/posts/schemas/post.schema';
-import {
-  POST_ANALYTICS_PLATFORM_GROUP_PIPELINE,
-  PostAnalyticsService,
-} from '@api/collections/posts/services/post-analytics.service';
+import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
@@ -118,6 +119,32 @@ export class PostsController extends BaseCRUDController<
     return `${truncated}...`;
   }
 
+  private getIngredientRefId(
+    value: string | IngredientRefDocument | null | undefined,
+  ): string | undefined {
+    if (typeof value === 'string') {
+      return value;
+    }
+
+    return value?._id ?? value?.id;
+  }
+
+  private getPostCategoryFromIngredient(
+    ingredient: Pick<IngredientDocument, 'category'> | null,
+  ): PostCategory {
+    const category = String(ingredient?.category ?? '').toLowerCase();
+
+    if (category === IngredientCategory.IMAGE.toLowerCase()) {
+      return PostCategory.IMAGE;
+    }
+
+    if (category === IngredientCategory.VIDEO.toLowerCase()) {
+      return PostCategory.VIDEO;
+    }
+
+    return PostCategory.TEXT;
+  }
+
   @Post()
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async create(
@@ -149,7 +176,7 @@ export class PostsController extends BaseCRUDController<
       if (
         createPostDto.status === PostStatus.SCHEDULED &&
         createPostDto.category === PostCategory.TEXT &&
-        credential.platform !== CredentialPlatform.TWITTER
+        String(credential.platform) !== CredentialPlatform.TWITTER
       ) {
         throw new HttpException(
           {
@@ -163,7 +190,7 @@ export class PostsController extends BaseCRUDController<
       // Validate ingredients required when scheduling for non-Twitter platforms
       if (
         createPostDto.status === PostStatus.SCHEDULED &&
-        credential.platform !== CredentialPlatform.TWITTER
+        String(credential.platform) !== CredentialPlatform.TWITTER
       ) {
         if (
           !createPostDto.ingredients ||
@@ -179,7 +206,7 @@ export class PostsController extends BaseCRUDController<
         }
       }
 
-      let firstIngredient = null;
+      let firstIngredient: IngredientDocument | null = null;
       let ingredientIds: string[] = [];
 
       if (createPostDto.ingredients && createPostDto.ingredients.length > 0) {
@@ -212,9 +239,8 @@ export class PostsController extends BaseCRUDController<
           ingredients.map((i) => [i._id.toString(), i]),
         );
         ingredientIds = createPostDto.ingredients.map((id) => id);
-        firstIngredient = ingredientMap.get(
-          createPostDto.ingredients[0].toString(),
-        );
+        firstIngredient =
+          ingredientMap.get(createPostDto.ingredients[0].toString()) ?? null;
       } else if (createPostDto.campaign) {
         const campaignIngredients =
           await this.ingredientsService.findApprovedImagesByCampaign(
@@ -235,7 +261,7 @@ export class PostsController extends BaseCRUDController<
         }
 
         ingredientIds = campaignIngredients.map((ingredient) => ingredient._id);
-        [firstIngredient] = campaignIngredients;
+        [firstIngredient = null] = campaignIngredients;
       }
 
       await this.quotaService.verifyQuota(
@@ -245,16 +271,13 @@ export class PostsController extends BaseCRUDController<
 
       const data = await this.postsService.create({
         ...createPostDto,
-        brand: firstIngredient ? firstIngredient.brand : publicMetadata.brand,
+        brand: firstIngredient
+          ? (this.getIngredientRefId(firstIngredient.brand) ??
+            publicMetadata.brand)
+          : publicMetadata.brand,
         category:
           createPostDto.category ||
-          (firstIngredient
-            ? firstIngredient.category === IngredientCategory.IMAGE
-              ? PostCategory.IMAGE
-              : firstIngredient.category === IngredientCategory.VIDEO
-                ? PostCategory.VIDEO
-                : PostCategory.TEXT
-            : PostCategory.TEXT),
+          this.getPostCategoryFromIngredient(firstIngredient),
         credential: createPostDto.credential,
         description: createPostDto.description || credential.description || '',
         ingredients: ingredientIds,
@@ -265,9 +288,10 @@ export class PostsController extends BaseCRUDController<
             ? this.extractLabelFromText(createPostDto.description.trim())
             : ''),
         organization: firstIngredient
-          ? firstIngredient.organization
+          ? (this.getIngredientRefId(firstIngredient.organization) ??
+            publicMetadata.organization)
           : publicMetadata.organization,
-        platform: credential.platform, // Save platform from credential
+        platform: credential.platform as never, // Save platform from credential
         publicationDate: createPostDto.publicationDate,
         scheduledDate: createPostDto.scheduledDate,
         status: createPostDto.status,
@@ -277,12 +301,16 @@ export class PostsController extends BaseCRUDController<
 
       await this.activitiesService.create(
         new ActivityEntity({
-          brand: firstIngredient ? firstIngredient.brand : publicMetadata.brand,
+          brand: firstIngredient
+            ? (this.getIngredientRefId(firstIngredient.brand) ??
+              publicMetadata.brand)
+            : publicMetadata.brand,
           entityId: data._id,
           entityModel: ActivityEntityModel.POST,
           key: ActivityKey.VIDEO_SCHEDULED,
           organization: firstIngredient
-            ? firstIngredient.organization
+            ? (this.getIngredientRefId(firstIngredient.organization) ??
+              publicMetadata.organization)
             : publicMetadata.organization,
           source: ActivitySource.SCRIPT,
           user: publicMetadata.user,
@@ -290,7 +318,7 @@ export class PostsController extends BaseCRUDController<
         }),
       );
 
-      if (credential.platform === CredentialPlatform.YOUTUBE) {
+      if (String(credential.platform) === CredentialPlatform.YOUTUBE) {
         this.postsService.handleYoutubePost(data).catch((error) => {
           this.loggerService.error(
             `Failed to trigger YouTube upload for post ${data._id}: ${error.message}`,
@@ -302,7 +330,13 @@ export class PostsController extends BaseCRUDController<
       return serializeSingle(request, this.serializer, data);
     } catch (error: unknown) {
       if (error instanceof Error && 'response' in error) {
-        return returnBadRequest((error as { response: unknown }).response);
+        const response = (error as { response?: unknown }).response;
+        return returnBadRequest(
+          typeof response === 'string' ||
+            (response !== null && typeof response === 'object')
+            ? (response as string | Record<string, unknown>)
+            : 'Bad request',
+        );
       }
       throw error;
     }
@@ -415,9 +449,7 @@ export class PostsController extends BaseCRUDController<
           foreignField: 'post',
           from: 'post-analytics',
           localField: '_id',
-          // @ts-expect-error TS2322
           pipeline: [
-            ...(POST_ANALYTICS_PLATFORM_GROUP_PIPELINE as unknown[]),
             {
               $group: {
                 _id: null,

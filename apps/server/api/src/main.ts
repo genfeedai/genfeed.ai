@@ -162,7 +162,7 @@ async function main() {
 
     app.use(
       compression({
-        filter: (req, res) => {
+        filter: (req: Request, res: Response) => {
           if (req.headers['x-no-compression']) {
             return false;
           }
@@ -173,13 +173,7 @@ async function main() {
       }),
     );
 
-    app.useGlobalPipes(
-      new ValidationPipe({
-        forbidNonWhitelisted: true,
-        transform: true,
-        whitelist: true,
-      }),
-    );
+    app.useGlobalPipes(new ValidationPipe());
     app.useLogger(logger);
 
     // Get optional services

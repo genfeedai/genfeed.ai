@@ -3,18 +3,21 @@ import { randomUUID } from 'node:crypto';
 import type {
   BotDocument,
   BotLivestreamMessageTemplate,
+  BotLivestreamMessageType,
   BotTarget,
 } from '@api/collections/bots/schemas/bot.schema';
 import type {
   LivestreamBotSessionDocument,
   LivestreamDeliveryRecord,
   LivestreamPlatformState,
+  LivestreamSessionContext,
   LivestreamTranscriptChunk,
 } from '@api/collections/bots/schemas/livestream-bot-session.schema';
 import { ConfigService } from '@api/config/config.service';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BotPlatform } from '@genfeedai/enums';
+import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
@@ -27,10 +30,7 @@ import {
   type ResolvedLivestreamContext,
 } from './bots-livestream-runtime.service';
 
-type LivestreamMessageType =
-  | 'scheduled_link_drop'
-  | 'scheduled_host_prompt'
-  | 'context_aware_question';
+type LivestreamMessageType = BotLivestreamMessageType;
 
 interface TranscriptPayload {
   audioUrl?: string;
@@ -58,6 +58,79 @@ function isLivestreamPlatform(
   return platform === BotPlatform.TWITCH || platform === BotPlatform.YOUTUBE;
 }
 
+function isLivestreamMessageType(
+  messageType: string,
+): messageType is LivestreamMessageType {
+  return (
+    messageType === 'scheduled_link_drop' ||
+    messageType === 'scheduled_host_prompt' ||
+    messageType === 'context_aware_question'
+  );
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function mergeLegacyPayload(
+  target: Record<string, unknown>,
+  source: unknown,
+): void {
+  if (!isPlainObject(source)) {
+    return;
+  }
+
+  for (const [key, value] of Object.entries(source)) {
+    if (target[key] === undefined) {
+      target[key] = value;
+    }
+  }
+}
+
+function toDate(value: unknown): Date | undefined {
+  if (value instanceof Date) {
+    return value;
+  }
+
+  if (typeof value !== 'string' && typeof value !== 'number') {
+    return undefined;
+  }
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? undefined : parsed;
+}
+
+function toJsonCompatible(value: unknown): unknown {
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => toJsonCompatible(item));
+  }
+
+  if (isPlainObject(value)) {
+    return Object.fromEntries(
+      Object.entries(value)
+        .filter(([, entryValue]) => entryValue !== undefined)
+        .map(([key, entryValue]) => [key, toJsonCompatible(entryValue)]),
+    );
+  }
+
+  return value;
+}
+
+function mergeSessionContext(
+  current: LivestreamSessionContext | undefined,
+  patch: Partial<LivestreamSessionContext>,
+): LivestreamSessionContext {
+  return {
+    ...(current ?? { source: 'none' }),
+    ...patch,
+    source: patch.source ?? current?.source ?? 'none',
+  };
+}
+
 @Injectable()
 export class BotsLivestreamService {
   constructor(
@@ -69,133 +142,483 @@ export class BotsLivestreamService {
     private readonly runtimeService: BotsLivestreamRuntimeService,
   ) {}
 
-  async getOrCreateSession(
-    bot: BotDocument,
-  ): Promise<LivestreamBotSessionDocument> {
-    const botId = String(bot.id ?? (bot as Record<string, unknown>)._id);
-    const organizationId = String(
-      (bot as Record<string, unknown>).organizationId ??
-        (bot as Record<string, unknown>).organization,
-    );
+  private normalizeBotDocument(bot: BotDocument): BotDocument {
+    const normalized = { ...bot } as Record<string, unknown>;
+    const legacyId =
+      typeof normalized.mongoId === 'string' && normalized.mongoId.length > 0
+        ? normalized.mongoId
+        : normalized.id;
 
-    const existingSession = await this.prisma.livestreamBotSession.findFirst({
-      where: {
-        botId,
-        isDeleted: false,
-        organizationId,
+    if (normalized._id === undefined && typeof legacyId === 'string') {
+      normalized._id = legacyId;
+    }
+
+    if (
+      normalized.organization === undefined &&
+      typeof normalized.organizationId === 'string'
+    ) {
+      normalized.organization = normalized.organizationId;
+    }
+
+    if (
+      normalized.user === undefined &&
+      typeof normalized.userId === 'string'
+    ) {
+      normalized.user = normalized.userId;
+    }
+
+    if (
+      normalized.brand === undefined &&
+      (typeof normalized.brandId === 'string' || normalized.brandId === null)
+    ) {
+      normalized.brand = normalized.brandId;
+    }
+
+    mergeLegacyPayload(normalized, normalized.config);
+    mergeLegacyPayload(normalized, normalized.settings);
+
+    normalized.targets = Array.isArray(normalized.targets)
+      ? normalized.targets.flatMap((target) => {
+          if (!isPlainObject(target)) {
+            return [];
+          }
+
+          if (
+            typeof target.platform !== 'string' ||
+            typeof target.channelId !== 'string'
+          ) {
+            return [];
+          }
+
+          return [
+            {
+              channelId: target.channelId,
+              channelLabel:
+                typeof target.channelLabel === 'string'
+                  ? target.channelLabel
+                  : undefined,
+              channelUrl:
+                typeof target.channelUrl === 'string'
+                  ? target.channelUrl
+                  : undefined,
+              credentialId:
+                typeof target.credentialId === 'string'
+                  ? target.credentialId
+                  : undefined,
+              isEnabled:
+                typeof target.isEnabled === 'boolean'
+                  ? target.isEnabled
+                  : undefined,
+              liveChatId:
+                typeof target.liveChatId === 'string'
+                  ? target.liveChatId
+                  : undefined,
+              platform: target.platform,
+              senderId:
+                typeof target.senderId === 'string'
+                  ? target.senderId
+                  : undefined,
+            } satisfies BotTarget,
+          ];
+        })
+      : [];
+
+    if (isPlainObject(normalized.livestreamSettings)) {
+      const livestreamSettings = {
+        ...normalized.livestreamSettings,
+      } as Record<string, unknown>;
+
+      livestreamSettings.links = Array.isArray(livestreamSettings.links)
+        ? livestreamSettings.links.flatMap((link) => {
+            if (
+              !isPlainObject(link) ||
+              typeof link.id !== 'string' ||
+              typeof link.label !== 'string' ||
+              typeof link.url !== 'string'
+            ) {
+              return [];
+            }
+
+            return [
+              {
+                ...link,
+                id: link.id,
+                label: link.label,
+                url: link.url,
+              },
+            ];
+          })
+        : [];
+
+      livestreamSettings.messageTemplates = Array.isArray(
+        livestreamSettings.messageTemplates,
+      )
+        ? livestreamSettings.messageTemplates.flatMap((template) => {
+            if (
+              !isPlainObject(template) ||
+              typeof template.id !== 'string' ||
+              typeof template.text !== 'string' ||
+              typeof template.type !== 'string' ||
+              !isLivestreamMessageType(template.type)
+            ) {
+              return [];
+            }
+
+            return [
+              {
+                ...template,
+                enabled:
+                  typeof template.enabled === 'boolean'
+                    ? template.enabled
+                    : undefined,
+                id: template.id,
+                platforms: Array.isArray(template.platforms)
+                  ? template.platforms.filter(
+                      (platform): platform is string =>
+                        typeof platform === 'string',
+                    )
+                  : undefined,
+                text: template.text,
+                type: template.type,
+              } satisfies BotLivestreamMessageTemplate,
+            ];
+          })
+        : [];
+
+      normalized.livestreamSettings = livestreamSettings;
+    }
+
+    return normalized as BotDocument;
+  }
+
+  private normalizeSessionContext(context: unknown): LivestreamSessionContext {
+    const normalized = isPlainObject(context)
+      ? { ...context }
+      : ({} as Record<string, unknown>);
+    const manualOverride = isPlainObject(normalized.manualOverride)
+      ? { ...normalized.manualOverride }
+      : undefined;
+
+    if (manualOverride) {
+      const expiresAt = toDate(manualOverride.expiresAt);
+
+      if (expiresAt) {
+        manualOverride.expiresAt = expiresAt;
+      } else {
+        delete manualOverride.expiresAt;
+      }
+    }
+
+    return {
+      ...normalized,
+      manualOverride,
+      source:
+        normalized.source === 'manual_override' ||
+        normalized.source === 'transcript' ||
+        normalized.source === 'none'
+          ? normalized.source
+          : 'none',
+    };
+  }
+
+  private normalizeSessionDocument(
+    session: Record<string, unknown>,
+  ): LivestreamBotSessionDocument {
+    const normalized = { ...session };
+    const legacyId =
+      typeof normalized.mongoId === 'string' && normalized.mongoId.length > 0
+        ? normalized.mongoId
+        : normalized.id;
+
+    if (normalized._id === undefined && typeof legacyId === 'string') {
+      normalized._id = legacyId;
+    }
+
+    mergeLegacyPayload(normalized, normalized.data);
+
+    if (normalized.bot === undefined && typeof normalized.botId === 'string') {
+      normalized.bot = normalized.botId;
+    }
+
+    if (
+      normalized.organization === undefined &&
+      typeof normalized.organizationId === 'string'
+    ) {
+      normalized.organization = normalized.organizationId;
+    }
+
+    if (
+      normalized.user === undefined &&
+      typeof normalized.userId === 'string'
+    ) {
+      normalized.user = normalized.userId;
+    }
+
+    if (
+      normalized.brand === undefined &&
+      (typeof normalized.brandId === 'string' || normalized.brandId === null)
+    ) {
+      normalized.brand = normalized.brandId;
+    }
+
+    normalized.context = this.normalizeSessionContext(normalized.context);
+    normalized.platformStates = Array.isArray(normalized.platformStates)
+      ? normalized.platformStates.flatMap((platformState) => {
+          if (
+            !isPlainObject(platformState) ||
+            typeof platformState.platform !== 'string'
+          ) {
+            return [];
+          }
+
+          return [
+            {
+              ...platformState,
+              hourlyPostCount:
+                typeof platformState.hourlyPostCount === 'number'
+                  ? platformState.hourlyPostCount
+                  : 0,
+              hourWindowStartedAt: toDate(platformState.hourWindowStartedAt),
+              lastError:
+                typeof platformState.lastError === 'string'
+                  ? platformState.lastError
+                  : undefined,
+              lastPostedAt: toDate(platformState.lastPostedAt),
+              platform: platformState.platform,
+            } satisfies LivestreamPlatformState,
+          ];
+        })
+      : [];
+    normalized.deliveryHistory = Array.isArray(normalized.deliveryHistory)
+      ? normalized.deliveryHistory.flatMap((record) => {
+          if (
+            !isPlainObject(record) ||
+            typeof record.id !== 'string' ||
+            typeof record.message !== 'string' ||
+            typeof record.platform !== 'string' ||
+            typeof record.status !== 'string' ||
+            typeof record.type !== 'string'
+          ) {
+            return [];
+          }
+
+          return [
+            {
+              ...record,
+              createdAt: toDate(record.createdAt),
+              id: record.id,
+              message: record.message,
+              platform: record.platform,
+              reason:
+                typeof record.reason === 'string' ? record.reason : undefined,
+              status: record.status === 'failed' ? 'failed' : 'sent',
+              targetId:
+                typeof record.targetId === 'string'
+                  ? record.targetId
+                  : undefined,
+              type: record.type as LivestreamMessageType,
+            } satisfies LivestreamDeliveryRecord,
+          ];
+        })
+      : [];
+    normalized.transcriptChunks = Array.isArray(normalized.transcriptChunks)
+      ? normalized.transcriptChunks.flatMap((chunk) => {
+          if (!isPlainObject(chunk) || typeof chunk.text !== 'string') {
+            return [];
+          }
+
+          return [
+            {
+              ...chunk,
+              confidence:
+                typeof chunk.confidence === 'number'
+                  ? chunk.confidence
+                  : undefined,
+              createdAt: toDate(chunk.createdAt),
+              text: chunk.text,
+            } satisfies LivestreamTranscriptChunk,
+          ];
+        })
+      : [];
+    normalized.lastTranscriptAt = toDate(normalized.lastTranscriptAt) ?? null;
+    normalized.pausedAt = toDate(normalized.pausedAt) ?? null;
+    normalized.startedAt = toDate(normalized.startedAt) ?? null;
+    normalized.status =
+      typeof normalized.status === 'string' ? normalized.status : 'stopped';
+    normalized.stoppedAt = toDate(normalized.stoppedAt) ?? null;
+
+    return normalized as LivestreamBotSessionDocument;
+  }
+
+  private serializeSessionData(
+    session: LivestreamBotSessionDocument,
+  ): Prisma.InputJsonValue {
+    return toJsonCompatible({
+      botId: session.botId ?? session.bot ?? session.id,
+      brandId: session.brandId ?? session.brand ?? null,
+      context: session.context ?? { source: 'none' },
+      deliveryHistory: session.deliveryHistory ?? [],
+      lastTranscriptAt: session.lastTranscriptAt ?? null,
+      organizationId: session.organizationId ?? session.organization,
+      pausedAt: session.pausedAt ?? null,
+      platformStates: session.platformStates ?? [],
+      startedAt: session.startedAt ?? null,
+      status: session.status ?? 'stopped',
+      stoppedAt: session.stoppedAt ?? null,
+      transcriptChunks: session.transcriptChunks ?? [],
+      userId: session.userId ?? session.user,
+    }) as Prisma.InputJsonValue;
+  }
+
+  private async findExistingSession(
+    botId: string,
+    organizationId: string,
+  ): Promise<LivestreamBotSessionDocument | null> {
+    const sessions = await this.prisma.livestreamBotSession.findMany({
+      where: { isDeleted: false },
+    });
+
+    return (
+      sessions
+        .map((session) =>
+          this.normalizeSessionDocument(session as Record<string, unknown>),
+        )
+        .find(
+          (session) =>
+            session.botId === botId &&
+            session.organizationId === organizationId,
+        ) ?? null
+    );
+  }
+
+  private async persistSession(
+    session: LivestreamBotSessionDocument,
+  ): Promise<LivestreamBotSessionDocument> {
+    const updated = await this.prisma.livestreamBotSession.update({
+      where: { id: session.id },
+      data: {
+        data: this.serializeSessionData(session),
       },
     });
 
+    const normalized = this.normalizeSessionDocument(
+      updated as Record<string, unknown>,
+    );
+    Object.assign(session, normalized);
+    return session;
+  }
+
+  async getOrCreateSession(
+    bot: BotDocument,
+  ): Promise<LivestreamBotSessionDocument> {
+    const normalizedBot = this.normalizeBotDocument(bot);
+    const botId = String(normalizedBot.id ?? normalizedBot._id);
+    const organizationId = String(
+      normalizedBot.organizationId ?? normalizedBot.organization,
+    );
+    const existingSession = await this.findExistingSession(
+      botId,
+      organizationId,
+    );
+
     if (existingSession) {
-      const session =
-        existingSession as unknown as LivestreamBotSessionDocument;
       let hasUpdates = false;
-      const nextPlatformStates = this.buildPlatformStates(bot);
+      const nextPlatformStates = this.buildPlatformStates(normalizedBot);
 
       if (
-        (!session.platformStates || session.platformStates.length === 0) &&
+        (!existingSession.platformStates ||
+          existingSession.platformStates.length === 0) &&
         nextPlatformStates.length > 0
       ) {
-        session.platformStates = nextPlatformStates;
+        existingSession.platformStates = nextPlatformStates;
         hasUpdates = true;
       }
 
-      if (!session.context) {
-        session.context = { source: 'none' };
+      if (!existingSession.context) {
+        existingSession.context = { source: 'none' };
         hasUpdates = true;
       }
 
       if (hasUpdates) {
-        await this.prisma.livestreamBotSession.update({
-          where: { id: existingSession.id },
-          data: {
-            platformStates: session.platformStates as unknown as Record<
-              string,
-              unknown
-            >[],
-            context: session.context as unknown as Record<string, unknown>,
-          },
-        });
+        await this.persistSession(existingSession);
       }
 
-      return session;
+      return existingSession;
     }
 
-    const brandId = String(
-      (bot as Record<string, unknown>).brandId ??
-        (bot as Record<string, unknown>).brand,
-    );
-    const userId = String(
-      (bot as Record<string, unknown>).userId ??
-        (bot as Record<string, unknown>).user,
-    );
+    const brandId = String(normalizedBot.brandId ?? normalizedBot.brand ?? '');
+    const userId = String(normalizedBot.userId ?? normalizedBot.user);
 
     const created = await this.prisma.livestreamBotSession.create({
       data: {
-        botId,
-        brandId,
-        context: { source: 'none' } as unknown as Record<string, unknown>,
-        deliveryHistory: [],
+        data: this.serializeSessionData({
+          _id: '',
+          bot: botId,
+          botId,
+          brand: brandId || null,
+          brandId: brandId || null,
+          context: { source: 'none' },
+          createdAt: new Date(),
+          deliveryHistory: [],
+          id: '',
+          isDeleted: false,
+          mongoId: null,
+          organization: organizationId,
+          organizationId,
+          platformStates: this.buildPlatformStates(normalizedBot),
+          status: 'stopped',
+          transcriptChunks: [],
+          updatedAt: new Date(),
+          user: userId,
+          userId,
+        }),
         isDeleted: false,
-        organizationId,
-        platformStates: this.buildPlatformStates(bot) as unknown as Record<
-          string,
-          unknown
-        >[],
-        status: 'stopped',
-        transcriptChunks: [],
-        userId,
       },
     });
 
-    return created as unknown as LivestreamBotSessionDocument;
+    return this.normalizeSessionDocument(created as Record<string, unknown>);
   }
 
   async startSession(bot: BotDocument): Promise<LivestreamBotSessionDocument> {
-    const session = await this.getOrCreateSession(bot);
-    const updated = await this.prisma.livestreamBotSession.update({
-      where: { id: (session as Record<string, unknown>).id as string },
-      data: {
-        status: 'active',
-        startedAt: new Date(),
-        pausedAt: null,
-        stoppedAt: null,
-      },
-    });
-    return updated as unknown as LivestreamBotSessionDocument;
+    const normalizedBot = this.normalizeBotDocument(bot);
+    const session = await this.getOrCreateSession(normalizedBot);
+    session.status = 'active';
+    session.startedAt = new Date();
+    session.pausedAt = null;
+    session.stoppedAt = null;
+    return this.persistSession(session);
   }
 
   async stopSession(bot: BotDocument): Promise<LivestreamBotSessionDocument> {
-    const session = await this.getOrCreateSession(bot);
-    const updated = await this.prisma.livestreamBotSession.update({
-      where: { id: (session as Record<string, unknown>).id as string },
-      data: { status: 'stopped', stoppedAt: new Date() },
-    });
-    return updated as unknown as LivestreamBotSessionDocument;
+    const normalizedBot = this.normalizeBotDocument(bot);
+    const session = await this.getOrCreateSession(normalizedBot);
+    session.status = 'stopped';
+    session.stoppedAt = new Date();
+    return this.persistSession(session);
   }
 
   async pauseSession(bot: BotDocument): Promise<LivestreamBotSessionDocument> {
-    const session = await this.getOrCreateSession(bot);
-    const updated = await this.prisma.livestreamBotSession.update({
-      where: { id: (session as Record<string, unknown>).id as string },
-      data: { status: 'paused', pausedAt: new Date() },
-    });
-    return updated as unknown as LivestreamBotSessionDocument;
+    const normalizedBot = this.normalizeBotDocument(bot);
+    const session = await this.getOrCreateSession(normalizedBot);
+    session.status = 'paused';
+    session.pausedAt = new Date();
+    return this.persistSession(session);
   }
 
   async resumeSession(bot: BotDocument): Promise<LivestreamBotSessionDocument> {
-    const session = await this.getOrCreateSession(bot);
-    const updated = await this.prisma.livestreamBotSession.update({
-      where: { id: (session as Record<string, unknown>).id as string },
-      data: { status: 'active', pausedAt: null },
-    });
-    return updated as unknown as LivestreamBotSessionDocument;
+    const normalizedBot = this.normalizeBotDocument(bot);
+    const session = await this.getOrCreateSession(normalizedBot);
+    session.status = 'active';
+    session.pausedAt = null;
+    return this.persistSession(session);
   }
 
   async listDeliveryHistory(
     bot: BotDocument,
   ): Promise<LivestreamDeliveryRecord[]> {
-    const session = await this.getOrCreateSession(bot);
+    const session = await this.getOrCreateSession(
+      this.normalizeBotDocument(bot),
+    );
     return [...(session.deliveryHistory ?? [])].sort(
       (left, right) =>
         new Date(right.createdAt ?? 0).getTime() -
@@ -207,36 +630,31 @@ export class BotsLivestreamService {
     bot: BotDocument,
     payload: ManualOverridePayload,
   ): Promise<LivestreamBotSessionDocument> {
-    const session = await this.getOrCreateSession(bot);
-    const ttlMinutes = bot.livestreamSettings?.manualOverrideTtlMinutes ?? 15;
+    const normalizedBot = this.normalizeBotDocument(bot);
+    const session = await this.getOrCreateSession(normalizedBot);
+    const ttlMinutes =
+      normalizedBot.livestreamSettings?.manualOverrideTtlMinutes ?? 15;
     const now = new Date();
 
-    session.context = {
-      ...session.context,
+    session.context = mergeSessionContext(session.context, {
       manualOverride: {
         activeLinkId: payload.activeLinkId,
         expiresAt: new Date(now.getTime() + ttlMinutes * 60 * 1000),
         promotionAngle: payload.promotionAngle,
         topic: payload.topic,
       },
-    };
-
-    await this.refreshResolvedContext(bot, session, now);
-
-    const updated = await this.prisma.livestreamBotSession.update({
-      where: { id: (session as Record<string, unknown>).id as string },
-      data: {
-        context: session.context as unknown as Record<string, unknown>,
-      },
     });
-    return updated as unknown as LivestreamBotSessionDocument;
+
+    await this.refreshResolvedContext(normalizedBot, session, now);
+    return this.persistSession(session);
   }
 
   async ingestTranscriptChunk(
     bot: BotDocument,
     payload: TranscriptPayload,
   ): Promise<LivestreamBotSessionDocument> {
-    const session = await this.getOrCreateSession(bot);
+    const normalizedBot = this.normalizeBotDocument(bot);
+    const session = await this.getOrCreateSession(normalizedBot);
     const now = new Date();
     const transcript = await this.resolveTranscriptPayload(payload);
 
@@ -253,37 +671,29 @@ export class BotsLivestreamService {
     session.transcriptChunks = transcriptChunks;
     session.lastTranscriptAt = now;
 
-    const summary = this.summarizeTranscript(bot, transcriptChunks, now);
-    session.context = {
-      ...session.context,
+    const summary = this.summarizeTranscript(
+      normalizedBot,
+      transcriptChunks,
+      now,
+    );
+    session.context = mergeSessionContext(session.context, {
       currentTopic: summary.currentTopic,
       promotionAngle: session.context?.promotionAngle,
       transcriptConfidence: summary.transcriptConfidence,
       transcriptSummary: summary.transcriptSummary,
-    };
-
-    await this.refreshResolvedContext(bot, session, now);
-
-    const updated = await this.prisma.livestreamBotSession.update({
-      where: { id: (session as Record<string, unknown>).id as string },
-      data: {
-        transcriptChunks: transcriptChunks as unknown as Record<
-          string,
-          unknown
-        >[],
-        lastTranscriptAt: now,
-        context: session.context as unknown as Record<string, unknown>,
-      },
     });
-    return updated as unknown as LivestreamBotSessionDocument;
+
+    await this.refreshResolvedContext(normalizedBot, session, now);
+    return this.persistSession(session);
   }
 
   async sendNow(
     bot: BotDocument,
     payload: SendNowPayload,
   ): Promise<LivestreamBotSessionDocument> {
-    const session = await this.getOrCreateSession(bot);
-    const target = this.findEnabledTarget(bot, payload.platform);
+    const normalizedBot = this.normalizeBotDocument(bot);
+    const session = await this.getOrCreateSession(normalizedBot);
+    const target = this.findEnabledTarget(normalizedBot, payload.platform);
 
     if (!target) {
       throw new Error(`No enabled ${payload.platform} target configured`);
@@ -291,14 +701,19 @@ export class BotsLivestreamService {
 
     const message =
       payload.message ||
-      this.buildAutomaticMessage(bot, session, payload.platform, payload.type);
+      this.buildAutomaticMessage(
+        normalizedBot,
+        session,
+        payload.platform,
+        payload.type,
+      );
 
     if (!message) {
       throw new Error('Unable to generate a livestream message');
     }
 
     await this.dispatchMessage(
-      bot,
+      normalizedBot,
       session,
       target,
       payload.platform,
@@ -314,23 +729,23 @@ export class BotsLivestreamService {
       return;
     }
 
-    const sessions = await this.prisma.livestreamBotSession.findMany({
-      where: { isDeleted: false, status: 'active' },
-    });
+    const sessions = (
+      await this.prisma.livestreamBotSession.findMany({
+        where: { isDeleted: false },
+      })
+    )
+      .map((session) =>
+        this.normalizeSessionDocument(session as Record<string, unknown>),
+      )
+      .filter((session) => session.status === 'active');
 
     for (const session of sessions) {
       try {
-        const sessionDoc =
-          session as unknown as LivestreamBotSessionDocument & {
-            botId: string;
-            organizationId: string;
-          };
-
         const bot = await this.prisma.bot.findFirst({
           where: {
-            id: sessionDoc.botId,
+            id: session.botId,
             isDeleted: false,
-            organizationId: sessionDoc.organizationId,
+            organizationId: session.organizationId,
           },
         });
 
@@ -338,7 +753,10 @@ export class BotsLivestreamService {
           continue;
         }
 
-        await this.processSession(bot as unknown as BotDocument, sessionDoc);
+        await this.processSession(
+          this.normalizeBotDocument(bot as unknown as BotDocument),
+          session,
+        );
       } catch (error) {
         this.loggerService.error('Failed to process livestream session', error);
       }
@@ -407,7 +825,6 @@ export class BotsLivestreamService {
     message: string,
     type: LivestreamMessageType,
   ): Promise<void> {
-    const sessionId = (session as Record<string, unknown>).id as string;
     const now = new Date();
 
     try {
@@ -430,19 +847,7 @@ export class BotsLivestreamService {
         type,
       });
 
-      await this.prisma.livestreamBotSession.update({
-        where: { id: sessionId },
-        data: {
-          platformStates: session.platformStates as unknown as Record<
-            string,
-            unknown
-          >[],
-          deliveryHistory: session.deliveryHistory as unknown as Record<
-            string,
-            unknown
-          >[],
-        },
-      });
+      await this.persistSession(session);
     } catch (error) {
       const platformState = this.ensurePlatformState(session, platform);
       platformState.lastError = (error as Error).message;
@@ -458,19 +863,7 @@ export class BotsLivestreamService {
         type,
       });
 
-      await this.prisma.livestreamBotSession.update({
-        where: { id: sessionId },
-        data: {
-          platformStates: session.platformStates as unknown as Record<
-            string,
-            unknown
-          >[],
-          deliveryHistory: session.deliveryHistory as unknown as Record<
-            string,
-            unknown
-          >[],
-        },
-      });
+      await this.persistSession(session);
       throw error;
     }
   }
@@ -723,8 +1116,7 @@ export class BotsLivestreamService {
       now,
     );
 
-    session.context = {
-      ...session.context,
+    session.context = mergeSessionContext(session.context, {
       currentTopic:
         resolvedContext.currentTopic || session.context?.currentTopic,
       promotionAngle:
@@ -735,7 +1127,7 @@ export class BotsLivestreamService {
         session.context?.transcriptConfidence,
       transcriptSummary:
         resolvedContext.transcriptSummary || session.context?.transcriptSummary,
-    };
+    });
 
     if (
       bot.livestreamSettings?.transcriptEnabled === false &&

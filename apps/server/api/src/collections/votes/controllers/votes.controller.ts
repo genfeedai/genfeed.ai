@@ -1,5 +1,4 @@
 import { CreateVoteDto } from '@api/collections/votes/dto/create-vote.dto';
-import { VoteEntity } from '@api/collections/votes/entities/vote.entity';
 import { VotesService } from '@api/collections/votes/services/votes.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -46,13 +45,11 @@ export class VotesController {
         throw new BadRequestException('Invalid entity id');
       }
 
-      const vote = await this.votesService.create(
-        new VoteEntity({
-          ...createVoteDto,
-          entity: createVoteDto.entity,
-          user: publicMetadata.user,
-        }),
-      );
+      const vote = await this.votesService.create({
+        entityId: createVoteDto.entity,
+        entityModel: createVoteDto.entityModel,
+        userId: publicMetadata.user,
+      } as unknown as CreateVoteDto);
 
       return serializeSingle(request, VoteSerializer, vote);
     } catch (error: unknown) {

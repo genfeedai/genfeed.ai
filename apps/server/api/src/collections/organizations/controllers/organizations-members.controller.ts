@@ -15,9 +15,7 @@ import { MembersService } from '@api/collections/members/services/members.servic
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { RolesService } from '@api/collections/roles/services/roles.service';
-import { SettingEntity } from '@api/collections/settings/entities/setting.entity';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
-import { UserEntity } from '@api/collections/users/entities/user.entity';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { ConfigService } from '@api/config/config.service';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
@@ -255,10 +253,10 @@ export class OrganizationsMembersController {
         // Create the member record for existing user
         const member = await this.membersService.create({
           isActive: true, // Always active for existing Clerk users
-          organization: organizationId,
-          role: roleToAssign,
-          user: existingUser._id,
-        });
+          organizationId,
+          roleId: String(roleToAssign),
+          userId: String(existingUser._id),
+        } as unknown as Parameters<typeof this.membersService.create>[0]);
 
         // Update their metadata to include this organization
         await this.clerkService.updateUserPublicMetadata(existingClerkUser.id, {
@@ -309,16 +307,14 @@ export class OrganizationsMembersController {
         const tempClerkId = `pending_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
         // Create the user with isInvited flag
-        newUser = await this.usersService.create(
-          new UserEntity({
-            clerkId: tempClerkId, // Temporary ID until they sign up
-            email: inviteDto.email,
-            firstName: inviteDto.firstName || undefined,
-            handle,
-            isInvited: true, // Mark as invited
-            lastName: inviteDto.lastName || undefined,
-          }),
-        );
+        newUser = await this.usersService.create({
+          clerkId: tempClerkId, // Temporary ID until they sign up
+          email: inviteDto.email,
+          firstName: inviteDto.firstName || undefined,
+          handle,
+          isInvited: true, // Mark as invited
+          lastName: inviteDto.lastName || undefined,
+        } as Parameters<typeof this.usersService.create>[0]);
       }
 
       // Create settings for the invited user (if they don't exist)
@@ -327,15 +323,13 @@ export class OrganizationsMembersController {
       });
 
       if (!existingSettings) {
-        await this.settingsService.create(
-          new SettingEntity({
-            isFirstLogin: true,
-            isMenuCollapsed: false,
-            isVerified: false,
-            theme: 'dark',
-            user: newUser._id,
-          }),
-        );
+        await this.settingsService.create({
+          isFirstLogin: true,
+          isMenuCollapsed: false,
+          isVerified: false,
+          theme: 'dark',
+          userId: String(newUser._id),
+        } as unknown as Parameters<typeof this.settingsService.create>[0]);
       }
 
       // Create the member record (inactive until they sign up)
@@ -356,10 +350,10 @@ export class OrganizationsMembersController {
 
         const member = await this.membersService.create({
           isActive: false, // Inactive until they sign up
-          organization: organizationId,
-          role: roleToAssign,
-          user: newUser._id,
-        });
+          organizationId,
+          roleId: String(roleToAssign),
+          userId: String(newUser._id),
+        } as unknown as Parameters<typeof this.membersService.create>[0]);
 
         // Send Clerk invitation with metadata including the user ID
         await this.clerkService.createInvitation(

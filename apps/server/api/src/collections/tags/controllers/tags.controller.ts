@@ -10,6 +10,7 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
+import type { MatchConditions } from '@api/shared/utils/pipeline-builder/pipeline-builder.types';
 import { PipelineBuilder } from '@api/shared/utils/pipeline-builder/pipeline-builder.util';
 import type { User } from '@clerk/backend';
 import { TagSerializer } from '@genfeedai/serializers';
@@ -45,7 +46,7 @@ export class TagsController extends BaseCRUDController<
     const publicMetadata = getPublicMetadata(user);
 
     // Build OR conditions: global items OR user's org items OR user's items
-    const orConditions: unknown = [
+    const orConditions: MatchConditions[] = [
       { organization: null, user: null }, // global items (null, not missing)
     ];
 
@@ -59,7 +60,7 @@ export class TagsController extends BaseCRUDController<
       orConditions.push({ user: publicMetadata.user });
     }
 
-    const matchConditions: unknown = {
+    const matchConditions: MatchConditions = {
       isDeleted: query.isDeleted ?? false,
       ...(query.category && { category: query.category }),
       ...(query.brand && { brand: query.brand }),
@@ -100,16 +101,21 @@ export class TagsController extends BaseCRUDController<
    * If user is explicitly null, create global tag (all org/user/brand set to null)
    * Otherwise, enrich with authenticated user context (normal tag)
    */
-  public enrichCreateDto(createDto: unknown, user: User): CreateTagDto {
+  public enrichCreateDto(
+    createDto: Partial<CreateTagDto> & { user?: string | null },
+    user: User,
+  ): CreateTagDto {
+    const dtoRecord = createDto as Record<string, unknown>;
+
     // Check if explicitly requesting global tag (user explicitly set to null)
-    if (createDto?.user === null) {
+    if (dtoRecord.user === null) {
       // Create global tag - set user/org/brand to null
       return {
         ...createDto,
         brand: null,
         organization: null,
         user: null,
-      } as CreateTagDto;
+      } as unknown as CreateTagDto;
     }
 
     // Normal tag creation - enrich with authenticated user context

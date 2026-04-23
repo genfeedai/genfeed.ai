@@ -13,17 +13,33 @@ export class AnalyticsOverviewEntity {
   bestPerformingPlatform: string;
 
   constructor(data: unknown) {
-    this.totalPosts = data.totalPosts || 0;
-    this.totalViews = data.totalViews || 0;
-    this.totalLikes = data.totalLikes || 0;
-    this.totalComments = data.totalComments || 0;
-    this.totalShares = data.totalShares || 0;
-    this.totalSaves = data.totalSaves || 0;
-    this.avgEngagementRate = data.avgEngagementRate || 0;
-    this.totalEngagement = data.totalEngagement || 0;
-    this.viewsGrowth = data.viewsGrowth || 0;
-    this.engagementGrowth = data.engagementGrowth || 0;
-    this.activePlatforms = data.activePlatforms || [];
-    this.bestPerformingPlatform = data.bestPerformingPlatform || 'N/A';
+    const record =
+      data && typeof data === 'object' && !Array.isArray(data)
+        ? (data as Record<string, unknown>)
+        : {};
+
+    this.totalPosts = this.asNumber(record.totalPosts);
+    this.totalViews = this.asNumber(record.totalViews);
+    this.totalLikes = this.asNumber(record.totalLikes);
+    this.totalComments = this.asNumber(record.totalComments);
+    this.totalShares = this.asNumber(record.totalShares);
+    this.totalSaves = this.asNumber(record.totalSaves);
+    this.avgEngagementRate = this.asNumber(record.avgEngagementRate);
+    this.totalEngagement = this.asNumber(record.totalEngagement);
+    this.viewsGrowth = this.asNumber(record.viewsGrowth);
+    this.engagementGrowth = this.asNumber(record.engagementGrowth);
+    this.activePlatforms = Array.isArray(record.activePlatforms)
+      ? record.activePlatforms.filter(
+          (platform): platform is string => typeof platform === 'string',
+        )
+      : [];
+    this.bestPerformingPlatform =
+      typeof record.bestPerformingPlatform === 'string'
+        ? record.bestPerformingPlatform
+        : 'N/A';
+  }
+
+  private asNumber(value: unknown): number {
+    return typeof value === 'number' ? value : 0;
   }
 }

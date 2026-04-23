@@ -22,6 +22,7 @@ import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { User } from '@clerk/backend';
+import type { JsonApiCollectionResponse } from '@genfeedai/interfaces';
 import { MemberSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -66,7 +67,7 @@ export class MembersController {
     @Query() query: BaseQueryDto,
     @Req() request: Request,
     @CurrentUser() user: User,
-  ): Promise<MemberEntity[]> {
+  ): Promise<JsonApiCollectionResponse> {
     const options = {
       customLabels,
       ...QueryDefaultsUtil.getPaginationDefaults(query),

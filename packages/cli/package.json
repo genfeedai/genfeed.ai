@@ -11,14 +11,14 @@
     "chalk": "5.6.2",
     "commander": "14.0.3",
     "ofetch": "1.5.1",
-    "ora": "9.3.0",
+    "ora": "9.4.0",
     "socket.io-client": "4.8.3",
     "zod": "4.3.6"
   },
   "description": "Unified CLI for Genfeed.ai - Generate, train, publish, and manage AI content from your terminal",
   "devDependencies": {
     "@biomejs/biome": "2.4.12",
-    "@types/bun": "1.3.12",
+    "@types/bun": "1.3.13",
     "@types/node": "25.6.0",
     "@vitest/coverage-v8": "4.1.5",
     "typescript": "6.0.2",

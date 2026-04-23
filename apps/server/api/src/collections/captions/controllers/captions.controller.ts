@@ -196,10 +196,11 @@ export class CaptionsController {
     }
 
     // Validate that the video ingredient is ready (completed/uploaded status)
+    const ingredientStatus = String(ingredient.status);
     if (
-      ingredient.status !== IngredientStatus.GENERATED &&
-      ingredient.status !== IngredientStatus.UPLOADED &&
-      ingredient.status !== IngredientStatus.VALIDATED
+      ingredientStatus !== IngredientStatus.GENERATED &&
+      ingredientStatus !== IngredientStatus.UPLOADED &&
+      ingredientStatus !== IngredientStatus.VALIDATED
     ) {
       this.loggerService.error(
         `Cannot generate captions for video with status: ${ingredient.status}`,

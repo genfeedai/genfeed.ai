@@ -75,6 +75,14 @@ type WorkspaceFollowUpPlanStep = {
   title: string;
 };
 
+type CreateWorkspaceTaskDtoExtended = CreateWorkspaceTaskDto & {
+  brand?: string;
+  organization?: string;
+  platforms?: string[];
+  request?: string;
+  user?: string;
+};
+
 const WORKSPACE_PLANNING_THREAD_SOURCE_PREFIX = 'workspace-planning:';
 const WORKSPACE_PLANNING_THREAD_TITLE_PREFIX = 'Plan next steps: ';
 
@@ -85,7 +93,7 @@ export class WorkspaceTasksService extends BaseService<
   UpdateWorkspaceTaskDto
 > {
   constructor(
-    private readonly prisma: PrismaService,
+    public readonly prisma: PrismaService,
     logger: LoggerService,
     private readonly skillsService: SkillsService,
     private readonly ingredientsService: IngredientsService,
@@ -100,26 +108,32 @@ export class WorkspaceTasksService extends BaseService<
   override async create(
     createDto: CreateWorkspaceTaskDto,
   ): Promise<WorkspaceTaskDocument> {
-    const routingDecision = await this.buildRoutingDecision(createDto);
+    const extended = createDto as CreateWorkspaceTaskDtoExtended;
+    const routingDecision = extended.request
+      ? await this.buildRoutingDecision(createDto)
+      : null;
     const normalizedTitle = this.buildTaskTitle(createDto);
-
-    return super.create({
+    const createPayload = {
       ...createDto,
-      ...routingDecision,
+      ...(routingDecision ?? {}),
       approvedOutputIds: [],
       eventStream: [],
       linkedApprovalIds: [],
       linkedOutputIds: [],
       linkedRunIds: [],
-      platforms: createDto.platforms ?? [],
-      progress: {
-        activeRunCount: 0,
-        message: 'Task queued in workspace.',
-        percent: 0,
-        stage: 'queued',
-      },
+      platforms: extended.platforms ?? [],
+      progress: routingDecision
+        ? {
+            activeRunCount: 0,
+            message: 'Task queued in workspace.',
+            percent: 0,
+            stage: 'queued',
+          }
+        : undefined,
       title: normalizedTitle,
-    });
+    } as CreateWorkspaceTaskDto & Record<string, unknown>;
+
+    return super.create(createPayload as CreateWorkspaceTaskDto);
   }
 
   async findOneById(
@@ -503,21 +517,21 @@ export class WorkspaceTasksService extends BaseService<
       );
     }
 
+    const taskOrgId =
+      ((task as Record<string, unknown>).organizationId as string) ??
+      organizationId;
     const createdTasks: WorkspaceTaskDocument[] = [];
 
     for (const step of followUpSteps) {
       const createdTask = await this.create({
         brand: task.brand?.toString(),
-        organization: organizationId,
+        organization: taskOrgId,
         outputType: step.outputType ?? task.outputType,
         platforms: task.platforms,
         priority: task.priority,
         request: step.request,
         title: step.title,
         user: userId,
-      } as CreateWorkspaceTaskDto & {
-        organization: string;
-        user: string;
       });
 
       createdTasks.push(createdTask);
@@ -531,34 +545,22 @@ export class WorkspaceTasksService extends BaseService<
       return createDto.title.trim();
     }
 
-    const compactRequest = createDto.request.replace(/\s+/g, ' ').trim();
-    if (compactRequest.length <= 72) {
-      return compactRequest;
-    }
-
+    const extended = createDto as CreateWorkspaceTaskDtoExtended;
+    const request = extended.request ?? '';
+    const compactRequest = request.replace(/\s+/g, ' ').trim();
+    if (!compactRequest) return 'Untitled task';
+    if (compactRequest.length <= 72) return compactRequest;
     return `${compactRequest.slice(0, 69).trimEnd()}...`;
   }
 
   private async buildRoutingDecision(
     createDto: CreateWorkspaceTaskDto,
   ): Promise<WorkspaceRoutingDecision> {
+    const extended = createDto as CreateWorkspaceTaskDtoExtended;
     const inferredOutputType = this.inferOutputType(createDto);
     const taskIntent = this.buildTaskIntent(createDto, inferredOutputType);
-    const brandId =
-      typeof createDto.brand === 'string'
-        ? createDto.brand || undefined
-        : (
-            createDto.brand as unknown as { toString(): string } | undefined
-          )?.toString() || undefined;
-    const organizationId =
-      typeof (createDto as Record<string, unknown>).organization === 'string'
-        ? ((createDto as Record<string, unknown>).organization as string) ||
-          undefined
-        : (
-            (createDto as Record<string, unknown>).organization as
-              | { toString(): string }
-              | undefined
-          )?.toString() || undefined;
+    const brandId = extended.brand ?? undefined;
+    const organizationId = extended.organization ?? undefined;
 
     if (brandId && organizationId) {
       const resolvedSkills = await this.skillsService.resolveBrandSkills(
@@ -624,10 +626,12 @@ export class WorkspaceTasksService extends BaseService<
   private inferOutputType(
     createDto: CreateWorkspaceTaskDto,
   ): WorkspaceTaskDocument['outputType'] {
-    const normalizedRequest = createDto.request.toLowerCase();
+    const extended = createDto as CreateWorkspaceTaskDtoExtended;
+    const outputType = extended.outputType;
+    const request = extended.request ?? '';
+    const normalizedRequest = request.toLowerCase();
 
-    return (
-      createDto.outputType ??
+    return (outputType ??
       (normalizedRequest.match(/\b(video|reel|short|clip)\b/)
         ? 'video'
         : normalizedRequest.match(/\b(newsletter|issue|beehiiv|email)\b/)
@@ -638,8 +642,7 @@ export class WorkspaceTasksService extends BaseService<
               ? 'caption'
               : normalizedRequest.match(/\b(image|photo|thumbnail|visual)\b/)
                 ? 'image'
-                : 'ingredient')
-    );
+                : 'ingredient')) as WorkspaceTaskDocument['outputType'];
   }
 
   private buildSkillDrivenDecision(
@@ -655,7 +658,8 @@ export class WorkspaceTasksService extends BaseService<
     const executionPathUsed =
       taskIntent.outputType === 'image'
         ? 'image_generation'
-        : taskIntent.outputType === 'video'
+        : taskIntent.outputType === 'video' ||
+            taskIntent.outputType === 'facecam'
           ? 'video_generation'
           : taskIntent.outputType === 'caption' ||
               taskIntent.outputType === 'post' ||
@@ -665,7 +669,7 @@ export class WorkspaceTasksService extends BaseService<
 
     return {
       chosenModel: 'auto',
-      chosenProvider: targetSkill.requiredProviders[0] ?? 'genfeed-router',
+      chosenProvider: targetSkill.requiredProviders?.[0] ?? 'genfeed-router',
       executionPathUsed,
       outputType: taskIntent.outputType,
       resultPreview: requiresApproval
@@ -674,12 +678,14 @@ export class WorkspaceTasksService extends BaseService<
       reviewState: requiresApproval ? 'pending_approval' : 'none',
       reviewTriggered: requiresApproval,
       routingSummary: `Resolved the request using the brand skill "${targetSkill.name}" (${targetSkill.slug}) for the ${taskIntent.workflowStage} stage.`,
-      skillsUsed: [targetSkill.slug],
-      skillVariantIds: matchedSkill.variant ? [matchedSkill.variant._id] : [],
+      skillsUsed: targetSkill.slug ? [targetSkill.slug] : [],
+      skillVariantIds: matchedSkill.variant?._id
+        ? [String(matchedSkill.variant._id)]
+        : [],
       status: requiresApproval
-        ? 'needs_review'
+        ? 'in_review'
         : executionPathUsed === 'agent_orchestrator'
-          ? 'triaged'
+          ? 'backlog'
           : 'in_progress',
     };
   }
@@ -737,7 +743,7 @@ export class WorkspaceTasksService extends BaseService<
                 : 'Detected a writing request and routed it to the caption generation path for review.',
           skillsUsed: [],
           skillVariantIds: [],
-          status: 'triaged',
+          status: 'backlog',
         };
 
       default:
@@ -752,7 +758,7 @@ export class WorkspaceTasksService extends BaseService<
             'Detected a broader ingredient request and routed it to the orchestration path.',
           skillsUsed: [],
           skillVariantIds: [],
-          status: 'triaged',
+          status: 'backlog',
         };
     }
   }
@@ -837,6 +843,22 @@ export class WorkspaceTasksService extends BaseService<
     };
   }
 
+  private serializeDate(value: unknown): string | undefined {
+    if (value instanceof Date) {
+      return value.toISOString();
+    }
+
+    return typeof value === 'string' && value.length > 0 ? value : undefined;
+  }
+
+  private readObjectRecord(value: unknown): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return null;
+    }
+
+    return value as Record<string, unknown>;
+  }
+
   private serializeTaskEvent(event: WorkspaceTaskEvent) {
     return {
       id: event.id,
@@ -884,7 +906,7 @@ export class WorkspaceTasksService extends BaseService<
       status: task.status,
       title: task.title,
       updatedAt: task.updatedAt?.toISOString(),
-      user: task.user.toString(),
+      user: task.user?.toString(),
     };
   }
 
@@ -1075,13 +1097,13 @@ export class WorkspaceTasksService extends BaseService<
       }
 
       runSummaries.push({
-        completedAt: run.completedAt?.toISOString(),
-        error: run.error,
-        id: run._id.toString(),
-        label: run.label,
-        startedAt: run.startedAt?.toISOString(),
-        status: run.status,
-        summary: run.summary,
+        completedAt: this.serializeDate(run.completedAt),
+        error: typeof run.error === 'string' ? run.error : undefined,
+        id: (run as Record<string, unknown>).id as string,
+        label: typeof run.label === 'string' ? run.label : '',
+        startedAt: this.serializeDate(run.startedAt),
+        status: typeof run.status === 'string' ? run.status : 'unknown',
+        summary: typeof run.summary === 'string' ? run.summary : undefined,
         threadId: run.thread?.toString(),
       });
     }
@@ -1104,7 +1126,8 @@ export class WorkspaceTasksService extends BaseService<
         return false;
       }
 
-      const proposedPlan = message.metadata?.proposedPlan;
+      const metadata = this.readObjectRecord(message.metadata);
+      const proposedPlan = metadata?.['proposedPlan'];
 
       return (
         proposedPlan !== null &&
@@ -1113,13 +1136,17 @@ export class WorkspaceTasksService extends BaseService<
       );
     });
 
-    if (!latestPlanningMessage?.metadata?.proposedPlan) {
+    const latestMetadata = this.readObjectRecord(
+      latestPlanningMessage?.metadata,
+    );
+    const plan = latestMetadata?.['proposedPlan'];
+
+    if (!plan || typeof plan !== 'object' || Array.isArray(plan)) {
       throw new BadRequestException(
         'No proposed plan is available in the planning conversation yet.',
       );
     }
 
-    const plan = latestPlanningMessage.metadata.proposedPlan;
     const status =
       typeof (plan as { status?: unknown }).status === 'string'
         ? (plan as { status: string }).status

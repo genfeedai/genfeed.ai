@@ -46,9 +46,12 @@ export class ModelRegistrationService {
     const orgSettings = await this.orgSettingsService.findOne({
       organization: organizationId,
     });
-    const isEnabled = (orgSettings?.enabledModels ?? []).some(
-      (id: string) => id === model.id,
-    );
+    const enabledModels = Array.isArray(
+      (orgSettings as Record<string, unknown> | null)?.enabledModels,
+    )
+      ? ((orgSettings as Record<string, unknown>).enabledModels as string[])
+      : [];
+    const isEnabled = enabledModels.some((id: string) => id === model.id);
 
     if (!isEnabled) {
       throw new ForbiddenException('Model not enabled for this organization');
@@ -193,7 +196,12 @@ export class ModelRegistrationService {
       const orgSettings = await this.orgSettingsService.findOne({
         organization: orgId,
       });
-      const enabledSet = new Set<string>(orgSettings?.enabledModels ?? []);
+      const enabledModels = Array.isArray(
+        (orgSettings as Record<string, unknown> | null)?.enabledModels,
+      )
+        ? ((orgSettings as Record<string, unknown>).enabledModels as string[])
+        : [];
+      const enabledSet = new Set<string>(enabledModels);
 
       for (const modelId of modelIds) {
         if (!enabledSet.has(modelId)) {

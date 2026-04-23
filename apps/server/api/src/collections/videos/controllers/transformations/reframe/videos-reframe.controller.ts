@@ -172,7 +172,7 @@ export class VideosReframeController {
         original:
           typeof promptText === 'string'
             ? promptText
-            : promptText?.toString() || '',
+            : String(promptText ?? ''),
         status: PromptStatus.PROCESSING,
         user: publicMetadata.user,
       }),
@@ -246,7 +246,22 @@ export class VideosReframeController {
         await this.promptBuilderService.buildPrompt(
           MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO,
           {
-            brand: ingredientData.brand,
+            brand:
+              typeof ingredientData.brand === 'object' &&
+              ingredientData.brand !== null &&
+              !Array.isArray(ingredientData.brand) &&
+              typeof (ingredientData.brand as { label?: unknown }).label ===
+                'string'
+                ? {
+                    description:
+                      typeof (ingredientData.brand as { description?: unknown })
+                        .description === 'string'
+                        ? (ingredientData.brand as { description: string })
+                            .description
+                        : undefined,
+                    label: (ingredientData.brand as { label: string }).label,
+                  }
+                : undefined,
             camera: createVideoDto.camera,
             height: targetHeight,
             modelCategory:

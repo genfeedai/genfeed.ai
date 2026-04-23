@@ -38,13 +38,36 @@ function isValidObjectId(id: unknown): id is string {
   return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
 }
 
+type SerializableDocument = Record<string, unknown> & {
+  _id?: string | { toString(): string };
+  toObject?: () => unknown;
+};
+
+function toSerializableDocument(data: unknown): SerializableDocument {
+  if (!data || typeof data !== 'object') {
+    return {};
+  }
+
+  if (
+    'toObject' in data &&
+    typeof (data as SerializableDocument).toObject === 'function'
+  ) {
+    const objectValue = (data as SerializableDocument).toObject?.();
+    return objectValue && typeof objectValue === 'object'
+      ? (objectValue as SerializableDocument)
+      : {};
+  }
+
+  return data as SerializableDocument;
+}
+
 // Simple serializer for creator analysis
 const CreatorAnalysisSerializer = {
   serialize: (data: unknown) => {
     if (!data) {
       return null;
     }
-    const doc = data.toObject ? data.toObject() : data;
+    const doc = toSerializableDocument(data);
     return {
       attributes: {
         avatarUrl: doc.avatarUrl,

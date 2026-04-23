@@ -8,7 +8,7 @@ interface ElementMetadata {
 }
 
 interface BuildElementFindAllPipelineOptions {
-  adminFilter?: Record<string, unknown>;
+  adminFilter?: Record<string, unknown> | null;
   defaultSort?: Record<string, 1 | -1>;
   includeStateFilters?: boolean;
   metadata: ElementMetadata;
@@ -53,9 +53,10 @@ export function buildElementFindAllPipeline({
   });
 
   if (searchableFields.length > 0 && typeof queryAny.search === 'string') {
+    const search = queryAny.search;
     builder.match({
       $or: searchableFields.map((field) => ({
-        [field]: { $options: 'i', $regex: queryAny.search },
+        [field]: { $options: 'i', $regex: search },
       })),
     });
   }

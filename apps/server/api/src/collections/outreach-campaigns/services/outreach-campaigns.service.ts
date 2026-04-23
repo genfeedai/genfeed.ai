@@ -1,6 +1,9 @@
 import { CreateOutreachCampaignDto } from '@api/collections/outreach-campaigns/dto/create-outreach-campaign.dto';
 import { UpdateOutreachCampaignDto } from '@api/collections/outreach-campaigns/dto/update-outreach-campaign.dto';
-import type { OutreachCampaignDocument } from '@api/collections/outreach-campaigns/schemas/outreach-campaign.schema';
+import type {
+  CampaignRateLimits,
+  OutreachCampaignDocument,
+} from '@api/collections/outreach-campaigns/schemas/outreach-campaign.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { CampaignStatus } from '@genfeedai/enums';
@@ -9,7 +12,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
 
 @Injectable()
-// @ts-expect-error - base class type mismatch
 export class OutreachCampaignsService extends BaseService<
   OutreachCampaignDocument,
   CreateOutreachCampaignDto,
@@ -20,6 +22,31 @@ export class OutreachCampaignsService extends BaseService<
     public readonly logger: LoggerService,
   ) {
     super(prisma, 'outreachCampaign', logger);
+  }
+
+  private normalizeRateLimits(
+    rateLimits?: CampaignRateLimits,
+  ): CampaignRateLimits & {
+    currentDayCount: number;
+    currentHourCount: number;
+    maxPerDay: number;
+    maxPerHour: number;
+  } {
+    return {
+      currentDayCount: 0,
+      currentHourCount: 0,
+      maxPerDay: 50,
+      maxPerHour: 10,
+      ...rateLimits,
+    };
+  }
+
+  private getMetric(
+    campaign: OutreachCampaignDocument,
+    key: 'totalReplies' | 'totalSuccessful',
+  ): number {
+    const value = campaign[key];
+    return typeof value === 'number' ? value : 0;
   }
 
   create(
@@ -188,7 +215,7 @@ export class OutreachCampaignsService extends BaseService<
     }
 
     const now = new Date();
-    const rateLimits = campaign.rateLimits;
+    const rateLimits = this.normalizeRateLimits(campaign.rateLimits);
 
     if (!rateLimits.hourResetAt || now >= new Date(rateLimits.hourResetAt)) {
       await this.resetHourlyCounter(id);
@@ -307,17 +334,16 @@ export class OutreachCampaignsService extends BaseService<
       throw new NotFoundException(`Campaign ${id} not found`);
     }
 
+    const totalReplies = this.getMetric(campaign, 'totalReplies');
+    const totalSuccessful = this.getMetric(campaign, 'totalSuccessful');
     const successRate =
-      campaign.totalReplies > 0
-        ? (campaign.totalSuccessful / campaign.totalReplies) * 100
-        : 0;
+      totalReplies > 0 ? (totalSuccessful / totalReplies) * 100 : 0;
 
     const duration = campaign.startedAt
       ? (Date.now() - campaign.startedAt.getTime()) / 3600000
       : 0;
 
-    const repliesPerHour =
-      duration > 0 ? campaign.totalSuccessful / duration : 0;
+    const repliesPerHour = duration > 0 ? totalSuccessful / duration : 0;
 
     return {
       campaign,
@@ -329,7 +355,7 @@ export class OutreachCampaignsService extends BaseService<
   /**
    * Find documents by query - helper method
    */
-  private async find(
+  async find(
     query: Record<string, unknown>,
   ): Promise<OutreachCampaignDocument[]> {
     return this.prisma.outreachCampaign.findMany({

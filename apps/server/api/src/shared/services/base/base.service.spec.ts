@@ -88,7 +88,7 @@ describe('BaseService', () => {
       expect(delegate.create).toHaveBeenCalledWith({
         data: { foo: 'bar' },
       });
-      expect(result).toEqual(created);
+      expect(result).toEqual({ ...created, _id: 'id_1' });
     });
 
     it('creates a document with include when populate is provided', async () => {
@@ -101,7 +101,7 @@ describe('BaseService', () => {
         data: { foo: 'bar' },
         include: { user: true },
       });
-      expect(result).toEqual(created);
+      expect(result).toEqual({ ...created, _id: 'id_1' });
     });
 
     it('throws ValidationException when createDto is null', async () => {
@@ -207,7 +207,7 @@ describe('BaseService', () => {
       expect(delegate.findFirst).toHaveBeenCalledWith({
         where: { id: 'id_1' },
       });
-      expect(result).toEqual(doc);
+      expect(result).toEqual({ ...doc, _id: 'id_1' });
     });
 
     it('returns null when not found', async () => {
@@ -251,7 +251,7 @@ describe('BaseService', () => {
         where: { id: 'id_1' },
         data: { foo: 'updated' },
       });
-      expect(result).toEqual(updated);
+      expect(result).toEqual({ ...updated, _id: 'id_1' });
     });
 
     it('flattens $set/$unset operators into plain data', async () => {
@@ -335,7 +335,7 @@ describe('BaseService', () => {
         where: { id: 'id_1' },
         data: { isDeleted: true },
       });
-      expect(result).toEqual(deleted);
+      expect(result).toEqual({ ...deleted, _id: 'id_1' });
     });
 
     it('throws ValidationException when id is falsy', async () => {
@@ -352,6 +352,20 @@ describe('BaseService', () => {
         status: 'ok',
       });
       expect(result).toEqual({ id: 'abc123', status: 'ok' });
+    });
+
+    it('matches legacy _id against both id and mongoId when available', () => {
+      setModelFields('id', 'mongoId', 'organizationId', 'isDeleted');
+
+      const result = service.processSearchParams({
+        _id: 'legacy_123',
+        organization: 'org1',
+      });
+
+      expect(result).toEqual({
+        OR: [{ id: 'legacy_123' }, { mongoId: 'legacy_123' }],
+        organizationId: 'org1',
+      });
     });
 
     it('remaps legacy organization string filters to organizationId', () => {
@@ -467,7 +481,7 @@ describe('BaseService', () => {
         where: { id: 'id_1' },
         data: { isRead: true },
       });
-      expect(result).toEqual({ id: 'id_1', isRead: true });
+      expect(result).toEqual({ _id: 'id_1', id: 'id_1', isRead: true });
     });
 
     it('returns null when document not found or not in org', async () => {

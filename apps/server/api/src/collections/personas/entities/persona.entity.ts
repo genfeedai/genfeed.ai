@@ -1,4 +1,3 @@
-import type { PersonaContentStrategy } from '@api/collections/personas/schemas/persona.schema';
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
 import type {
   AvatarProvider,
@@ -20,7 +19,7 @@ export class PersonaEntity extends BaseEntity {
   declare readonly voice?: string;
   declare readonly voiceProvider?: VoiceProvider;
   declare readonly voiceExternalId?: string;
-  declare readonly contentStrategy?: PersonaContentStrategy;
+  declare readonly contentStrategy?: Record<string, unknown> | null;
   declare readonly credentials?: string[];
   declare readonly assignedMembers?: string[];
   declare readonly status: PersonaStatus;

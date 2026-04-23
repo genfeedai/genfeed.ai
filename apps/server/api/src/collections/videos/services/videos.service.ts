@@ -9,6 +9,6 @@ export class VideosService extends IngredientsService {
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
   ) {
-    super(prisma, 'ingredient', logger);
+    super(prisma, logger);
   }
 }

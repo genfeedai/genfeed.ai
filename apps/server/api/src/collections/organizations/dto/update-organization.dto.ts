@@ -33,4 +33,13 @@ export class UpdateOrganizationDto extends PartialType(
     required: false,
   })
   readonly onboardingCompleted?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  @ApiProperty({
+    description:
+      'Whether this organization is a proactive onboarding shadow workspace',
+    required: false,
+  })
+  readonly isProactiveOnboarding?: boolean;
 }

@@ -87,6 +87,75 @@ export class AiInfluencerService {
     private readonly loggerService: LoggerService,
   ) {}
 
+  private readObjectRecord(value: unknown): Record<string, unknown> | null {
+    return value && typeof value === 'object'
+      ? (value as Record<string, unknown>)
+      : null;
+  }
+
+  private readString(value: unknown): string | undefined {
+    return typeof value === 'string' && value.trim().length > 0
+      ? value
+      : undefined;
+  }
+
+  private readStringArray(value: unknown): string[] | undefined {
+    if (!Array.isArray(value)) {
+      return undefined;
+    }
+
+    const entries = value.filter(
+      (entry): entry is string => typeof entry === 'string' && entry.length > 0,
+    );
+
+    return entries.length > 0 ? entries : undefined;
+  }
+
+  private readReferenceId(value: unknown): string | undefined {
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return value;
+    }
+
+    const record = this.readObjectRecord(value);
+    return this.readString(record?._id ?? record?.id);
+  }
+
+  private readRequiredPersonaReference(
+    persona: PersonaDocument,
+    field: 'brand' | 'organization' | 'user',
+  ): string {
+    const personaRecord = persona as Record<string, unknown>;
+    const value = this.readReferenceId(personaRecord[field]);
+
+    if (!value) {
+      throw new Error(`Persona ${field} is missing`);
+    }
+
+    return value;
+  }
+
+  private readPersonaStrategy(persona: PersonaDocument): {
+    platforms?: string[];
+    tone?: string;
+    topics?: string[];
+  } {
+    const personaRecord = persona as Record<string, unknown>;
+    const strategy = this.readObjectRecord(personaRecord.contentStrategy);
+
+    return {
+      platforms: this.readStringArray(strategy?.platforms),
+      tone: this.readString(strategy?.tone),
+      topics: this.readStringArray(strategy?.topics),
+    };
+  }
+
+  private hasReadyLora(persona: PersonaDocument): boolean {
+    const personaRecord = persona as Record<string, unknown>;
+    const status = this.readString(personaRecord.loraStatus);
+
+    return status === LoraStatus.READY || status === 'trained';
+  }
+
   /**
    * Orchestrate the full daily post pipeline for a persona:
    * 1. Load persona from DB
@@ -205,7 +274,7 @@ export class AiInfluencerService {
         }
 
         // Determine platforms from persona's content strategy
-        const platforms = persona.contentStrategy?.platforms ?? [
+        const platforms = this.readPersonaStrategy(persona).platforms ?? [
           'instagram',
           'twitter',
         ];
@@ -271,8 +340,8 @@ export class AiInfluencerService {
 
     return {
       docs: result.docs,
-      limit: result.limit,
-      page: result.page,
+      limit: result.limit ?? filters.limit ?? 20,
+      page: result.page ?? filters.page ?? 1,
       totalDocs: result.totalDocs,
     };
   }
@@ -331,11 +400,13 @@ export class AiInfluencerService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(caller, { personaSlug: persona.slug });
 
-    const topics = persona.contentStrategy?.topics ?? [];
-    const tone = persona.contentStrategy?.tone ?? 'engaging and authentic';
-    const niche = persona.niche ?? 'lifestyle';
+    const strategy = this.readPersonaStrategy(persona);
+    const personaRecord = persona as Record<string, unknown>;
+    const topics = strategy.topics ?? [];
+    const tone = strategy.tone ?? 'engaging and authentic';
+    const niche = this.readString(personaRecord.niche) ?? 'lifestyle';
     const name = persona.label;
-    const bio = persona.bio ?? '';
+    const bio = this.readString(personaRecord.bio) ?? '';
 
     const systemPrompt = [
       `You are a social media caption writer for an AI influencer named "${name}".`,
@@ -430,10 +501,9 @@ export class AiInfluencerService {
     }
 
     // Use LoRA if available
-    const loraPath =
-      persona.loraStatus === LoraStatus.TRAINED
-        ? persona.loraModelPath
-        : undefined;
+    const loraPath = this.hasReadyLora(persona)
+      ? this.readString((persona as Record<string, unknown>).loraModelPath)
+      : undefined;
 
     return { height, loraPath, prompt, width };
   }
@@ -551,10 +621,14 @@ export class AiInfluencerService {
     },
   ): Promise<PlatformPublishResult> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const organizationId = persona.organization.toString();
-    const brandId = persona.brand.toString();
 
     try {
+      const organizationId = this.readRequiredPersonaReference(
+        persona,
+        'organization',
+      );
+      const brandId = this.readRequiredPersonaReference(persona, 'brand');
+
       switch (platform) {
         case 'instagram': {
           const igResult = await this.instagramService.uploadImage(
@@ -668,20 +742,26 @@ export class AiInfluencerService {
     voiceResult: GenerationResult;
     videoResult: GenerationResult;
   }> {
+    const organizationId = this.readRequiredPersonaReference(
+      persona,
+      'organization',
+    );
+    const userId = this.readRequiredPersonaReference(persona, 'user');
+
     const voiceResult = await this.personaContentService.generateVoice({
       ingredientId,
-      organization: persona.organization,
+      organization: organizationId,
       personaId: persona._id,
       text: script,
-      user: persona.user,
+      user: userId,
     });
 
     const videoResult = await this.personaContentService.generateVideo({
       aspectRatio: '9:16',
-      organization: persona.organization,
+      organization: organizationId,
       personaId: persona._id,
       script,
-      user: persona.user,
+      user: userId,
     });
 
     return { videoResult, voiceResult };

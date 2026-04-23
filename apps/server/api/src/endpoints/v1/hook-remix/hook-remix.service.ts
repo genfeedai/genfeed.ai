@@ -35,8 +35,9 @@ export class HookRemixService {
     userId: string,
     organizationId: string,
   ) {
-    this.loggerService.log('Creating hook remix', this.serviceName, {
+    this.loggerService.log('Creating hook remix', {
       brandId: dto.brandId,
+      service: this.serviceName,
       youtubeUrl: dto.youtubeUrl,
     });
 
@@ -97,9 +98,10 @@ export class HookRemixService {
     userId: string,
     organizationId: string,
   ) {
-    this.loggerService.log('Creating batch hook remix', this.serviceName, {
+    this.loggerService.log('Creating batch hook remix', {
       brandId: dto.brandId,
       count: dto.youtubeUrls.length,
+      service: this.serviceName,
     });
 
     const ctaIngredient = await this.ingredientsService.findOne({

@@ -53,6 +53,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
+import type { MatchConditions } from '@api/shared/utils/pipeline-builder/pipeline-builder.types';
 import { PipelineBuilder } from '@api/shared/utils/pipeline-builder/pipeline-builder.util';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { User } from '@clerk/backend';
@@ -374,23 +375,25 @@ export class OrganizationsRelationshipsController {
       query.parent,
     );
 
-    const matchConditions = {
+    const matchConditions: MatchConditions = {
       isDeleted,
       organization: organizationId,
-      ...statusFilter,
-      ...(query.search && {
-        $or: [
-          { label: { $options: 'i', $regex: query.search } },
-          { description: { $options: 'i', $regex: query.search } },
-        ],
-      }),
+      ...(statusFilter as MatchConditions),
+      ...(query.search
+        ? {
+            $or: [
+              { label: { $options: 'i', $regex: query.search } },
+              { description: { $options: 'i', $regex: query.search } },
+            ] as MatchConditions[],
+          }
+        : {}),
       ...(query.category && { category: query.category }),
       ...(query.brand &&
         isValidObjectId(query.brand) && {
           brand: query.brand,
         }),
       ...(Object.keys(parentConditions).length > 0 && {
-        $and: [parentConditions],
+        $and: [parentConditions as MatchConditions],
       }),
     };
 
@@ -523,7 +526,7 @@ export class OrganizationsRelationshipsController {
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
 
     // Build match filter
-    const matchFilter: unknown = {
+    const matchFilter: MatchConditions = {
       // Only show parent posts (not children/replies)
       // Handle both null and undefined (undefined fields aren't stored in MongoDB)
       $or: [{ parent: null }, { parent: { $exists: false } }],

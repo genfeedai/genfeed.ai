@@ -33,7 +33,10 @@ import {
   getAgentTypeConfig,
 } from '@api/services/agent-orchestrator/constants/agent-type-config.constant';
 import { ONBOARDING_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/onboarding-system-prompt.constant';
-import { ResolvedAgentExecutionPolicy } from '@api/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
+import {
+  type AgentGenerationPriority,
+  ResolvedAgentExecutionPolicy,
+} from '@api/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { getToolDefinitions } from '@api/services/agent-orchestrator/tools/agent-tool-registry';
 import { sanitizeAgentOutputText } from '@api/services/agent-orchestrator/utils/sanitize-agent-output.util';
@@ -66,6 +69,7 @@ import {
   type AgentUIBlock,
   type AgentUIBlocksEvent,
   type AgentUiAction,
+  type AgentUiActionCta,
 } from '@genfeedai/interfaces';
 import type { ResolvedRuntimeSkill } from '@genfeedai/interfaces/ai';
 import { TIMEZONES } from '@helpers/formatting/timezone/timezone.helper';
@@ -494,10 +498,10 @@ export class AgentOrchestratorService {
         metadata: request.attachments?.length
           ? { attachments: request.attachments }
           : undefined,
-        organization: context.organizationId,
+        organizationId: context.organizationId,
         role: AgentMessageRole.USER,
         room: threadId,
-        user: context.userId,
+        userId: context.userId,
       });
 
       const planModeResponse = await this.tryHandlePlanModeTurn({
@@ -870,7 +874,7 @@ export class AgentOrchestratorService {
                   }
                 : undefined,
             },
-            organization: context.organizationId,
+            organizationId: context.organizationId,
             role: AgentMessageRole.ASSISTANT,
             room: threadId,
             toolCalls: allToolCalls.map((tc) => ({
@@ -882,7 +886,7 @@ export class AgentOrchestratorService {
               status: tc.status,
               toolName: tc.toolName,
             })),
-            user: context.userId,
+            userId: context.userId,
           });
           await this.recordAssistantFinalized({
             content,
@@ -1307,10 +1311,10 @@ export class AgentOrchestratorService {
       metadata: request.attachments?.length
         ? { attachments: request.attachments }
         : undefined,
-      organization: context.organizationId,
+      organizationId: context.organizationId,
       role: AgentMessageRole.USER,
       room: threadId,
-      user: context.userId,
+      userId: context.userId,
     });
 
     const handledPlanMode = await this.tryHandlePlanModeTurnStream({
@@ -1589,7 +1593,7 @@ export class AgentOrchestratorService {
               totalCreditsUsed,
               uiActions: enhancedUiActions.uiActions,
             },
-            organization: context.organizationId,
+            organizationId: context.organizationId,
             role: AgentMessageRole.ASSISTANT,
             room: threadId,
             toolCalls: allToolCalls.map((tc) => ({
@@ -1601,7 +1605,7 @@ export class AgentOrchestratorService {
               status: tc.status,
               toolName: tc.toolName,
             })),
-            user: context.userId,
+            userId: context.userId,
           });
 
           let runDurationMs: number | undefined;
@@ -1611,7 +1615,10 @@ export class AgentOrchestratorService {
               context.organizationId,
               content.slice(0, 200),
             );
-            runDurationMs = completedRun?.durationMs;
+            runDurationMs =
+              typeof completedRun?.durationMs === 'number'
+                ? completedRun.durationMs
+                : undefined;
           }
 
           await runEffectPromise(
@@ -1853,7 +1860,7 @@ export class AgentOrchestratorService {
               reviewModelOverride: resolvedPolicy.reviewModelOverride,
               runId: context.runId,
               strategyId: context.strategyId,
-              thinkingModel: resolvedPolicy.thinkingModelOverride,
+              thinkingModel: resolvedPolicy.thinkingModelOverride ?? undefined,
               threadId,
               userId: context.userId,
             },
@@ -2065,7 +2072,7 @@ export class AgentOrchestratorService {
     } as Record<string, unknown>);
     return {
       seedTitle,
-      threadId: String(thread._id),
+      threadId: String(thread._id ?? thread.id),
     };
   }
 
@@ -2229,7 +2236,7 @@ export class AgentOrchestratorService {
       user: { $in: [userId] },
     });
 
-    return thread ? String(thread._id) : null;
+    return thread ? String(thread._id ?? thread.id) : null;
   }
 
   private async resolveThreadUiActionModel(
@@ -2354,10 +2361,10 @@ export class AgentOrchestratorService {
         ...assistantResponse.metadata,
         creditsRemaining,
       },
-      organization: params.organizationId,
+      organizationId: params.organizationId,
       role: AgentMessageRole.ASSISTANT,
       room: params.threadId,
-      user: params.userId,
+      userId: params.userId,
     });
 
     if (this.streamPublisher) {
@@ -2410,10 +2417,10 @@ export class AgentOrchestratorService {
     await this.agentMessagesService.addMessage({
       content: assistantResponse.content,
       metadata: assistantMetadata,
-      organization: params.context.organizationId,
+      organizationId: params.context.organizationId,
       role: AgentMessageRole.ASSISTANT,
       room: params.threadId,
-      user: params.context.userId,
+      userId: params.context.userId,
     });
     await this.recordAssistantFinalized({
       content: assistantResponse.content,
@@ -2626,10 +2633,10 @@ export class AgentOrchestratorService {
         creditsRemaining,
         ...assistantMetadata,
       },
-      organization: params.context.organizationId,
+      organizationId: params.context.organizationId,
       role: AgentMessageRole.ASSISTANT,
       room: params.threadId,
-      user: params.context.userId,
+      userId: params.context.userId,
     });
     await this.recordAssistantFinalized({
       content,
@@ -2729,7 +2736,7 @@ export class AgentOrchestratorService {
         runId: params.context.runId,
         strategyId: params.context.strategyId,
         streamBatchToUser: true,
-        thinkingModel: params.policy.thinkingModelOverride,
+        thinkingModel: params.policy.thinkingModelOverride ?? undefined,
         threadId: params.threadId,
         userId: params.context.userId,
       },
@@ -2822,7 +2829,7 @@ export class AgentOrchestratorService {
     await this.agentMessagesService.addMessage({
       content: fullContent,
       metadata: assistantMetadata,
-      organization: params.context.organizationId,
+      organizationId: params.context.organizationId,
       role: AgentMessageRole.ASSISTANT,
       room: params.threadId,
       toolCalls: [
@@ -2838,7 +2845,7 @@ export class AgentOrchestratorService {
           toolName,
         },
       ],
-      user: params.context.userId,
+      userId: params.context.userId,
     });
     await this.recordAssistantFinalized({
       content: fullContent,
@@ -2904,10 +2911,10 @@ export class AgentOrchestratorService {
     await this.agentMessagesService.addMessage({
       content: assistantResponse.content,
       metadata: assistantMetadata,
-      organization: params.context.organizationId,
+      organizationId: params.context.organizationId,
       role: AgentMessageRole.ASSISTANT,
       room: params.threadId,
-      user: params.context.userId,
+      userId: params.context.userId,
     });
 
     await runEffectPromise(
@@ -3774,7 +3781,7 @@ export class AgentOrchestratorService {
     const windowMessages =
       await this.threadContextCompressorService.getWindowMessages(
         threadId,
-        state.lastIncorporatedMessageId,
+        state.data.lastIncorporatedMessageId ?? '',
       );
 
     const compressedContext =
@@ -4770,10 +4777,14 @@ export class AgentOrchestratorService {
 
     // Merge skill tool overrides into the profile snapshot
     if (context.resolvedSkills?.length && this.skillRuntimeService) {
-      profile.enabledTools = this.skillRuntimeService.mergeSkillToolOverrides(
+      const enabledTools = this.skillRuntimeService.mergeSkillToolOverrides(
         profile.enabledTools,
         context.resolvedSkills,
       );
+
+      if (enabledTools) {
+        profile.enabledTools = enabledTools;
+      }
     }
 
     await runEffectPromise(
@@ -5644,7 +5655,7 @@ export class AgentOrchestratorService {
         creditsRemaining,
         ...assistantMetadata,
       },
-      organization: params.context.organizationId,
+      organizationId: params.context.organizationId,
       role: AgentMessageRole.ASSISTANT,
       room: params.threadId,
       toolCalls: params.toolCalls.map((toolCall) => ({
@@ -5658,7 +5669,7 @@ export class AgentOrchestratorService {
         status: toolCall.status,
         toolName: toolCall.toolName,
       })),
-      user: params.context.userId,
+      userId: params.context.userId,
     });
 
     await this.recordAssistantFinalized({
@@ -5950,7 +5961,7 @@ export class AgentOrchestratorService {
 
   private buildCompletionPrimaryCta(
     label: string,
-    cta?: AgentUiAction['ctas'] extends Array<infer T> ? T : never,
+    cta?: AgentUiActionCta,
   ):
     | {
         action?: string;

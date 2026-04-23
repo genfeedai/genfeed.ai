@@ -90,7 +90,8 @@ export class RedditController {
 
       const state = JSON.stringify({
         brandId: brand._id.toString(),
-        organizationId: brand.organization.toString(),
+        organizationId:
+          brand.organization?.toString() ?? publicMetadata.organization,
         userId: publicMetadata.user,
       });
 

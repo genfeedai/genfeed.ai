@@ -361,8 +361,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
       systemPrompt: {
         description: 'System prompt to guide the LLM',
         label: 'System Prompt',
-        rows: 4,
-        type: 'textarea',
+        type: 'string',
       },
       temperature: {
         default: 0.7,

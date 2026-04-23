@@ -10,7 +10,7 @@
     "@react-navigation/native": "7.2.2",
     "@sentry/react-native": "8.8.0",
     "@shopify/flash-list": "2.3.1",
-    "expo": "55.0.16",
+    "expo": "55.0.17",
     "expo-blur": "55.0.14",
     "expo-constants": "55.0.15",
     "expo-device": "55.0.15",

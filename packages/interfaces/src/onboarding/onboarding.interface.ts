@@ -4,6 +4,18 @@ import type {
   OnboardingStep,
 } from '@genfeedai/enums';
 
+export type OnboardingAccessMode = 'server' | 'byok' | 'cloud';
+export type OnboardingRuntimeAccessMode = Exclude<
+  OnboardingAccessMode,
+  'cloud'
+>;
+
+export interface IOnboardingAccessPreference {
+  accessMode?: OnboardingAccessMode;
+  selectedAt?: string;
+  source?: string;
+}
+
 /**
  * Social media links extracted from website
  */
@@ -149,6 +161,36 @@ export interface IGeneratePreviewRequest {
 export interface IGeneratePreviewResponse {
   imageUrl: string;
   prompt: string;
+}
+
+export interface IProactivePreparationStatus {
+  proactiveStatus: string;
+  prepPercent: number;
+  prepStage: string;
+  inviteEligible: boolean;
+  generatedAssetCount: number;
+  claimedAt?: string;
+  paymentMadeAt?: string;
+  brand?: {
+    id: string;
+    name: string;
+    colors: string[];
+    voiceTone?: string;
+  };
+  organization?: {
+    id: string;
+    label?: string | null;
+  };
+  batch?: {
+    id: string;
+    platforms: string[];
+    completedPosts: number;
+    totalPosts: number;
+  };
+  invitation?: {
+    email: string;
+    invitedAt: string;
+  };
 }
 
 /**

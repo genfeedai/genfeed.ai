@@ -93,9 +93,8 @@ export class BatchContentService {
   rankDrafts(drafts: ContentDraft[]): ContentDraft[] {
     const ranked = [...drafts]
       .sort((left, right) => {
-        const rightConfidence =
-          right.confidenceScore ?? Number.NEGATIVE_INFINITY;
-        const leftConfidence = left.confidenceScore ?? Number.NEGATIVE_INFINITY;
+        const rightConfidence = right.confidence ?? Number.NEGATIVE_INFINITY;
+        const leftConfidence = left.confidence ?? Number.NEGATIVE_INFINITY;
 
         if (rightConfidence !== leftConfidence) {
           return rightConfidence - leftConfidence;

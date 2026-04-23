@@ -16,11 +16,11 @@ export class ReplyBotQueueService implements OnModuleInit {
   constructor(
     @InjectQueue('reply-bot-polling')
     private readonly pollingQueue: Queue<ReplyBotPollingJobData>,
-    @Optional() private readonly organizationsService?: OrganizationsService,
+    @Optional() private readonly organizationsService: OrganizationsService,
     @Optional()
-    private readonly replyBotConfigsService?: ReplyBotConfigsService,
-    @Optional() private readonly credentialsService?: CredentialsService,
-    @Optional() private readonly logger?: LoggerService,
+    private readonly replyBotConfigsService: ReplyBotConfigsService,
+    @Optional() private readonly credentialsService: CredentialsService,
+    @Optional() private readonly logger: LoggerService,
   ) {}
 
   onModuleInit(): void {

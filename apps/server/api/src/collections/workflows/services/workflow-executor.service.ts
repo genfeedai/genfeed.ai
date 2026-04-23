@@ -1,5 +1,11 @@
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
-import type { WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
+import type {
+  WorkflowDocument,
+  WorkflowEdge,
+  WorkflowInputVariable,
+  WorkflowStep,
+  WorkflowVisualNode,
+} from '@api/collections/workflows/schemas/workflow.schema';
 import { WorkflowEngineAdapterService } from '@api/collections/workflows/services/workflow-engine-adapter.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -280,7 +286,7 @@ export class WorkflowExecutorService {
     }
 
     return this.executeWorkflowDocument(
-      workflowDoc,
+      this.normalizeWorkflowDocument(workflowDoc),
       {
         data: inputValues,
         organizationId,
@@ -319,6 +325,9 @@ export class WorkflowExecutorService {
       throw new NotFoundException(`Workflow ${workflowId} not found`);
     }
 
+    const normalizedWorkflowDoc = this.normalizeWorkflowDocument(workflowDoc);
+    const workflowLabel = this.getWorkflowLabel(normalizedWorkflowDoc);
+
     const pendingApproval = this.getPendingReviewGateState(
       execution.metadata,
       nodeId,
@@ -332,7 +341,7 @@ export class WorkflowExecutorService {
 
     if (
       execution.completedAt ||
-      execution.status !== WorkflowExecutionStatus.RUNNING
+      String(execution.status) !== WorkflowExecutionStatus.RUNNING
     ) {
       throw new BadRequestException(
         `Execution ${executionId} is not awaiting approval`,
@@ -418,10 +427,11 @@ export class WorkflowExecutorService {
       pendingApproval: null,
     });
 
-    let executableWorkflow =
-      this.engineAdapter.convertToExecutableWorkflow(workflowDoc);
+    let executableWorkflow = this.engineAdapter.convertToExecutableWorkflow(
+      normalizedWorkflowDoc,
+    );
     executableWorkflow = this.engineAdapter.applyRuntimeInputValues(
-      workflowDoc,
+      normalizedWorkflowDoc,
       executableWorkflow,
       execution.inputValues ?? {},
     );
@@ -539,7 +549,7 @@ export class WorkflowExecutorService {
             startedAt: execution.startedAt ?? new Date(),
             userId,
             workflowId,
-            workflowLabel: workflowDoc.label,
+            workflowLabel,
           });
         },
       },
@@ -604,6 +614,7 @@ export class WorkflowExecutorService {
     trigger: WorkflowExecutionTrigger,
     metadata?: Record<string, unknown>,
   ): Promise<WorkflowExecutionResult> {
+    const workflowLabel = this.getWorkflowLabel(workflowDoc);
     const workflowId = String(
       (workflowDoc as unknown as Record<string, unknown>)._id ??
         (workflowDoc as unknown as { id: string }).id,
@@ -662,7 +673,7 @@ export class WorkflowExecutorService {
         status: 'processing',
         userId: event.userId,
         workflowId,
-        workflowLabel: workflowDoc.label,
+        workflowLabel,
       });
 
       // Update workflow status
@@ -688,7 +699,7 @@ export class WorkflowExecutorService {
         {
           baselineEstimatedDurationMs: initialEta.estimatedDurationMs,
           startedAt,
-          workflowLabel: workflowDoc.label,
+          workflowLabel,
         },
       );
 
@@ -764,7 +775,7 @@ export class WorkflowExecutorService {
               : 'failed',
           userId: event.userId,
           workflowId,
-          workflowLabel: workflowDoc.label,
+          workflowLabel,
         });
       } else {
         // Delay paused — emit event but don't finalize
@@ -825,7 +836,7 @@ export class WorkflowExecutorService {
         status: 'failed',
         userId: event.userId,
         workflowId,
-        workflowLabel: workflowDoc.label,
+        workflowLabel,
       });
 
       throw error;
@@ -888,10 +899,14 @@ export class WorkflowExecutorService {
       };
     }
 
-    let executableWorkflow =
-      this.engineAdapter.convertToExecutableWorkflow(workflowDoc);
+    const normalizedWorkflowDoc = this.normalizeWorkflowDocument(workflowDoc);
+    const workflowLabel = this.getWorkflowLabel(normalizedWorkflowDoc);
+
+    let executableWorkflow = this.engineAdapter.convertToExecutableWorkflow(
+      normalizedWorkflowDoc,
+    );
     executableWorkflow = this.engineAdapter.applyRuntimeInputValues(
-      workflowDoc,
+      normalizedWorkflowDoc,
       executableWorkflow,
       triggerEvent.data,
     );
@@ -979,7 +994,7 @@ export class WorkflowExecutorService {
             startedAt: existingExecution?.startedAt ?? new Date(),
             userId: triggerEvent.userId,
             workflowId,
-            workflowLabel: workflowDoc.label,
+            workflowLabel,
           });
         },
       },
@@ -1040,7 +1055,7 @@ export class WorkflowExecutorService {
               finalStatus === WorkflowExecutionStatus.FAILED
                 ? result.error
                 : undefined,
-            workflowLabel: workflowDoc.label,
+            workflowLabel,
           },
         );
       }
@@ -1057,7 +1072,7 @@ export class WorkflowExecutorService {
             : 'failed',
         userId: triggerEvent.userId,
         workflowId,
-        workflowLabel: workflowDoc.label,
+        workflowLabel,
       });
     }
 
@@ -1733,9 +1748,12 @@ export class WorkflowExecutorService {
         organizationId: event.organizationId,
       },
     });
+    const normalizedWorkflows = workflows.map((workflow) =>
+      this.normalizeWorkflowDocument(workflow),
+    );
 
     // Filter by trigger node match
-    return (workflows as WorkflowDocument[]).filter((workflow) => {
+    return normalizedWorkflows.filter((workflow) => {
       if (!workflow.nodes || workflow.nodes.length === 0) {
         return false;
       }
@@ -1770,6 +1788,41 @@ export class WorkflowExecutorService {
       'trigger-new-repost': 'newRepostTrigger',
     };
     return NODE_TYPE_MAP[visualNodeType] ?? visualNodeType;
+  }
+
+  private normalizeWorkflowDocument(workflow: unknown): WorkflowDocument {
+    const workflowRecord = workflow as Record<string, unknown>;
+
+    return {
+      ...(workflowRecord as unknown as WorkflowDocument),
+      _id: String(workflowRecord.mongoId ?? workflowRecord.id ?? ''),
+      config: this.readObjectRecord(workflowRecord.config) ?? undefined,
+      edges: this.readArray<WorkflowEdge>(workflowRecord.edges),
+      inputVariables: this.readArray<WorkflowInputVariable>(
+        workflowRecord.inputVariables,
+      ),
+      metadata: this.readObjectRecord(workflowRecord.metadata) ?? undefined,
+      nodes: this.readArray<WorkflowVisualNode>(workflowRecord.nodes),
+      steps: this.readArray<WorkflowStep>(workflowRecord.steps),
+    };
+  }
+
+  private readArray<T>(value: unknown): T[] {
+    return Array.isArray(value) ? (value as T[]) : [];
+  }
+
+  private readObjectRecord(value: unknown): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return null;
+    }
+
+    return value as Record<string, unknown>;
+  }
+
+  private getWorkflowLabel(workflow: Pick<WorkflowDocument, 'label'>): string {
+    return typeof workflow.label === 'string' && workflow.label.length > 0
+      ? workflow.label
+      : 'Workflow';
   }
 
   private getPendingReviewGateState(

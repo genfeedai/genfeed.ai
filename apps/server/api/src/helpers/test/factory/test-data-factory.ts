@@ -111,11 +111,8 @@ export class TestDataFactory {
 
   static createMockResponse(overrides?: Partial<unknown>) {
     return {
-      // @ts-expect-error TS2339
       json: vi.fn().mockReturnThis(),
-      // @ts-expect-error TS2339
       send: vi.fn().mockReturnThis(),
-      // @ts-expect-error TS2339
       status: vi.fn().mockReturnThis(),
       ...overrides,
     };

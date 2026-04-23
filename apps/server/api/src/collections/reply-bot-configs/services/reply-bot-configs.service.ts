@@ -1,6 +1,9 @@
 import { CreateReplyBotConfigDto } from '@api/collections/reply-bot-configs/dto/create-reply-bot-config.dto';
 import { UpdateReplyBotConfigDto } from '@api/collections/reply-bot-configs/dto/update-reply-bot-config.dto';
-import type { ReplyBotConfigDocument } from '@api/collections/reply-bot-configs/schemas/reply-bot-config.schema';
+import type {
+  ReplyBotConfigDocument,
+  ReplyBotRateLimits,
+} from '@api/collections/reply-bot-configs/schemas/reply-bot-config.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { ReplyBotType } from '@genfeedai/enums';
@@ -19,6 +22,25 @@ export class ReplyBotConfigsService extends BaseService<
     readonly logger: LoggerService,
   ) {
     super(prisma, 'replyBotConfig', logger);
+  }
+
+  private normalizeRateLimits(
+    rateLimits?: ReplyBotRateLimits,
+  ): ReplyBotRateLimits & {
+    currentDayCount: number;
+    currentHourCount: number;
+    maxRepliesPerAccountPerDay: number;
+    maxRepliesPerDay: number;
+    maxRepliesPerHour: number;
+  } {
+    return {
+      currentDayCount: 0,
+      currentHourCount: 0,
+      maxRepliesPerAccountPerDay: 5,
+      maxRepliesPerDay: 50,
+      maxRepliesPerHour: 10,
+      ...rateLimits,
+    };
   }
 
   create(
@@ -141,7 +163,7 @@ export class ReplyBotConfigsService extends BaseService<
     }
 
     const now = new Date();
-    const rateLimits = config.rateLimits;
+    const rateLimits = this.normalizeRateLimits(config.rateLimits);
 
     // Check if we need to reset hourly counter
     if (!rateLimits.hourResetAt || now >= new Date(rateLimits.hourResetAt)) {
@@ -175,7 +197,10 @@ export class ReplyBotConfigsService extends BaseService<
       where: { id },
     });
     if (!config) return;
-    const rateLimits = config.rateLimits as Record<string, unknown>;
+    const normalizedConfig = this.normalizeDocument(
+      config,
+    ) as ReplyBotConfigDocument;
+    const rateLimits = this.normalizeRateLimits(normalizedConfig.rateLimits);
     await this.prisma.replyBotConfig.update({
       data: {
         lastActivityAt: new Date(),
@@ -234,7 +259,10 @@ export class ReplyBotConfigsService extends BaseService<
       where: { id },
     });
     if (!config) return;
-    const rateLimits = config.rateLimits as Record<string, unknown>;
+    const normalizedConfig = this.normalizeDocument(
+      config,
+    ) as ReplyBotConfigDocument;
+    const rateLimits = this.normalizeRateLimits(normalizedConfig.rateLimits);
 
     await this.prisma.replyBotConfig.update({
       data: {
@@ -260,7 +288,10 @@ export class ReplyBotConfigsService extends BaseService<
       where: { id },
     });
     if (!config) return;
-    const rateLimits = config.rateLimits as Record<string, unknown>;
+    const normalizedConfig = this.normalizeDocument(
+      config,
+    ) as ReplyBotConfigDocument;
+    const rateLimits = this.normalizeRateLimits(normalizedConfig.rateLimits);
 
     await this.prisma.replyBotConfig.update({
       data: {

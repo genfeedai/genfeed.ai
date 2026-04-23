@@ -6,6 +6,7 @@ import { BasePublisherService } from '@api/services/integrations/publishers/base
 import type {
   PublishContext,
   PublishResult,
+  ThreadChild,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -20,6 +21,19 @@ export class LinkedInPublisherService extends BasePublisherService {
   readonly supportsVideos = true;
   readonly supportsCarousel = false;
   readonly supportsThreads = true; // Supports TEXT children as first comments
+
+  private getLinkedInPublishId(result: unknown): string | null {
+    if (
+      result &&
+      typeof result === 'object' &&
+      'id' in result &&
+      typeof result.id === 'string'
+    ) {
+      return result.id;
+    }
+
+    return null;
+  }
 
   constructor(
     protected readonly configService: ConfigService,
@@ -61,7 +75,7 @@ export class LinkedInPublisherService extends BasePublisherService {
           mediaInfo.mediaUrls[0],
           caption,
         );
-        externalId = result?.id || null;
+        externalId = this.getLinkedInPublishId(result);
       } else {
         // Upload video with caption
         const result = await this.linkedInService.uploadVideo(
@@ -70,7 +84,7 @@ export class LinkedInPublisherService extends BasePublisherService {
           mediaInfo.mediaUrls[0],
           caption,
         );
-        externalId = result?.id || null;
+        externalId = this.getLinkedInPublishId(result);
       }
 
       if (!externalId) {
@@ -108,7 +122,7 @@ export class LinkedInPublisherService extends BasePublisherService {
    */
   async publishThreadChildren(
     context: PublishContext,
-    children: unknown[],
+    children: ThreadChild[],
     parentExternalId: string,
   ): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;

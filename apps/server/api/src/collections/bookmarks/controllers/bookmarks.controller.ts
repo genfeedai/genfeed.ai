@@ -143,7 +143,6 @@ export class BookmarksController {
       },
     ];
 
-    // @ts-expect-error TS2322
     const data: AggregatePaginateResult<BookmarkDocument> =
       await this.bookmarksService.findAll(aggregate, options);
     return serializeCollection(request, BookmarkSerializer, data);

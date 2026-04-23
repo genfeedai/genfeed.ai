@@ -18,8 +18,8 @@ const BaseModule = createServiceModule(GoogleAdsService, {
 
 @Module({
   controllers: [GoogleAdsController],
-  exports: [...(BaseModule.exports as unknown[]), GoogleAdsOAuthService],
-  imports: BaseModule.imports,
-  providers: BaseModule.providers,
+  exports: [GoogleAdsService, GoogleAdsOAuthService],
+  imports: BaseModule.imports ?? [],
+  providers: BaseModule.providers ?? [],
 })
 export class GoogleAdsModule {}

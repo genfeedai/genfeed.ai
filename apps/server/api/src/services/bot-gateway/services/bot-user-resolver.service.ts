@@ -6,6 +6,10 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 
+function readId(value: unknown): string {
+  return typeof value === 'string' ? value : '';
+}
+
 @Injectable()
 export class BotUserResolverService {
   private readonly constructorName: string = String(this.constructor.name);
@@ -43,17 +47,34 @@ export class BotUserResolverService {
         return null;
       }
 
+      const brandId = readId(credential.brand);
+      const credentialId = readId(credential._id);
+      const organizationId = readId(credential.organization);
+      const userId = readId(credential.user);
+
+      if (!brandId || !credentialId || !organizationId || !userId) {
+        this.loggerService.warn(`${url} credential missing ownership ids`, {
+          brandId,
+          credentialId,
+          organizationId,
+          platform,
+          platformUserId,
+          userId,
+        });
+        return null;
+      }
+
       this.loggerService.log(`${url} resolved user`, {
-        brandId: credential.brand.toString(),
-        credentialId: credential._id.toString(),
-        organizationId: credential.organization.toString(),
+        brandId,
+        credentialId,
+        organizationId,
       });
 
       return {
-        brandId: credential.brand.toString(),
-        credentialId: credential._id.toString(),
-        organizationId: credential.organization.toString(),
-        userId: credential.user.toString(),
+        brandId,
+        credentialId,
+        organizationId,
+        userId,
       };
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
@@ -100,7 +121,7 @@ export class BotUserResolverService {
 
       this.loggerService.log(`${url} switched to brand`, {
         brandId: brand._id.toString(),
-        brandName: brand.label,
+        brandName: brand.label ?? brand._id.toString(),
       });
 
       return {
@@ -129,7 +150,7 @@ export class BotUserResolverService {
 
       return brands.map((brand) => ({
         id: brand._id.toString(),
-        name: brand.label,
+        name: brand.label ?? brand._id.toString(),
       }));
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed to get brands`, error);

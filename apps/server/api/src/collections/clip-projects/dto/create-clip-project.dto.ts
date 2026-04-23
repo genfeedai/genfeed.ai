@@ -2,6 +2,7 @@ import { OrganizationalCreateDto } from '@api/shared/dto/base/base.dto';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  IsBoolean,
   IsNumber,
   IsOptional,
   IsString,
@@ -12,6 +13,15 @@ import {
 } from 'class-validator';
 
 export class ClipProjectSettingsDto {
+  @IsOptional()
+  @IsBoolean()
+  @ApiProperty({
+    default: true,
+    description: 'Whether generated clips should include captions',
+    required: false,
+  })
+  readonly addCaptions?: boolean;
+
   @IsOptional()
   @IsNumber()
   @Min(5)
@@ -97,6 +107,14 @@ export class CreateClipProjectDto extends OrganizationalCreateDto {
     required: false,
   })
   readonly language?: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiProperty({
+    description: 'Project processing status',
+    required: false,
+  })
+  readonly status?: string;
 
   @IsOptional()
   @ValidateNested()

@@ -25,6 +25,11 @@ import {
   HiUserCircle,
   HiUserGroup,
 } from 'react-icons/hi2';
+import {
+  deriveBrandNameFromDomain,
+  extractBrandDomain,
+  ONBOARDING_STORAGE_KEYS,
+} from '@/lib/onboarding/onboarding-access.util';
 
 const ACCOUNT_TYPES = [
   {
@@ -79,16 +84,6 @@ const TIMELINE_STEPS = [
   },
 ];
 
-function deriveBrandNameFromDomain(domain: string): string {
-  return domain
-    .replace(/\.[a-z]{2,}$/i, '')
-    .split(/[.\-_]+/)
-    .filter(Boolean)
-    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
-    .join(' ')
-    .trim();
-}
-
 function normalizeWebsiteUrl(url: string): string | null {
   const trimmedUrl = url.trim();
   if (!trimmedUrl) {
@@ -117,6 +112,21 @@ export default function BrandContent() {
   useEffect(() => {
     if (prefetchedRef.current) {
       return;
+    }
+
+    const storedBrandName = localStorage.getItem(
+      ONBOARDING_STORAGE_KEYS.brandName,
+    );
+    const storedBrandDomain = localStorage.getItem(
+      ONBOARDING_STORAGE_KEYS.brandDomain,
+    );
+
+    if (storedBrandName?.trim()) {
+      setBrandName((prev) => prev || storedBrandName);
+    }
+
+    if (storedBrandDomain?.trim()) {
+      setWebsiteUrl((prev) => prev || storedBrandDomain);
     }
 
     const controller = new AbortController();
@@ -215,6 +225,21 @@ export default function BrandContent() {
         const brandUrl = skipWebsite
           ? null
           : normalizeWebsiteUrl(urlOverride ?? websiteUrl);
+        const brandDomain = extractBrandDomain(brandUrl);
+
+        localStorage.setItem(
+          ONBOARDING_STORAGE_KEYS.brandName,
+          effectiveBrandName,
+        );
+
+        if (brandDomain) {
+          localStorage.setItem(
+            ONBOARDING_STORAGE_KEYS.brandDomain,
+            brandDomain,
+          );
+        } else {
+          localStorage.removeItem(ONBOARDING_STORAGE_KEYS.brandDomain);
+        }
 
         if (brandUrl) {
           await service.setupBrand({
@@ -260,10 +285,16 @@ export default function BrandContent() {
     }
 
     const isAuto = searchParams.get('auto') === 'true';
-    const storedDomain = localStorage.getItem('gf_brand_domain');
+    const storedDomain = localStorage.getItem(
+      ONBOARDING_STORAGE_KEYS.brandDomain,
+    );
+    const storedBrandName = localStorage.getItem(
+      ONBOARDING_STORAGE_KEYS.brandName,
+    );
 
     if (isAuto && storedDomain) {
-      const inferredBrandName = deriveBrandNameFromDomain(storedDomain);
+      const inferredBrandName =
+        storedBrandName?.trim() || deriveBrandNameFromDomain(storedDomain);
       autoScanRef.current = true;
       setWebsiteUrl(storedDomain);
       setBrandName((prev) => prev || inferredBrandName);

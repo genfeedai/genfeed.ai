@@ -11,6 +11,7 @@ import { CreateTaskDto } from '@api/collections/tasks/dto/create-task.dto';
 import { UpdateTaskDto } from '@api/collections/tasks/dto/update-task.dto';
 import {
   type TaskDocument,
+  type TaskEvent,
   type TaskProgress,
   type TaskStatus,
 } from '@api/collections/tasks/schemas/task.schema';
@@ -127,8 +128,7 @@ export class TasksService extends BaseService<
       : null;
 
     const normalizedTitle = this.buildTaskTitle(createDto);
-
-    return super.create({
+    const createPayload = {
       ...createDto,
       ...(routing ?? {}),
       approvedOutputIds: [],
@@ -146,7 +146,9 @@ export class TasksService extends BaseService<
           }
         : undefined,
       title: normalizedTitle,
-    });
+    } as CreateTaskDto & Record<string, unknown>;
+
+    return super.create(createPayload as CreateTaskDto);
   }
 
   override async findOne(
@@ -723,7 +725,7 @@ export class TasksService extends BaseService<
 
     return {
       chosenModel: 'auto',
-      chosenProvider: targetSkill.requiredProviders[0] ?? 'genfeed-router',
+      chosenProvider: targetSkill.requiredProviders?.[0] ?? 'genfeed-router',
       executionPathUsed,
       outputType: taskIntent.outputType,
       resultPreview: requiresApproval
@@ -732,8 +734,10 @@ export class TasksService extends BaseService<
       reviewState: requiresApproval ? 'pending_approval' : 'none',
       reviewTriggered: requiresApproval,
       routingSummary: `Resolved the request using the brand skill "${targetSkill.name}" (${targetSkill.slug}) for the ${taskIntent.workflowStage} stage.`,
-      skillsUsed: [targetSkill.slug],
-      skillVariantIds: matchedSkill.variant ? [matchedSkill.variant._id] : [],
+      skillsUsed: targetSkill.slug ? [targetSkill.slug] : [],
+      skillVariantIds: matchedSkill.variant?._id
+        ? [String(matchedSkill.variant._id)]
+        : [],
       status: requiresApproval
         ? 'in_review'
         : executionPathUsed === 'agent_orchestrator'
@@ -889,17 +893,38 @@ export class TasksService extends BaseService<
     };
   }
 
-  private serializeTaskProgress(progress: TaskProgress): {
-    activeRunCount: number;
-    message?: string;
-    percent: number;
-    stage?: string;
-  } {
+  private serializeTaskProgress(
+    progress: TaskDocument['progress'],
+  ): TaskProgress {
     return {
       activeRunCount: progress?.activeRunCount ?? 0,
       message: progress?.message,
       percent: progress?.percent ?? 0,
       stage: progress?.stage,
+    };
+  }
+
+  private serializeDate(value: unknown): string | undefined {
+    if (value instanceof Date) {
+      return value.toISOString();
+    }
+
+    return typeof value === 'string' && value.length > 0 ? value : undefined;
+  }
+
+  private serializeTaskEvent(event: TaskEvent): Record<string, unknown> {
+    const createdAt = event.createdAt ?? event.timestamp;
+    const timestamp =
+      this.serializeDate(event.timestamp) ??
+      this.serializeDate(event.createdAt);
+
+    return {
+      createdAt: this.serializeDate(createdAt),
+      id: event.id,
+      payload: event.payload,
+      timestamp,
+      type: event.type,
+      userId: event.userId,
     };
   }
 
@@ -919,20 +944,12 @@ export class TasksService extends BaseService<
       brandId: taskRecord.brandId,
       chosenModel: task.chosenModel,
       chosenProvider: task.chosenProvider,
-      completedAt: task.completedAt?.toISOString(),
-      createdAt: task.createdAt?.toISOString(),
+      completedAt: this.serializeDate(task.completedAt),
+      createdAt: this.serializeDate(task.createdAt),
       decomposition: task.decomposition,
-      dismissedAt: task.dismissedAt?.toISOString(),
+      dismissedAt: this.serializeDate(task.dismissedAt),
       dismissedReason: task.dismissedReason,
-      eventStream: eventStream.map((event) => ({
-        createdAt:
-          event.createdAt instanceof Date
-            ? event.createdAt.toISOString()
-            : String(event.createdAt),
-        payload: event.payload,
-        type: event.type,
-        userId: event.userId,
-      })),
+      eventStream: eventStream.map((event) => this.serializeTaskEvent(event)),
       executionPathUsed: task.executionPathUsed,
       failureReason: task.failureReason,
       id: taskRecord.id,
@@ -956,7 +973,7 @@ export class TasksService extends BaseService<
       skillVariantIds: skillVariantIds.map((id) => id.toString()),
       status: task.status,
       title: task.title,
-      updatedAt: task.updatedAt?.toISOString(),
+      updatedAt: this.serializeDate(task.updatedAt),
     };
   }
 
@@ -971,7 +988,9 @@ export class TasksService extends BaseService<
 
     const eventDoc = {
       createdAt: entry.createdAt,
+      id: entry.id,
       payload: entry.payload,
+      timestamp: entry.timestamp,
       type: entry.type,
       userId: userId || undefined,
     };
@@ -997,7 +1016,7 @@ export class TasksService extends BaseService<
         type: entry.type,
       },
       organizationId,
-      progress: this.serializeTaskProgress(updated.progress) as TaskProgress,
+      progress: this.serializeTaskProgress(updated.progress),
       room: `org-${organizationId}`,
       task: this.serializeTaskRealtimeSnapshot(updated),
       taskId,
@@ -1014,6 +1033,14 @@ export class TasksService extends BaseService<
         payload,
       ),
     ]);
+  }
+
+  private readObjectRecord(value: unknown): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return null;
+    }
+
+    return value as Record<string, unknown>;
   }
 
   private async resolveAccessiblePlanningThreadId(
@@ -1117,26 +1144,40 @@ export class TasksService extends BaseService<
       threadId?: string;
     }>
   > {
-    const runSummaries = await Promise.all(
-      (task.linkedRunIds ?? []).map(async (linkedRunId) => {
-        const run = await this.agentRunsService.getById(
-          linkedRunId.toString(),
-          organizationId,
-        );
-        if (!run) return null;
-        return {
-          completedAt: run.completedAt?.toISOString(),
-          error: run.error,
-          id: (run as Record<string, unknown>).id as string,
-          label: run.label,
-          startedAt: run.startedAt?.toISOString(),
-          status: run.status,
-          summary: run.summary,
-          threadId: run.thread?.toString(),
-        };
-      }),
-    );
-    return runSummaries.filter((s): s is NonNullable<typeof s> => s !== null);
+    const runSummaries: Array<{
+      completedAt?: string;
+      error?: string;
+      id: string;
+      label: string;
+      startedAt?: string;
+      status: string;
+      summary?: string;
+      threadId?: string;
+    }> = [];
+
+    for (const linkedRunId of task.linkedRunIds ?? []) {
+      const run = await this.agentRunsService.getById(
+        linkedRunId.toString(),
+        organizationId,
+      );
+
+      if (!run) {
+        continue;
+      }
+
+      runSummaries.push({
+        completedAt: this.serializeDate(run.completedAt),
+        error: typeof run.error === 'string' ? run.error : undefined,
+        id: (run as Record<string, unknown>).id as string,
+        label: typeof run.label === 'string' ? run.label : '',
+        startedAt: this.serializeDate(run.startedAt),
+        status: typeof run.status === 'string' ? run.status : 'unknown',
+        summary: typeof run.summary === 'string' ? run.summary : undefined,
+        threadId: run.thread?.toString(),
+      });
+    }
+
+    return runSummaries;
   }
 
   private async getLatestApprovedPlanningMessage(
@@ -1151,7 +1192,8 @@ export class TasksService extends BaseService<
 
     const latestPlanningMessage = recentMessages.find((message) => {
       if (message.role !== 'assistant') return false;
-      const proposedPlan = message.metadata?.['proposedPlan'];
+      const metadata = this.readObjectRecord(message.metadata);
+      const proposedPlan = metadata?.['proposedPlan'];
       return (
         proposedPlan !== null &&
         typeof proposedPlan === 'object' &&
@@ -1159,13 +1201,17 @@ export class TasksService extends BaseService<
       );
     });
 
-    if (!latestPlanningMessage?.metadata?.['proposedPlan']) {
+    const latestMetadata = this.readObjectRecord(
+      latestPlanningMessage?.metadata,
+    );
+    const plan = latestMetadata?.['proposedPlan'];
+
+    if (!plan || typeof plan !== 'object' || Array.isArray(plan)) {
       throw new BadRequestException(
         'No proposed plan is available in the planning conversation yet.',
       );
     }
 
-    const plan = latestPlanningMessage.metadata['proposedPlan'];
     const status =
       typeof (plan as { status?: unknown }).status === 'string'
         ? (plan as { status: string }).status

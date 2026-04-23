@@ -10,7 +10,7 @@ import { ClerkWebhookService } from '@api/endpoints/webhooks/clerk/webhooks.cler
 import { TransactionUtil } from '@api/helpers/utils/transaction/transaction.util';
 import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
-import { WebhookEvent } from '@clerk/express/webhooks';
+import type { WebhookEvent } from '@clerk/backend';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';

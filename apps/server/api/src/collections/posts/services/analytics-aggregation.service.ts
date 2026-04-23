@@ -159,7 +159,6 @@ export class AnalyticsAggregationService {
 
     const where: Record<string, unknown> = {
       date: { gte: parsedStartDate, lte: parsedEndDate },
-      isDeleted: false,
       organizationId,
     };
 
@@ -208,7 +207,6 @@ export class AnalyticsAggregationService {
     // Previous period
     const prevWhere: Record<string, unknown> = {
       date: { gte: previousStartDate, lte: previousEndDate },
-      isDeleted: false,
       organizationId,
     };
     if (brandId) prevWhere.brandId = brandId;
@@ -286,7 +284,6 @@ export class AnalyticsAggregationService {
   ): Promise<TimeSeriesDataPoint[]> {
     const where: Record<string, unknown> = {
       date: { gte: startDate, lte: endDate },
-      isDeleted: false,
       organizationId,
     };
 
@@ -451,7 +448,6 @@ export class AnalyticsAggregationService {
 
     const where: Record<string, unknown> = {
       date: { gte: startDate, lte: endDate },
-      isDeleted: false,
       organizationId,
     };
 
@@ -561,7 +557,6 @@ export class AnalyticsAggregationService {
 
     const where: Record<string, unknown> = {
       date: { gte: startDate, lte: endDate },
-      isDeleted: false,
       organizationId,
     };
 
@@ -665,7 +660,6 @@ export class AnalyticsAggregationService {
 
     const where: Record<string, unknown> = {
       date: { gte: startDate, lte: endDate },
-      isDeleted: false,
       organizationId,
     };
 
@@ -807,7 +801,6 @@ export class AnalyticsAggregationService {
 
     const where: Record<string, unknown> = {
       date: { gte: startDate, lte: endDate },
-      isDeleted: false,
       organizationId,
     };
 
@@ -815,7 +808,6 @@ export class AnalyticsAggregationService {
 
     const prevWhere: Record<string, unknown> = {
       date: { gte: previousStartDate, lte: previousEndDate },
-      isDeleted: false,
       organizationId,
     };
 
@@ -919,7 +911,6 @@ export class AnalyticsAggregationService {
 
     const where: Record<string, unknown> = {
       date: { gte: startDate, lte: endDate },
-      isDeleted: false,
       organizationId,
     };
 
@@ -1204,7 +1195,6 @@ export class AnalyticsAggregationService {
 
     const where: Record<string, unknown> = {
       date: { gte: parsedStartDate, lte: parsedEndDate },
-      isDeleted: false,
       organizationId,
       platform,
     };
@@ -1213,7 +1203,6 @@ export class AnalyticsAggregationService {
 
     const prevWhere: Record<string, unknown> = {
       date: { gte: previousStartDate, lte: previousEndDate },
-      isDeleted: false,
       organizationId,
       platform,
     };

@@ -62,6 +62,21 @@ import { firstValueFrom } from 'rxjs';
 @AutoSwagger()
 @Controller('images')
 export class ImagesUploadsController {
+  private normalizeContentTypeHeader(value: unknown, fallback: string): string {
+    if (typeof value === 'string') {
+      return value;
+    }
+
+    if (Array.isArray(value)) {
+      return (
+        value.find((entry): entry is string => typeof entry === 'string') ??
+        fallback
+      );
+    }
+
+    return fallback;
+  }
+
   constructor(
     private readonly filesClientService: FilesClientService,
     private readonly httpService: HttpService,
@@ -85,7 +100,8 @@ export class ImagesUploadsController {
   async upload(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile()
+    file: Express.Multer.File,
     @Body() uploadDto: UploadImageDto,
   ): Promise<JsonApiSingleResponse> {
     const category = uploadDto.category;
@@ -177,7 +193,10 @@ export class ImagesUploadsController {
     const res = await firstValueFrom(
       this.httpService.get(nft.image, { responseType: 'arraybuffer' }),
     );
-    const contentType = res.headers['content-type'] || 'image/jpeg';
+    const contentType = this.normalizeContentTypeHeader(
+      res.headers['content-type'],
+      'image/jpeg',
+    );
 
     if (!contentType.startsWith('image/')) {
       throw new BadRequestException('NFT is not an image');

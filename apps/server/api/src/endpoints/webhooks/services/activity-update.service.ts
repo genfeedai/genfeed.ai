@@ -1,4 +1,5 @@
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
+import type { ActivityDocument } from '@api/collections/activities/schemas/activity.schema';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import {
   getActivityLabel,
@@ -22,7 +23,6 @@ import {
   IngredientCategory,
   MetadataExtension,
 } from '@genfeedai/enums';
-import { type Activity } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable } from '@nestjs/common';
@@ -87,7 +87,9 @@ export class ActivityUpdateService {
 
     let activity;
     if (existingActivity) {
-      const parsedValue = parseActivityValue(existingActivity.value);
+      const parsedValue = parseActivityValue(
+        existingActivity.value ?? undefined,
+      );
 
       activity = await this.activitiesService.patch(
         existingActivity._id.toString(),
@@ -174,7 +176,9 @@ export class ActivityUpdateService {
 
     let activity;
     if (existingActivity) {
-      const parsedValue = parseActivityValue(existingActivity.value);
+      const parsedValue = parseActivityValue(
+        existingActivity.value ?? undefined,
+      );
 
       activity = await this.activitiesService.patch(
         existingActivity._id.toString(),
@@ -225,7 +229,7 @@ export class ActivityUpdateService {
     ingredientId: string,
     processingKey: ActivityKey,
     dbUserId: string,
-  ): Promise<Activity | null> {
+  ): Promise<ActivityDocument | null> {
     return this.activitiesService.findOne({
       $or: [{ value: { $regex: ingredientId } }, { value: ingredientId }],
       isDeleted: false,

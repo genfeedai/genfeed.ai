@@ -78,6 +78,6 @@ export class CredentialsService extends BaseService<
       });
     }
 
-    return this.create(entity as CreateCredentialDto);
+    return this.create(entity as unknown as CreateCredentialDto);
   }
 }

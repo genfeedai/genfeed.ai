@@ -181,7 +181,7 @@ export class AgentMessagesService extends BaseService<AgentMessageDocument> {
       return;
     }
 
-    await this.prisma.$transaction(
+    await Promise.all(
       docs.map((doc: Record<string, unknown>) =>
         this.delegate.create({
           data: {

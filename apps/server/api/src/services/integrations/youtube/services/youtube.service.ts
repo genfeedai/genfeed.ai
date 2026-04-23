@@ -10,6 +10,7 @@ import {
 import { YoutubeUploadService } from '@api/services/integrations/youtube/services/modules/youtube-upload.service';
 import { YoutubeOAuth2Util } from '@api/shared/utils/youtube-oauth/youtube-oauth.util';
 import { Injectable } from '@nestjs/common';
+import { OAuth2Client } from 'google-auth-library';
 import { google, youtube_v3 } from 'googleapis';
 
 export type { YoutubeVideoMetadata } from '@api/services/integrations/youtube/services/modules/youtube-metadata.service';
@@ -142,13 +143,15 @@ export class YoutubeService {
       this.configService.get<string>('YOUTUBE_REDIRECT_URI'),
     );
 
-    return oauth2Client.generateAuthUrl({
+    const authOptions = {
       access_type: options.accessType || 'offline',
       include_granted_scopes: options.includeGrantedScopes ?? false,
       prompt: options.prompt || 'consent',
       scope: options.scope,
       state: options.state,
-    });
+    } as unknown as Parameters<OAuth2Client['generateAuthUrl']>[0];
+
+    return oauth2Client.generateAuthUrl(authOptions);
   }
 
   /**

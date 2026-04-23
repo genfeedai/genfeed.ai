@@ -6,11 +6,93 @@ import { Injectable, Logger } from '@nestjs/common';
 
 type SubscriptionAttribution = SubscriptionAttributionDocument;
 
+type SubscriptionAttributionSource = {
+  content: string;
+  contentType: string;
+  link?: string;
+  platform: string;
+  sessionId?: string;
+};
+
+type SubscriptionAttributionUtm = {
+  campaign?: string;
+  content?: string;
+  medium?: string;
+  source?: string;
+};
+
+type SubscriptionAttributionMetadata = {
+  amount?: number;
+  currency?: string;
+  email?: string;
+  plan?: string;
+  source?: SubscriptionAttributionSource;
+  status?: string;
+  stripeCustomerId?: string;
+  stripeSubscriptionId?: string;
+  subscribedAt?: string;
+  utm?: SubscriptionAttributionUtm;
+};
+
+type NormalizedSubscriptionAttribution = Omit<
+  SubscriptionAttribution,
+  'metadata'
+> & {
+  amount?: number;
+  currency?: string;
+  metadata?: SubscriptionAttributionMetadata;
+  plan?: string;
+  source?: SubscriptionAttributionSource;
+  stripeSubscriptionId?: string;
+  subscribedAt?: Date;
+  utm?: SubscriptionAttributionUtm;
+};
+
 @Injectable()
 export class SubscriptionAttributionsService {
   private readonly logger = new Logger(SubscriptionAttributionsService.name);
 
   constructor(private readonly prisma: PrismaService) {}
+
+  private isPlainObject(value: unknown): value is Record<string, unknown> {
+    return value !== null && typeof value === 'object' && !Array.isArray(value);
+  }
+
+  private mergeMetadata(
+    current: unknown,
+    update: SubscriptionAttributionMetadata,
+  ): Record<string, unknown> {
+    return {
+      ...(this.isPlainObject(current) ? current : {}),
+      ...update,
+    };
+  }
+
+  private normalizeAttribution(
+    attribution: SubscriptionAttributionDocument,
+  ): NormalizedSubscriptionAttribution {
+    const metadata = this.isPlainObject(attribution.metadata)
+      ? (attribution.metadata as SubscriptionAttributionMetadata)
+      : undefined;
+    const subscribedAt =
+      metadata?.subscribedAt !== undefined
+        ? new Date(metadata.subscribedAt)
+        : attribution.createdAt;
+
+    return {
+      ...attribution,
+      amount: metadata?.amount,
+      currency: metadata?.currency,
+      metadata,
+      plan: metadata?.plan,
+      source: metadata?.source,
+      stripeSubscriptionId: metadata?.stripeSubscriptionId,
+      subscribedAt: Number.isNaN(subscribedAt.getTime())
+        ? undefined
+        : subscribedAt,
+      utm: metadata?.utm,
+    };
+  }
 
   /**
    * Track subscription with attribution
@@ -18,39 +100,42 @@ export class SubscriptionAttributionsService {
   async trackSubscription(
     dto: TrackSubscriptionDto,
     organizationId: string,
-  ): Promise<SubscriptionAttribution> {
+  ): Promise<NormalizedSubscriptionAttribution> {
     const currency = dto.currency ? dto.currency.toUpperCase() : 'USD';
     const source = this.buildSourceFromDto(dto);
     const utm = this.buildUtmFromDto(dto);
 
-    const existingAttribution =
-      await this.prisma.subscriptionAttribution.findFirst({
-        where: {
-          organizationId,
-          stripeSubscriptionId: dto.stripeSubscriptionId,
-        },
-      });
+    const existingAttribution = (
+      await this.prisma.subscriptionAttribution.findMany({
+        where: { organizationId },
+      })
+    )
+      .map((attribution) => this.normalizeAttribution(attribution))
+      .find(
+        (attribution) =>
+          attribution.stripeSubscriptionId === dto.stripeSubscriptionId,
+      );
 
-    const baseUpdate: Record<string, unknown> = {
+    const baseMetadata: SubscriptionAttributionMetadata = {
       amount: dto.amount,
       currency,
       email: dto.email,
       plan: dto.plan,
       status: 'active',
       stripeCustomerId: dto.stripeCustomerId,
-      userId: dto.userId,
+      stripeSubscriptionId: dto.stripeSubscriptionId,
     };
 
     if (source) {
-      baseUpdate.source = source;
+      baseMetadata.source = source;
     }
 
     if (utm) {
-      baseUpdate.utm = utm;
+      baseMetadata.utm = utm;
     }
 
-    if (dto.sessionId && !baseUpdate.source) {
-      baseUpdate.source = {
+    if (dto.sessionId && !baseMetadata.source) {
+      baseMetadata.source = {
         content: dto.sourceContentId ?? 'unknown',
         contentType: dto.sourceContentType ?? 'unknown',
         link: dto.sourceLinkId,
@@ -62,39 +147,53 @@ export class SubscriptionAttributionsService {
     if (existingAttribution) {
       const updated = await this.prisma.subscriptionAttribution.update({
         data: {
-          ...baseUpdate,
-          subscribedAt:
-            (existingAttribution as unknown as Record<string, unknown>)
-              .subscribedAt ?? new Date(),
-        } as never,
-        where: { id: String(existingAttribution.id) },
+          channel: dto.sourcePlatform ?? existingAttribution.channel,
+          metadata: this.mergeMetadata(existingAttribution.metadata, {
+            ...baseMetadata,
+            subscribedAt:
+              existingAttribution.metadata?.subscribedAt ??
+              new Date().toISOString(),
+          }) as never,
+          referrer: dto.utm?.source ?? existingAttribution.referrer,
+          sourceContentId:
+            dto.sourceContentId ?? existingAttribution.sourceContentId,
+          sourceLinkId: dto.sourceLinkId ?? existingAttribution.sourceLinkId,
+          userId: dto.userId,
+        },
+        where: { id: existingAttribution.id },
       });
 
       this.logger.log(`Subscription attribution updated`, {
-        content: (baseUpdate.source as Record<string, unknown>)?.content,
-        platform: (baseUpdate.source as Record<string, unknown>)?.platform,
+        content: baseMetadata.source?.content,
+        platform: baseMetadata.source?.platform,
         subscriptionId: dto.stripeSubscriptionId,
       });
 
-      return updated as unknown as SubscriptionAttribution;
+      return this.normalizeAttribution(updated);
     }
 
     const attribution = await this.prisma.subscriptionAttribution.create({
       data: {
+        channel: dto.sourcePlatform,
+        metadata: {
+          ...baseMetadata,
+          subscribedAt: new Date().toISOString(),
+        },
         organizationId,
-        stripeSubscriptionId: dto.stripeSubscriptionId,
-        subscribedAt: new Date(),
-        ...baseUpdate,
-      } as never,
+        referrer: dto.utm?.source,
+        sourceContentId: dto.sourceContentId,
+        sourceLinkId: dto.sourceLinkId,
+        userId: dto.userId,
+      },
     });
 
     this.logger.log(`Subscription attribution tracked`, {
-      content: (baseUpdate.source as Record<string, unknown>)?.content,
-      platform: (baseUpdate.source as Record<string, unknown>)?.platform,
+      content: baseMetadata.source?.content,
+      platform: baseMetadata.source?.platform,
       subscriptionId: dto.stripeSubscriptionId,
     });
 
-    return attribution as unknown as SubscriptionAttribution;
+    return this.normalizeAttribution(attribution);
   }
 
   /**
@@ -113,42 +212,38 @@ export class SubscriptionAttributionsService {
     timeline: Record<string, number>;
     currency: string | null;
   }> {
-    const attributions = await this.prisma.subscriptionAttribution.findMany({
-      where: {
-        organizationId,
-        source: { path: ['content'], equals: contentId },
-      } as never,
-    });
-
-    const docs = attributions as unknown as Array<
-      Record<string, unknown> & {
-        amount: number;
-        plan: string;
-        subscribedAt: Date;
-        source?: { contentType?: string };
-        currency?: string;
-      }
-    >;
+    const docs = (
+      await this.prisma.subscriptionAttribution.findMany({
+        where: {
+          organizationId,
+          sourceContentId: contentId,
+        },
+      })
+    ).map((attribution) => this.normalizeAttribution(attribution));
 
     const totalSubscriptions = docs.length;
-    const totalRevenue = docs.reduce((sum, attr) => sum + attr.amount, 0);
+    const totalRevenue = docs.reduce(
+      (sum, attr) => sum + (attr.amount ?? 0),
+      0,
+    );
     const avgOrderValue =
       totalSubscriptions > 0 ? totalRevenue / totalSubscriptions : 0;
 
-    // By plan
     const byPlan: Record<string, { count: number; revenue: number }> = {};
     docs.forEach((attr) => {
-      if (!byPlan[attr.plan]) {
-        byPlan[attr.plan] = { count: 0, revenue: 0 };
+      const plan = attr.plan ?? 'unknown';
+      if (!byPlan[plan]) {
+        byPlan[plan] = { count: 0, revenue: 0 };
       }
-      byPlan[attr.plan].count++;
-      byPlan[attr.plan].revenue += attr.amount;
+      byPlan[plan].count++;
+      byPlan[plan].revenue += attr.amount ?? 0;
     });
 
-    // Timeline
     const timeline: Record<string, number> = {};
     docs.forEach((attr) => {
-      const date = attr.subscribedAt.toISOString().split('T')[0];
+      const date = (attr.subscribedAt ?? attr.createdAt)
+        .toISOString()
+        .split('T')[0];
       timeline[date] = (timeline[date] || 0) + 1;
     });
 
@@ -156,7 +251,7 @@ export class SubscriptionAttributionsService {
       avgOrderValue,
       byPlan,
       contentId,
-      contentType: docs[0]?.source?.contentType || 'unknown',
+      contentType: docs[0]?.source?.contentType ?? 'unknown',
       currency: docs[0]?.currency ?? null,
       timeline,
       totalRevenue,
@@ -195,27 +290,21 @@ export class SubscriptionAttributionsService {
         )
       : undefined;
 
-    const where: Record<string, unknown> = {
-      organizationId: params.organizationId,
-      source: { path: ['content'], not: null },
-    };
+    const docs = (
+      await this.prisma.subscriptionAttribution.findMany({
+        where: {
+          organizationId: params.organizationId,
+          sourceContentId: { not: null },
+        },
+      })
+    )
+      .map((attribution) => this.normalizeAttribution(attribution))
+      .filter(
+        (attribution) =>
+          !dateFilter ||
+          (attribution.subscribedAt?.getTime() ?? 0) >= dateFilter.getTime(),
+      );
 
-    if (dateFilter) {
-      where.subscribedAt = { gte: dateFilter };
-    }
-
-    const attributions = await this.prisma.subscriptionAttribution.findMany({
-      where: where as never,
-    });
-
-    const docs = attributions as unknown as Array<{
-      source?: { content?: string; contentType?: string };
-      amount: number;
-      currency?: string;
-      subscribedAt: Date;
-    }>;
-
-    // Group in-memory (Prisma doesn't support MongoDB $group aggregation)
     const grouped = new Map<
       string,
       {
@@ -227,18 +316,20 @@ export class SubscriptionAttributionsService {
     >();
 
     for (const doc of docs) {
-      const contentId = doc.source?.content;
-      if (!contentId) continue;
+      const contentId = doc.sourceContentId;
+      if (!contentId) {
+        continue;
+      }
 
       const existing = grouped.get(contentId);
       if (existing) {
         existing.subscriptions++;
-        existing.revenue += doc.amount;
+        existing.revenue += doc.amount ?? 0;
       } else {
         grouped.set(contentId, {
           contentType: doc.source?.contentType ?? 'unknown',
           currency: doc.currency ?? null,
-          revenue: doc.amount,
+          revenue: doc.amount ?? 0,
           subscriptions: 1,
         });
       }
@@ -260,16 +351,15 @@ export class SubscriptionAttributionsService {
 
   private buildSourceFromDto(
     dto: TrackSubscriptionDto,
-  ): SubscriptionAttribution['source'] | undefined {
+  ): SubscriptionAttributionSource | undefined {
     if (!dto.sourceContentId) {
       return undefined;
     }
 
     return {
-      // @ts-expect-error TS2322
       content: dto.sourceContentId,
       contentType: dto.sourceContentType || 'unknown',
-      link: dto.sourceLinkId as unknown,
+      link: dto.sourceLinkId,
       platform: dto.sourcePlatform || 'unknown',
       sessionId: dto.sessionId,
     };
@@ -277,7 +367,7 @@ export class SubscriptionAttributionsService {
 
   private buildUtmFromDto(
     dto: TrackSubscriptionDto,
-  ): SubscriptionAttribution['utm'] | undefined {
+  ): SubscriptionAttributionUtm | undefined {
     if (!dto.utm) {
       return undefined;
     }
@@ -303,10 +393,26 @@ export class SubscriptionAttributionsService {
     stripeSubscriptionId: string,
     status: string,
   ): Promise<void> {
-    await this.prisma.subscriptionAttribution.updateMany({
-      data: { status } as never,
-      where: { stripeSubscriptionId },
-    });
+    const attributions = await this.prisma.subscriptionAttribution.findMany();
+
+    await Promise.all(
+      attributions
+        .map((attribution) => this.normalizeAttribution(attribution))
+        .filter(
+          (attribution) =>
+            attribution.stripeSubscriptionId === stripeSubscriptionId,
+        )
+        .map((attribution) =>
+          this.prisma.subscriptionAttribution.update({
+            data: {
+              metadata: this.mergeMetadata(attribution.metadata, {
+                status,
+              }) as never,
+            },
+            where: { id: attribution.id },
+          }),
+        ),
+    );
 
     this.logger.log(`Subscription status updated`, {
       status,

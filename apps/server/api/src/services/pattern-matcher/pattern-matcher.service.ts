@@ -1,7 +1,7 @@
 import { CreativePatternsService } from '@api/collections/creative-patterns/creative-patterns.service';
+import type { CreativePatternDocument } from '@api/collections/creative-patterns/schemas/creative-pattern.schema';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import type { PatternType } from '@genfeedai/interfaces';
-import { type CreativePattern } from '@genfeedai/prisma';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
@@ -15,7 +15,7 @@ export class PatternMatcherService {
     orgId: string,
     brandId: string,
     options?: { limit?: number; patternTypes?: PatternType[] },
-  ): Promise<CreativePattern[]> {
+  ): Promise<CreativePatternDocument[]> {
     const cacheKey = this.cacheService.generateKey(
       'brand-patterns',
       orgId,

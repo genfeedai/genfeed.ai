@@ -136,16 +136,20 @@ export class PresignedUploadService {
 
       // Update metadata document with extracted dimensions
       if (ingredient.metadata && uploadMeta) {
-        await this.metadataService.patch(
-          ingredient.metadata._id || ingredient.metadata,
-          {
+        const metadataId =
+          typeof ingredient.metadata === 'string'
+            ? ingredient.metadata
+            : ingredient.metadata._id;
+
+        if (metadataId) {
+          await this.metadataService.patch(metadataId, {
             duration: uploadMeta.duration,
             hasAudio: uploadMeta.hasAudio,
             height: uploadMeta.height,
             size: uploadMeta.size,
             width: uploadMeta.width,
-          },
-        );
+          });
+        }
       }
 
       this.loggerService.log(`${url} metadata extracted`, uploadMeta);

@@ -22,6 +22,40 @@ export class CreditTransactionsService extends BaseService<CreditTransactionsDoc
     super(prisma, 'creditTransaction', logger);
   }
 
+  private isCreditObject(value: unknown): value is Record<string, unknown> {
+    return value !== null && typeof value === 'object' && !Array.isArray(value);
+  }
+
+  private toDate(value: unknown): Date | undefined {
+    if (value instanceof Date) {
+      return value;
+    }
+
+    if (typeof value !== 'string' && typeof value !== 'number') {
+      return undefined;
+    }
+
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? undefined : parsed;
+  }
+
+  private readBalanceValue(balance?: { balance?: number } | null): number {
+    return typeof balance?.balance === 'number' ? balance.balance : 0;
+  }
+
+  protected override normalizeDocument(
+    document: unknown,
+  ): CreditTransactionsDocument {
+    const normalized = super.normalizeDocument(
+      document,
+    ) as CreditTransactionsDocument;
+
+    return {
+      ...normalized,
+      expiresAt: this.toDate(normalized.expiresAt),
+    };
+  }
+
   async createTransactionEntry(
     organizationId: string,
     category: CreditTransactionCategory,
@@ -64,11 +98,14 @@ export class CreditTransactionsService extends BaseService<CreditTransactionsDoc
     const result = await this.create({
       amount,
       balanceAfter,
-      balanceBefore,
       category,
       description,
-      expiresAt,
       isDeleted: false,
+      metadata: {
+        balanceBefore,
+        category,
+        ...(expiresAt ? { expiresAt: expiresAt.toISOString() } : {}),
+      },
       organizationId,
       source,
     } as Record<string, unknown>);
@@ -88,7 +125,7 @@ export class CreditTransactionsService extends BaseService<CreditTransactionsDoc
     skip: number = 0,
   ): Promise<CreditTransactionsDocument[]> {
     try {
-      return (await this.delegate.findMany({
+      const results = await this.delegate.findMany({
         orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
@@ -96,7 +133,8 @@ export class CreditTransactionsService extends BaseService<CreditTransactionsDoc
           isDeleted: { not: true },
           organizationId,
         },
-      })) as unknown as CreditTransactionsDocument[];
+      });
+      return this.normalizeDocuments(results as unknown[]);
     } catch (error: unknown) {
       this.logger.error(
         `${this.constructorName} getOrganizationTransactions failed`,
@@ -117,14 +155,15 @@ export class CreditTransactionsService extends BaseService<CreditTransactionsDoc
     before: Date,
   ): Promise<CreditTransactionsDocument | null> {
     try {
-      return (await this.delegate.findFirst({
+      const result = await this.delegate.findFirst({
         orderBy: { createdAt: 'desc' },
         where: {
           createdAt: { lt: before },
           isDeleted: { not: true },
           organizationId,
         },
-      })) as unknown as CreditTransactionsDocument | null;
+      });
+      return result ? this.normalizeDocument(result) : null;
     } catch (error: unknown) {
       this.logger.error(
         `${this.constructorName} getLatestTransactionBeforeDate failed`,
@@ -144,14 +183,15 @@ export class CreditTransactionsService extends BaseService<CreditTransactionsDoc
     endDate: Date,
   ): Promise<CreditTransactionsDocument[]> {
     try {
-      return (await this.delegate.findMany({
+      const results = await this.delegate.findMany({
         orderBy: { createdAt: 'asc' },
         where: {
           createdAt: { gte: startDate, lte: endDate },
           isDeleted: { not: true },
           organizationId,
         },
-      })) as unknown as CreditTransactionsDocument[];
+      });
+      return this.normalizeDocuments(results as unknown[]);
     } catch (error: unknown) {
       this.logger.error(
         `${this.constructorName} getOrganizationTransactionsInRange failed`,
@@ -217,21 +257,25 @@ export class CreditTransactionsService extends BaseService<CreditTransactionsDoc
 
       const balance =
         await this.creditBalanceService.getOrCreateBalance(organizationId);
-      const currentBalance = balance?.balance || 0;
+      const currentBalance = this.readBalanceValue(balance);
 
       const now = new Date();
       const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
       // Get all deductions in last 30 days
-      const deductions = (await this.delegate.findMany({
-        where: {
-          category: CreditTransactionCategory.DEDUCT,
-          createdAt: { gte: thirtyDaysAgo },
-          isDeleted: { not: true },
-          organizationId,
-        },
-      })) as Array<{ amount: number; createdAt: Date; source?: string }>;
+      const deductions = this.normalizeDocuments(
+        (await this.delegate.findMany({
+          where: {
+            createdAt: { gte: thirtyDaysAgo },
+            isDeleted: { not: true },
+            organizationId,
+          },
+        })) as unknown[],
+      ).filter(
+        (transaction) =>
+          transaction.category === CreditTransactionCategory.DEDUCT,
+      );
 
       let usage7Days = 0;
       let usage30Days = 0;
@@ -295,16 +339,19 @@ export class CreditTransactionsService extends BaseService<CreditTransactionsDoc
 
       const balance =
         await this.creditBalanceService.getOrCreateBalance(organizationId);
-      const currentBalance = balance?.balance || 0;
+      const currentBalance = this.readBalanceValue(balance);
 
-      const latestAdd = (await this.delegate.findFirst({
-        orderBy: { createdAt: 'desc' },
-        where: {
-          category: CreditTransactionCategory.ADD,
-          isDeleted: { not: true },
-          organizationId,
-        },
-      })) as { amount: number; createdAt?: Date | null } | null;
+      const latestAdd = this.normalizeDocuments(
+        (await this.delegate.findMany({
+          orderBy: { createdAt: 'desc' },
+          where: {
+            isDeleted: { not: true },
+            organizationId,
+          },
+        })) as unknown[],
+      ).find(
+        (transaction) => transaction.category === CreditTransactionCategory.ADD,
+      );
 
       if (!latestAdd) {
         return {

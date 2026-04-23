@@ -14,6 +14,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
+import type { BaseService } from '@api/shared/services/base/base.service';
 import type { User } from '@clerk/backend';
 import { EvaluationType, IngredientCategory } from '@genfeedai/enums';
 import { EvaluationSerializer } from '@genfeedai/serializers';
@@ -41,7 +42,11 @@ export class EvaluationsController extends BaseCRUDController {
   ) {
     super(
       loggerService,
-      evaluationsService as unknown,
+      evaluationsService as unknown as BaseService<
+        { [key: string]: unknown; _id: string },
+        unknown,
+        unknown
+      >,
       EvaluationSerializer,
       'Evaluation',
     );

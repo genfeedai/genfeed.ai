@@ -71,6 +71,14 @@ interface CredentialMentionItem {
   platform: CredentialPlatform;
 }
 
+function readId(value: unknown): string {
+  return typeof value === 'string' ? value : '';
+}
+
+function toCredentialPlatform(platform: unknown): CredentialPlatform {
+  return platform as unknown as CredentialPlatform;
+}
+
 @AutoSwagger()
 @Controller('credentials')
 @UseGuards(RolesGuard)
@@ -116,7 +124,7 @@ export class CredentialsController {
     @Query() query: BaseQueryDto,
     @Req() request: Request,
     @CurrentUser() user: User,
-  ): Promise<JsonApiCollectionResponse<CredentialEntity>> {
+  ): Promise<JsonApiCollectionResponse> {
     const options = {
       customLabels,
       ...QueryDefaultsUtil.getPaginationDefaults(query),
@@ -165,7 +173,7 @@ export class CredentialsController {
         handle: cred.externalHandle,
         id: cred._id.toString(),
         name: cred.externalName ?? cred.externalHandle,
-        platform: cred.platform,
+        platform: toCredentialPlatform(cred.platform),
       });
     }
     return { mentions };
@@ -207,7 +215,9 @@ export class CredentialsController {
       return returnNotFound(this.constructorName, credentialId);
     }
 
-    const refresher = this.platformRefreshers.get(credential.platform);
+    const refresher = this.platformRefreshers.get(
+      toCredentialPlatform(credential.platform),
+    );
 
     if (!refresher) {
       throw new HttpException(
@@ -219,11 +229,21 @@ export class CredentialsController {
       );
     }
 
-    try {
-      await refresher.refreshToken(
-        credential.organization.toString(),
-        credential.brand.toString(),
+    const credentialOrganizationId = readId(credential.organization);
+    const credentialBrandId = readId(credential.brand);
+
+    if (!credentialOrganizationId || !credentialBrandId) {
+      throw new HttpException(
+        {
+          detail: 'Credential is missing brand or organization context',
+          title: 'Invalid Credential',
+        },
+        HttpStatus.BAD_REQUEST,
       );
+    }
+
+    try {
+      await refresher.refreshToken(credentialOrganizationId, credentialBrandId);
 
       const updatedCredential = await this.credentialsService.findOne({
         _id: credential._id,
@@ -275,14 +295,25 @@ export class CredentialsController {
         );
       }
 
+      const brandId = readId(credential.brand);
+      if (!brandId) {
+        throw new HttpException(
+          {
+            detail: 'Credential is missing a connected brand',
+            title: 'Invalid Credential',
+          },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
       const brand = await this.brandsService.findOne({
-        _id: credential.brand,
+        _id: brandId,
         isDeleted: false,
         organization: publicMetadata.organization,
       });
 
       if (!brand) {
-        return returnNotFound('Brand', credential.brand.toString());
+        return returnNotFound('Brand', brandId);
       }
 
       // Get all available handles from the Instagram service

@@ -142,12 +142,20 @@ export class ActivitiesController {
 
         // Check if user has permission to update
         // User must be the owner or in the same organization
+        const activityUser = activity.user ?? activity.userId;
+        const activityOrganization =
+          activity.organization ?? activity.organizationId;
+
         const isOwner =
-          publicMetadata.user.toString() === activity.user.toString();
+          activityUser !== null &&
+          activityUser !== undefined &&
+          publicMetadata.user.toString() === String(activityUser);
 
         const isSameOrg =
+          activityOrganization !== null &&
+          activityOrganization !== undefined &&
           publicMetadata.organization.toString() ===
-          activity.organization.toString();
+            String(activityOrganization);
 
         if (!isOwner && !isSameOrg) {
           this.loggerService.warn(`${url} permission denied`, {

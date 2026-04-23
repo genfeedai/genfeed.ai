@@ -1,5 +1,9 @@
 'use client';
 
+import {
+  buildOnboardingResumeHref,
+  parseSelectedCredits,
+} from '@app/(onboarding)/onboarding/post-signup/post-signup-routing.util';
 import { useAuth, useUser } from '@clerk/nextjs';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { getResumeStep, ONBOARDING_STEPS } from '@genfeedai/constants';
@@ -12,6 +16,7 @@ import PageLoadingState from '@ui/loading/page/PageLoadingState';
 import { Button } from '@ui/primitives/button';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { isEEEnabled, isSelfHosted } from '@/lib/config/edition';
+import { ONBOARDING_STORAGE_KEYS } from '@/lib/onboarding/onboarding-access.util';
 
 export default function PostSignupPage() {
   const { getToken } = useAuth();
@@ -38,14 +43,21 @@ export default function PostSignupPage() {
     }
 
     const resumeStep = getResumeStep(completedSteps);
+    const storedBrandDomain = localStorage.getItem(
+      ONBOARDING_STORAGE_KEYS.brandDomain,
+    );
+    const onboardingHref = buildOnboardingResumeHref(
+      resumeStep,
+      storedBrandDomain,
+    );
 
     if (!isEEEnabled() || isSelfHosted()) {
-      return `/onboarding/${resumeStep}`;
+      return onboardingHref;
     }
 
     const token = await resolveClerkToken(getToken);
     if (!token) {
-      return `/onboarding/${resumeStep}`;
+      return onboardingHref;
     }
 
     await OrganizationsService.getInstance(token)
@@ -58,7 +70,7 @@ export default function PostSignupPage() {
         return [];
       });
 
-    return `/onboarding/${resumeStep}`;
+    return onboardingHref;
   }, [clerkUser, currentUser, getToken]);
 
   useEffect(() => {
@@ -72,16 +84,21 @@ export default function PostSignupPage() {
     }, 12_000);
 
     const route = async () => {
-      const selectedPlan = localStorage.getItem('gf_selected_plan');
-      const selectedCredits = localStorage.getItem('gf_selected_credits');
+      const selectedPlan = localStorage.getItem(
+        ONBOARDING_STORAGE_KEYS.selectedPlan,
+      );
+      const selectedCredits = localStorage.getItem(
+        ONBOARDING_STORAGE_KEYS.selectedCredits,
+      );
       if (selectedPlan?.trim()) {
+        localStorage.removeItem(ONBOARDING_STORAGE_KEYS.selectedPlan);
+
         if (!isEEEnabled()) {
           window.location.href = await resolveOnboardingHref();
           return;
         }
 
         setStatusMessage('Preparing your plan checkout...');
-        localStorage.removeItem('gf_selected_plan');
 
         try {
           const onboardingHref = await resolveOnboardingHref();
@@ -115,15 +132,20 @@ export default function PostSignupPage() {
         return;
       }
 
-      const credits = Number.parseInt(selectedCredits ?? '', 10);
-      if (!Number.isNaN(credits) && credits > 0) {
+      const credits = parseSelectedCredits(selectedCredits);
+      if (selectedCredits && !credits) {
+        localStorage.removeItem(ONBOARDING_STORAGE_KEYS.selectedCredits);
+      }
+
+      if (credits) {
+        localStorage.removeItem(ONBOARDING_STORAGE_KEYS.selectedCredits);
+
         if (!isEEEnabled()) {
           window.location.href = await resolveOnboardingHref();
           return;
         }
 
         setStatusMessage('Preparing your credits checkout...');
-        localStorage.removeItem('gf_selected_credits');
 
         try {
           const onboardingHref = await resolveOnboardingHref();

@@ -176,7 +176,7 @@ export class ObjectIdUtil {
   /**
    * Convert ObjectId to string safely
    */
-  static toString(id: string | string): string {
+  static toString(id: string | { toString(): string }): string {
     if (typeof id === 'string') {
       return id;
     }

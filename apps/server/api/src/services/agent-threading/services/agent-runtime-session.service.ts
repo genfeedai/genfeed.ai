@@ -5,6 +5,7 @@ import {
 import type { AgentSessionBindingDocument } from '@api/services/agent-threading/schemas/agent-session-binding.schema';
 import { AgentSessionBindingStatus } from '@api/services/agent-threading/types/agent-thread.types';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { Effect } from 'effect';
@@ -56,6 +57,10 @@ export class AgentRuntimeSessionService {
     private readonly loggerService: LoggerService,
   ) {}
 
+  private toJsonValue(value: unknown): Prisma.InputJsonValue {
+    return JSON.parse(JSON.stringify(value ?? null)) as Prisma.InputJsonValue;
+  }
+
   upsertBindingEffect(
     params: UpsertRuntimeSessionBindingParams,
   ): Effect.Effect<AgentSessionBindingDocument | null, unknown> {
@@ -105,15 +110,15 @@ export class AgentRuntimeSessionService {
 
         snapshot = (await this.prisma.agentThreadSnapshot.update({
           where: { id: existing.id },
-          data: { data: updatedData, updatedAt: new Date() },
+          data: { data: this.toJsonValue(updatedData), updatedAt: new Date() },
         })) as unknown as Record<string, unknown>;
       } else {
         snapshot = (await this.prisma.agentThreadSnapshot.create({
           data: {
+            data: this.toJsonValue({ sessionBinding: sessionBindingPatch }),
+            isDeleted: false,
             organizationId: params.organizationId,
             threadId: params.threadId,
-            data: { sessionBinding: sessionBindingPatch },
-            isDeleted: false,
           },
         })) as unknown as Record<string, unknown>;
       }

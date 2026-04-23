@@ -25,15 +25,19 @@ export type { RegistryNodeDefinition as NodeDefinition };
 /**
  * Maps a modern HandleDefinition to a registry NodePort
  */
-function handleToPort(handle: HandleDefinition): NodePort {
+function handleToPort(
+  handle: HandleDefinition | SaaSNodeDefinition['inputs'][number],
+): NodePort {
+  const handleType = String(handle.type);
+
   return {
     label: handle.label,
     multiple: handle.multiple,
     required: handle.required,
     type:
-      handle.type === 'brand' || handle.type === 'object'
+      handleType === 'brand' || handleType === 'object'
         ? 'any'
-        : (handle.type as NodePort['type']),
+        : (handleType as NodePort['type']),
   };
 }
 

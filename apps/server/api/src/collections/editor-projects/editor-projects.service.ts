@@ -24,6 +24,33 @@ export class EditorProjectsService extends BaseService<
     super(prisma, 'editorProject', logger);
   }
 
+  private isProjectObject(value: unknown): value is Record<string, unknown> {
+    return value !== null && typeof value === 'object' && !Array.isArray(value);
+  }
+
+  private readProjectConfig(value: unknown): Record<string, unknown> {
+    return this.isProjectObject(value) ? value : {};
+  }
+
+  private readProjectStatus(project: {
+    config?: unknown;
+  }): EditorProjectStatus | undefined {
+    const status = this.readProjectConfig(project.config).status;
+    return typeof status === 'string'
+      ? (status as EditorProjectStatus)
+      : undefined;
+  }
+
+  private mergeProjectStatus(
+    project: { config?: unknown },
+    status: EditorProjectStatus,
+  ): Record<string, unknown> {
+    return {
+      ...this.readProjectConfig(project.config),
+      status,
+    };
+  }
+
   /**
    * Atomic CAS: only transitions DRAFT/COMPLETED/FAILED -> RENDERING
    */
@@ -40,13 +67,18 @@ export class EditorProjectsService extends BaseService<
       throw new NotFoundException('Project not found');
     }
 
-    if (existing.status === EditorProjectStatus.RENDERING) {
+    if (this.readProjectStatus(existing) === EditorProjectStatus.RENDERING) {
       throw new ConflictException('Project is already rendering');
     }
 
     const project = await this.prisma.editorProject.update({
+      data: {
+        config: this.mergeProjectStatus(
+          existing,
+          EditorProjectStatus.RENDERING,
+        ) as never,
+      },
       where: { id },
-      data: { status: EditorProjectStatus.RENDERING },
     });
 
     return project as unknown as EditorProjectDocument;
@@ -68,11 +100,14 @@ export class EditorProjectsService extends BaseService<
     }
 
     const project = await this.prisma.editorProject.update({
-      where: { id },
       data: {
+        config: this.mergeProjectStatus(
+          existing,
+          EditorProjectStatus.COMPLETED,
+        ) as never,
         renderedVideoId,
-        status: EditorProjectStatus.COMPLETED,
       },
+      where: { id },
     });
 
     return project as unknown as EditorProjectDocument;
@@ -91,8 +126,13 @@ export class EditorProjectsService extends BaseService<
     }
 
     const project = await this.prisma.editorProject.update({
+      data: {
+        config: this.mergeProjectStatus(
+          existing,
+          EditorProjectStatus.FAILED,
+        ) as never,
+      },
       where: { id },
-      data: { status: EditorProjectStatus.FAILED },
     });
 
     return project as unknown as EditorProjectDocument;

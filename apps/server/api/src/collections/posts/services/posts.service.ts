@@ -21,6 +21,10 @@ import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 const ONBOARDING_JOURNEY_REWARD_EXPIRY_MS = 365 * 24 * 60 * 60 * 1000;
+const PRISMA_POST_STATUS = {
+  PUBLIC: 'PUBLIC',
+  SCHEDULED: 'SCHEDULED',
+} as const;
 
 @Injectable()
 export class PostsService extends BaseService<
@@ -158,10 +162,12 @@ export class PostsService extends BaseService<
       PopulatePatterns.brandMinimal,
     ],
   ): Promise<PostDocument> {
-    const isPublishingPost = dto.status === PostStatus.PUBLIC;
+    const normalizedStatus =
+      typeof dto.status === 'string' ? dto.status.toLowerCase() : undefined;
+    const isPublishingPost = normalizedStatus === PostStatus.PUBLIC;
     let currentPost: PostDocument | null = null;
 
-    if (dto.status === PostStatus.SCHEDULED || isPublishingPost) {
+    if (normalizedStatus === PostStatus.SCHEDULED || isPublishingPost) {
       currentPost = await this.findOne({ _id: id });
     }
 
@@ -207,12 +213,12 @@ export class PostsService extends BaseService<
     }
 
     // If parent post is being scheduled, automatically schedule all children
-    if (dto.status === PostStatus.SCHEDULED) {
+    if (normalizedStatus === PostStatus.SCHEDULED) {
       if (currentPost && !currentPost.parent) {
         // Find all children and update them to SCHEDULED
         const updateResult = await this.prisma.post.updateMany({
           data: {
-            status: PostStatus.SCHEDULED,
+            status: PRISMA_POST_STATUS.SCHEDULED,
             ...(normalizedDto.scheduledDate && {
               scheduledDate: normalizedDto.scheduledDate as Date,
             }),
@@ -220,7 +226,7 @@ export class PostsService extends BaseService<
           where: {
             isDeleted: false,
             parentId: id,
-            status: { not: PostStatus.PUBLIC },
+            status: { not: PRISMA_POST_STATUS.PUBLIC },
           },
         });
 
@@ -237,8 +243,8 @@ export class PostsService extends BaseService<
     if (
       isPublishingPost &&
       updatedPost &&
-      updatedPost.status === PostStatus.PUBLIC &&
-      currentPost?.status !== PostStatus.PUBLIC
+      String(updatedPost.status).toLowerCase() === PostStatus.PUBLIC &&
+      String(currentPost?.status ?? '').toLowerCase() !== PostStatus.PUBLIC
     ) {
       await this.completePublishFirstPostMission(updatedPost);
     }
@@ -268,7 +274,7 @@ export class PostsService extends BaseService<
     }
 
     const missions = this.organizationSettingsService.normalizeJourneyState(
-      settings.onboardingJourneyMissions as
+      settings.onboardingJourneyMissions as unknown as
         | IOnboardingJourneyMissionState[]
         | undefined,
     );
@@ -325,20 +331,16 @@ export class PostsService extends BaseService<
    */
   @HandleErrors('handle YouTube post', 'posts')
   async handleYoutubePost(post: PostDocument): Promise<void> {
-    if (
-      !post.credential ||
-      !post.ingredients ||
-      post.ingredients.length === 0
-    ) {
+    const ingredients = Array.isArray(post.ingredients) ? post.ingredients : [];
+
+    if (!post.credential || ingredients.length === 0) {
       throw new Error('Post must have credential and at least one ingredient');
     }
 
     const credential = post.credential as unknown as CredentialEntity;
-    const ingredient = (
-      post.ingredients as string[]
-    )[0] as unknown as IngredientEntity;
+    const ingredient = ingredients[0] as unknown as IngredientEntity;
 
-    if (credential.platform !== CredentialPlatform.YOUTUBE) {
+    if (credential.platform !== 'YOUTUBE') {
       this.logger.warn(
         `handleYoutubePost called for non-YouTube platform: ${credential.platform}`,
       );
@@ -370,7 +372,7 @@ export class PostsService extends BaseService<
         organizationId: post.organization.toString(),
         postId,
         room: clerkUserId ? getUserRoomName(clerkUserId) : undefined,
-        scheduledDate: post.scheduledDate,
+        scheduledDate: post.scheduledDate ?? undefined,
         status: originalStatus,
         tags:
           (post.tags as unknown as ({ name?: string } | string)[])?.map(
@@ -652,7 +654,7 @@ export class PostsService extends BaseService<
     };
 
     return this.create(
-      remixDto as CreatePostDto & {
+      remixDto as unknown as CreatePostDto & {
         user: string;
         organization: string;
         brand: string;

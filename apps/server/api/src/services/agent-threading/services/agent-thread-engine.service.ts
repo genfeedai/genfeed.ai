@@ -169,6 +169,16 @@ export class AgentThreadEngineService {
     private readonly threadContextCompressorService?: ThreadContextCompressorService,
   ) {}
 
+  private optionalString(value: string | null | undefined): string | undefined {
+    return value ?? undefined;
+  }
+
+  private serializeJsonRecord(
+    value: Record<string, unknown>,
+  ): Record<string, unknown> {
+    return JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
+  }
+
   appendEventEffect(
     params: AppendAgentThreadEventParams,
   ): Effect.Effect<AgentThreadEventDocument, unknown> {
@@ -261,7 +271,7 @@ export class AgentThreadEngineService {
           sequence,
           threadId: params.threadId,
           type: params.type,
-          data: eventDataPayload,
+          data: this.serializeJsonRecord(eventDataPayload) as never,
         },
       });
 
@@ -438,7 +448,10 @@ export class AgentThreadEngineService {
         this.prisma.agentThreadSnapshot.update({
           where: { id: snapshotRow.id },
           data: {
-            data: { ...snapshotData, inputRequests },
+            data: this.serializeJsonRecord({
+              ...snapshotData,
+              inputRequests,
+            }) as never,
             updatedAt: new Date(),
           },
         }),
@@ -725,7 +738,10 @@ export class AgentThreadEngineService {
         await this.prisma.agentThreadSnapshot.update({
           where: { id: snapshotRow.id },
           data: {
-            data: { ...snapshotData, inputRequests },
+            data: this.serializeJsonRecord({
+              ...snapshotData,
+              inputRequests,
+            }) as never,
             updatedAt: new Date(),
           },
         });
@@ -733,7 +749,7 @@ export class AgentThreadEngineService {
         Effect.zipRight(
           this.upsertRuntimeBindingEffect({
             organizationId,
-            runId: event.runId,
+            runId: this.optionalString(event.runId),
             status: 'waiting_input',
             threadId,
           }),
@@ -749,11 +765,11 @@ export class AgentThreadEngineService {
       event.type === 'tool.progress'
     ) {
       return this.upsertRuntimeBindingEffect({
-        activeCommandId: event.commandId,
+        activeCommandId: this.optionalString(event.commandId),
         metadata: event.metadata,
         model: this.readString(event.payload, 'model'),
         organizationId,
-        runId: event.runId,
+        runId: this.optionalString(event.runId),
         status: 'running',
         threadId,
       });
@@ -762,7 +778,7 @@ export class AgentThreadEngineService {
     if (event.type === 'input.resolved') {
       return this.upsertRuntimeBindingEffect({
         organizationId,
-        runId: event.runId,
+        runId: this.optionalString(event.runId),
         status: 'running',
         threadId,
       });
@@ -772,7 +788,7 @@ export class AgentThreadEngineService {
       return this.markRuntimeCancelledEffect(
         threadId,
         organizationId,
-        event.runId,
+        this.optionalString(event.runId),
       );
     }
 
@@ -798,7 +814,7 @@ export class AgentThreadEngineService {
 
       return this.upsertRuntimeBindingEffect({
         organizationId,
-        runId: event.runId,
+        runId: this.optionalString(event.runId),
         status: 'completed',
         threadId,
       });
@@ -807,7 +823,7 @@ export class AgentThreadEngineService {
     if (event.type === 'run.failed' || event.type === 'error.raised') {
       return this.upsertRuntimeBindingEffect({
         organizationId,
-        runId: event.runId,
+        runId: this.optionalString(event.runId),
         status: 'failed',
         threadId,
       });

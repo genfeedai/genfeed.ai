@@ -60,6 +60,14 @@ import {
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 
+interface TrainingSourceImage {
+  _id: string;
+  id: string;
+  metadata: {
+    extension?: string;
+  };
+}
+
 @AutoSwagger()
 @ApiTags('trainings')
 @ApiBearerAuth()
@@ -251,15 +259,28 @@ export class TrainingsController extends BaseCRUDController<
    */
   public canUserModifyEntity(user: User, entity: unknown): boolean {
     const publicMetadata = getPublicMetadata(user);
+    const entityRecord = entity as {
+      user?: { _id?: { toString?: () => string } } | string | null;
+      organization?: { _id?: { toString?: () => string } } | string | null;
+    };
 
     const entityUserId =
-      entity.user?._id?.toString() || entity.user?.toString();
+      (typeof entityRecord.user === 'object' && entityRecord.user !== null
+        ? entityRecord.user._id?.toString?.()
+        : undefined) ||
+      (typeof entityRecord.user === 'string' ? entityRecord.user : undefined);
     if (entityUserId === publicMetadata.user) {
       return true;
     }
 
     const entityOrgId =
-      entity.organization?._id?.toString() || entity.organization?.toString();
+      (typeof entityRecord.organization === 'object' &&
+      entityRecord.organization !== null
+        ? entityRecord.organization._id?.toString?.()
+        : undefined) ||
+      (typeof entityRecord.organization === 'string'
+        ? entityRecord.organization
+        : undefined);
     if (entityOrgId && entityOrgId === publicMetadata.organization) {
       return true;
     }
@@ -340,7 +361,13 @@ export class TrainingsController extends BaseCRUDController<
         },
       );
 
-      const sourceImages = sourceResult.docs || [];
+      const sourceImages = (
+        (sourceResult.docs as TrainingSourceImage[]) ?? []
+      ).map((image) => ({
+        _id: image._id,
+        id: image.id ?? image._id,
+        metadata: image.metadata ?? {},
+      }));
 
       if (sourceImages.length < 10) {
         throw new HttpException(
@@ -369,24 +396,26 @@ export class TrainingsController extends BaseCRUDController<
         }
       }
 
-      const training = await this.trainingsService.create(
-        new TrainingEntity({
-          brand: publicMetadata.brand ? publicMetadata.brand : undefined,
+      const training = await this.trainingsService.create({
+        brandId: publicMetadata.brand ?? null,
+        config: {
           category: createDto.category || 'subject',
-          description: createDto.description || '',
-          label: createDto.label || 'Custom Model',
           model:
             resolvedModel || this.configService.get('REPLICATE_MODELS_TRAINER'),
-          organization: publicMetadata.organization,
           provider: createDto.provider || 'replicate',
           seed: createDto.seed ? Number(createDto.seed) : -1,
-          sources: sourceImages.map((img: { _id: unknown }) => img._id),
           status: IngredientStatus.PROCESSING,
           steps: createDto.steps ? Number(createDto.steps) : 1000,
           trigger: createDto.trigger || 'TOK',
-          user: publicMetadata.user,
-        }),
-      );
+        },
+        description: createDto.description || '',
+        label: createDto.label || 'Custom Model',
+        organizationId: publicMetadata.organization,
+        sources: {
+          connect: sourceImages.map((img) => ({ id: img.id })),
+        },
+        userId: publicMetadata.user,
+      } as unknown as Parameters<TrainingsService['create']>[0]);
 
       if (!training) {
         throw new HttpException(
@@ -400,7 +429,6 @@ export class TrainingsController extends BaseCRUDController<
 
       await Promise.all(
         sourceImages.map((img) =>
-          // @ts-expect-error TS2345
           this.ingredientsService.patch(img._id, {
             category: IngredientCategory.SOURCE,
             training: training._id as string,
@@ -415,7 +443,6 @@ export class TrainingsController extends BaseCRUDController<
       setImmediate(() => {
         this.processAndLaunchTrainingAsync(
           training as unknown as TrainingEntity,
-          // @ts-expect-error TS2345
           sourceImages,
         ).catch((error) => {
           this.loggerService.error(
@@ -442,13 +469,13 @@ export class TrainingsController extends BaseCRUDController<
    */
   private async processAndLaunchTrainingAsync(
     training: TrainingEntity,
-    sourceImages: { id: string; metadata: { extension: string } }[],
+    sourceImages: TrainingSourceImage[],
   ): Promise<void> {
     let uploadedUrl: string;
     try {
       const minimal = sourceImages.map((img) => ({
         id: img.id,
-        metadata: { extension: img.metadata?.extension },
+        metadata: { extension: img.metadata?.extension ?? '' },
       }));
 
       uploadedUrl = await this.trainingsService.createTrainingZip(

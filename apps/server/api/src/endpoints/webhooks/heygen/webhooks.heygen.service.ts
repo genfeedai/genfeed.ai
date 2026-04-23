@@ -23,6 +23,14 @@ export class HeygenWebhookService {
     private readonly webhooksService: WebhooksService,
   ) {}
 
+  private readString(value: unknown): string | undefined {
+    return typeof value === 'string' && value.length > 0 ? value : undefined;
+  }
+
+  private getDocumentId(value: { _id?: unknown; id?: unknown }): string {
+    return String(value._id ?? value.id);
+  }
+
   async handleCallback(body: HeygenWebhookPayload) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${url} started`, { body });
@@ -54,11 +62,18 @@ export class HeygenWebhookService {
       });
 
       if (clipResult) {
-        await this.handleClipResultCallback(
-          clipResult.project.toString(),
-          callbackId,
-          body,
-        );
+        const projectId =
+          this.readString(clipResult.project) ??
+          this.readString(clipResult.projectId);
+
+        if (!projectId) {
+          this.loggerService.warn(`${url} clip result missing project id`, {
+            callbackId,
+          });
+          return;
+        }
+
+        await this.handleClipResultCallback(projectId, callbackId, body);
         return;
       }
 
@@ -72,8 +87,9 @@ export class HeygenWebhookService {
       });
 
       if (!metadata && ingredient?.metadata) {
+        const metadataId = this.getDocumentId(ingredient.metadata);
         metadata = await this.metadataService.findOne({
-          _id: ingredient.metadata,
+          _id: metadataId,
           isDeleted: false,
         });
       }
@@ -119,7 +135,10 @@ export class HeygenWebhookService {
         );
       }
 
-      await this.metadataService.patch(metadata._id, updateData);
+      await this.metadataService.patch(
+        this.getDocumentId(metadata),
+        updateData,
+      );
 
       this.loggerService.log(`${url} completed`, {
         callbackId,
@@ -182,17 +201,17 @@ export class HeygenWebhookService {
 
     const projectClipResults =
       await this.clipResultsService.findByProject(projectId);
-    const hasPendingClipResults = projectClipResults.some(
-      (clipResult) =>
-        clipResult.status !== 'completed' && clipResult.status !== 'failed',
-    );
+    const hasPendingClipResults = projectClipResults.some((clipResult) => {
+      const status = this.readString(clipResult.status);
+      return status !== 'completed' && status !== 'failed';
+    });
 
     if (hasPendingClipResults) {
       return;
     }
 
     const hasCompletedClip = projectClipResults.some(
-      (clipResult) => clipResult.status === 'completed',
+      (clipResult) => this.readString(clipResult.status) === 'completed',
     );
 
     if (hasCompletedClip) {

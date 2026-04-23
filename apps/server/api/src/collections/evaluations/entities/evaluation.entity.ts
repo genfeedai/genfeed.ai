@@ -1,5 +1,5 @@
 import {
-  Evaluation,
+  type EvaluationDocument,
   type IActualPerformance,
   type IEvaluationAnalysis,
   type IEvaluationFlags,
@@ -9,15 +9,19 @@ import {
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
 import { EvaluationType, IngredientCategory, Status } from '@genfeedai/enums';
 
-export class EvaluationEntity extends BaseEntity implements Evaluation {
+export class EvaluationEntity extends BaseEntity implements EvaluationDocument {
+  organizationId!: string;
+  userId!: string;
   organization!: string;
   user!: string;
-  brand!: string;
+  brand?: string;
 
-  contentType!: IngredientCategory | 'article';
-  content!: string;
-  evaluationType!: EvaluationType;
-  status!: Status;
+  contentId!: string | null;
+  contentType!: IngredientCategory | 'article' | null;
+  content?: string;
+  data!: EvaluationDocument['data'];
+  evaluationType!: EvaluationType | string;
+  status!: Status | string;
   overallScore?: number;
   scores?: IScores;
   analysis?: IEvaluationAnalysis;

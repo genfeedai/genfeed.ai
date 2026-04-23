@@ -54,12 +54,17 @@ export type SubscriptionRefId = string | { toString(): string };
  */
 export interface ISubscriptionOssReadModel {
   _id?: SubscriptionRefId;
+  customerId?: SubscriptionRefId | null;
+  currentPeriodEnd?: Date | string | null;
   organization?: SubscriptionRefId;
+  plan?: string | null;
+  stripePriceId?: string | null;
+  stripeCustomerId?: string | null;
+  stripeSubscriptionId?: string | null;
+  type?: string | null;
   user?: SubscriptionRefId;
   isDeleted?: boolean;
-  status?: string;
-  stripeCustomerId?: string;
-  stripeSubscriptionId?: string;
+  status?: string | null;
 }
 
 /**
@@ -91,7 +96,7 @@ export interface ISubscriptionFindAllOptions {
  * signature keeps the type open.
  */
 export interface ISubscriptionFindAllResult {
-  total: number;
+  total?: number;
   [key: string]: unknown;
 }
 

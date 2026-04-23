@@ -223,7 +223,8 @@ export function createExtendedController<
  */
 export interface ModuleFactoryConfig<T, CreateDto, UpdateDto> {
   name: string;
-  schemaName: string;
+  modelName?: string;
+  schemaName?: string;
   entity: Type<T>;
   createDto: Type<CreateDto>;
   updateDto: Type<UpdateDto>;
@@ -243,6 +244,14 @@ export function createCRUDModule<T, CreateDto, UpdateDto>(
   service: Type<BaseService<T, CreateDto, UpdateDto>>;
   controller: Type<BaseCRUDController<T, CreateDto, UpdateDto>>;
 } {
+  const modelName = config.modelName ?? config.schemaName;
+
+  if (!modelName) {
+    throw new Error(
+      `createCRUDModule: modelName is required for module: ${config.name}`,
+    );
+  }
+
   // Create service using factory
   const ServiceClass = createUserScopedService({
     createDto: config.createDto,
@@ -250,7 +259,7 @@ export function createCRUDModule<T, CreateDto, UpdateDto>(
       typeof field === 'string' ? { path: field } : field,
     ),
     entity: config.entity,
-    schemaName: config.schemaName,
+    modelName,
     updateDto: config.updateDto,
   });
 
@@ -286,8 +295,12 @@ export function createCRUDModule<T, CreateDto, UpdateDto>(
   });
 
   return {
-    controller: ControllerClass,
+    controller: ControllerClass as unknown as Type<
+      BaseCRUDController<T, CreateDto, UpdateDto>
+    >,
     module: FactoryModule,
-    service: ServiceClass,
+    service: ServiceClass as unknown as Type<
+      BaseService<T, CreateDto, UpdateDto>
+    >,
   };
 }

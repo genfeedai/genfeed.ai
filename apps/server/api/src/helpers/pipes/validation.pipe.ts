@@ -8,6 +8,10 @@ import {
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
 @Injectable()
 export class ValidationPipe implements PipeTransform<unknown> {
   async transform(
@@ -17,14 +21,18 @@ export class ValidationPipe implements PipeTransform<unknown> {
     const { metatype } = metadata;
 
     // Check if this is JSON API format with data.attributes
+    const valueRecord = isPlainObject(value) ? value : null;
+    const dataRecord = isPlainObject(valueRecord?.data)
+      ? valueRecord.data
+      : null;
     const isJsonApiFormat =
-      value && typeof value === 'object' && value.data && value.data.attributes;
+      !!dataRecord && isPlainObject(dataRecord.attributes);
 
     if (isJsonApiFormat) {
       // Deserialize the JSON API data
       let deserializedValue = value;
       try {
-        deserializedValue = getDeserializer(value);
+        deserializedValue = getDeserializer(value as never);
       } catch {
         deserializedValue = value;
       }
@@ -75,6 +83,10 @@ export class ValidationPipe implements PipeTransform<unknown> {
   }
 
   private async validateObject(object: unknown): Promise<void> {
+    if (!isPlainObject(object)) {
+      return;
+    }
+
     const errors = await validate(object);
     if (errors.length > 0) {
       const messages = errors.map((error) => ({

@@ -1,6 +1,11 @@
+import type {
+  ContentPlanItemDocument,
+  ContentPlanPipelineStep,
+} from '@api/collections/content-plan-items/schemas/content-plan-item.schema';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ContentPlanItemStatus } from '@genfeedai/enums';
+import type { ContentPlanItem as PrismaContentPlanItem } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -36,65 +41,62 @@ export class ContentPlanItemsService {
 
   async createMany(
     items: CreateContentPlanItemInput[],
-  ): Promise<Record<string, unknown>[]> {
+  ): Promise<ContentPlanItemDocument[]> {
     const created = await Promise.all(
       items.map((item) =>
         this.prisma.contentPlanItem.create({
           data: {
             brandId: item.brand,
-            confidence: item.confidence,
+            data: this.buildDataPayload({
+              confidence: item.confidence,
+              pipelineSteps: item.pipelineSteps,
+              platforms: item.platforms,
+              prompt: item.prompt,
+              scheduledAt: item.scheduledAt,
+              skillSlug: item.skillSlug,
+              status: ContentPlanItemStatus.PENDING,
+              topic: item.topic,
+              type: item.type,
+            }) as never,
             isDeleted: false,
             organizationId: item.organization,
-            pipelineSteps: item.pipelineSteps ?? [],
             planId: item.plan,
-            platforms: item.platforms,
-            prompt: item.prompt,
-            scheduledAt: item.scheduledAt,
-            skillSlug: item.skillSlug,
-            status: ContentPlanItemStatus.PENDING,
-            topic: item.topic,
-            type: item.type,
           },
         }),
       ),
     );
 
-    return created;
+    return created.map((doc) => this.toDocument(doc));
   }
 
-  listByPlan(
+  async listByPlan(
     organizationId: string,
     planId: string,
-  ): Promise<Record<string, unknown>[]> {
-    return this.prisma.contentPlanItem.findMany({
-      orderBy: { scheduledAt: 'asc' },
+  ): Promise<ContentPlanItemDocument[]> {
+    const docs = await this.prisma.contentPlanItem.findMany({
+      orderBy: { createdAt: 'asc' },
       where: {
         isDeleted: false,
         organizationId,
         planId,
       },
     });
+
+    return this.sortByScheduledAt(docs.map((doc) => this.toDocument(doc)));
   }
 
-  listPendingByPlan(
+  async listPendingByPlan(
     organizationId: string,
     planId: string,
-  ): Promise<Record<string, unknown>[]> {
-    return this.prisma.contentPlanItem.findMany({
-      orderBy: { scheduledAt: 'asc' },
-      where: {
-        isDeleted: false,
-        organizationId,
-        planId,
-        status: ContentPlanItemStatus.PENDING,
-      },
-    });
+  ): Promise<ContentPlanItemDocument[]> {
+    const docs = await this.listByPlan(organizationId, planId);
+    return docs.filter((doc) => doc.status === ContentPlanItemStatus.PENDING);
   }
 
   async getByIdOrFail(
     organizationId: string,
     itemId: string,
-  ): Promise<Record<string, unknown>> {
+  ): Promise<ContentPlanItemDocument> {
     const item = await this.prisma.contentPlanItem.findFirst({
       where: {
         id: itemId,
@@ -107,7 +109,7 @@ export class ContentPlanItemsService {
       throw new NotFoundException('ContentPlanItem', itemId);
     }
 
-    return item;
+    return this.toDocument(item);
   }
 
   async updateStatus(
@@ -115,28 +117,35 @@ export class ContentPlanItemsService {
     itemId: string,
     status: ContentPlanItemStatus,
     updates?: { contentDraftId?: string; error?: string; confidence?: number },
-  ): Promise<Record<string, unknown>> {
+  ): Promise<ContentPlanItemDocument> {
     const existing = await this.prisma.contentPlanItem.findFirst({
-      where: { id: itemId, isDeleted: false, organizationId },
+      where: {
+        id: itemId,
+        isDeleted: false,
+        organizationId,
+      },
     });
 
     if (!existing) {
       throw new NotFoundException('ContentPlanItem', itemId);
     }
 
-    return this.prisma.contentPlanItem.update({
+    const updated = await this.prisma.contentPlanItem.update({
       data: {
-        ...(updates?.confidence !== undefined
-          ? { confidence: updates.confidence }
-          : {}),
-        ...(updates?.contentDraftId
-          ? { contentDraftId: updates.contentDraftId }
-          : {}),
-        ...(updates?.error ? { error: updates.error } : {}),
-        status,
+        data: this.buildDataPayload(
+          {
+            confidence: updates?.confidence,
+            contentDraftId: updates?.contentDraftId,
+            error: updates?.error,
+            status,
+          },
+          existing.data,
+        ) as never,
       },
       where: { id: itemId },
     });
+
+    return this.toDocument(updated);
   }
 
   async softDeleteByPlan(
@@ -151,5 +160,212 @@ export class ContentPlanItemsService {
         planId,
       },
     });
+  }
+
+  private toDocument(doc: PrismaContentPlanItem): ContentPlanItemDocument {
+    const data = this.asRecord(doc.data);
+
+    return {
+      ...doc,
+      _id: doc.mongoId ?? doc.id,
+      brand: doc.brandId,
+      confidence: this.asNumber(data.confidence),
+      contentDraftId: this.asString(data.contentDraftId) ?? null,
+      data,
+      error: this.asString(data.error) ?? null,
+      organization: doc.organizationId,
+      pipelineSteps: this.asPipelineSteps(data.pipelineSteps),
+      plan: doc.planId,
+      platforms: this.asStringArray(data.platforms),
+      prompt: this.asString(data.prompt) ?? null,
+      scheduledAt: this.asDate(data.scheduledAt),
+      skillSlug: this.asString(data.skillSlug) ?? null,
+      status:
+        this.asContentPlanItemStatus(data.status) ??
+        ContentPlanItemStatus.PENDING,
+      topic: this.asString(data.topic) ?? null,
+      type: this.asString(data.type),
+    };
+  }
+
+  private buildDataPayload(
+    data: Partial<
+      CreateContentPlanItemInput & {
+        contentDraftId?: string;
+        error?: string;
+        status?: ContentPlanItemStatus;
+      }
+    >,
+    existingData?: unknown,
+  ): Record<string, unknown> {
+    const payload = this.asRecord(existingData);
+
+    if (data.type !== undefined) {
+      payload.type = data.type;
+    }
+
+    if (data.topic !== undefined) {
+      payload.topic = data.topic;
+    }
+
+    if (data.prompt !== undefined) {
+      payload.prompt = data.prompt;
+    }
+
+    if (data.platforms !== undefined) {
+      payload.platforms = [...data.platforms];
+    }
+
+    if (data.scheduledAt !== undefined) {
+      payload.scheduledAt = this.serializeDate(data.scheduledAt);
+    }
+
+    if (data.skillSlug !== undefined) {
+      payload.skillSlug = data.skillSlug;
+    }
+
+    if (data.pipelineSteps !== undefined) {
+      payload.pipelineSteps = data.pipelineSteps.map((step) => ({ ...step }));
+    }
+
+    if (data.confidence !== undefined) {
+      payload.confidence = data.confidence;
+    }
+
+    if (data.contentDraftId !== undefined) {
+      payload.contentDraftId = data.contentDraftId;
+    }
+
+    if (data.error !== undefined) {
+      payload.error = data.error;
+    }
+
+    if (data.status !== undefined) {
+      payload.status = data.status;
+    }
+
+    return payload;
+  }
+
+  private sortByScheduledAt(
+    items: ContentPlanItemDocument[],
+  ): ContentPlanItemDocument[] {
+    return [...items].sort((left, right) => {
+      const leftTime =
+        this.dateToTime(left.scheduledAt) ?? Number.MAX_SAFE_INTEGER;
+      const rightTime =
+        this.dateToTime(right.scheduledAt) ?? Number.MAX_SAFE_INTEGER;
+      return leftTime - rightTime;
+    });
+  }
+
+  private asRecord(value: unknown): Record<string, unknown> {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return {};
+    }
+
+    return { ...(value as Record<string, unknown>) };
+  }
+
+  private asNumber(value: unknown): number | undefined {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value;
+    }
+
+    if (typeof value === 'string') {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) {
+        return parsed;
+      }
+    }
+
+    return undefined;
+  }
+
+  private asString(value: unknown): string | undefined {
+    return typeof value === 'string' ? value : undefined;
+  }
+
+  private asStringArray(value: unknown): string[] {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    return value.filter((entry): entry is string => typeof entry === 'string');
+  }
+
+  private asDate(value: unknown): Date | null {
+    if (value instanceof Date) {
+      return value;
+    }
+
+    if (typeof value === 'string') {
+      const parsed = new Date(value);
+      if (!Number.isNaN(parsed.getTime())) {
+        return parsed;
+      }
+    }
+
+    return null;
+  }
+
+  private dateToTime(value: Date | string | null | undefined): number | null {
+    if (value instanceof Date) {
+      return value.getTime();
+    }
+
+    if (typeof value === 'string') {
+      const parsed = new Date(value);
+      if (!Number.isNaN(parsed.getTime())) {
+        return parsed.getTime();
+      }
+    }
+
+    return null;
+  }
+
+  private asPipelineSteps(value: unknown): ContentPlanPipelineStep[] {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    return value
+      .filter(
+        (step): step is Record<string, unknown> =>
+          Boolean(step) && typeof step === 'object' && !Array.isArray(step),
+      )
+      .map((step) => ({
+        aspectRatio: this.asString(step.aspectRatio),
+        duration: this.asNumber(step.duration),
+        imageUrl: this.asString(step.imageUrl),
+        model: this.asString(step.model) ?? '',
+        prompt: this.asString(step.prompt),
+        text: this.asString(step.text),
+        type: this.asString(step.type) ?? 'text-to-image',
+        voiceId: this.asString(step.voiceId),
+      }));
+  }
+
+  private asContentPlanItemStatus(
+    value: unknown,
+  ): ContentPlanItemStatus | undefined {
+    return Object.values(ContentPlanItemStatus).find(
+      (status) => status === value,
+    );
+  }
+
+  private serializeDate(value: unknown): string | null {
+    if (value instanceof Date) {
+      return value.toISOString();
+    }
+
+    if (typeof value === 'string') {
+      const parsed = new Date(value);
+      if (!Number.isNaN(parsed.getTime())) {
+        return parsed.toISOString();
+      }
+    }
+
+    return null;
   }
 }

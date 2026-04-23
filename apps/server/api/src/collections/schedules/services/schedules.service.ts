@@ -190,14 +190,14 @@ Return ONLY valid JSON with this exact structure. Do not include any text before
     endDate: string,
   ): Promise<Schedule[]> {
     const results = await this.prisma.schedule.findMany({
-      orderBy: { scheduledAt: 'asc' },
+      orderBy: { createdAt: 'asc' },
       where: {
-        isDeleted: false,
-        organizationId,
-        scheduledAt: {
+        createdAt: {
           gte: new Date(startDate),
           lte: new Date(endDate),
         },
+        isDeleted: false,
+        organizationId,
       } as never,
     });
 

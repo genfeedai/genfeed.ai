@@ -27,6 +27,16 @@ export class OpusProService {
     return this.apiKeyHelperService.getApiKey(ApiKeyCategory.OPUS_PRO);
   }
 
+  private readObjectRecord(value: unknown): Record<string, unknown> {
+    return typeof value === 'object' && value !== null
+      ? (value as Record<string, unknown>)
+      : {};
+  }
+
+  private readString(value: unknown): string | undefined {
+    return typeof value === 'string' && value.length > 0 ? value : undefined;
+  }
+
   private getHeaders(apiKey: string) {
     return {
       'Content-Type': 'application/json',
@@ -145,12 +155,34 @@ export class OpusProService {
       }
 
       const templates = res.data?.templates || res.data?.data || [];
-      return templates.map((t: unknown) => ({
-        description: t.description,
-        name: t.name || t.title,
-        preview: t.preview_url || t.preview || t.thumbnail,
-        templateId: t.templateId || t.template_id || t.id,
-      }));
+      return Array.isArray(templates)
+        ? templates.flatMap((template) => {
+            const record = this.readObjectRecord(template);
+            const templateId =
+              this.readString(record.templateId) ??
+              this.readString(record.template_id) ??
+              this.readString(record.id);
+
+            if (!templateId) {
+              return [];
+            }
+
+            return [
+              {
+                description: this.readString(record.description),
+                name:
+                  this.readString(record.name) ??
+                  this.readString(record.title) ??
+                  'Untitled template',
+                preview:
+                  this.readString(record.preview_url) ??
+                  this.readString(record.preview) ??
+                  this.readString(record.thumbnail),
+                templateId,
+              },
+            ];
+          })
+        : [];
     } catch (error: unknown) {
       this.loggerService.error(`${url} error`, error);
       throw error;

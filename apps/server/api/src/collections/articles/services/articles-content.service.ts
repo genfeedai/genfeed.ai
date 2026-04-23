@@ -22,6 +22,7 @@ import { ArticlesService } from '@api/collections/articles/services/articles.ser
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { baseModelKey } from '@api/collections/models/utils/model-key.util';
+import type { PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
@@ -94,9 +95,12 @@ interface ArticleHarnessContext {
   >;
 }
 
+type HarnessPersonaInput = Parameters<typeof buildHarnessInput>[0]['persona'];
+
 @Injectable()
 export class ArticlesContentService {
   private readonly constructorName = this.constructor.name;
+  private readonly defaultArticleLabel = 'Untitled Article';
 
   constructor(
     private readonly logger: LoggerService,
@@ -587,7 +591,7 @@ export class ArticlesContentService {
         objective: 'authority',
         organizationId,
         sourceLines: [`enhancement-request: ${editDto.prompt}`],
-        topic: article.label,
+        topic: this.getArticleLabel(article),
       });
       const promptWithHarness = appendHarnessBriefToPrompt(
         prompt,
@@ -675,7 +679,10 @@ export class ArticlesContentService {
       });
 
       // Parse HTML content to extract paragraphs
-      const content = article.content
+      const articleContent = article.content ?? '';
+      const articleLabel = this.getArticleLabel(article);
+      const articleSummary = article.summary ?? '';
+      const content = articleContent
         .replace(/<[^>]+>/g, '') // Strip HTML tags
         .replace(/\n+/g, '\n') // Normalize newlines
         .trim();
@@ -689,7 +696,9 @@ export class ArticlesContentService {
       const maxChars = 280;
 
       // First tweet: Title + summary
-      const firstTweet = `${article.label}\n\n${article.summary}`;
+      const firstTweet = articleSummary
+        ? `${articleLabel}\n\n${articleSummary}`
+        : articleLabel;
       if (firstTweet.length <= maxChars) {
         tweets.push({
           characterCount: firstTweet.length,
@@ -699,8 +708,8 @@ export class ArticlesContentService {
       } else {
         // Title only if too long
         tweets.push({
-          characterCount: article.label.length,
-          content: article.label,
+          characterCount: articleLabel.length,
+          content: articleLabel,
           order: 1,
         });
       }
@@ -754,7 +763,7 @@ export class ArticlesContentService {
       if (article.slug && this.configService) {
         const baseUrl = `${this.configService.get('GENFEEDAI_PUBLIC_URL')}/articles/${article.slug}`;
         const articleUrl =
-          article?.status === ArticleStatus.PUBLIC
+          String(article.status) === ArticleStatus.PUBLIC
             ? baseUrl
             : `${baseUrl}?isPreview=true`;
         const finalTweet = `Read the full article:\n${articleUrl}`;
@@ -824,6 +833,7 @@ export class ArticlesContentService {
       isDeleted: false,
       organizationId: params.organizationId,
     });
+    const harnessPersona = this.normalizeHarnessPersona(persona);
 
     const brief = await this.contentHarnessService.composeBrief(
       buildHarnessInput({
@@ -840,13 +850,16 @@ export class ArticlesContentService {
           topic: params.topic,
         },
         organizationId: params.organizationId,
-        persona,
+        persona: harnessPersona,
       }),
     );
 
     return {
       brief,
-      promptBuilder: buildPromptBuilderBrandContext({ brand, persona }),
+      promptBuilder: buildPromptBuilderBrandContext({
+        brand,
+        persona: harnessPersona,
+      }),
     };
   }
 
@@ -863,14 +876,14 @@ export class ArticlesContentService {
       objective: 'authority',
       organizationId,
       sourceLines: focus ? [`review-focus: ${focus}`] : [],
-      topic: article.label,
+      topic: this.getArticleLabel(article),
     });
     const reviewModel = modelConfig.reviewModel || DEFAULT_MINI_TEXT_MODEL;
     const reviewPrompt = this.buildReviewPrompt({
-      content: article.content,
+      content: article.content ?? '',
       focus,
       harnessBrief: harnessContext.brief,
-      label: article.label,
+      label: this.getArticleLabel(article),
       summary: article.summary || '',
       type:
         article.category === ArticleCategory.X_ARTICLE
@@ -1004,8 +1017,8 @@ export class ArticlesContentService {
       model.pricingType === 'per-token'
         ? Math.max(
             Math.ceil(
-              (inputTokens * (model.inputCostPerMillionTokens || 0) +
-                outputTokens * (model.outputCostPerMillionTokens || 0)) /
+              (inputTokens * Number(model.inputCostPerMillionTokens || 0) +
+                outputTokens * Number(model.outputCostPerMillionTokens || 0)) /
                 1_000_000,
             ),
             getMinimumTextCredits(model),
@@ -1050,6 +1063,38 @@ export class ArticlesContentService {
     }
 
     return '';
+  }
+
+  private getArticleLabel(article: Pick<ArticleDocument, 'label'>): string {
+    const label = article.label?.trim();
+
+    return label ? label : this.defaultArticleLabel;
+  }
+
+  private normalizeHarnessPersona(
+    persona: PersonaDocument | null | undefined,
+  ): HarnessPersonaInput {
+    if (!persona) {
+      return null;
+    }
+
+    const personaRecord = persona as Record<string, unknown>;
+    const normalizedPersona: NonNullable<HarnessPersonaInput> = {
+      bio:
+        typeof personaRecord.bio === 'string' ? personaRecord.bio : undefined,
+      contentStrategy:
+        personaRecord.contentStrategy as NonNullable<HarnessPersonaInput>['contentStrategy'],
+      darkroomSources: Array.isArray(personaRecord.darkroomSources)
+        ? (personaRecord.darkroomSources as NonNullable<HarnessPersonaInput>['darkroomSources'])
+        : undefined,
+      handle:
+        typeof personaRecord.handle === 'string'
+          ? personaRecord.handle
+          : undefined,
+      label: persona.label,
+    };
+
+    return normalizedPersona;
   }
 
   private buildReviewPrompt(input: {

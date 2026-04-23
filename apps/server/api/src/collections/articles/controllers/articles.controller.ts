@@ -202,7 +202,7 @@ export class ArticlesController extends BaseCRUDController<
 
     // Check organization access
     if (
-      article.organization.toString() !==
+      String(article.organization ?? article.organizationId) !==
         publicMetadata.organization.toString() &&
       !getIsSuperAdmin(user, request)
     ) {

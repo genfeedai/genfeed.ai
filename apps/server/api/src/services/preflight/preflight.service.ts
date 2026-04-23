@@ -69,13 +69,7 @@ export class PreflightService {
     const start = Date.now();
     try {
       const requiredEnvs = ENV_CHECKS[service] ?? [];
-      // Check against the validated envConfig from the app's ConfigService,
-      // falling back to process.env for keys not in the typed config.
-      const envConfig = this.config.envConfig;
-      const missing = requiredEnvs.filter(
-        (env) =>
-          !(envConfig as Record<string, unknown>)[env] && !process.env[env],
-      );
+      const missing = requiredEnvs.filter((env) => !process.env[env]);
       if (missing.length > 0) {
         return {
           latencyMs: Date.now() - start,

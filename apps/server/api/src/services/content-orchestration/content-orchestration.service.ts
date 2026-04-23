@@ -255,7 +255,7 @@ export class ContentOrchestrationService {
     if (
       publishMode !== 'none' &&
       allIngredientIds.length > 0 &&
-      persona.credentials &&
+      Array.isArray(persona.credentials) &&
       persona.credentials.length > 0
     ) {
       try {

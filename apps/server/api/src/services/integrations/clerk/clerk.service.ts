@@ -1,7 +1,9 @@
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
-import type { ClerkClient, CreateUserParams, User } from '@clerk/backend';
+import type { ClerkClient, User } from '@clerk/backend';
 import { Inject, Injectable } from '@nestjs/common';
+
+type CreateUserParams = Parameters<ClerkClient['users']['createUser']>[0];
 
 const CLERK_USER_CACHE_NAMESPACE = 'clerk-user';
 const CLERK_USER_CACHE_TTL_SECONDS = 60;

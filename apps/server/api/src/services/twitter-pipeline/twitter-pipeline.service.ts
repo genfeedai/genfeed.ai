@@ -4,6 +4,7 @@ import { TwitterService } from '@api/services/integrations/twitter/services/twit
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
 import { CredentialPlatform } from '@genfeedai/enums';
 import type {
+  IReplyBotCredentialData,
   ITwitterOpportunity,
   ITwitterPublishResult,
   ITwitterSearchResult,
@@ -24,6 +25,26 @@ export class TwitterPipelineService {
     private readonly botActionExecutorService: BotActionExecutorService,
     private readonly credentialsService: CredentialsService,
   ) {}
+
+  private buildCredentialData(credential: {
+    accessToken: string | null;
+    accessTokenSecret: string | null;
+    externalHandle: string | null;
+    externalId: string | null;
+    refreshToken: string | null;
+  }): IReplyBotCredentialData | null {
+    if (!credential.accessToken) {
+      return null;
+    }
+
+    return {
+      accessToken: credential.accessToken,
+      accessTokenSecret: credential.accessTokenSecret ?? undefined,
+      externalId: credential.externalId ?? undefined,
+      refreshToken: credential.refreshToken ?? undefined,
+      username: credential.externalHandle ?? undefined,
+    };
+  }
 
   /**
    * Search recent tweets using the bearer token client
@@ -117,13 +138,13 @@ export class TwitterPipelineService {
         return { error: 'Twitter credential not found', success: false };
       }
 
-      const credentialData = {
-        accessToken: credential.accessToken,
-        accessTokenSecret: credential.accessTokenSecret,
-        externalId: credential.externalId,
-        refreshToken: credential.refreshToken,
-        username: credential.externalHandle,
-      };
+      const credentialData = this.buildCredentialData(credential);
+      if (!credentialData) {
+        return {
+          error: 'Twitter credential missing accessToken',
+          success: false,
+        };
+      }
 
       switch (request.type) {
         case 'reply': {

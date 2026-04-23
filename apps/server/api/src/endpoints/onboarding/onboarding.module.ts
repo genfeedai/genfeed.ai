@@ -6,6 +6,7 @@ import { ModelsModule } from '@api/collections/models/models.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
+import { RolesModule } from '@api/collections/roles/roles.module';
 import { UsersModule } from '@api/collections/users/users.module';
 import { CommonModule } from '@api/common/common.module';
 import { OnboardingController } from '@api/endpoints/onboarding/onboarding.controller';
@@ -39,6 +40,7 @@ import { Module } from '@nestjs/common';
     OrganizationsModule,
     PostsModule,
     ReplicateModule,
+    RolesModule,
     UsersModule,
   ],
   providers: [

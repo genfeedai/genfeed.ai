@@ -76,7 +76,11 @@ export class LeonardoaiWebhookController {
 
       if (type === 'image-generation.complete') {
         const generatedImage = images.find(
-          (image: unknown) => image.generationId === generatedId,
+          (image: unknown) =>
+            typeof image === 'object' &&
+            image !== null &&
+            'generationId' in image &&
+            image.generationId === generatedId,
         );
 
         if (generatedImage) {

@@ -47,6 +47,14 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 
+interface TrainingSourceImage {
+  _id: string;
+  id: string;
+  metadata: {
+    extension?: string;
+  };
+}
+
 @AutoSwagger()
 @Controller('trainings')
 @UseGuards(RolesGuard)
@@ -97,14 +105,18 @@ export class TrainingsOperationsController {
         );
       }
 
-      let sourceImages: unknown[] = [];
-      if (existingTraining.sources && existingTraining.sources.length > 0) {
+      const sourceIds = Array.isArray(existingTraining.sources)
+        ? existingTraining.sources
+        : [];
+
+      let sourceImages: TrainingSourceImage[] = [];
+      if (sourceIds.length > 0) {
         const sourceResult = await this.ingredientsService.findAll(
           [
             {
               $match: {
                 _id: {
-                  $in: existingTraining.sources.map((sid: unknown) =>
+                  $in: sourceIds.map((sid: unknown) =>
                     typeof sid === 'string' ? sid : sid,
                   ),
                 },
@@ -132,7 +144,13 @@ export class TrainingsOperationsController {
           },
         );
 
-        sourceImages = sourceResult.docs || [];
+        sourceImages = ((sourceResult.docs as TrainingSourceImage[]) ?? []).map(
+          (image) => ({
+            _id: image._id,
+            id: image.id ?? image._id,
+            metadata: image.metadata ?? {},
+          }),
+        );
       }
 
       if (sourceImages.length < 10) {
@@ -145,27 +163,35 @@ export class TrainingsOperationsController {
         );
       }
 
-      const newTraining = await this.trainingsService.create(
-        new TrainingEntity({
-          brand:
-            existingTraining.brand ||
-            (publicMetadata.brand ? publicMetadata.brand : undefined),
-          category: existingTraining.category,
-          description: existingTraining.description || '',
-          label: existingTraining.label,
+      const newTraining = await this.trainingsService.create({
+        brandId: existingTraining.brand ?? publicMetadata.brand ?? null,
+        config: {
+          category:
+            (existingTraining.category as string | undefined) || 'subject',
           model:
-            existingTraining.model ||
+            (existingTraining.model as string | undefined) ||
             this.configService.get('REPLICATE_MODELS_TRAINER'),
-          organization: publicMetadata.organization,
-          provider: existingTraining.provider || 'replicate',
-          seed: existingTraining.seed ?? -1,
-          sources: existingTraining.sources,
+          provider:
+            (existingTraining.provider as string | undefined) || 'replicate',
+          seed:
+            typeof existingTraining.seed === 'number'
+              ? existingTraining.seed
+              : -1,
           status: IngredientStatus.PROCESSING,
-          steps: existingTraining.steps,
-          trigger: existingTraining.trigger,
-          user: publicMetadata.user,
-        }),
-      );
+          steps:
+            typeof existingTraining.steps === 'number'
+              ? existingTraining.steps
+              : 1000,
+          trigger: (existingTraining.trigger as string | undefined) || 'TOK',
+        },
+        description: existingTraining.description || '',
+        label: existingTraining.label || 'Custom Model',
+        organizationId: publicMetadata.organization,
+        sources: {
+          connect: sourceImages.map((img) => ({ id: img.id })),
+        },
+        userId: publicMetadata.user,
+      } as unknown as Parameters<TrainingsService['create']>[0]);
 
       if (!newTraining) {
         throw new HttpException(
@@ -250,8 +276,11 @@ export class TrainingsOperationsController {
         },
       );
 
-      const metadataIds =
-        metadataResult.docs?.map((meta: unknown) => meta._id) || [];
+      const metadataIds = (
+        (metadataResult.docs as Array<{ _id?: string }> | undefined) ?? []
+      )
+        .map((meta) => meta._id)
+        .filter((metaId): metaId is string => typeof metaId === 'string');
 
       if (metadataIds.length === 0) {
         return serializeCollection(request, IngredientSerializer, {
@@ -336,7 +365,7 @@ export class TrainingsOperationsController {
         );
       }
 
-      const sources = training.sources || [];
+      const sources = Array.isArray(training.sources) ? training.sources : [];
 
       const sourceResult = await this.ingredientsService.findAll(
         [
@@ -357,11 +386,9 @@ export class TrainingsOperationsController {
         },
       );
 
-      return serializeSingle(
-        request,
-        IngredientSerializer,
-        sourceResult.docs || [],
-      );
+      return serializeCollection(request, IngredientSerializer, {
+        docs: sourceResult.docs || [],
+      });
     } catch (error: unknown) {
       throw new HttpException(
         {
@@ -379,13 +406,13 @@ export class TrainingsOperationsController {
   private async processAndLaunchTraining(
     request: Request,
     training: TrainingEntity,
-    sourceImages: { id: string; metadata: { extension: string } }[],
+    sourceImages: TrainingSourceImage[],
   ): Promise<JsonApiSingleResponse> {
     let uploadedUrl: string;
     try {
       const minimal = sourceImages.map((img) => ({
         id: img.id,
-        metadata: { extension: img.metadata?.extension },
+        metadata: { extension: img.metadata?.extension ?? '' },
       }));
 
       uploadedUrl = await this.trainingsService.createTrainingZip(

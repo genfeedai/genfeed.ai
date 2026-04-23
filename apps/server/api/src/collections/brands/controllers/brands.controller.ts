@@ -38,6 +38,7 @@ import {
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
+import type { BaseService } from '@api/shared/services/base/base.service';
 import type { User } from '@clerk/backend';
 import type {
   JsonApiCollectionResponse,
@@ -90,7 +91,16 @@ export class BrandsController extends BaseCRUDController<
     public readonly analyticsAggregationService: AnalyticsAggregationService,
     public readonly loggerService: LoggerService,
   ) {
-    super(loggerService, brandsService as unknown, BrandSerializer, 'Brand');
+    super(
+      loggerService,
+      brandsService as unknown as BaseService<
+        BrandDocument,
+        CreateBrandDto,
+        UpdateBrandDto
+      >,
+      BrandSerializer,
+      'Brand',
+    );
   }
 
   /**

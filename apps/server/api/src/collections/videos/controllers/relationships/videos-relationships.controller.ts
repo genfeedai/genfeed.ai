@@ -54,6 +54,7 @@ import {
   WebSocketEventStatus,
   WebSocketEventType,
 } from '@genfeedai/enums';
+import type { JsonApiCollectionResponse } from '@genfeedai/interfaces';
 import {
   IngredientSerializer,
   PostSerializer,
@@ -95,6 +96,14 @@ export class VideosRelationshipsController {
     private readonly whisperService: WhisperService,
   ) {}
 
+  private requireOutputPath(value: unknown): string {
+    if (typeof value !== 'string' || value.length === 0) {
+      throw new Error('Video processing result missing outputPath');
+    }
+
+    return value;
+  }
+
   @Get(':videoId/children')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findChildren(
@@ -132,7 +141,7 @@ export class VideosRelationshipsController {
     @Param('videoId') videoId: string,
     @CurrentUser() user: User,
     @Query() query: VideosQueryDto,
-  ): Promise<Video> {
+  ): Promise<JsonApiCollectionResponse> {
     const options = {
       customLabels,
       ...QueryDefaultsUtil.getPaginationDefaults(query),
@@ -279,7 +288,7 @@ export class VideosRelationshipsController {
           job.jobId,
           300_000,
         );
-        let output = result.outputPath;
+        let output = this.requireOutputPath(result.outputPath);
 
         if (isResizeEnabled) {
           // Queue portrait conversion in files.genfeed service
@@ -301,7 +310,7 @@ export class VideosRelationshipsController {
             portraitJob.jobId,
             180000, // 3 minutes for portrait conversion
           );
-          output = result.outputPath;
+          output = this.requireOutputPath(result.outputPath);
         }
 
         // Upload to S3 the first version of the video
@@ -349,7 +358,7 @@ export class VideosRelationshipsController {
               captionsJob.jobId,
               180000, // 3 minutes for adding captions
             );
-            output = result.outputPath;
+            output = this.requireOutputPath(result.outputPath);
           } catch (error: unknown) {
             this.loggerService.error(
               `Failed to generate or add captions for merged video ${ingredientId}`,

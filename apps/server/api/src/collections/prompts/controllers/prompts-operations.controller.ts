@@ -9,6 +9,7 @@
  */
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { CreateTweetReplyDto } from '@api/collections/prompts/dto/create-tweet-reply.dto';
@@ -38,6 +39,7 @@ import { ReplicateService } from '@api/services/integrations/replicate/replicate
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { WhisperService } from '@api/services/whisper/whisper.service';
+import type { IPromptBrandContext } from '@api/shared/interfaces/prompt/prompt.interface';
 import type { User } from '@clerk/backend';
 import {
   ActivityKey,
@@ -52,7 +54,6 @@ import {
   Status,
   SystemPromptKey,
 } from '@genfeedai/enums';
-import { type Brand } from '@genfeedai/prisma';
 import { PromptSerializer } from '@genfeedai/serializers';
 import { Public } from '@libs/decorators/public.decorator';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -75,6 +76,30 @@ import type { Request } from 'express';
 const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
 function isValidObjectId(id: unknown): id is string {
   return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
+}
+
+interface UploadedBinaryFile {
+  buffer: Buffer;
+  mimetype: string;
+  originalname: string;
+  size: number;
+}
+
+function toPromptBrandContext(
+  brand: BrandDocument | null | undefined,
+): IPromptBrandContext | undefined {
+  if (!brand) {
+    return undefined;
+  }
+
+  return {
+    backgroundColor: brand.backgroundColor ?? undefined,
+    description: brand.description ?? undefined,
+    label: brand.label ?? undefined,
+    primaryColor: brand.primaryColor ?? undefined,
+    secondaryColor: brand.secondaryColor ?? undefined,
+    text: brand.text ?? undefined,
+  };
 }
 
 @AutoSwagger()
@@ -106,7 +131,7 @@ export class PromptsOperationsController {
   ) {
     const publicMetadata = getPublicMetadata(user);
 
-    let selectedBrand: Brand | undefined;
+    let selectedBrand: BrandDocument | undefined;
     if (isValidObjectId(createParsePromptDto.brand)) {
       const brand = await this.brandsService.findOne({
         _id: createParsePromptDto.brand,
@@ -122,7 +147,7 @@ export class PromptsOperationsController {
     const { promptString, normalizedType } = PromptParser.parsePrompt(
       this.configService,
       {
-        brand: selectedBrand,
+        brand: toPromptBrandContext(selectedBrand),
         category: createParsePromptDto.category,
         originalPrompt: createParsePromptDto.original,
       },
@@ -160,7 +185,7 @@ export class PromptsOperationsController {
       return returnNotFound(this.constructorName, promptId);
     }
 
-    let selectedBrand: Brand | undefined;
+    let selectedBrand: BrandDocument | undefined;
     if (isValidObjectId(prompt.brand)) {
       const brand = await this.brandsService.findOne({
         _id: prompt.brand,
@@ -172,7 +197,7 @@ export class PromptsOperationsController {
     const { promptString, normalizedType } = PromptParser.parsePrompt(
       this.configService,
       {
-        brand: selectedBrand,
+        brand: toPromptBrandContext(selectedBrand),
         category: prompt.category ? String(prompt.category) : '',
         originalPrompt: prompt.original,
       },
@@ -384,7 +409,7 @@ export class PromptsOperationsController {
       return returnNotFound(this.constructorName, promptId);
     }
 
-    let selectedBrand: Brand | undefined;
+    let selectedBrand: BrandDocument | undefined;
     if (isValidObjectId(prompt.brand)) {
       const brand = await this.brandsService.findOne({
         _id: prompt.brand,
@@ -396,7 +421,7 @@ export class PromptsOperationsController {
     const { promptString, normalizedType } = PromptParser.parsePrompt(
       this.configService,
       {
-        brand: selectedBrand,
+        brand: toPromptBrandContext(selectedBrand),
         category: prompt.category ? String(prompt.category) : '',
         originalPrompt: prompt.original,
       },
@@ -527,7 +552,7 @@ export class PromptsOperationsController {
   )
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async voiceToSpeech(
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file: UploadedBinaryFile,
   ): Promise<{ text: string }> {
     if (!file) {
       throw new BadRequestException('No file uploaded');

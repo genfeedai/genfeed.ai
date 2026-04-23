@@ -1,5 +1,7 @@
 import {
   AssetScope,
+  type ContentRating,
+  DarkroomReviewStatus,
   IngredientAvatarCategory,
   IngredientCategory,
   IngredientStatus,
@@ -209,4 +211,21 @@ export class CreateIngredientDto {
     required: false,
   })
   readonly qualityStatus?: string;
+
+  @IsOptional()
+  @ApiProperty({
+    description: 'Moderation content rating for darkroom assets',
+    required: false,
+  })
+  readonly contentRating?: ContentRating;
+
+  @IsEnum(DarkroomReviewStatus)
+  @IsOptional()
+  @ApiProperty({
+    description: 'Darkroom review status for moderated assets',
+    enum: DarkroomReviewStatus,
+    enumName: 'DarkroomReviewStatus',
+    required: false,
+  })
+  readonly reviewStatus?: DarkroomReviewStatus;
 }

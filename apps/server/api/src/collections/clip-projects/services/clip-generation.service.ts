@@ -1,4 +1,5 @@
 import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
+import type { CreateClipResultDto } from '@api/collections/clip-results/dto/create-clip-result.dto';
 import { type ClipResultDocument } from '@api/collections/clip-results/schemas/clip-result.schema';
 import { AvatarVideoService } from '@api/services/avatar-video/avatar-video.service';
 import { AvatarVideoProviderName } from '@api/services/avatar-video/avatar-video-provider.interface';
@@ -90,16 +91,16 @@ export class ClipGenerationService {
           duration: highlight.end_time - highlight.start_time,
           endTime: highlight.end_time,
           index: i,
-          organizationId: orgId,
-          projectId: projectId,
+          organization: orgId,
+          project: projectId,
           startTime: highlight.start_time,
           status: 'pending',
           summary: highlight.summary,
           tags: highlight.tags,
           title: highlight.title,
-          userId: userId,
+          user: userId,
           viralityScore: highlight.virality_score,
-        });
+        } as unknown as CreateClipResultDto);
 
       const clipResultId = String(
         (clipResult as Record<string, unknown>).id ?? clipResult._id,

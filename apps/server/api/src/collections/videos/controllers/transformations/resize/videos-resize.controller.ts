@@ -1,4 +1,3 @@
-import { IngredientEntity } from '@api/collections/ingredients/entities/ingredient.entity';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
@@ -53,6 +52,14 @@ export class VideosResizeController {
     private readonly websocketService: NotificationsPublisherService,
   ) {}
 
+  private requireOutputPath(value: unknown): string {
+    if (typeof value !== 'string' || value.length === 0) {
+      throw new Error('Video processing result missing outputPath');
+    }
+
+    return value;
+  }
+
   @Post(':videoId/resize')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async resizeVideo(
@@ -104,7 +111,7 @@ export class VideosResizeController {
       })
       .then(async (job) => {
         const result = await this.fileQueueService.waitForJob(job.jobId, 60000);
-        const output = result.outputPath;
+        const output = this.requireOutputPath(result.outputPath);
         const ingredientId = String(ingredientData._id);
 
         return this.filesClientService
@@ -113,13 +120,10 @@ export class VideosResizeController {
             type: FileInputType.FILE,
           })
           .then(async (res) => {
-            await this.ingredientsService.patch(
-              ingredientId,
-              new IngredientEntity({
-                status: IngredientStatus.GENERATED,
-                transformations: [TransformationCategory.RESIZED],
-              }),
-            );
+            await this.ingredientsService.patch(ingredientId, {
+              status: IngredientStatus.GENERATED,
+              transformations: [TransformationCategory.RESIZED],
+            });
 
             await this.metadataService.patch(
               metadataData._id,
@@ -182,7 +186,7 @@ export class VideosResizeController {
       })
       .then(async (job) => {
         const result = await this.fileQueueService.waitForJob(job.jobId, 60000);
-        const output = result.outputPath;
+        const output = this.requireOutputPath(result.outputPath);
         const meta = await this.filesClientService.uploadToS3(
           ingredientData._id,
           `videos`,
@@ -193,13 +197,10 @@ export class VideosResizeController {
           metadataData._id,
           new MetadataEntity(meta),
         );
-        await this.ingredientsService.patch(
-          ingredientData._id,
-          new IngredientEntity({
-            status: IngredientStatus.GENERATED,
-            transformations: [TransformationCategory.RESIZED],
-          }),
-        );
+        await this.ingredientsService.patch(ingredientData._id, {
+          status: IngredientStatus.GENERATED,
+          transformations: [TransformationCategory.RESIZED],
+        });
 
         const websocketUrl = WebSocketPaths.video(ingredientData._id);
         await this.websocketService.publishVideoComplete(

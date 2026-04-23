@@ -135,9 +135,15 @@ export class AgentThreadsController {
 
       await this.agentOrchestratorService.resumeRecurringTaskDraftFromInput({
         answer: body.answer,
-        fieldId: inputRequest.fieldId,
+        fieldId:
+          typeof inputRequest.fieldId === 'string'
+            ? inputRequest.fieldId
+            : undefined,
         organizationId,
-        runId: inputRequest.runId,
+        runId:
+          typeof inputRequest.runId === 'string'
+            ? inputRequest.runId
+            : undefined,
         threadId,
         userId,
       });

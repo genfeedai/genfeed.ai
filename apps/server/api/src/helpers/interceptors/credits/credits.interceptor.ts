@@ -13,6 +13,7 @@ import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 
 type DeferredCreditsConfig = CreditsConfig & {
+  deferred?: boolean;
   maxOverdraftCredits?: number;
 };
 

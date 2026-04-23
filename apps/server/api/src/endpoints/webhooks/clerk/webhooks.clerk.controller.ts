@@ -1,7 +1,7 @@
 import { ConfigService } from '@api/config/config.service';
 import { ClerkWebhookService } from '@api/endpoints/webhooks/clerk/webhooks.clerk.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
-import { WebhookEvent } from '@clerk/express/webhooks';
+import type { WebhookEvent } from '@clerk/backend';
 import { IS_LOCAL_MODE } from '@genfeedai/config';
 import { Public } from '@libs/decorators/public.decorator';
 import { ClerkWebhookPayload } from '@libs/interfaces/webhook-payload.interface';

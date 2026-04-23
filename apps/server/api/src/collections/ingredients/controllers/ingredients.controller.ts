@@ -39,10 +39,10 @@ export class IngredientsController {
 
     // Build update operations for relationship fields (folder, parent)
     // This separates fields into $set (non-null) and $unset (null) operations
-    const updateOps = await buildUpdateOperations(updateIngredientDto, [
-      'folder',
-      'parent',
-    ]);
+    const updateOps = await buildUpdateOperations(
+      updateIngredientDto as unknown as Record<string, unknown>,
+      ['folder', 'parent'],
+    );
 
     // Start with the update operations
     const processedDto: Record<string, unknown> = { ...updateOps };

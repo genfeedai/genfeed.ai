@@ -16,6 +16,7 @@ import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defau
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
+import type { MatchConditions } from '@api/shared/utils/pipeline-builder/pipeline-builder.types';
 import { PipelineBuilder } from '@api/shared/utils/pipeline-builder/pipeline-builder.util';
 import type { User } from '@clerk/backend';
 import type {
@@ -95,7 +96,7 @@ export class ModelsController extends BaseCRUDController<
     _user: User,
     query: ModelsQueryDto,
   ): Record<string, unknown>[] {
-    let matchConditions: Record<string, unknown> = {
+    let matchConditions: MatchConditions = {
       isDeleted: query.isDeleted ?? false,
     };
 
@@ -121,13 +122,19 @@ export class ModelsController extends BaseCRUDController<
           ],
           'category',
         );
-        matchConditions = { ...matchConditions, ...otherCategoriesFilter };
+        matchConditions = {
+          ...matchConditions,
+          ...otherCategoriesFilter,
+        } as MatchConditions;
       } else {
         // Use CollectionFilterUtil for single category
         const categoryFilter = CollectionFilterUtil.buildCategoryFilter(
           query.category,
         );
-        matchConditions = { ...matchConditions, ...categoryFilter };
+        matchConditions = {
+          ...matchConditions,
+          ...categoryFilter,
+        } as MatchConditions;
       }
     }
 
@@ -164,10 +171,21 @@ export class ModelsController extends BaseCRUDController<
           organization: query.organizationId,
         });
 
-      if (organizationSettings?.enabledModels) {
-        const enabledModelIds = organizationSettings.enabledModels.map(
-          (id) => id,
-        );
+      const rawEnabledModels = (
+        organizationSettings as Record<string, unknown> | undefined
+      )?.enabledModels;
+      const rawEnabledModelIds = (
+        organizationSettings as Record<string, unknown> | undefined
+      )?.enabledModelIds;
+      const enabledModelIds = Array.isArray(rawEnabledModels)
+        ? rawEnabledModels.filter((id): id is string => typeof id === 'string')
+        : Array.isArray(rawEnabledModelIds)
+          ? rawEnabledModelIds.filter(
+              (id): id is string => typeof id === 'string',
+            )
+          : [];
+
+      if (enabledModelIds.length > 0) {
         // Strict mode: if enabledModels array exists, only return those models
         // If array is empty, no models will match (strict mode)
         // Add $match stage at the beginning to filter by enabled model IDs

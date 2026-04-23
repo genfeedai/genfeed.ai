@@ -7,6 +7,7 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import { SplitImageDto } from '@api/collections/images/dto/split-image.dto';
 import { ImagesService } from '@api/collections/images/services/images.service';
+import type { IngredientRefDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
@@ -179,6 +180,10 @@ export class ImagesOperationsController {
     }
 
     const promptOriginal = createImageDto.text || createImageDto.prompt;
+    const promptOriginalText =
+      typeof promptOriginal === 'string'
+        ? promptOriginal
+        : String(promptOriginal ?? '');
 
     const brandId = createImageDto.brand || publicMetadata.brand;
     const brand = await this.brandsService.findOne({
@@ -210,10 +215,7 @@ export class ImagesOperationsController {
 
     if (createImageDto.autoSelectModel) {
       // Auto model routing - let RouterService pick the best model
-      const promptString =
-        typeof promptOriginal === 'string'
-          ? promptOriginal
-          : promptOriginal?.toString() || '';
+      const promptString = promptOriginalText;
       const recommendation = await this.routerService.selectModel({
         category: ModelCategory.IMAGE,
         dimensions: {
@@ -235,21 +237,20 @@ export class ImagesOperationsController {
       });
     } else {
       // Manual selection: user-provided > brand default > system default
+      const modelKeys = Object.values(MODEL_KEYS) as string[];
       const userModel =
         createImageDto.model &&
-        Object.values(MODEL_KEYS).includes(createImageDto.model as string)
+        modelKeys.includes(createImageDto.model as string)
           ? (createImageDto.model as string)
           : undefined;
       const brandDefaultModel =
         brand.defaultImageModel &&
-        Object.values(MODEL_KEYS).includes(brand.defaultImageModel as string)
+        modelKeys.includes(brand.defaultImageModel as string)
           ? (brand.defaultImageModel as string)
           : undefined;
       const organizationDefaultModel =
         organizationSettings?.defaultImageModel &&
-        Object.values(MODEL_KEYS).includes(
-          organizationSettings.defaultImageModel as string,
-        )
+        modelKeys.includes(organizationSettings.defaultImageModel as string)
           ? (organizationSettings.defaultImageModel as string)
           : undefined;
       const systemDefaultModel = (await this.routerService.getDefaultModel(
@@ -326,7 +327,7 @@ export class ImagesOperationsController {
       };
     }
 
-    const replicateModels = [
+    const replicateModels: string[] = [
       MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3,
       MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
       MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4_FAST,
@@ -346,6 +347,13 @@ export class ImagesOperationsController {
       (isKnownReplicateModel || isDynamicReplicateDestination);
 
     const brandPromptBranding = buildPromptBrandingFromBrand(brand);
+    const promptBuilderBrand = {
+      description: brand.description ?? undefined,
+      label: brand.label ?? 'Brand',
+      primaryColor: brand.primaryColor ?? undefined,
+      secondaryColor: brand.secondaryColor ?? undefined,
+      text: brand.text ?? undefined,
+    };
 
     const width = createImageDto.width || 1920;
     const height = createImageDto.height || 1080;
@@ -398,10 +406,7 @@ export class ImagesOperationsController {
         category: PromptCategory.MODELS_PROMPT_IMAGE,
         model: createImageDto.model as string,
         organization: publicMetadata.organization,
-        original:
-          typeof promptOriginal === 'string'
-            ? promptOriginal
-            : promptOriginal?.toString() || '',
+        original: promptOriginalText,
         status: PromptStatus.PROCESSING,
         user: publicMetadata.user,
       }),
@@ -415,13 +420,7 @@ export class ImagesOperationsController {
       model,
       {
         blacklist: createImageDto.blacklist,
-        brand: {
-          description: brand.description,
-          label: brand.label,
-          primaryColor: brand.primaryColor,
-          secondaryColor: brand.secondaryColor,
-          text: brand.text,
-        },
+        brand: promptBuilderBrand,
         branding: brandPromptBranding,
         brandingMode: createImageDto.brandingMode,
         camera: createImageDto.camera,
@@ -536,9 +535,15 @@ export class ImagesOperationsController {
             }),
           ),
           this.imagesService.patch(ingredientData._id, {
-            cdnUrl: uploadMeta.publicUrl,
+            cdnUrl:
+              typeof uploadMeta.publicUrl === 'string'
+                ? uploadMeta.publicUrl
+                : undefined,
             prompt: promptData._id,
-            s3Key: uploadMeta.s3Key,
+            s3Key:
+              typeof uploadMeta.s3Key === 'string'
+                ? uploadMeta.s3Key
+                : undefined,
             status: IngredientStatus.GENERATED,
           }),
           this.websocketService.publishVideoComplete(
@@ -910,13 +915,7 @@ export class ImagesOperationsController {
           model,
           {
             blacklist: createImageDto.blacklist,
-            brand: {
-              description: brand.description,
-              label: brand.label,
-              primaryColor: brand.primaryColor,
-              secondaryColor: brand.secondaryColor,
-              text: brand.text,
-            },
+            brand: promptBuilderBrand,
             branding: brandPromptBranding,
             brandingMode: createImageDto.brandingMode,
             camera: createImageDto.camera,
@@ -1317,9 +1316,8 @@ export class ImagesOperationsController {
       ...(sourceMetadata?.extension
         ? { extension: sourceMetadata.extension }
         : {}),
-      ...(sourceMetadata?.prompt
-        ? // @ts-expect-error TS2769
-          { prompt: sourceMetadata.prompt }
+      ...(typeof sourceMetadata?.prompt === 'string'
+        ? { prompt: sourceMetadata.prompt }
         : {}),
       ...(sourceMetadata?.assistant
         ? { assistant: sourceMetadata.assistant }
@@ -1427,7 +1425,7 @@ export class ImagesOperationsController {
     // Create activity for the split operation
     await this.activitiesService.create(
       new ActivityEntity({
-        brand: sourceImage.brand,
+        brand: this.getRefId(sourceImage.brand),
         key: ActivityKey.IMAGE_GENERATED,
         organization: publicMetadata.organization,
         source: ActivitySource.IMAGE_GENERATION,
@@ -1486,5 +1484,15 @@ export class ImagesOperationsController {
     }
 
     return baseCost;
+  }
+
+  private getRefId(
+    ref: string | IngredientRefDocument | null | undefined,
+  ): string | undefined {
+    if (typeof ref === 'string') {
+      return ref;
+    }
+
+    return ref?._id?.toString() ?? ref?.id?.toString();
   }
 }

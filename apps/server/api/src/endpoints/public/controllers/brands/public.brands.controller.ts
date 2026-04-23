@@ -136,7 +136,7 @@ export class PublicBrandsController {
     }
 
     // Check if brand is public
-    if (data.scope !== AssetScope.PUBLIC) {
+    if (String(data.scope) !== AssetScope.PUBLIC) {
       return { data: null, message: 'Brand is not public' };
     }
 
@@ -160,17 +160,17 @@ export class PublicBrandsController {
     }
 
     this.logger.log(url, { params: { brandId } });
-    const data = await this.brandsService.findOne(
-      { _id: brandId, isDeleted: false },
-      'public',
-    );
+    const data = await this.brandsService.findOne({
+      _id: brandId,
+      isDeleted: false,
+    });
 
     if (!data) {
       return { data: null, message: 'Brand not found' };
     }
 
     // Check if brand is public
-    if (data.scope !== AssetScope.PUBLIC) {
+    if (String(data.scope) !== AssetScope.PUBLIC) {
       return { data: null, message: 'Brand is not public' };
     }
 

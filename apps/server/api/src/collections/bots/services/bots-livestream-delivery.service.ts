@@ -9,6 +9,17 @@ import { Injectable } from '@nestjs/common';
 import axios from 'axios';
 import { google } from 'googleapis';
 
+function requireString(
+  value: string | null | undefined,
+  field: string,
+): string {
+  if (!value) {
+    throw new Error(`Livestream credential is missing ${field}`);
+  }
+
+  return value;
+}
+
 @Injectable()
 export class BotsLivestreamDeliveryService {
   constructor(
@@ -29,7 +40,7 @@ export class BotsLivestreamDeliveryService {
         credential,
       );
       await this.sendToYoutubeLiveChat(
-        credential.accessToken,
+        requireString(credential.accessToken, 'accessToken'),
         liveChatId,
         message,
       );
@@ -43,10 +54,10 @@ export class BotsLivestreamDeliveryService {
     }
 
     await this.sendToTwitchChat(
-      credential.accessToken,
+      requireString(credential.accessToken, 'accessToken'),
       broadcasterId,
       message,
-      target.senderId || credential.externalId,
+      target.senderId || credential.externalId || undefined,
     );
 
     return { resolvedTargetId: broadcasterId };
@@ -99,8 +110,8 @@ export class BotsLivestreamDeliveryService {
       this.getConfigValue('YOUTUBE_REDIRECT_URI'),
     );
     auth.setCredentials({
-      access_token: credential.accessToken,
-      refresh_token: credential.refreshToken,
+      access_token: requireString(credential.accessToken, 'accessToken'),
+      refresh_token: credential.refreshToken || undefined,
     });
 
     const youtube = google.youtube({
@@ -184,10 +195,12 @@ export class BotsLivestreamDeliveryService {
   }
 
   private getConfigValue(key: string): string | undefined {
-    return (
+    const value = (
       this.configService as ConfigService & {
-        get: (configKey: string) => string | undefined;
+        get: (configKey: string) => string | number | boolean | undefined;
       }
     ).get(key);
+
+    return typeof value === 'string' ? value : undefined;
   }
 }

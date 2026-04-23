@@ -40,6 +40,14 @@ export class OrganizationSettingsService extends BaseService<
     return this.modelsService;
   }
 
+  private readJourneyState(
+    missions: unknown,
+  ): IOnboardingJourneyMissionState[] | undefined {
+    return Array.isArray(missions)
+      ? (missions as unknown as IOnboardingJourneyMissionState[])
+      : undefined;
+  }
+
   /**
    * Atomically update the brands limit to a specific value
    */
@@ -90,7 +98,7 @@ export class OrganizationSettingsService extends BaseService<
     }
 
     const parsedModels: ParsedModel[] = activeModels.map((model) => {
-      const parsed = this.parseModelKey(model.key);
+      const parsed = this.parseModelKey(model.key ?? '');
       return {
         base: parsed.base,
         major: parsed.major,
@@ -200,18 +208,15 @@ export class OrganizationSettingsService extends BaseService<
       return [];
     }
 
-    const nextState = this.normalizeJourneyState(
-      settings.onboardingJourneyMissions as
-        | IOnboardingJourneyMissionState[]
-        | undefined,
+    const storedMissions = this.readJourneyState(
+      settings.onboardingJourneyMissions,
     );
+    const nextState = this.normalizeJourneyState(storedMissions);
 
     const shouldPersist =
-      (settings.onboardingJourneyMissions?.length ?? 0) !== nextState.length ||
+      (storedMissions?.length ?? 0) !== nextState.length ||
       nextState.some((mission, index) => {
-        const current = settings.onboardingJourneyMissions?.[index] as
-          | IOnboardingJourneyMissionState
-          | undefined;
+        const current = storedMissions?.[index];
         return (
           !current ||
           current.id !== mission.id ||

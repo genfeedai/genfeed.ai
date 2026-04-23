@@ -243,6 +243,10 @@ export class UserStripeController {
           creatorOrg._id.toString(),
         );
       }
+      const subscriptionPlan =
+        subscription && 'type' in subscription
+          ? ((subscription as { type?: string | null }).type ?? null)
+          : null;
 
       return {
         data: {
@@ -255,7 +259,7 @@ export class UserStripeController {
                 cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
                 currentPeriodEnd: subscription.currentPeriodEnd,
                 status: subscription.status,
-                type: subscription.type,
+                type: subscriptionPlan,
               }
             : null,
         },

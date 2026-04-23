@@ -12,6 +12,7 @@
 import { BotActivitiesService } from '@api/collections/bot-activities/services/bot-activities.service';
 import { MonitoredAccountsService } from '@api/collections/monitored-accounts/services/monitored-accounts.service';
 import { ProcessedTweetsService } from '@api/collections/processed-tweets/services/processed-tweets.service';
+import type { ReplyBotConfigDocument } from '@api/collections/reply-bot-configs/schemas/reply-bot-config.schema';
 import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/services/reply-bot-configs.service';
 import { ConfigService } from '@api/config/config.service';
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
@@ -31,7 +32,6 @@ import {
   ReplyTone,
 } from '@genfeedai/enums';
 import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
-import { type ReplyBotConfig } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
@@ -114,7 +114,7 @@ export class ReplyBotOrchestratorService {
    * Process a single bot configuration
    */
   async processSingleBot(
-    botConfig: ReplyBotConfig,
+    botConfig: ReplyBotConfigDocument,
     organizationId: string,
     credential: IReplyBotCredentialData,
   ): Promise<ProcessingResult> {
@@ -210,7 +210,7 @@ export class ReplyBotOrchestratorService {
    * Fetch mentions for REPLY_GUY bot type
    */
   private async fetchMentions(
-    botConfig: ReplyBotConfig,
+    botConfig: ReplyBotConfigDocument,
     credential: IReplyBotCredentialData,
     organizationId: string,
     platform: ReplyBotPlatform,
@@ -244,7 +244,7 @@ export class ReplyBotOrchestratorService {
    * Fetch content from monitored accounts for ACCOUNT_MONITOR bot type
    */
   private async fetchMonitoredAccountContent(
-    botConfig: ReplyBotConfig,
+    botConfig: ReplyBotConfigDocument,
     _credential: IReplyBotCredentialData,
     organizationId: string,
     platform: ReplyBotPlatform,
@@ -306,7 +306,7 @@ export class ReplyBotOrchestratorService {
    * filtering out already-processed comments.
    */
   private async fetchComments(
-    botConfig: ReplyBotConfig,
+    botConfig: ReplyBotConfigDocument,
     credential: IReplyBotCredentialData,
     organizationId: string,
     platform: ReplyBotPlatform,
@@ -392,7 +392,7 @@ export class ReplyBotOrchestratorService {
    * Process a single content item - generate and send reply, optionally DM
    */
   private async processContent(
-    botConfig: ReplyBotConfig,
+    botConfig: ReplyBotConfigDocument,
     content: SocialContentData,
     organizationId: string,
     credential: IReplyBotCredentialData,
@@ -569,7 +569,7 @@ export class ReplyBotOrchestratorService {
       await this.processedTweetsService.markAsProcessed(
         content.id,
         organizationId,
-        botConfig.type,
+        (botConfig.type ?? ReplyBotType.REPLY_GUY) as ReplyBotType,
         botConfigId,
       );
 

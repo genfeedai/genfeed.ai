@@ -311,19 +311,16 @@ export class InstagramController {
         );
 
         // Handle specific Facebook Graph API errors
-        const errorCode = (
+        const graphError = (
           error as {
-            response?: { data?: Record<string, unknown>; status?: number };
+            response?: {
+              data?: { error?: { code?: number; message?: string } };
+              status?: number;
+            };
           }
-        )?.response?.data?.error?.code;
-        // @ts-expect-error TS2339
-        const errorMessage = (
-          error as {
-            response?: { data?: Record<string, unknown>; status?: number };
-          }
-        )?.response
-          // @ts-expect-error TS2349
-          ?.data?.(error as Error)?.message;
+        )?.response?.data?.error;
+        const errorCode = graphError?.code;
+        const errorMessage = graphError?.message ?? (error as Error)?.message;
 
         if (errorCode === 190 || errorCode === 102) {
           return returnBadRequest({

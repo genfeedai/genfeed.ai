@@ -1,6 +1,5 @@
 import fs from 'node:fs';
 import { CaptionsService } from '@api/collections/captions/services/captions.service';
-import { IngredientEntity } from '@api/collections/ingredients/entities/ingredient.entity';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
@@ -87,6 +86,14 @@ export class VideosCaptionsController {
     private readonly videosService: VideosService,
     private readonly websocketService: NotificationsPublisherService,
   ) {}
+
+  private requireOutputPath(value: unknown): string {
+    if (typeof value !== 'string' || value.length === 0) {
+      throw new Error('Video processing result missing outputPath');
+    }
+
+    return value;
+  }
 
   @Get(':videoId/captions')
   @Cache({
@@ -228,7 +235,7 @@ export class VideosCaptionsController {
       })
       .then(async (job) => {
         const result = await this.fileQueueService.waitForJob(job.jobId, 60000);
-        const output = result.outputPath;
+        const output = this.requireOutputPath(result.outputPath);
         const ingredientId = String(ingredientData._id);
 
         this.filesClientService
@@ -237,13 +244,10 @@ export class VideosCaptionsController {
             type: FileInputType.FILE,
           })
           .then(async (res) => {
-            await this.ingredientsService.patch(
-              ingredientId,
-              new IngredientEntity({
-                status: IngredientStatus.GENERATED,
-                transformations: [TransformationCategory.CAPTIONED],
-              }),
-            );
+            await this.ingredientsService.patch(ingredientId, {
+              status: IngredientStatus.GENERATED,
+              transformations: [TransformationCategory.CAPTIONED],
+            });
 
             await this.metadataService.patch(
               metadataData._id,

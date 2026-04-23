@@ -140,6 +140,12 @@ export class BatchGenerationService {
     private readonly contentGeneratorService: ContentGeneratorService,
   ) {}
 
+  private cloneBatchItems(items: Batch['items']): BatchItemFull[] {
+    return ((items ?? []) as unknown as BatchItemFull[]).map((item) => ({
+      ...item,
+    }));
+  }
+
   @HandleErrors('create batch', 'batch-generation')
   async createBatch(
     dto: CreateBatchDto,
@@ -368,7 +374,7 @@ export class BatchGenerationService {
     const readyItems: ReviewInboxItemSummary[] = [];
 
     for (const batch of batches) {
-      const batchItems = (batch.items as BatchItemFull[]) ?? [];
+      const batchItems = this.cloneBatchItems(batch.items);
       for (const item of batchItems) {
         const decision = item.reviewDecision;
         const status = item.status;
@@ -437,9 +443,7 @@ export class BatchGenerationService {
     }
 
     const batchConfig = (batchRecord.config ?? {}) as BatchConfig;
-    const batchItems = ((batchRecord.items ?? []) as BatchItemFull[]).map(
-      (item) => ({ ...item }),
-    );
+    const batchItems = this.cloneBatchItems(batchRecord.items);
 
     // Mark as generating
     await this.prisma.batch.update({
@@ -670,9 +674,7 @@ export class BatchGenerationService {
     const postIdsToUpdate: string[] = [];
     const reviewedAt = new Date().toISOString();
 
-    const batchItems = ((batchRecord.items ?? []) as BatchItemFull[]).map(
-      (item) => ({ ...item }),
-    );
+    const batchItems = this.cloneBatchItems(batchRecord.items);
 
     for (const item of batchItems) {
       if (
@@ -752,9 +754,7 @@ export class BatchGenerationService {
     const postIdsToReject: string[] = [];
     const reviewedAt = new Date().toISOString();
 
-    const batchItems = ((batchRecord.items ?? []) as BatchItemFull[]).map(
-      (item) => ({ ...item }),
-    );
+    const batchItems = this.cloneBatchItems(batchRecord.items);
 
     for (const item of batchItems) {
       if (itemIdSet.has(item._id)) {
@@ -821,9 +821,7 @@ export class BatchGenerationService {
     const postIdsToKeepAsDraft: string[] = [];
     const reviewedAt = new Date().toISOString();
 
-    const batchItems = ((batchRecord.items ?? []) as BatchItemFull[]).map(
-      (item) => ({ ...item }),
-    );
+    const batchItems = this.cloneBatchItems(batchRecord.items);
 
     for (const item of batchItems) {
       if (
@@ -885,15 +883,13 @@ export class BatchGenerationService {
       throw new NotFoundException(`Batch ${batchId} not found`);
     }
 
-    const batchItems = ((batchRecord.items ?? []) as BatchItemFull[]).map(
-      (item) => ({
-        ...item,
-        status:
-          item.status === BatchItemStatus.PENDING
-            ? BatchItemStatus.SKIPPED
-            : item.status,
-      }),
-    );
+    const batchItems = this.cloneBatchItems(batchRecord.items).map((item) => ({
+      ...item,
+      status:
+        item.status === BatchItemStatus.PENDING
+          ? BatchItemStatus.SKIPPED
+          : item.status,
+    }));
 
     const updatedBatch = (await this.prisma.batch.update({
       data: {
@@ -988,7 +984,7 @@ export class BatchGenerationService {
 
   private async toBatchSummary(batch: BatchWithConfig): Promise<IBatchSummary> {
     const batchConfig = (batch.config ?? {}) as BatchConfig;
-    const batchItems = (batch.items as BatchItemFull[]) ?? [];
+    const batchItems = this.cloneBatchItems(batch.items);
 
     const pendingCount = batchItems.filter(
       (item) =>

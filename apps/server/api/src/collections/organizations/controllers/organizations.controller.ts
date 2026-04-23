@@ -1,18 +1,15 @@
 import { type ActivityDocument } from '@api/collections/activities/schemas/activity.schema';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import { BrandEntity } from '@api/collections/brands/entities/brand.entity';
 import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { IngredientsQueryDto } from '@api/collections/ingredients/dto/ingredients-query.dto';
 import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { MemberEntity } from '@api/collections/members/entities/member.entity';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { CreateOrganizationDto } from '@api/collections/organizations/dto/create-organization.dto';
 import { OrganizationQueryDto } from '@api/collections/organizations/dto/organization-query.dto';
 import { UpdateOrganizationDto } from '@api/collections/organizations/dto/update-organization.dto';
-import { OrganizationEntity } from '@api/collections/organizations/entities/organization.entity';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { type PostDocument } from '@api/collections/posts/schemas/post.schema';
@@ -48,6 +45,7 @@ import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { generateLabel } from '@api/shared/utils/label/label.util';
+import type { MatchConditions } from '@api/shared/utils/pipeline-builder/pipeline-builder.types';
 import { PipelineBuilder } from '@api/shared/utils/pipeline-builder/pipeline-builder.util';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { User } from '@clerk/backend';
@@ -319,7 +317,7 @@ export class OrganizationsController extends BaseCRUDController<
     };
 
     const aggregate = PipelineBuilder.create()
-      .match(matchConditions)
+      .match(matchConditions as MatchConditions)
       .add(...IngredientFilterUtil.buildMetadataLookup())
       .add(...IngredientFilterUtil.buildFormatFilterStage(query.format))
       .sort(handleQuerySort(query.sort))
@@ -681,9 +679,9 @@ export class OrganizationsController extends BaseCRUDController<
 
     // Prefer the member's last-used brand; fall back to any brand in the org
     let brand = null;
-    if (member?.lastUsedBrand) {
+    if (member?.lastUsedBrandId) {
       brand = await this.brandsService.findOne({
-        _id: member.lastUsedBrand,
+        _id: member.lastUsedBrandId,
         isDeleted: false,
         organization: orgId,
       });
@@ -761,13 +759,15 @@ export class OrganizationsController extends BaseCRUDController<
     }
 
     // Step 1: Create organization
-    const org = await this.organizationsService.create(
-      new OrganizationEntity({
-        isSelected: false,
-        label: body.label.trim(),
-        user: userId,
-      }),
+    const orgSlug = await this.organizationsService.generateUniqueSlug(
+      body.label.trim(),
     );
+    const org = await this.organizationsService.create({
+      isSelected: false,
+      label: body.label.trim(),
+      slug: orgSlug,
+      userId,
+    } as unknown as Parameters<typeof this.organizationsService.create>[0]);
 
     const orgId = org._id;
 
@@ -791,7 +791,7 @@ export class OrganizationsController extends BaseCRUDController<
       isWatermarkEnabled: true,
       isWebhookEnabled: false,
       isWhitelabelEnabled: false,
-      organization: orgId,
+      organizationId: orgId,
       seatsLimit: 3,
       timezone: 'UTC',
     } as unknown as Parameters<
@@ -799,21 +799,19 @@ export class OrganizationsController extends BaseCRUDController<
     >[0]);
 
     // Step 3: Create default brand
-    const brand = await this.brandsService.create(
-      new BrandEntity({
-        backgroundColor: '#000000',
-        description:
-          body.description ?? 'Default description. Use it as a pre-prompt',
-        fontFamily: 'montserrat-black',
-        handle: generateLabel('brand'),
-        isSelected: true,
-        label: body.label.trim(),
-        organization: orgId,
-        primaryColor: '#000000',
-        secondaryColor: '#FFFFFF',
-        user: userId,
-      }),
-    );
+    const brand = await this.brandsService.create({
+      backgroundColor: '#000000',
+      description:
+        body.description ?? 'Default description. Use it as a pre-prompt',
+      fontFamily: 'montserrat-black',
+      isSelected: true,
+      label: body.label.trim(),
+      organizationId: orgId,
+      primaryColor: '#000000',
+      secondaryColor: '#FFFFFF',
+      slug: generateLabel('brand'),
+      userId,
+    } as unknown as Parameters<BrandsService['create']>[0]);
 
     // Step 4: Find admin role and create member
     let adminRole = await this.rolesService.findOne({
@@ -834,14 +832,12 @@ export class OrganizationsController extends BaseCRUDController<
       );
     }
 
-    await this.membersService.create(
-      new MemberEntity({
-        isActive: true,
-        organization: orgId,
-        role: adminRole._id,
-        user: userId,
-      }),
-    );
+    await this.membersService.create({
+      isActive: true,
+      organizationId: orgId,
+      roleId: String(adminRole._id),
+      userId,
+    } as unknown as Parameters<typeof this.membersService.create>[0]);
 
     // Step 5: Update Clerk publicMetadata to switch to new org
     await this.clerkService.updateUserPublicMetadata(user.id, {

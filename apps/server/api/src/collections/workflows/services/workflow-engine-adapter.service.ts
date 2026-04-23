@@ -2,7 +2,6 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CaptionEntity } from '@api/collections/captions/entities/caption.entity';
 import { CaptionsService } from '@api/collections/captions/services/captions.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { IngredientEntity } from '@api/collections/ingredients/entities/ingredient.entity';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
@@ -435,7 +434,7 @@ export class WorkflowEngineAdapterService {
             isDeleted: false,
             organization: organizationId,
           },
-          'detail',
+          ['detail'],
         );
 
         if (!brand) {
@@ -779,13 +778,10 @@ export class WorkflowEngineAdapterService {
           },
         );
 
-        await ingredientsService.patch(
-          ingredientId,
-          new IngredientEntity({
-            status: IngredientStatus.GENERATED,
-            transformations: [TransformationCategory.CAPTIONED],
-          }),
-        );
+        await ingredientsService.patch(ingredientId, {
+          status: IngredientStatus.GENERATED,
+          transformations: [TransformationCategory.CAPTIONED],
+        });
         await metadataService.patch(
           metadataData._id,
           new MetadataEntity(uploaded),
@@ -1089,12 +1085,9 @@ export class WorkflowEngineAdapterService {
             result: result.audioUrl,
           }),
         );
-        await this.ingredientsService?.patch(
-          pendingOutput.ingredientId,
-          new IngredientEntity({
-            status: IngredientStatus.GENERATED,
-          }),
-        );
+        await this.ingredientsService?.patch(pendingOutput.ingredientId, {
+          status: IngredientStatus.GENERATED,
+        });
 
         return {
           audioUrl: this.buildMusicIngredientUrl(pendingOutput.ingredientId),
@@ -1599,12 +1592,9 @@ export class WorkflowEngineAdapterService {
     }
 
     if (args.transformations && args.transformations.length > 0) {
-      await this.ingredientsService.patch(
-        ingredientId,
-        new IngredientEntity({
-          transformations: args.transformations,
-        }),
-      );
+      await this.ingredientsService.patch(ingredientId, {
+        transformations: args.transformations,
+      });
     }
 
     return { ingredientId, metadataId };

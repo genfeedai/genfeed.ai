@@ -67,10 +67,10 @@ function getBrandEntityId(brand: IBrand | null | undefined): string {
     return brand.id;
   }
 
-  if (
-    typeof (brand as { _id?: unknown } | null | undefined)?._id === 'string'
-  ) {
-    return (brand as { _id: string })._id;
+  const brandWithMongoId = brand as unknown as { _id?: unknown } | null;
+
+  if (typeof brandWithMongoId?._id === 'string') {
+    return brandWithMongoId._id;
   }
 
   return '';

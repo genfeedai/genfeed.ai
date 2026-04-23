@@ -90,7 +90,9 @@ export class FoldersController extends BaseCRUDController<
       ? (query as unknown as Record<string, string | undefined>).organization
       : null;
 
-    const matchStage: unknown = {
+    const matchStage: Record<string, unknown> & {
+      $or?: Array<Record<string, unknown>>;
+    } = {
       isDeleted: query.isDeleted ?? false,
     };
 

@@ -18,14 +18,14 @@
       "@genfeedai/integrations": [
         "../../../packages/integrations/src/index.ts"
       ],
-      "@genfeedai/interfaces": [
-        "../../../packages/interfaces/src/index.ts.d.ts"
-      ],
+      "@genfeedai/interfaces": ["../../../packages/interfaces/src/index.ts"],
       "@genfeedai/interfaces/*": ["../../../packages/interfaces/src/*"],
       "@genfeedai/serializers": ["../../../packages/serializers/src/index.ts"],
       "@genfeedai/serializers/*": ["../../../packages/serializers/src/*"],
       "@genfeedai/types": ["../../../packages/types/src/index.ts"],
       "@genfeedai/types/*": ["../../../packages/types/src/*"],
+      "@genfeedai/utils": ["../../../packages/utils/index.ts"],
+      "@genfeedai/utils/*": ["../../../packages/utils/*"],
       "@genfeedai/workflow-engine": [
         "../../../packages/workflow-engine/src/index.ts"
       ],

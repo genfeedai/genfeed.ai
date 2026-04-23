@@ -3,7 +3,7 @@ declare global {
     interface Matchers<R> {
       toBeValidObjectId(): R;
       toBeWithinTimeRange(start: Date, end: Date): R;
-      toContainObjectId(objectId: string | string): R;
+      toContainObjectId(objectId: string): R;
       toHaveValidPaginationStructure(): R;
       toBeValidHttpResponse(): R;
     }
@@ -12,9 +12,10 @@ declare global {
 
 type ObjectLike = Record<string, unknown>;
 type ObjectIdContainer = {
-  _id?: string | string | { toString(): string };
+  _id?: string | { toString(): string };
   toString(): string;
 };
+const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
 
 const isObjectLike = (value: unknown): value is ObjectLike =>
   typeof value === 'object' && value !== null;
@@ -53,11 +54,12 @@ expect.extend({
   },
   toBeValidObjectId(received: unknown) {
     const pass =
-      typeof received === 'string' ||
       received === '__never__' ||
-      (received instanceof Uint8Array
-        ? /^[0-9a-f]{24}$/i.test(received)
-        : string.isValid(String(received)));
+      (typeof received === 'string'
+        ? OBJECT_ID_REGEX.test(received)
+        : received instanceof Uint8Array
+          ? OBJECT_ID_REGEX.test(Buffer.from(received).toString('hex'))
+          : OBJECT_ID_REGEX.test(String(received)));
 
     if (pass) {
       return {
@@ -94,7 +96,7 @@ expect.extend({
     }
   },
 
-  toContainObjectId(received: unknown[], objectId: string | string) {
+  toContainObjectId(received: unknown[], objectId: string) {
     const objectIdString = objectId.toString();
     const pass = received.some(
       (item) =>

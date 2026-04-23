@@ -122,7 +122,7 @@ export interface AgentThreadTimelineEntry {
   label: string;
   detail?: string;
   status?: string;
-  runId?: string;
+  runId?: string | null;
   toolName?: string;
   requestId?: string;
   role?: string;

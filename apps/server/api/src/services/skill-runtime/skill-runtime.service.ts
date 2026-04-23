@@ -106,6 +106,10 @@ export class SkillRuntimeService {
     return [...toolSet];
   }
 
+  private readString(value: unknown): string | undefined {
+    return typeof value === 'string' && value.length > 0 ? value : undefined;
+  }
+
   private applyStrategyFilter(
     brandSkills: ResolvedBrandSkill[],
     strategySkillSlugs?: string[],
@@ -116,20 +120,28 @@ export class SkillRuntimeService {
 
     const slugSet = new Set(strategySkillSlugs);
 
-    return brandSkills.filter((resolved) => slugSet.has(resolved.skill.slug));
+    return brandSkills.filter((resolved) => {
+      const slug = resolved.skill.slug;
+      return typeof slug === 'string' && slugSet.has(slug);
+    });
   }
 
   private toRuntimeSkill(resolved: ResolvedBrandSkill): ResolvedRuntimeSkill {
     const skill = resolved.targetSkill ?? resolved.skill;
-    const doc = skill.toObject ? skill.toObject() : skill;
+    const maybeDoc = skill as typeof skill & {
+      toObject?: () => typeof skill;
+    };
+    const doc =
+      typeof maybeDoc.toObject === 'function' ? maybeDoc.toObject() : skill;
+    const slug = this.readString(doc.slug) ?? String(doc._id);
 
     return {
       instructions:
-        (doc.systemPromptTemplate as string | undefined) ??
-        doc.defaultInstructions ??
+        this.readString(doc.systemPromptTemplate) ??
+        this.readString(doc.defaultInstructions) ??
         '',
-      name: doc.name,
-      slug: doc.slug,
+      name: this.readString(doc.name) ?? slug,
+      slug,
       toolOverrides: (doc.toolOverrides as string[] | undefined) ?? [],
     };
   }

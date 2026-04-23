@@ -1,18 +1,31 @@
+import type { ContentPerformanceDocument } from '@api/collections/content-performance/schemas/content-performance.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
 export interface AttributionResult {
-  generationId: string;
-  promptUsed?: string;
-  hookUsed?: string;
-  workflowExecutionId?: string;
-  totalRecords: number;
-  avgPerformanceScore: number;
   avgEngagementRate: number;
-  totalViews: number;
+  avgPerformanceScore: number;
+  generationId: string;
+  hookUsed?: string;
+  promptUsed?: string;
   totalEngagements: number;
+  totalRecords: number;
+  totalViews: number;
+  workflowExecutionId?: string;
 }
+
+type AttributionAccumulator = {
+  generationId: string;
+  hookUsed?: string;
+  promptUsed?: string;
+  totalEngagementRate: number;
+  totalEngagements: number;
+  totalPerformanceScore: number;
+  totalRecords: number;
+  totalViews: number;
+  workflowExecutionId?: string;
+};
 
 @Injectable()
 export class AttributionService {
@@ -29,44 +42,24 @@ export class AttributionService {
     organizationId: string,
     generationId: string,
   ): Promise<AttributionResult | null> {
-    const rows = await this.prisma.contentPerformance.groupBy({
-      _avg: { engagementRate: true, performanceScore: true },
-      _count: { id: true },
-      _sum: {
-        likes: true,
-        comments: true,
-        shares: true,
-        saves: true,
-        views: true,
-      },
-      by: ['generationId', 'promptUsed', 'hookUsed', 'workflowExecutionId'],
+    const rows = (await this.prisma.contentPerformance.findMany({
       where: {
         generationId,
         isDeleted: false,
         organizationId,
       },
-    });
+    })) as ContentPerformanceDocument[];
 
     if (!rows.length) {
       return null;
     }
 
-    const r = rows[0];
-    return {
-      avgEngagementRate: r._avg.engagementRate ?? 0,
-      avgPerformanceScore: r._avg.performanceScore ?? 0,
-      generationId: r.generationId ?? generationId,
-      hookUsed: r.hookUsed ?? undefined,
-      promptUsed: r.promptUsed ?? undefined,
-      totalEngagements:
-        (r._sum.likes ?? 0) +
-        (r._sum.comments ?? 0) +
-        (r._sum.shares ?? 0) +
-        (r._sum.saves ?? 0),
-      totalRecords: r._count.id,
-      totalViews: r._sum.views ?? 0,
-      workflowExecutionId: r.workflowExecutionId ?? undefined,
-    };
+    return this.toAttributionResult(
+      this.aggregateRows(rows).find(
+        (row) => row.generationId === generationId,
+      ) ?? null,
+      generationId,
+    );
   }
 
   /**
@@ -77,41 +70,94 @@ export class AttributionService {
     brandId?: string,
     limit = 20,
   ): Promise<AttributionResult[]> {
-    const rows = await this.prisma.contentPerformance.groupBy({
-      _avg: { engagementRate: true, performanceScore: true },
-      _count: { id: true },
-      _sum: {
-        likes: true,
-        comments: true,
-        shares: true,
-        saves: true,
-        views: true,
-      },
-      by: ['generationId', 'promptUsed', 'hookUsed', 'workflowExecutionId'],
-      orderBy: { _avg: { performanceScore: 'desc' } },
-      take: limit,
+    const rows = (await this.prisma.contentPerformance.findMany({
       where: {
         generationId: { not: null },
         isDeleted: false,
         organizationId,
         ...(brandId ? { brandId } : {}),
       },
-    });
+    })) as ContentPerformanceDocument[];
 
-    return rows.map((r) => ({
-      avgEngagementRate: r._avg.engagementRate ?? 0,
-      avgPerformanceScore: r._avg.performanceScore ?? 0,
-      generationId: r.generationId ?? '',
-      hookUsed: r.hookUsed ?? undefined,
-      promptUsed: r.promptUsed ?? undefined,
-      totalEngagements:
-        (r._sum.likes ?? 0) +
-        (r._sum.comments ?? 0) +
-        (r._sum.shares ?? 0) +
-        (r._sum.saves ?? 0),
-      totalRecords: r._count.id,
-      totalViews: r._sum.views ?? 0,
-      workflowExecutionId: r.workflowExecutionId ?? undefined,
-    }));
+    return this.aggregateRows(rows)
+      .sort((a, b) => {
+        const avgPerformanceA =
+          a.totalRecords > 0 ? a.totalPerformanceScore / a.totalRecords : 0;
+        const avgPerformanceB =
+          b.totalRecords > 0 ? b.totalPerformanceScore / b.totalRecords : 0;
+        return avgPerformanceB - avgPerformanceA;
+      })
+      .slice(0, limit)
+      .map((row) => this.toAttributionResult(row))
+      .filter((row): row is AttributionResult => row !== null);
+  }
+
+  private aggregateRows(
+    rows: ContentPerformanceDocument[],
+  ): AttributionAccumulator[] {
+    const grouped = new Map<string, AttributionAccumulator>();
+
+    for (const row of rows) {
+      const generationId = row.generationId ?? '';
+      if (!generationId) {
+        continue;
+      }
+
+      const key = [
+        generationId,
+        row.promptUsed ?? '',
+        row.hookUsed ?? '',
+        row.workflowExecutionId ?? '',
+      ].join('::');
+
+      const current = grouped.get(key) ?? {
+        generationId,
+        hookUsed: row.hookUsed ?? undefined,
+        promptUsed: row.promptUsed ?? undefined,
+        totalEngagementRate: 0,
+        totalEngagements: 0,
+        totalPerformanceScore: 0,
+        totalRecords: 0,
+        totalViews: 0,
+        workflowExecutionId: row.workflowExecutionId ?? undefined,
+      };
+
+      current.totalEngagementRate += row.engagementRate ?? 0;
+      current.totalEngagements +=
+        (row.likes ?? 0) +
+        (row.comments ?? 0) +
+        (row.shares ?? 0) +
+        (row.saves ?? 0);
+      current.totalPerformanceScore += row.performanceScore ?? 0;
+      current.totalRecords += 1;
+      current.totalViews += row.views ?? 0;
+
+      grouped.set(key, current);
+    }
+
+    return [...grouped.values()];
+  }
+
+  private toAttributionResult(
+    row: AttributionAccumulator | null,
+    fallbackGenerationId?: string,
+  ): AttributionResult | null {
+    if (!row) {
+      return null;
+    }
+
+    return {
+      avgEngagementRate:
+        row.totalRecords > 0 ? row.totalEngagementRate / row.totalRecords : 0,
+      avgPerformanceScore:
+        row.totalRecords > 0 ? row.totalPerformanceScore / row.totalRecords : 0,
+      generationId: row.generationId || fallbackGenerationId || '',
+      hookUsed: row.hookUsed ?? undefined,
+      promptUsed: row.promptUsed ?? undefined,
+      totalEngagements: row.totalEngagements,
+      totalRecords: row.totalRecords,
+      totalViews: row.totalViews,
+      workflowExecutionId: row.workflowExecutionId ?? undefined,
+    };
   }
 }

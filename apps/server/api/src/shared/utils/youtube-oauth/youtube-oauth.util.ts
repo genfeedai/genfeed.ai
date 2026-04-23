@@ -1,16 +1,9 @@
+import type { OAuth2Client } from 'google-auth-library';
 import { google } from 'googleapis';
 
-export interface YoutubeOAuthClient {
+export interface YoutubeOAuthClient extends OAuth2Client {
   clientId?: string;
   redirectUri?: string;
-  credentials?: {
-    access_token?: string | null;
-    expiry_date?: number | null;
-    refresh_token?: string | null;
-  };
-  getAccessToken: (...args: unknown[]) => Promise<unknown>;
-  getToken: (...args: unknown[]) => unknown;
-  setCredentials: (...args: unknown[]) => unknown;
 }
 
 /**
@@ -46,6 +39,6 @@ export class YoutubeOAuth2Util {
       clientId,
       clientSecret,
       redirectUri,
-    ) as unknown as YoutubeOAuthClient;
+    ) as YoutubeOAuthClient;
   }
 }

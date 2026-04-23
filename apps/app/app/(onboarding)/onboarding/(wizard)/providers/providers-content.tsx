@@ -1,15 +1,26 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
+import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import type { OnboardingAccessMode } from '@genfeedai/interfaces';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
+import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useGsapTimeline } from '@hooks/ui/use-gsap-entrance';
+import { logger } from '@services/core/logger.service';
 import type { InstallReadinessResponse } from '@services/onboarding/onboarding.service';
 import { OnboardingService } from '@services/onboarding/onboarding.service';
+import { UsersService } from '@services/organization/users.service';
 import { Button } from '@ui/primitives/button';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { type MouseEvent, useEffect, useMemo, useState } from 'react';
 import { HiArrowLeft, HiCheckCircle, HiKey, HiSparkles } from 'react-icons/hi2';
+import {
+  buildGenfeedCloudSignupUrl,
+  buildOnboardingAccessSettingsPatch,
+  ONBOARDING_STORAGE_KEYS,
+} from '@/lib/onboarding/onboarding-access.util';
 
 const TIMELINE_STEPS = [
   {
@@ -39,6 +50,13 @@ const TIMELINE_STEPS = [
 ];
 
 const EMPTY_READINESS: InstallReadinessResponse = {
+  access: {
+    byokConfiguredProviders: [],
+    byokEnabled: false,
+    runtimeMode: 'server',
+    selectedMode: null,
+    serverDefaultsReady: false,
+  },
   authMode: 'clerk',
   billingMode: 'oss_local',
   localTools: {
@@ -70,10 +88,46 @@ const EMPTY_READINESS: InstallReadinessResponse = {
   },
 };
 
+function formatAccessStatus(readiness: InstallReadinessResponse): string {
+  if (readiness.access.selectedMode === 'cloud') {
+    return 'Saved choice: Genfeed Cloud';
+  }
+
+  if (readiness.access.selectedMode === 'byok') {
+    return 'Saved choice: Bring your own keys';
+  }
+
+  if (readiness.access.selectedMode === 'server') {
+    return 'Saved choice: Server defaults';
+  }
+
+  if (readiness.access.runtimeMode === 'byok') {
+    const configuredProviders =
+      readiness.access.byokConfiguredProviders.join(', ');
+
+    return configuredProviders
+      ? `Runtime: BYOK active for ${configuredProviders}`
+      : 'Runtime: BYOK active';
+  }
+
+  if (readiness.access.serverDefaultsReady) {
+    return 'Runtime: server defaults are ready';
+  }
+
+  return 'No server defaults detected yet';
+}
+
 export default function ProvidersContent() {
   const sectionRef = useGsapTimeline<HTMLDivElement>({ steps: TIMELINE_STEPS });
   const { getToken } = useAuth();
+  const { currentUser } = useCurrentUser();
+  const getUsersService = useAuthedService((token: string) =>
+    UsersService.getInstance(token),
+  );
   const router = useRouter();
+  const [pendingMode, setPendingMode] = useState<OnboardingAccessMode | null>(
+    null,
+  );
   const [readiness, setReadiness] =
     useState<InstallReadinessResponse>(EMPTY_READINESS);
   const [loading, setLoading] = useState(true);
@@ -146,23 +200,103 @@ export default function ProvidersContent() {
     [readiness.localTools],
   );
 
-  const handleContinue = () => {
+  const accessStatusLabel = useMemo(() => {
+    if (loading) {
+      return 'Checking current access state...';
+    }
+
+    return formatAccessStatus(readiness);
+  }, [loading, readiness]);
+
+  const persistAccessMode = async (accessMode: OnboardingAccessMode) => {
+    if (!currentUser) {
+      return;
+    }
+
+    try {
+      const service = await getUsersService();
+      const patch = buildOnboardingAccessSettingsPatch({
+        accessMode,
+        currentSettings: currentUser.settings,
+      });
+
+      await service.patchSettings(currentUser.id, patch);
+    } catch (error) {
+      logger.error('Failed to persist onboarding access mode', error);
+    }
+  };
+
+  const handleServerContinue = async () => {
+    setPendingMode('server');
+    await persistAccessMode('server');
     router.push('/onboarding/summary');
+  };
+
+  const handleByokClick = async (
+    event: MouseEvent<HTMLAnchorElement>,
+  ): Promise<void> => {
+    event.preventDefault();
+
+    if (pendingMode || loading) {
+      return;
+    }
+
+    setPendingMode('byok');
+    await persistAccessMode('byok');
+    router.push('/settings/organization/api-keys');
+  };
+
+  const handleCloudContinue = async () => {
+    setPendingMode('cloud');
+    await persistAccessMode('cloud');
+
+    const cloudSignupUrl = buildGenfeedCloudSignupUrl({
+      accessMode: 'cloud',
+      brandDomain: localStorage.getItem(ONBOARDING_STORAGE_KEYS.brandDomain),
+      brandName: localStorage.getItem(ONBOARDING_STORAGE_KEYS.brandName),
+    });
+
+    window.location.assign(cloudSignupUrl);
   };
 
   return (
     <div ref={sectionRef}>
       <h1 className="step-headline opacity-0 mb-4 text-4xl font-serif leading-none tracking-tighter text-white md:text-5xl">
-        Configure your <span className="font-light italic">providers.</span>
+        Configure your <span className="font-light italic">access.</span>
       </h1>
 
       <p className="step-description opacity-0 mb-10 max-w-2xl text-lg text-white/40">
-        Check the local tools and hosted providers available on this install.
-        Claude and Codex help with local agent workflows, while Replicate,
-        fal.ai, and OpenAI power hosted models when you want them.
+        Genfeed uses the keys configured on this server by default. Add your own
+        API keys only if you want BYOK overrides, or switch to Genfeed Cloud if
+        you want the managed path instead.
       </p>
 
       <div className="space-y-5">
+        <div className="provider-card opacity-0 border border-white/[0.08] bg-white/[0.02] p-5 md:p-6">
+          <div className="mb-5">
+            <h2 className="text-lg font-semibold text-white">Default access</h2>
+            <p className="mt-2 text-sm text-white/45">
+              Server defaults come first. If you save your own provider key
+              later, Genfeed will use your organization&apos;s key instead.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-emerald-400/15 bg-emerald-500/5 p-4 text-sm text-white/55">
+            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-200">
+              <HiSparkles className="h-3.5 w-3.5" />
+              Server Defaults First
+            </div>
+            <p>
+              Start with the server configuration, then bring your own keys
+              later from Organization → API Keys if you want provider control or
+              BYOK billing.
+            </p>
+            <p className="mt-3 text-xs uppercase tracking-[0.18em] text-emerald-200/80">
+              {accessStatusLabel}
+            </p>
+          </div>
+        </div>
+
         <div className="provider-card opacity-0 border border-white/[0.08] bg-white/[0.02] p-5 md:p-6">
           <div className="mb-5">
             <h2 className="text-lg font-semibold text-white">
@@ -210,11 +344,11 @@ export default function ProvidersContent() {
         <div className="provider-card opacity-0 border border-white/[0.08] bg-white/[0.02] p-5 md:p-6">
           <div className="mb-5">
             <h2 className="text-lg font-semibold text-white">
-              Hosted providers
+              Server-configured providers
             </h2>
             <p className="mt-2 text-sm text-white/45">
-              Connect hosted model providers if you want remote generation and
-              cloud-backed workflows.
+              These providers are already wired into this install. If one is
+              missing here, you can still add your own key later.
             </p>
           </div>
 
@@ -244,7 +378,7 @@ export default function ProvidersContent() {
                   ) : (
                     <HiKey className="h-4 w-4" />
                   )}
-                  {provider.enabled ? 'Configured' : 'Missing env key'}
+                  {provider.enabled ? 'Server ready' : 'Missing server key'}
                 </div>
               </div>
             ))}
@@ -253,18 +387,54 @@ export default function ProvidersContent() {
 
         <div className="provider-card opacity-0 flex flex-col gap-4 border border-white/[0.08] bg-white/[0.02] p-5 md:flex-row md:items-center md:justify-between md:p-6">
           <div className="text-sm text-white/45">
-            Review your install summary on the next step. You can keep going
-            even if some tools or provider keys are still missing.
+            Keep the default server access, open Organization API Keys if you
+            want BYOK, or switch to Genfeed Cloud now if you want a managed
+            setup with brand handoff.
           </div>
 
-          <Button
-            variant={ButtonVariant.DEFAULT}
-            size={ButtonSize.SM}
-            onClick={handleContinue}
-            label={loading ? 'Loading summary...' : 'Review summary'}
-            disabled={loading}
-            className="w-full md:w-auto"
-          />
+          <div className="flex w-full flex-col gap-3 md:w-auto md:flex-row">
+            <Link
+              href="/settings/organization/api-keys"
+              onClick={(event) => {
+                void handleByokClick(event);
+              }}
+              className="inline-flex items-center justify-center rounded-full border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-medium text-white/75 transition hover:border-white/15 hover:bg-white/[0.06] hover:text-white"
+            >
+              Add my own API keys
+            </Link>
+
+            <Button
+              variant={ButtonVariant.DEFAULT}
+              size={ButtonSize.SM}
+              onClick={() => {
+                void handleServerContinue();
+              }}
+              label={
+                loading
+                  ? 'Loading summary...'
+                  : pendingMode === 'server'
+                    ? 'Saving server mode...'
+                    : 'Continue with server defaults'
+              }
+              disabled={loading || pendingMode !== null}
+              className="w-full md:w-auto"
+            />
+
+            <Button
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.SM}
+              onClick={() => {
+                void handleCloudContinue();
+              }}
+              label={
+                pendingMode === 'cloud'
+                  ? 'Opening Genfeed Cloud...'
+                  : 'Use Genfeed Cloud'
+              }
+              disabled={loading || pendingMode !== null}
+              className="w-full rounded-full border border-white/10 bg-white/[0.03] text-white/75 hover:border-white/15 hover:bg-white/[0.06] hover:text-white md:w-auto"
+            />
+          </div>
         </div>
 
         <div className="provider-card opacity-0 flex items-center justify-between gap-4 pt-2">

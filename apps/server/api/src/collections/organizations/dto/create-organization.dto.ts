@@ -103,4 +103,14 @@ export class CreateOrganizationDto {
     required: false,
   })
   readonly onboardingCompleted?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  @ApiProperty({
+    default: false,
+    description:
+      'Whether this organization is a proactive onboarding shadow workspace',
+    required: false,
+  })
+  readonly isProactiveOnboarding?: boolean;
 }

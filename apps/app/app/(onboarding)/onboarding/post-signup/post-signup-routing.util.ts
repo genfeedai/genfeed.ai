@@ -1,3 +1,5 @@
+export { deriveBrandNameFromDomain } from '@/lib/onboarding/onboarding-access.util';
+
 export type PostSignupIntent =
   | { kind: 'plan-checkout'; stripePriceId: string }
   | { kind: 'credits-checkout'; credits: number }
@@ -20,12 +22,16 @@ function extractDomain(email?: string | null): string | null {
   return domain || null;
 }
 
-function parseCredits(rawCredits?: string | null): number | null {
-  if (!rawCredits) {
+export function parseSelectedCredits(
+  rawCredits?: string | null,
+): number | null {
+  const normalizedCredits = rawCredits?.trim();
+
+  if (!normalizedCredits || !/^\d+$/.test(normalizedCredits)) {
     return null;
   }
 
-  const parsed = Number.parseInt(rawCredits, 10);
+  const parsed = Number.parseInt(normalizedCredits, 10);
   if (Number.isNaN(parsed) || parsed <= 0) {
     return null;
   }
@@ -33,14 +39,15 @@ function parseCredits(rawCredits?: string | null): number | null {
   return parsed;
 }
 
-export function deriveBrandNameFromDomain(domain: string): string {
-  return domain
-    .replace(/\.[a-z]{2,}$/i, '')
-    .split(/[.\-_]+/)
-    .filter(Boolean)
-    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
-    .join(' ')
-    .trim();
+export function buildOnboardingResumeHref(
+  resumeStep: string,
+  brandDomain?: string | null,
+): string {
+  if (resumeStep === 'brand' && brandDomain?.trim()) {
+    return '/onboarding/brand?auto=true';
+  }
+
+  return `/onboarding/${resumeStep}`;
 }
 
 export function resolvePostSignupIntent(
@@ -51,7 +58,7 @@ export function resolvePostSignupIntent(
     return { kind: 'plan-checkout', stripePriceId: selectedPlan };
   }
 
-  const credits = parseCredits(input.selectedCredits);
+  const credits = parseSelectedCredits(input.selectedCredits);
   if (credits) {
     return { credits, kind: 'credits-checkout' };
   }

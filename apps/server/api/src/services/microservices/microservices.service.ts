@@ -320,12 +320,22 @@ export class MicroservicesService implements OnModuleInit {
         }
       }
 
+      const dataRecord =
+        data && typeof data === 'object' && !Array.isArray(data)
+          ? (data as Record<string, unknown>)
+          : {};
+      const metadata =
+        dataRecord.metadata &&
+        typeof dataRecord.metadata === 'object' &&
+        !Array.isArray(dataRecord.metadata)
+          ? (dataRecord.metadata as Record<string, unknown>)
+          : {};
       const notification = {
         data,
         event,
         metadata: {
           timestamp: new Date().toISOString(),
-          ...data.metadata,
+          ...metadata,
         },
         service,
         status: 'received',

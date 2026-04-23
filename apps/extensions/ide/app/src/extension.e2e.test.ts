@@ -256,6 +256,7 @@ mock.module('./statusBar', () => ({
 }));
 
 function createViewProviderMock(viewType: string) {
+  // biome-ignore lint/complexity/noStaticOnlyClass: VS Code providers expose static viewType in production.
   return class ViewProviderMock {
     static readonly viewType = viewType;
   };

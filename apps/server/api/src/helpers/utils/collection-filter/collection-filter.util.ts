@@ -112,8 +112,7 @@ export class CollectionFilterUtil {
     defaultTo: 'user' | 'exists' | 'none' = 'user',
   ): string | Record<string, unknown> {
     if (isValidObjectId(brand)) {
-      // @ts-expect-error TS2769
-      return brand;
+      return String(brand);
     }
 
     // Handle default behavior based on defaultTo parameter

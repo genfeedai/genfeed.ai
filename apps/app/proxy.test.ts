@@ -167,6 +167,23 @@ describe('proxy', () => {
     expect(response.status).toBe(200);
   });
 
+  it('falls through on root when slug resolution fetch rejects', async () => {
+    fetchMock.mockRejectedValue(new TypeError('fetch failed'));
+
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      {
+        cookies: { get: vi.fn() },
+        nextUrl: { pathname: '/' },
+        url: 'http://localhost:3000/',
+      } as never,
+      {} as never,
+    );
+
+    expect(response.status).toBe(200);
+  });
+
   it('redirects unauthenticated root to login', async () => {
     authStateMock.mockResolvedValue({
       getToken: vi.fn().mockResolvedValue(null),
@@ -207,6 +224,51 @@ describe('proxy', () => {
     expect(response.headers.get('location')).toBe(
       'http://localhost:3000/acme/moonrise-studio/workspace/overview',
     );
+  });
+
+  it('uses the bootstrap organization slug without fetching organizations', async () => {
+    fetchMock.mockImplementation(async (input: string | URL) => {
+      const url = String(input);
+
+      if (url.endsWith('/auth/bootstrap')) {
+        return new Response(
+          JSON.stringify({
+            access: { brandId: 'brand_1' },
+            brands: [
+              {
+                id: 'brand_1',
+                organization: { slug: 'acme' },
+                slug: 'moonrise-studio',
+              },
+            ],
+          }),
+          { status: 200 },
+        );
+      }
+
+      return new Response('not found', { status: 404 });
+    });
+
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      {
+        cookies: { get: vi.fn() },
+        nextUrl: { pathname: '/workspace/overview', search: '' },
+        url: 'http://localhost:3000/workspace/overview',
+      } as never,
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
+    );
+    expect(
+      fetchMock.mock.calls.some(([input]) =>
+        String(input).endsWith('/organizations/mine'),
+      ),
+    ).toBe(false);
   });
 
   it('redirects signed-out protected routes to login instead of invoking Clerk dev handshake', async () => {

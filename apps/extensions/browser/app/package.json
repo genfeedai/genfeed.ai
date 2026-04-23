@@ -1,7 +1,7 @@
 {
   "author": "vincent@genfeed.ai",
   "dependencies": {
-    "@clerk/chrome-extension": "3.1.14",
+    "@clerk/chrome-extension": "3.1.15",
     "@genfeedai/client": "workspace:*",
     "@genfeedai/constants": "workspace:*",
     "@genfeedai/enums": "workspace:*",
@@ -14,7 +14,7 @@
     "@radix-ui/react-select": "2.2.6",
     "@radix-ui/react-slot": "1.2.4",
     "@sentry/browser": "10.49.0",
-    "axios": "1.15.1",
+    "axios": "1.15.2",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "lucide-react": "1.8.0",

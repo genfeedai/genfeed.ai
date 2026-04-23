@@ -11,7 +11,10 @@ import type {
   Request as ExpressRequest,
   Response as ExpressResponse,
 } from 'express';
-import jsonAPI from 'jsonapi-serializer';
+
+const jsonAPI = require('jsonapi-serializer') as {
+  Error: new (payload: unknown) => unknown;
+};
 
 @Catch()
 export class AllExceptionFilter implements ExceptionFilter {
@@ -19,7 +22,7 @@ export class AllExceptionFilter implements ExceptionFilter {
 
   public readonly SENTRY_ENVIRONMENT: string;
   public readonly SENTRY_DSN: string;
-  public readonly JSONAPIError: typeof jsonAPI.Error = jsonAPI.Error;
+  public readonly JSONAPIError = jsonAPI.Error;
 
   constructor(
     public readonly loggerService: LoggerService,

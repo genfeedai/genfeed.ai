@@ -7,7 +7,7 @@ export class ElementLensEntity extends BaseEntity implements ElementLens {
   organization?: string;
   key!: string;
   label!: string;
-  description?: string;
+  declare readonly description: string | null;
   category?: ModelCategory;
   isActive!: boolean;
   isDefault!: boolean;

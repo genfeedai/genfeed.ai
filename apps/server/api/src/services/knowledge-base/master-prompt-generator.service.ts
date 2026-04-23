@@ -8,7 +8,7 @@ import {
   getMinimumTextCredits,
 } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
-import { ActivitySource } from '@genfeedai/enums';
+import { ActivitySource, KnowledgeBaseCategory } from '@genfeedai/enums';
 import type { IExtractedBrandData, IMasterPrompt } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -258,37 +258,50 @@ export class MasterPromptGeneratorService {
     brandData: IExtractedBrandData,
   ): IMasterPrompt[] {
     const companyName = brandData.companyName || 'the brand';
+    const createdAt = new Date().toISOString();
+
+    const buildPrompt = (
+      id: string,
+      title: string,
+      prompt: string,
+      description: string,
+    ): IMasterPrompt => ({
+      category: KnowledgeBaseCategory.DOCUMENT,
+      createdAt,
+      description,
+      id,
+      isActive: true,
+      prompt,
+      tags: ['default', 'master-prompt'],
+      title,
+      updatedAt: createdAt,
+    });
 
     return [
-      {
-        category: 'brand_voice' as unknown,
-        // @ts-expect-error guidance field
-        guidance:
-          'Use this prompt as a system prompt for all content generation',
-        prompt: `You are creating content for ${companyName}. Maintain a professional yet approachable tone. Focus on delivering value to the audience while staying true to the brand's core message.`,
-        title: 'Brand Voice System Prompt',
-      },
-      {
-        category: 'content_guidelines' as unknown,
-        // @ts-expect-error guidance field
-        guidance: 'Reference when creating any marketing content',
-        prompt: `When creating content for ${companyName}, follow these guidelines:\n1. Keep messaging clear and concise\n2. Focus on benefits over features\n3. Use active voice\n4. Include relevant calls-to-action\n5. Maintain consistent terminology`,
-        title: 'Content Creation Guidelines',
-      },
-      {
-        category: 'audience_targeting' as unknown,
-        // @ts-expect-error guidance field
-        guidance: 'Use to tailor content for the target audience',
-        prompt: `When addressing ${companyName}'s audience, consider their needs and pain points. Speak to them as knowledgeable peers while making complex topics accessible. Address their goals and how ${companyName} helps achieve them.`,
-        title: 'Audience Targeting Prompt',
-      },
-      {
-        category: 'tone_style' as unknown,
-        // @ts-expect-error guidance field
-        guidance: 'Reference for maintaining consistent tone',
-        prompt: `The tone for ${companyName} content should be:\n- Confident but not arrogant\n- Informative but engaging\n- Professional but personable\n- Clear but not oversimplified`,
-        title: 'Tone & Style Guidelines',
-      },
+      buildPrompt(
+        'default-brand-voice',
+        'Brand Voice System Prompt',
+        `You are creating content for ${companyName}. Maintain a professional yet approachable tone. Focus on delivering value to the audience while staying true to the brand's core message.`,
+        'Use this prompt as a system prompt for all content generation.',
+      ),
+      buildPrompt(
+        'default-content-guidelines',
+        'Content Creation Guidelines',
+        `When creating content for ${companyName}, follow these guidelines:\n1. Keep messaging clear and concise\n2. Focus on benefits over features\n3. Use active voice\n4. Include relevant calls-to-action\n5. Maintain consistent terminology`,
+        'Reference when creating any marketing content.',
+      ),
+      buildPrompt(
+        'default-audience-targeting',
+        'Audience Targeting Prompt',
+        `When addressing ${companyName}'s audience, consider their needs and pain points. Speak to them as knowledgeable peers while making complex topics accessible. Address their goals and how ${companyName} helps achieve them.`,
+        'Use to tailor content for the target audience.',
+      ),
+      buildPrompt(
+        'default-tone-style',
+        'Tone & Style Guidelines',
+        `The tone for ${companyName} content should be:\n- Confident but not arrogant\n- Informative but engaging\n- Professional but personable\n- Clear but not oversimplified`,
+        'Reference for maintaining consistent tone.',
+      ),
     ];
   }
 

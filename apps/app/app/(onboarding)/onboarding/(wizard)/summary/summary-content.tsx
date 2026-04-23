@@ -1,17 +1,26 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
+import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import type { OnboardingAccessMode } from '@genfeedai/interfaces';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
+import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useGsapTimeline } from '@hooks/ui/use-gsap-entrance';
-import { EnvironmentService } from '@services/core/environment.service';
+import { logger } from '@services/core/logger.service';
 import type { InstallReadinessResponse } from '@services/onboarding/onboarding.service';
 import { OnboardingService } from '@services/onboarding/onboarding.service';
+import { UsersService } from '@services/organization/users.service';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { type MouseEvent, useEffect, useMemo, useState } from 'react';
 import { HiArrowLeft, HiArrowUpRight, HiSparkles } from 'react-icons/hi2';
+import {
+  buildGenfeedCloudSignupUrl,
+  buildOnboardingAccessSettingsPatch,
+  ONBOARDING_STORAGE_KEYS,
+} from '@/lib/onboarding/onboarding-access.util';
 
 const TIMELINE_STEPS = [
   {
@@ -41,6 +50,13 @@ const TIMELINE_STEPS = [
 ];
 
 const EMPTY_READINESS: InstallReadinessResponse = {
+  access: {
+    byokConfiguredProviders: [],
+    byokEnabled: false,
+    runtimeMode: 'server',
+    selectedMode: null,
+    serverDefaultsReady: false,
+  },
   authMode: 'clerk',
   billingMode: 'oss_local',
   localTools: {
@@ -72,10 +88,46 @@ const EMPTY_READINESS: InstallReadinessResponse = {
   },
 };
 
+function formatSelectedAccessLabel(
+  readiness: InstallReadinessResponse,
+): string {
+  if (readiness.access.selectedMode === 'cloud') {
+    return 'Genfeed Cloud selected';
+  }
+
+  if (readiness.access.selectedMode === 'byok') {
+    return 'BYOK selected';
+  }
+
+  if (readiness.access.selectedMode === 'server') {
+    return 'Server defaults selected';
+  }
+
+  if (readiness.access.runtimeMode === 'byok') {
+    const configuredProviders =
+      readiness.access.byokConfiguredProviders.join(', ');
+
+    return configuredProviders
+      ? `BYOK currently active for ${configuredProviders}`
+      : 'BYOK currently active';
+  }
+
+  return readiness.access.serverDefaultsReady
+    ? 'Server defaults first, BYOK optional'
+    : 'No server defaults detected yet';
+}
+
 export default function SummaryContent() {
   const sectionRef = useGsapTimeline<HTMLDivElement>({ steps: TIMELINE_STEPS });
   const { getToken } = useAuth();
+  const { currentUser } = useCurrentUser();
+  const getUsersService = useAuthedService((token: string) =>
+    UsersService.getInstance(token),
+  );
   const router = useRouter();
+  const [pendingMode, setPendingMode] = useState<OnboardingAccessMode | null>(
+    null,
+  );
   const [readiness, setReadiness] =
     useState<InstallReadinessResponse>(EMPTY_READINESS);
   const [loading, setLoading] = useState(true);
@@ -143,6 +195,65 @@ export default function SummaryContent() {
     return 'None configured';
   }, [loading, readiness.providers]);
 
+  const accessModeLabel = useMemo(() => {
+    if (loading) {
+      return 'Checking...';
+    }
+
+    return formatSelectedAccessLabel(readiness);
+  }, [loading, readiness]);
+
+  const persistAccessMode = async (accessMode: OnboardingAccessMode) => {
+    if (!currentUser) {
+      return;
+    }
+
+    try {
+      const service = await getUsersService();
+      const patch = buildOnboardingAccessSettingsPatch({
+        accessMode,
+        currentSettings: currentUser.settings,
+      });
+
+      await service.patchSettings(currentUser.id, patch);
+    } catch (error) {
+      logger.error('Failed to persist onboarding access mode', error);
+    }
+  };
+
+  const handleByokClick = async (
+    event: MouseEvent<HTMLAnchorElement>,
+  ): Promise<void> => {
+    event.preventDefault();
+
+    if (pendingMode || loading) {
+      return;
+    }
+
+    setPendingMode('byok');
+    await persistAccessMode('byok');
+    router.push('/settings/organization/api-keys');
+  };
+
+  const handleContinueSelfHosted = async () => {
+    setPendingMode('server');
+    await persistAccessMode('server');
+    router.push('/onboarding/success');
+  };
+
+  const handleCloudContinue = async () => {
+    setPendingMode('cloud');
+    await persistAccessMode('cloud');
+
+    const cloudSignupUrl = buildGenfeedCloudSignupUrl({
+      accessMode: 'cloud',
+      brandDomain: localStorage.getItem(ONBOARDING_STORAGE_KEYS.brandDomain),
+      brandName: localStorage.getItem(ONBOARDING_STORAGE_KEYS.brandName),
+    });
+
+    window.location.assign(cloudSignupUrl);
+  };
+
   return (
     <div ref={sectionRef}>
       <h1 className="step-headline opacity-0 mb-4 text-4xl font-serif leading-none tracking-tighter text-white md:text-5xl">
@@ -151,8 +262,9 @@ export default function SummaryContent() {
       </h1>
 
       <p className="step-description opacity-0 mb-10 max-w-2xl text-lg text-white/40">
-        Keep going with your current self-hosted install, or switch to Genfeed
-        Cloud if you want the faster managed path.
+        Your self-hosted install is ready to use the server defaults, but you
+        can still switch to Genfeed Cloud if you want a managed path with the
+        same brand context carried into signup.
       </p>
 
       <div className="space-y-5">
@@ -172,41 +284,75 @@ export default function SummaryContent() {
               <span className="text-right text-white">{localToolsLabel}</span>
             </div>
             <div className="flex items-start justify-between gap-4 border-t border-white/[0.06] pt-3">
+              <span className="text-white/45">Default access</span>
+              <span className="text-right text-white">{accessModeLabel}</span>
+            </div>
+            <div className="flex items-start justify-between gap-4 border-t border-white/[0.06] pt-3">
               <span className="text-white/45">Hosted providers</span>
               <span className="text-right text-white">{providersLabel}</span>
             </div>
           </div>
 
           <div className="mt-5 rounded-2xl border border-white/10 bg-black/30 p-4 text-sm text-white/45">
-            Missing keys are fine for now. You can add them later in{' '}
+            Default behavior: use the providers configured on this server. Add
+            your own key later in{' '}
             <span className="text-white">
               Settings → Organization → API Keys
-            </span>
-            .
+            </span>{' '}
+            if you want BYOK overrides or this install is missing a provider you
+            need.
+          </div>
+
+          <div className="mt-5 flex flex-col gap-3 md:flex-row">
+            <Link
+              href="/settings/organization/api-keys"
+              onClick={(event) => {
+                void handleByokClick(event);
+              }}
+              className="inline-flex w-full items-center justify-center rounded-full border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-medium text-white/75 transition hover:border-white/15 hover:bg-white/[0.06] hover:text-white md:w-auto"
+            >
+              Add my own API keys
+            </Link>
+
+            <Button
+              variant={ButtonVariant.DEFAULT}
+              size={ButtonSize.SM}
+              onClick={() => {
+                void handleContinueSelfHosted();
+              }}
+              label={
+                pendingMode === 'server'
+                  ? 'Saving self-hosted mode...'
+                  : 'Continue with self-hosted'
+              }
+              disabled={loading || pendingMode !== null}
+              className="w-full md:w-auto"
+            />
+          </div>
+        </div>
+
+        <div className="summary-card opacity-0 flex flex-col gap-4 border border-white/[0.08] bg-white/[0.02] p-5 md:flex-row md:items-center md:justify-between md:p-6">
+          <div className="max-w-2xl text-sm leading-6 text-white/45">
+            Want Genfeed Cloud to manage provider keys, credits, and infra for
+            you? Start with the managed path instead and carry this brand setup
+            forward into cloud onboarding.
           </div>
 
           <Button
-            variant={ButtonVariant.DEFAULT}
+            variant={ButtonVariant.GHOST}
             size={ButtonSize.SM}
-            onClick={() => router.push('/onboarding/success')}
-            label="Continue with self-hosted"
-            className="mt-5 w-full md:w-auto"
+            onClick={() => {
+              void handleCloudContinue();
+            }}
+            label={
+              pendingMode === 'cloud'
+                ? 'Opening Genfeed Cloud...'
+                : 'Continue to Genfeed Cloud'
+            }
+            icon={<HiArrowUpRight className="h-4 w-4" />}
+            disabled={loading || pendingMode !== null}
+            className="w-full rounded-full border border-white/10 bg-white/[0.03] text-white/75 hover:border-white/15 hover:bg-white/[0.06] hover:text-white md:w-auto"
           />
-        </div>
-
-        <div className="summary-card opacity-0 flex flex-col gap-3 border border-white/[0.08] bg-white/[0.02] p-5 md:flex-row md:items-center md:justify-between md:p-6">
-          <div className="max-w-2xl text-sm leading-6 text-white/45">
-            Don&apos;t know what you&apos;re looking for? Use our cloud solution
-            instead.
-          </div>
-
-          <Link
-            href={EnvironmentService.apps.website}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-medium text-white/75 transition hover:border-white/15 hover:bg-white/[0.06] hover:text-white md:w-auto"
-          >
-            Explore Genfeed Cloud
-            <HiArrowUpRight className="h-4 w-4" />
-          </Link>
         </div>
 
         <div className="summary-card opacity-0 flex items-center justify-between gap-4 pt-2">

@@ -70,12 +70,22 @@ export class CampaignDiscoveryService {
     }
 
     try {
+      const platform = Object.values(CampaignPlatform).includes(
+        campaign.platform as CampaignPlatform,
+      )
+        ? (campaign.platform as CampaignPlatform)
+        : undefined;
+
+      if (!platform) {
+        return [];
+      }
+
       const allTargets: DiscoveredTarget[] = [];
 
       // Search by keywords
       if (config.keywords && config.keywords.length > 0) {
         const keywordTargets = await this.searchByKeywords(
-          campaign.platform,
+          platform,
           config.keywords,
           config,
           Math.ceil(limit / config.keywords.length),
@@ -86,7 +96,7 @@ export class CampaignDiscoveryService {
       // Search by hashtags
       if (config.hashtags && config.hashtags.length > 0) {
         const hashtagTargets = await this.searchByHashtags(
-          campaign.platform,
+          platform,
           config.hashtags,
           config,
           Math.ceil(limit / config.hashtags.length),

@@ -6,6 +6,7 @@ import type {
   MediaInfo,
   PublishContext,
   PublishResult,
+  ThreadChild,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { ThreadsService } from '@api/services/integrations/threads/services/threads.service';
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
@@ -150,7 +151,7 @@ export class ThreadsPublisherService extends BasePublisherService {
    */
   async publishThreadChildren(
     context: PublishContext,
-    children: unknown[],
+    children: ThreadChild[],
     parentExternalId: string,
   ): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;

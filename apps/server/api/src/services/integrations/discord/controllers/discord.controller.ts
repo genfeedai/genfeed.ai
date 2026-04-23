@@ -45,16 +45,18 @@ export class DiscordController {
         oauthState: state,
       });
     } else {
+      const userId =
+        typeof user._id === 'string' ? user._id : String(user._id ?? '');
+
       await this.credentialsService.create({
         brand: brandId,
         isConnected: false,
-        // @ts-expect-error TS2353
         isDeleted: false,
         oauthState: state,
         organization: organizationId,
         platform: CredentialPlatform.DISCORD,
-        user: user._id,
-      });
+        user: userId,
+      } as unknown as Parameters<CredentialsService['create']>[0]);
     }
 
     // Generate Discord OAuth URL

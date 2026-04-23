@@ -61,7 +61,7 @@ export class EditorRenderService {
 
       const { metadataData, ingredientData } =
         await this.sharedService.saveDocuments(user, {
-          brand: renderParams.brand,
+          brand: renderParams.brandId,
           category: IngredientCategory.VIDEO,
           extension: MetadataExtension.MP4,
           height: renderParams.height,

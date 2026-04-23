@@ -28,7 +28,9 @@ export class CampaignTargetsService extends BaseService<
   ): Promise<CampaignTargetDocument[]> {
     const created = await Promise.all(
       targets.map((t) =>
-        this.delegate.create({ data: t as Record<string, unknown> }),
+        this.delegate.create({
+          data: t as unknown as Record<string, unknown>,
+        }),
       ),
     );
     return created as CampaignTargetDocument[];

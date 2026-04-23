@@ -94,20 +94,23 @@ export class AdminAnnouncementsService {
     // --- Persist announcement record ---
     const announcement =
       await this.announcementsCollectionService.createAnnouncement({
-        authorId,
-        body: dto.body,
-        channels: dto.channels,
-        discordChannelId: dto.discordChannelId,
-        discordMessageUrl,
+        config: {
+          authorId,
+          channels: dto.channels,
+          discordChannelId: dto.discordChannelId,
+          discordMessageUrl,
+          publishedAt: new Date().toISOString(),
+          tweetId,
+          tweetText: dto.tweetText,
+          tweetUrl,
+        },
+        content: dto.body,
         isDeleted: false,
-        publishedAt: new Date(),
-        tweetId,
-        tweetText: dto.tweetText,
-        tweetUrl,
+        organizationId,
       });
 
     this.loggerService.log(caller, {
-      announcementId: announcement._id.toString(),
+      announcementId: announcement.id,
       message: 'Announcement persisted',
     });
 

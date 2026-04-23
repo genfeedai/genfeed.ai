@@ -412,9 +412,13 @@ export class MastodonService {
       );
 
       const form = new FormData();
+      const contentTypeHeader = mediaResponse.headers['content-type'];
+      const contentType =
+        typeof contentTypeHeader === 'string'
+          ? contentTypeHeader
+          : 'application/octet-stream';
       form.append('file', Buffer.from(mediaResponse.data), {
-        contentType:
-          mediaResponse.headers['content-type'] || 'application/octet-stream',
+        contentType,
         filename: 'media',
       });
 

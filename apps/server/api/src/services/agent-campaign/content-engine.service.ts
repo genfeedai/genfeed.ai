@@ -110,6 +110,45 @@ export class ContentEngineService {
     private readonly logger: LoggerService,
   ) {}
 
+  private requireAgentType(
+    agentType: AgentStrategyDocument['agentType'],
+  ): AgentType {
+    if (!agentType) {
+      throw new Error('Agent strategy type is missing');
+    }
+
+    return agentType as AgentType;
+  }
+
+  private normalizeModel(model: string | null | undefined): string | undefined {
+    return model ?? undefined;
+  }
+
+  private normalizeDate(value: unknown): Date | null {
+    if (!value) {
+      return null;
+    }
+
+    if (value instanceof Date) {
+      return value;
+    }
+
+    if (typeof value === 'string' || typeof value === 'number') {
+      const parsed = new Date(value);
+      return Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
+
+    return null;
+  }
+
+  private getStrategyTopics(strategy: AgentStrategyDocument): string[] {
+    return strategy.topics ?? [];
+  }
+
+  private getStrategyPlatforms(strategy: AgentStrategyDocument): string[] {
+    return strategy.platforms ?? [];
+  }
+
   async runOrchestrationCycle(
     campaignId: string,
     organizationId: string,
@@ -234,11 +273,11 @@ export class ContentEngineService {
       runRecords.push(run);
 
       await this.agentRunQueueService.queueRun({
-        agentType: strategy.agentType,
+        agentType: this.requireAgentType(strategy.agentType),
         autonomyMode: strategy.autonomyMode,
         campaignId,
         creditBudget,
-        model: strategy.model,
+        model: this.normalizeModel(strategy.model),
         objective,
         organizationId,
         runId: String(run._id),
@@ -247,7 +286,7 @@ export class ContentEngineService {
       });
 
       dispatchedRuns.push({
-        agentType: strategy.agentType,
+        agentType: this.requireAgentType(strategy.agentType),
         objective,
         reason,
         runId: String(run._id),
@@ -324,7 +363,7 @@ export class ContentEngineService {
         campaignId: input.campaignId,
         dispatchCount: 0,
         dispatchedRuns: [],
-        nextOrchestratedAt: campaign.nextOrchestratedAt ?? null,
+        nextOrchestratedAt: this.normalizeDate(campaign.nextOrchestratedAt),
         skippedReason: `Campaign is ${campaign.status}, skipping trigger dispatch.`,
         summary: `Skipped trigger dispatch because campaign status is ${campaign.status}.`,
       };
@@ -335,7 +374,7 @@ export class ContentEngineService {
         campaignId: input.campaignId,
         dispatchCount: 0,
         dispatchedRuns: [],
-        nextOrchestratedAt: campaign.nextOrchestratedAt ?? null,
+        nextOrchestratedAt: this.normalizeDate(campaign.nextOrchestratedAt),
         skippedReason: 'No strategies selected for trigger dispatch.',
         summary:
           'Skipped trigger dispatch because no strategies were selected.',
@@ -356,7 +395,7 @@ export class ContentEngineService {
         campaignId: input.campaignId,
         dispatchCount: 0,
         dispatchedRuns: [],
-        nextOrchestratedAt: campaign.nextOrchestratedAt ?? null,
+        nextOrchestratedAt: this.normalizeDate(campaign.nextOrchestratedAt),
         skippedReason: 'Campaign credit budget is exhausted.',
         summary:
           'Skipped trigger dispatch because the campaign budget is exhausted.',
@@ -402,17 +441,17 @@ export class ContentEngineService {
         },
         objective,
         organization: campaign.organization,
-        strategy: strategy._id as unknown,
+        strategy: String(strategy._id),
         trigger: AgentExecutionTrigger.CRON,
         user: campaign.user,
       });
 
       await this.agentRunQueueService.queueRun({
-        agentType: strategy.agentType,
+        agentType: this.requireAgentType(strategy.agentType),
         autonomyMode: strategy.autonomyMode,
         campaignId: input.campaignId,
         creditBudget,
-        model: strategy.model,
+        model: this.normalizeModel(strategy.model),
         objective,
         organizationId,
         runId: String(run._id),
@@ -421,7 +460,7 @@ export class ContentEngineService {
       });
 
       dispatchedRuns.push({
-        agentType: strategy.agentType,
+        agentType: this.requireAgentType(strategy.agentType),
         objective,
         reason,
         runId: String(run._id),
@@ -460,7 +499,7 @@ export class ContentEngineService {
       campaignId: input.campaignId,
       dispatchCount: dispatchedRuns.length,
       dispatchedRuns,
-      nextOrchestratedAt: campaign.nextOrchestratedAt ?? null,
+      nextOrchestratedAt: this.normalizeDate(campaign.nextOrchestratedAt),
       summary: `Dispatched ${dispatchedRuns.length} run(s) for ${input.triggerType}.`,
     };
   }
@@ -544,10 +583,9 @@ export class ContentEngineService {
       analyticsOverview.avgEngagementRate ?? 0,
     ).toFixed(2);
     const totalViews = Math.round(analyticsOverview.totalViews ?? 0);
+    const topicsList = this.getStrategyTopics(strategy);
     const topics =
-      strategy.topics.length > 0
-        ? strategy.topics.join(', ')
-        : 'campaign priorities';
+      topicsList.length > 0 ? topicsList.join(', ') : 'campaign priorities';
 
     return `${strategy.label} is aligned to ${topics} with recent campaign engagement at ${engagementRate}% and ${totalViews} views over the last 7 days.`;
   }
@@ -558,12 +596,13 @@ export class ContentEngineService {
     goalSummaries: string[],
     analyticsOverview: AnalyticsOverview,
   ): string {
+    const topics = this.getStrategyTopics(strategy);
     const lines = [
       `Campaign: ${campaign.label}`,
       `Campaign brief: ${campaign.brief || 'No campaign brief provided.'}`,
       `Strategy: ${strategy.label}`,
       `Role: ${strategy.displayRole || strategy.agentType}`,
-      `Topics: ${strategy.topics.join(', ') || 'No topics configured.'}`,
+      `Topics: ${topics.join(', ') || 'No topics configured.'}`,
       `Recent 7-day analytics: ${Math.round(analyticsOverview.totalViews ?? 0)} views, ${Math.round(analyticsOverview.totalPosts ?? 0)} tracked posts, ${(analyticsOverview.avgEngagementRate ?? 0).toFixed(2)}% average engagement.`,
     ];
 
@@ -585,10 +624,11 @@ export class ContentEngineService {
     analyticsOverview: AnalyticsOverview,
     input: TriggeredCampaignDispatchInput,
   ): string {
+    const strategyPlatforms = this.getStrategyPlatforms(strategy);
     const recommendedPostingTimes = input.postingRecommendations
       .filter((recommendation) =>
-        strategy.platforms.length > 0
-          ? strategy.platforms.includes(recommendation.platform)
+        strategyPlatforms.length > 0
+          ? strategyPlatforms.includes(recommendation.platform)
           : true,
       )
       .map(
@@ -688,8 +728,10 @@ export class ContentEngineService {
 
   private computeNextRunAt(campaign: AgentCampaignDocument, from: Date): Date {
     const intervalHours =
-      campaign.orchestrationIntervalHours ||
-      DEFAULT_ORCHESTRATION_INTERVAL_HOURS;
+      typeof campaign.orchestrationIntervalHours === 'number' &&
+      campaign.orchestrationIntervalHours > 0
+        ? campaign.orchestrationIntervalHours
+        : DEFAULT_ORCHESTRATION_INTERVAL_HOURS;
 
     return new Date(from.getTime() + intervalHours * 60 * 60 * 1000);
   }

@@ -114,11 +114,21 @@ export class AgentGoalsService {
         ? Math.min(100, Number(((currentValue / targetValue) * 100).toFixed(2)))
         : 0;
 
+    const config =
+      goal.config &&
+      typeof goal.config === 'object' &&
+      !Array.isArray(goal.config)
+        ? (goal.config as Record<string, unknown>)
+        : {};
+
     await this.prisma.agentGoal.update({
       data: {
-        currentValue,
-        lastEvaluatedAt: new Date(),
-        progressPercent,
+        config: {
+          ...config,
+          currentValue,
+          lastEvaluatedAt: new Date().toISOString(),
+          progressPercent,
+        } as never,
       },
       where: { id: goalId },
     });

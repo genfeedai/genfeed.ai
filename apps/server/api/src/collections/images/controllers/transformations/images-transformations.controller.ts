@@ -166,7 +166,8 @@ export class ImagesTransformationsController {
         .then(async (result: unknown) => {
           // The resize operation in files.genfeed should handle S3 upload
           // Update metadata with the result from the job
-          const meta = result.metadata || {};
+          const meta =
+            (result as { metadata?: Record<string, unknown> }).metadata || {};
 
           await this.metadataService.patch(metadataData._id, {
             height: meta.height,
@@ -268,7 +269,7 @@ export class ImagesTransformationsController {
         original:
           typeof promptText === 'string'
             ? promptText
-            : promptText?.toString() || '',
+            : String(promptText ?? ''),
         status: PromptStatus.PROCESSING,
         user: publicMetadata.user,
       }),
@@ -343,7 +344,19 @@ export class ImagesTransformationsController {
       const promptResult = await this.promptBuilderService.buildPrompt(
         MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE,
         {
-          brand: ingredientData.brand,
+          brand:
+            ingredientData.brand &&
+            typeof ingredientData.brand === 'object' &&
+            'label' in ingredientData.brand &&
+            typeof ingredientData.brand.label === 'string'
+              ? {
+                  description:
+                    typeof ingredientData.brand.description === 'string'
+                      ? ingredientData.brand.description
+                      : undefined,
+                  label: ingredientData.brand.label,
+                }
+              : undefined,
           height: targetHeight,
           modelCategory:
             ((request as unknown as { selectedModel?: { category?: string } })

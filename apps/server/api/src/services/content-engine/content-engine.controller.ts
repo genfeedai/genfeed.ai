@@ -212,6 +212,6 @@ export class ContentEngineController {
       dto.ids,
       userId,
     );
-    return serializeCollection(req, ContentDraftSerializer, { docs });
+    return docs;
   }
 }

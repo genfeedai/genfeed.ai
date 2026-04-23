@@ -251,7 +251,7 @@ export class CreateWorkflowDto extends LabeledCreateDto {
     description: 'The user ID who created this workflow',
     required: false,
   })
-  readonly user?: string;
+  readonly user!: string;
 
   @IsMongoId()
   @IsOptional()
@@ -259,7 +259,7 @@ export class CreateWorkflowDto extends LabeledCreateDto {
     description: 'The organization ID that owns this workflow',
     required: false,
   })
-  readonly organization?: string;
+  readonly organization!: string;
 
   @IsArray()
   @IsOptional()

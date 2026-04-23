@@ -150,7 +150,12 @@ export class TwitterSocialAdapter {
         platform: 'twitter',
       });
 
-      if (!credential?.platformUsername) {
+      const platformUsername =
+        typeof credential?.platformUsername === 'string'
+          ? credential.platformUsername
+          : null;
+
+      if (!platformUsername) {
         this.loggerService.warn(
           `${this.logContext} no Twitter credential found`,
           { organizationId },
@@ -158,7 +163,7 @@ export class TwitterSocialAdapter {
         return null;
       }
 
-      let query = `@${credential.platformUsername}`;
+      let query = `@${platformUsername}`;
       if (keywords?.length) {
         query += ` (${keywords.join(' OR ')})`;
       }
@@ -205,7 +210,12 @@ export class TwitterSocialAdapter {
         platform: 'twitter',
       });
 
-      if (!credential?.platformUsername) {
+      const platformUsername =
+        typeof credential?.platformUsername === 'string'
+          ? credential.platformUsername
+          : null;
+
+      if (!platformUsername) {
         this.loggerService.warn(
           `${this.logContext} follower check skipped — no platformUsername configured`,
           { organizationId },
@@ -213,9 +223,8 @@ export class TwitterSocialAdapter {
         return null;
       }
 
-      const user = await this.twitterService.getUserByUsername(
-        credential.platformUsername,
-      );
+      const user =
+        await this.twitterService.getUserByUsername(platformUsername);
 
       if (!user) {
         return null;

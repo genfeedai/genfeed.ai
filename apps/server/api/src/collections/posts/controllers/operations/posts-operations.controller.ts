@@ -1,6 +1,7 @@
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import type { IngredientRefDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { BatchScheduleDto } from '@api/collections/posts/dto/batch-schedule.dto';
 import { CreatePostDto } from '@api/collections/posts/dto/create-post.dto';
@@ -185,6 +186,63 @@ export class PostsOperationsController {
     }
 
     return Object.keys(metadata).length > 0 ? metadata : undefined;
+  }
+
+  private getRefId(
+    ref: string | IngredientRefDocument | null | undefined,
+  ): string | undefined {
+    if (typeof ref === 'string') {
+      return ref;
+    }
+
+    return ref?._id?.toString() ?? ref?.id?.toString();
+  }
+
+  private getBadRequestResponse(
+    response: unknown,
+  ): string | Record<string, unknown> {
+    return typeof response === 'string'
+      ? response
+      : typeof response === 'object' && response !== null
+        ? (response as Record<string, unknown>)
+        : { detail: 'Bad request' };
+  }
+
+  private normalizeCredentialPlatform(
+    value: unknown,
+  ): CredentialPlatform | undefined {
+    return Object.values(CredentialPlatform).find(
+      (platform) => platform === value,
+    );
+  }
+
+  private normalizeIngredientCategory(
+    value: unknown,
+  ): IngredientCategory | undefined {
+    return Object.values(IngredientCategory).find(
+      (category) => category === value,
+    );
+  }
+
+  private isTwitterPlatform(value: unknown): boolean {
+    return (
+      this.normalizeCredentialPlatform(value) === CredentialPlatform.TWITTER
+    );
+  }
+
+  private getPostCategoryFromIngredient(
+    ingredient: {
+      category?: unknown;
+    } | null,
+  ): PostCategory {
+    switch (this.normalizeIngredientCategory(ingredient?.category)) {
+      case IngredientCategory.IMAGE:
+        return PostCategory.IMAGE;
+      case IngredientCategory.VIDEO:
+        return PostCategory.VIDEO;
+      default:
+        return PostCategory.TEXT;
+    }
   }
 
   private async recordGeneratedPostLineage(params: {
@@ -463,7 +521,7 @@ export class PostsOperationsController {
     }
 
     // Verify it's a Twitter/X post
-    if (originalPost.platform !== CredentialPlatform.TWITTER) {
+    if (!this.isTwitterPlatform(originalPost.platform)) {
       throw new HttpException(
         {
           detail: 'Thread expansion is only available for Twitter/X posts',
@@ -1291,11 +1349,24 @@ export class PostsOperationsController {
         );
       }
 
+      const credentialPlatform = this.normalizeCredentialPlatform(
+        credential.platform,
+      );
+      if (!credentialPlatform) {
+        throw new HttpException(
+          {
+            detail: 'Unsupported credential platform',
+            title: 'Platform not supported',
+          },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
       // Validate TEXT category only allowed for Twitter when scheduling
       if (
         createPostDto.status === PostStatus.SCHEDULED &&
         createPostDto.category === PostCategory.TEXT &&
-        credential.platform !== CredentialPlatform.TWITTER
+        credentialPlatform !== CredentialPlatform.TWITTER
       ) {
         throw new HttpException(
           {
@@ -1309,7 +1380,7 @@ export class PostsOperationsController {
       // Validate ingredients required when scheduling for non-Twitter platforms
       if (
         createPostDto.status === PostStatus.SCHEDULED &&
-        credential.platform !== CredentialPlatform.TWITTER
+        credentialPlatform !== CredentialPlatform.TWITTER
       ) {
         if (
           !createPostDto.ingredients ||
@@ -1362,16 +1433,10 @@ export class PostsOperationsController {
 
       const data = await this.postsService.addThreadReply(parentId, {
         ...createPostDto,
-        brand: firstIngredient ? firstIngredient.brand : publicMetadata.brand,
+        brand: this.getRefId(firstIngredient?.brand) ?? publicMetadata.brand,
         category:
-          createPostDto.category ||
-          (firstIngredient
-            ? firstIngredient.category === IngredientCategory.IMAGE
-              ? PostCategory.IMAGE
-              : firstIngredient.category === IngredientCategory.VIDEO
-                ? PostCategory.VIDEO
-                : PostCategory.TEXT
-            : PostCategory.TEXT),
+          createPostDto.category ??
+          this.getPostCategoryFromIngredient(firstIngredient),
         credential: createPostDto.credential,
         description: createPostDto.description || credential.description || '',
         ingredients: ingredientIds,
@@ -1381,10 +1446,10 @@ export class PostsOperationsController {
           (createPostDto.description?.trim()
             ? this.extractLabelFromTweet(createPostDto.description.trim())
             : ''),
-        organization: firstIngredient
-          ? firstIngredient.organization
-          : publicMetadata.organization,
-        platform: credential.platform,
+        organization:
+          this.getRefId(firstIngredient?.organization) ??
+          publicMetadata.organization,
+        platform: credentialPlatform,
         publicationDate: createPostDto.publicationDate,
         scheduledDate: createPostDto.scheduledDate,
         status: createPostDto.status,
@@ -1395,7 +1460,9 @@ export class PostsOperationsController {
       return serializeSingle(request, this.serializer, data);
     } catch (error: unknown) {
       if (error instanceof Error && 'response' in error) {
-        return returnBadRequest((error as { response: unknown }).response);
+        return returnBadRequest(
+          this.getBadRequestResponse((error as { response: unknown }).response),
+        );
       }
       throw error;
     }
@@ -1475,7 +1542,9 @@ export class PostsOperationsController {
       return serializeSingle(request, this.serializer, remixPost);
     } catch (error: unknown) {
       if (error instanceof Error && 'response' in error) {
-        return returnBadRequest((error as { response: unknown }).response);
+        return returnBadRequest(
+          this.getBadRequestResponse((error as { response: unknown }).response),
+        );
       }
       throw error;
     }

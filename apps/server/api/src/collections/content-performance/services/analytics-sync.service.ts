@@ -3,6 +3,7 @@ import { PerformanceSource } from '@api/collections/content-performance/schemas/
 import { BrandMemorySyncService } from '@api/services/brand-memory/brand-memory-sync.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ContentType, PostCategory } from '@genfeedai/enums';
+import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -22,6 +23,27 @@ export interface AnalyticsSyncOptions {
   /** Batch size for processing */
   batchSize?: number;
 }
+
+type ContentPerformanceData = {
+  clicks: number;
+  comments: number;
+  contentType: ContentType;
+  creativeVersion?: string;
+  engagementRate: number;
+  externalPostId?: string;
+  generationId?: string;
+  hookVersion?: string;
+  likes: number;
+  measuredAt: string;
+  performanceScore: number;
+  platform?: string;
+  revenue: number;
+  saves: number;
+  shares: number;
+  source: PerformanceSource;
+  userId?: string;
+  views: number;
+};
 
 @Injectable()
 export class AnalyticsSyncService {
@@ -94,6 +116,80 @@ export class AnalyticsSyncService {
     return Math.min(100, Math.round(engagementRate * 10));
   }
 
+  private buildPerformanceData(params: {
+    analytics: {
+      platform: string | null;
+      userId: string | null;
+    };
+    measuredAt: Date;
+    metrics: {
+      clicks: number;
+      comments: number;
+      likes: number;
+      saves: number;
+      shares: number;
+      views: number;
+    };
+    post?: {
+      category: string | null;
+      creativeVersion: string | null;
+      externalId: string | null;
+      generationId: string | null;
+      hookVersion: string | null;
+    } | null;
+  }): ContentPerformanceData {
+    const { analytics, measuredAt, metrics, post } = params;
+
+    return {
+      clicks: metrics.clicks,
+      comments: metrics.comments,
+      contentType: this.mapCategoryToContentType(post?.category ?? undefined),
+      creativeVersion: post?.creativeVersion ?? undefined,
+      engagementRate: this.computeEngagementRate(metrics),
+      externalPostId: post?.externalId ?? undefined,
+      generationId: post?.generationId ?? undefined,
+      hookVersion: post?.hookVersion ?? undefined,
+      likes: metrics.likes,
+      measuredAt: measuredAt.toISOString(),
+      performanceScore: this.computePerformanceScore(metrics),
+      platform: analytics.platform ?? undefined,
+      revenue: 0,
+      saves: metrics.saves,
+      shares: metrics.shares,
+      source: PerformanceSource.API,
+      userId: analytics.userId ?? undefined,
+      views: metrics.views,
+    };
+  }
+
+  private readMeasuredAt(
+    performance: {
+      createdAt: Date;
+      data: unknown;
+    } | null,
+  ): Date | null {
+    if (!performance) {
+      return null;
+    }
+
+    const measuredAt = (
+      performance.data as { measuredAt?: Date | string | number } | null
+    )?.measuredAt;
+
+    if (measuredAt instanceof Date) {
+      return measuredAt;
+    }
+
+    if (typeof measuredAt === 'string' || typeof measuredAt === 'number') {
+      const parsed = new Date(measuredAt);
+      if (!Number.isNaN(parsed.getTime())) {
+        return parsed;
+      }
+    }
+
+    return performance.createdAt;
+  }
+
   /**
    * Sync platform analytics data into the closed-loop ContentPerformance collection.
    */
@@ -121,7 +217,6 @@ export class AnalyticsSyncService {
     const touchedBrandIds = new Set<string>();
 
     const postAnalyticsWhere: Record<string, unknown> = {
-      isDeleted: false,
       organizationId,
     };
 
@@ -139,9 +234,7 @@ export class AnalyticsSyncService {
 
     while (hasMore) {
       const analyticsBatch = await this.prisma.postAnalytics.findMany({
-        where: postAnalyticsWhere as Parameters<
-          typeof this.prisma.postAnalytics.findMany
-        >[0]['where'],
+        where: postAnalyticsWhere as Prisma.PostAnalyticsWhereInput,
         orderBy: { date: 'desc' },
         skip,
         take: batchSize,
@@ -178,56 +271,23 @@ export class AnalyticsSyncService {
 
           const measuredAt = new Date(analytics.date);
 
-          await this.prisma.contentPerformance.upsert({
-            where: {
-              organizationId_postId_measuredAt_source: {
-                organizationId,
-                postId: String(analytics.postId),
-                measuredAt,
-                source: PerformanceSource.API,
-              },
-            },
-            create: {
+          await this.prisma.contentPerformance.create({
+            data: {
               brandId: analytics.brandId ?? undefined,
-              clicks: metrics.clicks,
-              comments: metrics.comments,
               contentRunId: post?.contentRunId ?? undefined,
-              contentType: this.mapCategoryToContentType(
-                post?.category ?? undefined,
-              ),
-              creativeVersion: post?.creativeVersion ?? undefined,
-              engagementRate: this.computeEngagementRate(metrics),
-              externalPostId: post?.externalId ?? undefined,
+              data: this.buildPerformanceData({
+                analytics,
+                measuredAt,
+                metrics,
+                post,
+              }),
               generationId: post?.generationId ?? undefined,
-              hookVersion: post?.hookVersion ?? undefined,
               isDeleted: false,
-              likes: metrics.likes,
-              measuredAt,
               organizationId,
-              performanceScore: this.computePerformanceScore(metrics),
               platform: analytics.platform ?? undefined,
               postId: String(analytics.postId),
-              revenue: 0,
-              saves: metrics.saves,
-              source: PerformanceSource.API,
               userId: analytics.userId ?? undefined,
-              views: metrics.views,
-            } as Record<string, unknown>,
-            update: {
-              brandId: analytics.brandId ?? undefined,
-              clicks: metrics.clicks,
-              comments: metrics.comments,
-              contentType: this.mapCategoryToContentType(
-                post?.category ?? undefined,
-              ),
-              engagementRate: this.computeEngagementRate(metrics),
-              likes: metrics.likes,
-              measuredAt,
-              performanceScore: this.computePerformanceScore(metrics),
-              saves: metrics.saves,
-              shares: metrics.shares,
-              views: metrics.views,
-            } as Record<string, unknown>,
+            },
           });
 
           result.synced++;
@@ -308,12 +368,10 @@ export class AnalyticsSyncService {
     }
 
     const latest = await this.prisma.contentPerformance.findFirst({
-      where: where as Parameters<
-        typeof this.prisma.contentPerformance.findFirst
-      >[0]['where'],
-      orderBy: { measuredAt: 'desc' },
+      where: where as Prisma.ContentPerformanceWhereInput,
+      orderBy: { createdAt: 'desc' },
     });
 
-    return (latest as ContentPerformanceDocument | null)?.measuredAt ?? null;
+    return this.readMeasuredAt(latest);
   }
 }

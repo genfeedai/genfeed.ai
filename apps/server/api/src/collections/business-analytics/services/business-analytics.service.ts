@@ -7,7 +7,24 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
-import type Stripe from 'stripe';
+
+type StripeCharge = {
+  amount: number;
+  created: number;
+  id: string;
+  metadata?: Record<string, string>;
+  paid: boolean;
+  refunded: boolean;
+};
+
+type StripeChargeListParams = {
+  created: {
+    gte: number;
+    lte: number;
+  };
+  limit: number;
+  starting_after?: string;
+};
 
 interface DailyRevenueSeries {
   date: string;
@@ -214,13 +231,13 @@ export class BusinessAnalyticsService {
   private async fetchStripeCharges(
     startDate: Date,
     endDate: Date,
-  ): Promise<Stripe.Charge[]> {
-    const charges: Stripe.Charge[] = [];
+  ): Promise<StripeCharge[]> {
+    const charges: StripeCharge[] = [];
     let hasMore = true;
     let startingAfter: string | undefined;
 
     while (hasMore) {
-      const params: Stripe.ChargeListParams = {
+      const params: StripeChargeListParams = {
         created: {
           gte: Math.floor(startDate.getTime() / 1000),
           lte: Math.floor(endDate.getTime() / 1000),
@@ -233,7 +250,9 @@ export class BusinessAnalyticsService {
         params.starting_after = startingAfter;
       }
 
-      const response = await this.stripeService.stripe.charges.list(params);
+      const response = await this.stripeService.stripe.charges.list(
+        params as never,
+      );
 
       // Filter to only paid charges
       const paidCharges = response.data.filter((c) => c.paid && !c.refunded);
@@ -398,7 +417,7 @@ export class BusinessAnalyticsService {
       // Fetch all matching ingredients in last 30 days and aggregate in memory
       const allIngredients = await this.prisma.ingredient.findMany({
         where: {
-          category: { in: supportedCategories as string[] },
+          category: { in: supportedCategories as never },
           createdAt: { gte: thirtyDaysAgo },
           isDeleted: false,
         },

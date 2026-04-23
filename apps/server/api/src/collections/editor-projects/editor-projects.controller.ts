@@ -79,7 +79,11 @@ export class EditorProjectsController {
     const orgId = publicMetadata.organization;
     const DEFAULT_FPS = 30;
 
-    const projectPayload: Record<string, unknown> = {
+    const projectPayload: Record<string, unknown> & {
+      brand?: string;
+      organization: string;
+      user: string;
+    } = {
       ...createDto,
       ...(publicMetadata.brand ? { brand: publicMetadata.brand } : {}),
       organization: orgId,
@@ -155,8 +159,9 @@ export class EditorProjectsController {
       }
     }
 
-    const data: EditorProjectDocument =
-      await this.editorProjectsService.create(projectPayload);
+    const data: EditorProjectDocument = await this.editorProjectsService.create(
+      projectPayload as unknown as CreateEditorProjectDto,
+    );
 
     return serializeSingle(request, EditorProjectSerializer, data);
   }

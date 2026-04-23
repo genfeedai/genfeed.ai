@@ -300,7 +300,7 @@
     }
   },
   "dependencies": {
-    "@clerk/clerk-js": "6.7.4",
+    "@clerk/clerk-js": "6.7.5",
     "@genfeedai/ui": "workspace:*",
     "@sentry/node": "10.49.0"
   },

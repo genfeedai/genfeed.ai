@@ -1,3 +1,4 @@
+import type { CreatorAnalysisDocument } from '@api/collections/content-intelligence/schemas/creator-analysis.schema';
 import { ContentIntelligenceService } from '@api/collections/content-intelligence/services/content-intelligence.service';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
 import {
@@ -145,7 +146,19 @@ export class CreatorScraperService {
       return null;
     }
 
+    const creatorHandle = this.readOptionalCreatorString(creator, 'handle');
+    const creatorPlatform = this.readOptionalCreatorPlatform(creator);
+    const creatorMaxPosts = this.readCreatorMaxPosts(creator);
+
     try {
+      if (!creatorHandle) {
+        throw new Error('Creator handle is missing');
+      }
+
+      if (!creatorPlatform) {
+        throw new Error('Unsupported platform: unknown');
+      }
+
       // Update status to scraping
       await this.contentIntelligenceService.updateStatus(
         creatorId,
@@ -154,33 +167,21 @@ export class CreatorScraperService {
 
       let result: ScrapeResult;
 
-      switch (creator.platform) {
+      switch (creatorPlatform) {
         case ContentIntelligencePlatform.TWITTER:
-          result = await this.scrapeTwitter(
-            creator.handle,
-            creator.scrapeConfig.maxPosts,
-          );
+          result = await this.scrapeTwitter(creatorHandle, creatorMaxPosts);
           break;
         case ContentIntelligencePlatform.LINKEDIN:
-          result = await this.scrapeLinkedIn(
-            creator.handle,
-            creator.scrapeConfig.maxPosts,
-          );
+          result = await this.scrapeLinkedIn(creatorHandle, creatorMaxPosts);
           break;
         case ContentIntelligencePlatform.INSTAGRAM:
-          result = await this.scrapeInstagram(
-            creator.handle,
-            creator.scrapeConfig.maxPosts,
-          );
+          result = await this.scrapeInstagram(creatorHandle, creatorMaxPosts);
           break;
         case ContentIntelligencePlatform.TIKTOK:
-          result = await this.scrapeTikTok(
-            creator.handle,
-            creator.scrapeConfig.maxPosts,
-          );
+          result = await this.scrapeTikTok(creatorHandle, creatorMaxPosts);
           break;
         default:
-          throw new Error(`Unsupported platform: ${creator.platform}`);
+          throw new Error(`Unsupported platform: ${creatorPlatform}`);
       }
 
       // Update creator profile with scraped data
@@ -205,8 +206,8 @@ export class CreatorScraperService {
       this.logger.error(`${this.constructorName}: Scraping failed`, {
         creatorId,
         error: errorMessage,
-        handle: creator.handle,
-        platform: creator.platform,
+        handle: creatorHandle,
+        platform: creatorPlatform,
       });
 
       await this.contentIntelligenceService.updateStatus(
@@ -217,6 +218,63 @@ export class CreatorScraperService {
 
       return null;
     }
+  }
+
+  private readObjectRecord(value: unknown): Record<string, unknown> | null {
+    return value && typeof value === 'object'
+      ? (value as Record<string, unknown>)
+      : null;
+  }
+
+  private readCreatorField(
+    creator: CreatorAnalysisDocument,
+    field: string,
+  ): unknown {
+    const creatorRecord = creator as Record<string, unknown>;
+    if (field in creatorRecord) {
+      return creatorRecord[field];
+    }
+
+    const data = this.readObjectRecord(creatorRecord.data);
+    return data?.[field];
+  }
+
+  private readOptionalCreatorPlatform(
+    creator: CreatorAnalysisDocument,
+  ): ContentIntelligencePlatform | undefined {
+    const platform = this.readCreatorField(creator, 'platform');
+
+    if (
+      typeof platform === 'string' &&
+      Object.values(ContentIntelligencePlatform).includes(
+        platform as ContentIntelligencePlatform,
+      )
+    ) {
+      return platform as ContentIntelligencePlatform;
+    }
+
+    return undefined;
+  }
+
+  private readOptionalCreatorString(
+    creator: CreatorAnalysisDocument,
+    field: string,
+  ): string | undefined {
+    const value = this.readCreatorField(creator, field);
+    return typeof value === 'string' && value.trim().length > 0
+      ? value
+      : undefined;
+  }
+
+  private readCreatorMaxPosts(creator: CreatorAnalysisDocument): number {
+    const scrapeConfig = this.readObjectRecord(
+      this.readCreatorField(creator, 'scrapeConfig'),
+    );
+    const maxPosts = scrapeConfig?.maxPosts;
+
+    return typeof maxPosts === 'number' && Number.isFinite(maxPosts)
+      ? maxPosts
+      : 100;
   }
 
   async scrapeByPlatform(

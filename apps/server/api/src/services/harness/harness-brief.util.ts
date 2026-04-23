@@ -1,9 +1,9 @@
 import type {
   Brand,
+  BrandAgentConfig,
   BrandAgentPlatformOverride,
 } from '@api/collections/brands/schemas/brand.schema';
 import { resolveEffectiveBrandAgentConfig } from '@api/collections/brands/utils/brand-agent-config-resolution.util';
-import type { Persona } from '@api/collections/personas/schemas/persona.schema';
 import type { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
 import type {
   ContentHarnessBrief,
@@ -26,7 +26,17 @@ type BrandSource = Pick<
 >;
 
 type PersonaSource = Pick<
-  Persona,
+  {
+    bio?: string | null;
+    contentStrategy?: {
+      formats?: string[];
+      platforms?: string[];
+      topics?: string[];
+    } | null;
+    darkroomSources?: Array<{ platform?: string | null }> | null;
+    handle?: string | null;
+    label: string;
+  },
   'bio' | 'contentStrategy' | 'darkroomSources' | 'handle' | 'label'
 >;
 
@@ -45,6 +55,35 @@ const trimLine = (
   return `${normalized.slice(0, maxLength - 1).trimEnd()}…`;
 };
 
+const toOptionalString = (value: unknown): string | undefined =>
+  typeof value === 'string' ? value : undefined;
+
+const toStringArray = (value: unknown): string[] | undefined => {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const items = value.filter(
+    (item): item is string => typeof item === 'string' && item.length > 0,
+  );
+
+  return items.length > 0 ? items : undefined;
+};
+
+const getDarkroomPlatforms = (
+  sources: PersonaSource['darkroomSources'],
+): string[] | undefined => {
+  if (!Array.isArray(sources)) {
+    return undefined;
+  }
+
+  const platforms = sources
+    .map((source) => toOptionalString(source?.platform))
+    .filter((platform): platform is string => Boolean(platform));
+
+  return platforms.length > 0 ? platforms : undefined;
+};
+
 const resolvePlatformOverride = (
   brand: BrandSource,
   platform?: string,
@@ -56,7 +95,13 @@ const resolvePlatformOverride = (
     return null;
   }
 
-  const overrides = brand.agentConfig?.platformOverrides;
+  const agentConfig =
+    brand.agentConfig &&
+    typeof brand.agentConfig === 'object' &&
+    !Array.isArray(brand.agentConfig)
+      ? (brand.agentConfig as BrandAgentConfig)
+      : undefined;
+  const overrides = agentConfig?.platformOverrides;
   if (!overrides) {
     return null;
   }
@@ -116,15 +161,17 @@ export const buildHarnessPersonaProfile = (
     return undefined;
   }
 
+  const contentStrategy = persona.contentStrategy;
+
   return {
-    bio: persona.bio,
-    formats: persona.contentStrategy?.formats?.map(String),
+    bio: toOptionalString(persona.bio),
+    formats: toStringArray(contentStrategy?.formats),
     label: persona.label,
     platforms:
-      persona.contentStrategy?.platforms ??
-      persona.darkroomSources?.map((source) => source.platform),
-    topics: persona.contentStrategy?.topics,
-    voice: persona.handle,
+      toStringArray(contentStrategy?.platforms) ??
+      getDarkroomPlatforms(persona.darkroomSources),
+    topics: toStringArray(contentStrategy?.topics),
+    voice: toOptionalString(persona.handle),
   };
 };
 
@@ -142,7 +189,7 @@ export const buildHarnessInput = (params: {
 
   return {
     brandId: params.brand?._id?.toString?.(),
-    brandName: params.brand?.label,
+    brandName: toOptionalString(params.brand?.label),
     intent: params.intent,
     organizationId: params.organizationId,
     personaProfile,
@@ -181,11 +228,11 @@ export const buildPromptBuilderBrandContext = (params: {
 
   return {
     brand: {
-      description: brand.description,
-      label: brand.label,
-      primaryColor: brand.primaryColor,
-      secondaryColor: brand.secondaryColor,
-      text: brand.text,
+      description: toOptionalString(brand.description),
+      label: brand.label ?? '',
+      primaryColor: toOptionalString(brand.primaryColor),
+      secondaryColor: toOptionalString(brand.secondaryColor),
+      text: toOptionalString(brand.text),
     },
     branding: {
       audience: voiceProfile?.audience?.join(', '),

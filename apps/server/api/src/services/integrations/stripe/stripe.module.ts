@@ -31,8 +31,8 @@ const BaseModule = createServiceModule(StripeService, {
     UserStripeController,
     ManagedStripeController,
   ],
-  exports: [...BaseModule.exports, ManagedStripeCheckoutService],
-  imports: BaseModule.imports,
-  providers: [...BaseModule.providers, ManagedStripeCheckoutService],
+  exports: [...(BaseModule.exports ?? []), ManagedStripeCheckoutService],
+  imports: BaseModule.imports ?? [],
+  providers: [...(BaseModule.providers ?? []), ManagedStripeCheckoutService],
 })
 export class StripeModule {}

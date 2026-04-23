@@ -33,6 +33,32 @@ export abstract class BasePublisherService implements IPublisher {
     this.constructorName = this.constructor.name;
   }
 
+  protected getRecordId(value: unknown): string {
+    if (
+      value !== null &&
+      typeof value === 'object' &&
+      '_id' in value &&
+      (value as { _id?: unknown })._id
+    ) {
+      const id = (value as { _id?: unknown })._id;
+
+      if (typeof id === 'string') {
+        return id;
+      }
+
+      if (
+        id !== null &&
+        typeof id === 'object' &&
+        'toString' in id &&
+        typeof (id as { toString: () => string }).toString === 'function'
+      ) {
+        return (id as { toString: () => string }).toString();
+      }
+    }
+
+    return String(value);
+  }
+
   /**
    * Main publish method - to be implemented by each platform
    */
@@ -55,11 +81,9 @@ export abstract class BasePublisherService implements IPublisher {
     const hasIngredients = ingredients && ingredients.length > 0;
 
     // Extract ingredient IDs (handle both ObjectId and populated objects)
-    const ingredientIds = ingredients.map((ingredient: unknown) => {
-      return ingredient?._id
-        ? ingredient._id.toString()
-        : ingredient.toString();
-    });
+    const ingredientIds = ingredients.map((ingredient: unknown) =>
+      this.getRecordId(ingredient),
+    );
 
     const isCarousel = ingredientIds.length > 1;
 

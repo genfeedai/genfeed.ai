@@ -12,7 +12,11 @@ import type {
   SkillExecutionResult,
   SkillHandler,
 } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
-import { ContentRunSource, ContentRunStatus } from '@genfeedai/enums';
+import {
+  ByokProvider,
+  ContentRunSource,
+  ContentRunStatus,
+} from '@genfeedai/enums';
 import type {
   ContentRunBrief,
   ContentRunPublishContext,
@@ -46,7 +50,7 @@ export class SkillExecutorService {
   ): Promise<SkillExecutionResult> {
     const startedAt = Date.now();
 
-    const skill = await this.skillsService.getSkillBySlug(
+    const skill = await this.skillsService.getSkillById(
       context.organizationId,
       skillSlug,
     );
@@ -100,7 +104,10 @@ export class SkillExecutorService {
 
     let source: 'byok' | 'hosted' = 'hosted';
 
-    const requiredProviders = skill.requiredProviders ?? [];
+    const requiredProviders = (skill.requiredProviders ?? []).filter(
+      (provider): provider is ByokProvider =>
+        Object.values(ByokProvider).includes(provider as ByokProvider),
+    );
 
     if (requiredProviders.length > 0) {
       const resolution = await this.byokProviderFactoryService.resolveProvider(
@@ -119,7 +126,7 @@ export class SkillExecutorService {
         String(run._id),
         {
           duration,
-          output: draft,
+          output: draft as unknown as Record<string, unknown>,
           variants: this.buildRunVariants(draft, String(run._id)),
           source:
             source === 'byok' ? ContentRunSource.BYOK : ContentRunSource.HOSTED,
@@ -202,7 +209,7 @@ export class SkillExecutorService {
       const draft = await handler.execute(executionContext, params ?? {});
 
       await this.contentRunsService.patchRun(context.organizationId, runId, {
-        output: draft,
+        output: draft as unknown as Record<string, unknown>,
         status: ContentRunStatus.COMPLETED,
         variants: this.buildRunVariants(draft, runId),
       });

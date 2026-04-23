@@ -3,6 +3,11 @@ import { BaseEntity } from '@api/shared/entities/base/base.entity';
 import { type Trend } from '@genfeedai/prisma';
 
 export class TrendEntity extends BaseEntity implements Trend {
+  declare readonly id: string;
+  declare readonly mongoId: string | null;
+  declare readonly organizationId: string;
+  declare readonly brandId: string | null;
+  declare readonly data: Trend['data'];
   declare readonly platform: string;
   declare readonly topic: string;
   declare readonly mentions: number;

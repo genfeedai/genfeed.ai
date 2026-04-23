@@ -25,6 +25,10 @@ function getEntityId(
   return getRecordId(record, '_id') || getRecordId(record, 'id');
 }
 
+function asMemberRecord(member: MemberDocument): Record<string, unknown> {
+  return member as unknown as Record<string, unknown>;
+}
+
 @Injectable()
 export class AuthIdentityResolverService {
   constructor(
@@ -102,8 +106,8 @@ export class AuthIdentityResolverService {
 
     const isMember = members.some((member) => {
       const memberOrganizationId =
-        getRecordId(member as Record<string, unknown>, 'organizationId') ||
-        getRecordId(member as Record<string, unknown>, 'organization');
+        getRecordId(asMemberRecord(member), 'organizationId') ||
+        getRecordId(asMemberRecord(member), 'organization');
 
       return memberOrganizationId === resolvedOrganizationId;
     });
@@ -148,8 +152,8 @@ export class AuthIdentityResolverService {
 
     for (const member of members) {
       const memberOrganizationId =
-        getRecordId(member as Record<string, unknown>, 'organizationId') ||
-        getRecordId(member as Record<string, unknown>, 'organization');
+        getRecordId(asMemberRecord(member), 'organizationId') ||
+        getRecordId(asMemberRecord(member), 'organization');
 
       if (!memberOrganizationId) {
         continue;
@@ -201,8 +205,8 @@ export class AuthIdentityResolverService {
 
     const memberForOrganization = members.find((member) => {
       const memberOrganizationId =
-        getRecordId(member as Record<string, unknown>, 'organizationId') ||
-        getRecordId(member as Record<string, unknown>, 'organization');
+        getRecordId(asMemberRecord(member), 'organizationId') ||
+        getRecordId(asMemberRecord(member), 'organization');
 
       return memberOrganizationId === organizationId;
     });

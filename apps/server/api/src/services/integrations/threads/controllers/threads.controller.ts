@@ -241,8 +241,12 @@ export class ThreadsController {
       }
 
       // Get account details to store username
-      const accountDetails =
-        await this.threadsService.getAccountDetails(access_token);
+      const accountDetails = (await this.threadsService.getAccountDetails(
+        access_token,
+      )) as {
+        id?: string;
+        username?: string;
+      };
 
       // Find and update the existing credential
       const existingCredential = await this.credentialsService.findOne({

@@ -74,7 +74,7 @@ export class FleetService {
     );
 
     if (dedicated) {
-      return dedicated.apiUrl;
+      return dedicated.apiUrl ?? null;
     }
 
     return this.getInstanceUrl(role);

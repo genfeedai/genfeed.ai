@@ -1,3 +1,6 @@
+import { existsSync, readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import { dirname, resolve } from 'node:path';
 import { ConfigService } from '@api/config/config.service';
 import { isEEEnabled } from '@genfeedai/config';
 import {
@@ -17,10 +20,73 @@ type PackModule = {
   default?: unknown;
 };
 
+type PackageJsonName = {
+  name?: unknown;
+};
+
+type RuntimeRequireContext = {
+  require: NodeJS.Require;
+  workspaceRoot: string | null;
+};
+
+const API_PACKAGE_NAME = '@genfeedai/api';
+const WORKSPACE_PACK_PACKAGE_JSON_PATHS: Record<string, string> = {
+  '@genfeedai/ee-harness': 'ee/packages/harness/package.json',
+};
+
+function isApiPackageJsonPath(packageJsonPath: string): boolean {
+  if (!existsSync(packageJsonPath)) {
+    return false;
+  }
+
+  try {
+    const packageJson = JSON.parse(
+      readFileSync(packageJsonPath, 'utf8'),
+    ) as PackageJsonName;
+
+    return packageJson.name === API_PACKAGE_NAME;
+  } catch {
+    return false;
+  }
+}
+
+function findApiPackageJsonPath(): string | null {
+  const candidates = [
+    resolve(process.cwd(), 'api/package.json'),
+    resolve(process.cwd(), 'apps/server/api/package.json'),
+    resolve(process.cwd(), 'package.json'),
+  ];
+
+  return candidates.find(isApiPackageJsonPath) ?? null;
+}
+
+function createRuntimeRequireContext(): RuntimeRequireContext {
+  const packageJsonPath = findApiPackageJsonPath();
+
+  return {
+    require: createRequire(packageJsonPath ?? __filename),
+    workspaceRoot: packageJsonPath
+      ? resolve(dirname(packageJsonPath), '../../..')
+      : null,
+  };
+}
+
+function isMissingRequestedModule(error: unknown, specifier: string): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  return (
+    (error as NodeJS.ErrnoException).code === 'MODULE_NOT_FOUND' &&
+    error.message.includes(`'${specifier}'`)
+  );
+}
+
 @Injectable()
 export class ContentHarnessService {
   private readonly constructorName = String(this.constructor.name);
   private packLoadPromise: Promise<ContentHarnessRegistry> | null = null;
+  private readonly runtimeRequireContext = createRuntimeRequireContext();
 
   constructor(
     private readonly configService: ConfigService,
@@ -92,7 +158,7 @@ export class ContentHarnessService {
     specifier: string,
   ): Promise<ContentHarnessPack | null> {
     try {
-      const imported = (await import(specifier)) as PackModule;
+      const imported = this.loadRuntimePackModule(specifier);
       const candidate = imported.default ?? imported.CONTENT_HARNESS_PACK;
 
       if (!isContentHarnessPack(candidate)) {
@@ -114,5 +180,35 @@ export class ContentHarnessService {
       );
       return null;
     }
+  }
+
+  private loadRuntimePackModule(specifier: string): PackModule {
+    try {
+      return this.runtimeRequireContext.require(specifier) as PackModule;
+    } catch (error: unknown) {
+      const packageJsonPath = this.getWorkspacePackPackageJsonPath(specifier);
+
+      if (!packageJsonPath || !isMissingRequestedModule(error, specifier)) {
+        throw error;
+      }
+
+      return createRequire(packageJsonPath)(specifier) as PackModule;
+    }
+  }
+
+  private getWorkspacePackPackageJsonPath(specifier: string): string | null {
+    const packageJsonRelativePath =
+      WORKSPACE_PACK_PACKAGE_JSON_PATHS[specifier];
+
+    if (!packageJsonRelativePath || !this.runtimeRequireContext.workspaceRoot) {
+      return null;
+    }
+
+    const packageJsonPath = resolve(
+      this.runtimeRequireContext.workspaceRoot,
+      packageJsonRelativePath,
+    );
+
+    return existsSync(packageJsonPath) ? packageJsonPath : null;
   }
 }

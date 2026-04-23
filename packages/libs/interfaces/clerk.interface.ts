@@ -25,6 +25,7 @@ export interface IClerkPublicMetadata {
 
   category?: string;
   isOnboardingCompleted?: boolean;
+  proactiveLeadId?: string;
 
   hasEverHadCredits?: boolean;
 }

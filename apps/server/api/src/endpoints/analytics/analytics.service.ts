@@ -480,7 +480,6 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       return new BrandWithStatsEntity({
         activePlatforms: analytics.activePlatforms,
         avgEngagementRate: analytics.avgEngagementRate,
-        createdAt: brand.createdAt,
         growth: this.calculateGrowth(analytics.totalEngagement, prevEngagement),
         id: brandId,
         logo: brand.logo?.cdnUrl,
@@ -558,7 +557,6 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
 
       return new OrgWithStatsEntity({
         avgEngagementRate: analytics.avgEngagementRate,
-        createdAt: org.createdAt,
         growth: this.calculateGrowth(analytics.totalEngagement, prevEngagement),
         id: orgId,
         logo: org.logo?.cdnUrl,
@@ -657,7 +655,6 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       return new BrandWithStatsEntity({
         activePlatforms: analytics.activePlatforms,
         avgEngagementRate: analytics.avgEngagementRate,
-        createdAt: brand.createdAt,
         growth: this.calculateGrowth(analytics.totalEngagement, prevEngagement),
         id: brandId,
         logo: brand.logo?.cdnUrl,

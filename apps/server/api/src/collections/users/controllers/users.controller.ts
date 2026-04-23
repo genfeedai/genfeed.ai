@@ -84,6 +84,67 @@ export class UsersController {
     private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
   ) {}
 
+  private readObjectRecord(value: unknown): Record<string, unknown> {
+    return typeof value === 'object' && value !== null
+      ? (value as Record<string, unknown>)
+      : {};
+  }
+
+  private getSettingsId(settings: unknown): string | undefined {
+    const record = this.readObjectRecord(settings);
+    for (const key of ['id', '_id', 'mongoId'] as const) {
+      const value = record[key];
+
+      if (typeof value === 'string' && value.length > 0) {
+        return value;
+      }
+    }
+
+    return undefined;
+  }
+
+  private getUserIdCandidates(userData: unknown): string[] {
+    const record = this.readObjectRecord(userData);
+    const candidates = ['id', '_id', 'mongoId']
+      .map((key) => record[key])
+      .filter(
+        (value): value is string =>
+          typeof value === 'string' && value.length > 0,
+      );
+
+    return [...new Set(candidates)];
+  }
+
+  private async findUserSettings(userData: unknown): Promise<unknown | null> {
+    const record = this.readObjectRecord(userData);
+
+    if (this.getSettingsId(record.settings)) {
+      return record.settings;
+    }
+
+    for (const userId of this.getUserIdCandidates(userData)) {
+      const settings = await this.settingsService.findOne({
+        isDeleted: false,
+        user: userId,
+      });
+
+      if (settings) {
+        return settings;
+      }
+    }
+
+    return null;
+  }
+
+  private isActiveSubscriptionStatus(value: unknown): boolean {
+    return (
+      value === SubscriptionStatus.ACTIVE ||
+      value === SubscriptionStatus.TRIALING ||
+      value === 'ACTIVE' ||
+      value === 'TRIALING'
+    );
+  }
+
   private canAccessUser(targetUserId: string, currentUser: User): boolean {
     const publicMetadata = getPublicMetadata(currentUser);
     return getIsSuperAdmin(currentUser) || publicMetadata.user === targetUserId;
@@ -95,7 +156,7 @@ export class UsersController {
   async findAll(
     @Req() request: Request,
     @Query() query: BaseQueryDto,
-  ): Promise<UserEntity[]> {
+  ): Promise<unknown> {
     const options = {
       customLabels,
       ...QueryDefaultsUtil.getPaginationDefaults(query),
@@ -152,9 +213,9 @@ export class UsersController {
       });
     }
 
-    const hasActiveDbSubscription =
-      dbSubscription?.status === SubscriptionStatus.ACTIVE ||
-      dbSubscription?.status === SubscriptionStatus.TRIALING;
+    const hasActiveDbSubscription = this.isActiveSubscriptionStatus(
+      dbSubscription?.status,
+    );
 
     const hasAccessByEntitlement =
       getIsSuperAdmin(user, request) ||
@@ -218,13 +279,13 @@ export class UsersController {
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
 
     // Check if user is a member with restricted accounts
-    let member: unknown;
+    let member: { brands?: string[] } | null = null;
     try {
-      member = await this.membersService.findOne({
+      member = (await this.membersService.findOne({
         isDeleted: false,
         organization: publicMetadata.organization,
         user: publicMetadata.user,
-      });
+      })) as { brands?: string[] } | null;
     } catch (error: unknown) {
       this.loggerService.error(
         `${this.constructorName} findAll: Failed to fetch member`,
@@ -234,7 +295,7 @@ export class UsersController {
       member = null;
     }
 
-    const brandFilter: unknown = {
+    const brandFilter: Record<string, unknown> = {
       isDeleted,
       organization: publicMetadata.organization,
     };
@@ -278,11 +339,13 @@ export class UsersController {
       isDeleted: false,
     });
 
-    if (!userData || !userData.settings) {
+    const settings = await this.findUserSettings(userData);
+
+    if (!userData || !settings) {
       return returnNotFound('Settings', publicMetadata.user);
     }
 
-    return serializeSingle(request, SettingSerializer, userData.settings);
+    return serializeSingle(request, SettingSerializer, settings);
   }
 
   @Patch('me/settings')
@@ -299,12 +362,19 @@ export class UsersController {
       isDeleted: false,
     });
 
-    if (!userData || !userData.settings) {
+    const settings = await this.findUserSettings(userData);
+
+    if (!userData || !settings) {
+      return returnNotFound('Settings', publicMetadata.user);
+    }
+
+    const settingsId = this.getSettingsId(settings);
+    if (!settingsId) {
       return returnNotFound('Settings', publicMetadata.user);
     }
 
     const data = await this.settingsService.patch(
-      userData.settings._id,
+      settingsId,
       new SettingEntity({ ...updateSettingDto }),
     );
 
@@ -607,12 +677,19 @@ export class UsersController {
       isDeleted: false,
     });
 
-    if (!user || !user.settings) {
+    const settings = await this.findUserSettings(user);
+
+    if (!user || !settings) {
+      return returnNotFound(this.constructorName, userId);
+    }
+
+    const settingsId = this.getSettingsId(settings);
+    if (!settingsId) {
       return returnNotFound(this.constructorName, userId);
     }
 
     const data = await this.settingsService.patch(
-      user.settings._id,
+      settingsId,
       new SettingEntity({ ...updateSettingDto }),
     );
 

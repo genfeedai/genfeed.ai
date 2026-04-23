@@ -105,7 +105,8 @@ export class TiktokController {
 
     const state = JSON.stringify({
       brandId: brand._id.toString(),
-      organizationId: brand.organization.toString(),
+      organizationId:
+        brand.organization?.toString() ?? publicMetadata.organization,
     });
 
     const authUrl =

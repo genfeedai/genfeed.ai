@@ -29,6 +29,14 @@ export class FacebookService {
     this.apiVersion = this.configService.get('FACEBOOK_API_VERSION') || 'v24.0';
   }
 
+  private requireString(value: unknown, label: string): string {
+    if (typeof value !== 'string' || value.length === 0) {
+      throw new Error(`${label} is required`);
+    }
+
+    return value;
+  }
+
   /**
    * Get page access token for a specific page
    */
@@ -218,7 +226,7 @@ export class FacebookService {
 
       // Decrypt the access token
       const decryptedAccessToken = EncryptionUtil.decrypt(
-        credential.accessToken,
+        this.requireString(credential.accessToken, 'Facebook access token'),
       );
 
       const response = await firstValueFrom(
@@ -333,10 +341,11 @@ export class FacebookService {
       }
 
       const decryptedAccessToken = EncryptionUtil.decrypt(
-        credential.accessToken,
+        this.requireString(credential.accessToken, 'Facebook access token'),
       );
 
-      const targetPageId = pageId || credential.externalId;
+      const targetPageId =
+        pageId ?? this.requireString(credential.externalId, 'Facebook page ID');
       if (!targetPageId) {
         throw new Error('Facebook page ID not found');
       }
@@ -433,10 +442,11 @@ export class FacebookService {
       }
 
       const decryptedAccessToken = EncryptionUtil.decrypt(
-        credential.accessToken,
+        this.requireString(credential.accessToken, 'Facebook access token'),
       );
 
-      const targetPageId = pageId || credential.externalId;
+      const targetPageId =
+        pageId ?? this.requireString(credential.externalId, 'Facebook page ID');
       if (!targetPageId) {
         throw new Error('Facebook page ID not found');
       }
@@ -535,10 +545,13 @@ export class FacebookService {
       }
 
       const decryptedAccessToken = EncryptionUtil.decrypt(
-        credential.accessToken,
+        this.requireString(credential.accessToken, 'Facebook access token'),
       );
 
-      const targetPageId = credential.externalId;
+      const targetPageId = this.requireString(
+        credential.externalId,
+        'Facebook page ID',
+      );
       if (!targetPageId) {
         throw new Error('Facebook page ID not found');
       }

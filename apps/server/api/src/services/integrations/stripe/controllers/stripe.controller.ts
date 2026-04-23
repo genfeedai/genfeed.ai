@@ -112,6 +112,12 @@ export class StripeController {
               success: createCheckoutSessionDto.successUrl,
             }
           : undefined;
+      if (!subscription.stripeCustomerId) {
+        return returnBadRequest({
+          message: 'Subscription is missing stripeCustomerId',
+          success: false,
+        });
+      }
 
       const result = await this.stripeService.createPaymentSession(
         subscription.stripeCustomerId,
@@ -199,6 +205,12 @@ export class StripeController {
           dbUser._id.toString(),
         );
       }
+      if (!subscription.stripeCustomerId) {
+        return returnBadRequest({
+          message: 'Subscription is missing stripeCustomerId',
+          success: false,
+        });
+      }
 
       const result = await this.stripeService.createSetupCheckoutSession(
         subscription.stripeCustomerId,
@@ -251,6 +263,12 @@ export class StripeController {
 
       if (!subscription) {
         return returnNotFound('Subscription', publicMetadata.organization);
+      }
+      if (!subscription.stripeCustomerId) {
+        return returnBadRequest({
+          message: 'Subscription is missing stripeCustomerId',
+          success: false,
+        });
       }
 
       const billingUrl = await this.stripeService.getBillingPortalUrl(

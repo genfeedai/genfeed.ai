@@ -1,6 +1,12 @@
 import { CreateIngredientDto } from '@api/collections/ingredients/dto/create-ingredient.dto';
 import { ApiProperty, PartialType } from '@nestjs/swagger';
-import { IsBoolean, IsMongoId, IsOptional } from 'class-validator';
+import {
+  IsBoolean,
+  IsMongoId,
+  IsNumber,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class UpdateIngredientDto extends PartialType(CreateIngredientDto) {
   @IsBoolean()
@@ -27,4 +33,68 @@ export class UpdateIngredientDto extends PartialType(CreateIngredientDto) {
     required: false,
   })
   readonly training?: string;
+
+  @IsString()
+  @IsOptional()
+  @ApiProperty({
+    description: 'Public CDN URL for the generated asset',
+    required: false,
+  })
+  readonly cdnUrl?: string;
+
+  @IsNumber()
+  @IsOptional()
+  @ApiProperty({
+    description: 'Generation progress percentage',
+    required: false,
+  })
+  readonly generationProgress?: number;
+
+  @IsString()
+  @IsOptional()
+  @ApiProperty({
+    description: 'Human-readable generation stage',
+    required: false,
+  })
+  readonly generationStage?: string;
+
+  @IsOptional()
+  @ApiProperty({
+    description: 'Timestamp when generation completed',
+    required: false,
+    type: Date,
+  })
+  readonly generationCompletedAt?: Date;
+
+  @IsString()
+  @IsOptional()
+  @ApiProperty({
+    description: 'Generation error message, if any',
+    required: false,
+  })
+  readonly generationError?: string;
+
+  @IsString()
+  @IsOptional()
+  @ApiProperty({
+    description: 'Underlying generation source/provider',
+    required: false,
+  })
+  readonly generationSource?: string;
+
+  @IsString()
+  @IsOptional()
+  @ApiProperty({
+    description: 'Resolved model key used for generation',
+    required: false,
+  })
+  readonly modelUsed?: string;
+
+  @IsString()
+  @IsOptional()
+  @ApiProperty({
+    description: 'Storage key for the generated asset',
+    required: false,
+  })
+  readonly s3Key?: string;
 }

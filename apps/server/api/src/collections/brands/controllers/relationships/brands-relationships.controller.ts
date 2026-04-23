@@ -361,8 +361,10 @@ export class BrandsRelationshipsController {
       },
     ];
 
-    const data: AggregatePaginateResult<IngredientDocument> =
-      await this.musicsService.findAll(aggregate, options);
+    const data = (await this.musicsService.findAll(
+      aggregate,
+      options,
+    )) as unknown as AggregatePaginateResult<IngredientDocument>;
     return serializeCollection(request, MusicSerializer, data);
   }
 
@@ -446,7 +448,7 @@ export class BrandsRelationshipsController {
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
 
     // Build match filter
-    const matchFilter: unknown = {
+    const matchFilter: Record<string, unknown> = {
       // Only show parent posts (not children/replies)
       // Handle both null and undefined (undefined fields aren't stored in MongoDB)
       $or: [{ parent: null }, { parent: { $exists: false } }],

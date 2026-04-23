@@ -256,8 +256,12 @@ export class BrandMemoryService extends BaseService<BrandMemoryDocument> {
 
     return insights
       .sort((left, right) => {
-        const leftTime = new Date(left.createdAt).getTime();
-        const rightTime = new Date(right.createdAt).getTime();
+        const leftTime = left.createdAt
+          ? new Date(left.createdAt).getTime()
+          : 0;
+        const rightTime = right.createdAt
+          ? new Date(right.createdAt).getTime()
+          : 0;
         return rightTime - leftTime;
       })
       .slice(0, limit);
@@ -323,7 +327,15 @@ export class BrandMemoryService extends BaseService<BrandMemoryDocument> {
     );
 
     for (const insight of distilledInsights) {
-      await this.addInsight(organizationId, brandId, insight);
+      await this.addInsight(organizationId, brandId, {
+        ...insight,
+        createdAt:
+          insight.createdAt instanceof Date
+            ? insight.createdAt
+            : insight.createdAt
+              ? new Date(insight.createdAt)
+              : undefined,
+      });
     }
 
     return distilledInsights;

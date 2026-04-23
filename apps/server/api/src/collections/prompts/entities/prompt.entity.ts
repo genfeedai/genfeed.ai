@@ -1,4 +1,3 @@
-import type { Prompt } from '@api/collections/prompts/schemas/prompt.schema';
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
 import type {
   AssetScope,
@@ -6,7 +5,7 @@ import type {
   PromptStatus,
 } from '@genfeedai/enums';
 
-export class PromptEntity extends BaseEntity implements Prompt {
+export class PromptEntity extends BaseEntity {
   declare readonly user: string;
   declare readonly organization?: string;
   declare readonly brand?: string;

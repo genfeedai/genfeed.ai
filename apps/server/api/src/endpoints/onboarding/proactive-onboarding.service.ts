@@ -1,8 +1,10 @@
+import { BrandEntity } from '@api/collections/brands/entities/brand.entity';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { RolesService } from '@api/collections/roles/services/roles.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { ConfigService } from '@api/config/config.service';
 import type {
@@ -15,7 +17,8 @@ import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.s
 import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { MasterPromptGeneratorService } from '@api/services/knowledge-base/master-prompt-generator.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ProactiveOnboardingStatus } from '@genfeedai/enums';
+import { generateLabel } from '@api/shared/utils/label/label.util';
+import { FontFamily, ProactiveOnboardingStatus } from '@genfeedai/enums';
 import type {
   IExtractedBrandData,
   IProactivePreparationStatus,
@@ -52,7 +55,7 @@ type LeadData = {
   [key: string]: unknown;
 };
 
-type LeadWithData = Lead & {
+type LeadWithData = Omit<Lead, 'data'> & {
   data: LeadData;
 };
 
@@ -71,6 +74,7 @@ export class ProactiveOnboardingService {
     private readonly usersService: UsersService,
     private readonly membersService: MembersService,
     private readonly postsService: PostsService,
+    private readonly rolesService: RolesService,
     private readonly configService: ConfigService,
   ) {}
 
@@ -143,14 +147,17 @@ export class ProactiveOnboardingService {
         });
 
         // Create member record (inactive until signup)
+        const roleId = await this.resolveDefaultRoleId();
         await this.membersService.create({
           isActive: false,
           organization: shadowOrg._id,
+          role: roleId,
           user: placeholderUser._id,
         });
       }
 
       const shadowOrgId = shadowOrg._id.toString();
+      const shadowOrgUserId = this.resolveOrganizationOwnerId(shadowOrg);
 
       // 3. Scrape brand
       this.loggerService.log('Proactive onboarding: scraping brand', {
@@ -222,7 +229,7 @@ export class ProactiveOnboardingService {
       const brandVoice =
         await this.masterPromptGeneratorService.analyzeBrandVoice(scrapedData, {
           organizationId: shadowOrgId,
-          userId: shadowOrg.user.toString(),
+          userId: shadowOrgUserId,
         });
 
       const extractedData: IExtractedBrandData = {
@@ -235,17 +242,25 @@ export class ProactiveOnboardingService {
       const brandLabel =
         dto.brandName || scrapedData.companyName || lead.data.company || name;
 
-      const brand = await this.brandsService.create({
-        description: scrapedData.description,
-        fontFamily: scrapedData.fontFamily,
-        isSelected: true,
-        label: brandLabel,
-        organization: shadowOrg._id,
-        primaryColor: scrapedData.primaryColor,
-        secondaryColor: scrapedData.secondaryColor,
-        text: this.buildBrandSystemPrompt(scrapedData, dto),
-        user: shadowOrg.user,
-      });
+      const brandSlug = generateLabel('brand');
+      const brand = await this.brandsService.create(
+        new BrandEntity({
+          backgroundColor: '#000000',
+          description:
+            scrapedData.description ??
+            'Default description. Use it as a pre-prompt',
+          fontFamily: scrapedData.fontFamily ?? FontFamily.MONTSERRAT_BLACK,
+          handle: brandSlug,
+          isSelected: true,
+          label: brandLabel,
+          organization: shadowOrgId,
+          primaryColor: scrapedData.primaryColor ?? '#000000',
+          secondaryColor: scrapedData.secondaryColor ?? '#FFFFFF',
+          slug: brandSlug,
+          text: this.buildBrandSystemPrompt(scrapedData, dto),
+          user: shadowOrgUserId,
+        }) as unknown as Parameters<BrandsService['create']>[0],
+      );
 
       await this.brandsService.patch(brand._id.toString(), {
         agentConfig: {
@@ -368,6 +383,8 @@ export class ProactiveOnboardingService {
         throw new NotFoundException('Shadow organization not found');
       }
 
+      const shadowOrgUserId = this.resolveOrganizationOwnerId(shadowOrg);
+
       // Create date range: starting tomorrow, spread over 30 days
       const startDate = new Date();
       startDate.setDate(startDate.getDate() + 1);
@@ -385,7 +402,7 @@ export class ProactiveOnboardingService {
           platforms: dto.platforms || ['instagram', 'twitter'],
           topics: dto.topics || [],
         },
-        shadowOrg.user.toString(),
+        shadowOrgUserId,
         shadowOrgId,
       );
 
@@ -447,7 +464,6 @@ export class ProactiveOnboardingService {
 
     if (
       lead.data.proactiveStatus !== ProactiveOnboardingStatus.CONTENT_READY &&
-      lead.data.proactiveStatus !== ProactiveOnboardingStatus.READY &&
       lead.data.proactiveStatus !== ProactiveOnboardingStatus.INVITED
     ) {
       throw new BadRequestException(
@@ -469,6 +485,8 @@ export class ProactiveOnboardingService {
         throw new NotFoundException('Shadow organization not found');
       }
 
+      const shadowOrgUserId = this.resolveOrganizationOwnerId(shadowOrg);
+
       // Send Clerk invitation with proactive onboarding metadata
       const redirectUrl = this.getProactiveRedirectUrl();
 
@@ -476,7 +494,7 @@ export class ProactiveOnboardingService {
         isProactiveOnboarding: true,
         leadId,
         organizationId: lead.proactiveOrganizationId,
-        userId: shadowOrg.user.toString(),
+        userId: shadowOrgUserId,
       });
 
       const invitedAt = new Date();
@@ -793,7 +811,7 @@ export class ProactiveOnboardingService {
       throw new NotFoundException(`Lead "${leadId}" not found`);
     }
 
-    return { ...lead, data: (lead.data as LeadData) ?? {} };
+    return { ...lead, data: this.normalizeLeadData(lead.data) };
   }
 
   private async getLeadByShadowOrganization(
@@ -812,7 +830,7 @@ export class ProactiveOnboardingService {
       );
     }
 
-    return { ...lead, data: (lead.data as LeadData) ?? {} };
+    return { ...lead, data: this.normalizeLeadData(lead.data) };
   }
 
   private async getLeadClaimContext(
@@ -873,13 +891,53 @@ export class ProactiveOnboardingService {
   }
 
   private getProactiveRedirectUrl(): string | undefined {
-    const appUrl = this.configService.get<string>('GENFEEDAI_APP_URL');
+    const appUrl = this.configService.get('GENFEEDAI_APP_URL');
 
-    if (!appUrl) {
+    if (typeof appUrl !== 'string' || appUrl.length === 0) {
       return undefined;
     }
 
     return `${appUrl.replace(/\/$/, '')}/onboarding/proactive`;
+  }
+
+  private normalizeLeadData(data: Lead['data']): LeadData {
+    return ((data as unknown as LeadData | null | undefined) ?? {}) as LeadData;
+  }
+
+  private resolveOrganizationOwnerId(shadowOrg: {
+    _id?: string;
+    user?: string | null;
+    userId?: string | null;
+  }): string {
+    const ownerId = shadowOrg.user ?? shadowOrg.userId;
+
+    if (!ownerId) {
+      throw new BadRequestException(
+        `Shadow organization "${shadowOrg._id ?? 'unknown'}" has no owner`,
+      );
+    }
+
+    return ownerId.toString();
+  }
+
+  private async resolveDefaultRoleId(): Promise<string> {
+    const role =
+      (await this.rolesService.findOne({
+        isDeleted: false,
+        key: 'admin',
+      })) ??
+      (await this.rolesService.findOne({
+        isDeleted: false,
+        key: 'user',
+      }));
+
+    if (!role?._id) {
+      throw new NotFoundException(
+        'No valid default role found for proactive onboarding',
+      );
+    }
+
+    return role._id.toString();
   }
 
   private getPrepStage(status?: ProactiveOnboardingStatus): string {
@@ -944,10 +1002,7 @@ export class ProactiveOnboardingService {
   }
 
   private buildWorkspaceSummary(
-    status: Pick<
-      IProactivePreparationStatus,
-      'brand' | 'organization' | 'generatedAssetCount'
-    >,
+    status: Pick<IProactivePreparationStatus, 'brand' | 'organization'>,
     outputCount: number,
   ): string {
     const parts = [

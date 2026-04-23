@@ -34,22 +34,30 @@ export class ArticleAnalyticsService extends BaseService<
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const result = await this.delegate.upsert({
+    const article = await this.prisma.article.findFirst({
+      where: { id: articleId, isDeleted: false },
+    });
+    if (!article) {
+      throw new NotFoundException('Article not found');
+    }
+
+    const result = await this.prisma.articleAnalytics.upsert({
       where: {
         articleId_date: { articleId, date: today },
       },
       create: {
-        ...data,
         articleId,
-        clickThroughRate: 0,
+        brandId: article.brandId,
         date: today,
         engagementRate: 0,
         isDeleted: false,
+        organizationId: article.organizationId,
         totalComments: 0,
         totalLikes: 0,
         totalShares: 0,
-        totalViews: 0,
-      } as Record<string, unknown>,
+        totalViews: data.totalViews ?? 0,
+        userId: article.userId,
+      },
       update: {},
     });
 
@@ -100,9 +108,6 @@ export class ArticleAnalyticsService extends BaseService<
       metrics.totalComments ?? todayAnalytics?.totalComments ?? 0;
     const currentShares =
       metrics.totalShares ?? todayAnalytics?.totalShares ?? 0;
-    const currentCTR =
-      metrics.clickThroughRate ?? todayAnalytics?.clickThroughRate ?? 0;
-
     const increments = {
       totalCommentsIncrement: Math.max(0, currentComments - yesterdayComments),
       totalLikesIncrement: Math.max(0, currentLikes - yesterdayLikes),
@@ -126,35 +131,30 @@ export class ArticleAnalyticsService extends BaseService<
       throw new NotFoundException('Article not found');
     }
 
-    const result = await this.delegate.upsert({
+    const result = await this.prisma.articleAnalytics.upsert({
       where: {
         articleId_date: { articleId, date: today },
       },
       create: {
         articleId,
-        brandId: (article as Record<string, unknown>).brandId as string,
-        clickThroughRate: currentCTR,
+        brandId: article.brandId,
         date: today,
         engagementRate,
         isDeleted: false,
-        organizationId: (article as Record<string, unknown>)
-          .organizationId as string,
+        organizationId: article.organizationId,
         totalComments: currentComments,
         totalLikes: currentLikes,
         totalShares: currentShares,
         totalViews: currentViews,
-        userId: (article as Record<string, unknown>).userId as string,
-        ...increments,
-      } as Record<string, unknown>,
+        userId: article.userId,
+      },
       update: {
-        clickThroughRate: currentCTR,
         engagementRate,
         totalComments: currentComments,
         totalLikes: currentLikes,
         totalShares: currentShares,
         totalViews: currentViews,
-        ...increments,
-      } as Record<string, unknown>,
+      },
     });
 
     return result ? new ArticleAnalyticsEntity(result) : null;
@@ -215,19 +215,12 @@ export class ArticleAnalyticsService extends BaseService<
           (((r as Record<string, unknown>).engagementRate as number) ?? 0),
         0,
       ) / rows.length;
-    const avgClickThroughRate =
-      rows.reduce(
-        (sum, r) =>
-          sum +
-          (((r as Record<string, unknown>).clickThroughRate as number) ?? 0),
-        0,
-      ) / rows.length;
     const lastUpdated = rows[0]
       ? ((rows[0] as Record<string, unknown>).updatedAt as Date)
       : undefined;
 
     return {
-      avgClickThroughRate,
+      avgClickThroughRate: 0,
       avgEngagementRate,
       lastUpdated,
       totalComments,

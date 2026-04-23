@@ -9,7 +9,7 @@ export class ElementBlacklistEntity
   organization?: string;
 
   label!: string;
-  description?: string;
+  declare readonly description: string | null;
   key!: string;
   category!: ModelCategory;
 

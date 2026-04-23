@@ -134,7 +134,7 @@ export class TasksController extends BaseCRUDController<
 
         this.workspaceTaskQueueService
           .enqueue({
-            brandId: (createDto.brand as string | undefined)?.toString(),
+            brandId: publicMetadata.brand,
             heygenAvatarId: extended.heygenAvatarId,
             heygenVoiceId: extended.heygenVoiceId,
             organizationId,

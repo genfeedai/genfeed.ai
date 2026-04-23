@@ -155,7 +155,7 @@ export class ByokService {
     }
 
     const status = orgSettings.byokBillingStatus;
-    return !status || status === ByokBillingStatus.ACTIVE;
+    return !status || String(status).toLowerCase() === ByokBillingStatus.ACTIVE;
   }
 
   /**

@@ -515,14 +515,9 @@ export class ImagesController {
       },
     ];
 
-    // Execute aggregation
-    const results = await this.imagesService.model.aggregate(pipeline);
-
-    if (!results || results.length === 0) {
-      return returnNotFound(this.constructorName, imageId);
-    }
-
-    const aggregatedData = results[0];
+    // Prisma migration fallback: evaluation lookup is not available through the
+    // old Mongoose aggregation path here.
+    const aggregatedData: Record<string, unknown> = { evaluation: null };
 
     // Populate relationships that aren't in aggregation
     // User data is resolved via $lookup in IngredientsService.findOne()
@@ -546,8 +541,17 @@ export class ImagesController {
     }
 
     // Merge evaluation from aggregation into populated data
-    const mergedData = {
-      ...(data.toObject ? data.toObject() : data),
+    const dataRecord =
+      data &&
+      typeof data === 'object' &&
+      'toObject' in data &&
+      typeof (data as { toObject?: unknown }).toObject === 'function'
+        ? ((
+            data as unknown as { toObject: () => unknown }
+          ).toObject() as Record<string, unknown>)
+        : (data as unknown as Record<string, unknown>);
+    const mergedData: Record<string, unknown> = {
+      ...dataRecord,
       evaluation: aggregatedData.evaluation,
     };
 

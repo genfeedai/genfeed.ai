@@ -7,17 +7,22 @@ import { logger } from '@services/core/logger.service';
 import { cookies } from 'next/headers';
 import { cache } from 'react';
 
-export const getServerAuthToken = cache(async (): Promise<string> => {
+const isServerBootstrapBypassed = cache(async (): Promise<boolean> => {
   const cookieStore = await cookies();
-  const isPlaywrightBypass =
+
+  return (
     process.env.PLAYWRIGHT_TEST === 'true' ||
-    cookieStore.get('__playwright_test')?.value === 'true';
+    cookieStore.get('__playwright_test')?.value === 'true'
+  );
+});
+
+export const getServerAuthToken = cache(async (): Promise<string> => {
   const isDesktopShell = process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1';
   const hasClerkKeys =
     Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) &&
     Boolean(process.env.CLERK_SECRET_KEY);
 
-  if (isPlaywrightBypass) {
+  if (await isServerBootstrapBypassed()) {
     return '';
   }
 
@@ -64,12 +69,17 @@ export function hasUsableServerAuthToken(token: string): boolean {
   const hasClerkKeys =
     Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) &&
     Boolean(process.env.CLERK_SECRET_KEY);
+  const isSelfHostedApp = !process.env.NEXT_PUBLIC_GENFEED_CLOUD;
 
-  return Boolean(token) || !hasClerkKeys;
+  return Boolean(token) || isSelfHostedApp || !hasClerkKeys;
 }
 
 export const loadProtectedBootstrap = cache(
   async (): Promise<ProtectedBootstrapData | null> => {
+    if (await isServerBootstrapBypassed()) {
+      return null;
+    }
+
     const token = await getServerAuthToken();
 
     if (!hasUsableServerAuthToken(token)) {

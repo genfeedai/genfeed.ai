@@ -8,19 +8,46 @@ import {
 import { SuggestHashtagsDto } from '@api/collections/optimizers/dto/hashtags.dto';
 import { OptimizeContentDto } from '@api/collections/optimizers/dto/optimize.dto';
 import { GenerateVariantsDto } from '@api/collections/optimizers/dto/variants.dto';
-import type {
-  IOptimizationSuggestion,
-  IScoreBreakdown,
-} from '@api/collections/optimizers/schemas/content-score.schema';
-import type { IContentChange } from '@api/collections/optimizers/schemas/optimization.schema';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { JsonParserUtil } from '@api/helpers/utils/json-parser.util';
 import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+
+type ScoreBreakdown = {
+  clarity: number;
+  engagement: number;
+  platformOptimization: number;
+  readability: number;
+  viralPotential: number;
+};
+
+type OptimizationSuggestion = {
+  category:
+    | 'readability'
+    | 'engagement'
+    | 'seo'
+    | 'style'
+    | 'tone'
+    | 'hashtags';
+  impact?: 'high' | 'medium' | 'low';
+  message: string;
+  originalText?: string;
+  priority?: 'high' | 'medium' | 'low';
+  suggestedText?: string;
+  type: 'improvement' | 'warning' | 'critical';
+};
+
+type ContentChange = {
+  field: string;
+  optimized: string;
+  original: string;
+  reason: string;
+};
 
 type HashtagSuggestionResult = {
   optimal?: string[];
@@ -55,13 +82,13 @@ type PostingTimesResult = {
 };
 
 type AIAnalysisResult = {
-  breakdown?: IScoreBreakdown;
+  breakdown?: ScoreBreakdown;
   overallScore?: number;
-  suggestions?: IOptimizationSuggestion[];
+  suggestions?: OptimizationSuggestion[];
 };
 
 type AIOptimizationResult = {
-  changes?: IContentChange[];
+  changes?: ContentChange[];
   improvementScore?: number;
   optimized?: string;
 };
@@ -138,7 +165,7 @@ export class OptimizersService {
   ): Promise<{
     original: string;
     optimized: string;
-    changes: IContentChange[];
+    changes: ContentChange[];
     improvementScore: number;
   }> {
     try {
@@ -157,25 +184,30 @@ export class OptimizersService {
         onBilling,
       );
 
-      // Save optimization record
-      const optimization = await this.prisma.optimization.create({
-        data: {
-          changes: result.changes as never,
-          contentType: dto.contentType,
-          goals: dto.goals || [],
-          improvementScore: result.improvementScore,
-          optimizedContent: result.optimized,
-          organizationId,
-          originalContent: dto.content,
-          platform: dto.platform,
-          scoreId: dto.scoreId,
-          userId,
-        },
-      });
+      let optimizationId: string | undefined;
+      if (userId) {
+        const optimization = await this.prisma.optimization.create({
+          data: {
+            data: {
+              changes: result.changes,
+              contentType: dto.contentType,
+              goals: dto.goals || [],
+              improvementScore: result.improvementScore,
+              optimizedContent: result.optimized,
+              originalContent: dto.content,
+              platform: dto.platform,
+            } as Prisma.InputJsonValue,
+            organizationId,
+            scoreId: dto.scoreId,
+            userId,
+          },
+        });
+        optimizationId = optimization.id;
+      }
 
       this.logger.debug('Content optimized successfully', {
         improvementScore: result.improvementScore,
-        optimizationId: optimization.id,
+        optimizationId,
       });
 
       return {
@@ -465,8 +497,8 @@ Return ONLY valid JSON with this structure. Do not include any text before or af
     onBilling?: (amount: number) => void,
   ): Promise<{
     overallScore: number;
-    breakdown: IScoreBreakdown;
-    suggestions: IOptimizationSuggestion[];
+    breakdown: ScoreBreakdown;
+    suggestions: OptimizationSuggestion[];
   }> {
     const prompt = this.buildAnalysisPrompt(
       content,
@@ -514,7 +546,7 @@ Return ONLY valid JSON with this structure. Do not include any text before or af
     onBilling?: (amount: number) => void,
   ): Promise<{
     optimized: string;
-    changes: IContentChange[];
+    changes: ContentChange[];
     improvementScore: number;
   }> {
     const prompt = this.buildOptimizationPrompt(

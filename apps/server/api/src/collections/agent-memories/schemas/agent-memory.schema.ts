@@ -1,7 +1,22 @@
-export type {
-  AgentMemory,
-  AgentMemory as AgentMemoryDocument,
-} from '@genfeedai/prisma';
+import type { AgentMemory } from '@genfeedai/prisma';
+
+export type { AgentMemory } from '@genfeedai/prisma';
+
+export interface AgentMemoryDocument extends AgentMemory {
+  _id: string;
+  brand?: string | null;
+  confidence?: number;
+  contentType?: AgentMemoryContentType;
+  importance?: number;
+  kind?: AgentMemoryKind;
+  organization: string;
+  platform?: string;
+  scope?: AgentMemoryScope;
+  summary?: string;
+  tags?: string[];
+  user: string;
+  [key: string]: unknown;
+}
 
 export const AGENT_MEMORY_KINDS = [
   'preference',

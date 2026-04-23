@@ -127,6 +127,22 @@ export class AnalyticsController {
     private readonly instagramService: InstagramService,
   ) {}
 
+  private readObjectRecord(value: unknown): Record<string, unknown> {
+    return typeof value === 'object' && value !== null
+      ? (value as Record<string, unknown>)
+      : {};
+  }
+
+  private appendPlatform(
+    value: unknown,
+    platform: string,
+  ): Record<string, unknown> {
+    return {
+      ...this.readObjectRecord(value),
+      platform,
+    };
+  }
+
   @Get()
   @RolesDecorator('superadmin')
   @Cache({
@@ -138,7 +154,7 @@ export class AnalyticsController {
   async findAll(
     @Req() req: ExpressRequest,
     @Query() query: BaseQueryDto,
-  ): Promise<AnalyticEntity[]> {
+  ): Promise<unknown> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(url, { query });
 
@@ -356,13 +372,12 @@ export class AnalyticsController {
         ]);
 
       const trends = [
-        ...tiktokTrends.map((trend) => ({ ...trend, platform: 'tiktok' })),
-        ...twitterTrends.map((trend) => ({ ...trend, platform: 'twitter' })),
-        ...youtubeTrends.map((trend) => ({ ...trend, platform: 'youtube' })),
-        ...instagramTrends.map((trend) => ({
-          ...trend,
-          platform: 'instagram',
-        })),
+        ...tiktokTrends.map((trend) => this.appendPlatform(trend, 'tiktok')),
+        ...twitterTrends.map((trend) => this.appendPlatform(trend, 'twitter')),
+        ...youtubeTrends.map((trend) => this.appendPlatform(trend, 'youtube')),
+        ...instagramTrends.map((trend) =>
+          this.appendPlatform(trend, 'instagram'),
+        ),
       ];
       return serializeSingle(req, AnalyticsTrendSerializer, trends);
     } catch (error: unknown) {
@@ -382,7 +397,7 @@ export class AnalyticsController {
   async getOrganizationsLeaderboard(
     @Req() req: ExpressRequest,
     @Query() query: LeaderboardQueryDto,
-  ): Promise<OrgLeaderboardItemEntity[]> {
+  ): Promise<unknown> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(url, { query });
 
@@ -406,7 +421,7 @@ export class AnalyticsController {
   async getOrganizationsWithStats(
     @Req() req: ExpressRequest,
     @Query() query: AdminOrgsQueryDto,
-  ): Promise<PaginatedOrgsResponse> {
+  ): Promise<unknown> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(url, { query });
 
@@ -431,7 +446,7 @@ export class AnalyticsController {
     @CurrentUser() user: User,
     @Req() req: ExpressRequest,
     @Query() query: LeaderboardQueryDto,
-  ): Promise<unknown[]> {
+  ): Promise<unknown> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const organizationId = this.getScopedOrganizationId(user);
     this.loggerService.log(url, { query });
@@ -457,7 +472,7 @@ export class AnalyticsController {
     @CurrentUser() user: User,
     @Req() req: ExpressRequest,
     @Query() query: AdminBrandsQueryDto,
-  ): Promise<PaginatedBrandsResponse> {
+  ): Promise<unknown> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const organizationId = this.getScopedOrganizationId(user);
     this.loggerService.log(url, { query });
@@ -563,7 +578,7 @@ export class AnalyticsController {
     @CurrentUser() user: User,
     @Req() req: ExpressRequest,
     @Query() query: TopContentQueryDto,
-  ): Promise<unknown[]> {
+  ): Promise<unknown> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const organizationId = this.getScopedOrganizationId(user);
     this.loggerService.log(url, { query });

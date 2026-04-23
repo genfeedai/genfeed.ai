@@ -4,7 +4,8 @@ import { WorkflowExecutorService } from '@api/collections/workflows/services/wor
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { ConfigService } from '@api/config/config.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { WorkflowExecutionTrigger, WorkflowStatus } from '@genfeedai/enums';
+import { WorkflowExecutionTrigger } from '@genfeedai/enums';
+import { WorkflowStatus as PrismaWorkflowStatus } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
 import { Cron, CronExpression, SchedulerRegistry } from '@nestjs/schedule';
@@ -16,6 +17,10 @@ interface ScheduledWorkflow {
   timezone: string;
   lastRun?: Date;
   nextRun?: Date;
+}
+
+function toWorkflowDocument(workflow: unknown): WorkflowDocument {
+  return workflow as WorkflowDocument;
 }
 
 @Injectable()
@@ -57,7 +62,7 @@ export class WorkflowSchedulerService implements OnModuleInit {
           isDeleted: false,
           isScheduleEnabled: true,
           schedule: { not: null },
-          status: WorkflowStatus.ACTIVE,
+          status: 'ACTIVE',
         },
       });
 
@@ -67,7 +72,7 @@ export class WorkflowSchedulerService implements OnModuleInit {
       );
 
       for (const workflow of workflows) {
-        this.scheduleWorkflow(workflow);
+        this.scheduleWorkflow(toWorkflowDocument(workflow));
       }
     } catch (error) {
       this.logger.error(
@@ -160,7 +165,7 @@ export class WorkflowSchedulerService implements OnModuleInit {
         where: {
           id: workflowId,
           isDeleted: false,
-          status: WorkflowStatus.ACTIVE,
+          status: 'ACTIVE',
         },
       });
 
@@ -194,11 +199,9 @@ export class WorkflowSchedulerService implements OnModuleInit {
       // Node-based workflows create their own execution record via WorkflowExecutorService.
       if (!usesNodeExecutor) {
         await this.workflowExecutionsService.createExecution(wUserId, wOrgId, {
-          inputValues: this.getDefaultInputValues(
-            workflow as unknown as WorkflowDocument,
-          ),
+          inputValues: this.getDefaultInputValues(toWorkflowDocument(workflow)),
           trigger: WorkflowExecutionTrigger.SCHEDULED,
-          workflow: workflowId as unknown,
+          workflow: workflowId,
         });
       }
 
@@ -219,7 +222,7 @@ export class WorkflowSchedulerService implements OnModuleInit {
             workflowId,
             wUserId,
             wOrgId,
-            this.getDefaultInputValues(workflow as unknown as WorkflowDocument),
+            this.getDefaultInputValues(toWorkflowDocument(workflow)),
             { triggeredBy: 'schedule' },
             WorkflowExecutionTrigger.SCHEDULED,
           )
@@ -290,14 +293,18 @@ export class WorkflowSchedulerService implements OnModuleInit {
       : null;
 
     if (workflow) {
+      const workflowDocument = toWorkflowDocument(workflow);
+
       if (schedule && isEnabled) {
-        this.scheduleWorkflow(workflow);
+        this.scheduleWorkflow(workflowDocument);
       } else {
         this.unscheduleWorkflow(workflowId);
       }
+
+      return workflowDocument;
     }
 
-    return workflow;
+    return null;
   }
 
   /**

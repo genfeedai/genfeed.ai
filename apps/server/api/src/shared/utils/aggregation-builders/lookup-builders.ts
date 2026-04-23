@@ -210,7 +210,7 @@ export function metadataLookup(options?: LookupOptions): MultiPipelineStage {
   }
 
   // Return fresh array each call
-  const lookupStage: SinglePipelineStage = {
+  const lookupStage: LookupStage = {
     $lookup: {
       as: asField,
       foreignField: '_id',

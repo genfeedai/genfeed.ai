@@ -41,7 +41,15 @@ const PatternPlaybookSerializer = {
     if (!data) {
       return null;
     }
-    const doc = data.toObject ? data.toObject() : data;
+    const doc =
+      typeof (data as { toObject?: unknown }).toObject === 'function'
+        ? ((data as { toObject: () => Record<string, unknown> }).toObject() ??
+          {})
+        : ((data as Record<string, unknown>) ?? {});
+    const sourceCreators = Array.isArray(doc.sourceCreators)
+      ? doc.sourceCreators
+      : [];
+
     return {
       attributes: {
         description: doc.description,
@@ -52,9 +60,9 @@ const PatternPlaybookSerializer = {
         niche: doc.niche,
         patternsCount: doc.patternsCount,
         platform: doc.platform,
-        sourceCreators: doc.sourceCreators?.map((id: unknown) => id.toString()),
+        sourceCreators: sourceCreators.map((id: unknown) => String(id)),
       },
-      id: doc._id?.toString(),
+      id: String(doc.id ?? doc._id ?? ''),
       type: 'pattern-playbook',
     };
   },

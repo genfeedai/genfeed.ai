@@ -102,7 +102,7 @@ export class VideosLipSyncController {
       }
 
       // Validate image category
-      if (imageIngredient.category !== IngredientCategory.IMAGE) {
+      if (String(imageIngredient.category) !== IngredientCategory.IMAGE) {
         throw new HttpException(
           {
             detail: `Expected image ingredient, got ${imageIngredient.category}`,
@@ -114,8 +114,8 @@ export class VideosLipSyncController {
 
       // Validate image is in a usable state
       if (
-        imageIngredient.status !== IngredientStatus.GENERATED &&
-        imageIngredient.status !== IngredientStatus.VALIDATED
+        String(imageIngredient.status) !== IngredientStatus.GENERATED &&
+        String(imageIngredient.status) !== IngredientStatus.VALIDATED
       ) {
         throw new HttpException(
           {
@@ -145,8 +145,8 @@ export class VideosLipSyncController {
 
       // Validate audio category (could be AUDIO or VIDEO with audio)
       if (
-        audioIngredient.category !== IngredientCategory.AUDIO &&
-        audioIngredient.category !== IngredientCategory.VIDEO
+        String(audioIngredient.category) !== IngredientCategory.AUDIO &&
+        String(audioIngredient.category) !== IngredientCategory.VIDEO
       ) {
         throw new HttpException(
           {
@@ -159,8 +159,8 @@ export class VideosLipSyncController {
 
       // Validate audio is in a usable state
       if (
-        audioIngredient.status !== IngredientStatus.GENERATED &&
-        audioIngredient.status !== IngredientStatus.VALIDATED
+        String(audioIngredient.status) !== IngredientStatus.GENERATED &&
+        String(audioIngredient.status) !== IngredientStatus.VALIDATED
       ) {
         throw new HttpException(
           {

@@ -6,6 +6,8 @@ import type {
   IConfirmBrandDataRequest,
   IGeneratePreviewResponse,
   IPost,
+  OnboardingAccessMode,
+  OnboardingRuntimeAccessMode,
 } from '@genfeedai/interfaces';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
@@ -66,6 +68,13 @@ export interface ProactiveWorkspaceResponse {
 }
 
 export interface InstallReadinessResponse {
+  access: {
+    byokConfiguredProviders: string[];
+    byokEnabled: boolean;
+    runtimeMode: OnboardingRuntimeAccessMode;
+    selectedMode: OnboardingAccessMode | null;
+    serverDefaultsReady: boolean;
+  };
   authMode: 'clerk' | 'none';
   billingMode: 'cloud_billing' | 'oss_local';
   localTools: {

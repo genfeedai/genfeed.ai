@@ -197,15 +197,19 @@ export class IngredientsService extends BaseService<
     ingredientId: string,
     organizationId: string,
   ): Promise<IngredientDocument | null> {
-    const ingredient = await this.prisma.ingredient.findFirst({
+    const ingredient = (await this.prisma.ingredient.findFirst({
       where: {
         id: ingredientId,
-        category: IngredientCategory.AVATAR,
+        category: 'AVATAR',
         isDeleted: false,
         organizationId,
       },
-      include: { metadata: true },
-    });
+      include: { metadata: true } as never,
+    })) as
+      | (IngredientDocument & {
+          metadata?: { extension?: string } | null;
+        })
+      | null;
 
     if (!ingredient) {
       return null;
@@ -243,12 +247,12 @@ export class IngredientsService extends BaseService<
         where: {
           brandId,
           campaign,
-          category: IngredientCategory.IMAGE,
+          category: 'IMAGE',
           isDeleted: false,
           organizationId,
-          reviewStatus: DarkroomReviewStatus.APPROVED,
+          reviewStatus: 'APPROVED',
           status: {
-            in: [IngredientStatus.GENERATED, IngredientStatus.VALIDATED],
+            in: ['GENERATED', 'VALIDATED'],
           },
         },
         orderBy: [{ id: 'asc' }, { createdAt: 'asc' }],
@@ -393,7 +397,7 @@ export class IngredientsService extends BaseService<
     const [docs, totalDocs] = await Promise.all([
       this.prisma.ingredient.findMany({
         where: where as never,
-        orderBy: { totalVotes: 'desc' },
+        orderBy: { createdAt: 'desc' },
         take: limit,
       }),
       this.prisma.ingredient.count({ where: where as never }),
@@ -447,16 +451,19 @@ export class IngredientsService extends BaseService<
           this.prisma.ingredient.count({
             where: {
               ...baseWhere,
-              status: IngredientStatus.GENERATED,
+              status: 'GENERATED',
             } as never,
-          }),
-          this.prisma.ingredient.count({
-            where: { ...baseWhere, status: IngredientStatus.REJECTED } as never,
           }),
           this.prisma.ingredient.count({
             where: {
               ...baseWhere,
-              status: IngredientStatus.VALIDATED,
+              status: 'REJECTED',
+            } as never,
+          }),
+          this.prisma.ingredient.count({
+            where: {
+              ...baseWhere,
+              status: 'VALIDATED',
             } as never,
           }),
         ]);
@@ -468,13 +475,22 @@ export class IngredientsService extends BaseService<
       const [total, generated, rejected, validated] = await Promise.all([
         this.prisma.ingredient.count({ where: baseWhere as never }),
         this.prisma.ingredient.count({
-          where: { ...baseWhere, status: IngredientStatus.GENERATED } as never,
+          where: {
+            ...baseWhere,
+            status: 'GENERATED',
+          } as never,
         }),
         this.prisma.ingredient.count({
-          where: { ...baseWhere, status: IngredientStatus.REJECTED } as never,
+          where: {
+            ...baseWhere,
+            status: 'REJECTED',
+          } as never,
         }),
         this.prisma.ingredient.count({
-          where: { ...baseWhere, status: IngredientStatus.VALIDATED } as never,
+          where: {
+            ...baseWhere,
+            status: 'VALIDATED',
+          } as never,
         }),
       ]);
 
@@ -499,11 +515,11 @@ export class IngredientsService extends BaseService<
             validated: 0,
           };
         }
-        if (group.status === IngredientStatus.GENERATED) {
+        if (group.status === 'GENERATED') {
           byCategory[group.category].generated = group._count.id;
-        } else if (group.status === IngredientStatus.REJECTED) {
+        } else if (group.status === 'REJECTED') {
           byCategory[group.category].rejected = group._count.id;
-        } else if (group.status === IngredientStatus.VALIDATED) {
+        } else if (group.status === 'VALIDATED') {
           byCategory[group.category].validated = group._count.id;
         }
       }

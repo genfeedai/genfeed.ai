@@ -84,8 +84,8 @@ export class GoalsController extends BaseCRUDController<
   ): boolean {
     const publicMetadata = getPublicMetadata(user);
     const entityOrganizationId =
-      (entity.organization as unknown as { _id?: string })?._id?.toString() ||
-      entity.organization?.toString();
+      (entity.organizationId as unknown as { _id?: string })?._id?.toString() ||
+      entity.organizationId?.toString();
 
     return entityOrganizationId === publicMetadata.organization;
   }

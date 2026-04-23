@@ -2,11 +2,7 @@ import { CustomersService } from '@api/collections/customers/services/customers.
 import { type OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { CreateSubscriptionDto } from '@api/collections/subscriptions/dto/create-subscription.dto';
 import { UpdateSubscriptionDto } from '@api/collections/subscriptions/dto/update-subscription.dto';
-import { SubscriptionEntity } from '@api/collections/subscriptions/entities/subscription.entity';
-import {
-  Subscription,
-  type SubscriptionDocument,
-} from '@api/collections/subscriptions/schemas/subscription.schema';
+import { type SubscriptionDocument } from '@api/collections/subscriptions/schemas/subscription.schema';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { ConfigService } from '@api/config/config.service';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
@@ -26,10 +22,10 @@ import {
 
 type ClerkSyncSubscription = {
   _id?: string;
-  user: string;
-  stripePriceId?: string;
-  stripeSubscriptionId?: string;
-  status?: string;
+  user?: string;
+  stripePriceId?: string | null;
+  stripeSubscriptionId?: string | null;
+  status?: string | null;
 };
 
 /**
@@ -58,6 +54,59 @@ export class SubscriptionsService
 {
   public readonly constructorName: string = String(this.constructor.name);
 
+  private optionalString(value: string | null | undefined): string | undefined {
+    return value ?? undefined;
+  }
+
+  private requireString(
+    value: string | null | undefined,
+    label: string,
+  ): string {
+    if (!value) {
+      throw new BadRequestException(`${label} is required`);
+    }
+
+    return value;
+  }
+
+  private async resolveStripeCustomerId(
+    customerId: string | null | undefined,
+  ): Promise<string | undefined> {
+    if (!customerId) {
+      return undefined;
+    }
+
+    const customer = await this.prisma.customer.findUnique({
+      select: { stripeCustomerId: true },
+      where: { id: customerId },
+    });
+
+    return customer?.stripeCustomerId ?? undefined;
+  }
+
+  private async normalizeSubscriptionDocument(
+    document: unknown,
+  ): Promise<SubscriptionDocument> {
+    const normalized = this.normalizeDocument(
+      document,
+    ) as SubscriptionDocument & {
+      plan?: string | null;
+    };
+
+    const stripeCustomerId =
+      normalized.stripeCustomerId ??
+      (await this.resolveStripeCustomerId(normalized.customerId));
+
+    return {
+      ...normalized,
+      customer:
+        normalized.customer ??
+        (normalized.customerId ? String(normalized.customerId) : undefined),
+      stripeCustomerId,
+      type: normalized.type ?? normalized.plan ?? undefined,
+    };
+  }
+
   constructor(
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
@@ -81,6 +130,15 @@ export class SubscriptionsService
     subscriptionTier?: string,
   ) {
     try {
+      if (!subscription.user) {
+        return this.logger.warn(
+          `${this.constructorName} subscription missing user reference`,
+          {
+            subscriptionId: subscription._id,
+          },
+        );
+      }
+
       const user = await this.usersService.findOne({
         _id: subscription.user,
       });
@@ -94,17 +152,30 @@ export class SubscriptionsService
         );
       }
 
+      const clerkUserId = user.clerkId;
+      if (!clerkUserId) {
+        this.logger.warn(`${this.constructorName} user missing clerkId`, {
+          userId: user._id ?? user.id,
+        });
+        return;
+      }
+
       // Update Clerk public metadata
-      await this.clerkService.updateUserPublicMetadata(user.clerkId, {
-        stripePriceId: stripePriceId || subscription.stripePriceId,
+      await this.clerkService.updateUserPublicMetadata(clerkUserId, {
+        stripePriceId:
+          this.optionalString(stripePriceId) ??
+          this.optionalString(subscription.stripePriceId),
         stripeSubscriptionId:
-          stripeSubscriptionId || subscription.stripeSubscriptionId,
-        stripeSubscriptionStatus: status || subscription.status,
+          this.optionalString(stripeSubscriptionId) ??
+          this.optionalString(subscription.stripeSubscriptionId),
+        stripeSubscriptionStatus:
+          this.optionalString(status) ??
+          this.optionalString(subscription.status),
         ...(subscriptionTier ? { subscriptionTier } : {}),
       });
 
       this.logger.log('Subscription synced to Clerk metadata', {
-        clerkUserId: user.clerkId,
+        clerkUserId,
         status: status || subscription.status,
         stripeSubscriptionId:
           stripeSubscriptionId || subscription.stripeSubscriptionId,
@@ -119,7 +190,7 @@ export class SubscriptionsService
     organization: OrganizationDocument,
     billingEmail: string,
     userId: string,
-  ): Promise<Subscription> {
+  ): Promise<SubscriptionDocument> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     // Check if customer already exists for this organization
@@ -131,13 +202,16 @@ export class SubscriptionsService
     if (customer) {
       // Customer exists, retrieve from Stripe to ensure it's valid
       this.logger.log(`${url} using existing customer`, {
-        customerId: customer._id,
+        customerId: customer.id,
         organizationId: organization._id,
         stripeCustomerId: customer.stripeCustomerId,
       });
 
       stripeCustomer = await this.stripeService.retrieveCustomer(
-        customer.stripeCustomerId,
+        this.requireString(
+          customer.stripeCustomerId,
+          'Customer stripeCustomerId',
+        ),
       );
 
       if (!stripeCustomer) {
@@ -149,7 +223,7 @@ export class SubscriptionsService
           userId,
         );
 
-        customer = await this.customersService.patch(customer._id.toString(), {
+        customer = await this.customersService.patch(customer.id.toString(), {
           stripeCustomerId: stripeCustomer.id,
         });
       }
@@ -168,20 +242,19 @@ export class SubscriptionsService
       });
     }
 
-    const subscriptionData = new SubscriptionEntity({
-      customerId: customer._id.toString(),
+    const subscriptionData = {
+      customerId: customer.id.toString(),
       isDeleted: false,
       organizationId: organization._id.toString(),
+      plan: SubscriptionPlan.MONTHLY,
       status: SubscriptionStatus.INCOMPLETE,
-      stripeCustomerId: stripeCustomer.id,
-      type: SubscriptionPlan.MONTHLY,
       userId,
-    });
+    } as unknown as Parameters<typeof this.create>[0];
 
-    const savedSubscription = await this.create(subscriptionData as never);
+    const savedSubscription = await this.create(subscriptionData);
 
     this.logger.log(`${url} success`, {
-      customerId: customer._id,
+      customerId: customer.id,
       existingCustomer: !!customer,
       organizationId: organization._id,
       stripeCustomerId: stripeCustomer.id,
@@ -193,28 +266,39 @@ export class SubscriptionsService
 
   async findByOrganizationId(
     organizationId: string,
-  ): Promise<Subscription | null> {
+  ): Promise<SubscriptionDocument | null> {
     const result = await this.prisma.subscription.findFirst({
       where: { isDeleted: false, organizationId },
     });
-    return result as unknown as Subscription | null;
+    return result ? await this.normalizeSubscriptionDocument(result) : null;
   }
 
   async findByStripeCustomerId(
     stripeCustomerId: string,
-  ): Promise<Subscription | null> {
+  ): Promise<SubscriptionDocument | null> {
+    const customer =
+      await this.customersService.findByStripeCustomerId(stripeCustomerId);
+    if (!customer?.id) {
+      return null;
+    }
+
     const result = await this.prisma.subscription.findFirst({
-      where: { isDeleted: false, stripeCustomerId },
+      where: { customerId: String(customer.id), isDeleted: false },
     });
-    return result as unknown as Subscription | null;
+    return result ? await this.normalizeSubscriptionDocument(result) : null;
   }
 
-  async syncWithStripe(subscription: Subscription): Promise<Subscription> {
+  async syncWithStripe(
+    subscription: SubscriptionDocument,
+  ): Promise<SubscriptionDocument> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
       const stripeCustomer = await this.stripeService.retrieveCustomer(
-        subscription.stripeCustomerId,
+        this.requireString(
+          await this.resolveStripeCustomerId(subscription.customerId),
+          'Subscription stripeCustomerId',
+        ),
       );
 
       if (!stripeCustomer) {
@@ -277,7 +361,7 @@ export class SubscriptionsService
             : undefined,
           status: updatedStripeSubscription.status,
           stripePriceId: newPriceId,
-          type: newType,
+          plan: newType,
         },
       );
 
@@ -285,7 +369,8 @@ export class SubscriptionsService
       await this.syncSubscriptionToClerkMetadata(updatedSubscription);
 
       // Reset credits to new plan's allocation when changing subscription type
-      if (newType !== subscription.type) {
+      const previousPlan = subscription.type ?? subscription.plan ?? undefined;
+      if (newType !== previousPlan) {
         let creditsForNewPlan = 0;
         let source = 'subscription_change';
 
@@ -310,7 +395,7 @@ export class SubscriptionsService
           this.logger.log(`${url} credits reset for plan change`, {
             newCredits: creditsForNewPlan,
             newPlan: newType,
-            oldPlan: subscription.type,
+            oldPlan: previousPlan,
             organizationId,
             source,
           });
@@ -321,7 +406,7 @@ export class SubscriptionsService
         newPriceId,
         newType,
         oldPriceId: subscription.stripePriceId,
-        oldType: subscription.type,
+        oldType: previousPlan,
         subscriptionId: subscription._id,
       });
 
@@ -355,7 +440,10 @@ export class SubscriptionsService
 
       // Get the upcoming invoice preview
       const upcomingInvoice = await this.stripeService.getUpcomingInvoice(
-        subscription.stripeCustomerId,
+        this.requireString(
+          await this.resolveStripeCustomerId(subscription.customerId),
+          'Subscription stripeCustomerId',
+        ),
         subscription.stripeSubscriptionId,
         newPriceId,
       );

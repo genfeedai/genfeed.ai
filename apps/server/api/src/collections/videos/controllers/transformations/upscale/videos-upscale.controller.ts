@@ -120,7 +120,10 @@ export class VideosUpscaleController {
     try {
       const { metadataData, ingredientData } =
         await this.sharedService.saveDocuments(user, {
-          brand: video.brand || publicMetadata.brand,
+          brand:
+            typeof video.brand === 'string'
+              ? video.brand
+              : publicMetadata.brand,
           category: IngredientCategory.VIDEO,
           extension: MetadataExtension.MP4,
           model,
@@ -141,7 +144,10 @@ export class VideosUpscaleController {
       // Create activity for video upscale start
       const activity = await this.activitiesService.create(
         new ActivityEntity({
-          brand: video.brand || publicMetadata.brand,
+          brand:
+            typeof video.brand === 'string'
+              ? video.brand
+              : publicMetadata.brand,
           entityId: ingredientData._id,
           entityModel: ActivityEntityModel.INGREDIENT,
           key: ActivityKey.VIDEO_UPSCALE_PROCESSING,

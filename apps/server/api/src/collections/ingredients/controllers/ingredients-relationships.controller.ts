@@ -66,7 +66,7 @@ export class IngredientsRelationshipsController {
     };
 
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const matchStage: unknown = {
+    const matchStage: Record<string, unknown> = {
       isDeleted,
       parent: ingredientId,
       training: { $exists: false },

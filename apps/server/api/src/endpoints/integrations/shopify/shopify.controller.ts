@@ -130,7 +130,7 @@ export class ShopifyController {
     } as unknown as Record<string, unknown>);
 
     this.logger.log(`${url} - Account provisioned successfully`, {
-      apiKeyId: apiKey._id,
+      apiKeyId: apiKey.id,
       brandId: brand._id,
       organizationId: organization._id,
       shopDomain: dto.shopDomain,

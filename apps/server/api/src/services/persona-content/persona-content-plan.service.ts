@@ -2,6 +2,7 @@ import { type PersonaDocument } from '@api/collections/personas/schemas/persona.
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import {
+  CredentialPlatform,
   PersonaContentFormat,
   PostCategory,
   PostStatus,
@@ -30,6 +31,12 @@ export interface ContentPlanEntry {
 export interface ContentPlanResult {
   entries: ContentPlanEntry[];
   totalPosts: number;
+}
+
+interface PersonaContentStrategy {
+  formats?: PersonaContentFormat[];
+  frequency?: string;
+  topics?: string[];
 }
 
 const FORMAT_TO_CATEGORY: Record<PersonaContentFormat, PostCategory> = {
@@ -61,7 +68,7 @@ export class PersonaContentPlanService {
       input.organization,
     );
 
-    const strategy = persona.contentStrategy;
+    const strategy = (persona.contentStrategy ?? {}) as PersonaContentStrategy;
     const topics = strategy?.topics ?? ['general'];
     const formats = strategy?.formats ?? [PersonaContentFormat.PHOTO];
     const frequency = this.parseFrequency(strategy?.frequency);
@@ -113,6 +120,13 @@ export class PersonaContentPlanService {
     const caller = CallerUtil.getCallerName();
     let created = 0;
 
+    if (!input.credentialId) {
+      this.loggerService.warn(
+        `${this.constructorName} ${caller} - Missing credentialId for draft post creation`,
+      );
+      return 0;
+    }
+
     for (const entry of entries) {
       try {
         await this.postsService.create({
@@ -120,13 +134,15 @@ export class PersonaContentPlanService {
           category: entry.category,
           credential: input.credentialId,
           description: entry.description,
+          ingredients: [],
           label: `${entry.topic} - ${entry.format}`,
           organization: input.organization,
           persona: input.personaId,
+          platform: CredentialPlatform.INSTAGRAM,
           scheduledDate: entry.scheduledDate,
           status: PostStatus.DRAFT,
           user: input.user,
-        } as unknown);
+        } as unknown as Parameters<PostsService['create']>[0]);
 
         created++;
       } catch (error) {

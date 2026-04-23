@@ -20,6 +20,10 @@ export class PlaybookBuilderService extends BaseService<
   CreatePlaybookDto,
   UpdatePlaybookDto
 > {
+  private getEngagementRate(pattern: ContentPatternDocument): number {
+    return pattern.sourceMetrics?.engagementRate ?? 0;
+  }
+
   constructor(
     public readonly prisma: PrismaService,
     private readonly patternStoreService: PatternStoreService,
@@ -87,13 +91,10 @@ export class PlaybookBuilderService extends BaseService<
       (p) => p.patternType === ContentPatternType.HOOK,
     );
     const topHooks = hookPatterns
-      .sort(
-        (a, b) =>
-          b.sourceMetrics.engagementRate - a.sourceMetrics.engagementRate,
-      )
+      .sort((a, b) => this.getEngagementRate(b) - this.getEngagementRate(a))
       .slice(0, 10)
       .map((p) => ({
-        avgEngagement: p.sourceMetrics.engagementRate,
+        avgEngagement: this.getEngagementRate(p),
         count: 1,
         formula: p.extractedFormula,
       }));

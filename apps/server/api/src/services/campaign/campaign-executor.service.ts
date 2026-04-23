@@ -130,15 +130,29 @@ export class CampaignExecutorService {
       const replyText = await this.generateReply(campaign, target);
 
       // Post reply
+      const credentialData = this.toReplyBotCredentialData(
+        credential as Record<string, unknown>,
+      );
+
+      if (!credentialData) {
+        const errorMessage = 'Credential is missing an access token';
+        await this.campaignTargetsService.markAsFailed(
+          target._id.toString(),
+          errorMessage,
+        );
+        await this.campaignsService.incrementFailedCounter(
+          campaign._id.toString(),
+        );
+
+        return {
+          error: errorMessage,
+          success: false,
+        };
+      }
+
       const postResult = await this.postReply(
         campaign.platform,
-        {
-          accessToken: credential.accessToken,
-          accessTokenSecret: credential.accessTokenSecret,
-          externalId: credential.externalId,
-          refreshToken: credential.refreshToken,
-          username: credential.username,
-        },
+        credentialData,
         target,
         replyText,
       );
@@ -226,11 +240,11 @@ export class CampaignExecutorService {
     const options: ReplyGenerationOptions = {
       context: aiConfig.context,
       customInstructions: this.buildCustomInstructions(aiConfig, target),
-      length: aiConfig.length || ReplyLength.MEDIUM,
+      length: this.normalizeReplyLength(aiConfig.length),
       organizationId: campaign.organization.toString(),
-      tone: aiConfig.tone || ReplyTone.FRIENDLY,
-      tweetAuthor: target.authorUsername || 'unknown',
-      tweetContent: target.contentText || '',
+      tone: this.normalizeReplyTone(aiConfig.tone),
+      tweetAuthor: this.asString(target.authorUsername) ?? 'unknown',
+      tweetContent: this.asString(target.contentText) ?? '',
       userId: campaign.user?.toString() || '',
     };
 
@@ -273,16 +287,16 @@ export class CampaignExecutorService {
     target: CampaignTargetDocument,
   ): string {
     return template
-      .replace(/\{\{author\}\}/g, target.authorUsername || '')
-      .replace(/\{\{content\}\}/g, target.contentText || '')
-      .replace(/\{\{keyword\}\}/g, target.matchedKeyword || '');
+      .replace(/\{\{author\}\}/g, this.asString(target.authorUsername) ?? '')
+      .replace(/\{\{content\}\}/g, this.asString(target.contentText) ?? '')
+      .replace(/\{\{keyword\}\}/g, this.asString(target.matchedKeyword) ?? '');
   }
 
   /**
    * Post a reply to the target platform
    */
   private postReply(
-    platform: CampaignPlatform,
+    platform: OutreachCampaignDocument['platform'],
     credential: IReplyBotCredentialData,
     target: CampaignTargetDocument,
     replyText: string,
@@ -299,16 +313,16 @@ export class CampaignExecutorService {
         tweetUrl?: string;
         error?: string;
       } {
-    switch (platform) {
+    switch (this.normalizeCampaignPlatform(platform)) {
       case CampaignPlatform.TWITTER:
         return this.botActionExecutorService.postReply(
           credential,
           {
-            authorId: target.authorId || '',
-            authorUsername: target.authorUsername || '',
-            createdAt: target.contentCreatedAt || new Date(),
-            id: target.externalId,
-            text: target.contentText || '',
+            authorId: this.asString(target.authorId) ?? '',
+            authorUsername: this.asString(target.authorUsername) ?? '',
+            createdAt: this.asDate(target.contentCreatedAt),
+            id: this.asString(target.externalId) ?? '',
+            text: this.asString(target.contentText) ?? '',
           },
           replyText,
         );
@@ -323,7 +337,7 @@ export class CampaignExecutorService {
 
       default:
         return {
-          error: `Unsupported platform: ${platform}`,
+          error: `Unsupported platform: ${platform ?? 'unknown'}`,
           success: false,
         };
     }
@@ -407,5 +421,96 @@ export class CampaignExecutorService {
    */
   private delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  private normalizeCampaignPlatform(
+    platform: OutreachCampaignDocument['platform'],
+  ): CampaignPlatform | null {
+    switch (platform) {
+      case CampaignPlatform.REDDIT:
+      case CampaignPlatform.TWITTER:
+        return platform;
+      default:
+        return null;
+    }
+  }
+
+  private normalizeReplyLength(value: CampaignAiConfig['length']): ReplyLength {
+    switch (value) {
+      case ReplyLength.LONG:
+      case ReplyLength.MEDIUM:
+      case ReplyLength.SHORT:
+        return value;
+      default:
+        return ReplyLength.MEDIUM;
+    }
+  }
+
+  private normalizeReplyTone(value: CampaignAiConfig['tone']): ReplyTone {
+    switch (value) {
+      case ReplyTone.CASUAL:
+      case ReplyTone.ENGAGING:
+      case ReplyTone.FRIENDLY:
+      case ReplyTone.HUMOROUS:
+      case ReplyTone.INFORMATIVE:
+      case ReplyTone.PROFESSIONAL:
+      case ReplyTone.SUPPORTIVE:
+        return value;
+      default:
+        return ReplyTone.FRIENDLY;
+    }
+  }
+
+  private asString(value: unknown): string | undefined {
+    return typeof value === 'string' ? value : undefined;
+  }
+
+  private asDate(value: unknown): Date {
+    if (value instanceof Date) {
+      return value;
+    }
+
+    if (typeof value === 'string' || typeof value === 'number') {
+      const parsed = new Date(value);
+      if (!Number.isNaN(parsed.getTime())) {
+        return parsed;
+      }
+    }
+
+    return new Date();
+  }
+
+  private toReplyBotCredentialData(
+    credential: Record<string, unknown>,
+  ): IReplyBotCredentialData | null {
+    if (typeof credential.accessToken !== 'string') {
+      return null;
+    }
+
+    return {
+      accessToken: credential.accessToken,
+      accessTokenSecret:
+        typeof credential.accessTokenSecret === 'string'
+          ? credential.accessTokenSecret
+          : undefined,
+      externalId:
+        typeof credential.externalId === 'string'
+          ? credential.externalId
+          : undefined,
+      platform:
+        credential.platform === null || credential.platform === undefined
+          ? undefined
+          : (String(
+              credential.platform,
+            ) as IReplyBotCredentialData['platform']),
+      refreshToken:
+        typeof credential.refreshToken === 'string'
+          ? credential.refreshToken
+          : undefined,
+      username:
+        typeof credential.username === 'string'
+          ? credential.username
+          : undefined,
+    };
   }
 }

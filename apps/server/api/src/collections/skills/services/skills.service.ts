@@ -35,6 +35,23 @@ export class SkillsService {
     private readonly loggerService: LoggerService,
   ) {}
 
+  private readString(value: unknown): string | undefined {
+    return typeof value === 'string' && value.length > 0 ? value : undefined;
+  }
+
+  private readStringArray(value: unknown): string[] {
+    return Array.isArray(value)
+      ? value.filter((entry): entry is string => typeof entry === 'string')
+      : [];
+  }
+
+  private readProviders(value: unknown): ByokProvider[] {
+    return this.readStringArray(value).filter(
+      (provider): provider is ByokProvider =>
+        Object.values(ByokProvider).includes(provider as ByokProvider),
+    );
+  }
+
   async createSkill(
     organizationId: string,
     payload: CreateSkillDto,
@@ -88,7 +105,10 @@ export class SkillsService {
     }
 
     const customizedSlug =
-      payload.slug?.trim() || this.buildCustomizedSlug(baseSkill.slug);
+      payload.slug?.trim() ||
+      this.buildCustomizedSlug(
+        this.readString(baseSkill.slug) ?? String(baseSkill._id),
+      );
 
     const result = await this.prisma.skill.create({
       data: {
@@ -160,7 +180,9 @@ export class SkillsService {
     for (const skill of allSkills) {
       const hasAllProviders = await this.hasRequiredProviders(
         organizationId,
-        (skill as unknown as SkillDocument).requiredProviders,
+        this.readProviders(
+          (skill as unknown as SkillDocument).requiredProviders,
+        ),
       );
 
       if (hasAllProviders) {
@@ -257,15 +279,20 @@ export class SkillsService {
 
       const hasAllProviders = await this.hasRequiredProviders(
         organizationId,
-        skillDoc.requiredProviders,
+        this.readProviders(skillDoc.requiredProviders),
       );
 
       if (!hasAllProviders) {
         continue;
       }
 
+      const skillSlug = this.readString(skillDoc.slug);
+      if (!skillSlug) {
+        continue;
+      }
+
       resolvedSkills.push({
-        priority: enabledSlugs.indexOf(skillDoc.slug),
+        priority: enabledSlugs.indexOf(skillSlug),
         skill: skillDoc,
         targetSkill: skillDoc,
         variant: null,
@@ -320,23 +347,27 @@ export class SkillsService {
     skill: SkillDocument,
     options: ResolveBrandSkillsOptions,
   ): boolean {
+    const modalities = this.readStringArray(skill.modalities);
+    const channels = this.readStringArray(skill.channels);
+    const skillSlug = this.readString(skill.slug);
+
     if (!skill.isEnabled || skill.status === 'disabled') {
       return false;
     }
 
     if (
       options.modality &&
-      skill.modalities.length > 0 &&
-      !skill.modalities.includes(options.modality) &&
-      !skill.modalities.includes('multi')
+      modalities.length > 0 &&
+      !modalities.includes(options.modality) &&
+      !modalities.includes('multi')
     ) {
       return false;
     }
 
     if (
       options.channel &&
-      skill.channels.length > 0 &&
-      !skill.channels.includes(options.channel)
+      channels.length > 0 &&
+      !channels.includes(options.channel)
     ) {
       return false;
     }
@@ -352,7 +383,7 @@ export class SkillsService {
     if (
       options.requestedSlugs &&
       options.requestedSlugs.length > 0 &&
-      !options.requestedSlugs.includes(skill.slug)
+      (!skillSlug || !options.requestedSlugs.includes(skillSlug))
     ) {
       return false;
     }

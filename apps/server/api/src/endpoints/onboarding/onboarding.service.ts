@@ -1,4 +1,9 @@
 import { spawnSync } from 'node:child_process';
+import type { UpdateBrandDto } from '@api/collections/brands/dto/update-brand.dto';
+import type {
+  BrandAgentConfig,
+  BrandReferenceImage,
+} from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { LinksService } from '@api/collections/links/services/links.service';
@@ -31,7 +36,11 @@ import {
 } from '@genfeedai/enums';
 import type {
   IExtractedBrandData,
+  IOnboardingAccessPreference,
+  IOrganizationSetting,
   IScrapedBrandData,
+  OnboardingAccessMode,
+  OnboardingRuntimeAccessMode,
 } from '@genfeedai/interfaces';
 import {
   type IOnboardingJourneyMissionState,
@@ -55,6 +64,13 @@ export interface BrandSetupResponse {
 }
 
 export interface InstallReadinessResponse {
+  access: {
+    byokConfiguredProviders: string[];
+    byokEnabled: boolean;
+    runtimeMode: OnboardingRuntimeAccessMode;
+    selectedMode: OnboardingAccessMode | null;
+    serverDefaultsReady: boolean;
+  };
   authMode: 'clerk' | 'none';
   billingMode: 'cloud_billing' | 'oss_local';
   localTools: {
@@ -170,6 +186,88 @@ export class OnboardingService {
       codex,
       detected,
     };
+  }
+
+  private normalizeAccessMode(value: unknown): OnboardingAccessMode | null {
+    if (value === 'server' || value === 'byok' || value === 'cloud') {
+      return value;
+    }
+
+    return null;
+  }
+
+  private getSelectedAccessMode(
+    dashboardPreferences?: unknown,
+  ): OnboardingAccessMode | null {
+    if (!dashboardPreferences || typeof dashboardPreferences !== 'object') {
+      return null;
+    }
+
+    const onboarding = (
+      dashboardPreferences as { onboarding?: IOnboardingAccessPreference }
+    ).onboarding;
+
+    return this.normalizeAccessMode(onboarding?.accessMode);
+  }
+
+  private getConfiguredByokProviders(
+    organizationSettings?: Pick<IOrganizationSetting, 'byokKeys'> | null,
+  ): string[] {
+    const byokKeys = organizationSettings?.byokKeys;
+
+    if (!byokKeys || typeof byokKeys !== 'object') {
+      return [];
+    }
+
+    return Object.entries(byokKeys).flatMap(([providerKey, entry]) => {
+      if (!entry?.isEnabled || !entry.apiKey?.trim()) {
+        return [];
+      }
+
+      const provider =
+        typeof entry.provider === 'string' && entry.provider.trim()
+          ? entry.provider
+          : providerKey;
+
+      return [provider];
+    });
+  }
+
+  private readBrandAgentConfig(value: unknown): BrandAgentConfig {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return {};
+    }
+
+    return value as BrandAgentConfig;
+  }
+
+  private readBrandReferenceImages(value: unknown): BrandReferenceImage[] {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    return value.flatMap((entry) => {
+      if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+        return [];
+      }
+
+      const record = entry as Record<string, unknown>;
+      const category =
+        typeof record.category === 'string' ? record.category : 'reference';
+      const label = typeof record.label === 'string' ? record.label : undefined;
+      const url = typeof record.url === 'string' ? record.url : undefined;
+      const isDefault =
+        typeof record.isDefault === 'boolean' ? record.isDefault : undefined;
+
+      return [
+        {
+          category,
+          ...(isDefault !== undefined ? { isDefault } : {}),
+          ...(label ? { label } : {}),
+          ...(url ? { url } : {}),
+        } as BrandReferenceImage,
+      ];
+    });
   }
 
   private buildFallbackScrapedData(
@@ -439,7 +537,7 @@ export class OnboardingService {
         scrapedData.aboutText ||
         scrapedData.heroText ||
         scrapedData.tagline ||
-        scrapedData.valuePropositions.length > 0
+        (scrapedData.valuePropositions?.length ?? 0) > 0
           ? await this.masterPromptGeneratorService.analyzeBrandVoice(
               scrapedData,
               {
@@ -532,7 +630,7 @@ export class OnboardingService {
 
     const normalizedMissions =
       this.organizationSettingsService.normalizeJourneyState(
-        settings.onboardingJourneyMissions as
+        settings.onboardingJourneyMissions as unknown as
           | IOnboardingJourneyMissionState[]
           | undefined,
       );
@@ -718,11 +816,29 @@ export class OnboardingService {
     const publicMetadata = getPublicMetadata(user);
     const organizationId = publicMetadata.organization?.toString() ?? null;
     const brandId = publicMetadata.brand?.toString() ?? null;
+    const userId = publicMetadata.user?.toString() ?? null;
     const providers = this.getProviderReadiness();
     const showBillingUi = isEEEnabled();
 
     let hasOrganization = false;
     let hasBrand = false;
+    let selectedMode: OnboardingAccessMode | null = null;
+    let organizationSettings: Pick<
+      IOrganizationSetting,
+      'byokKeys' | 'isByokEnabled'
+    > | null = null;
+
+    if (userId && /^[0-9a-f]{24}$/i.test(userId)) {
+      const dbUser = await this.usersService.findOne({
+        _id: userId,
+        isDeleted: false,
+      });
+
+      selectedMode = this.getSelectedAccessMode(
+        (dbUser?.settings as { dashboardPreferences?: unknown } | undefined)
+          ?.dashboardPreferences,
+      );
+    }
 
     if (organizationId && /^[0-9a-f]{24}$/i.test(organizationId)) {
       const organization = await this.organizationsService.findOne({
@@ -733,16 +849,41 @@ export class OnboardingService {
       hasOrganization = !!organization;
 
       if (organization) {
-        const brand = await this.brandsService.findOne({
-          isDeleted: false,
-          organization: organization._id,
-        });
+        const [brand, settings] = await Promise.all([
+          this.brandsService.findOne({
+            isDeleted: false,
+            organization: organization._id,
+          }),
+          this.organizationSettingsService.findOne({
+            isDeleted: false,
+            organization: organization._id,
+          }),
+        ]);
 
         hasBrand = !!brand;
+        organizationSettings = settings as unknown as Pick<
+          IOrganizationSetting,
+          'byokKeys' | 'isByokEnabled'
+        >;
       }
     }
 
+    const byokConfiguredProviders =
+      this.getConfiguredByokProviders(organizationSettings);
+    const runtimeMode: OnboardingRuntimeAccessMode =
+      byokConfiguredProviders.length > 0 ? 'byok' : 'server';
+    const byokEnabled =
+      Boolean(organizationSettings?.isByokEnabled) ||
+      byokConfiguredProviders.length > 0;
+
     return {
+      access: {
+        byokConfiguredProviders,
+        byokEnabled,
+        runtimeMode,
+        selectedMode,
+        serverDefaultsReady: providers.anyConfigured,
+      },
       authMode: user.id ? 'clerk' : 'none',
       billingMode: showBillingUi ? 'cloud_billing' : 'oss_local',
       localTools: this.getLocalToolReadiness(),
@@ -1114,11 +1255,17 @@ export class OnboardingService {
     const brandId_str = String(
       (brand as Record<string, unknown>).id ?? brand._id,
     );
-    const existingImages = Array.isArray(brand.referenceImages)
-      ? (brand.referenceImages as unknown[])
-      : [];
+    const existingImages = this.readBrandReferenceImages(brand.referenceImages);
     await this.brandsService.patch(brandId_str, {
-      referenceImages: [...existingImages, ...images],
+      referenceImages: [
+        ...existingImages,
+        ...images.map((image) => ({
+          category: image.category,
+          isDefault: image.isDefault,
+          label: image.label,
+          url: image.url,
+        })),
+      ],
     });
 
     this.loggerService.log(`${caller} completed`, {
@@ -1256,8 +1403,10 @@ export class OnboardingService {
     }
 
     if (Object.keys(updateData).length > 0) {
-      // @ts-expect-error TS2345
-      await this.brandsService.patch(brandId, updateData);
+      await this.brandsService.patch(
+        brandId,
+        updateData as Partial<UpdateBrandDto>,
+      );
     }
   }
 
@@ -1278,7 +1427,7 @@ export class OnboardingService {
     });
 
     if (existingWebsiteLink) {
-      await this.linksService.patch(String(existingWebsiteLink._id), {
+      await this.linksService.patch(String(existingWebsiteLink.id), {
         label: 'Website',
         url: normalizedUrl,
       });
@@ -1306,6 +1455,8 @@ export class OnboardingService {
       return;
     }
 
+    const brandAgentConfig = this.readBrandAgentConfig(brand.agentConfig);
+
     const extractedVoice = extractedData.brandVoice as
       | {
           audience?: string;
@@ -1322,13 +1473,13 @@ export class OnboardingService {
 
     const nextVoice = extractedData.brandVoice
       ? {
-          ...(brand.agentConfig?.voice ?? {}),
+          ...(brandAgentConfig.voice ?? {}),
           audience: extractedVoice?.audience
             ? extractedVoice.audience
                 .split(',')
                 .map((value) => value.trim())
                 .filter(Boolean)
-            : (brand.agentConfig?.voice?.audience ?? []),
+            : (brandAgentConfig.voice?.audience ?? []),
           doNotSoundLike: extractedVoice?.doNotSoundLike ?? [],
           hashtags: extractedVoice?.hashtags ?? [],
           messagingPillars: extractedVoice?.messagingPillars ?? [],
@@ -1338,11 +1489,11 @@ export class OnboardingService {
           tone: extractedVoice?.tone,
           values: extractedVoice?.values ?? [],
         }
-      : brand.agentConfig?.voice;
+      : brandAgentConfig.voice;
 
     await this.brandsService.patch(brandId, {
       agentConfig: {
-        ...(brand.agentConfig ?? {}),
+        ...brandAgentConfig,
         ...(nextVoice ? { voice: nextVoice } : {}),
       },
     });
@@ -1361,11 +1512,12 @@ export class OnboardingService {
       return;
     }
 
-    const existingVoice = brand.agentConfig?.voice ?? {};
+    const brandAgentConfig = this.readBrandAgentConfig(brand.agentConfig);
+    const existingVoice = brandAgentConfig.voice ?? {};
 
     await this.brandsService.patch(brandId, {
       agentConfig: {
-        ...(brand.agentConfig ?? {}),
+        ...brandAgentConfig,
         voice: {
           ...existingVoice,
           ...(dto.audience

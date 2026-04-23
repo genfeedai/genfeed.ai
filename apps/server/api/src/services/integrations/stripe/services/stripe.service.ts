@@ -4,13 +4,40 @@ import { creditPackTotalCredits, PAYG_CREDIT_PACKS } from '@genfeedai/helpers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
-import Stripe from 'stripe';
+import StripeConstructor from 'stripe';
+
+type StripeClient = InstanceType<typeof StripeConstructor>;
+export type StripeCheckoutSession = Awaited<
+  ReturnType<StripeClient['checkout']['sessions']['create']>
+>;
+type StripeCheckoutSessionCreateParams = Parameters<
+  StripeClient['checkout']['sessions']['create']
+>[0];
+export type StripeCustomer = Awaited<
+  ReturnType<StripeClient['customers']['create']>
+>;
+type StripeMetadataParam = NonNullable<
+  Exclude<StripeCheckoutSessionCreateParams, undefined>['metadata']
+>;
+type StripeBillingPortalSession = Awaited<
+  ReturnType<StripeClient['billingPortal']['sessions']['create']>
+>;
+type StripeResponse<T> = T;
+export type StripePrice = Awaited<
+  ReturnType<StripeClient['prices']['retrieve']>
+>;
+export type StripeSubscription = Awaited<
+  ReturnType<StripeClient['subscriptions']['retrieve']>
+>;
+export type StripeInvoice = Awaited<
+  ReturnType<StripeClient['invoices']['retrieve']>
+>;
 
 type UpcomingInvoicePreview = {
   amount_due: number;
   currency: string;
   lines: {
-    data: Stripe.InvoiceLineItem[];
+    data: Record<string, unknown>[];
   };
 };
 
@@ -19,7 +46,7 @@ export class StripeService {
   private readonly constructorName: string = String(this.constructor.name);
   // Eager initialization - create client in constructor to avoid race conditions
   // NestJS creates singleton services, so this runs once at startup
-  public readonly stripe: Stripe;
+  public readonly stripe: StripeClient;
 
   constructor(
     private readonly configService: ConfigService,
@@ -27,16 +54,19 @@ export class StripeService {
   ) {
     if (IS_SELF_HOSTED) {
       // Noop — Stripe is not available in self-hosted mode
-      this.stripe = null as unknown as Stripe;
+      this.stripe = null as unknown as StripeClient;
       return;
     }
 
     // Eager initialization - create Stripe client in constructor
-    this.stripe = new Stripe(this.configService.get('STRIPE_SECRET_KEY')!, {
-      apiVersion: this.configService.get(
-        'STRIPE_API_VERSION',
-      ) as '2026-02-25.clover',
-    });
+    this.stripe = new StripeConstructor(
+      this.configService.get('STRIPE_SECRET_KEY')!,
+      {
+        apiVersion:
+          (this.configService.get('STRIPE_API_VERSION') as never) ??
+          '2026-03-25.dahlia',
+      },
+    );
   }
 
   public async createOrganizationCustomer(
@@ -44,7 +74,7 @@ export class StripeService {
     billingEmail: string,
     organizationId: string,
     userId: string,
-  ): Promise<Stripe.Customer> {
+  ): Promise<StripeCustomer> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
@@ -78,7 +108,7 @@ export class StripeService {
     userId: string,
     email: string,
     name?: string,
-  ): Promise<Stripe.Customer> {
+  ): Promise<StripeCustomer> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
@@ -115,7 +145,7 @@ export class StripeService {
     cancelUrl: string;
     quantity?: number;
     mode?: 'payment' | 'subscription';
-  }): Promise<Stripe.Checkout.Session> {
+  }): Promise<StripeCheckoutSession> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
@@ -129,7 +159,7 @@ export class StripeService {
         mode = 'payment',
       } = params;
 
-      const sessionConfig: Stripe.Checkout.SessionCreateParams = {
+      const sessionConfig: StripeCheckoutSessionCreateParams = {
         allow_promotion_codes: true,
         automatic_tax: {
           enabled: true,
@@ -197,7 +227,7 @@ export class StripeService {
     quantity?: number;
     successUrl?: string;
     cancelUrl?: string;
-  }): Promise<Stripe.Checkout.Session> {
+  }): Promise<StripeCheckoutSession> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
@@ -214,7 +244,7 @@ export class StripeService {
       const isPayg =
         stripePriceId === this.configService.get('STRIPE_PRICE_PAYG');
 
-      const metadata: Stripe.MetadataParam = {
+      const metadata: StripeMetadataParam = {
         email,
         type: 'managed_inference',
       };
@@ -279,7 +309,7 @@ export class StripeService {
   public async getUserBillingPortalUrl(
     stripeCustomerId: string,
     returnUrl: string,
-  ): Promise<Stripe.Response<Stripe.BillingPortal.Session>> {
+  ): Promise<StripeResponse<StripeBillingPortalSession>> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
@@ -297,7 +327,7 @@ export class StripeService {
     customerId: string,
     successUrl: string,
     cancelUrl: string,
-  ): Promise<Stripe.Checkout.Session> {
+  ): Promise<StripeCheckoutSession> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
@@ -322,7 +352,7 @@ export class StripeService {
 
   public async retrieveCustomer(
     customerId: string,
-  ): Promise<Stripe.Customer | null> {
+  ): Promise<StripeCustomer | null> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
@@ -331,7 +361,7 @@ export class StripeService {
         return null;
       }
 
-      return customer as Stripe.Customer;
+      return customer as StripeCustomer;
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
       throw error;
@@ -341,7 +371,7 @@ export class StripeService {
   public async getBillingPortalUrl(
     customerId: string,
     origin: string,
-  ): Promise<Stripe.Response<Stripe.BillingPortal.Session>> {
+  ): Promise<StripeResponse<StripeBillingPortalSession>> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
@@ -355,7 +385,7 @@ export class StripeService {
     }
   }
 
-  public async getPrice(stripePriceId: string): Promise<Stripe.Price> {
+  public async getPrice(stripePriceId: string): Promise<StripePrice> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
@@ -404,7 +434,7 @@ export class StripeService {
     origin: string,
     quantity: number = 1000,
     redirectUrls?: { success: string; cancel: string },
-  ): Promise<Stripe.Checkout.Session> {
+  ): Promise<StripeCheckoutSession> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
@@ -422,7 +452,7 @@ export class StripeService {
       const isPayg =
         stripePriceId === this.configService.get('STRIPE_PRICE_PAYG');
 
-      let sessionConfig: Stripe.Checkout.SessionCreateParams;
+      let sessionConfig: StripeCheckoutSessionCreateParams;
 
       if (isSubscription) {
         // Determine tier from price ID for metadata
@@ -571,7 +601,7 @@ export class StripeService {
   public async cancelSubscription(
     stripeSubscriptionId: string,
     cancelAtPeriodEnd: boolean = true,
-  ): Promise<Stripe.Subscription> {
+  ): Promise<StripeSubscription> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
@@ -597,7 +627,7 @@ export class StripeService {
     stripeSubscriptionId: string,
     newPriceId: string,
     prorationBehavior: 'create_prorations' | 'none' = 'create_prorations',
-  ): Promise<Stripe.Subscription> {
+  ): Promise<StripeSubscription> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
@@ -645,7 +675,7 @@ export class StripeService {
 
   public async getSubscription(
     stripeSubscriptionId: string,
-  ): Promise<Stripe.Subscription> {
+  ): Promise<StripeSubscription> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {

@@ -1,4 +1,5 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import {
   baseModelKey,
@@ -181,15 +182,7 @@ export class CreditsGuard implements CanActivate {
       }
 
       // Hoisted model reference for BYOK provider resolution
-      let resolvedModel: {
-        provider?: string;
-        cost?: number;
-        pricingType?: PricingType;
-        costPerUnit?: number;
-        minCost?: number;
-        label?: string;
-        key?: string;
-      } | null = null;
+      let resolvedModel: ModelDocument | null = null;
 
       // Determine credits required: from model in body, modelKey in decorator, or fixed amount
       if (modelKey) {
@@ -655,7 +648,7 @@ export class CreditsGuard implements CanActivate {
   private calculateDynamicCost(
     model: {
       cost?: number;
-      pricingType?: PricingType;
+      pricingType?: PricingType | 'per-token';
       costPerUnit?: number;
       minCost?: number;
     },

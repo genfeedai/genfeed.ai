@@ -69,6 +69,13 @@ function isValidObjectId(id: unknown): id is string {
   return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
 }
 
+interface UploadedBinaryFile {
+  buffer: Buffer;
+  mimetype: string;
+  originalname: string;
+  size: number;
+}
+
 @AutoSwagger()
 @Controller('assets')
 @UseGuards(RolesGuard)
@@ -229,14 +236,12 @@ export class AssetsOperationsController {
       { isDeleted: true },
     );
 
-    const assetData = await this.assetsService.create(
-      new AssetEntity({
-        category,
-        parent: parentId,
-        parentModel: generateAssetDto.parentModel,
-        user: publicMetadata.user,
-      }),
-    );
+    const assetData = await this.assetsService.create({
+      category,
+      parent: parentId,
+      parentModel: generateAssetDto.parentModel,
+      user: publicMetadata.user,
+    } as unknown as CreateAssetDto);
 
     const { input: promptParams } = await this.promptBuilderService.buildPrompt(
       selectedModel as string,
@@ -246,7 +251,7 @@ export class AssetsOperationsController {
               label: brand.label,
               primaryColor: brand.primaryColor,
               secondaryColor: brand.secondaryColor,
-              text: brand.text,
+              text: brand.text ?? undefined,
             }
           : undefined,
         height,
@@ -292,20 +297,25 @@ export class AssetsOperationsController {
   async createUpload(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file: UploadedBinaryFile,
     @Body() uploadDto: CreateAssetDto,
   ): Promise<JsonApiSingleResponse> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${url} started`, { category: uploadDto.category });
 
     // Validate file upload
-    const validatedFile = InputValidationUtil.validateFileUpload(file, 'file', {
-      allowedExtensions:
-        this.validationConfigService.getAllowedImageExtensions(),
-      allowedMimeTypes: this.validationConfigService.getAllowedImageMimeTypes(),
-      required: true,
-      validationConfig: this.validationConfigService,
-    });
+    const validatedFile = InputValidationUtil.validateFileUpload(
+      file as Express.Multer.File,
+      'file',
+      {
+        allowedExtensions:
+          this.validationConfigService.getAllowedImageExtensions(),
+        allowedMimeTypes:
+          this.validationConfigService.getAllowedImageMimeTypes(),
+        required: true,
+        validationConfig: this.validationConfigService,
+      },
+    );
 
     if (!validatedFile) {
       throw new ValidationException('File is required');
@@ -366,7 +376,7 @@ export class AssetsOperationsController {
       }
 
       const assetData = await this.assetsService.create(
-        new AssetEntity(entityData),
+        entityData as unknown as CreateAssetDto,
       );
 
       this.loggerService.log(`${url} - Asset created successfully`, {
@@ -473,7 +483,7 @@ export class AssetsOperationsController {
       return returnNotFound('Ingredient', validatedIngredientId);
     }
 
-    if (ingredient.category !== IngredientCategory.IMAGE) {
+    if (String(ingredient.category) !== IngredientCategory.IMAGE) {
       throw new ValidationException('Only images can be set as logo or banner');
     }
 
@@ -504,14 +514,12 @@ export class AssetsOperationsController {
       { isDeleted: true },
     );
 
-    const assetData = await this.assetsService.create(
-      new AssetEntity({
-        category: validatedCategory,
-        parent: parentObjectId,
-        parentModel: AssetParent.BRAND,
-        user: publicMetadata.user,
-      }),
-    );
+    const assetData = await this.assetsService.create({
+      category: validatedCategory,
+      parent: parentObjectId,
+      parentModel: AssetParent.BRAND,
+      user: publicMetadata.user,
+    } as unknown as CreateAssetDto);
 
     const destinationKey = `ingredients/${validatedCategory}s/${assetData._id}`;
 

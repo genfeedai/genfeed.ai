@@ -5,7 +5,12 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { SubscriptionStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import Stripe from 'stripe';
+import StripeConstructor from 'stripe';
+
+type StripeClient = InstanceType<typeof StripeConstructor>;
+type CheckoutSession = Awaited<
+  ReturnType<StripeClient['checkout']['sessions']['create']>
+>;
 
 @Injectable()
 export class UserSubscriptionsService {
@@ -74,7 +79,7 @@ export class UserSubscriptionsService {
   @HandleErrors('update from stripe session', 'user-subscriptions')
   async updateFromStripeSession(
     userId: string,
-    session: Stripe.Checkout.Session,
+    session: CheckoutSession,
   ): Promise<UserSubscriptionDocument | null> {
     const subscription = await this.findByUser(userId);
 
@@ -94,7 +99,7 @@ export class UserSubscriptionsService {
 
     const result = await this.prisma.userSubscription.update({
       data: updateData as never,
-      where: { id: String(subscription._id) },
+      where: { id: subscription.id },
     });
     return result as unknown as UserSubscriptionDocument;
   }
@@ -124,7 +129,7 @@ export class UserSubscriptionsService {
 
     const result = await this.prisma.userSubscription.update({
       data: updateData as never,
-      where: { id: String(subscription._id) },
+      where: { id: subscription.id },
     });
     return result as unknown as UserSubscriptionDocument;
   }

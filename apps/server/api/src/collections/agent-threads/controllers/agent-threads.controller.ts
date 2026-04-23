@@ -173,10 +173,10 @@ export class AgentThreadsController {
       const dbUserId = await this.resolveMongoUserId(user);
       const message = await this.agentMessagesService.addMessage({
         content: body.content,
-        organization: organizationId,
+        organizationId,
         role: (body.role as AgentMessageRole) || AgentMessageRole.USER,
         room: threadId,
-        user: dbUserId,
+        userId: dbUserId,
       });
 
       return serializeSingle(req, ThreadMessageSerializer, message);

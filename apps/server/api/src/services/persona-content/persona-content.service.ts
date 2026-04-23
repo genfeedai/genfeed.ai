@@ -50,22 +50,44 @@ export class PersonaContentService {
     private readonly elevenLabsService: ElevenLabsService,
   ) {}
 
+  private readString(value: unknown): string | undefined {
+    return typeof value === 'string' && value.length > 0 ? value : undefined;
+  }
+
+  private requireString(value: unknown, label: string): string {
+    const stringValue = this.readString(value);
+
+    if (!stringValue) {
+      throw new Error(`${label} is required`);
+    }
+
+    return stringValue;
+  }
+
   async generatePhoto(input: GeneratePhotoInput): Promise<GenerationResult> {
     const caller = CallerUtil.getCallerName();
     const persona = await this.getPersonaOrFail(
       input.personaId,
       input.organization,
     );
+    const metadataId = String(persona._id);
+    const organizationId = String(input.organization);
+    const userId = String(input.user);
+    const avatarExternalId = this.requireString(
+      persona.avatarExternalId,
+      'Persona avatarExternalId',
+    );
 
     try {
       if (persona.avatarProvider === AvatarProvider.HEDRA) {
         const jobId = await this.hedraService.generateCharacterWithText(
-          undefined as unknown,
+          metadataId,
           input.prompt ?? '',
-          persona.avatarExternalId ?? '',
+          avatarExternalId,
+          this.readString(persona.voiceExternalId),
           '1:1',
-          String(input.organization),
-          String(input.user),
+          organizationId,
+          userId,
         );
 
         return {
@@ -76,12 +98,19 @@ export class PersonaContentService {
       }
 
       const url = await this.heyGenService.generatePhotoAvatarVideo(
-        undefined as unknown,
-        persona.avatarExternalId ?? '',
-        persona.voiceExternalId ?? '',
-        input.prompt ?? '',
-        String(input.organization),
-        String(input.user),
+        metadataId,
+        avatarExternalId,
+        {
+          inputText: input.prompt ?? '',
+          voiceId: this.requireString(
+            persona.voiceExternalId,
+            'Persona voiceExternalId',
+          ),
+        },
+        organizationId,
+        userId,
+        undefined,
+        '1:1',
       );
 
       return {
@@ -108,16 +137,24 @@ export class PersonaContentService {
       input.personaId,
       input.organization,
     );
+    const metadataId = String(persona._id);
+    const organizationId = String(input.organization);
+    const userId = String(input.user);
+    const avatarExternalId = this.requireString(
+      persona.avatarExternalId,
+      'Persona avatarExternalId',
+    );
 
     try {
       if (persona.avatarProvider === AvatarProvider.HEDRA) {
         const jobId = await this.hedraService.generateCharacterWithText(
-          undefined as unknown,
+          metadataId,
           input.script,
-          persona.avatarExternalId ?? '',
+          avatarExternalId,
+          this.readString(persona.voiceExternalId),
           input.aspectRatio ?? '16:9',
-          String(input.organization),
-          String(input.user),
+          organizationId,
+          userId,
         );
 
         return {
@@ -128,12 +165,12 @@ export class PersonaContentService {
       }
 
       const jobId = await this.heyGenService.generateAvatarVideo(
-        undefined as unknown,
-        persona.avatarExternalId ?? '',
-        persona.voiceExternalId ?? '',
+        metadataId,
+        avatarExternalId,
+        this.requireString(persona.voiceExternalId, 'Persona voiceExternalId'),
         input.script,
-        String(input.organization),
-        String(input.user),
+        organizationId,
+        userId,
       );
 
       return {
@@ -160,20 +197,22 @@ export class PersonaContentService {
       input.personaId,
       input.organization,
     );
+    const metadataId = String(persona._id);
+    const organizationId = String(input.organization);
+    const userId = String(input.user);
+    const voiceExternalId = this.readString(persona.voiceExternalId);
 
     try {
       if (
         persona.voiceProvider === VoiceProvider.ELEVENLABS &&
-        persona.voiceExternalId
+        voiceExternalId
       ) {
         const result = await this.elevenLabsService.generateAndUploadAudio(
-          persona.voiceExternalId,
+          voiceExternalId,
           input.text,
-          input.ingredientId
-            ? String(input.ingredientId)
-            : (undefined as unknown),
-          String(input.organization),
-          String(input.user),
+          input.ingredientId ? String(input.ingredientId) : metadataId,
+          organizationId,
+          userId,
         );
 
         return {
@@ -183,17 +222,17 @@ export class PersonaContentService {
         };
       }
 
-      if (
-        persona.voiceProvider === VoiceProvider.HEYGEN &&
-        persona.voiceExternalId
-      ) {
+      if (persona.voiceProvider === VoiceProvider.HEYGEN && voiceExternalId) {
         const result = await this.heyGenService.generateAvatarVideo(
-          undefined as unknown,
-          persona.avatarExternalId ?? '',
-          persona.voiceExternalId,
+          metadataId,
+          this.requireString(
+            persona.avatarExternalId,
+            'Persona avatarExternalId',
+          ),
+          voiceExternalId,
           input.text,
-          String(input.organization),
-          String(input.user),
+          organizationId,
+          userId,
         );
 
         return {

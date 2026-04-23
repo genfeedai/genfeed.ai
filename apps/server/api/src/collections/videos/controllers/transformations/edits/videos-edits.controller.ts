@@ -61,6 +61,14 @@ export class VideosEditsController {
     private readonly websocketService: NotificationsPublisherService,
   ) {}
 
+  private requireOutputPath(value: unknown): string {
+    if (typeof value !== 'string' || value.length === 0) {
+      throw new Error('Video processing result missing outputPath');
+    }
+
+    return value;
+  }
+
   @Post(':videoId/trim')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async trimVideo(
@@ -128,7 +136,7 @@ export class VideosEditsController {
             job.jobId,
             60000,
           );
-          const output = result.outputPath;
+          const output = this.requireOutputPath(result.outputPath);
           const meta = await this.filesClientService.uploadToS3(
             ingredientData._id,
             `videos`,
@@ -269,7 +277,7 @@ export class VideosEditsController {
             job.jobId,
             60000,
           );
-          const output = result.outputPath;
+          const output = this.requireOutputPath(result.outputPath);
           const meta = await this.filesClientService.uploadToS3(
             ingredientData._id,
             `videos`,

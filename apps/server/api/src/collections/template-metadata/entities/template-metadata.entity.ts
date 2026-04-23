@@ -6,6 +6,10 @@ export class TemplateMetadataEntity
   extends BaseEntity
   implements TemplateMetadata
 {
+  id!: string;
+  mongoId!: string | null;
+  templateId!: string;
+  data!: TemplateMetadata['data'];
   template!: string;
   estimatedTime?: number;
   difficulty?: TemplateDifficulty;

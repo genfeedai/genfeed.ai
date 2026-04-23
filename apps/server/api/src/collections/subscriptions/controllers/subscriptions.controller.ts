@@ -187,10 +187,17 @@ export class SubscriptionsController {
       ]);
 
       let planLimit = 0;
-      if (subscription?.type === SubscriptionPlan.YEARLY) {
+      const subscriptionPlan =
+        typeof subscription?.type === 'string'
+          ? subscription.type
+          : typeof subscription?.plan === 'string'
+            ? subscription.plan
+            : undefined;
+
+      if (subscriptionPlan === SubscriptionPlan.YEARLY) {
         planLimit =
           Number(this.configService.get('STRIPE_YEARLY_CREDITS')) || 500_000;
-      } else if (subscription?.type === SubscriptionPlan.MONTHLY) {
+      } else if (subscriptionPlan === SubscriptionPlan.MONTHLY) {
         planLimit =
           Number(this.configService.get('STRIPE_MONTHLY_CREDITS')) || 35_000;
       }
@@ -232,23 +239,25 @@ export class SubscriptionsController {
 
   private getCycleWindow(
     subscription: {
-      type?: SubscriptionPlan;
-      currentPeriodEnd?: Date;
+      currentPeriodEnd?: Date | null;
+      plan?: string | null;
+      type?: string | null;
     } | null,
   ): { cycleStartAt: Date; cycleEndAt: Date } | null {
-    if (!subscription?.currentPeriodEnd || !subscription.type) {
+    const subscriptionPlan = subscription?.type ?? subscription?.plan;
+    if (!subscription?.currentPeriodEnd || !subscriptionPlan) {
       return null;
     }
 
     const cycleEndAt = new Date(subscription.currentPeriodEnd);
     const cycleStartAt = new Date(cycleEndAt);
 
-    if (subscription.type === SubscriptionPlan.MONTHLY) {
+    if (subscriptionPlan === SubscriptionPlan.MONTHLY) {
       cycleStartAt.setMonth(cycleStartAt.getMonth() - 1);
       return { cycleEndAt, cycleStartAt };
     }
 
-    if (subscription.type === SubscriptionPlan.YEARLY) {
+    if (subscriptionPlan === SubscriptionPlan.YEARLY) {
       cycleStartAt.setFullYear(cycleStartAt.getFullYear() - 1);
       return { cycleEndAt, cycleStartAt };
     }

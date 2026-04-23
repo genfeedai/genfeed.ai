@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsOptional, IsString } from 'class-validator';
 
 export class CreateUserDto {
   @IsOptional()
@@ -42,4 +42,12 @@ export class CreateUserDto {
     required: false,
   })
   readonly avatar?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  @ApiProperty({
+    description: 'Whether the user was pre-created from an invitation flow',
+    required: false,
+  })
+  readonly isInvited?: boolean;
 }

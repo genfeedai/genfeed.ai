@@ -9,31 +9,30 @@
  * - Credit balance
  * - Member record
  */
-import { BrandEntity } from '@api/collections/brands/entities/brand.entity';
+import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { MemberEntity } from '@api/collections/members/entities/member.entity';
+import type { MemberDocument } from '@api/collections/members/schemas/member.schema';
 import { MembersService } from '@api/collections/members/services/members.service';
-import { OrganizationSettingEntity } from '@api/collections/organization-settings/entities/organization-setting.entity';
+import type { OrganizationSettingDocument } from '@api/collections/organization-settings/schemas/organization-setting.schema';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import { OrganizationEntity } from '@api/collections/organizations/entities/organization.entity';
+import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { RolesService } from '@api/collections/roles/services/roles.service';
-import { SettingEntity } from '@api/collections/settings/entities/setting.entity';
+import type { SettingDocument } from '@api/collections/settings/schemas/setting.schema';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
-import { generateLabel } from '@api/shared/utils/label/label.util';
 import { OrganizationCategory } from '@genfeedai/enums';
 import { ONBOARDING_SIGNUP_GIFT_CREDITS } from '@genfeedai/types';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
 export interface UserSetupResult {
-  organization: OrganizationEntity;
-  organizationSettings: OrganizationSettingEntity;
-  userSettings: SettingEntity;
-  brand: BrandEntity;
-  member: MemberEntity;
+  organization: OrganizationDocument;
+  organizationSettings: OrganizationSettingDocument;
+  userSettings: SettingDocument;
+  brand: BrandDocument;
+  member: MemberDocument;
 }
 
 @Injectable()
@@ -64,11 +63,11 @@ export class UserSetupService {
     userId: string,
     category?: OrganizationCategory,
   ): Promise<UserSetupResult> {
-    let organization: OrganizationEntity | null = null;
-    let organizationSettings: OrganizationSettingEntity | null = null;
-    let userSettings: SettingEntity | null = null;
-    let brand: BrandEntity | null = null;
-    let member: MemberEntity | null = null;
+    let organization: OrganizationDocument | null = null;
+    let organizationSettings: OrganizationSettingDocument | null = null;
+    let userSettings: SettingDocument | null = null;
+    let brand: BrandDocument | null = null;
+    let member: MemberDocument | null = null;
     try {
       // Step 1: Create organization (REQUIRED - cascading failure)
       const organizationResult = await this.getOrCreateOrganization(
@@ -137,7 +136,7 @@ export class UserSetupService {
   private async getOrCreateOrganization(
     userId: string,
     category?: OrganizationCategory,
-  ): Promise<{ organization: OrganizationEntity; wasCreated: boolean }> {
+  ): Promise<{ organization: OrganizationDocument; wasCreated: boolean }> {
     const existing = await this.organizationsService.findOne({
       isDeleted: false,
       user: userId,
@@ -156,15 +155,13 @@ export class UserSetupService {
     const label = 'Default Organization';
     const slug = await this.organizationsService.generateUniqueSlug(label);
 
-    const organization = await this.organizationsService.create(
-      new OrganizationEntity({
-        category: category || OrganizationCategory.BUSINESS,
-        isSelected: true,
-        label,
-        slug,
-        user: userId,
-      }),
-    );
+    const organization = await this.organizationsService.create({
+      category: category || OrganizationCategory.BUSINESS,
+      isSelected: true,
+      label,
+      slug,
+      userId,
+    } as unknown as Parameters<typeof this.organizationsService.create>[0]);
 
     if (!organization?._id) {
       throw new Error(
@@ -210,7 +207,7 @@ export class UserSetupService {
 
   private async getOrCreateOrganizationSettings(
     organizationId: string,
-  ): Promise<OrganizationSettingEntity> {
+  ): Promise<OrganizationSettingDocument> {
     const existing = await this.organizationSettingsService.findOne({
       isDeleted: false,
       organization: organizationId,
@@ -227,29 +224,29 @@ export class UserSetupService {
     const enabledModelIds =
       await this.organizationSettingsService.getLatestMajorVersionModelIds();
 
-    const orgSettings = await this.organizationSettingsService.create(
-      new OrganizationSettingEntity({
-        brandsLimit: 5,
-        enabledModels: enabledModelIds,
-        isAutoEvaluateEnabled: false,
-        isGenerateArticlesEnabled: false,
-        isGenerateImagesEnabled: true,
-        isGenerateMusicEnabled: true,
-        isGenerateVideosEnabled: true,
-        isNotificationsDiscordEnabled: false,
-        isNotificationsEmailEnabled: true,
-        isVerifyIngredientEnabled: true,
-        isVerifyScriptEnabled: true,
-        isVerifyVideoEnabled: true,
-        isVoiceControlEnabled: false,
-        isWatermarkEnabled: true,
-        isWebhookEnabled: false,
-        isWhitelabelEnabled: false,
-        organization: organizationId,
-        seatsLimit: 3,
-        timezone: 'UTC',
-      }),
-    );
+    const orgSettings = await this.organizationSettingsService.create({
+      brandsLimit: 5,
+      enabledModels: enabledModelIds,
+      isAutoEvaluateEnabled: false,
+      isGenerateArticlesEnabled: false,
+      isGenerateImagesEnabled: true,
+      isGenerateMusicEnabled: true,
+      isGenerateVideosEnabled: true,
+      isNotificationsDiscordEnabled: false,
+      isNotificationsEmailEnabled: true,
+      isVerifyIngredientEnabled: true,
+      isVerifyScriptEnabled: true,
+      isVerifyVideoEnabled: true,
+      isVoiceControlEnabled: false,
+      isWatermarkEnabled: true,
+      isWebhookEnabled: false,
+      isWhitelabelEnabled: false,
+      organizationId,
+      seatsLimit: 3,
+      timezone: 'UTC',
+    } as unknown as Parameters<
+      typeof this.organizationSettingsService.create
+    >[0]);
 
     this.logger.log(
       `Created organization settings ${orgSettings._id} with ${enabledModelIds.length} enabled models`,
@@ -261,7 +258,7 @@ export class UserSetupService {
 
   private async getOrCreateUserSettings(
     userId: string,
-  ): Promise<SettingEntity> {
+  ): Promise<SettingDocument> {
     const existing = await this.settingsService.findOne({
       isDeleted: false,
       user: userId,
@@ -275,18 +272,16 @@ export class UserSetupService {
       return existing;
     }
 
-    const settings = await this.settingsService.create(
-      new SettingEntity({
-        favoriteModelKeys: [],
-        isAdvancedMode: true,
-        isFirstLogin: true,
-        isMenuCollapsed: false,
-        isSidebarProgressCollapsed: false,
-        isVerified: false,
-        theme: 'dark',
-        user: userId,
-      }),
-    );
+    const settings = await this.settingsService.create({
+      favoriteModelKeys: [],
+      isAdvancedMode: true,
+      isFirstLogin: true,
+      isMenuCollapsed: false,
+      isSidebarProgressCollapsed: false,
+      isVerified: false,
+      theme: 'dark',
+      userId,
+    } as unknown as Parameters<typeof this.settingsService.create>[0]);
 
     this.logger.log(`Created user settings for user ${userId}`, this.context);
 
@@ -296,7 +291,7 @@ export class UserSetupService {
   private async getOrCreateBrand(
     organizationId: string,
     userId: string,
-  ): Promise<BrandEntity> {
+  ): Promise<BrandDocument> {
     const existing = await this.brandsService.findOne({
       isDeleted: false,
       organization: organizationId,
@@ -310,21 +305,18 @@ export class UserSetupService {
       return existing;
     }
 
-    const brand = await this.brandsService.create(
-      new BrandEntity({
-        backgroundColor: '#000000',
-        description: 'Default description. Use it as a pre-prompt',
-        fontFamily: 'montserrat-black',
-        handle: generateLabel('brand'),
-        isSelected: true,
-        label: 'Default Organization',
-        organization: organizationId,
-        primaryColor: '#000000',
-        secondaryColor: '#FFFFFF',
-        slug: 'default',
-        user: userId,
-      }),
-    );
+    const brand = await this.brandsService.create({
+      backgroundColor: '#000000',
+      description: 'Default description. Use it as a pre-prompt',
+      fontFamily: 'montserrat-black',
+      isSelected: true,
+      label: 'Default Organization',
+      organizationId,
+      primaryColor: '#000000',
+      secondaryColor: '#FFFFFF',
+      slug: 'default',
+      userId,
+    } as unknown as Parameters<typeof this.brandsService.create>[0]);
 
     this.logger.log(
       `Created brand ${brand._id} for organization ${organizationId}`,
@@ -337,7 +329,7 @@ export class UserSetupService {
   private async getOrCreateMember(
     organizationId: string,
     userId: string,
-  ): Promise<MemberEntity> {
+  ): Promise<MemberDocument> {
     const existing = await this.membersService.findOne({
       isDeleted: false,
       organization: organizationId,
@@ -371,14 +363,12 @@ export class UserSetupService {
       );
     }
 
-    const member = await this.membersService.create(
-      new MemberEntity({
-        isActive: true,
-        organization: organizationId,
-        role: roleToAssign._id,
-        user: userId,
-      }),
-    );
+    const member = await this.membersService.create({
+      isActive: true,
+      organizationId,
+      roleId: String(roleToAssign._id),
+      userId,
+    } as unknown as Parameters<typeof this.membersService.create>[0]);
 
     this.logger.log(
       `Created member for user ${userId} in organization ${organizationId} with role ${roleToAssign.key}`,

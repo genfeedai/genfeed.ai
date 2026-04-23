@@ -49,7 +49,6 @@ export class MemberCreditsGuard extends CreditsGuard implements CanActivate {
       publicMetadata.organization;
 
     const settings = await this.organizationSettingsService.findOne({
-      // @ts-expect-error TS2769
       organization: organizationId,
     });
 
@@ -62,7 +61,6 @@ export class MemberCreditsGuard extends CreditsGuard implements CanActivate {
         {
           $match: {
             isDeleted: false,
-            // @ts-expect-error TS2769
             organization: organizationId,
           },
         },

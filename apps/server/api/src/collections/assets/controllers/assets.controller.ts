@@ -239,7 +239,7 @@ export class AssetsController {
       userId &&
       updatedAsset &&
       [AssetCategory.LOGO, AssetCategory.BANNER].includes(
-        updatedAsset.category,
+        String(updatedAsset.category).toLowerCase() as AssetCategory,
       ) &&
       updatedAsset.parent
     ) {
@@ -249,7 +249,9 @@ export class AssetsController {
         {
           action: 'updated',
           assetId: updatedAsset._id.toString(),
-          category: updatedAsset.category,
+          category: String(
+            updatedAsset.category,
+          ).toLowerCase() as AssetCategory,
         },
       );
     }

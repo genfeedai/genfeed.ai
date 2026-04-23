@@ -1,10 +1,7 @@
 import { CreatePresetDto } from '@api/collections/presets/dto/create-preset.dto';
 import { PresetsQueryDto } from '@api/collections/presets/dto/presets-query.dto';
 import { UpdatePresetDto } from '@api/collections/presets/dto/update-preset.dto';
-import {
-  Preset,
-  type PresetDocument,
-} from '@api/collections/presets/schemas/preset.schema';
+import { type PresetDocument } from '@api/collections/presets/schemas/preset.schema';
 import { PresetsService } from '@api/collections/presets/services/presets.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -103,7 +100,10 @@ export class PresetsController extends BaseCRUDController<
     createDto: CreatePresetDto,
     user: User,
   ): CreatePresetDto {
-    return PresetFilterUtil.enrichPresetDto(createDto, user);
+    return PresetFilterUtil.enrichPresetDto(
+      createDto as unknown as Record<string, unknown>,
+      user,
+    ) as unknown as CreatePresetDto;
   }
 
   /**
@@ -113,7 +113,10 @@ export class PresetsController extends BaseCRUDController<
    * Uses PresetFilterUtil for consistent permission logic
    */
   public canUserModifyEntity(user: User, entity: unknown): boolean {
-    return PresetFilterUtil.canUserModifyPreset(user, entity);
+    return PresetFilterUtil.canUserModifyPreset(
+      user,
+      entity as { organization?: string | null },
+    );
   }
 
   @Post()

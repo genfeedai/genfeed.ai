@@ -77,6 +77,13 @@ interface DarkroomIngestResult {
   uploadedCount: number;
 }
 
+interface DarkroomSourceRecord extends Record<string, unknown> {
+  enabled: boolean;
+  handle: string;
+  lastIngestedAt?: Date;
+  platform: ContentIntelligencePlatform;
+}
+
 @Injectable()
 export class DarkroomService {
   private readonly constructorName: string = String(this.constructor.name);
@@ -110,6 +117,110 @@ export class DarkroomService {
 
     this.ec2Client = new EC2Client({ credentials, region });
     this.cloudFrontClient = new CloudFrontClient({ credentials, region });
+  }
+
+  private readObjectRecord(
+    value: unknown,
+  ): Record<string, unknown> | undefined {
+    return typeof value === 'object' && value !== null
+      ? (value as Record<string, unknown>)
+      : undefined;
+  }
+
+  private readNumber(value: unknown): number | undefined {
+    return typeof value === 'number' && Number.isFinite(value)
+      ? value
+      : undefined;
+  }
+
+  private readString(value: unknown): string | undefined {
+    return typeof value === 'string' && value.length > 0 ? value : undefined;
+  }
+
+  private readReferenceId(value: unknown): string | undefined {
+    if (typeof value === 'string' && value.length > 0) {
+      return value;
+    }
+
+    const record = this.readObjectRecord(value);
+    const nestedId =
+      this.readString(record?._id) ??
+      this.readString(record?.id) ??
+      this.readString(record?.mongoId);
+
+    if (nestedId) {
+      return nestedId;
+    }
+
+    if (
+      value &&
+      typeof value === 'object' &&
+      'toString' in (value as object) &&
+      typeof (value as { toString: () => string }).toString === 'function'
+    ) {
+      const stringified = (value as { toString: () => string }).toString();
+      return stringified !== '[object Object]' ? stringified : undefined;
+    }
+
+    return undefined;
+  }
+
+  private readPlatform(
+    value: unknown,
+  ): ContentIntelligencePlatform | undefined {
+    switch (this.readString(value)) {
+      case ContentIntelligencePlatform.INSTAGRAM:
+        return ContentIntelligencePlatform.INSTAGRAM;
+      case ContentIntelligencePlatform.LINKEDIN:
+        return ContentIntelligencePlatform.LINKEDIN;
+      case ContentIntelligencePlatform.TIKTOK:
+        return ContentIntelligencePlatform.TIKTOK;
+      case ContentIntelligencePlatform.TWITTER:
+        return ContentIntelligencePlatform.TWITTER;
+      default:
+        return undefined;
+    }
+  }
+
+  private getEnabledDarkroomSources(
+    persona: PersonaDocument,
+  ): DarkroomSourceRecord[] {
+    const sources = Array.isArray(persona.darkroomSources)
+      ? persona.darkroomSources
+      : [];
+
+    return sources.flatMap((source) => {
+      const record = this.readObjectRecord(source);
+      const handle = this.readString(record?.handle);
+      const platform = this.readPlatform(record?.platform);
+
+      if (!record || record.enabled !== true || !handle || !platform) {
+        return [];
+      }
+
+      return [record as DarkroomSourceRecord];
+    });
+  }
+
+  private hasIngredientCategory(
+    value: unknown,
+    expected: IngredientCategory,
+  ): boolean {
+    return this.readString(value) === expected;
+  }
+
+  private hasIngredientStatus(
+    value: unknown,
+    expected: IngredientStatus,
+  ): boolean {
+    return this.readString(value) === expected;
+  }
+
+  private hasReviewStatus(
+    value: unknown,
+    expected: DarkroomReviewStatusEnum,
+  ): boolean {
+    return this.readString(value) === expected;
   }
 
   /**
@@ -268,10 +379,13 @@ export class DarkroomService {
 
     if (
       reviewStatus === DarkroomReviewStatusEnum.APPROVED &&
-      ingredient.reviewStatus !== DarkroomReviewStatusEnum.APPROVED &&
+      !this.hasReviewStatus(
+        ingredient.reviewStatus,
+        DarkroomReviewStatusEnum.APPROVED,
+      ) &&
       ingredient.personaSlug &&
       ingredient.cdnUrl &&
-      ingredient.category === IngredientCategory.IMAGE
+      this.hasIngredientCategory(ingredient.category, IngredientCategory.IMAGE)
     ) {
       await this.syncApprovedAssetToDataset(
         organizationId,
@@ -372,11 +486,11 @@ export class DarkroomService {
     }
 
     // Auto-tune hyperparameters based on dataset size
-    // @ts-expect-error TS2352
     const imageCount =
-      (persona as Record<string, unknown>).selectedImagesCount ?? 20;
+      this.readNumber(
+        (persona as Record<string, unknown>).selectedImagesCount,
+      ) ?? 20;
     const autoTuned =
-      // @ts-expect-error TS2345
       this.darkroomTrainingService.autoTuneHyperparameters(imageCount);
 
     const steps = data.steps ?? autoTuned.steps;
@@ -739,7 +853,12 @@ export class DarkroomService {
       );
     }
 
-    if (ingredient.reviewStatus !== DarkroomReviewStatusEnum.APPROVED) {
+    if (
+      !this.hasReviewStatus(
+        ingredient.reviewStatus,
+        DarkroomReviewStatusEnum.APPROVED,
+      )
+    ) {
       throw new BadRequestException(
         `Asset must be approved before publishing (current status: ${ingredient.reviewStatus})`,
       );
@@ -1086,10 +1205,7 @@ export class DarkroomService {
     const failed: DarkroomIngestFailure[] = [];
 
     for (const persona of personas) {
-      const brandId =
-        typeof persona.brand === 'string'
-          ? persona.brand
-          : persona.brand?.toString();
+      const brandId = this.readReferenceId(persona.brand);
 
       if (!brandId) {
         continue;
@@ -1262,7 +1378,7 @@ export class DarkroomService {
 
       clearInterval(pulse);
       await this.updateGenerationJob(jobId, {
-        cdnUrl: ingredient.cdnUrl,
+        cdnUrl: ingredient.cdnUrl ?? undefined,
         ingredientId: ingredient._id.toString(),
         progress: 100,
         stage: 'completed',
@@ -1303,22 +1419,24 @@ export class DarkroomService {
     ingredient: IngredientDocument,
   ): DarkroomGenerationJob {
     const stage = ingredient.generationStage ?? 'queued';
-    const status =
-      ingredient.status === IngredientStatus.FAILED
-        ? 'failed'
-        : ingredient.status === IngredientStatus.GENERATED
-          ? 'completed'
-          : stage === 'queued'
-            ? 'queued'
-            : stage === 'uploading'
-              ? 'uploading'
-              : 'processing';
+    const status = this.hasIngredientStatus(
+      ingredient.status,
+      IngredientStatus.FAILED,
+    )
+      ? 'failed'
+      : this.hasIngredientStatus(ingredient.status, IngredientStatus.GENERATED)
+        ? 'completed'
+        : stage === 'queued'
+          ? 'queued'
+          : stage === 'uploading'
+            ? 'uploading'
+            : 'processing';
 
     return {
-      cdnUrl: ingredient.cdnUrl,
+      cdnUrl: ingredient.cdnUrl ?? undefined,
       createdAt:
         ingredient.createdAt?.toISOString() ?? new Date().toISOString(),
-      error: ingredient.generationError,
+      error: ingredient.generationError ?? undefined,
       ingredientId: ingredient._id.toString(),
       jobId: ingredient._id.toString(),
       model: ingredient.modelUsed ?? ingredient.generationSource ?? '',
@@ -1349,66 +1467,75 @@ export class DarkroomService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(caller, { organizationId });
 
-    const orgId = ObjectIdUtil.toObjectId(organizationId);
-
-    // Aggregate campaigns from ingredients collection
-    const campaigns = await this.ingredientsService.model.aggregate([
-      {
-        $match: {
-          campaign: { $exists: true, $ne: null },
+    const campaignGroups =
+      await this.ingredientsService.prisma.ingredient.groupBy({
+        _count: { id: true },
+        _min: { createdAt: true },
+        by: ['campaign', 'reviewStatus'],
+        orderBy: { campaign: 'asc' },
+        where: {
+          campaign: { not: null },
           isDeleted: false,
-          organization: orgId,
+          organizationId,
+          personaId: { not: null },
         },
-      },
-      {
-        $group: {
-          _id: '$campaign',
-          approvedCount: {
-            $sum: {
-              $cond: [
-                { $eq: ['$reviewStatus', DarkroomReviewStatusEnum.APPROVED] },
-                1,
-                0,
-              ],
-            },
-          },
-          assetCount: { $sum: 1 },
-          createdAt: { $min: '$createdAt' },
-        },
-      },
-      {
-        $project: {
-          _id: 0,
-          approvedCount: 1,
-          assetCount: 1,
-          campaign: '$_id',
-          createdAt: 1,
-        },
-      },
-      {
-        $sort: { campaign: 1 },
-      },
-    ]);
+      });
 
-    return campaigns.map(
-      (campaign: {
+    const campaigns = new Map<
+      string,
+      {
         approvedCount: number;
         assetCount: number;
         campaign: string;
         createdAt?: Date;
-      }) => ({
-        approvedCount: campaign.approvedCount,
-        assetCount: campaign.assetCount,
-        campaign: campaign.campaign,
-        createdAt: (campaign.createdAt ?? new Date(0)).toISOString(),
-        status:
-          campaign.approvedCount === 0
-            ? 'draft'
-            : campaign.approvedCount >= campaign.assetCount
-              ? 'completed'
-              : 'active',
-      }),
-    );
+      }
+    >();
+
+    for (const group of campaignGroups) {
+      if (!group.campaign) {
+        continue;
+      }
+
+      const existing = campaigns.get(group.campaign) ?? {
+        approvedCount: 0,
+        assetCount: 0,
+        campaign: group.campaign,
+        createdAt: group._min.createdAt ?? undefined,
+      };
+
+      existing.assetCount += group._count.id;
+
+      if (
+        this.hasReviewStatus(
+          group.reviewStatus,
+          DarkroomReviewStatusEnum.APPROVED,
+        )
+      ) {
+        existing.approvedCount += group._count.id;
+      }
+
+      if (
+        group._min.createdAt &&
+        (!existing.createdAt || group._min.createdAt < existing.createdAt)
+      ) {
+        existing.createdAt = group._min.createdAt;
+      }
+
+      campaigns.set(group.campaign, existing);
+    }
+
+    return Array.from(campaigns.values()).map((campaign) => ({
+      approvedCount: campaign.approvedCount,
+      assetCount: campaign.assetCount,
+      campaign: campaign.campaign,
+      createdAt: (campaign.createdAt ?? new Date(0)).toISOString(),
+      status:
+        campaign.approvedCount === 0
+          ? 'draft'
+          : campaign.approvedCount >= campaign.assetCount
+            ? 'completed'
+            : 'active',
+    }));
   }
 
   /**
@@ -1428,99 +1555,67 @@ export class DarkroomService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(caller, { organizationId });
 
-    const orgId = ObjectIdUtil.toObjectId(organizationId);
+    const assetWhere = {
+      isDeleted: false,
+      organizationId,
+      personaId: { not: null },
+    } as const;
+    const trainingWhere = {
+      isDeleted: false,
+      organizationId,
+    } as const;
 
-    // Aggregate asset stats
-    const assetStats = await this.ingredientsService.model.aggregate([
-      {
-        $match: {
-          isDeleted: false,
-          organization: orgId,
-          persona: { $exists: true },
-        },
-      },
-      {
-        $facet: {
-          byReviewStatus: [
-            {
-              $group: {
-                _id: '$reviewStatus',
-                count: { $sum: 1 },
-              },
-            },
-          ],
-          byStatus: [
-            {
-              $group: {
-                _id: '$status',
-                count: { $sum: 1 },
-              },
-            },
-          ],
-          total: [
-            {
-              $count: 'count',
-            },
-          ],
-        },
-      },
+    const [
+      assetTotal,
+      assetStatusGroups,
+      assetReviewStatusGroups,
+      trainingTotal,
+      trainingStageGroups,
+    ] = await Promise.all([
+      this.ingredientsService.prisma.ingredient.count({ where: assetWhere }),
+      this.ingredientsService.prisma.ingredient.groupBy({
+        _count: { id: true },
+        by: ['status'],
+        where: assetWhere,
+      }),
+      this.ingredientsService.prisma.ingredient.groupBy({
+        _count: { id: true },
+        by: ['reviewStatus'],
+        where: assetWhere,
+      }),
+      this.trainingsService.prisma.training.count({ where: trainingWhere }),
+      this.trainingsService.prisma.training.groupBy({
+        _count: { id: true },
+        by: ['stage'],
+        where: trainingWhere,
+      }),
     ]);
-
-    // Aggregate training stats
-    const trainingStats = await this.trainingsService.model.aggregate([
-      {
-        $match: {
-          isDeleted: false,
-          organization: orgId,
-        },
-      },
-      {
-        $facet: {
-          byStage: [
-            {
-              $group: {
-                _id: '$stage',
-                count: { $sum: 1 },
-              },
-            },
-          ],
-          total: [
-            {
-              $count: 'count',
-            },
-          ],
-        },
-      },
-    ]);
-
-    // Transform aggregation results
-    const assetResult = assetStats[0] || {};
-    const trainingResult = trainingStats[0] || {};
 
     const byStatus: Record<string, number> = {};
-    for (const item of assetResult.byStatus || []) {
-      byStatus[item._id || 'unknown'] = item.count;
+    for (const item of assetStatusGroups) {
+      byStatus[this.readString(item.status) ?? 'unknown'] = item._count.id;
     }
 
     const byReviewStatus: Record<string, number> = {};
-    for (const item of assetResult.byReviewStatus || []) {
-      byReviewStatus[item._id || 'unknown'] = item.count;
+    for (const item of assetReviewStatusGroups) {
+      byReviewStatus[this.readString(item.reviewStatus) ?? 'unknown'] =
+        item._count.id;
     }
 
     const byStage: Record<string, number> = {};
-    for (const item of trainingResult.byStage || []) {
-      byStage[item._id || 'unknown'] = item.count;
+    for (const item of trainingStageGroups) {
+      byStage[this.readString(item.stage) ?? 'unknown'] = item._count.id;
     }
 
     return {
       assets: {
         byReviewStatus,
         byStatus,
-        total: assetResult.total?.[0]?.count || 0,
+        total: assetTotal,
       },
       trainings: {
         byStage,
-        total: trainingResult.total?.[0]?.count || 0,
+        total: trainingTotal,
       },
     };
   }
@@ -1728,8 +1823,7 @@ export class DarkroomService {
     userId: string,
     persona: PersonaDocument,
   ): Promise<DarkroomIngestResult> {
-    const enabledSources =
-      persona.darkroomSources?.filter((source) => source.enabled) ?? [];
+    const enabledSources = this.getEnabledDarkroomSources(persona);
 
     if (enabledSources.length === 0) {
       return {
@@ -1741,7 +1835,8 @@ export class DarkroomService {
 
     const userObjectId = ObjectIdUtil.toObjectId(userId);
     const organizationObjectId = ObjectIdUtil.toObjectId(organizationId);
-    const brandObjectId = ObjectIdUtil.toObjectId(persona.brand.toString());
+    const brandId = this.readReferenceId(persona.brand);
+    const brandObjectId = brandId ? ObjectIdUtil.toObjectId(brandId) : null;
 
     if (!userObjectId || !organizationObjectId || !brandObjectId) {
       throw new BadRequestException('Invalid darkroom ingest context');
@@ -1901,7 +1996,9 @@ export class DarkroomService {
     });
 
     const s3Keys = [datasetKey];
-    const caption = ingredient.generationPrompt || ingredient.text;
+    const caption =
+      this.readString(ingredient.generationPrompt) ??
+      this.readString(ingredient.text);
     if (caption) {
       const captionKey = `darkroom/datasets/${slug}/${ingredient._id.toString()}.txt`;
       await this.filesClientService.uploadToS3(captionKey, 'images', {
@@ -1915,7 +2012,7 @@ export class DarkroomService {
     await this.darkroomTrainingService.syncDataset(
       slug,
       s3Keys,
-      this.configService.get('DARKROOM_S3_BUCKET') || undefined,
+      this.readString(this.configService.get('DARKROOM_S3_BUCKET')),
     );
 
     await this.ingredientsService.patch(ingredient._id.toString(), {
@@ -1935,7 +2032,7 @@ export class DarkroomService {
       return 'webp';
     }
     if (
-      category === IngredientCategory.VIDEO ||
+      this.hasIngredientCategory(category, IngredientCategory.VIDEO) ||
       normalizedUrl.includes('.mp4')
     ) {
       return 'mp4';
@@ -1968,7 +2065,7 @@ export class DarkroomService {
       organization: organizationId,
     });
 
-    return voiceIngredient?.cdnUrl;
+    return voiceIngredient?.cdnUrl ?? undefined;
   }
 
   private async pollFleetVoiceAudioUrl(

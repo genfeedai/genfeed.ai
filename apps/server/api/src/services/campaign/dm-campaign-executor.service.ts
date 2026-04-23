@@ -20,6 +20,7 @@ import {
   CampaignStatus,
   CampaignTargetStatus,
 } from '@genfeedai/enums';
+import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
@@ -50,6 +51,7 @@ export class DmCampaignExecutorService {
     skipped: number;
   }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    const campaignId = this.getCampaignId(campaign);
 
     const results = {
       failed: 0,
@@ -60,10 +62,7 @@ export class DmCampaignExecutorService {
 
     try {
       const pendingTargets =
-        await this.campaignTargetsService.getPendingTargets(
-          campaign._id.toString(),
-          limit,
-        );
+        await this.campaignTargetsService.getPendingTargets(campaignId, limit);
 
       for (const target of pendingTargets) {
         const result = await this.executeDmTarget(campaign, target);
@@ -86,14 +85,14 @@ export class DmCampaignExecutorService {
       }
 
       this.loggerService.log(`${url} batch complete`, {
-        campaignId: campaign._id,
+        campaignId,
         ...results,
       });
 
       return results;
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, {
-        campaignId: campaign._id,
+        campaignId,
         error,
       });
       throw error;
@@ -112,17 +111,17 @@ export class DmCampaignExecutorService {
     skipReason?: CampaignSkipReason;
   }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    const campaignId = this.getCampaignId(campaign);
+    const targetId = this.getTargetId(target);
 
     try {
       // Check if campaign is still active
       if (campaign.status !== CampaignStatus.ACTIVE) {
         await this.campaignTargetsService.markAsSkipped(
-          target._id.toString(),
+          targetId,
           CampaignSkipReason.CAMPAIGN_PAUSED,
         );
-        await this.campaignsService.incrementSkippedCounter(
-          campaign._id.toString(),
-        );
+        await this.campaignsService.incrementSkippedCounter(campaignId);
         return {
           skipReason: CampaignSkipReason.CAMPAIGN_PAUSED,
           success: false,
@@ -130,23 +129,21 @@ export class DmCampaignExecutorService {
       }
 
       // Check rate limits
-      // @ts-expect-error TS2554
       const canReply = await this.campaignsService.canReply(
-        campaign._id.toString(),
+        campaignId,
+        campaign.organization,
       );
       if (!canReply) {
         await this.campaignTargetsService.markAsSkipped(
-          target._id.toString(),
+          targetId,
           CampaignSkipReason.RATE_LIMITED,
         );
-        await this.campaignsService.incrementSkippedCounter(
-          campaign._id.toString(),
-        );
+        await this.campaignsService.incrementSkippedCounter(campaignId);
         return { skipReason: CampaignSkipReason.RATE_LIMITED, success: false };
       }
 
       // Mark as processing
-      await this.campaignTargetsService.markAsProcessing(target._id.toString());
+      await this.campaignTargetsService.markAsProcessing(targetId);
 
       // Get credential
       const credential = await this.credentialsService.findOne({
@@ -156,41 +153,38 @@ export class DmCampaignExecutorService {
 
       if (!credential) {
         const errorMessage = 'Credential not found';
-        await this.campaignTargetsService.markAsFailed(
-          target._id.toString(),
-          errorMessage,
-        );
-        await this.campaignsService.incrementFailedCounter(
-          campaign._id.toString(),
-        );
+        await this.campaignTargetsService.markAsFailed(targetId, errorMessage);
+        await this.campaignsService.incrementFailedCounter(campaignId);
+        return { error: errorMessage, success: false };
+      }
+
+      const credentialData = this.toReplyBotCredentialData(
+        credential as Record<string, unknown>,
+      );
+
+      if (!credentialData) {
+        const errorMessage = 'Credential is missing an access token';
+        await this.campaignTargetsService.markAsFailed(targetId, errorMessage);
+        await this.campaignsService.incrementFailedCounter(campaignId);
         return { error: errorMessage, success: false };
       }
 
       // Resolve username to userId if needed
       let recipientUserId = target.recipientUserId;
       if (!recipientUserId && target.recipientUsername) {
-        // @ts-expect-error TS2322
         recipientUserId =
           await this.botActionExecutorService.resolveTwitterUserId(
-            {
-              accessToken: credential.accessToken,
-              accessTokenSecret: credential.accessTokenSecret,
-              externalId: credential.externalId,
-              refreshToken: credential.refreshToken,
-              username: credential.username,
-            },
+            credentialData,
             target.recipientUsername,
           );
 
         if (!recipientUserId) {
           const errorMessage = `User not found: @${target.recipientUsername}`;
           await this.campaignTargetsService.markAsSkipped(
-            target._id.toString(),
+            targetId,
             CampaignSkipReason.USER_NOT_FOUND,
           );
-          await this.campaignsService.incrementSkippedCounter(
-            campaign._id.toString(),
-          );
+          await this.campaignsService.incrementSkippedCounter(campaignId);
           return {
             error: errorMessage,
             skipReason: CampaignSkipReason.USER_NOT_FOUND,
@@ -199,20 +193,15 @@ export class DmCampaignExecutorService {
         }
 
         // Cache the resolved userId back to target
-        await this.campaignTargetsService.updateOne(target._id.toString(), {
+        await this.campaignTargetsService.updateOne(targetId, {
           recipientUserId,
         });
       }
 
       if (!recipientUserId) {
         const errorMessage = 'No recipient username or userId';
-        await this.campaignTargetsService.markAsFailed(
-          target._id.toString(),
-          errorMessage,
-        );
-        await this.campaignsService.incrementFailedCounter(
-          campaign._id.toString(),
-        );
+        await this.campaignTargetsService.markAsFailed(targetId, errorMessage);
+        await this.campaignsService.incrementFailedCounter(campaignId);
         return { error: errorMessage, success: false };
       }
 
@@ -224,15 +213,7 @@ export class DmCampaignExecutorService {
 
       // Send DM
       const dmResult = await this.botActionExecutorService.sendDm(
-        {
-          accessToken: credential.accessToken,
-          accessTokenSecret: credential.accessTokenSecret,
-          externalId: credential.externalId,
-          // @ts-expect-error TS2322
-          platform: credential.platform,
-          refreshToken: credential.refreshToken,
-          username: credential.username,
-        },
+        credentialData,
         recipientUserId,
         dmText,
       );
@@ -244,12 +225,10 @@ export class DmCampaignExecutorService {
 
         if (isDmNotAllowed) {
           await this.campaignTargetsService.markAsSkipped(
-            target._id.toString(),
+            targetId,
             CampaignSkipReason.DM_NOT_ALLOWED,
           );
-          await this.campaignsService.incrementSkippedCounter(
-            campaign._id.toString(),
-          );
+          await this.campaignsService.incrementSkippedCounter(campaignId);
           return {
             error: dmResult.error,
             skipReason: CampaignSkipReason.DM_NOT_ALLOWED,
@@ -258,18 +237,16 @@ export class DmCampaignExecutorService {
         }
 
         await this.campaignTargetsService.markAsFailed(
-          target._id.toString(),
+          targetId,
           dmResult.error || 'Failed to send DM',
           (target.retryCount || 0) + 1,
         );
-        await this.campaignsService.incrementFailedCounter(
-          campaign._id.toString(),
-        );
+        await this.campaignsService.incrementFailedCounter(campaignId);
         return { error: dmResult.error, success: false };
       }
 
       // Mark as sent
-      await this.campaignTargetsService.updateOne(target._id.toString(), {
+      await this.campaignTargetsService.updateOne(targetId, {
         dmSentAt: new Date(),
         dmText,
         processedAt: new Date(),
@@ -277,12 +254,12 @@ export class DmCampaignExecutorService {
       });
 
       // Update campaign counters
-      await this.campaignsService.incrementDmCounter(campaign._id.toString());
+      await this.campaignsService.incrementDmCounter(campaignId);
 
       this.loggerService.log(`${url} DM sent`, {
-        campaignId: campaign._id,
+        campaignId,
         recipientUsername: target.recipientUsername,
-        targetId: target._id,
+        targetId,
       });
 
       return { success: true };
@@ -290,19 +267,17 @@ export class DmCampaignExecutorService {
       const errorMessage = (error as Error)?.message || 'Unknown error';
 
       this.loggerService.error(`${url} failed`, {
-        campaignId: campaign._id,
+        campaignId,
         error,
-        targetId: target._id,
+        targetId,
       });
 
       await this.campaignTargetsService.markAsFailed(
-        target._id.toString(),
+        targetId,
         errorMessage,
         (target.retryCount || 0) + 1,
       );
-      await this.campaignsService.incrementFailedCounter(
-        campaign._id.toString(),
-      );
+      await this.campaignsService.incrementFailedCounter(campaignId);
 
       return { error: errorMessage, success: false };
     }
@@ -343,6 +318,48 @@ export class DmCampaignExecutorService {
       tweetContent: '',
       userId: campaign.user?.toString() || '',
     });
+  }
+
+  private getCampaignId(campaign: OutreachCampaignDocument): string {
+    return String(campaign.id ?? campaign._id);
+  }
+
+  private getTargetId(target: CampaignTargetDocument): string {
+    return String(target.id ?? target._id);
+  }
+
+  private toReplyBotCredentialData(
+    credential: Record<string, unknown>,
+  ): IReplyBotCredentialData | null {
+    if (typeof credential.accessToken !== 'string') {
+      return null;
+    }
+
+    return {
+      accessToken: credential.accessToken,
+      accessTokenSecret:
+        typeof credential.accessTokenSecret === 'string'
+          ? credential.accessTokenSecret
+          : undefined,
+      externalId:
+        typeof credential.externalId === 'string'
+          ? credential.externalId
+          : undefined,
+      platform:
+        credential.platform === null || credential.platform === undefined
+          ? undefined
+          : (String(
+              credential.platform,
+            ) as IReplyBotCredentialData['platform']),
+      refreshToken:
+        typeof credential.refreshToken === 'string'
+          ? credential.refreshToken
+          : undefined,
+      username:
+        typeof credential.username === 'string'
+          ? credential.username
+          : undefined,
+    };
   }
 
   private delay(ms: number): Promise<void> {

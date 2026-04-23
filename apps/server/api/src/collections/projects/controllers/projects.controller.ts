@@ -79,9 +79,7 @@ export class ProjectsController extends BaseCRUDController<
     entity: ProjectDocument,
   ): boolean {
     const publicMetadata = getPublicMetadata(user);
-    const entityOrganizationId =
-      (entity.organization as unknown as { _id?: string })?._id?.toString() ||
-      entity.organization?.toString();
+    const entityOrganizationId = entity.organizationId?.toString();
 
     return entityOrganizationId === publicMetadata.organization;
   }

@@ -278,7 +278,7 @@ export class AvatarsController {
   // Create a new avatar in HeyGen
   @Post('new')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
-  createNewAvatar(
+  async createNewAvatar(
     @Req() request: Request,
     // @Body() createAvatarDto: CreateAvatarDto,
     // @CurrentUser() user: User,

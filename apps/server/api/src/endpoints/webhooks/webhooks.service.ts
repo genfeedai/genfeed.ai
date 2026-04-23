@@ -1,5 +1,8 @@
 import { AssetsService } from '@api/collections/assets/services/assets.service';
-import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import {
+  type IngredientDocument,
+  type IngredientRefDocument,
+} from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { UsersService } from '@api/collections/users/services/users.service';
@@ -54,6 +57,72 @@ export class WebhooksService {
     private readonly websocketService: NotificationsPublisherService,
   ) {}
 
+  private getDocumentId(
+    value:
+      | {
+          _id?: string | { toString(): string };
+          id?: string | { toString(): string };
+        }
+      | null
+      | undefined,
+  ): string | undefined {
+    if (!value) {
+      return undefined;
+    }
+
+    if (typeof value._id === 'string') {
+      return value._id;
+    }
+
+    if (value._id && typeof value._id.toString === 'function') {
+      return value._id.toString();
+    }
+
+    if (typeof value.id === 'string') {
+      return value.id;
+    }
+
+    if (value.id && typeof value.id.toString === 'function') {
+      return value.id.toString();
+    }
+
+    return undefined;
+  }
+
+  private getRefId(
+    ref: string | IngredientRefDocument | null | undefined,
+  ): string | undefined {
+    if (typeof ref === 'string') {
+      return ref;
+    }
+
+    return ref?._id?.toString() ?? ref?.id?.toString();
+  }
+
+  private toUserReference(
+    ref: string | IngredientRefDocument | null | undefined,
+  ): string | { _id?: string; clerkId?: string } | undefined {
+    if (typeof ref === 'string') {
+      return ref;
+    }
+
+    if (!ref) {
+      return undefined;
+    }
+
+    const userId = this.getRefId(ref);
+    const clerkId = typeof ref.clerkId === 'string' ? ref.clerkId : undefined;
+
+    if (!userId && !clerkId) {
+      return undefined;
+    }
+
+    return {
+      ...(userId ? { _id: userId } : {}),
+      ...(clerkId ? { clerkId } : {}),
+    };
+  }
+
   async processMediaFromWebhook(
     integration: string,
     category: IngredientCategory | string,
@@ -77,12 +146,23 @@ export class WebhooksService {
       { externalId, url },
     );
 
+    const ingredientId = this.getDocumentId(
+      rawIngredient as { _id?: string; id?: string } | null,
+    );
+    const metadataId = this.getDocumentId(
+      metadata as { _id?: string; id?: string } | null,
+    );
+
+    if (!ingredientId || !metadataId) {
+      throw new Error('Webhook lookup returned records without stable ids');
+    }
+
     await this.finalizeWebhookMedia({
       categoryValue,
       externalId,
-      ingredientId: rawIngredient._id.toString(),
+      ingredientId,
       integration,
-      metadataId: metadata._id.toString(),
+      metadataId,
       url,
     });
   }
@@ -197,7 +277,7 @@ export class WebhooksService {
 
     // 5. Resolve user IDs (with clerkId fallback)
     let { dbUserId, clerkUserId, userId, userRoom } =
-      UserExtractionUtil.extractUserIds(ingredient.user);
+      UserExtractionUtil.extractUserIds(this.toUserReference(ingredient.user));
 
     if (!clerkUserId && dbUserId) {
       try {
@@ -224,12 +304,12 @@ export class WebhooksService {
     // 6. Activity update
     if (dbUserId) {
       await this.activityUpdateService.updateSuccessActivity({
-        brandId: ingredient.brand,
+        brandId: this.getRefId(ingredient.brand),
         category: ingredient.category as IngredientCategory | string,
         dbUserId,
         ingredientId: ingredient._id.toString(),
         metadataExtension: metadata?.extension,
-        organizationId: ingredient.organization,
+        organizationId: this.getRefId(ingredient.organization),
         transformations: ingredient.transformations || [],
         userId,
         userRoom,
@@ -299,11 +379,21 @@ export class WebhooksService {
       }
 
       if (errorMessage) {
-        await this.metadataService.patch(metadata._id, { error: errorMessage });
+        const metadataId = this.getDocumentId(
+          metadata as { _id?: string; id?: string } | null,
+        );
+        if (metadataId) {
+          await this.metadataService.patch(metadataId, {
+            error: errorMessage,
+          });
+        }
       }
 
+      const metadataId = this.getDocumentId(
+        metadata as { _id?: string; id?: string } | null,
+      );
       const ingredient = await this.ingredientsService.findOne(
-        { metadata: metadata._id },
+        { metadata: metadataId },
         [PopulatePatterns.userMinimal],
       );
 
@@ -316,18 +406,18 @@ export class WebhooksService {
       });
 
       const { dbUserId, userId, userRoom } = UserExtractionUtil.extractUserIds(
-        ingredient.user,
+        this.toUserReference(ingredient.user),
       );
 
       // Activity update via decomposed service
       if (dbUserId) {
         await this.activityUpdateService.updateFailureActivity({
-          brandId: ingredient.brand,
+          brandId: this.getRefId(ingredient.brand),
           category: ingredient.category as IngredientCategory | string,
           dbUserId,
           errorMessage,
           ingredientId: ingredient._id.toString(),
-          organizationId: ingredient.organization,
+          organizationId: this.getRefId(ingredient.organization),
           userId,
           userRoom,
         });
@@ -550,7 +640,9 @@ export class WebhooksService {
         { type: FileInputType.URL, url },
       );
 
-      const { userId } = UserExtractionUtil.extractUserIds(asset.user);
+      const { userId } = UserExtractionUtil.extractUserIds(
+        asset.user ?? undefined,
+      );
 
       if (userId) {
         await this.websocketService.publishAssetStatus(

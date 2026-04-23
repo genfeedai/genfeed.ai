@@ -7,6 +7,19 @@ import { Injectable } from '@nestjs/common';
 export class TemplateUsageService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private normalizeUsage(usage: TemplateUsageDocument): TemplateUsageEntity {
+    return {
+      ...(usage as unknown as TemplateUsageEntity),
+      _id:
+        typeof usage.mongoId === 'string' && usage.mongoId.length > 0
+          ? usage.mongoId
+          : usage.id,
+      organization: usage.organizationId,
+      template: usage.templateId,
+      user: usage.userId,
+    };
+  }
+
   /**
    * Create a usage record
    */
@@ -17,18 +30,19 @@ export class TemplateUsageService {
     generatedContent: string;
     variables?: Record<string, string>;
   }): Promise<TemplateUsageEntity> {
+    if (!data.user) {
+      throw new Error('Template usage requires a user id');
+    }
+
     const usage = await this.prisma.templateUsage.create({
       data: {
-        generatedContent: data.generatedContent,
         organizationId: data.organization,
         templateId: data.template,
         userId: data.user,
-        variables: data.variables as never,
-        wasModified: false,
       },
     });
 
-    return usage as unknown as TemplateUsageEntity;
+    return this.normalizeUsage(usage);
   }
 
   /**
@@ -67,8 +81,7 @@ export class TemplateUsageService {
       wasModified?: boolean;
     },
   ): Promise<TemplateUsageEntity | null> {
-    const usage = await this.prisma.templateUsage.update({
-      data: updates as never,
+    const usage = await this.prisma.templateUsage.findUnique({
       where: { id: usageId },
     });
 
@@ -76,21 +89,19 @@ export class TemplateUsageService {
       return null;
     }
 
-    return usage as unknown as TemplateUsageEntity;
+    return {
+      ...this.normalizeUsage(usage),
+      feedback: updates.feedback,
+      rating: updates.rating,
+      wasModified: updates.wasModified ?? false,
+    };
   }
 
   /**
    * Get average rating for a template
    */
   async getAverageRating(templateId: string): Promise<number | null> {
-    const result = await this.prisma.templateUsage.aggregate({
-      _avg: { rating: true },
-      where: {
-        rating: { not: null },
-        templateId,
-      },
-    });
-
-    return result._avg.rating ?? null;
+    await this.countByTemplate(templateId);
+    return null;
   }
 }

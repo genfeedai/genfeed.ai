@@ -16,6 +16,10 @@ import type {
   ReplyBotPollingResult,
 } from './reply-bot-polling-job.interface';
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
 @Processor('reply-bot-polling')
 export class ReplyBotPollingProcessor extends WorkerHost {
   private readonly circuitBreaker: ProcessorCircuitBreaker;
@@ -45,6 +49,47 @@ export class ReplyBotPollingProcessor extends WorkerHost {
       }
       throw error;
     }
+  }
+
+  private buildCredentialData(credential: unknown): IReplyBotCredentialData {
+    if (
+      !isPlainObject(credential) ||
+      typeof credential.accessToken !== 'string'
+    ) {
+      throw new Error('Reply bot credential missing accessToken');
+    }
+
+    return {
+      accessToken: credential.accessToken,
+      accessTokenSecret:
+        typeof credential.accessTokenSecret === 'string'
+          ? credential.accessTokenSecret
+          : undefined,
+      brandId:
+        typeof credential.brandId === 'string' ? credential.brandId : undefined,
+      externalId:
+        typeof credential.externalId === 'string'
+          ? credential.externalId
+          : undefined,
+      organizationId:
+        typeof credential.organizationId === 'string'
+          ? credential.organizationId
+          : undefined,
+      platform:
+        typeof credential.platform === 'string'
+          ? (credential.platform as IReplyBotCredentialData['platform'])
+          : undefined,
+      refreshToken:
+        typeof credential.refreshToken === 'string'
+          ? credential.refreshToken
+          : undefined,
+      username:
+        typeof credential.externalHandle === 'string'
+          ? credential.externalHandle
+          : typeof credential.username === 'string'
+            ? credential.username
+            : undefined,
+    };
   }
 
   private async processInternal(
@@ -79,12 +124,7 @@ export class ReplyBotPollingProcessor extends WorkerHost {
       }
 
       // Build credential data for Twitter API
-      const credentialData: IReplyBotCredentialData = {
-        accessToken: credential.accessToken,
-        accessTokenSecret: credential.accessTokenSecret,
-        externalId: credential.externalId,
-        refreshToken: credential.refreshToken,
-      };
+      const credentialData = this.buildCredentialData(credential);
 
       await job.updateProgress(30);
 

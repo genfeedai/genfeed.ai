@@ -33,6 +33,8 @@ type PrismaFilter = Record<string, unknown>;
  */
 type PrismaUpdate = Record<string, unknown>;
 
+type PopulateInput = (string | PopulateOption)[] | 'none';
+
 /**
  * Dynamic Prisma delegate type.
  * Covers the subset of Prisma client methods used by BaseService.
@@ -67,8 +69,12 @@ type PrismaDelegate = {
  * callers that need it should override directly using Prisma APIs.
  */
 function populateToInclude(
-  populate: (string | PopulateOption)[],
+  populate: PopulateInput,
 ): Record<string, boolean> | undefined {
+  if (populate === 'none') {
+    return undefined;
+  }
+
   if (!populate.length) return undefined;
   return Object.fromEntries(
     populate.map((p) => [typeof p === 'string' ? p : p.path, true]),
@@ -151,6 +157,104 @@ export abstract class BaseService<
     return fields.some((field) => field.name === fieldName);
   }
 
+  private isPlainObject(value: unknown): value is Record<string, unknown> {
+    return value !== null && typeof value === 'object' && !Array.isArray(value);
+  }
+
+  private mergeLegacyPayload(
+    target: Record<string, unknown>,
+    source: unknown,
+  ): void {
+    if (!this.isPlainObject(source)) {
+      return;
+    }
+
+    for (const [key, value] of Object.entries(source)) {
+      if (target[key] === undefined) {
+        target[key] = value;
+      }
+    }
+  }
+
+  protected normalizeDocument(document: unknown): T {
+    if (!this.isPlainObject(document)) {
+      return document as T;
+    }
+
+    const normalized: Record<string, unknown> = { ...document };
+
+    const legacyId =
+      typeof normalized.mongoId === 'string' && normalized.mongoId.length > 0
+        ? normalized.mongoId
+        : normalized.id;
+
+    if (normalized._id === undefined && typeof legacyId === 'string') {
+      normalized._id = legacyId;
+    }
+
+    if (
+      normalized.organization === undefined &&
+      typeof normalized.organizationId === 'string'
+    ) {
+      normalized.organization = normalized.organizationId;
+    }
+
+    if (
+      normalized.user === undefined &&
+      typeof normalized.userId === 'string'
+    ) {
+      normalized.user = normalized.userId;
+    }
+
+    if (
+      normalized.brand === undefined &&
+      (typeof normalized.brandId === 'string' || normalized.brandId === null)
+    ) {
+      normalized.brand = normalized.brandId;
+    }
+
+    if (
+      normalized.parentModel === undefined &&
+      typeof normalized.parentType === 'string'
+    ) {
+      normalized.parentModel = normalized.parentType;
+    }
+
+    if (normalized.parent === undefined) {
+      const parentCandidate =
+        normalized.parentBrandId ??
+        normalized.parentOrgId ??
+        normalized.parentIngredientId ??
+        normalized.parentArticleId;
+
+      if (typeof parentCandidate === 'string' || parentCandidate === null) {
+        normalized.parent = parentCandidate;
+      }
+    }
+
+    this.mergeLegacyPayload(normalized, normalized.data);
+    this.mergeLegacyPayload(normalized, normalized.config);
+    this.mergeLegacyPayload(normalized, normalized.settings);
+    this.mergeLegacyPayload(normalized, normalized.policies);
+    this.mergeLegacyPayload(normalized, normalized.metadata);
+    this.mergeLegacyPayload(normalized, normalized.stats);
+    this.mergeLegacyPayload(normalized, normalized.result);
+
+    if (normalized.key === undefined && typeof normalized.action === 'string') {
+      normalized.key = normalized.action;
+    }
+
+    if (normalized.action === undefined && typeof normalized.key === 'string') {
+      normalized.action = normalized.key;
+    }
+
+    return normalized as T;
+  }
+
+  protected normalizeDocuments(documents: unknown[]): T[] {
+    return documents.map((document) => this.normalizeDocument(document));
+  }
+
   private withSoftDeleteFilter(where: PrismaFilter = {}): PrismaFilter {
     if (!this.modelHasField('isDeleted')) {
       return where;
@@ -175,10 +279,7 @@ export abstract class BaseService<
     }
   }
 
-  async create(
-    createDto: CreateDto,
-    populate: (string | PopulateOption)[] = [],
-  ): Promise<T> {
+  async create(createDto: CreateDto, populate: PopulateInput = []): Promise<T> {
     try {
       if (!createDto) {
         throw new ValidationException('Create data is required');
@@ -207,7 +308,7 @@ export abstract class BaseService<
         ]);
       }
 
-      return doc as T;
+      return this.normalizeDocument(doc);
     } catch (error: unknown) {
       this.logger?.error('Failed to create document', { createDto, error });
       throw error;
@@ -264,7 +365,9 @@ export abstract class BaseService<
       const isPaginated = options.pagination !== false;
 
       if (!isPaginated) {
-        const docs = (await this.delegate.findMany({ where, orderBy })) as T[];
+        const docs = this.normalizeDocuments(
+          await this.delegate.findMany({ where, orderBy }),
+        );
         const result: AggregatePaginateResult<T> = {
           docs,
           hasNextPage: false,
@@ -287,7 +390,7 @@ export abstract class BaseService<
 
       const totalPages = Math.ceil(totalDocs / limit);
       const result: AggregatePaginateResult<T> = {
-        docs: docs as T[],
+        docs: this.normalizeDocuments(docs),
         hasNextPage: page * limit < totalDocs,
         hasPrevPage: page > 1,
         limit,
@@ -323,21 +426,20 @@ export abstract class BaseService<
     }
   }
 
-  async find(
-    params: PrismaFilter,
-    populate: (string | PopulateOption)[] = [],
-  ): Promise<T[]> {
+  async find(params: PrismaFilter, populate: PopulateInput = []): Promise<T[]> {
     const where = this.processSearchParams(params);
     const include = populateToInclude(populate);
-    return this.delegate.findMany({
+    const docs = await this.delegate.findMany({
       where,
       ...(include ? { include } : {}),
-    }) as Promise<T[]>;
+    });
+
+    return this.normalizeDocuments(docs);
   }
 
   async findOne(
     params: PrismaFilter,
-    populate: (string | PopulateOption)[] = [],
+    populate: PopulateInput = [],
   ): Promise<T | null> {
     try {
       if (!params || typeof params !== 'object') {
@@ -360,7 +462,7 @@ export abstract class BaseService<
         this.logger?.debug('Document not found', { params: where });
       }
 
-      return (result as T) ?? null;
+      return result ? this.normalizeDocument(result) : null;
     } catch (error: unknown) {
       this.logger?.error('Failed to find document', {
         error,
@@ -374,7 +476,7 @@ export abstract class BaseService<
   async patch(
     id: string,
     updateDto: Partial<UpdateDto> | PrismaUpdate,
-    populate: (string | PopulateOption)[] = [],
+    populate: PopulateInput = [],
   ): Promise<T> {
     try {
       if (!id) {
@@ -425,7 +527,7 @@ export abstract class BaseService<
         this.logger?.debug('Document not found for update', { id });
       }
 
-      return result as T;
+      return this.normalizeDocument(result);
     } catch (error: unknown) {
       this.logger?.error('Failed to update document', {
         error,
@@ -510,7 +612,7 @@ export abstract class BaseService<
         this.logger?.debug('Document not found for deletion', { id });
       }
 
-      return (result as T) ?? null;
+      return result ? this.normalizeDocument(result) : null;
     } catch (error: unknown) {
       this.logger?.error('Failed to soft delete document', { error, id });
       throw error;
@@ -519,7 +621,8 @@ export abstract class BaseService<
 
   /**
    * Process search parameters for Prisma where clauses.
-   * Converts `_id` → `id` (Prisma uses `id`, not `_id`).
+   * Converts `_id` → `id` and also matches `mongoId` when the model still
+   * carries a legacy Mongo identifier.
    * Converts legacy scalar `organization` / `user` filters to scalar foreign keys.
    * Strips ObjectId conversion — Prisma uses string IDs natively.
    */
@@ -552,8 +655,21 @@ export abstract class BaseService<
         continue;
       }
 
-      // Remap MongoDB _id field to Prisma id field
-      const prismaKey = key === '_id' ? 'id' : key;
+      if (key === '_id') {
+        if (this.modelHasField('mongoId')) {
+          const existingOr = Array.isArray(processed.OR)
+            ? [...processed.OR]
+            : [];
+
+          processed.OR = [...existingOr, { id: value }, { mongoId: value }];
+          continue;
+        }
+
+        processed.id = value;
+        continue;
+      }
+
+      const prismaKey = key;
       processed[prismaKey] = value;
     }
 
@@ -579,7 +695,7 @@ export abstract class BaseService<
       throw new NotFoundException(`${this.constructor.name} not found`);
     }
 
-    return item as T;
+    return this.normalizeDocument(item);
   }
 
   /**
@@ -617,11 +733,13 @@ export abstract class BaseService<
       {},
     );
 
-    return this.delegate.findMany({
+    const docs = await this.delegate.findMany({
       where: query,
       orderBy,
       ...(include ? { include } : {}),
-    }) as Promise<T[]>;
+    });
+
+    return this.normalizeDocuments(docs);
   }
 
   /**
@@ -667,7 +785,7 @@ export abstract class BaseService<
 
       this.logger?.debug(`${field} flag updated successfully`, { id });
 
-      return result as T | null;
+      return result ? this.normalizeDocument(result) : null;
     } catch (error: unknown) {
       this.logger?.error(`Failed to update ${field} flag`, {
         error,

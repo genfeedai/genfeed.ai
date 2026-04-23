@@ -421,9 +421,9 @@ describe('OnboardingService', () => {
 
   describe('addReferenceImages', () => {
     it('pushes images to brand and returns count', async () => {
-      const brand = { _id: makeObjectId() };
+      const brand = { _id: makeObjectId(), referenceImages: [] };
       mocks.brandsService.findOne.mockResolvedValue(brand);
-      mocks.brandsService.patchAll.mockResolvedValue(undefined);
+      mocks.brandsService.patch.mockResolvedValue(undefined);
 
       const images = [
         { url: 'https://img1.png' },
@@ -435,9 +435,24 @@ describe('OnboardingService', () => {
         user,
       );
 
-      expect(mocks.brandsService.patchAll).toHaveBeenCalledWith(
-        { _id: brand._id },
-        { $push: { referenceImages: { $each: images } } },
+      expect(mocks.brandsService.patch).toHaveBeenCalledWith(
+        brand._id.toString(),
+        {
+          referenceImages: [
+            {
+              category: undefined,
+              isDefault: undefined,
+              label: undefined,
+              url: 'https://img1.png',
+            },
+            {
+              category: undefined,
+              isDefault: undefined,
+              label: undefined,
+              url: 'https://img2.png',
+            },
+          ],
+        },
       );
       expect(result).toEqual({ count: 2, success: true });
     });
@@ -566,6 +581,8 @@ describe('OnboardingService', () => {
         _id: makeObjectId(),
       });
       mocks.brandsService.findOne.mockResolvedValue({ _id: makeObjectId() });
+      mocks.organizationSettingsService.findOne.mockResolvedValue(null);
+      mocks.usersService.findOne.mockResolvedValue(null);
 
       vi.spyOn(service as any, 'getLocalToolReadiness').mockReturnValue({
         anyDetected: true,
@@ -594,6 +611,67 @@ describe('OnboardingService', () => {
       expect(result.providers.configured).toEqual(['replicate']);
       expect(result.workspace.hasBrand).toBe(true);
       expect(result.workspace.hasOrganization).toBe(true);
+      expect(result.access).toEqual({
+        byokConfiguredProviders: [],
+        byokEnabled: false,
+        runtimeMode: 'server',
+        selectedMode: null,
+        serverDefaultsReady: true,
+      });
+    });
+
+    it('reports BYOK runtime state and the persisted onboarding access choice', async () => {
+      mocks.organizationsService.findOne.mockResolvedValue({
+        _id: makeObjectId(),
+      });
+      mocks.brandsService.findOne.mockResolvedValue({ _id: makeObjectId() });
+      mocks.organizationSettingsService.findOne.mockResolvedValue({
+        byokKeys: {
+          openai: {
+            apiKey: 'encrypted-openai-key',
+            isEnabled: true,
+            provider: 'openai',
+          },
+        },
+        isByokEnabled: true,
+      });
+      mocks.usersService.findOne.mockResolvedValue({
+        settings: {
+          dashboardPreferences: {
+            onboarding: {
+              accessMode: 'cloud',
+              selectedAt: '2026-04-22T12:00:00.000Z',
+              source: 'oss-onboarding',
+            },
+          },
+        },
+      });
+
+      vi.spyOn(service as any, 'getLocalToolReadiness').mockReturnValue({
+        anyDetected: false,
+        claude: false,
+        codex: false,
+        detected: [],
+      });
+      vi.spyOn(service as any, 'getProviderReadiness').mockReturnValue({
+        anyConfigured: false,
+        configured: [],
+        fal: false,
+        imageGenerationReady: false,
+        openai: false,
+        replicate: false,
+        textGenerationReady: false,
+      });
+
+      const result = await service.getInstallReadiness(user);
+
+      expect(result.access).toEqual({
+        byokConfiguredProviders: ['openai'],
+        byokEnabled: true,
+        runtimeMode: 'byok',
+        selectedMode: 'cloud',
+        serverDefaultsReady: false,
+      });
     });
   });
 
@@ -701,11 +779,11 @@ describe('OnboardingService', () => {
 
     it('reuses an existing same-label brand in the organization instead of colliding on unique label index', async () => {
       setupHappyPath();
-      const duplicateBrandId = makeObjectId();
+      const duplicateBrandId = '507f191e810c19729de860ef';
       const duplicateBrand = {
         _id: duplicateBrandId,
         isSelected: false,
-        label: 'Genfeed',
+        label: 'Acme',
       };
 
       mocks.brandsService.findOne.mockReset();

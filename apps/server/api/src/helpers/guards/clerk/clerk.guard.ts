@@ -31,20 +31,20 @@ export class ClerkGuard extends AuthGuard('clerk') {
     return super.canActivate(context);
   }
 
-  handleRequest(
+  handleRequest<TUser = unknown>(
     err: unknown,
     user: unknown,
     _info: unknown,
     context: ExecutionContext,
-  ) {
+  ): TUser {
     if (this.isPublicRoute(context)) {
-      return user || null;
+      return (user ?? null) as TUser;
     }
 
     if (err || !user) {
       throw err || new UnauthorizedException('Unauthorized');
     }
 
-    return user;
+    return user as TUser;
   }
 }

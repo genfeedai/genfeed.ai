@@ -209,7 +209,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
   async getOrganizationCreditsBalance(organizationId: string): Promise<number> {
     const balance =
       await this.creditBalanceService.findByOrganization(organizationId);
-    return balance?.balance || 0;
+    return typeof balance?.balance === 'number' ? balance.balance : 0;
   }
 
   async addOrganizationCreditsWithExpiration(
@@ -434,7 +434,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
           balance: entry.amount,
           createdAt: (entry as { createdAt?: Date }).createdAt,
           expiresAt: entry.expiresAt,
-          source: entry.source,
+          source: entry.source ?? undefined,
         })),
         total,
       };
@@ -496,7 +496,9 @@ export class CreditsUtilsService implements ICreditsUtilsService {
       .slice(startIndex)
       .filter(
         (transaction) =>
-          inflowCategories.has(transaction.category) && transaction.amount > 0,
+          transaction.category !== undefined &&
+          inflowCategories.has(transaction.category) &&
+          transaction.amount > 0,
       )
       .reduce((sum, transaction) => sum + transaction.amount, 0);
 

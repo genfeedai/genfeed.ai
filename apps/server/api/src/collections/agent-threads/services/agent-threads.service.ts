@@ -225,7 +225,7 @@ export class AgentThreadsService extends BaseService<AgentRoomDocument> {
     const snapshotsByThreadId = new Map(
       snapshots.map((snapshot) => [
         String((snapshot as Record<string, unknown>).threadId),
-        snapshot,
+        this.normalizeSnapshot(snapshot as unknown as Record<string, unknown>),
       ]),
     );
     const latestRunsByThreadId = await this.findLatestRunsByThreadIds(
@@ -367,8 +367,29 @@ export class AgentThreadsService extends BaseService<AgentRoomDocument> {
     return snapshotStatus === 'idle' ? latestRunStatus : snapshotStatus;
   }
 
-  private mapAgentRunStatus(status?: AgentExecutionStatus): ThreadRunStatus {
-    switch (status) {
+  private normalizeSnapshot(
+    record: Record<string, unknown>,
+  ): AgentThreadSnapshotDocument {
+    const data = this.asRecord(record.data) ?? {};
+
+    return {
+      ...(record as unknown as AgentThreadSnapshotDocument),
+      _id:
+        typeof record.mongoId === 'string' && record.mongoId.length > 0
+          ? record.mongoId
+          : String(record.id ?? ''),
+      organization:
+        typeof record.organizationId === 'string'
+          ? record.organizationId
+          : undefined,
+      ...(data as Partial<AgentThreadSnapshotDocument>),
+    };
+  }
+
+  private mapAgentRunStatus(
+    status?: AgentExecutionStatus | string | null,
+  ): ThreadRunStatus {
+    switch (String(status ?? '').toLowerCase()) {
       case AgentExecutionStatus.PENDING:
         return 'queued';
       case AgentExecutionStatus.RUNNING:

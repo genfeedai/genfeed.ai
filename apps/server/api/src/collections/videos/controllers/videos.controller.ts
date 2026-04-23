@@ -113,6 +113,18 @@ type PromptInput = Record<string, unknown> & {
   resolution?: string;
 };
 
+function toPlainRecord(value: unknown): Record<string, unknown> {
+  const maybeDocument = value as {
+    toObject?: () => Record<string, unknown>;
+  };
+
+  if (typeof maybeDocument.toObject === 'function') {
+    return maybeDocument.toObject();
+  }
+
+  return value as Record<string, unknown>;
+}
+
 @AutoSwagger()
 @Controller('videos')
 @UseGuards(RolesGuard)
@@ -549,8 +561,8 @@ export class VideosController {
     // Merge evaluation from aggregation into populated data
     // Type assertion needed because aggregation adds 'evaluation' field not in IngredientDocument type
     const evaluation = (data as unknown as Record<string, unknown>).evaluation;
-    const mergedData = {
-      ...(populatedData.toObject ? populatedData.toObject() : populatedData),
+    const mergedData: Record<string, unknown> = {
+      ...toPlainRecord(populatedData),
       evaluation,
     };
 
@@ -895,11 +907,11 @@ export class VideosController {
         audioUrl: createVideoDto.audioUrl,
         blacklist: createVideoDto.blacklist,
         brand: {
-          description: brand.description,
-          label: brand.label,
-          primaryColor: brand.primaryColor,
-          secondaryColor: brand.secondaryColor,
-          text: brand.text,
+          description: brand.description ?? undefined,
+          label: brand.label ?? 'Brand',
+          primaryColor: brand.primaryColor ?? undefined,
+          secondaryColor: brand.secondaryColor ?? undefined,
+          text: brand.text ?? undefined,
         },
         branding: brandPromptBranding,
         brandingMode: createVideoDto.brandingMode,

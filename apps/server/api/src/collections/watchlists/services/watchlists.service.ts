@@ -69,8 +69,21 @@ export class WatchlistsService extends BaseService<
   ): Promise<Watchlist | null> {
     this.logOperation('updateMetrics', 'started', { id, metrics });
 
+    const existing = await this.prisma.watchlist.findUnique({
+      select: { config: true },
+      where: { id: String(id) },
+    });
+
+    const currentConfig =
+      (existing?.config as Record<string, unknown> | null) ?? {};
+
     const result = await this.prisma.watchlist.update({
-      data: { metrics: metrics as never },
+      data: {
+        config: {
+          ...currentConfig,
+          metrics,
+        } as never,
+      },
       where: { id: String(id) },
     });
 

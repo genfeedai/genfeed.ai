@@ -1,27 +1,31 @@
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
 import { type Setting } from '@genfeedai/prisma';
 
-// @ts-expect-error - implements via BaseEntity + explicit fields
 export class SettingEntity extends BaseEntity implements Setting {
+  declare readonly id: string;
+  declare readonly mongoId: string | null;
+  declare readonly userId: string;
   declare readonly user: string;
-
-  declare readonly theme: string;
-
-  declare readonly isVerified: boolean;
-  declare readonly isFirstLogin: boolean;
-  declare readonly isMenuCollapsed: boolean;
-  declare readonly isSidebarProgressVisible?: boolean;
-  declare readonly isSidebarProgressCollapsed?: boolean;
-  declare readonly isAdvancedMode: boolean;
-  declare readonly isTrendNotificationsInApp: boolean;
-  declare readonly isTrendNotificationsTelegram: boolean;
-  declare readonly isTrendNotificationsEmail: boolean;
-  declare readonly isWorkflowNotificationsEmail: boolean;
-  declare readonly isVideoNotificationsEmail: boolean;
-  declare readonly contentPreferences: string[];
-  declare readonly favoriteModelKeys: string[];
-  declare readonly defaultAgentModel: string;
-  declare readonly isAgentAssetsPanelOpen: boolean;
-  declare readonly generationPriority: string;
-  declare readonly dashboardPreferences?: Record<string, unknown>;
+  declare readonly theme: Setting['theme'];
+  declare readonly isVerified: Setting['isVerified'];
+  declare readonly isFirstLogin: Setting['isFirstLogin'];
+  declare readonly isMenuCollapsed: Setting['isMenuCollapsed'];
+  declare readonly isSidebarProgressVisible: Setting['isSidebarProgressVisible'];
+  declare readonly isSidebarProgressCollapsed: Setting['isSidebarProgressCollapsed'];
+  declare readonly isAdvancedMode: Setting['isAdvancedMode'];
+  declare readonly isTrendNotificationsInApp: Setting['isTrendNotificationsInApp'];
+  declare readonly isTrendNotificationsTelegram: Setting['isTrendNotificationsTelegram'];
+  declare readonly isTrendNotificationsEmail: Setting['isTrendNotificationsEmail'];
+  declare readonly isWorkflowNotificationsEmail: Setting['isWorkflowNotificationsEmail'];
+  declare readonly isVideoNotificationsEmail: Setting['isVideoNotificationsEmail'];
+  declare readonly trendNotificationsTelegramChatId: Setting['trendNotificationsTelegramChatId'];
+  declare readonly trendNotificationsEmailAddress: Setting['trendNotificationsEmailAddress'];
+  declare readonly trendNotificationsFrequency: Setting['trendNotificationsFrequency'];
+  declare readonly trendNotificationsMinViralScore: Setting['trendNotificationsMinViralScore'];
+  declare readonly contentPreferences: Setting['contentPreferences'];
+  declare readonly favoriteModelKeys: Setting['favoriteModelKeys'];
+  declare readonly defaultAgentModel: Setting['defaultAgentModel'];
+  declare readonly isAgentAssetsPanelOpen: Setting['isAgentAssetsPanelOpen'];
+  declare readonly generationPriority: Setting['generationPriority'];
+  declare readonly dashboardPreferences: Setting['dashboardPreferences'];
 }

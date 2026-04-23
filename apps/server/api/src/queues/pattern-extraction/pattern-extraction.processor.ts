@@ -1,7 +1,6 @@
 import { CreativePatternsService } from '@api/collections/creative-patterns/creative-patterns.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { PatternType } from '@genfeedai/interfaces';
-import { type CreativePattern } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
@@ -268,7 +267,7 @@ export class PatternExtractionProcessor extends WorkerHost {
           const avgScore =
             records.reduce((sum, r) => sum + r.score, 0) / records.length;
 
-          const patternData: Partial<CreativePattern> = {
+          const patternData: Record<string, unknown> = {
             avgPerformanceScore: Math.round(avgScore),
             computedAt: now,
             description: `High-performing ${classifiedType.replace(/_/g, ' ')} pattern`,
@@ -311,7 +310,7 @@ export class PatternExtractionProcessor extends WorkerHost {
           const avgScore =
             orgRecords.reduce((sum, r) => sum + r.score, 0) / orgRecords.length;
 
-          const patternData: Partial<CreativePattern> = {
+          const patternData: Record<string, unknown> = {
             avgPerformanceScore: Math.round(avgScore),
             computedAt: now,
             description: `Private high-performing ${classifiedType.replace(/_/g, ' ')} pattern`,

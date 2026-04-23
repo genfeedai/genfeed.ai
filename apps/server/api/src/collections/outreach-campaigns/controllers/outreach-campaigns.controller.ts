@@ -12,6 +12,7 @@ import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { CampaignDiscoveryService } from '@api/services/campaign/campaign-discovery.service';
 import { CampaignExecutorService } from '@api/services/campaign/campaign-executor.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
+import { BaseService } from '@api/shared/services/base/base.service';
 import type { User } from '@clerk/backend';
 import {
   CampaignDiscoverySource,
@@ -55,7 +56,11 @@ export class OutreachCampaignsController extends BaseCRUDController<
   ) {
     super(
       loggerService,
-      outreachCampaignsService as unknown,
+      outreachCampaignsService as unknown as BaseService<
+        OutreachCampaignDocument,
+        CreateOutreachCampaignDto,
+        UpdateOutreachCampaignDto
+      >,
       OutreachCampaignSerializer,
       'OutreachCampaign',
       ['organization', 'brand', 'user', 'credential'],
@@ -301,6 +306,10 @@ export class OutreachCampaignsController extends BaseCRUDController<
     if (campaign.campaignType !== CampaignType.DM_OUTREACH) {
       throw new BadRequestException('Campaign is not a DM outreach campaign');
     }
+    if (!campaign.platform) {
+      throw new BadRequestException('Campaign platform is missing');
+    }
+    const platform = campaign.platform as CampaignPlatform;
 
     let added = 0;
     let skipped = 0;
@@ -332,12 +341,11 @@ export class OutreachCampaignsController extends BaseCRUDController<
         discoverySource: CampaignDiscoverySource.MANUAL,
         externalId: username,
         organization: campaign.organization,
-        platform: campaign.platform,
-        // @ts-expect-error recipientUsername is a valid field
+        platform,
         recipientUsername: username,
         status: CampaignTargetStatus.PENDING,
         targetType: CampaignTargetType.DM_RECIPIENT,
-      });
+      } as Parameters<CampaignTargetsService['create']>[0]);
 
       added++;
     }
@@ -522,7 +530,7 @@ export class OutreachCampaignsController extends BaseCRUDController<
       throw new BadRequestException('Target not found');
     }
 
-    if (target.campaign.toString() !== id) {
+    if (!target.campaign || target.campaign.toString() !== id) {
       throw new BadRequestException('Target does not belong to this campaign');
     }
 

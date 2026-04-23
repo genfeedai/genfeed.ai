@@ -161,8 +161,9 @@ export default function SettingsApiKeysPage() {
       <div className="mb-6">
         <h2 className="text-lg font-semibold">API Keys</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Bring your own API keys for AI providers. When using your own key, no
-          credits are deducted.
+          Genfeed uses the server-configured providers by default. Add your own
+          API keys only if you want to override hosted access. When using your
+          own key, no credits are deducted.
         </p>
       </div>
 

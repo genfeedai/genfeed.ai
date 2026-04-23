@@ -26,9 +26,9 @@ const BaseModule = createServiceModule(MetaAdsService, {
     MetaAdsBulkController,
     MetaAdsOptimizationController,
   ],
-  exports: BaseModule.exports,
+  exports: BaseModule.exports ?? [],
   imports: [
-    ...BaseModule.imports,
+    ...(BaseModule.imports ?? []),
     forwardRef(() => AdBulkUploadJobsModule),
     forwardRef(() => BrandsModule),
     forwardRef(() => CredentialsModule),
@@ -39,6 +39,6 @@ const BaseModule = createServiceModule(MetaAdsService, {
     forwardRef(() => AdOptimizationAuditLogsModule),
     forwardRef(() => AdPerformanceModule),
   ],
-  providers: [...BaseModule.providers, AdBulkUploadService],
+  providers: [...(BaseModule.providers ?? []), AdBulkUploadService],
 })
 export class MetaAdsModule {}

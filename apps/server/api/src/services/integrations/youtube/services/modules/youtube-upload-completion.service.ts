@@ -24,6 +24,58 @@ const PUBLISHED_STATUSES: YoutubeUploadStatus[] = [
   'private',
 ];
 
+type YoutubeUploadCompletionEvent = {
+  postId: string;
+  userId: string;
+  organizationId: string;
+  status: YoutubeUploadStatus;
+  result?: { externalId: string; videoUrl: string } | null;
+  error?: string;
+  timestamp: string;
+};
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function isYoutubeUploadStatus(value: unknown): value is YoutubeUploadStatus {
+  return (
+    typeof value === 'string' &&
+    ['unlisted', 'public', 'private', 'scheduled', 'failed'].includes(value)
+  );
+}
+
+function isYoutubeUploadCompletionEvent(
+  value: unknown,
+): value is YoutubeUploadCompletionEvent {
+  if (
+    !isPlainObject(value) ||
+    typeof value.postId !== 'string' ||
+    typeof value.userId !== 'string' ||
+    typeof value.organizationId !== 'string' ||
+    typeof value.timestamp !== 'string' ||
+    !isYoutubeUploadStatus(value.status)
+  ) {
+    return false;
+  }
+
+  if (value.error !== undefined && typeof value.error !== 'string') {
+    return false;
+  }
+
+  if (value.result !== undefined && value.result !== null) {
+    if (
+      !isPlainObject(value.result) ||
+      typeof value.result.externalId !== 'string' ||
+      typeof value.result.videoUrl !== 'string'
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 @Injectable()
 export class YoutubeUploadCompletionService implements OnModuleInit {
   private readonly logger = new Logger(YoutubeUploadCompletionService.name);
@@ -37,10 +89,17 @@ export class YoutubeUploadCompletionService implements OnModuleInit {
     await this.subscribeToYoutubeUploadCompletion();
   }
 
-  private async subscribeToYoutubeUploadCompletion(): Promise<unknown> {
+  private async subscribeToYoutubeUploadCompletion(): Promise<void> {
     await this.redisService.subscribe(
       'youtube:upload:complete',
       (data: unknown) => {
+        if (!isYoutubeUploadCompletionEvent(data)) {
+          this.logger.warn(
+            'Received invalid YouTube upload completion payload',
+          );
+          return;
+        }
+
         this.logger.log(
           `Received YouTube upload completion event for post ${data.postId}`,
         );

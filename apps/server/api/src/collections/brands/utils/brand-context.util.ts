@@ -1,4 +1,7 @@
-import type { Brand } from '@api/collections/brands/schemas/brand.schema';
+import type {
+  Brand,
+  BrandAgentConfig,
+} from '@api/collections/brands/schemas/brand.schema';
 import type { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
 
 type PromptBranding = NonNullable<PromptBuilderParams['branding']>;
@@ -6,7 +9,13 @@ type PromptBranding = NonNullable<PromptBuilderParams['branding']>;
 export const buildPromptBrandingFromBrand = (
   brand: Pick<Brand, 'agentConfig'> | null | undefined,
 ): PromptBranding | undefined => {
-  const voice = brand?.agentConfig?.voice;
+  const agentConfig =
+    brand?.agentConfig &&
+    typeof brand.agentConfig === 'object' &&
+    !Array.isArray(brand.agentConfig)
+      ? (brand.agentConfig as BrandAgentConfig)
+      : undefined;
+  const voice = agentConfig?.voice;
 
   if (!voice) {
     return undefined;

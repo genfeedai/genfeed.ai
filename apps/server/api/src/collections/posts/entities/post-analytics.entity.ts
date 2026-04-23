@@ -1,8 +1,15 @@
-import { CredentialPlatform } from '@genfeedai/enums';
 import { type PostAnalytics } from '@genfeedai/prisma';
 
 export class PostAnalyticsEntity implements PostAnalytics {
   declare readonly _id: string;
+  declare readonly id: string;
+  declare readonly mongoId: string | null;
+  declare readonly postId: string;
+  declare readonly userId: string;
+  declare readonly brandId: string;
+  declare readonly organizationId: string;
+  declare readonly createdAt: Date;
+  declare readonly updatedAt: Date;
 
   declare readonly post: string;
   declare readonly ingredients: string[];
@@ -10,7 +17,7 @@ export class PostAnalyticsEntity implements PostAnalytics {
   declare readonly brand: string;
   declare readonly organization: string;
 
-  declare readonly platform: CredentialPlatform;
+  declare readonly platform: PostAnalytics['platform'];
   declare readonly date: Date;
 
   declare readonly totalViews: number;
