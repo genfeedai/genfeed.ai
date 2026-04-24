@@ -103,15 +103,15 @@ function SectionSummaryCard({
 }: SectionSummaryCardProps) {
   return (
     <Card
-      className="flex h-full flex-col justify-between gap-5 shadow-none"
-      bodyClassName="flex h-full flex-col justify-between gap-5 p-4"
+      className="ship-ui gen-shell-panel flex h-full flex-col justify-between gap-5 rounded-[1.25rem] border-white/[0.06] bg-background/88 shadow-[0_24px_64px_-44px_rgba(0,0,0,0.88)]"
+      bodyClassName="flex h-full flex-col justify-between gap-5 p-5"
     >
       <div>
         <div className="mb-4 flex items-center gap-3">
           <CardIcon
             icon={Icon}
             className={cn(
-              'flex h-10 w-10 items-center justify-center border border-white/[0.12]',
+              'gen-shell-surface flex h-10 w-10 items-center justify-center rounded-2xl border-white/[0.08]',
               color,
             )}
             iconClassName="h-5 w-5"
@@ -285,11 +285,13 @@ export default function OverviewPageContent({
       {
         accent: `${stats?.completedToday ?? 0} completed today`,
         label: 'Live Runs',
+        tone: 'border-sky-400/12 bg-sky-400/[0.04]',
         value: String(stats?.activeRuns ?? activeRuns.length),
       },
       {
         accent: `${reviewInbox.pendingCount} still generating`,
         label: 'Ready To Review',
+        tone: 'border-emerald-400/12 bg-emerald-400/[0.04]',
         value: String(reviewInbox.readyCount),
       },
       {
@@ -297,11 +299,13 @@ export default function OverviewPageContent({
           ? `${analytics.bestPerformingPlatform} leads performance`
           : 'Connect more channels for ranking',
         label: 'Connected Platforms',
+        tone: 'border-violet-400/12 bg-violet-400/[0.04]',
         value: String(analytics.totalCredentialsConnected ?? 0),
       },
       {
         accent: `${stats?.failedToday ?? 0} failed today`,
         label: 'Credits Today',
+        tone: 'border-amber-400/12 bg-amber-400/[0.04]',
         value: formatCompactNumber(stats?.totalCreditsToday ?? 0),
       },
     ],
@@ -435,10 +439,10 @@ export default function OverviewPageContent({
       <section>
         <div className="mb-5 space-y-1">
           <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-foreground/35">
-            Closed-Loop Snapshot
+            Supporting Views
           </p>
           <h2 className="text-xl font-semibold tracking-[-0.02em] text-foreground">
-            Secondary Operating Summaries
+            Secondary Surfaces
           </h2>
         </div>
         <div
@@ -456,7 +460,8 @@ export default function OverviewPageContent({
   return (
     <OverviewLayout
       label="Overview"
-      description="Run the closed loop from trend discovery to publishing and automation."
+      description="Live workspace across research, production, publishing, and automation."
+      actionsTitle="Operator Shortcuts"
       icon={HiOutlineHome}
       cards={cards}
       header={header}

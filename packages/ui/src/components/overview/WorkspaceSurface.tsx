@@ -6,11 +6,11 @@ type WorkspaceSurfaceTone = 'default' | 'muted' | 'elevated';
 
 const FRAME_TONE_CLASSES: Record<WorkspaceSurfaceTone, string> = {
   default:
-    'border border-white/[0.08] bg-card shadow-[0_24px_60px_-40px_rgba(0,0,0,0.8)]',
+    'ship-ui gen-shell-panel rounded-[1.25rem] border-white/[0.06] bg-background/88 shadow-[0_28px_72px_-48px_rgba(0,0,0,0.92)]',
   elevated:
-    'border border-white/[0.12] bg-card shadow-[0_30px_80px_-44px_rgba(0,0,0,0.95)]',
+    'ship-ui gen-shell-panel rounded-[1.35rem] border-white/[0.08] bg-background/92 shadow-[0_34px_84px_-46px_rgba(0,0,0,0.96)]',
   muted:
-    'border border-white/[0.06] bg-white/[0.02] shadow-[0_20px_50px_-42px_rgba(0,0,0,0.72)]',
+    'ship-ui gen-shell-panel rounded-[1.25rem] border-white/[0.05] bg-background-secondary/84 shadow-[0_24px_64px_-44px_rgba(0,0,0,0.88)]',
 };
 
 const HEADER_GAP_CLASSES: Record<WorkspaceSurfaceDensity, string> = {
@@ -54,7 +54,7 @@ export function WorkspaceSurface({
       className={cn(
         framed
           ? cn('rounded', FRAME_TONE_CLASSES[tone])
-          : 'border-0 bg-transparent shadow-none',
+          : 'ship-ui border-0 bg-transparent shadow-none',
         className,
       )}
     >
@@ -68,7 +68,7 @@ export function WorkspaceSurface({
         {eyebrow || title || actions ? (
           <div
             className={cn(
-              'flex flex-col lg:flex-row lg:items-start lg:justify-between',
+              'flex flex-col lg:flex-row lg:items-center lg:justify-between',
               HEADER_GAP_CLASSES[density],
             )}
           >
@@ -79,7 +79,7 @@ export function WorkspaceSurface({
                 </p>
               ) : null}
               {title ? (
-                <h2 className="text-xl font-semibold tracking-[-0.02em] text-foreground">
+                <h2 className="text-lg font-semibold tracking-[-0.02em] text-foreground sm:text-xl">
                   {title}
                 </h2>
               ) : null}

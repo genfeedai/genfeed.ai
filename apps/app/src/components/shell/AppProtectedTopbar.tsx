@@ -10,6 +10,7 @@ import TopbarEnd from '@ui/topbars/end/TopbarEnd';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { HiBars3, HiOutlineCommandLine, HiXMark } from 'react-icons/hi2';
+import { EditionBadge } from '@/components/edition-badge/EditionBadge';
 import { appendSearchParamsToHref } from '@/lib/navigation/operator-shell';
 
 export default function AppProtectedTopbar({
@@ -37,9 +38,9 @@ export default function AppProtectedTopbar({
     : null;
 
   return (
-    <header className="h-full w-full bg-transparent">
-      <div className="flex h-full w-full items-center justify-between gap-3 pl-4 pr-2 sm:pl-6 sm:pr-3 lg:pl-8 lg:pr-2">
-        <div className="flex min-w-0 items-center gap-3">
+    <header className="ship-ui h-full w-full bg-transparent">
+      <div className="flex h-full w-full items-center justify-between gap-2.5 pl-3 pr-2 sm:px-4 lg:px-5">
+        <div className="flex min-w-0 items-center gap-2.5">
           {onMenuToggle ? (
             <Button
               type="button"
@@ -55,14 +56,27 @@ export default function AppProtectedTopbar({
             </Button>
           ) : null}
 
-          <div className="hidden min-w-0 md:block">
-            <TopbarBreadcrumbs />
+          {currentApp && orgSlug ? (
+            <div className="shrink-0">
+              <AppSwitcher
+                currentApp={currentApp}
+                orgSlug={orgSlug}
+                brandSlug={brandSlug}
+                preservedSearch={searchParams?.toString()}
+              />
+            </div>
+          ) : null}
+
+          <div className="hidden min-w-0 md:flex">
+            <div className="gen-shell-surface flex h-10 min-w-0 items-center rounded-xl px-3">
+              <TopbarBreadcrumbs />
+            </div>
           </div>
         </div>
 
-        <div className="flex min-w-0 items-center gap-3">
+        <div className="flex min-w-0 items-center gap-2.5">
           {taskId ? (
-            <div className="gen-shell-surface hidden items-center gap-2 rounded-full px-3 py-1.5 text-xs lg:flex">
+            <div className="gen-shell-surface hidden items-center gap-2 rounded-xl px-3 py-2 text-xs lg:flex">
               <span className="font-semibold uppercase tracking-[0.14em] text-emerald-200/80">
                 Task context
               </span>
@@ -82,15 +96,6 @@ export default function AppProtectedTopbar({
             </div>
           ) : null}
 
-          {currentApp && orgSlug ? (
-            <AppSwitcher
-              currentApp={currentApp}
-              orgSlug={orgSlug}
-              brandSlug={brandSlug}
-              preservedSearch={searchParams?.toString()}
-            />
-          ) : null}
-
           {onAgentToggle ? (
             <Button
               type="button"
@@ -105,6 +110,8 @@ export default function AppProtectedTopbar({
               <HiOutlineCommandLine className="h-4 w-4" />
             </Button>
           ) : null}
+
+          <EditionBadge className="hidden lg:inline-flex" />
 
           <TopbarEnd />
         </div>

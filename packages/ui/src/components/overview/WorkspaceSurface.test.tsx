@@ -6,8 +6,8 @@ describe('WorkspaceSurface', () => {
   it('renders framed surface styling by default', () => {
     const { container } = render(<WorkspaceSurface>Body</WorkspaceSurface>);
     expect(container.querySelector('section')).toHaveClass('rounded');
-    expect(container.querySelector('section')).toHaveClass('border');
-    expect(container.querySelector('section')).toHaveClass('bg-card');
+    expect(container.querySelector('section')).toHaveClass('ship-ui');
+    expect(container.querySelector('section')).toHaveClass('gen-shell-panel');
   });
 
   it('renders eyebrow, title, and actions', () => {
@@ -38,7 +38,8 @@ describe('WorkspaceSurface', () => {
     );
 
     const section = container.querySelector('section');
-    expect(section).toHaveClass('bg-white/[0.02]');
+    expect(section).toHaveClass('ship-ui');
+    expect(section).toHaveClass('gen-shell-panel');
     expect(container.querySelector('.px-4')).toBeInTheDocument();
   });
 
@@ -46,6 +47,7 @@ describe('WorkspaceSurface', () => {
     const { container } = render(
       <WorkspaceSurface framed={false}>Body</WorkspaceSurface>,
     );
+    expect(container.querySelector('section')).toHaveClass('ship-ui');
     expect(container.querySelector('section')).toHaveClass('border-0');
     expect(container.querySelector('section')).toHaveClass('bg-transparent');
   });

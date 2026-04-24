@@ -129,19 +129,24 @@ export function OverviewTopStatStrip({
       {items.map((item) => (
         <Card
           key={item.label}
-          className={cn('min-h-[132px] shadow-none', item.tone)}
-          bodyClassName="p-4"
+          className={cn(
+            'ship-ui gen-shell-panel min-h-[136px] rounded-[1.25rem] border-white/[0.06] bg-background/88 shadow-[0_24px_64px_-44px_rgba(0,0,0,0.88)]',
+            item.tone,
+          )}
+          bodyClassName="flex h-full flex-col justify-between gap-6 p-5"
         >
-          <div className="space-y-1">
-            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-foreground/35">
+          <div className="space-y-2">
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-foreground/35">
               {item.label}
             </p>
-            <div className="text-2xl font-semibold tracking-[-0.03em] text-foreground">
+            <div className="text-3xl font-semibold tracking-[-0.04em] text-foreground">
               {item.value}
             </div>
           </div>
           {item.accent ? (
-            <p className="text-sm text-foreground/55">{item.accent}</p>
+            <p className="text-sm leading-6 text-foreground/55">
+              {item.accent}
+            </p>
           ) : null}
         </Card>
       ))}
@@ -228,7 +233,7 @@ export function OverviewOperationsSection({
     <WorkspaceSurface
       eyebrow="Live Operations"
       title="Active And Recent Runs"
-      tone="muted"
+      tone="default"
       className="flex h-full flex-col gap-4"
       data-testid="overview-operations-surface"
       actions={
@@ -253,7 +258,7 @@ export function OverviewOperationsSection({
             items={displayRuns}
             columns={columns}
             emptyState={
-              <div className="flex items-center justify-center p-8 text-sm text-foreground/55">
+              <div className="ship-ui gen-shell-empty-state flex items-center justify-center rounded-[1rem] p-8 text-sm text-foreground/55">
                 No runs match the current filters.
               </div>
             }
@@ -280,7 +285,7 @@ export function OverviewPerformanceChartSection({
     <WorkspaceSurface
       eyebrow="Performance Trend"
       title="Platform Momentum Over Time"
-      tone="muted"
+      tone="default"
       className="flex h-full flex-col gap-4"
       data-testid="overview-performance-surface"
       actions={
@@ -299,7 +304,7 @@ export function OverviewPerformanceChartSection({
         Last 14 days of synced analytics
       </div>
 
-      <div className="overflow-hidden rounded border border-white/[0.08] bg-white/[0.02] px-3 py-4 sm:px-4">
+      <div className="ship-ui gen-shell-surface overflow-hidden rounded-[1rem] border-white/[0.06] bg-background/52 px-4 py-4">
         <PlatformTimeSeriesChart
           data={data}
           platforms={platforms}
@@ -329,7 +334,7 @@ export function OverviewPublishingInboxSection({
     <WorkspaceSurface
       eyebrow="Publishing Todo"
       title="Publishing Inbox"
-      tone="muted"
+      tone="default"
       className="flex h-full flex-col gap-4"
       data-testid="overview-publishing-surface"
       actions={
@@ -347,14 +352,14 @@ export function OverviewPublishingInboxSection({
 
       <div className="space-y-3">
         {recentItems.length === 0 ? (
-          <div className="rounded border border-dashed border-white/[0.1] bg-white/[0.02] px-4 py-5 text-sm text-foreground/55">
+          <div className="ship-ui gen-shell-empty-state rounded-[1rem] px-4 py-5 text-sm text-foreground/55">
             No items are waiting in the publishing inbox.
           </div>
         ) : (
           recentItems.map((item) => (
             <div
               key={item.id}
-              className="rounded border border-white/[0.08] bg-white/[0.02] px-4 py-4"
+              className="ship-ui gen-shell-surface rounded-[1rem] border-white/[0.06] bg-background/52 px-4 py-4"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 space-y-1">

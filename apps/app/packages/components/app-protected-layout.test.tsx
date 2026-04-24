@@ -427,7 +427,7 @@ describe('AppProtectedLayout', () => {
     expect(screen.getByTestId('low-credits-banner')).toBeInTheDocument();
   });
 
-  it('wires transparent shell chrome through the protected app shell', () => {
+  it('wires default shell chrome through the protected app shell', () => {
     render(
       <AppProtectedLayout>
         <div>Protected content</div>
@@ -439,7 +439,7 @@ describe('AppProtectedLayout', () => {
       expect.objectContaining({
         bannerComponent: expect.anything(),
         hasSecondaryTopbar: false,
-        shellChromeVariant: 'transparent',
+        shellChromeVariant: 'default',
         topbarChromeVariant: 'default',
       }),
     );
@@ -455,7 +455,7 @@ describe('AppProtectedLayout', () => {
             label: 'Settings',
           },
         ],
-        shellChromeVariant: 'transparent',
+        shellChromeVariant: 'default',
         shellMode: 'workspace',
         sidebarWidth: 304,
       }),
@@ -663,7 +663,7 @@ describe('AppProtectedLayout', () => {
 
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        shellChromeVariant: 'transparent',
+        shellChromeVariant: 'default',
       }),
     );
     expect(screen.queryByTestId('agent-thread-list')).not.toBeInTheDocument();
@@ -683,7 +683,7 @@ describe('AppProtectedLayout', () => {
         backHref: '/org-123/brand-123/library/ingredients',
         backLabel: 'Library',
         sectionLabel: 'Studio',
-        shellChromeVariant: 'transparent',
+        shellChromeVariant: 'default',
       }),
     );
     expect(screen.queryByTestId('agent-thread-list')).not.toBeInTheDocument();

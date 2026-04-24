@@ -218,7 +218,7 @@ function AppLayoutWithDynamicMenu({
   children,
   initialBootstrap,
 }: AppLayoutWithDynamicMenuProps) {
-  const shellChromeVariant = 'transparent' as const;
+  const shellChromeVariant = 'default' as const;
   const rawPathname = usePathname();
   const searchParams = useSearchParams();
   // Strip org/brand prefix from pathname for route detection.

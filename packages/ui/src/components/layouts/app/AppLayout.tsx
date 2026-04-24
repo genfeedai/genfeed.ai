@@ -409,7 +409,7 @@ export default function AppLayout({
   const layoutContent = (
     <SidebarNavigationProvider items={menuItems}>
       <div
-        className="min-h-screen overflow-x-hidden bg-background"
+        className="ship-ui min-h-screen overflow-x-hidden bg-background"
         style={layoutStyle}
       >
         {menuComponent && (
