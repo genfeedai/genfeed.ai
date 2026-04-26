@@ -35,10 +35,10 @@ import {
   ListObjectsV2Command,
   S3Client,
 } from '@aws-sdk/client-s3';
-import { PrismaClient } from '@genfeedai/prisma';
 import { Logger } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { config } from 'dotenv';
+import { PrismaClient } from '../../packages/prisma/src/index';
 
 const logger = new Logger('S3Rename');
 
@@ -49,6 +49,12 @@ const logger = new Logger('S3Rename');
 const envArg = process.argv.find((a) => a.startsWith('--env='))?.split('=')[1];
 const envSuffix = envArg ?? 'local';
 config({ path: resolve(__dirname, `../../apps/server/api/.env.${envSuffix}`) });
+
+if (process.env.AWS_PROFILE) {
+  delete process.env.AWS_ACCESS_KEY_ID;
+  delete process.env.AWS_SECRET_ACCESS_KEY;
+  delete process.env.AWS_SESSION_TOKEN;
+}
 
 const DATABASE_URL = process.env.DATABASE_URL;
 if (!DATABASE_URL) {
@@ -103,9 +109,9 @@ const INGREDIENT_CATEGORY_TO_PREFIX: Record<string, string> = {
 const TRAINING_PREFIX = 'ingredients/trainings';
 
 const ASSET_CATEGORY_TO_PREFIX: Record<string, string> = {
-  LOGO: 'assets/branding',
-  BANNER: 'assets/branding',
-  REFERENCE: 'assets/branding',
+  LOGO: 'ingredients/logos',
+  BANNER: 'ingredients/banners',
+  REFERENCE: 'ingredients/references',
 };
 
 // ---------------------------------------------------------------------------
@@ -134,8 +140,86 @@ async function objectExists(s3: S3Client, key: string): Promise<boolean> {
   try {
     await s3.send(new HeadObjectCommand({ Bucket: S3_BUCKET, Key: key }));
     return true;
-  } catch {
-    return false;
+  } catch (error) {
+    const httpStatusCode =
+      typeof error === 'object' &&
+      error !== null &&
+      '$metadata' in error &&
+      typeof error.$metadata === 'object' &&
+      error.$metadata !== null &&
+      'httpStatusCode' in error.$metadata
+        ? Number(error.$metadata.httpStatusCode)
+        : undefined;
+    const errorName =
+      typeof error === 'object' &&
+      error !== null &&
+      'name' in error &&
+      typeof error.name === 'string'
+        ? error.name
+        : undefined;
+
+    if (
+      httpStatusCode === 404 ||
+      errorName === 'NotFound' ||
+      errorName === 'NoSuchKey'
+    ) {
+      return false;
+    }
+
+    throw error;
+  }
+}
+
+function isS3AuthError(error: unknown): boolean {
+  const errorName =
+    typeof error === 'object' &&
+    error !== null &&
+    'name' in error &&
+    typeof error.name === 'string'
+      ? error.name
+      : undefined;
+  const errorCode =
+    typeof error === 'object' &&
+    error !== null &&
+    'Code' in error &&
+    typeof error.Code === 'string'
+      ? error.Code
+      : undefined;
+
+  return (
+    errorName === 'InvalidAccessKeyId' ||
+    errorName === 'SignatureDoesNotMatch' ||
+    errorName === 'AccessDenied' ||
+    errorCode === 'InvalidAccessKeyId' ||
+    errorCode === 'SignatureDoesNotMatch' ||
+    errorCode === 'AccessDenied'
+  );
+}
+
+function formatError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return String(error);
+}
+
+async function assertS3Access(s3: S3Client): Promise<void> {
+  try {
+    await s3.send(
+      new ListObjectsV2Command({
+        Bucket: S3_BUCKET,
+        MaxKeys: 1,
+      }),
+    );
+  } catch (error) {
+    if (isS3AuthError(error)) {
+      throw new Error(
+        `Unable to access S3 bucket ${S3_BUCKET}: ${formatError(error)}`,
+      );
+    }
+
+    throw error;
   }
 }
 
@@ -195,10 +279,27 @@ async function renameFile(
   failures: string[],
 ): Promise<boolean> {
   try {
-    const exists = await objectExists(s3, task.sourceKey);
+    const [sourceExists, targetExists] = await Promise.all([
+      objectExists(s3, task.sourceKey),
+      objectExists(s3, task.targetKey),
+    ]);
 
-    if (!exists) {
+    if (!sourceExists && targetExists) {
+      logger.log(
+        `[SKIP] Already renamed: ${task.sourceKey} → ${task.targetKey}`,
+      );
+      return false;
+    }
+
+    if (!sourceExists) {
       logger.warn(`[SKIP] Source not found: ${task.sourceKey}`);
+      return false;
+    }
+
+    if (targetExists) {
+      const msg = `${task.label}: target already exists (${task.targetKey})`;
+      logger.error(`[FAILED] ${msg}`);
+      failures.push(msg);
       return false;
     }
 
@@ -264,8 +365,11 @@ async function processIngredients(
 
   for (const [cat, tasks] of categoryTasks) {
     const catFailures: string[] = [];
+    let renamedCount = 0;
     await withConcurrency(tasks, CONCURRENCY, async (task) => {
-      await renameFile(s3, task, catFailures);
+      if (await renameFile(s3, task, catFailures)) {
+        renamedCount += 1;
+      }
     });
 
     const row = summary.get(cat) ?? {
@@ -275,7 +379,7 @@ async function processIngredients(
       isDirectories: false,
       failures: 0,
     };
-    row.count += tasks.length;
+    row.count += renamedCount;
     row.failures += catFailures.length;
     summary.set(cat, row);
     failures.push(...catFailures);
@@ -299,7 +403,8 @@ async function processTrainings(
   summary: Map<string, SummaryRow>,
 ): Promise<string[]> {
   const failures: string[] = [];
-  let trainingFileCount = 0;
+  let trainingDirCount = 0;
+  let trainingRenamedCount = 0;
 
   await withConcurrency(rows, CONCURRENCY, async (row) => {
     try {
@@ -312,7 +417,7 @@ async function processTrainings(
         return;
       }
 
-      trainingFileCount += sourceKeys.length;
+      trainingDirCount += 1;
 
       for (const sourceKey of sourceKeys) {
         const relativePath = sourceKey.slice(sourcePrefix.length);
@@ -324,7 +429,9 @@ async function processTrainings(
           targetKey,
         };
 
-        await renameFile(s3, task, failures);
+        if (await renameFile(s3, task, failures)) {
+          trainingRenamedCount += 1;
+        }
       }
     } catch (err) {
       const msg = `training:${row.mongoId} (directory)`;
@@ -338,12 +445,14 @@ async function processTrainings(
 
   summary.set('TRAINING', {
     category: 'trainings',
-    count: rows.length,
-    isDirectories: true,
+    count: trainingRenamedCount,
+    isDirectories: false,
     failures: failures.length,
   });
 
-  logger.log(`Training dirs: ${rows.length} dirs, ${trainingFileCount} files`);
+  logger.log(
+    `Training dirs: ${trainingDirCount} dirs, ${trainingRenamedCount} file(s) ready to rename`,
+  );
 
   return failures;
 }
@@ -364,6 +473,7 @@ async function processAssets(
   summary: Map<string, SummaryRow>,
 ): Promise<string[]> {
   const failures: string[] = [];
+  let renamedCount = 0;
 
   const filteredRows = rows.filter((r) => ASSET_CATEGORY_TO_PREFIX[r.category]);
 
@@ -377,16 +487,18 @@ async function processAssets(
   });
 
   await withConcurrency(tasks, CONCURRENCY, async (task) => {
-    await renameFile(s3, task, failures);
+    if (await renameFile(s3, task, failures)) {
+      renamedCount += 1;
+    }
   });
 
   const row = summary.get('ASSET_BRANDING') ?? {
-    category: 'assets/branding',
+    category: 'branding-assets',
     count: 0,
     isDirectories: false,
     failures: 0,
   };
-  row.count += tasks.length;
+  row.count += renamedCount;
   row.failures += failures.length;
   summary.set('ASSET_BRANDING', row);
 
@@ -463,6 +575,9 @@ function printSummary(
 async function main(): Promise<void> {
   logger.log(`Environment: .env.${envSuffix}`);
   logger.log(`Bucket: ${S3_BUCKET} (${S3_REGION})`);
+  if (process.env.AWS_PROFILE) {
+    logger.log(`AWS profile: ${process.env.AWS_PROFILE}`);
+  }
 
   // --- Prisma client ---
   const adapter = new PrismaPg({ connectionString: DATABASE_URL });
@@ -475,6 +590,9 @@ async function main(): Promise<void> {
   const allFailures: string[] = [];
 
   try {
+    logger.log('Checking S3 bucket access...');
+    await assertS3Access(s3);
+
     // ---- Query ingredients ----
     logger.log('Querying ingredients with mongoId...');
     const ingredients = await prisma.$queryRaw<IngredientRow[]>`

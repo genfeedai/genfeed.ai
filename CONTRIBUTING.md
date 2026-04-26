@@ -23,7 +23,12 @@ To prevent abuse, CI does not run automatically on PRs from forks. A maintainer 
 1. Fork the repository
 2. Create a feature branch from `develop`
 3. Make your changes
-4. Run `bun run lint && bun run typecheck && bun run test`
+4. Run the narrowest relevant checks for the packages you changed:
+   - `npx biome check --write .`
+   - `bunx turbo run lint --filter=<changed-package>`
+   - `bunx turbo run type-check --filter=<changed-package>`
+   - `bunx turbo run test --filter=<changed-package>`
+   - Use the full repo baseline only when the change touches shared infrastructure or multiple packages.
 5. Submit a pull request against `develop`
 
 ## Repository Structure
@@ -38,6 +43,14 @@ To prevent abuse, CI does not run automatically on PRs from forks. A maintainer 
 - Use path aliases (`@genfeedai/*`) over relative imports
 - Conventional commits: `feat:`, `fix:`, `refactor:`, `chore:`
 - No secrets in code (`.env`, API keys, tokens)
+
+## Pull Request Expectations
+
+- Keep PRs small and single-purpose. Prefer under 500 changed lines and under 10 code files when the change can be split cleanly.
+- Put a short summary at the top of the PR description, even when the diff is small.
+- Link the related issue with `Fixes #123` or `Refs #123`.
+- State what you tested. A short list of commands or flows is enough.
+- Keep GitHub as the source of truth. If work started in chat or another private channel, copy the needed context into the issue or PR.
 
 ## Contributing to Core (AGPL-3.0)
 

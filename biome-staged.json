@@ -1,0 +1,27 @@
+{
+  "extends": ["./biome.json"],
+  "overrides": [
+    {
+      "includes": ["apps/server/**/*.ts"],
+      "linter": {
+        "enabled": true,
+        "rules": {
+          "recommended": false,
+          "correctness": {
+            "noProcessGlobal": "warn",
+            "noUnusedFunctionParameters": "warn",
+            "noUnusedVariables": "warn"
+          },
+          "style": {
+            "noProcessEnv": "warn"
+          },
+          "suspicious": {
+            "noAsyncPromiseExecutor": "warn",
+            "noDoubleEquals": "warn",
+            "noExplicitAny": "warn"
+          }
+        }
+      }
+    }
+  ]
+}

@@ -9,6 +9,9 @@ concurrency:
   group: coverage-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  TZ: UTC
+
 jobs:
   # ── Matrix job for standard packages ──
   coverage-packages:
@@ -46,10 +49,10 @@ jobs:
           install-command: "bun install"
 
       - name: Build workspace
-        run: bunx turbo build --filter='./${{ matrix.package }}...'
+        run: bunx turbo run build --filter='./${{ matrix.package }}...'
 
       - name: Run coverage
-        run: cd ${{ matrix.package }} && npx vitest run --coverage
+        run: cd ${{ matrix.package }} && bunx vitest run --coverage
 
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
@@ -83,10 +86,10 @@ jobs:
           install-command: "bun install"
 
       - name: Build workspace
-        run: bunx turbo build --filter='./packages/hooks...'
+        run: bunx turbo run build --filter='./packages/hooks...'
 
       - name: Run coverage
-        run: cd packages/hooks && npx vitest run --coverage --config vitest.config.mts
+        run: cd packages/hooks && bunx vitest run --coverage --config vitest.config.mts
 
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
@@ -120,10 +123,10 @@ jobs:
           install-command: "bun install"
 
       - name: Build workspace
-        run: bunx turbo build --filter=./packages/**
+        run: bunx turbo run build --filter=./packages/**
 
       - name: Run coverage
-        run: cd apps/server/api && npx vitest run --coverage
+        run: cd apps/server/api && bunx vitest run --coverage
         env:
           NODE_ENV: test
           CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY || 'test-mock-clerk-key' }}

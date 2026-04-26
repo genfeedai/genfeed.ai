@@ -13,6 +13,7 @@ concurrency:
 env:
   TURBO_TEAM: ${{ vars.TURBO_TEAM }}
   TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TZ: UTC
 
 jobs:
   format:
@@ -63,7 +64,7 @@ jobs:
       - name: Run lint
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            bunx turbo lint --affected
+            bunx turbo run lint --affected
           else
             bun run lint
           fi
@@ -96,7 +97,7 @@ jobs:
       - name: Run typecheck
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            bunx turbo type-check --affected
+            bunx turbo run type-check --affected
           else
             bun run type-check
           fi
@@ -129,7 +130,7 @@ jobs:
       - name: Run tests
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            bunx turbo test --affected
+            bunx turbo run test --affected
           else
             bun run test
           fi
@@ -163,7 +164,7 @@ jobs:
       - name: Run build
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            bunx turbo build --filter='./packages/*' --affected
+            bunx turbo run build --filter='./packages/*' --affected
           else
             bun run build
           fi
