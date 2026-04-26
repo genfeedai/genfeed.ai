@@ -3,10 +3,6 @@ import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
-  esbuild: {
-    jsx: 'automatic',
-    jsxImportSource: 'react',
-  },
   oxc: false,
   plugins: [react()],
   resolve: {

@@ -9,6 +9,7 @@
     "@genfeedai/props": "workspace:*",
     "@genfeedai/services": "workspace:*",
     "@genfeedai/utils": "workspace:*",
+    "@shipshitdev/ui": "0.6.0",
     "@tiptap/extension-blockquote": "3.22.4",
     "@tiptap/extension-bold": "3.22.4",
     "@tiptap/extension-code": "3.22.4",
@@ -107,7 +108,7 @@
     "url": "git+https://github.com/genfeedai/packages.git"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json && bunx tsc-alias -p tsconfig.json",
+    "build": "tsc --build --force && bunx tsc-alias -p tsconfig.json",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "test": "vitest run --config vitest.config.ts",
     "test:watch": "vitest watch --config vitest.config.ts"

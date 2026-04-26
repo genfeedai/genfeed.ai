@@ -10,12 +10,21 @@ import {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..');
 const appRoot = process.cwd();
+const packageJsonPath = path.resolve(appRoot, './package.json');
+const packageJson = fs.existsSync(packageJsonPath)
+  ? JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'))
+  : null;
+const packageName =
+  typeof packageJson?.name === 'string'
+    ? packageJson.name
+    : path.relative(repoRoot, appRoot);
 const localUiRoot = path.resolve(appRoot, './packages/ui');
 const hasLocalUiRoot = fs.existsSync(localUiRoot);
 const isAppShell = appRoot === path.resolve(repoRoot, './apps/app');
 const pagesRoot = isAppShell
   ? path.resolve(repoRoot, './packages/pages')
   : path.resolve(appRoot, './src/page-modules');
+process.env.TZ ??= 'UTC';
 installVitestWarningFilter();
 const customLogger = createVitestWarningLogger();
 
@@ -552,6 +561,7 @@ export default defineConfig({
     exclude: ['**/node_modules/**'],
     globals: true,
     include: ['**/*.test.{ts,tsx}', '**/*.spec.{ts,tsx}'],
+    name: packageName,
     setupFiles: [path.resolve(appRoot, './vitest.setup.ts')],
     testTimeout: 15_000,
   },

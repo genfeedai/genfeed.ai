@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import process from 'node:process';
 import swc from 'unplugin-swc';
 import { defineConfig } from 'vitest/config';
 
@@ -85,7 +86,7 @@ if (isCoverageRun) {
 
 export default defineConfig({
   customLogger,
-  oxc: false,
+  oxc: false, // Disable OXC transformer — SWC required for NestJS decorator metadata
   plugins: [
     swc.vite({
       jsc: {

@@ -1,26 +1,55 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalDependencies": ["**/.env.*local"],
+  "globalDependencies": [
+    "bun.lock",
+    ".env.example",
+    ".env.local",
+    ".env.staging",
+    ".env.production",
+    "scripts/env-check.ts",
+    "scripts/env-spec.ts",
+    "**/.env.*local"
+  ],
   "tasks": {
     "build": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["//#env:check", "^build"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        ".env.example",
+        ".env.local",
+        ".env.staging",
+        ".env.production"
+      ],
       "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
     },
     "dev": {
       "cache": false,
+      "dependsOn": ["//#env:check"],
       "persistent": true
     },
     "lint": {
       "dependsOn": ["^build"]
     },
     "type-check": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["//#env:check", "^build"]
     },
     "test": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["//#env:check", "^build"],
+      "env": ["TZ"]
     },
     "clean": {
       "cache": false
+    },
+    "//#env:check": {
+      "cache": false,
+      "inputs": [
+        ".env.example",
+        ".env.local",
+        ".env.staging",
+        ".env.production",
+        "scripts/env-check.ts",
+        "scripts/env-spec.ts"
+      ]
     }
   }
 }
