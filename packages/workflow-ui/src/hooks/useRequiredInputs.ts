@@ -1,6 +1,7 @@
-import type { NodeType } from '@genfeedai/types';
+import type { NodeType, WorkflowEdge } from '@genfeedai/types';
 import { NODE_DEFINITIONS } from '@genfeedai/types';
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useWorkflowStore } from '../stores/workflowStore';
 
 interface RequiredInputsResult {
@@ -24,7 +25,12 @@ export function useRequiredInputs(
   nodeId: string,
   nodeType: NodeType,
 ): RequiredInputsResult {
-  const edges = useWorkflowStore((state) => state.edges);
+  const incomingEdgesSelector = useCallback(
+    (state: { edges: WorkflowEdge[] }) =>
+      state.edges.filter((edge) => edge.target === nodeId),
+    [nodeId],
+  );
+  const incomingEdges = useWorkflowStore(useShallow(incomingEdgesSelector));
 
   return useMemo(() => {
     const nodeDef = NODE_DEFINITIONS[nodeType];
@@ -37,7 +43,6 @@ export function useRequiredInputs(
     }
 
     // Get edges that target this node
-    const incomingEdges = edges.filter((e) => e.target === nodeId);
     const connectedHandles = new Set(
       incomingEdges.map((e) => e.targetHandle).filter(Boolean),
     );
@@ -60,5 +65,5 @@ export function useRequiredInputs(
       hasRequiredInputs: missingInputs.length === 0,
       missingInputs,
     };
-  }, [nodeId, nodeType, edges]);
+  }, [incomingEdges, nodeType]);
 }

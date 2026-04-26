@@ -2,6 +2,8 @@ import type { NodeType, WorkflowEdge, WorkflowNode } from '@genfeedai/types';
 import { NODE_DEFINITIONS } from '@genfeedai/types';
 import { useCallback, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
+import { createIdMap } from '../lib/lookups';
+import { getNodeOutputForHandle } from '../lib/nodeOutputs';
 import {
   CONNECTION_FIELDS,
   validateRequiredSchemaFields,
@@ -37,26 +39,6 @@ interface UseCanGenerateOptions {
   inputSchema?: Record<string, unknown>;
   /** Current schema parameter values */
   schemaParams?: Record<string, unknown>;
-}
-
-/**
- * Extract output value from a node based on handle type.
- */
-function extractOutputValue(
-  node: WorkflowNode,
-  handleType: string | null | undefined,
-): string | undefined {
-  const data = node.data as Record<string, unknown>;
-  if (handleType === 'text') {
-    return (data.outputText ?? data.prompt) as string | undefined;
-  } else if (handleType === 'image') {
-    return (data.outputImage ?? data.image) as string | undefined;
-  } else if (handleType === 'video') {
-    return (data.outputVideo ?? data.video) as string | undefined;
-  } else if (handleType === 'audio') {
-    return (data.outputAudio ?? data.audio) as string | undefined;
-  }
-  return undefined;
 }
 
 /**
@@ -97,10 +79,11 @@ export function useCanGenerate({
   const connectedOutputsSelector = useCallback(
     (state: { nodes: WorkflowNode[] }) => {
       const outputs: Record<string, string | undefined> = {};
+      const nodeMap = createIdMap(state.nodes);
       for (const edge of incomingEdges) {
-        const sourceNode = state.nodes.find((n) => n.id === edge.source);
+        const sourceNode = nodeMap.get(edge.source);
         if (sourceNode) {
-          outputs[edge.source] = extractOutputValue(
+          outputs[edge.source] = getNodeOutputForHandle(
             sourceNode,
             edge.sourceHandle,
           );

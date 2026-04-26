@@ -9,6 +9,7 @@ import type {
 } from '@genfeedai/types';
 import { NODE_DEFINITIONS } from '@genfeedai/types';
 import type { StateCreator } from 'zustand';
+import { getConnectedInputsForNode, getUpstreamNodeIds } from '../../../lib';
 import { propagateExistingOutputs } from '../helpers/propagation';
 import type { WorkflowData, WorkflowStore } from '../types';
 
@@ -121,80 +122,12 @@ export const createPersistenceSlice: StateCreator<
 
   getConnectedInputs: (nodeId) => {
     const { nodes, edges } = get();
-    const inputs = new Map<string, string | string[]>();
-
-    const incomingEdges = edges.filter((edge) => edge.target === nodeId);
-
-    for (const edge of incomingEdges) {
-      const sourceNode = nodes.find((n) => n.id === edge.source);
-      if (!sourceNode) continue;
-
-      const handleId = edge.targetHandle;
-      if (!handleId) continue;
-
-      const sourceData = sourceNode.data as WorkflowNodeData & {
-        outputImage?: string;
-        outputVideo?: string;
-        outputText?: string;
-        outputAudio?: string;
-        prompt?: string;
-        image?: string;
-        video?: string;
-        audio?: string;
-      };
-
-      let value: string | null = null;
-
-      if (edge.sourceHandle === 'image') {
-        value = sourceData.outputImage ?? sourceData.image ?? null;
-      } else if (edge.sourceHandle === 'video') {
-        value = sourceData.outputVideo ?? sourceData.video ?? null;
-      } else if (edge.sourceHandle === 'text') {
-        value = sourceData.outputText ?? sourceData.prompt ?? null;
-      } else if (edge.sourceHandle === 'audio') {
-        value = sourceData.outputAudio ?? sourceData.audio ?? null;
-      }
-
-      if (value) {
-        const existing = inputs.get(handleId);
-        if (existing) {
-          if (Array.isArray(existing)) {
-            inputs.set(handleId, [...existing, value]);
-          } else {
-            inputs.set(handleId, [existing, value]);
-          }
-        } else {
-          inputs.set(handleId, value);
-        }
-      }
-    }
-
-    return inputs;
+    return getConnectedInputsForNode(nodeId, nodes, edges);
   },
 
   getConnectedNodeIds: (nodeIds) => {
     const { edges } = get();
-    const connected = new Set<string>(nodeIds);
-    const visited = new Set<string>();
-
-    // Traverse UPSTREAM only - find all nodes that feed into the selected nodes
-    // This way selecting a node shows its dependencies, not what depends on it
-    const queue = [...nodeIds];
-    while (queue.length > 0) {
-      const currentId = queue.shift()!;
-      if (visited.has(currentId)) continue;
-      visited.add(currentId);
-
-      const upstreamEdges = edges.filter((e) => e.target === currentId);
-      for (const edge of upstreamEdges) {
-        if (!connected.has(edge.source)) {
-          connected.add(edge.source);
-          queue.push(edge.source);
-        }
-      }
-    }
-
-    return Array.from(connected);
+    return getUpstreamNodeIds(nodeIds, edges);
   },
 
   getNodeById: (id) => {

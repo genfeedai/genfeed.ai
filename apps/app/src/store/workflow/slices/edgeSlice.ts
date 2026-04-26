@@ -5,6 +5,7 @@ import type {
   WorkflowNode,
 } from '@genfeedai/types';
 import { CONNECTION_RULES, NODE_DEFINITIONS } from '@genfeedai/types';
+import { createIdMap, createTargetMap } from '@genfeedai/workflow-ui/lib';
 import type { Connection, EdgeChange, NodeChange } from '@xyflow/react';
 import {
   applyEdgeChanges,
@@ -36,9 +37,11 @@ export const createEdgeSlice: StateCreator<WorkflowStore, [], [], EdgeSlice> = (
 ) => ({
   findCompatibleHandle: (sourceNodeId, sourceHandleId, targetNodeId) => {
     const { nodes, edges } = get();
+    const nodeMap = createIdMap(nodes);
+    const edgesByTarget = createTargetMap(edges);
 
-    const sourceNode = nodes.find((n) => n.id === sourceNodeId);
-    const targetNode = nodes.find((n) => n.id === targetNodeId);
+    const sourceNode = nodeMap.get(sourceNodeId);
+    const targetNode = nodeMap.get(targetNodeId);
 
     if (!sourceNode || !targetNode) return null;
 
@@ -54,7 +57,7 @@ export const createEdgeSlice: StateCreator<WorkflowStore, [], [], EdgeSlice> = (
     if (!targetDef) return null;
 
     const existingTargetHandles = new Set(
-      edges.filter((e) => e.target === targetNodeId).map((e) => e.targetHandle),
+      (edgesByTarget.get(targetNodeId) ?? []).map((edge) => edge.targetHandle),
     );
 
     for (const input of targetDef.inputs) {
@@ -72,9 +75,14 @@ export const createEdgeSlice: StateCreator<WorkflowStore, [], [], EdgeSlice> = (
 
   isValidConnection: (connection) => {
     const { nodes } = get();
+    const nodeMap = createIdMap(nodes);
 
-    const sourceNode = nodes.find((n) => n.id === connection.source);
-    const targetNode = nodes.find((n) => n.id === connection.target);
+    const sourceNode = connection.source
+      ? nodeMap.get(connection.source)
+      : undefined;
+    const targetNode = connection.target
+      ? nodeMap.get(connection.target)
+      : undefined;
 
     if (!sourceNode || !targetNode) return false;
 

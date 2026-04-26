@@ -35,6 +35,7 @@ import { MultiSelectToolbar } from '../components/MultiSelectToolbar';
 import { NotificationToast } from '../components/NotificationToast';
 import { useCanvasKeyboardShortcuts } from '../hooks/useCanvasKeyboardShortcuts';
 import { useContextMenu } from '../hooks/useContextMenu';
+import { createIdLookup, filterItemsByIdLookup } from '../lib';
 import { nodeTypes as defaultNodeTypes } from '../nodes';
 import { NodeDetailModal } from '../nodes/NodeDetailModal';
 import { useExecutionStore } from '../stores/executionStore';
@@ -176,7 +177,8 @@ export function WorkflowCanvas({
   );
 
   const deleteSelectedElements = useCallback(() => {
-    const nodesToDelete = nodes.filter((n) => selectedNodeIds.includes(n.id));
+    const selectedNodeIdLookup = createIdLookup(selectedNodeIds);
+    const nodesToDelete = filterItemsByIdLookup(nodes, selectedNodeIdLookup);
     const edgesToDelete = edges.filter((e) => e.selected);
     if (nodesToDelete.length > 0) {
       onNodesChange(
@@ -216,6 +218,10 @@ export function WorkflowCanvas({
   }, [selectedNodeIds, getConnectedNodeIds, setHighlightedNodeIds]);
 
   const nodeMap = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
+  const selectedNodeIdLookup = useMemo(
+    () => createIdLookup(selectedNodeIds),
+    [selectedNodeIds],
+  );
 
   const isEdgeTargetingDisabledInput = useCallback(
     (edge: WorkflowEdge): boolean => {
@@ -379,13 +385,13 @@ export function WorkflowCanvas({
   const handleNodeContextMenu = useCallback(
     (event: React.MouseEvent, node: Node) => {
       event.preventDefault();
-      if (selectedNodeIds.length > 1 && selectedNodeIds.includes(node.id)) {
+      if (selectedNodeIds.length > 1 && selectedNodeIdLookup.has(node.id)) {
         openSelectionMenu(selectedNodeIds, event.clientX, event.clientY);
       } else {
         openNodeMenu(node.id, event.clientX, event.clientY);
       }
     },
-    [selectedNodeIds, openNodeMenu, openSelectionMenu],
+    [selectedNodeIdLookup, selectedNodeIds, openNodeMenu, openSelectionMenu],
   );
 
   const handleEdgeContextMenu = useCallback(
@@ -491,7 +497,7 @@ export function WorkflowCanvas({
 
       if (!nodeElement) {
         // Dropped on empty canvas — open connection drop menu
-        const sourceNode = nodes.find((n) => n.id === sourceNodeId);
+        const sourceNode = nodeMap.get(sourceNodeId);
         if (!sourceNode) return;
 
         const sourceHandleType = getHandleType(
@@ -545,7 +551,13 @@ export function WorkflowCanvas({
         targetHandle: compatibleHandle,
       });
     },
-    [findCompatibleHandle, onConnect, nodes, reactFlow, openConnectionDropMenu],
+    [
+      findCompatibleHandle,
+      nodeMap,
+      onConnect,
+      openConnectionDropMenu,
+      reactFlow,
+    ],
   );
 
   const checkValidConnection = useCallback(

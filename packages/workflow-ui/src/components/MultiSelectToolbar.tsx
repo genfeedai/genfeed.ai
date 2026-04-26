@@ -11,6 +11,7 @@ import {
   Ungroup,
 } from 'lucide-react';
 import { memo, useCallback, useMemo } from 'react';
+import { createIdLookup, filterItemsByIdLookup, hasEveryId } from '../lib';
 import { useWorkflowStore } from '../stores/workflowStore';
 import { Button } from '../ui/button';
 
@@ -34,10 +35,14 @@ function MultiSelectToolbarComponent({
     groups,
   } = useWorkflowStore();
   const reactFlow = useReactFlow();
+  const selectedNodeIdLookup = useMemo(
+    () => createIdLookup(selectedNodeIds),
+    [selectedNodeIds],
+  );
 
   const selectedNodes = useMemo(
-    () => nodes.filter((n) => selectedNodeIds.includes(n.id)),
-    [nodes, selectedNodeIds],
+    () => filterItemsByIdLookup(nodes, selectedNodeIdLookup),
+    [nodes, selectedNodeIdLookup],
   );
 
   // Find if selected nodes belong to a group
@@ -45,7 +50,7 @@ function MultiSelectToolbarComponent({
     if (selectedNodes.length < 2) return null;
     return (
       groups.find((g) =>
-        selectedNodeIds.every((id) => g.nodeIds.includes(id)),
+        hasEveryId(selectedNodeIds, createIdLookup(g.nodeIds)),
       ) ?? null
     );
   }, [groups, selectedNodeIds, selectedNodes.length]);

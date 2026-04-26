@@ -5,6 +5,7 @@ import type {
   WorkflowNodeData,
 } from '@genfeedai/types';
 import { NODE_DEFINITIONS } from '@genfeedai/types';
+import { createIdMap, createTargetMap } from '@genfeedai/workflow-ui/lib';
 import type { XYPosition } from '@xyflow/react';
 import type { StateCreator } from 'zustand';
 import { generateId } from '../helpers/nodeHelpers';
@@ -79,7 +80,11 @@ export const createNodeSlice: StateCreator<WorkflowStore, [], [], NodeSlice> = (
 
   duplicateNode: (nodeId) => {
     const { nodes, edges, edgeStyle, propagateOutputsDownstream } = get();
-    const node = nodes.find((n) => n.id === nodeId);
+    const nodeMap = createIdMap(nodes);
+    const incomingEdges = (createTargetMap(edges).get(nodeId) ?? []).filter(
+      (edge) => edge.source !== nodeId,
+    );
+    const node = nodeMap.get(nodeId);
     if (!node) return null;
 
     const newId = generateId();
@@ -97,9 +102,6 @@ export const createNodeSlice: StateCreator<WorkflowStore, [], [], NodeSlice> = (
       },
     };
 
-    const incomingEdges = edges.filter(
-      (e) => e.target === nodeId && e.source !== nodeId,
-    );
     const clonedEdges: WorkflowEdge[] = incomingEdges.map((edge) => ({
       ...edge,
       id: generateId(),
@@ -126,7 +128,7 @@ export const createNodeSlice: StateCreator<WorkflowStore, [], [], NodeSlice> = (
 
   propagateOutputsDownstream: (sourceNodeId, outputValue?) => {
     const { nodes, edges } = get();
-    const sourceNode = nodes.find((n) => n.id === sourceNodeId);
+    const sourceNode = nodes.find((node) => node.id === sourceNodeId);
     if (!sourceNode) return;
 
     const output = outputValue ?? getNodeOutput(sourceNode);
@@ -159,7 +161,7 @@ export const createNodeSlice: StateCreator<WorkflowStore, [], [], NodeSlice> = (
 
   updateNodeData: (nodeId, data) => {
     const { nodes, propagateOutputsDownstream } = get();
-    const node = nodes.find((n) => n.id === nodeId);
+    const node = nodes.find((candidate) => candidate.id === nodeId);
 
     const TRANSIENT_KEYS = new Set(['status', 'progress', 'error', 'jobId']);
     const dataKeys = Object.keys(data as Record<string, unknown>);

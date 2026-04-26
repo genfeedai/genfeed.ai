@@ -27,6 +27,10 @@ import type {
 } from '@genfeedai/types';
 import { NODE_DEFINITIONS } from '@genfeedai/types';
 import { useCanvasKeyboardShortcuts } from '@genfeedai/workflow-ui/hooks';
+import {
+  createIdLookup,
+  filterItemsByIdLookup,
+} from '@genfeedai/workflow-ui/lib';
 import { NodeDetailModal, nodeTypes } from '@genfeedai/workflow-ui/nodes';
 import { useUIStore } from '@genfeedai/workflow-ui/stores';
 import { Button } from '@ui/primitives/button';
@@ -124,7 +128,8 @@ export function WorkflowCanvas() {
   const { removeNode, removeEdge } = useWorkflowStore();
 
   const deleteSelectedElements = useCallback(() => {
-    const nodesToDelete = nodes.filter((n) => selectedNodeIds.includes(n.id));
+    const selectedNodeIdLookup = createIdLookup(selectedNodeIds);
+    const nodesToDelete = filterItemsByIdLookup(nodes, selectedNodeIdLookup);
     const edgesToDelete = edges.filter((e) => e.selected);
     for (const node of nodesToDelete) {
       removeNode(node.id);
@@ -160,6 +165,10 @@ export function WorkflowCanvas() {
   }, [selectedNodeIds, getConnectedNodeIds, setHighlightedNodeIds]);
 
   const nodeMap = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
+  const selectedNodeIdLookup = useMemo(
+    () => createIdLookup(selectedNodeIds),
+    [selectedNodeIds],
+  );
 
   const isEdgeTargetingDisabledInput = useCallback(
     (edge: WorkflowEdge): boolean => {
@@ -306,13 +315,13 @@ export function WorkflowCanvas() {
   const handleNodeContextMenu = useCallback(
     (event: React.MouseEvent, node: Node) => {
       event.preventDefault();
-      if (selectedNodeIds.length > 1 && selectedNodeIds.includes(node.id)) {
+      if (selectedNodeIds.length > 1 && selectedNodeIdLookup.has(node.id)) {
         openSelectionMenu(selectedNodeIds, event.clientX, event.clientY);
       } else {
         openNodeMenu(node.id, event.clientX, event.clientY);
       }
     },
-    [selectedNodeIds, openNodeMenu, openSelectionMenu],
+    [selectedNodeIdLookup, selectedNodeIds, openNodeMenu, openSelectionMenu],
   );
 
   const handleEdgeContextMenu = useCallback(

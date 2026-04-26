@@ -1,6 +1,7 @@
 import type { NodeType, WorkflowNode } from '@genfeedai/types';
 import type { FitViewOptions } from '@xyflow/react';
 import { useEffect } from 'react';
+import { createIdLookup, filterItemsByIdLookup, hasSomeId } from '../lib';
 import { useWorkflowStore } from '../stores/workflowStore';
 import type { NodeGroup } from '../types/groups';
 
@@ -55,6 +56,8 @@ export function useCanvasKeyboardShortcuts({
   deleteSelectedElements,
 }: UseCanvasKeyboardShortcutsParams) {
   useEffect(() => {
+    const selectedNodeIdLookup = createIdLookup(selectedNodeIds);
+
     const handleKeyDown = (e: KeyboardEvent) => {
       // Ignore if typing in input
       if (
@@ -88,8 +91,9 @@ export function useCanvasKeyboardShortcuts({
         e.preventDefault();
         if (selectedNodeIds.length > 0) {
           // Fit to selected nodes
-          const selectedNodes = nodes.filter((n) =>
-            selectedNodeIds.includes(n.id),
+          const selectedNodes = filterItemsByIdLookup(
+            nodes,
+            selectedNodeIdLookup,
           );
           fitView({ duration: 200, nodes: selectedNodes, padding: 0.3 });
         } else {
@@ -129,12 +133,11 @@ export function useCanvasKeyboardShortcuts({
       // Ctrl+Shift+G - Ungroup (delete group containing selected nodes)
       if (e.key === 'g' && isMod && e.shiftKey) {
         e.preventDefault();
-        for (const nodeId of selectedNodeIds) {
-          const group = groups.find((g) => g.nodeIds.includes(nodeId));
-          if (group) {
-            deleteGroup(group.id);
-            break;
-          }
+        const group = groups.find((candidate) =>
+          hasSomeId(candidate.nodeIds, selectedNodeIdLookup),
+        );
+        if (group) {
+          deleteGroup(group.id);
         }
       }
 
