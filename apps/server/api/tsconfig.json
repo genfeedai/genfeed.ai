@@ -46,7 +46,7 @@
       "@workflow-engine/*": ["../../../packages/workflow-engine/src/*"],
       "@workflow-saas/*": ["../../../packages/workflow-saas/src/*"]
     },
-    "types": ["node", "vitest/globals"]
+    "types": ["node", "vitest/globals", "multer"]
   },
   "exclude": ["node_modules", "dist"],
   "extends": "../tsconfig.json",
