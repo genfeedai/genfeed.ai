@@ -5,6 +5,7 @@ import {
   formatPercentage,
 } from '@genfeedai/helpers/formatting/format/format.helper';
 import type { IAnalytics } from '@genfeedai/interfaces';
+import { ChartContainer } from '@ui/charts';
 import Link from 'next/link';
 import {
   HiArrowRight,
@@ -12,7 +13,7 @@ import {
   HiEye,
   HiHeart,
 } from 'react-icons/hi2';
-import { Area, AreaChart, ResponsiveContainer } from 'recharts';
+import { Area, AreaChart } from 'recharts';
 
 export interface QuickAnalyticsPreviewProps {
   data: IAnalytics | null;
@@ -156,7 +157,16 @@ export function QuickAnalyticsPreview({
         <p className="text-sm font-medium text-foreground/80 mb-3">
           Views Trend
         </p>
-        <ResponsiveContainer width="100%" height={80}>
+        <ChartContainer
+          config={{
+            value: {
+              color: '#8b5cf6',
+              label: 'Views',
+            },
+          }}
+          className="border-0 bg-transparent p-0 shadow-none"
+          height={80}
+        >
           <AreaChart data={trendData}>
             <defs>
               <linearGradient id="colorPreview" x1="0" y1="0" x2="0" y2="1">
@@ -173,7 +183,7 @@ export function QuickAnalyticsPreview({
               fill="url(#colorPreview)"
             />
           </AreaChart>
-        </ResponsiveContainer>
+        </ChartContainer>
       </div>
 
       {/* Platform Distribution */}

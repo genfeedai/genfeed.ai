@@ -7,13 +7,13 @@ import {
   formatTooltipDateTime,
 } from '@genfeedai/helpers/formatting/format/format.helper';
 import type { PostPerformanceChartProps } from '@genfeedai/props/analytics/charts.props';
+import { ChartContainer, ChartTooltipContent } from '@ui/charts';
 import { Button } from '@ui/primitives/button';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Area,
   AreaChart,
   CartesianGrid,
-  ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
@@ -26,6 +26,11 @@ const METRIC_COLORS = {
   views: 'hsl(var(--foreground))',
 };
 
+const METRIC_LABELS = {
+  engagement: 'Engagement',
+  views: 'Views',
+};
+
 export function PostPerformanceChart({
   data,
   isLoading = false,
@@ -36,6 +41,19 @@ export function PostPerformanceChart({
     AnalyticsMetric.VIEWS,
     AnalyticsMetric.ENGAGEMENT,
   ]);
+  const chartConfig = useMemo(
+    () =>
+      Object.fromEntries(
+        (Object.keys(METRIC_COLORS) as MetricType[]).map((metric) => [
+          metric,
+          {
+            color: METRIC_COLORS[metric],
+            label: METRIC_LABELS[metric],
+          },
+        ]),
+      ),
+    [],
+  );
 
   const isEmpty = !data || data.length === 0;
 
@@ -112,7 +130,12 @@ export function PostPerformanceChart({
           </div>
         )}
 
-        <ResponsiveContainer width="100%" height={height}>
+        <ChartContainer
+          config={chartConfig}
+          className="border-white/[0.08] bg-card p-3 shadow-[0_24px_60px_-40px_rgba(0,0,0,0.8)]"
+          height="100%"
+          style={{ minWidth: 0 }}
+        >
           <AreaChart
             data={data}
             margin={{ bottom: 5, left: 20, right: 30, top: 5 }}
@@ -160,33 +183,24 @@ export function PostPerformanceChart({
               stroke="var(--overlay-white-20)"
             />
             <Tooltip
-              formatter={(value, name) => {
-                const numericValue =
-                  typeof value === 'number'
-                    ? value
-                    : Number(Array.isArray(value) ? value[0] : value) || 0;
-                const displayName =
-                  typeof name === 'string'
-                    ? name.charAt(0).toUpperCase() + name.slice(1)
-                    : String(name ?? '');
-
-                return [formatFullNumber(numericValue), displayName];
-              }}
-              labelFormatter={(label) =>
-                formatTooltipDateTime(
-                  typeof label === 'string' || typeof label === 'number'
-                    ? label
-                    : undefined,
-                )
+              content={
+                <ChartTooltipContent
+                  labelFormatter={(label) =>
+                    formatTooltipDateTime(
+                      typeof label === 'string' || typeof label === 'number'
+                        ? label
+                        : undefined,
+                    )
+                  }
+                  valueFormatter={(value) =>
+                    formatFullNumber(
+                      typeof value === 'number'
+                        ? value
+                        : Number(Array.isArray(value) ? value[0] : value) || 0,
+                    )
+                  }
+                />
               }
-              contentStyle={{
-                backdropFilter: 'blur(10px)',
-                backgroundColor: 'var(--overlay-black-90)',
-                border: '1px solid var(--overlay-white-10)',
-                borderRadius: '12px',
-              }}
-              labelStyle={{ color: 'hsl(var(--foreground))' }}
-              itemStyle={{ color: 'var(--overlay-white-20)' }}
             />
             {activeMetrics.includes(AnalyticsMetric.VIEWS) && (
               <Area
@@ -209,7 +223,7 @@ export function PostPerformanceChart({
               />
             )}
           </AreaChart>
-        </ResponsiveContainer>
+        </ChartContainer>
       </div>
     </div>
   );

@@ -6,13 +6,13 @@ import {
   formatCompactNumberIntl,
 } from '@genfeedai/helpers/formatting/format/format.helper';
 import type { PlatformTimeSeriesChartProps } from '@genfeedai/props/analytics/charts.props';
+import { ChartContainer, ChartTooltipContent } from '@ui/charts';
 import { Button } from '@ui/primitives/button';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Area,
   AreaChart,
   CartesianGrid,
-  ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
@@ -51,6 +51,19 @@ export function PlatformTimeSeriesChart({
 }: PlatformTimeSeriesChartProps) {
   const [activePlatforms, setActivePlatforms] =
     useState<(keyof typeof PLATFORM_COLORS)[]>(platforms);
+  const chartConfig = useMemo(
+    () =>
+      Object.fromEntries(
+        platforms.map((platform) => [
+          platform,
+          {
+            color: PLATFORM_COLORS[platform],
+            label: PLATFORM_LABELS[platform],
+          },
+        ]),
+      ),
+    [platforms],
+  );
 
   const isEmpty = !data || data.length === 0;
 
@@ -105,7 +118,12 @@ export function PlatformTimeSeriesChart({
         )}
 
         {!isEmpty && (
-          <ResponsiveContainer width="100%" height={height}>
+          <ChartContainer
+            config={chartConfig}
+            className="border-white/[0.08] bg-card p-3 shadow-[0_24px_60px_-40px_rgba(0,0,0,0.8)]"
+            height="100%"
+            style={{ minWidth: 0 }}
+          >
             <AreaChart
               data={data}
               margin={{ bottom: 0, left: 0, right: 30, top: 10 }}
@@ -155,33 +173,22 @@ export function PlatformTimeSeriesChart({
               />
 
               <Tooltip
-                contentStyle={{
-                  backdropFilter: 'blur(10px)',
-                  backgroundColor: 'var(--overlay-black-90)',
-                  border: '1px solid var(--overlay-white-10)',
-                  borderRadius: '12px',
-                }}
-                labelStyle={{
-                  color: 'hsl(var(--foreground))',
-                  fontWeight: '600',
-                  marginBottom: '8px',
-                }}
-                itemStyle={{ color: 'var(--overlay-white-20)' }}
-                formatter={(value, name) => [
-                  formatCompactNumberIntl(
-                    typeof value === 'number'
-                      ? value
-                      : typeof value === 'string'
-                        ? Number(value)
-                        : undefined,
-                  ),
-                  name
-                    ? PLATFORM_LABELS[
-                        String(name) as keyof typeof PLATFORM_LABELS
-                      ] || String(name)
-                    : '',
-                ]}
-                labelFormatter={(label) => `Date: ${formatChartDate(label)}`}
+                content={
+                  <ChartTooltipContent
+                    labelFormatter={(label) =>
+                      `Date: ${formatChartDate(label)}`
+                    }
+                    valueFormatter={(value) =>
+                      formatCompactNumberIntl(
+                        typeof value === 'number'
+                          ? value
+                          : typeof value === 'string'
+                            ? Number(value)
+                            : undefined,
+                      )
+                    }
+                  />
+                }
               />
 
               {activePlatforms.map((platform) => (
@@ -196,7 +203,7 @@ export function PlatformTimeSeriesChart({
                 />
               ))}
             </AreaChart>
-          </ResponsiveContainer>
+          </ChartContainer>
         )}
       </div>
     </div>

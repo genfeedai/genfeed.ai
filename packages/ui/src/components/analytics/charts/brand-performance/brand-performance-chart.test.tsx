@@ -4,6 +4,29 @@ import { AnalyticsMetric } from '@genfeedai/enums';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('@ui/charts', () => ({
+  ChartContainer: ({
+    children,
+    className,
+    height,
+    style,
+  }: {
+    children: React.ReactNode;
+    className?: string;
+    height?: number | string;
+    style?: React.CSSProperties;
+  }) => (
+    <div
+      data-testid="responsive-container"
+      className={className}
+      style={{ ...style, height }}
+    >
+      {children}
+    </div>
+  ),
+  ChartTooltipContent: () => <div data-testid="chart-tooltip-content" />,
+}));
+
 // Mock recharts
 vi.mock('recharts', () => ({
   Bar: ({ dataKey, fill }: { dataKey: string; fill: string }) => (
@@ -13,9 +36,6 @@ vi.mock('recharts', () => ({
     <div data-testid="bar-chart">{children}</div>
   ),
   CartesianGrid: () => <div data-testid="cartesian-grid" />,
-  ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="responsive-container">{children}</div>
-  ),
   Tooltip: () => <div data-testid="tooltip" />,
   XAxis: () => <div data-testid="x-axis" />,
   YAxis: () => <div data-testid="y-axis" />,

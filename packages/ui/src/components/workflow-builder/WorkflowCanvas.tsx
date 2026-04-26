@@ -2,23 +2,19 @@
 
 import type { WorkflowNodeData } from '@genfeedai/interfaces/automation/workflow-builder.interface';
 import type { WorkflowCanvasProps } from '@genfeedai/props/automation/workflow-builder.props';
-import {
-  Background,
-  BackgroundVariant,
-  Controls,
-  MiniMap,
-  type Node,
-  ReactFlow,
-  type OnNodesChange as ReactFlowOnNodesChange,
-  useReactFlow,
-} from '@xyflow/react';
-import '@xyflow/react/dist/style.css';
+import { FlowCanvas } from '@ui/flows';
 import AINode from '@ui/workflow-builder/nodes/AINode';
 import ControlNode from '@ui/workflow-builder/nodes/ControlNode';
 import EffectsNode from '@ui/workflow-builder/nodes/EffectsNode';
 import InputNode from '@ui/workflow-builder/nodes/InputNode';
 import OutputNode from '@ui/workflow-builder/nodes/OutputNode';
 import ProcessNode from '@ui/workflow-builder/nodes/ProcessNode';
+import {
+  BackgroundVariant,
+  type Node,
+  type OnNodesChange as ReactFlowOnNodesChange,
+  useReactFlow,
+} from '@xyflow/react';
 import { useCallback, useMemo, useRef } from 'react';
 
 const NODE_TYPES = {
@@ -88,7 +84,8 @@ export default function WorkflowCanvas({
 
   return (
     <div ref={reactFlowWrapper} className="h-full w-full">
-      <ReactFlow
+      <FlowCanvas
+        containerClassName="h-full w-full rounded-none border-0 bg-transparent shadow-none"
         nodes={nodes as Node[]}
         edges={edges}
         onNodesChange={onNodesChange as ReactFlowOnNodesChange}
@@ -107,10 +104,10 @@ export default function WorkflowCanvas({
         nodesConnectable={!isReadOnly}
         elementsSelectable={!isReadOnly}
         proOptions={{ hideAttribution: true }}
-      >
-        <Controls showInteractive={!isReadOnly} />
-        <MiniMap
-          nodeColor={(node) => {
+        controlsProps={{ showInteractive: !isReadOnly }}
+        miniMapProps={{
+          maskColor: 'rgba(0, 0, 0, 0.2)',
+          nodeColor: (node) => {
             const data = node.data as WorkflowNodeData;
             switch (data.definition?.category) {
               case 'input':
@@ -128,11 +125,10 @@ export default function WorkflowCanvas({
               default:
                 return '#9ca3af';
             }
-          }}
-          maskColor="rgba(0, 0, 0, 0.2)"
-        />
-        <Background variant={BackgroundVariant.Dots} gap={15} size={1} />
-      </ReactFlow>
+          },
+        }}
+        backgroundProps={{ variant: BackgroundVariant.Dots, gap: 15, size: 1 }}
+      ></FlowCanvas>
     </div>
   );
 }

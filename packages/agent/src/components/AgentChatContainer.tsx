@@ -914,10 +914,10 @@ export function AgentChatContainer({
                 <HiOutlineSparkles className="h-6 w-6 text-foreground/68" />
               </div>
 
-              <h2 className="mb-2 text-center text-[clamp(1.75rem,3vw,2.4rem)] font-semibold tracking-tight text-foreground">
+              <h2 className="mb-2 text-center text-[clamp(1.35rem,2.2vw,1.8rem)] font-semibold tracking-[-0.03em] text-foreground">
                 {emptyStateTitle}
               </h2>
-              <p className="max-w-xl text-center text-sm leading-6 text-foreground/58">
+              <p className="max-w-xl text-center text-sm leading-6 text-foreground/52">
                 {emptyStateDescription}
               </p>
 
@@ -1100,7 +1100,7 @@ export function AgentChatContainer({
                   size={ButtonSize.ICON}
                   icon={<HiOutlineArrowDown className="h-4 w-4" />}
                   ariaLabel="Scroll to latest message"
-                  className="rounded-full border border-white/[0.14] bg-background/80 shadow-lg backdrop-blur-sm"
+                  className="rounded-full border border-border/70 bg-background/88 text-foreground/72 shadow-[0_16px_36px_-24px_rgba(0,0,0,0.85)] backdrop-blur-sm hover:text-foreground"
                   withWrapper={false}
                   onClick={scrollToBottom}
                 />

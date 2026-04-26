@@ -27,25 +27,25 @@ export function TimelineWorkGroup({
 
   return (
     <div className="mb-3 flex justify-start motion-reduce:animate-none animate-in fade-in slide-in-from-bottom-1 duration-200 ease-out">
-      <div className="max-w-[85%] rounded-xl border border-border/40 bg-card/25 p-2 space-y-0.5">
+      <div className="w-full max-w-none rounded-2xl border border-border/65 bg-background-secondary/68 p-2.5 shadow-[0_1px_0_rgba(0,0,0,0.18)]">
         {isArchived ? (
           <Button
             variant={ButtonVariant.UNSTYLED}
             withWrapper={false}
             onClick={() => setIsExpanded((prev) => !prev)}
             aria-expanded={isExpanded}
-            className="flex w-full items-center justify-between gap-3 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-white/[0.03]"
+            className="flex w-full items-center justify-between gap-3 rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-background/55"
           >
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 text-[11px] font-medium text-foreground/82">
-                <HiClock className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
+                <HiClock className="h-3.5 w-3.5 shrink-0 text-foreground/44" />
                 <span>
                   {durationLabel
                     ? `Worked for ${durationLabel}`
                     : 'Completed run'}
                 </span>
               </div>
-              <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-muted-foreground/70">
+              <div className="mt-1 flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-[0.12em] text-foreground/38">
                 <span>
                   {entry.events.length} step
                   {entry.events.length !== 1 ? 's' : ''}
@@ -59,14 +59,15 @@ export function TimelineWorkGroup({
             </div>
             <HiChevronDown
               className={cn(
-                'h-4 w-4 shrink-0 text-muted-foreground/70 transition-transform',
+                'h-4 w-4 shrink-0 text-foreground/42 transition-transform',
                 isExpanded ? 'rotate-180' : '',
               )}
             />
           </Button>
         ) : (
-          <div className="px-1 pb-1 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/60">
-            ⚡ {entry.events.length} step{entry.events.length !== 1 ? 's' : ''}
+          <div className="px-1 pb-2 text-[10px] font-mono uppercase tracking-[0.14em] text-foreground/40">
+            Run <span aria-hidden="true">·</span> {entry.events.length} step
+            {entry.events.length !== 1 ? 's' : ''}
           </div>
         )}
 

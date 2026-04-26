@@ -83,9 +83,9 @@ export function TimelineStreamingRow({
 
   return (
     <div className="mb-3 flex justify-start motion-reduce:animate-none animate-in fade-in slide-in-from-bottom-1 duration-200 ease-out">
-      <div className="w-full max-w-none space-y-1 border-l border-white/[0.08] pl-4 md:pl-5">
-        <div className="px-0 py-1">
-          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+      <div className="w-full max-w-none space-y-2 rounded-2xl border border-border/65 bg-background-secondary/68 px-4 py-3 shadow-[0_1px_0_rgba(0,0,0,0.18)]">
+        <div className="px-0 py-0.5">
+          <div className="flex items-center gap-1.5 text-[11px] text-foreground/46">
             <HiSparkles className="h-3.5 w-3.5 text-primary/70" />
             <AnimatedStatusText
               text={statusLabel}
@@ -96,7 +96,7 @@ export function TimelineStreamingRow({
                 <span aria-hidden="true" className="text-muted-foreground/60">
                   •
                 </span>
-                <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                <span className="inline-flex items-center gap-1 text-[10px] font-mono uppercase tracking-[0.12em] text-foreground/38">
                   <HiClock className="h-3 w-3" />
                   <span>{runDurationLabel}</span>
                 </span>
@@ -104,7 +104,7 @@ export function TimelineStreamingRow({
             ) : null}
           </div>
           {progressSummary.detail && !hasContent ? (
-            <p className="mt-1.5 border-l-2 border-primary/25 pl-2.5 text-[11px] leading-relaxed text-muted-foreground">
+            <p className="mt-2 rounded-xl border border-border/55 bg-background/55 px-3 py-2 text-[11px] leading-relaxed text-foreground/54">
               {progressSummary.detail}
             </p>
           ) : null}
@@ -123,7 +123,7 @@ export function TimelineStreamingRow({
         {/* Streaming content */}
         {hasContent && (
           <div className="px-0 py-1">
-            <p className="whitespace-pre-wrap break-words text-sm leading-7 text-foreground">
+            <p className="whitespace-pre-wrap break-words text-sm leading-6 text-foreground">
               {displayedText}
               {(streamState.isStreaming || isAnimating) && (
                 <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-foreground align-middle" />

@@ -3,7 +3,29 @@ import '@ui/tests/mocks/recharts.mock';
 import type { IAnalytics } from '@genfeedai/interfaces';
 import { render, screen } from '@testing-library/react';
 import { QuickAnalyticsPreview } from '@ui/analytics/cards/preview/quick-analytics-preview';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('@ui/charts', () => ({
+  ChartContainer: ({
+    children,
+    className,
+    height,
+    style,
+  }: {
+    children: React.ReactNode;
+    className?: string;
+    height?: number | string;
+    style?: React.CSSProperties;
+  }) => (
+    <div
+      data-testid="responsive-container"
+      className={className}
+      style={{ ...style, height }}
+    >
+      {children}
+    </div>
+  ),
+}));
 
 describe('QuickAnalyticsPreview', () => {
   const mockAnalyticsData: IAnalytics = {

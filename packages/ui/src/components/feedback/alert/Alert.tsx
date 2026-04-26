@@ -1,6 +1,7 @@
 import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { AlertProps } from '@genfeedai/props/ui/ui.props';
+import { Alert as PrimitiveAlert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { cva } from 'class-variance-authority';
 import {
@@ -62,7 +63,10 @@ export default function Alert({
   const variant = TYPE_TO_VARIANT[type] ?? 'info';
 
   return (
-    <div role="alert" className={cn(alertVariants({ variant }), className)}>
+    <PrimitiveAlert
+      className={cn(alertVariants({ variant }), className)}
+      variant={variant === 'error' ? 'destructive' : variant}
+    >
       {icon ?? DEFAULT_ICONS[variant]}
 
       <div className="flex-1">{children}</div>
@@ -75,6 +79,6 @@ export default function Alert({
           onClick={onClose}
         />
       )}
-    </div>
+    </PrimitiveAlert>
   );
 }

@@ -22,12 +22,12 @@ export function AgentTerminalHeader({
   onRuntimeChange,
 }: AgentTerminalHeaderProps): ReactElement {
   return (
-    <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
+    <div className="flex min-w-0 flex-1 items-center justify-between gap-3 overflow-hidden">
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
           <span
             className={cn(
-              'gen-shell-chip px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em]',
+              'gen-shell-chip px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em]',
               catalog.environmentLabel === 'local'
                 ? 'text-success'
                 : 'text-info',
@@ -38,11 +38,11 @@ export function AgentTerminalHeader({
           >
             {catalog.environmentLabel}
           </span>
-          <p className="truncate font-mono text-[13px] text-foreground/72">
+          <p className="truncate font-mono text-[11px] uppercase tracking-[0.12em] text-foreground/52">
             {threadLabel || 'new-session'}
           </p>
         </div>
-        <p className="truncate pt-1 text-[11px] text-foreground/52">
+        <p className="truncate pt-1 text-[11px] text-foreground/46">
           {catalog.providerSummary}
         </p>
       </div>

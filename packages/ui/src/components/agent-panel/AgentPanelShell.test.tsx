@@ -50,7 +50,7 @@ describe('AgentPanelShell', () => {
 
   it('renders default title when no title prop', () => {
     render(<AgentPanelShell {...defaultProps} />);
-    expect(screen.getByText('Genfeed Terminal')).toBeInTheDocument();
+    expect(screen.getByText('Console')).toBeInTheDocument();
   });
 
   it('renders custom title and subtitle', () => {

@@ -107,7 +107,8 @@ describe('StatCard', () => {
       const { container } = render(
         <StatCard {...defaultProps} variant="default" />,
       );
-      expect(container.firstChild).toHaveClass('bg-card');
+      expect(container.firstChild).toHaveClass('bg-secondary');
+      expect(container.firstChild).toHaveClass('ship-ui');
     });
 
     it('renders white variant', () => {
@@ -130,22 +131,22 @@ describe('StatCard', () => {
   describe('sizes', () => {
     it('renders md size by default', () => {
       const { container } = render(<StatCard {...defaultProps} />);
-      expect(container.firstChild).toHaveClass('p-6');
+      expect(container.firstChild?.firstChild).toHaveClass('p-5');
     });
 
     it('renders sm size', () => {
       const { container } = render(<StatCard {...defaultProps} size="sm" />);
-      expect(container.firstChild).toHaveClass('p-4');
+      expect(container.firstChild?.firstChild).toHaveClass('p-4');
     });
 
     it('renders lg size', () => {
       const { container } = render(<StatCard {...defaultProps} size="lg" />);
-      expect(container.firstChild).toHaveClass('p-8');
+      expect(container.firstChild?.firstChild).toHaveClass('p-6');
     });
 
     it('renders xl size', () => {
       const { container } = render(<StatCard {...defaultProps} size="xl" />);
-      expect(container.firstChild).toHaveClass('p-10');
+      expect(container.firstChild?.firstChild).toHaveClass('p-8');
     });
   });
 
@@ -189,8 +190,9 @@ describe('StatCard', () => {
   describe('layout', () => {
     it('renders flex column layout', () => {
       const { container } = render(<StatCard {...defaultProps} />);
-      expect(container.firstChild).toHaveClass('flex');
-      expect(container.firstChild).toHaveClass('flex-col');
+      expect(container.firstChild).toHaveClass('h-full');
+      expect(container.firstChild?.firstChild).toHaveClass('flex');
+      expect(container.firstChild?.firstChild).toHaveClass('flex-col');
     });
   });
 });

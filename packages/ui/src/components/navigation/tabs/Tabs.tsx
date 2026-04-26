@@ -147,11 +147,11 @@ export default function Tabs({
               cn(
                 fullWidth && 'w-full',
                 variant === 'pills'
-                  ? 'rounded-2xl border border-white/10 bg-white/[0.03] p-1'
+                  ? 'rounded-2xl border border-border bg-secondary/60 p-1'
                   : variant === 'underline'
-                    ? 'gap-1 border-b border-foreground/10'
+                    ? 'gap-0 border-b border-border'
                     : variant === 'segmented'
-                      ? 'rounded-xl bg-muted p-1'
+                      ? 'rounded-xl border border-border bg-secondary/50 p-1'
                       : 'gap-0.5',
               ),
             ),
@@ -251,11 +251,11 @@ export default function Tabs({
         className={cn(
           fullWidth && 'w-full',
           variant === 'pills'
-            ? 'rounded-2xl border border-white/10 bg-white/[0.03] p-1'
+            ? 'rounded-2xl border border-border bg-secondary/60 p-1'
             : variant === 'underline'
-              ? 'gap-1 border-b border-foreground/10'
+              ? 'gap-0 border-b border-border'
               : variant === 'segmented'
-                ? 'rounded-xl bg-muted p-1'
+                ? 'rounded-xl border border-border bg-secondary/50 p-1'
                 : 'gap-0.5',
         )}
       >

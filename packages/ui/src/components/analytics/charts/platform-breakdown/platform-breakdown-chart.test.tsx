@@ -3,6 +3,29 @@ import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('@ui/charts', () => ({
+  ChartContainer: ({
+    children,
+    className,
+    height,
+    style,
+  }: {
+    children: React.ReactNode;
+    className?: string;
+    height?: number | string;
+    style?: React.CSSProperties;
+  }) => (
+    <div
+      data-testid="responsive-container"
+      className={className}
+      style={{ ...style, height }}
+    >
+      {children}
+    </div>
+  ),
+  ChartTooltipContent: () => <div data-testid="chart-tooltip-content" />,
+}));
+
 // Mock recharts
 vi.mock('recharts', () => ({
   Cell: ({ fill }: { fill: string }) => (
@@ -26,9 +49,6 @@ vi.mock('recharts', () => ({
   ),
   PieChart: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="pie-chart">{children}</div>
-  ),
-  ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="responsive-container">{children}</div>
   ),
   Tooltip: () => <div data-testid="tooltip" />,
 }));

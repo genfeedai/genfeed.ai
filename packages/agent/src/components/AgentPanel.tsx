@@ -312,7 +312,7 @@ export function AgentPanel({
           onRuntimeChange={handleRuntimeChange}
         />
       }
-      subtitle="Sidebar terminal with local CLI and hosted runtime routing"
+      subtitle="Thread transcript, runtime routing, and generated outputs"
       chatContent={chatContent}
       outputsContent={outputsContent}
     />

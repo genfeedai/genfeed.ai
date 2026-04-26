@@ -3,7 +3,8 @@
 import { formatFullNumber } from '@genfeedai/helpers/formatting/format/format.helper';
 import type { PlatformBreakdownChartProps } from '@genfeedai/props/analytics/analytics.props';
 import Card from '@ui/card/Card';
-import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
+import { ChartContainer, ChartTooltipContent } from '@ui/charts';
+import { Cell, Pie, PieChart, Tooltip } from 'recharts';
 
 const PLATFORM_COLORS: Record<string, string> = {
   facebook: 'var(--platform-facebook)',
@@ -79,7 +80,20 @@ export function PlatformBreakdownChart({
             </div>
           )}
 
-          <ResponsiveContainer width="100%" height={height}>
+          <ChartContainer
+            config={Object.fromEntries(
+              dataWithTotal.map((item) => [
+                item.platform,
+                {
+                  color: getColor(item.platform),
+                  label: getLabel(item.platform),
+                },
+              ]),
+            )}
+            className="border-0 bg-transparent p-0 shadow-none"
+            height="100%"
+            style={{ minWidth: 0 }}
+          >
             <PieChart>
               <Pie
                 data={dataWithTotal}
@@ -97,27 +111,25 @@ export function PlatformBreakdownChart({
               </Pie>
 
               <Tooltip
-                formatter={(value, _name, props) => [
-                  formatFullNumber(
-                    typeof value === 'number'
-                      ? value
-                      : typeof value === 'string'
-                        ? Number(value)
-                        : undefined,
-                  ),
-                  getLabel(String(props?.payload?.platform ?? '')),
-                ]}
-                contentStyle={{
-                  backdropFilter: 'blur(10px)',
-                  backgroundColor: 'var(--overlay-black-90)',
-                  border: '1px solid var(--overlay-white-10)',
-                  borderRadius: '12px',
-                }}
-                labelStyle={{ color: 'hsl(var(--foreground))' }}
-                itemStyle={{ color: 'var(--overlay-white-20)' }}
+                content={
+                  <ChartTooltipContent
+                    labelFormatter={(_label, payload) =>
+                      getLabel(String(payload?.[0]?.payload?.platform ?? ''))
+                    }
+                    valueFormatter={(value) =>
+                      formatFullNumber(
+                        typeof value === 'number'
+                          ? value
+                          : typeof value === 'string'
+                            ? Number(value)
+                            : undefined,
+                      )
+                    }
+                  />
+                }
               />
             </PieChart>
-          </ResponsiveContainer>
+          </ChartContainer>
         </div>
       </div>
     </Card>

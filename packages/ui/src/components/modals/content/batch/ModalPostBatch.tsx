@@ -300,21 +300,21 @@ export default function ModalPostBatch({
         return;
       }
 
-      const url = `GET /organizations/${organizationId}`;
+      const url = `GET /organizations/${organizationId}/settings`;
 
       try {
         const service = await getOrganizationsService();
-        const organization = await service.findOne(organizationId);
+        const organizationSettings = await service.getSettings(organizationId);
 
         if (signal?.aborted) {
           return;
         }
 
-        if (organization?.settings) {
-          setSettings(organization.settings);
+        if (organizationSettings) {
+          setSettings(organizationSettings);
         }
 
-        logger.info(`${url} success`, organization);
+        logger.info(`${url} success`, organizationSettings);
       } catch (error) {
         logger.error(`${url} failed`, error);
       }
@@ -663,7 +663,7 @@ export default function ModalPostBatch({
   useEffect(() => {
     const abortController = new AbortController();
 
-    if (organizationId) {
+    if (organizationId && activeIngredients.length > 0) {
       startTransition(() => {
         void findOrganizationSettings(abortController.signal);
       });
@@ -672,7 +672,7 @@ export default function ModalPostBatch({
     return () => {
       abortController.abort();
     };
-  }, [findOrganizationSettings, organizationId]);
+  }, [activeIngredients.length, findOrganizationSettings, organizationId]);
 
   // Initialize platform configs with all possible platforms
   useEffect(() => {

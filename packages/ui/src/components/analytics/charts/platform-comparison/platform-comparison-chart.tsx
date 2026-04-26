@@ -7,17 +7,10 @@ import {
 } from '@genfeedai/helpers/formatting/format/format.helper';
 import type { PlatformComparisonMetricType } from '@genfeedai/interfaces/analytics/analytics-ui.interface';
 import type { PlatformComparisonChartProps } from '@genfeedai/props/analytics/analytics.props';
+import { ChartContainer, ChartTooltipContent } from '@ui/charts';
 import { Button } from '@ui/primitives/button';
-import { useState } from 'react';
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
+import { useMemo, useState } from 'react';
+import { Bar, BarChart, CartesianGrid, Tooltip, XAxis, YAxis } from 'recharts';
 
 const PLATFORM_LABELS: Record<string, string> = {
   facebook: 'Facebook',
@@ -44,6 +37,21 @@ export function PlatformComparisonChart({
   const [activeMetrics, setActiveMetrics] = useState<
     PlatformComparisonMetricType[]
   >([AnalyticsMetric.VIEWS, AnalyticsMetric.LIKES]);
+  const chartConfig = useMemo(
+    () =>
+      Object.fromEntries(
+        (Object.keys(METRIC_COLORS) as PlatformComparisonMetricType[]).map(
+          (metric) => [
+            metric,
+            {
+              color: METRIC_COLORS[metric],
+              label: metric.charAt(0).toUpperCase() + metric.slice(1),
+            },
+          ],
+        ),
+      ),
+    [],
+  );
 
   const isEmpty = !data || data.length === 0;
 
@@ -104,7 +112,12 @@ export function PlatformComparisonChart({
         )}
 
         {!isEmpty && (
-          <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+          <ChartContainer
+            config={chartConfig}
+            className="border-white/[0.08] bg-card p-3 shadow-[0_24px_60px_-40px_rgba(0,0,0,0.8)]"
+            height="100%"
+            style={{ minWidth: 0 }}
+          >
             <BarChart
               data={data}
               margin={{ bottom: 5, left: 20, right: 30, top: 5 }}
@@ -126,28 +139,20 @@ export function PlatformComparisonChart({
                 stroke="var(--overlay-white-20)"
               />
               <Tooltip
-                formatter={(value, name) => [
-                  formatFullNumber(
-                    typeof value === 'number'
-                      ? value
-                      : typeof value === 'string'
-                        ? Number(value)
-                        : undefined,
-                  ),
-                  String(name ?? '')
-                    ? String(name).charAt(0).toUpperCase() +
-                      String(name).slice(1)
-                    : '',
-                ]}
-                labelFormatter={(label) => getPlatformLabel(String(label))}
-                contentStyle={{
-                  backdropFilter: 'blur(10px)',
-                  backgroundColor: 'var(--overlay-black-90)',
-                  border: '1px solid var(--overlay-white-10)',
-                  borderRadius: '12px',
-                }}
-                labelStyle={{ color: 'hsl(var(--foreground))' }}
-                itemStyle={{ color: 'var(--overlay-white-20)' }}
+                content={
+                  <ChartTooltipContent
+                    labelFormatter={(label) => getPlatformLabel(String(label))}
+                    valueFormatter={(value) =>
+                      formatFullNumber(
+                        typeof value === 'number'
+                          ? value
+                          : typeof value === 'string'
+                            ? Number(value)
+                            : undefined,
+                      )
+                    }
+                  />
+                }
               />
               {activeMetrics.includes(AnalyticsMetric.VIEWS) && (
                 <Bar
@@ -182,7 +187,7 @@ export function PlatformComparisonChart({
                 />
               )}
             </BarChart>
-          </ResponsiveContainer>
+          </ChartContainer>
         )}
       </div>
     </div>

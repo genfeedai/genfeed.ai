@@ -6,6 +6,8 @@
 @use 'calendar';
 @use 'genfeed';
 
+@source '../../node_modules/@shipshitdev/ui/dist';
+
 @theme inline {
   /* Semantic surface tokens */
   --color-surface: rgb(var(--surface));
@@ -54,6 +56,114 @@
   --color-warning-content: hsl(var(--warning-foreground));
   --color-info-content: hsl(var(--info-foreground));
   --color-error-content: hsl(var(--destructive-foreground));
+}
+
+.ship-ui {
+  --ship-bg-primary: #050607;
+  --ship-bg-secondary: #0c0d10;
+  --ship-bg-tertiary: #131518;
+  --ship-bg-elevated: #1a1c21;
+  --ship-bg-hover: #20232a;
+  --ship-border: rgba(255, 255, 255, 0.1);
+  --ship-border-strong: rgba(255, 255, 255, 0.18);
+  --ship-text-primary: #f4f4f5;
+  --ship-text-secondary: #b4b4bc;
+  --ship-text-muted: #6b6b78;
+  --ship-accent: #fafafa;
+  --ship-accent-foreground: #050607;
+  --ship-accent-hover: #e4e4e7;
+  --ship-success: #10b981;
+  --ship-warning: #f59e0b;
+  --ship-danger: #ef4444;
+  --ship-info: #3b82f6;
+  --ship-agent: #38bdf8;
+  --ship-done: #a855f7;
+}
+
+[data-theme='light'] .ship-ui {
+  --ship-bg-primary: #f6f4ef;
+  --ship-bg-secondary: #efeae1;
+  --ship-bg-tertiary: #e6dfd3;
+  --ship-bg-elevated: #fbfaf7;
+  --ship-bg-hover: #ddd3c2;
+  --ship-border: rgba(28, 25, 23, 0.1);
+  --ship-border-strong: rgba(28, 25, 23, 0.18);
+  --ship-text-primary: #18181b;
+  --ship-text-secondary: #57534e;
+  --ship-text-muted: #8a8175;
+  --ship-accent: #111827;
+  --ship-accent-foreground: #fafaf9;
+  --ship-accent-hover: #1f2937;
+  --ship-success: #0f9f6e;
+  --ship-warning: #d97706;
+  --ship-danger: #dc2626;
+  --ship-info: #2563eb;
+  --ship-agent: #0284c7;
+  --ship-done: #7c3aed;
+}
+
+/* ship-ui theme overrides — use CSS custom properties on .ship-ui scope.
+   These do NOT collide with Tailwind utility classes (bg-primary, text-primary, etc.)
+   because they set CSS variables that @shipshitdev/ui primitives consume internally. */
+.ship-ui {
+  --background: var(--ship-bg-primary);
+  --background-secondary: var(--ship-bg-secondary);
+  --foreground: var(--ship-text-primary);
+  --muted-foreground: var(--ship-text-muted);
+  --accent: var(--ship-accent);
+  --accent-foreground: var(--ship-accent-foreground);
+  --border: var(--ship-border);
+  --destructive: var(--ship-danger);
+}
+
+.ship-ui.border-border-strong,
+.ship-ui .border-border-strong {
+  border-color: var(--ship-border-strong);
+}
+
+.ship-ui.border-accent,
+.ship-ui .border-accent {
+  border-color: var(--ship-accent);
+}
+
+.ship-ui.border-danger\/30,
+.ship-ui .border-danger\/30 {
+  border-color: color-mix(in oklab, var(--ship-danger) 30%, transparent);
+}
+
+.ship-ui.hover\:bg-hover:hover,
+.ship-ui .hover\:bg-hover:hover {
+  background-color: var(--ship-bg-hover);
+}
+
+.ship-ui.hover\:bg-accent-hover:hover,
+.ship-ui .hover\:bg-accent-hover:hover {
+  background-color: var(--ship-accent-hover);
+}
+
+.ship-ui.hover\:text-primary:hover,
+.ship-ui .hover\:text-primary:hover {
+  color: var(--ship-text-primary);
+}
+
+.ship-ui.hover\:text-secondary:hover,
+.ship-ui .hover\:text-secondary:hover {
+  color: var(--ship-text-secondary);
+}
+
+.ship-ui.hover\:border-text-secondary:hover,
+.ship-ui .hover\:border-text-secondary:hover {
+  border-color: var(--ship-text-secondary);
+}
+
+.app-region-drag {
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+
+.app-region-no-drag {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
 }
 
 /**
@@ -395,4 +505,98 @@ a {
     hsl(var(--background-secondary) / 0.74) 100%
   );
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+[data-agent-console='true'] {
+  border-color: hsl(var(--border) / 0.76);
+  background: linear-gradient(
+    180deg,
+    hsl(var(--background-secondary) / 0.98) 0%,
+    hsl(var(--background) / 0.98) 100%
+  );
+  box-shadow:
+    0 22px 54px -38px rgba(0, 0, 0, 0.92),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+[data-agent-console='true']::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 22%);
+}
+
+[data-agent-console='true']::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+  top: -9rem;
+  right: -5rem;
+  width: 14rem;
+  height: 14rem;
+  background: radial-gradient(
+    circle,
+    rgba(88, 166, 255, 0.12) 0%,
+    rgba(168, 85, 247, 0.05) 42%,
+    transparent 74%
+  );
+  filter: blur(18px);
+  opacity: 0.42;
+}
+
+[data-agent-console='true'] .gen-shell-toolbar {
+  border-bottom-color: hsl(var(--border) / 0.72);
+  background: linear-gradient(
+    180deg,
+    hsl(var(--background) / 0.82) 0%,
+    hsl(var(--background-secondary) / 0.74) 100%
+  );
+  backdrop-filter: blur(18px);
+}
+
+[data-agent-console='true'] [data-panel-body] {
+  background: linear-gradient(
+    180deg,
+    hsl(var(--background-secondary) / 0.5) 0%,
+    hsl(var(--background) / 0.18) 100%
+  );
+}
+
+[data-agent-console='true'] .gen-shell-segmented {
+  border-color: hsl(var(--border) / 0.72);
+  background: hsl(var(--background) / 0.68);
+}
+
+[data-agent-console='true'] .gen-shell-segmented-button {
+  color: hsl(var(--foreground) / 0.42);
+}
+
+[data-agent-console='true'] .gen-shell-segmented-button:hover {
+  color: hsl(var(--foreground) / 0.72);
+}
+
+[data-agent-console='true'] .gen-shell-segmented-button[data-active='true'] {
+  background: hsl(var(--background-secondary) / 0.94);
+  color: hsl(var(--foreground));
+  box-shadow:
+    0 12px 24px -18px rgba(0, 0, 0, 0.72),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+[data-agent-console='true'] .gen-shell-control {
+  border-color: hsl(var(--border) / 0.68);
+  background: hsl(var(--background) / 0.52);
+}
+
+[data-agent-console='true'] .gen-shell-control:hover,
+[data-agent-console='true'] .gen-shell-control:focus-visible {
+  border-color: hsl(var(--foreground) / 0.14);
+  background: hsl(var(--background) / 0.78);
+}
+
+[data-agent-console='true'] .gen-shell-empty-state {
+  border-style: solid;
+  border-color: hsl(var(--border) / 0.66);
+  background: hsl(var(--background) / 0.42);
 }

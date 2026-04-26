@@ -145,7 +145,7 @@ describe('AgentPanel', () => {
       'data-prompt-layout-mode',
       'surface-fixed',
     );
-    expect(screen.getByText('Genfeed Terminal')).toBeInTheDocument();
+    expect(screen.getByText('Console')).toBeInTheDocument();
     expect(
       screen.getByLabelText('Open full chat workspace'),
     ).toBeInTheDocument();

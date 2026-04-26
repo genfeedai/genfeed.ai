@@ -7,13 +7,13 @@ import {
   formatPercentageSimple,
 } from '@genfeedai/helpers/formatting/format/format.helper';
 import type { TimeSeriesChartProps } from '@genfeedai/props/analytics/analytics.props';
+import { ChartContainer, ChartTooltipContent } from '@ui/charts';
 import { Button } from '@ui/primitives/button';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Area,
   AreaChart,
   CartesianGrid,
-  ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
@@ -54,6 +54,19 @@ export function TimeSeriesChart({
   );
   const [activeMetrics, setActiveMetrics] =
     useState<TimeSeriesMetric[]>(normalizedMetrics);
+  const chartConfig = useMemo(
+    () =>
+      Object.fromEntries(
+        normalizedMetrics.map((metric) => [
+          metric,
+          {
+            color: METRIC_COLORS[metric],
+            label: METRIC_LABELS[metric],
+          },
+        ]),
+      ),
+    [normalizedMetrics],
+  );
 
   if (isLoading) {
     return (
@@ -128,7 +141,11 @@ export function TimeSeriesChart({
       </div>
 
       {/* Chart */}
-      <ResponsiveContainer width="100%" height={height}>
+      <ChartContainer
+        config={chartConfig}
+        className="border-white/[0.08] bg-card p-3 shadow-[0_24px_60px_-40px_rgba(0,0,0,0.8)]"
+        height={height}
+      >
         <AreaChart
           data={data}
           margin={{ bottom: 0, left: 0, right: 30, top: 10 }}
@@ -175,32 +192,21 @@ export function TimeSeriesChart({
           />
 
           <Tooltip
-            contentStyle={{
-              backdropFilter: 'blur(10px)',
-              backgroundColor: 'var(--overlay-black-90)',
-              border: '1px solid var(--overlay-white-10)',
-              borderRadius: '12px',
-            }}
-            labelStyle={{
-              color: 'hsl(var(--foreground))',
-              fontWeight: '600',
-              marginBottom: '8px',
-            }}
-            itemStyle={{ color: 'var(--overlay-white-20)' }}
-            formatter={(value, name) => [
-              formatValue(
-                typeof value === 'number'
-                  ? value
-                  : typeof value === 'string'
-                    ? Number(value)
-                    : 0,
-                String(name ?? '') as TimeSeriesMetric,
-              ),
-              METRIC_LABELS[String(name ?? '') as keyof typeof METRIC_LABELS] ??
-                String(name ?? '') ??
-                '',
-            ]}
-            labelFormatter={(label) => `Date: ${formatChartDate(label)}`}
+            content={
+              <ChartTooltipContent
+                labelFormatter={(label) => `Date: ${formatChartDate(label)}`}
+                valueFormatter={(value, item) =>
+                  formatValue(
+                    typeof value === 'number'
+                      ? value
+                      : typeof value === 'string'
+                        ? Number(value)
+                        : 0,
+                    String(item.dataKey ?? item.name ?? '') as TimeSeriesMetric,
+                  )
+                }
+              />
+            }
           />
           {activeMetrics.map((metric) => (
             <Area
@@ -222,7 +228,7 @@ export function TimeSeriesChart({
             />
           ))}
         </AreaChart>
-      </ResponsiveContainer>
+      </ChartContainer>
     </div>
   );
 }

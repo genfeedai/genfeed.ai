@@ -8,15 +8,19 @@ export default function ContainerTitle({
   description,
   icon,
 }: ContainerTitleProps) {
+  const isTextDescription =
+    typeof description === 'number' || typeof description === 'string';
+  const DescriptionTag = isTextDescription ? 'p' : 'div';
+
   const titleContent = (
     <>
       <h1 className="text-[1.75rem] font-semibold leading-none tracking-[-0.045em] text-foreground lg:text-[2.1rem]">
         {title}
       </h1>
       {description ? (
-        <p className="mt-2 max-w-3xl text-sm leading-5 text-foreground/54">
+        <DescriptionTag className="mt-2 max-w-3xl text-sm leading-5 text-foreground/54">
           {description}
-        </p>
+        </DescriptionTag>
       ) : null}
     </>
   );

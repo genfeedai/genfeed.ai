@@ -2,6 +2,7 @@ import { ComponentSize } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { IBadgeStatusConfig } from '@genfeedai/interfaces/ui/badge-status-config.interface';
 import type { BadgeProps } from '@genfeedai/props/ui/display/badge.props';
+import { Badge as PrimitiveBadge } from '@ui/primitives/badge';
 import { cva, type VariantProps } from 'class-variance-authority';
 import {
   HiArrowPath,
@@ -22,7 +23,7 @@ import {
  * - validated/operational (green) - use based on context
  */
 const badgeVariants = cva(
-  'inline-flex items-center gap-2 rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors whitespace-nowrap',
+  'rounded-full gap-2 px-2.5 py-0.5 text-xs font-medium normal-case tracking-normal shadow-none whitespace-nowrap',
   {
     defaultVariants: {
       size: 'default',
@@ -66,6 +67,31 @@ const badgeVariants = cva(
     },
   },
 );
+
+const PRIMITIVE_VARIANT_MAP = {
+  accent: 'default',
+  amber: 'warning',
+  audio: 'warning',
+  blue: 'info',
+  default: 'default',
+  destructive: 'destructive',
+  error: 'destructive',
+  ghost: 'secondary',
+  image: 'info',
+  info: 'info',
+  multimodal: 'default',
+  operational: 'success',
+  outline: 'outline',
+  primary: 'default',
+  purple: 'default',
+  secondary: 'secondary',
+  slate: 'secondary',
+  success: 'success',
+  text: 'success',
+  validated: 'success',
+  video: 'default',
+  warning: 'warning',
+} as const;
 
 /**
  * Get complete badge configuration from status string
@@ -221,7 +247,14 @@ export default function Badge({
   );
 
   return (
-    <span className={badgeClasses}>
+    <PrimitiveBadge
+      className={badgeClasses}
+      variant={
+        PRIMITIVE_VARIANT_MAP[
+          effectiveVariant as keyof typeof PRIMITIVE_VARIANT_MAP
+        ] ?? 'default'
+      }
+    >
       {effectiveIcon && (
         <span
           className={cn(
@@ -238,7 +271,7 @@ export default function Badge({
       ) : (
         effectiveLabel
       )}
-    </span>
+    </PrimitiveBadge>
   );
 }
 

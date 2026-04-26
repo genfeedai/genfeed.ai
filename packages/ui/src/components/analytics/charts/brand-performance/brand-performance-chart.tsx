@@ -7,17 +7,10 @@ import {
 } from '@genfeedai/helpers/formatting/format/format.helper';
 import type { BrandPerformanceChartProps } from '@genfeedai/props/analytics/charts.props';
 import Card from '@ui/card/Card';
+import { ChartContainer, ChartTooltipContent } from '@ui/charts';
 import { Button } from '@ui/primitives/button';
-import { useState } from 'react';
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
+import { useMemo, useState } from 'react';
+import { Bar, BarChart, CartesianGrid, Tooltip, XAxis, YAxis } from 'recharts';
 
 const METRIC_COLORS = {
   engagement: 'var(--accent-rose)',
@@ -42,6 +35,19 @@ export function BrandPerformanceChart({
   type BrandMetricKey = keyof typeof METRIC_COLORS;
   const [activeMetric, setActiveMetric] = useState<BrandMetricKey>(
     String(metric).toLowerCase() as BrandMetricKey,
+  );
+  const chartConfig = useMemo(
+    () =>
+      Object.fromEntries(
+        (Object.keys(METRIC_LABELS) as BrandMetricKey[]).map((metricKey) => [
+          metricKey,
+          {
+            color: METRIC_COLORS[metricKey],
+            label: METRIC_LABELS[metricKey],
+          },
+        ]),
+      ),
+    [],
   );
 
   const isEmpty = !data || data.length === 0;
@@ -99,7 +105,12 @@ export function BrandPerformanceChart({
             </div>
           )}
 
-          <ResponsiveContainer width="100%" height={height}>
+          <ChartContainer
+            config={chartConfig}
+            className="border-0 bg-transparent p-0 shadow-none"
+            height="100%"
+            style={{ minWidth: 0 }}
+          >
             <BarChart
               data={sortedData}
               margin={{ bottom: 60, left: 20, right: 30, top: 5 }}
@@ -124,24 +135,20 @@ export function BrandPerformanceChart({
                 stroke="var(--overlay-white-20)"
               />
               <Tooltip
-                formatter={(value) => [
-                  formatFullNumber(
-                    typeof value === 'number'
-                      ? value
-                      : typeof value === 'string'
-                        ? Number(value)
-                        : undefined,
-                  ),
-                  METRIC_LABELS[activeMetric],
-                ]}
-                contentStyle={{
-                  backdropFilter: 'blur(10px)',
-                  backgroundColor: 'var(--overlay-black-90)',
-                  border: '1px solid var(--overlay-white-10)',
-                  borderRadius: '12px',
-                }}
-                labelStyle={{ color: 'hsl(var(--foreground))' }}
-                itemStyle={{ color: 'var(--overlay-white-20)' }}
+                content={
+                  <ChartTooltipContent
+                    labelFormatter={(label) => String(label)}
+                    valueFormatter={(value) =>
+                      formatFullNumber(
+                        typeof value === 'number'
+                          ? value
+                          : typeof value === 'string'
+                            ? Number(value)
+                            : undefined,
+                      )
+                    }
+                  />
+                }
               />
               <Bar
                 dataKey={activeMetric as 'engagement' | 'posts' | 'views'}
@@ -150,7 +157,7 @@ export function BrandPerformanceChart({
                 maxBarSize={60}
               />
             </BarChart>
-          </ResponsiveContainer>
+          </ChartContainer>
         </div>
       </div>
     </Card>

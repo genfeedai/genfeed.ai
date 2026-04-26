@@ -3,20 +3,22 @@
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useAnimatedCounter } from '@genfeedai/hooks/ui/use-animated-counter/use-animated-counter';
 import type { StatCardProps } from '@genfeedai/props/cards/stat-card.props';
+import { Card, CardContent } from '@shipshitdev/ui';
+import { Skeleton } from '@ui/primitives/skeleton';
 import { memo } from 'react';
 import { HiArrowTrendingDown, HiArrowTrendingUp } from 'react-icons/hi2';
 
 const VARIANT_CLASSES = {
-  black: 'bg-black text-white',
-  default: 'bg-card text-card-foreground',
-  white: 'bg-white text-black',
+  black: 'ship-ui border-white/10 bg-black text-white',
+  default: 'ship-ui border-border bg-secondary text-primary',
+  white: 'ship-ui border-black/10 bg-white text-black',
 } as const;
 
 const SIZE_CLASSES = {
-  lg: 'p-8',
-  md: 'p-6',
+  lg: 'p-6',
+  md: 'p-5',
   sm: 'p-4',
-  xl: 'rounded-3xl p-10',
+  xl: 'p-8',
 } as const;
 
 const VALUE_SIZE_CLASSES = {
@@ -27,10 +29,10 @@ const VALUE_SIZE_CLASSES = {
 } as const;
 
 const ICON_SIZE_CLASSES = {
-  lg: 'w-12 h-12',
-  md: 'w-10 h-10',
-  sm: 'w-8 h-8',
-  xl: 'w-14 h-14',
+  lg: 'h-12 w-12',
+  md: 'h-10 w-10',
+  sm: 'h-8 w-8',
+  xl: 'h-14 w-14',
 } as const;
 
 const LOADER_HEIGHT_CLASSES = {
@@ -90,9 +92,9 @@ const StatCard = memo(function StatCard({
   const renderValue = () => {
     if (isLoading) {
       return (
-        <div
+        <Skeleton
           className={cn(
-            'w-16 animate-pulse',
+            'w-16 rounded-sm',
             LOADER_HEIGHT_CLASSES[size],
             variant === 'white' ? 'bg-black/10' : 'bg-white/10',
           )}
@@ -109,86 +111,97 @@ const StatCard = memo(function StatCard({
   };
 
   return (
-    <div
+    <Card
       className={cn(
-        'flex flex-col',
+        'h-full overflow-hidden',
         VARIANT_CLASSES[variant],
-        SIZE_CLASSES[size],
         className,
       )}
     >
-      {/* Header with icon and label */}
-      <div className="flex items-center justify-between mb-4">
-        <span
+      <CardContent
+        className={cn('flex h-full flex-col pt-5', SIZE_CLASSES[size])}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div
+            className={cn(
+              'font-semibold leading-none tracking-[-0.04em]',
+              VALUE_SIZE_CLASSES[size],
+              variant === 'white'
+                ? 'text-black'
+                : variant === 'black'
+                  ? 'text-white'
+                  : 'text-primary',
+            )}
+          >
+            {renderValue()}
+          </div>
+          {Icon && (
+            <div
+              className={cn(
+                'flex items-center justify-center rounded-md',
+                variant === 'default' && 'bg-hover text-secondary',
+                variant === 'white' && 'bg-black/5 text-black/60',
+                variant === 'black' && 'bg-white/10 text-white/70',
+                ICON_SIZE_CLASSES[size],
+              )}
+            >
+              <Icon className="h-1/2 w-1/2" />
+            </div>
+          )}
+        </div>
+
+        <div
           className={cn(
-            'gen-label text-muted-foreground',
-            variant === 'white' && 'text-black/50',
+            'mt-2 text-[11px] font-medium uppercase tracking-[0.18em]',
+            variant === 'white'
+              ? 'text-black/55'
+              : variant === 'black'
+                ? 'text-white/60'
+                : 'text-muted',
           )}
         >
           {label}
-        </span>
-        {Icon && (
-          <div
-            className={cn(
-              'flex items-center justify-center',
-              variant === 'default' && 'bg-white/5',
-              variant === 'white' && 'bg-black/5',
-              variant === 'black' && 'bg-white/10',
-              ICON_SIZE_CLASSES[size],
+        </div>
+
+        {(description || hasTrend) && (
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {description && (
+              <span
+                className={cn(
+                  'text-[11px] leading-5',
+                  variant === 'white'
+                    ? 'text-black/60'
+                    : variant === 'black'
+                      ? 'text-white/65'
+                      : 'text-secondary',
+                )}
+              >
+                {description}
+              </span>
             )}
-          >
-            <Icon
-              className={cn(
-                'w-1/2 h-1/2',
-                variant === 'white' ? 'text-black/60' : 'text-muted-foreground',
-              )}
-            />
+            {hasTrend && !isLoading && (
+              <span
+                className={cn(
+                  'inline-flex items-center gap-1 text-[11px] font-medium',
+                  isPositiveTrend && 'gen-trend-up',
+                  isNegativeTrend && 'gen-trend-down',
+                  !isPositiveTrend && !isNegativeTrend && 'gen-trend-neutral',
+                )}
+              >
+                {isPositiveTrend && (
+                  <HiArrowTrendingUp className="h-3.5 w-3.5" />
+                )}
+                {isNegativeTrend && (
+                  <HiArrowTrendingDown className="h-3.5 w-3.5" />
+                )}
+                {isPositiveTrend ? '+' : ''}
+                {trend}%
+              </span>
+            )}
           </div>
         )}
-      </div>
-
-      {/* Value */}
-      <div
-        className={cn(
-          'font-bold tracking-tight',
-          VALUE_SIZE_CLASSES[size],
-          variant === 'white' ? 'text-black' : 'text-foreground',
-        )}
-      >
-        {renderValue()}
-      </div>
-
-      {/* Description and trend */}
-      {(description || hasTrend) && (
-        <div className="flex items-center gap-2 mt-2">
-          {description && (
-            <span
-              className={cn(
-                'text-sm',
-                variant === 'white' ? 'text-black/50' : 'text-muted-foreground',
-              )}
-            >
-              {description}
-            </span>
-          )}
-          {hasTrend && !isLoading && (
-            <span
-              className={cn(
-                'inline-flex items-center gap-1 text-sm font-medium',
-                isPositiveTrend && 'gen-trend-up',
-                isNegativeTrend && 'gen-trend-down',
-                !isPositiveTrend && !isNegativeTrend && 'gen-trend-neutral',
-              )}
-            >
-              {isPositiveTrend && <HiArrowTrendingUp className="w-4 h-4" />}
-              {isNegativeTrend && <HiArrowTrendingDown className="w-4 h-4" />}
-              {isPositiveTrend ? '+' : ''}
-              {trend}%
-            </span>
-          )}
-        </div>
-      )}
-    </div>
+      </CardContent>
+    </Card>
   );
 });
 
