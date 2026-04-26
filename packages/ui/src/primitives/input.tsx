@@ -1,3 +1,4 @@
+import { Input as ShipInput } from '@shipshitdev/ui/primitives';
 import {
   type ChangeEvent,
   type FocusEvent,
@@ -18,6 +19,7 @@ import {
   fieldControlClassName,
   fieldControlInputClassName,
 } from './field-control';
+import { Label } from './label';
 
 export interface InputProps<T extends FieldValues = FieldValues>
   extends Omit<
@@ -90,12 +92,12 @@ function renderInput<T extends FieldValues = FieldValues>({
   const inputClassName = cn(
     fieldControlClassName,
     fieldControlInputClassName,
-    hasError && 'border-destructive focus-visible:ring-destructive',
+    hasError && 'border-destructive focus-visible:border-destructive',
     className,
   );
 
   const input = (
-    <input
+    <ShipInput
       {...props}
       checked={isCheckable ? isChecked : undefined}
       className={inputClassName}
@@ -118,12 +120,12 @@ function renderInput<T extends FieldValues = FieldValues>({
   if (label) {
     return (
       <div className="space-y-1.5">
-        <label
+        <Label
           htmlFor={inputId}
           className="text-sm font-medium text-foreground"
         >
           {label}
-        </label>
+        </Label>
         {input}
       </div>
     );

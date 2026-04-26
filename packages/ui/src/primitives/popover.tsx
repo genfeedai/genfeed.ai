@@ -1,31 +1,32 @@
 'use client';
 
 import * as PopoverPrimitive from '@radix-ui/react-popover';
+import {
+  Popover as ShipPopover,
+  PopoverAnchor as ShipPopoverAnchor,
+  PopoverContent as ShipPopoverContent,
+  PopoverTrigger as ShipPopoverTrigger,
+} from '@shipshitdev/ui/primitives';
 import { type ComponentPropsWithoutRef, forwardRef } from 'react';
 import { cn } from '../lib/utils';
 
-const Popover = PopoverPrimitive.Root;
+const Popover = ShipPopover;
 
-const PopoverTrigger = PopoverPrimitive.Trigger;
+const PopoverTrigger = ShipPopoverTrigger;
 
-const PopoverAnchor = PopoverPrimitive.Anchor;
+const PopoverAnchor = ShipPopoverAnchor;
 
 const PopoverContent = forwardRef<
   React.ElementRef<typeof PopoverPrimitive.Content>,
   ComponentPropsWithoutRef<typeof PopoverPrimitive.Content>
 >(({ className, align = 'center', sideOffset = 4, ...props }, ref) => (
-  <PopoverPrimitive.Portal>
-    <PopoverPrimitive.Content
-      ref={ref}
-      align={align}
-      sideOffset={sideOffset}
-      className={cn(
-        'gen-shell-panel z-50 w-72 rounded-[1.25rem] p-4 text-foreground shadow-[0_28px_70px_-48px_rgba(0,0,0,0.9)] outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2',
-        className,
-      )}
-      {...props}
-    />
-  </PopoverPrimitive.Portal>
+  <ShipPopoverContent
+    ref={ref}
+    align={align}
+    sideOffset={sideOffset}
+    className={cn('ship-ui w-72 p-4 text-primary', className)}
+    {...props}
+  />
 ));
 PopoverContent.displayName = PopoverPrimitive.Content.displayName;
 
@@ -33,19 +34,16 @@ const PopoverPanelContent = forwardRef<
   React.ElementRef<typeof PopoverPrimitive.Content>,
   ComponentPropsWithoutRef<typeof PopoverPrimitive.Content>
 >(({ className, align = 'start', sideOffset = 6, ...props }, ref) => (
-  <PopoverPrimitive.Portal>
-    <PopoverPrimitive.Content
-      ref={ref}
-      align={align}
-      sideOffset={sideOffset}
-      className={cn(
-        'gen-shell-panel z-[10001] overflow-hidden rounded-[1.25rem] text-foreground shadow-[0_28px_70px_-48px_rgba(0,0,0,0.92)] outline-none',
-        'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2',
-        className,
-      )}
-      {...props}
-    />
-  </PopoverPrimitive.Portal>
+  <ShipPopoverContent
+    ref={ref}
+    align={align}
+    sideOffset={sideOffset}
+    className={cn(
+      'ship-ui z-[10001] overflow-hidden rounded-xl text-primary shadow-[0_28px_70px_-48px_rgba(0,0,0,0.92)]',
+      className,
+    )}
+    {...props}
+  />
 ));
 PopoverPanelContent.displayName = 'PopoverPanelContent';
 

@@ -11,7 +11,7 @@ const Table = forwardRef<HTMLTableElement, HTMLAttributes<HTMLTableElement>>(
     <div className="relative w-full overflow-auto">
       <table
         ref={ref}
-        className={cn('w-full caption-bottom text-sm', className)}
+        className={cn('ship-ui w-full caption-bottom text-sm', className)}
         {...props}
       />
     </div>
@@ -25,7 +25,7 @@ const TableHeader = forwardRef<
 >(({ className, ...props }, ref) => (
   <thead
     ref={ref}
-    className={cn('[&_tr]:border-b [&_tr]:border-white/5', className)}
+    className={cn('ship-ui [&_tr]:border-b [&_tr]:border-border', className)}
     {...props}
   />
 ));
@@ -37,7 +37,10 @@ const TableBody = forwardRef<
 >(({ className, ...props }, ref) => (
   <tbody
     ref={ref}
-    className={cn('[&_tr:last-child]:border-0', className)}
+    className={cn(
+      'ship-ui divide-y divide-border [&_tr:last-child]:border-0',
+      className,
+    )}
     {...props}
   />
 ));
@@ -50,7 +53,7 @@ const TableFooter = forwardRef<
   <tfoot
     ref={ref}
     className={cn(
-      'border-t bg-muted/50 font-medium [&>tr]:last:border-b-0',
+      'ship-ui border-t border-border bg-tertiary/50 font-medium [&>tr]:last:border-b-0',
       className,
     )}
     {...props}
@@ -65,7 +68,7 @@ const TableRow = forwardRef<
   <tr
     ref={ref}
     className={cn(
-      'border-b border-white/5 transition-colors hover:bg-white/[0.02] data-[state=selected]:bg-white/5',
+      'ship-ui border-b border-border transition-colors hover:bg-tertiary/50 data-[state=selected]:bg-tertiary/60',
       className,
     )}
     {...props}
@@ -80,7 +83,7 @@ const TableHead = forwardRef<
   <th
     ref={ref}
     className={cn(
-      'h-10 px-2 text-left align-middle font-medium text-white/50 uppercase text-xs tracking-wider [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]',
+      'ship-ui h-9 px-2 text-left align-middle text-[11px] font-medium uppercase tracking-wide text-muted [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]',
       className,
     )}
     {...props}
@@ -95,7 +98,7 @@ const TableCell = forwardRef<
   <td
     ref={ref}
     className={cn(
-      'p-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]',
+      'ship-ui px-2 py-2 align-middle text-[12px] text-primary [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]',
       className,
     )}
     {...props}
@@ -109,7 +112,7 @@ const TableCaption = forwardRef<
 >(({ className, ...props }, ref) => (
   <caption
     ref={ref}
-    className={cn('mt-4 text-sm text-muted-foreground', className)}
+    className={cn('ship-ui mt-4 text-[11px] text-muted', className)}
     {...props}
   />
 ));

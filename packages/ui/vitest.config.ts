@@ -5,6 +5,8 @@ const UI_SRC = path.resolve(__dirname, './src');
 const UI_COMPONENTS_SRC = path.resolve(UI_SRC, './components');
 const UI_PRIMITIVES_SRC = path.resolve(UI_SRC, './primitives');
 const UI_CORE_SRC = path.resolve(UI_SRC, './core');
+const UI_CHARTS_SRC = path.resolve(UI_SRC, './charts.ts');
+const UI_FLOWS_SRC = path.resolve(UI_SRC, './flows.ts');
 const UI_GENERATORS_SRC = path.resolve(UI_SRC, './generators');
 const UI_MODALS_SRC = path.resolve(UI_SRC, './modals');
 const UI_SEMANTIC_SRC = path.resolve(UI_SRC, './semantic');
@@ -210,6 +212,14 @@ export default defineConfig({
         replacement: UI_CORE_SRC,
       },
       {
+        find: '@ui/charts',
+        replacement: UI_CHARTS_SRC,
+      },
+      {
+        find: '@ui/flows',
+        replacement: UI_FLOWS_SRC,
+      },
+      {
         find: /^@ui\/generators\/(.*)$/,
         replacement: path.resolve(UI_GENERATORS_SRC, '$1'),
       },
@@ -282,6 +292,10 @@ export default defineConfig({
       },
       {
         find: '@xyflow/react/dist/style.css',
+        replacement: EMPTY_STYLE_MOCK,
+      },
+      {
+        find: '@shipshitdev/ui/flows.css',
         replacement: EMPTY_STYLE_MOCK,
       },
       {

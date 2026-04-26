@@ -1,11 +1,15 @@
-import type { HTMLAttributes } from 'react';
+import { Skeleton as ShipSkeleton } from '@shipshitdev/ui/primitives';
+import type { ComponentPropsWithoutRef } from 'react';
 import { cn } from '../lib/utils';
 
-function Skeleton({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
+function Skeleton({
+  className,
+  ...props
+}: ComponentPropsWithoutRef<typeof ShipSkeleton>) {
   return (
-    <div
+    <ShipSkeleton
       className={cn(
-        'relative bg-white/[0.06] overflow-hidden',
+        'ship-ui relative overflow-hidden bg-white/[0.06]',
         'before:absolute before:inset-0',
         'before:bg-gradient-to-r before:from-transparent before:via-white/10 before:to-transparent',
         'before:animate-shimmer',

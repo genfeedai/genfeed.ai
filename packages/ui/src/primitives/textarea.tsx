@@ -1,3 +1,4 @@
+import { Textarea as ShipTextarea } from '@shipshitdev/ui/primitives';
 import {
   type ChangeEvent,
   type FocusEvent,
@@ -20,7 +21,6 @@ import type {
 } from 'react-hook-form';
 import { useController } from 'react-hook-form';
 import { cn } from '../lib/utils';
-import { fieldControlClassName } from './field-control';
 
 export interface TextareaProps<T extends FieldValues = FieldValues>
   extends Omit<
@@ -146,12 +146,11 @@ function PlainTextareaInner<T extends FieldValues = FieldValues>({
   }, [adjustHeight]);
 
   return (
-    <textarea
+    <ShipTextarea
       {...props}
       className={cn(
-        fieldControlClassName,
-        'min-h-textarea h-auto resize-y',
-        hasError && 'border-destructive focus-visible:ring-destructive',
+        'ship-ui min-h-textarea h-auto resize-y font-[inherit]',
+        hasError && 'border-destructive focus-visible:border-destructive',
         className,
       )}
       disabled={isDisabled ?? disabled}
@@ -260,9 +259,9 @@ function ControlledTextareaInner<T extends FieldValues = FieldValues>({
     <textarea
       {...props}
       className={cn(
-        fieldControlClassName,
+        'flex min-h-[80px] w-full rounded-lg border border-border bg-background-secondary px-3 py-2 text-[13px] text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-foreground/18 disabled:cursor-not-allowed disabled:opacity-50 font-[inherit]',
         'min-h-textarea h-auto resize-y',
-        hasError && 'border-destructive focus-visible:ring-destructive',
+        hasError && 'border-destructive focus-visible:border-destructive',
         className,
       )}
       disabled={isDisabled ?? disabled}
@@ -303,6 +302,7 @@ function RegisteredTextareaInner<T extends FieldValues = FieldValues>({
   isDisabled,
   isReadOnly,
   isRequired,
+  maxHeight = 256,
   onBlur,
   onChange,
   onFocus,
@@ -318,10 +318,7 @@ function RegisteredTextareaInner<T extends FieldValues = FieldValues>({
     () => textareaRef || internalRef,
     [textareaRef],
   );
-  const adjustHeight = useTextareaSizing(
-    stableTextareaRef,
-    props.maxHeight ?? 256,
-  );
+  const adjustHeight = useTextareaSizing(stableTextareaRef, maxHeight);
   const registerOnChangeRef = useRef(register.onChange);
 
   useEffect(() => {
@@ -339,9 +336,9 @@ function RegisteredTextareaInner<T extends FieldValues = FieldValues>({
       {...registerProps}
       {...props}
       className={cn(
-        fieldControlClassName,
+        'flex min-h-[80px] w-full rounded-lg border border-border bg-background-secondary px-3 py-2 text-[13px] text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-foreground/18 disabled:cursor-not-allowed disabled:opacity-50 font-[inherit]',
         'min-h-textarea h-auto resize-y',
-        hasError && 'border-destructive focus-visible:ring-destructive',
+        hasError && 'border-destructive focus-visible:border-destructive',
         className,
       )}
       disabled={isDisabled ?? disabled}

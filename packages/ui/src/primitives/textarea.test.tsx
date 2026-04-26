@@ -14,6 +14,7 @@ function RegisteredTextareaHarness() {
     <Textarea
       {...register('body')}
       isDisabled
+      maxHeight={200}
       name="body"
       aria-label="Registered body"
     />
@@ -30,6 +31,7 @@ function ControlledTextareaHarness() {
       aria-label="Controlled body"
       control={control}
       isDisabled
+      maxHeight={200}
       name="body"
     />
   );
@@ -43,6 +45,7 @@ describe('Textarea', () => {
 
     expect(textarea).toBeDisabled();
     expect(textarea).not.toHaveAttribute('isDisabled');
+    expect(textarea).not.toHaveAttribute('maxHeight');
   });
 
   it('does not forward isDisabled to the DOM for controlled textareas', () => {
@@ -52,5 +55,6 @@ describe('Textarea', () => {
 
     expect(textarea).toBeDisabled();
     expect(textarea).not.toHaveAttribute('isDisabled');
+    expect(textarea).not.toHaveAttribute('maxHeight');
   });
 });

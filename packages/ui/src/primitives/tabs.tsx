@@ -8,26 +8,26 @@ const Tabs = TabsPrimitive.Root;
 
 function getTabsListClassName(className?: string) {
   return cn(
-    'inline-flex h-auto items-center gap-1 text-muted-foreground',
+    'ship-ui inline-flex h-auto items-center gap-1 text-muted',
     className,
   );
 }
 
 function getTabsTriggerClassName(className?: string) {
   return cn(
-    'inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all duration-200',
-    'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20',
+    'ship-ui inline-flex items-center justify-center whitespace-nowrap rounded-md text-[12px] font-medium transition-colors duration-200',
+    'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border-strong',
     'disabled:pointer-events-none disabled:opacity-50',
-    'data-[variant=default]:px-4 data-[variant=default]:pt-2.5 data-[variant=default]:pb-3.5',
-    'data-[variant=default]:text-white/40 data-[variant=default]:hover:text-white/70',
-    'data-[variant=default]:data-[state=active]:bg-white/10 data-[variant=default]:data-[state=active]:text-white',
-    'data-[variant=pills]:min-h-10 data-[variant=pills]:rounded-xl data-[variant=pills]:px-3.5 data-[variant=pills]:py-2',
-    'data-[variant=pills]:text-white/45 data-[variant=pills]:hover:bg-white/[0.04] data-[variant=pills]:hover:text-white/80',
-    'data-[variant=pills]:data-[state=active]:bg-white/[0.1] data-[variant=pills]:data-[state=active]:text-white data-[variant=pills]:data-[state=active]:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]',
-    'data-[variant=underline]:border-b-2 data-[variant=underline]:border-transparent data-[variant=underline]:px-4 data-[variant=underline]:py-2.5',
-    'data-[variant=underline]:text-foreground/60 data-[variant=underline]:hover:text-foreground data-[variant=underline]:data-[state=active]:border-primary data-[variant=underline]:data-[state=active]:text-primary',
-    'data-[variant=segmented]:rounded-md data-[variant=segmented]:px-4 data-[variant=segmented]:py-2',
-    'data-[variant=segmented]:text-muted-foreground data-[variant=segmented]:hover:text-foreground data-[variant=segmented]:data-[state=active]:bg-background data-[variant=segmented]:data-[state=active]:text-foreground data-[variant=segmented]:data-[state=active]:shadow-sm',
+    'data-[variant=default]:px-3 data-[variant=default]:py-2',
+    'data-[variant=default]:text-muted data-[variant=default]:hover:bg-hover data-[variant=default]:hover:text-primary',
+    'data-[variant=default]:data-[state=active]:bg-tertiary data-[variant=default]:data-[state=active]:text-primary',
+    'data-[variant=pills]:min-h-8 data-[variant=pills]:rounded-xl data-[variant=pills]:px-3.5 data-[variant=pills]:py-2',
+    'data-[variant=pills]:text-muted data-[variant=pills]:hover:bg-hover data-[variant=pills]:hover:text-primary',
+    'data-[variant=pills]:data-[state=active]:bg-tertiary data-[variant=pills]:data-[state=active]:text-primary',
+    'data-[variant=underline]:rounded-none data-[variant=underline]:border-b-2 data-[variant=underline]:border-transparent data-[variant=underline]:px-3 data-[variant=underline]:py-2',
+    'data-[variant=underline]:text-muted data-[variant=underline]:hover:text-primary data-[variant=underline]:data-[state=active]:border-accent data-[variant=underline]:data-[state=active]:text-primary',
+    'data-[variant=segmented]:rounded-lg data-[variant=segmented]:px-3.5 data-[variant=segmented]:py-2',
+    'data-[variant=segmented]:text-muted data-[variant=segmented]:hover:bg-hover data-[variant=segmented]:hover:text-primary data-[variant=segmented]:data-[state=active]:bg-tertiary data-[variant=segmented]:data-[state=active]:text-primary',
     'data-[size=sm]:text-xs',
     'data-[size=sm]:data-[variant=pills]:min-h-8 data-[size=sm]:data-[variant=pills]:px-3 data-[size=sm]:data-[variant=pills]:py-1.5',
     'data-[size=sm]:data-[variant=underline]:px-3 data-[size=sm]:data-[variant=underline]:py-2',
@@ -67,7 +67,7 @@ const TabsContent = forwardRef<
   <TabsPrimitive.Content
     ref={ref}
     className={cn(
-      'mt-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+      'mt-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-strong focus-visible:ring-offset-2',
       className,
     )}
     {...props}
