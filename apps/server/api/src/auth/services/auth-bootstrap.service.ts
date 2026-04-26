@@ -67,8 +67,21 @@ type BootstrapBaseData = Pick<
   cachedPayload?: AccessBootstrapCachePayload;
 };
 
+type OverviewBootstrapCacheEntry = {
+  expiresAt: number;
+  payload: OverviewBootstrapPayload;
+};
+
+const OVERVIEW_BOOTSTRAP_CACHE_TTL_MS = 10_000;
+const OVERVIEW_BOOTSTRAP_CACHE_MAX_ENTRIES = 100;
+
 @Injectable()
 export class AuthBootstrapService {
+  private readonly overviewBootstrapCache = new Map<
+    string,
+    OverviewBootstrapCacheEntry
+  >();
+
   constructor(
     private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
     private readonly agentRunsService: AgentRunsService,
@@ -84,6 +97,71 @@ export class AuthBootstrapService {
     private readonly streaksService: StreaksService,
     private readonly usersService: UsersService,
   ) {}
+
+  private getOverviewBootstrapCacheKey(
+    access: AccessBootstrapCachePayload['access'],
+  ): string {
+    return [
+      access.organizationId,
+      access.brandId || 'no-brand',
+      access.userId || 'no-user',
+    ].join(':');
+  }
+
+  private getOverviewBootstrapRequestCacheKey(
+    request: AuthBootstrapRequest,
+  ): string | null {
+    const publicMetadata: Partial<ReturnType<typeof getPublicMetadata>> =
+      request.user ? getPublicMetadata(request.user) : {};
+    const organizationId =
+      request.context?.organizationId ?? publicMetadata.organization ?? '';
+
+    if (!organizationId) {
+      return null;
+    }
+
+    const brandId = request.context?.brandId ?? publicMetadata.brand ?? '';
+    const userId = request.context?.userId ?? publicMetadata.user ?? '';
+
+    return [organizationId, brandId || 'no-brand', userId || 'no-user'].join(
+      ':',
+    );
+  }
+
+  private getCachedOverviewBootstrap(
+    key: string,
+  ): OverviewBootstrapPayload | null {
+    const cached = this.overviewBootstrapCache.get(key);
+    if (!cached) {
+      return null;
+    }
+
+    if (cached.expiresAt <= Date.now()) {
+      this.overviewBootstrapCache.delete(key);
+      return null;
+    }
+
+    return cached.payload;
+  }
+
+  private setCachedOverviewBootstrap(
+    key: string,
+    payload: OverviewBootstrapPayload,
+  ): void {
+    if (
+      this.overviewBootstrapCache.size >= OVERVIEW_BOOTSTRAP_CACHE_MAX_ENTRIES
+    ) {
+      const firstKey = this.overviewBootstrapCache.keys().next().value;
+      if (firstKey) {
+        this.overviewBootstrapCache.delete(firstKey);
+      }
+    }
+
+    this.overviewBootstrapCache.set(key, {
+      expiresAt: Date.now() + OVERVIEW_BOOTSTRAP_CACHE_TTL_MS,
+      payload,
+    });
+  }
 
   private async isLlmAvailable(): Promise<boolean> {
     const llmUrl = String(this.configService.get('GPU_LLM_URL') || '');
@@ -309,6 +387,14 @@ export class AuthBootstrapService {
   async getOverviewBootstrap(
     request: AuthBootstrapRequest,
   ): Promise<OverviewBootstrapPayload> {
+    const requestCacheKey = this.getOverviewBootstrapRequestCacheKey(request);
+    if (requestCacheKey) {
+      const cached = this.getCachedOverviewBootstrap(requestCacheKey);
+      if (cached) {
+        return cached;
+      }
+    }
+
     const bootstrap = await this.resolveBootstrapBase(request);
     const organizationId = bootstrap.access.organizationId;
     const brandId = bootstrap.access.brandId || undefined;
@@ -329,6 +415,13 @@ export class AuthBootstrapService {
         stats: null,
         timeSeries: [],
       };
+    }
+
+    const cacheKey =
+      requestCacheKey ?? this.getOverviewBootstrapCacheKey(bootstrap.access);
+    const cached = this.getCachedOverviewBootstrap(cacheKey);
+    if (cached) {
+      return cached;
     }
 
     const endDate = new Date();
@@ -353,23 +446,10 @@ export class AuthBootstrapService {
         startDateIso,
         endDateIso,
       ),
-      this.credentialsService.findAll(
-        [
-          {
-            $match: {
-              isConnected: true,
-              isDeleted: false,
-              organization: organizationId,
-              ...(brandId ? { brand: brandId } : {}),
-            },
-          },
-          { $count: 'total' },
-        ],
-        { pagination: false },
-      ),
+      this.credentialsService.countConnected(organizationId, brandId),
       this.batchGenerationService.getReviewInboxSummary(
         organizationId,
-        true ? brandId : undefined,
+        brandId || undefined,
         5,
       ),
       this.analyticsAggregationService.getTimeSeriesDataWithPlatforms(
@@ -384,18 +464,26 @@ export class AuthBootstrapService {
       this.agentRunsService.getStats(organizationId),
     ]);
 
-    return {
+    const payload: OverviewBootstrapPayload = {
       activeRuns: toPlainJson(activeRuns),
       analytics: {
         ...analyticsMetrics,
-        totalCredentialsConnected:
-          (totalCredentialsConnected.docs[0] as { total?: number } | undefined)
-            ?.total ?? 0,
+        totalCredentialsConnected,
       },
       reviewInbox: toPlainJson(reviewInbox),
       runs: toPlainJson(runs),
       stats,
       timeSeries: toPlainJson(timeSeries),
     };
+
+    this.setCachedOverviewBootstrap(cacheKey, payload);
+    const resolvedCacheKey = this.getOverviewBootstrapCacheKey(
+      bootstrap.access,
+    );
+    if (resolvedCacheKey !== cacheKey) {
+      this.setCachedOverviewBootstrap(resolvedCacheKey, payload);
+    }
+
+    return payload;
   }
 }

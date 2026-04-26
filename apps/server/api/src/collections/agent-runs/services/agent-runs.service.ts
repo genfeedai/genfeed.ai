@@ -48,14 +48,6 @@ type AgentRunStatsAggregateResult = {
 
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 
-const AGENT_RUN_STATUS = {
-  CANCELLED: 'CANCELLED',
-  COMPLETED: 'COMPLETED',
-  FAILED: 'FAILED',
-  PENDING: 'PENDING',
-  RUNNING: 'RUNNING',
-} as const;
-
 function getTimeRangeDays(timeRange: AgentRunTimeRange): number {
   switch (timeRange) {
     case '14d':
@@ -202,7 +194,7 @@ export class AgentRunsService extends BaseService<
   @HandleErrors('check agent run cancellation', 'agent-runs')
   async isCancelled(id: string, organizationId: string): Promise<boolean> {
     const run = await this.getById(id, organizationId);
-    return run?.status === AGENT_RUN_STATUS.CANCELLED;
+    return run?.status === AgentExecutionStatus.CANCELLED;
   }
 
   @HandleErrors('record tool call', 'agent-runs')

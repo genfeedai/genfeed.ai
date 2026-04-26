@@ -1,6 +1,7 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { CreateSubscriptionPreviewDto } from '@api/collections/subscriptions/dto/create-subscription.dto';
 import { SubscriptionsService } from '@api/collections/subscriptions/services/subscriptions.service';
+import { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { ConfigService } from '@api/config/config.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
@@ -175,9 +176,22 @@ export class SubscriptionsController {
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getCreditsBreakdown(
     @CurrentUser() user: User,
+    @Req() request: RequestWithContext,
   ): Promise<CreditsBreakdownResponse> {
     try {
-      const organizationId = user.publicMetadata.organization as string;
+      // Middleware-injected context takes priority over JWT publicMetadata
+      // because context reflects the active org after any org-switching
+      const organizationId =
+        request.context?.organizationId ??
+        getPublicMetadata(user).organization ??
+        '';
+
+      if (!organizationId) {
+        throw new HttpException(
+          'Organization ID is required to retrieve credits',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
 
       const [creditsData, subscription] = await Promise.all([
         this.creditsUtilsService.getOrganizationCreditsWithExpiration(

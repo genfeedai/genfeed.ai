@@ -125,7 +125,7 @@ describe('AuthBootstrapService', () => {
     getOrganizationCreditsBalance: vi.fn(),
   };
   const credentialsService = {
-    findAll: vi.fn(),
+    countConnected: vi.fn(),
   };
   const batchGenerationService = {
     getReviewInboxSummary: vi.fn(),
@@ -181,7 +181,7 @@ describe('AuthBootstrapService', () => {
     brandsService.findForOrganization.mockResolvedValue([]);
     configService.get.mockReturnValue('');
     creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(0);
-    credentialsService.findAll.mockResolvedValue({ docs: [] });
+    credentialsService.countConnected.mockResolvedValue(0);
     batchGenerationService.getReviewInboxSummary.mockResolvedValue({
       approvedCount: 1,
       changesRequestedCount: 0,
@@ -564,9 +564,7 @@ describe('AuthBootstrapService', () => {
     analyticsAggregationService.getTimeSeriesDataWithPlatforms.mockResolvedValue(
       [{ date: '2026-03-17', instagram: 10 }],
     );
-    credentialsService.findAll.mockResolvedValue({
-      docs: [{ total: 3 }],
-    });
+    credentialsService.countConnected.mockResolvedValue(3);
 
     const result = await service.getOverviewBootstrap({
       context: {
@@ -600,6 +598,10 @@ describe('AuthBootstrapService', () => {
       organizationId,
       brandId,
       5,
+    );
+    expect(credentialsService.countConnected).toHaveBeenCalledWith(
+      organizationId,
+      brandId,
     );
     expect(result).toEqual({
       activeRuns: [{ id: 'run_2' }],
@@ -646,5 +648,65 @@ describe('AuthBootstrapService', () => {
       },
       timeSeries: [{ date: '2026-03-17', instagram: 10 }],
     });
+  });
+
+  it('reuses the short-lived overview bootstrap cache for repeated reloads', async () => {
+    const organizationId = 'test-object-id';
+    const brandId = 'test-brand-id';
+    const userId = 'test-user-id';
+    accessBootstrapCacheService.get.mockResolvedValue({
+      access: {
+        brandId,
+        creditsBalance: 0,
+        hasEverHadCredits: false,
+        isOnboardingCompleted: true,
+        isSuperAdmin: false,
+        organizationId,
+        subscriptionStatus: SubscriptionStatus.ACTIVE,
+        subscriptionTier: SubscriptionTier.PRO,
+        userId,
+      },
+      brands: [],
+      currentUser: null,
+      darkroomCapabilities: null,
+      settings: null,
+      streak: null,
+    } satisfies AccessBootstrapCachePayload);
+    credentialsService.countConnected.mockResolvedValue(3);
+
+    const request = {
+      context: {
+        brandId,
+        organizationId,
+        userId,
+      },
+      user: {
+        id: 'clerk_4',
+        publicMetadata: {
+          brand: brandId,
+          organization: organizationId,
+          user: userId,
+        },
+      },
+    } as never;
+
+    const result1 = await service.getOverviewBootstrap(request);
+    const result2 = await service.getOverviewBootstrap(request);
+
+    expect(result1).toEqual(result2);
+    expect(
+      analyticsAggregationService.getOverviewMetrics,
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      analyticsAggregationService.getTimeSeriesDataWithPlatforms,
+    ).toHaveBeenCalledTimes(1);
+    expect(credentialsService.countConnected).toHaveBeenCalledTimes(1);
+    expect(batchGenerationService.getReviewInboxSummary).toHaveBeenCalledTimes(
+      1,
+    );
+    expect(agentRunsService.listRecentRuns).toHaveBeenCalledTimes(1);
+    expect(agentRunsService.getActiveRuns).toHaveBeenCalledTimes(1);
+    expect(agentRunsService.getStats).toHaveBeenCalledTimes(1);
+    expect(accessBootstrapCacheService.get).toHaveBeenCalledTimes(1);
   });
 });

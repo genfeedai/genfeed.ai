@@ -166,6 +166,9 @@ describe('SubscriptionsController', () => {
 
   describe('getCreditsBreakdown', () => {
     it('should return credits breakdown with cycle metrics', async () => {
+      const request = {
+        context: { organizationId: mockUser.publicMetadata.organization },
+      } as Request;
       const creditsData = {
         credits: [
           {
@@ -192,7 +195,7 @@ describe('SubscriptionsController', () => {
         type: SubscriptionPlan.MONTHLY,
       });
 
-      const result = await controller.getCreditsBreakdown(mockUser);
+      const result = await controller.getCreditsBreakdown(mockUser, request);
 
       expect(
         creditsUtilsService.getOrganizationCreditsWithExpiration,
@@ -211,6 +214,9 @@ describe('SubscriptionsController', () => {
     });
 
     it('should fallback to total-based percentage when cycle window is unavailable', async () => {
+      const request = {
+        context: { organizationId: mockUser.publicMetadata.organization },
+      } as Request;
       const creditsData = {
         credits: [],
         total: 420,
@@ -221,13 +227,40 @@ describe('SubscriptionsController', () => {
       );
       mockSubscriptionsService.findByOrganizationId.mockResolvedValue(null);
 
-      const result = await controller.getCreditsBreakdown(mockUser);
+      const result = await controller.getCreditsBreakdown(mockUser, request);
 
       expect(
         mockCreditsUtilsService.getCycleRemainingMetrics,
       ).not.toHaveBeenCalled();
       expect(result.data.cycleTotal).toBe(420);
       expect(result.data.remainingPercent).toBe(100);
+    });
+
+    it('should use request context organizationId when user metadata is missing', async () => {
+      const request = {
+        context: { organizationId: 'org_from_context' },
+      } as Request;
+      const userWithoutOrganization = {
+        ...mockUser,
+        publicMetadata: {
+          user: '507f1f77bcf86cd799439011',
+        },
+      } as unknown as User;
+      const creditsData = {
+        credits: [],
+        total: 0,
+      };
+
+      mockCreditsUtilsService.getOrganizationCreditsWithExpiration.mockResolvedValue(
+        creditsData,
+      );
+      mockSubscriptionsService.findByOrganizationId.mockResolvedValue(null);
+
+      await controller.getCreditsBreakdown(userWithoutOrganization, request);
+
+      expect(
+        creditsUtilsService.getOrganizationCreditsWithExpiration,
+      ).toHaveBeenCalledWith('org_from_context');
     });
   });
 });
