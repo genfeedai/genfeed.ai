@@ -8,6 +8,10 @@ packages/prisma/generated/
 **/src/**/*.js
 **/src/**/*.js.map
 **/src/**/*.d.ts.map
+# Generated .d.ts in packages with no hand-authored ambient modules under src/
+packages/interfaces/src/**/*.d.ts
+packages/enums/src/**/*.d.ts
+packages/client/src/**/*.d.ts
 .env
 .env.local
 .env.*.local
