@@ -11,7 +11,6 @@ import AppHtmlDocument from '@ui/shell/AppHtmlDocument';
 import { createAppMetadata, createPwaMetadata } from '@ui/shell/metadata';
 import type { Metadata, Viewport } from 'next';
 import DesktopDragStrip from '@/components/desktop/DesktopDragStrip';
-import { EditionBadge } from '@/components/edition-badge/EditionBadge';
 
 const { name, description } = metadataHelper;
 const pwaConfig = createPwaMetadata('app');
@@ -49,7 +48,6 @@ export default async function RootLayout({ children }: LayoutProps) {
       >
         <DesktopDragStrip />
         {children}
-        <EditionBadge />
       </AppProviders>
     </AppHtmlDocument>
   );

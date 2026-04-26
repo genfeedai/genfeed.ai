@@ -22,7 +22,7 @@ describe('APP_MENU_ITEMS', () => {
     expect(ungroupedLabels).toEqual(['Dashboard', 'Inbox', 'Tasks']);
   });
 
-  it('surfaces the workspace groups: Library and Posts', () => {
+  it('does not surface content drilldowns in the shared sidebar', () => {
     const groups = [
       ...new Set(
         APP_MENU_ITEMS.map((item) => item.group).filter(
@@ -30,8 +30,11 @@ describe('APP_MENU_ITEMS', () => {
         ),
       ),
     ];
+    const hrefs = APP_MENU_ITEMS.map((item) => item.href);
 
-    expect(groups).toEqual([AppMenuGroup.Library, AppMenuGroup.Posts]);
+    expect(groups).toEqual([]);
+    expect(hrefs).not.toContain('/library/ingredients');
+    expect(hrefs).not.toContain('/posts');
   });
 
   it('gives workspace first-class subroutes in the main sidebar', () => {
@@ -40,20 +43,6 @@ describe('APP_MENU_ITEMS', () => {
     ).map((item) => item.label);
 
     expect(workspaceLabels).toEqual(['Dashboard', 'Inbox', 'Tasks']);
-  });
-
-  it('orders the posts group around the new canonical routes', () => {
-    const postsLabels = APP_MENU_ITEMS.filter(
-      (item) => item.group === AppMenuGroup.Posts,
-    ).map((item) => item.label);
-
-    expect(postsLabels).toEqual([
-      'Analytics',
-      'Remix',
-      'Calendar',
-      'Review',
-      'Posts',
-    ]);
   });
 
   it('does not include analytics group items pointing to /analytics/* routes', () => {

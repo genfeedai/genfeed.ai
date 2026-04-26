@@ -1,19 +1,32 @@
 'use client';
 
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { HiOutlineCommandLine } from 'react-icons/hi2';
+
 const EDITION = process.env.NEXT_PUBLIC_GENFEED_EDITION ?? 'Core';
 
+interface EditionBadgeProps {
+  className?: string;
+}
+
 /**
- * Floating badge that indicates the current Genfeed edition (Core / Cloud).
- * Visible only in development to help distinguish environments.
+ * Development-only edition indicator for distinguishing Core vs Cloud shells.
  */
-export function EditionBadge() {
+export function EditionBadge({ className }: EditionBadgeProps) {
   if (process.env.NODE_ENV === 'production') {
     return null;
   }
 
   return (
-    <div className="fixed bottom-2 left-2 z-50 rounded-full bg-white/10 px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-widest text-white/40 backdrop-blur-sm select-none pointer-events-none">
-      {EDITION}
+    <div
+      data-testid="edition-badge"
+      className={cn(
+        'gen-shell-surface inline-flex select-none items-center gap-2 rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground/62',
+        className,
+      )}
+    >
+      <HiOutlineCommandLine className="h-3.5 w-3.5 text-foreground/48" />
+      <span>{EDITION}</span>
     </div>
   );
 }
