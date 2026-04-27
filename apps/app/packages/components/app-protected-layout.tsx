@@ -591,11 +591,6 @@ function AppLayoutWithDynamicMenu({
             buildHref(STUDIO_LOGO_HREF),
             taskContextSearchParams,
           )}
-          backHref={withTaskContextHref(
-            buildHref('/library/ingredients'),
-            taskContextSearchParams,
-          )}
-          backLabel="Library"
           sectionLabel="Studio"
           shellChromeVariant={shellChromeVariant}
           renderFooterSlot={() => <ModeIndicator />}
@@ -623,11 +618,6 @@ function AppLayoutWithDynamicMenu({
             buildHref(COMPOSE_LOGO_HREF),
             taskContextSearchParams,
           )}
-          backHref={withTaskContextHref(
-            buildHref('/posts'),
-            taskContextSearchParams,
-          )}
-          backLabel="Posts"
           sectionLabel="Compose"
           shellChromeVariant={shellChromeVariant}
           renderFooterSlot={() => <ModeIndicator />}
@@ -643,11 +633,6 @@ function AppLayoutWithDynamicMenu({
             orgHref(WORKFLOWS_LOGO_HREF),
             taskContextSearchParams,
           )}
-          backHref={withTaskContextHref(
-            buildHref('/workspace/overview'),
-            taskContextSearchParams,
-          )}
-          backLabel="Workspace"
           sectionLabel="Workflows"
           shellChromeVariant={shellChromeVariant}
           renderFooterSlot={() => <ModeIndicator />}
@@ -663,11 +648,6 @@ function AppLayoutWithDynamicMenu({
             buildHref('/workspace/overview'),
             taskContextSearchParams,
           )}
-          backHref={withTaskContextHref(
-            buildHref('/workspace/overview'),
-            taskContextSearchParams,
-          )}
-          backLabel="Workspace"
           sectionLabel="Editor"
           shellChromeVariant={shellChromeVariant}
           renderFooterSlot={() => <ModeIndicator />}
@@ -683,11 +663,6 @@ function AppLayoutWithDynamicMenu({
             buildHref(ANALYTICS_LOGO_HREF),
             taskContextSearchParams,
           )}
-          backHref={withTaskContextHref(
-            buildHref('/workspace/overview'),
-            taskContextSearchParams,
-          )}
-          backLabel="Workspace"
           sectionLabel="Analytics"
           shellChromeVariant={shellChromeVariant}
           renderFooterSlot={() => <ModeIndicator />}
@@ -703,11 +678,6 @@ function AppLayoutWithDynamicMenu({
             orgHref(ORG_LOGO_HREF),
             taskContextSearchParams,
           )}
-          backHref={withTaskContextHref(
-            buildHref('/workspace/overview'),
-            taskContextSearchParams,
-          )}
-          backLabel="Workspace"
           sectionLabel="Organization"
           shellChromeVariant={shellChromeVariant}
           renderFooterSlot={() => <ModeIndicator />}
@@ -723,11 +693,6 @@ function AppLayoutWithDynamicMenu({
             buildHref(SETTINGS_LOGO_HREF),
             taskContextSearchParams,
           )}
-          backHref={withTaskContextHref(
-            buildHref('/workspace/overview'),
-            taskContextSearchParams,
-          )}
-          backLabel="Workspace"
           sectionLabel="Settings"
           shellChromeVariant={shellChromeVariant}
           renderFooterSlot={() => <ModeIndicator />}

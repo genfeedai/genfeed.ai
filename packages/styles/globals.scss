@@ -103,11 +103,9 @@
 }
 
 /* ship-ui theme overrides — use CSS custom properties on .ship-ui scope.
-   These do NOT collide with Tailwind utility classes (bg-primary, text-primary, etc.)
-   because they set CSS variables that @shipshitdev/ui primitives consume internally. */
+   --background / --background-secondary stay as HSL components (set by web-tokens.scss)
+   so hsl(var(--background)) keeps working. Other tokens map directly. */
 .ship-ui {
-  --background: var(--ship-bg-primary);
-  --background-secondary: var(--ship-bg-secondary);
   --foreground: var(--ship-text-primary);
   --muted-foreground: var(--ship-text-muted);
   --accent: var(--ship-accent);
@@ -343,58 +341,13 @@ a {
 }
 
 .gen-shell-panel {
-  position: relative;
-  isolation: isolate;
-  background:
-    linear-gradient(
-      180deg,
-      hsl(var(--background-tertiary) / 0.96) 0%,
-      hsl(var(--background-secondary) / 0.98) 100%
-    );
-  box-shadow:
-    0 28px 72px -48px rgba(0, 0, 0, 0.92),
-    inset 0 1px 0 rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(24px);
+  background: hsl(var(--background));
 }
 
-.gen-shell-panel::before {
-  position: absolute;
-  inset: 0;
-  content: '';
-  pointer-events: none;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 24%);
-}
-
-.gen-shell-panel > * {
-  position: relative;
-  z-index: 1;
-}
-
-.gen-shell-panel--terminal::after {
-  position: absolute;
-  top: -11rem;
-  right: -4rem;
-  width: 18rem;
-  height: 18rem;
-  content: '';
-  pointer-events: none;
-  background: radial-gradient(
-    circle,
-    rgba(52, 211, 153, 0.16) 0%,
-    rgba(56, 189, 248, 0.08) 38%,
-    transparent 72%
-  );
-  filter: blur(22px);
-  opacity: 0.92;
-}
 
 .gen-shell-toolbar {
   border-bottom: 1px solid hsl(var(--border) / 0.82);
-  background: linear-gradient(
-    180deg,
-    hsl(var(--background-tertiary) / 0.92) 0%,
-    hsl(var(--background-secondary) / 0.72) 100%
-  );
+  background: hsl(var(--background));
 }
 
 .gen-shell-segmented {
@@ -463,15 +416,12 @@ a {
 }
 
 .gen-shell-surface {
-  background: hsl(var(--background) / 0.44);
+  background: hsl(var(--background));
 }
 
 .gen-shell-surface[data-active='true'] {
   border-color: hsl(var(--primary) / 0.26);
-  background: hsl(var(--background-tertiary) / 0.92);
-  box-shadow:
-    0 18px 40px -30px rgba(0, 0, 0, 0.82),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  background: hsl(var(--background));
 }
 
 .gen-shell-chip {
@@ -499,68 +449,21 @@ a {
 
 .gen-shell-empty-state {
   border: 1px dashed hsl(var(--border) / 0.72);
-  background: linear-gradient(
-    180deg,
-    hsl(var(--background) / 0.5) 0%,
-    hsl(var(--background-secondary) / 0.74) 100%
-  );
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  background: hsl(var(--background));
 }
 
 [data-agent-console='true'] {
   border-color: hsl(var(--border) / 0.76);
-  background: linear-gradient(
-    180deg,
-    hsl(var(--background-secondary) / 0.98) 0%,
-    hsl(var(--background) / 0.98) 100%
-  );
-  box-shadow:
-    0 22px 54px -38px rgba(0, 0, 0, 0.92),
-    inset 0 1px 0 rgba(255, 255, 255, 0.03);
-}
-
-[data-agent-console='true']::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 22%);
-}
-
-[data-agent-console='true']::after {
-  content: '';
-  position: absolute;
-  pointer-events: none;
-  top: -9rem;
-  right: -5rem;
-  width: 14rem;
-  height: 14rem;
-  background: radial-gradient(
-    circle,
-    rgba(88, 166, 255, 0.12) 0%,
-    rgba(168, 85, 247, 0.05) 42%,
-    transparent 74%
-  );
-  filter: blur(18px);
-  opacity: 0.42;
+  background: hsl(var(--background));
 }
 
 [data-agent-console='true'] .gen-shell-toolbar {
   border-bottom-color: hsl(var(--border) / 0.72);
-  background: linear-gradient(
-    180deg,
-    hsl(var(--background) / 0.82) 0%,
-    hsl(var(--background-secondary) / 0.74) 100%
-  );
-  backdrop-filter: blur(18px);
+  background: hsl(var(--background));
 }
 
 [data-agent-console='true'] [data-panel-body] {
-  background: linear-gradient(
-    180deg,
-    hsl(var(--background-secondary) / 0.5) 0%,
-    hsl(var(--background) / 0.18) 100%
-  );
+  background: hsl(var(--background));
 }
 
 [data-agent-console='true'] .gen-shell-segmented {

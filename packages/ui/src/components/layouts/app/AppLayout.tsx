@@ -443,7 +443,7 @@ export default function AppLayout({
 
               <div
                 className={cn(
-                  'gen-shell-panel relative h-full max-w-[85vw] rounded-r-[1.25rem] border-r border-white/[0.06] shadow-2xl transition-transform duration-200',
+                  'gen-shell-panel relative h-full max-w-[85vw] border-r border-white/[0.06] shadow-2xl transition-transform duration-200',
                   isSidebarOpen ? 'translate-x-0' : '-translate-x-full',
                 )}
                 style={{ width: mobileSidebarWidth }}

@@ -607,8 +607,8 @@ export function AgentChatMessage({
           'group relative overflow-hidden border text-sm transition-[border-color,background-color,box-shadow] duration-300',
           isHighlighted && SCROLL_FOCUS_SURFACE_CLASS,
           isUser
-            ? 'max-w-[82%] rounded-2xl border-border/70 bg-background/78 px-4 py-3 text-foreground shadow-[0_1px_0_rgba(0,0,0,0.18)]'
-            : 'w-full max-w-none rounded-2xl border-border/65 bg-background-secondary/72 px-4 py-3 text-foreground shadow-[0_1px_0_rgba(0,0,0,0.18)]',
+            ? 'max-w-[82%] rounded-md border-border/70 bg-background/78 px-4 py-3 text-foreground shadow-[0_1px_0_rgba(0,0,0,0.18)]'
+            : 'w-full max-w-none rounded-md border-border/65 bg-background-secondary/72 px-4 py-3 text-foreground shadow-[0_1px_0_rgba(0,0,0,0.18)]',
         )}
       >
         <div
@@ -656,7 +656,7 @@ export function AgentChatMessage({
           </div>
         )}
         {shouldSuppressFallbackMessage && !completionSummaryAction ? (
-          <div className="rounded-xl border border-border/65 bg-background/70 px-3 py-2 text-xs text-muted-foreground">
+          <div className="rounded-md border border-border/65 bg-background/70 px-3 py-2 text-xs text-muted-foreground">
             Results are ready below.
           </div>
         ) : null}

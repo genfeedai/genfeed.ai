@@ -78,7 +78,7 @@ function AgentPanelShell({
               variant={ButtonVariant.UNSTYLED}
               withWrapper={false}
               onClick={onExpand}
-              className="gen-shell-control h-9 w-9 shrink-0 rounded-xl"
+              className="gen-shell-control h-9 w-9 shrink-0 rounded-md"
               ariaLabel="Open full chat workspace"
             >
               <HiArrowsPointingOut className="h-4 w-4" />
@@ -114,7 +114,7 @@ function AgentPanelShell({
         )}
       >
         <div className="shrink-0 px-3.5 py-2.5">
-          <div className="gen-shell-segmented grid grid-cols-2 gap-1 rounded-xl p-1">
+          <div className="gen-shell-segmented grid grid-cols-2 gap-1 rounded-md p-1">
             <Button
               variant={ButtonVariant.UNSTYLED}
               withWrapper={false}

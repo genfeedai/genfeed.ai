@@ -96,7 +96,7 @@ function AgentConversationSkeleton({
 
           <div className="flex flex-1 flex-col gap-12 pt-1">
             <div className="flex justify-end">
-              <Skeleton className="h-10 w-40 rounded-2xl bg-white/[0.05]" />
+              <Skeleton className="h-10 w-40 rounded-md bg-white/[0.05]" />
             </div>
 
             <div className="max-w-[40rem] space-y-3 pt-2">
@@ -118,7 +118,7 @@ function AgentConversationSkeleton({
         zIndex={10}
         className="bottom-3 md:bottom-5"
       >
-        <div className="rounded-[1.75rem] border border-white/[0.08] bg-background/80 px-4 py-4 shadow-[0_18px_50px_rgba(0,0,0,0.28)] backdrop-blur-xl">
+        <div className="rounded-md border border-white/[0.08] bg-background/80 px-4 py-4 shadow-[0_18px_50px_rgba(0,0,0,0.28)] backdrop-blur-xl">
           <Skeleton className="mb-4 h-5 w-28 rounded-full bg-white/[0.04]" />
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -910,7 +910,7 @@ export function AgentChatContainer({
                 isWideLayout ? 'max-w-4xl' : 'max-w-4xl',
               )}
             >
-              <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-foreground/[0.05] ring-1 ring-inset ring-foreground/[0.08]">
+              <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-md bg-foreground/[0.05] ring-1 ring-inset ring-foreground/[0.08]">
                 <HiOutlineSparkles className="h-6 w-6 text-foreground/68" />
               </div>
 
@@ -1002,7 +1002,7 @@ export function AgentChatContainer({
                               isBusy ||
                               isCreatingFollowUpTasks
                             }
-                            className="rounded-xl px-4 py-2 text-sm"
+                            className="rounded-md px-4 py-2 text-sm"
                           >
                             {isCreatingFollowUpTasks
                               ? 'Creating Tasks...'

@@ -17,7 +17,7 @@ export default function PromptBarShell({
     <div
       {...props}
       className={cn(
-        'gen-shell-surface relative shadow-[0_18px_36px_-28px_rgba(0,0,0,0.8)] backdrop-blur-lg transition-[border-color,background-color,box-shadow] focus-within:border-white/16 focus-within:bg-background-tertiary/90 focus-within:shadow-[0_20px_40px_-28px_rgba(0,0,0,0.88)]',
+        'relative bg-background transition-[border-color] focus-within:border-white/16',
         className,
       )}
     >

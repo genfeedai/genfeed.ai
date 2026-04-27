@@ -32,7 +32,7 @@ export default function ContainerTitle({
   return (
     <div className="mb-1">
       <div className="flex items-start gap-4">
-        <CardIcon icon={icon} className="gen-shell-surface rounded-2xl p-3" />
+        <CardIcon icon={icon} className="gen-shell-surface rounded-md p-3" />
         <div className="min-w-0">{titleContent}</div>
       </div>
     </div>

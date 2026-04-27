@@ -150,15 +150,12 @@ export default function MenuShared({
         return false;
       }
 
-      if (
-        href.startsWith('/elements/') &&
-        Boolean(pathname?.startsWith('/elements/'))
-      ) {
+      if (href.startsWith('/elements/') && pathname?.startsWith('/elements/')) {
         return true;
       }
       if (
         href.startsWith('/ingredients/') &&
-        Boolean(pathname?.startsWith('/ingredients/'))
+        pathname?.startsWith('/ingredients/')
       ) {
         return true;
       }
@@ -325,7 +322,7 @@ export default function MenuShared({
           <Link
             href={prefixHref(backHref)}
             className={cn(
-              'group flex h-10 w-full items-center gap-3 rounded-xl px-3.5 py-2 transition-colors duration-200',
+              'group flex h-10 w-full items-center gap-3 rounded-md px-3.5 py-2 transition-colors duration-200',
               'text-foreground/72 hover:bg-white/[0.035] hover:text-foreground',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
             )}
@@ -362,7 +359,7 @@ export default function MenuShared({
       variant={ButtonVariant.UNSTYLED}
       withWrapper={false}
       onClick={onToggleCollapse}
-      className="gen-shell-control group flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl text-foreground/56 cursor-pointer"
+      className="gen-shell-control group flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md text-foreground/56 cursor-pointer"
       ariaLabel={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
     >
       <span className="relative flex h-4 w-4 items-center justify-center">
@@ -464,7 +461,7 @@ export default function MenuShared({
                   data-testid="sidebar-primary-action"
                   href={prefixHref(config.primaryAction.href)}
                   onClick={handleLinkClick}
-                  className="gen-shell-control flex h-11 w-full items-center gap-3 rounded-xl px-3.5 py-2 text-left text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+                  className="gen-shell-control flex h-11 w-full items-center gap-3 rounded-md px-3.5 py-2 text-left text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
                   data-tone="accent"
                 >
                   {config.primaryAction.icon ? (
@@ -494,7 +491,7 @@ export default function MenuShared({
                     handleLinkClick();
                     config.primaryAction?.onClick?.();
                   }}
-                  className="gen-shell-control flex h-11 w-full items-center gap-3 rounded-xl px-3.5 py-2 text-left text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+                  className="gen-shell-control flex h-11 w-full items-center gap-3 rounded-md px-3.5 py-2 text-left text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
                   data-tone="accent"
                 >
                   {config.primaryAction.icon ? (
@@ -616,7 +613,7 @@ export default function MenuShared({
                       <div className="pb-1">
                         <Link
                           href={orgHref('/chat/new')}
-                          className="group flex h-10 w-full items-center gap-3 rounded-xl px-3.5 py-2 text-left text-foreground/72 transition-colors duration-200 cursor-pointer hover:bg-white/[0.035] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+                          className="group flex h-10 w-full items-center gap-3 rounded-md px-3.5 py-2 text-left text-foreground/72 transition-colors duration-200 cursor-pointer hover:bg-white/[0.035] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
                         >
                           <HiPlus className="h-4 w-4 text-foreground/42 group-hover:text-foreground/78" />
                           <span className="text-[13px] font-medium tracking-[-0.01em] text-foreground/88">
