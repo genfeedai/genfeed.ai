@@ -903,21 +903,21 @@ export function AgentChatContainer({
         </div>
       ) : isEmpty && !onboardingMode ? (
         <div className="relative flex min-h-0 flex-1 overflow-hidden">
-          <div className="flex min-h-0 flex-1 overflow-y-auto px-6 py-10 md:px-8 md:py-14">
+          <div className="flex min-h-0 flex-1 overflow-y-auto px-4 py-6 md:px-6">
             <div
               className={cn(
                 'mx-auto flex h-full w-full flex-col items-center justify-center',
-                isWideLayout ? 'max-w-4xl' : 'max-w-4xl',
+                isWideLayout ? 'max-w-3xl' : 'max-w-3xl',
               )}
             >
-              <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-md bg-foreground/[0.05] ring-1 ring-inset ring-foreground/[0.08]">
-                <HiOutlineSparkles className="h-6 w-6 text-foreground/68" />
+              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-md bg-foreground/[0.05] ring-1 ring-inset ring-foreground/[0.08]">
+                <HiOutlineSparkles className="h-4 w-4 text-foreground/68" />
               </div>
 
-              <h2 className="mb-2 text-center text-[clamp(1.35rem,2.2vw,1.8rem)] font-semibold tracking-[-0.03em] text-foreground">
+              <h2 className="mb-1 text-center text-base font-semibold tracking-[-0.02em] text-foreground">
                 {emptyStateTitle}
               </h2>
-              <p className="max-w-xl text-center text-sm leading-6 text-foreground/52">
+              <p className="max-w-md text-center text-xs leading-5 text-foreground/52">
                 {emptyStateDescription}
               </p>
 
@@ -925,7 +925,7 @@ export function AgentChatContainer({
                 layoutMode="inflow"
                 maxWidth={isWideLayout ? '2xl' : '4xl'}
                 zIndex={60}
-                className="mt-5 w-full"
+                className="mt-4 w-full"
               >
                 <AgentChatInput
                   onSend={handleSend}

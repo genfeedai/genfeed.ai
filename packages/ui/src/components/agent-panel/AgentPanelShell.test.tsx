@@ -53,7 +53,7 @@ describe('AgentPanelShell', () => {
     expect(screen.getByText('Console')).toBeInTheDocument();
   });
 
-  it('renders custom title and subtitle', () => {
+  it('renders custom title (subtitle prop accepted but not rendered)', () => {
     render(
       <AgentPanelShell
         {...defaultProps}
@@ -62,7 +62,7 @@ describe('AgentPanelShell', () => {
       />,
     );
     expect(screen.getByText('My Agent')).toBeInTheDocument();
-    expect(screen.getByText('Helping you')).toBeInTheDocument();
+    expect(screen.queryByText('Helping you')).not.toBeInTheDocument();
   });
 
   it('calls onToggle when toggle button clicked', () => {

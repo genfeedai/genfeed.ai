@@ -40,7 +40,6 @@ function AgentPanelShell({
   onTabChange,
   defaultTab = 'chat',
   title = 'Console',
-  subtitle = 'Thread transcript and runtime routing',
 }: AgentPanelShellProps): ReactElement {
   const [activeTab, setActiveTab] = useState<AgentRailTab>(defaultTab);
 
@@ -57,50 +56,74 @@ function AgentPanelShell({
       data-agent-console="true"
       className="gen-shell-panel gen-shell-panel--terminal flex h-full min-h-0 flex-col overflow-hidden text-foreground"
     >
-      <div className="gen-shell-toolbar flex min-h-[3.75rem] shrink-0 items-center justify-between gap-3 px-3.5 py-2.5">
+      <div className="gen-shell-toolbar flex shrink-0 items-center gap-2 px-2 py-1.5">
         <div
           className={cn(
-            'flex min-w-0 flex-1 items-center gap-3.5 transition-all duration-200',
+            'flex min-w-0 flex-1 items-center gap-2 transition-all duration-200',
             !isOpen && 'w-0 overflow-hidden opacity-0 pointer-events-none',
           )}
         >
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-[1.02rem] font-semibold tracking-[-0.02em] text-foreground">
-              {title}
-            </p>
-            <p className="truncate text-xs text-foreground/55">{subtitle}</p>
+          <span className="shrink-0 rounded-md bg-background-tertiary px-2.5 py-0.5 text-[11px] font-medium text-foreground">
+            {title}
+          </span>
+
+          <span className="h-4 w-px shrink-0 bg-foreground/15" />
+
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            {headerContent}
           </div>
+        </div>
 
-          {headerContent}
+        <div className="flex shrink-0 items-center gap-0.5">
+          {isOpen && outputsContent && (
+            <div className="gen-shell-segmented mr-1 flex gap-0.5 rounded-md p-0.5">
+              <Button
+                variant={ButtonVariant.UNSTYLED}
+                withWrapper={false}
+                onClick={() => handleTabChange('chat')}
+                className="gen-shell-segmented-button h-6 rounded-[5px] px-2 text-[10px] font-semibold uppercase tracking-[0.12em]"
+                data-active={activeTab === 'chat' ? 'true' : 'false'}
+              >
+                Terminal
+              </Button>
+              <Button
+                variant={ButtonVariant.UNSTYLED}
+                withWrapper={false}
+                onClick={() => handleTabChange('outputs')}
+                className="gen-shell-segmented-button h-6 rounded-[5px] px-2 text-[10px] font-semibold uppercase tracking-[0.12em]"
+                data-active={activeTab === 'outputs' ? 'true' : 'false'}
+              >
+                Outputs
+              </Button>
+            </div>
+          )}
 
-          {onExpand && (
+          {isOpen && onExpand && (
             <Button
               variant={ButtonVariant.UNSTYLED}
               withWrapper={false}
               onClick={onExpand}
-              className="gen-shell-control h-9 w-9 shrink-0 rounded-md"
+              className="gen-shell-control h-7 w-7 rounded-md"
               ariaLabel="Open full chat workspace"
             >
-              <HiArrowsPointingOut className="h-4 w-4" />
+              <HiArrowsPointingOut className="h-3.5 w-3.5" />
             </Button>
           )}
-        </div>
 
-        <div className="flex items-center">
           <Button
             variant={ButtonVariant.UNSTYLED}
             withWrapper={false}
             onClick={onToggle}
-            className="gen-shell-control h-9 w-9 rounded-lg"
+            className="gen-shell-control h-7 w-7 rounded-md"
             data-active={isOpen ? 'true' : 'false'}
             ariaLabel={
               isOpen ? 'Collapse quick ask panel' : 'Expand quick ask panel'
             }
           >
             {isOpen ? (
-              <HiSparkles className="h-4 w-4" />
+              <HiSparkles className="h-3.5 w-3.5" />
             ) : (
-              <HiOutlineSparkles className="h-4 w-4" />
+              <HiOutlineSparkles className="h-3.5 w-3.5" />
             )}
           </Button>
         </div>
@@ -113,29 +136,6 @@ function AgentPanelShell({
           !isOpen && 'opacity-0 pointer-events-none',
         )}
       >
-        <div className="shrink-0 px-3.5 py-2.5">
-          <div className="gen-shell-segmented grid grid-cols-2 gap-1 rounded-md p-1">
-            <Button
-              variant={ButtonVariant.UNSTYLED}
-              withWrapper={false}
-              onClick={() => handleTabChange('chat')}
-              className="gen-shell-segmented-button h-9 w-full rounded-lg px-3.5 text-xs font-semibold uppercase tracking-[0.12em]"
-              data-active={activeTab === 'chat' ? 'true' : 'false'}
-            >
-              Terminal
-            </Button>
-            <Button
-              variant={ButtonVariant.UNSTYLED}
-              withWrapper={false}
-              onClick={() => handleTabChange('outputs')}
-              className="gen-shell-segmented-button h-9 w-full rounded-lg px-3.5 text-xs font-semibold uppercase tracking-[0.12em]"
-              data-active={activeTab === 'outputs' ? 'true' : 'false'}
-            >
-              Outputs
-            </Button>
-          </div>
-        </div>
-
         <div
           className={cn(
             'flex-1 overflow-hidden',
