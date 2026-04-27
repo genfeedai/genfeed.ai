@@ -1,7 +1,26 @@
+const fs = require('node:fs');
 const path = require('node:path');
 const nodeExternals = require('webpack-node-externals');
 const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 const { ProgressPlugin } = require('webpack');
+
+/**
+ * Discover all workspace packages with a `src/` directory and produce
+ * webpack aliases that resolve `@genfeedai/<name>` directly to source.
+ * Avoids needing each package to ship a built `dist/` for dev bundling.
+ */
+function buildWorkspaceSourceAliases(cloudPackagesRoot) {
+  const aliases = {};
+  for (const entry of fs.readdirSync(cloudPackagesRoot, {
+    withFileTypes: true,
+  })) {
+    if (!entry.isDirectory()) continue;
+    const pkgSrc = path.resolve(cloudPackagesRoot, entry.name, 'src');
+    if (!fs.existsSync(pkgSrc)) continue;
+    aliases[`@genfeedai/${entry.name}`] = pkgSrc;
+  }
+  return aliases;
+}
 
 /**
  * Base webpack configuration for NestJS monorepo apps
@@ -25,25 +44,7 @@ module.exports = function createWebpackConfig({
   const workspaceRoot = path.resolve(nodeModulesDir, '..');
   const cloudPackagesRoot = path.resolve(workspaceRoot, 'packages');
   const workspaceSourceAliases = {
-    '@genfeedai/config': path.resolve(cloudPackagesRoot, 'config/src'),
-    '@genfeedai/integrations': path.resolve(
-      cloudPackagesRoot,
-      'integrations/src',
-    ),
-    '@genfeedai/interfaces': path.resolve(cloudPackagesRoot, 'interfaces/src'),
-    '@genfeedai/serializers': path.resolve(
-      cloudPackagesRoot,
-      'serializers/src',
-    ),
-    '@genfeedai/workflow-engine': path.resolve(
-      cloudPackagesRoot,
-      'workflow-engine/src',
-    ),
-    '@genfeedai/workflow-saas': path.resolve(
-      cloudPackagesRoot,
-      'workflow-saas/src',
-    ),
-    '@genfeedai/tools': path.resolve(cloudPackagesRoot, 'tools/src'),
+    ...buildWorkspaceSourceAliases(cloudPackagesRoot),
     '@helpers': path.resolve(cloudPackagesRoot, 'helpers/src'),
     '@integrations': path.resolve(cloudPackagesRoot, 'integrations/src'),
     '@serializers': path.resolve(cloudPackagesRoot, 'serializers/src'),
@@ -62,8 +63,8 @@ module.exports = function createWebpackConfig({
         '.cache/webpack',
         `${appName}-${isProduction ? 'production' : 'development'}`,
       ),
-      compression: 'gzip', // Compress cache to save disk space
-      maxMemoryGenerations: isProduction ? 1 : 2, // Limit memory usage in dev
+      compression: isProduction ? 'gzip' : false, // Skip gzip in dev — write/read CPU > disk savings
+      maxMemoryGenerations: isProduction ? 1 : 3, // Bound dev heap; keep last few rebuilds hot
       name: `${appName}-${isProduction ? 'production' : 'development'}`,
       type: 'filesystem',
     },
@@ -177,6 +178,10 @@ module.exports = function createWebpackConfig({
       // and named ids avoid broken numeric id rewrites in Nest's webpack output.
       moduleIds: 'named',
       nodeEnv: false, // Prevent webpack from setting process.env.NODE_ENV
+      // Dev-only: skip expensive graph cleanup that adds no value in dev rebuilds
+      removeAvailableModules: isProduction,
+      removeEmptyChunks: isProduction,
+      splitChunks: isProduction ? undefined : false,
     },
 
     output: {
@@ -235,7 +240,7 @@ module.exports = function createWebpackConfig({
     target: 'node',
 
     watchOptions: {
-      aggregateTimeout: 100, // Reduced from 300ms for faster HMR
+      aggregateTimeout: 300, // Default — debounce save bursts, less rebuild thrash
       ignored: [
         // Ignore most of node_modules but packages are resolved via alias to src/
         '**/node_modules/**',
@@ -245,6 +250,20 @@ module.exports = function createWebpackConfig({
         ...['api', 'mcp', 'files', 'notifications', 'workers']
           .filter((app) => app !== appName)
           .map((app) => `**/apps/server/${app}/**`),
+        // Frontend output directories
+        '**/.next/**',
+        // Local agent / tooling caches & artifacts (large, frequent churn)
+        '**/.agents/**',
+        '**/.codex/**',
+        '**/.cursor/**',
+        '**/.shipcode/**',
+        '**/.code-review-graph/**',
+        // Enterprise-only code paths not relevant to OSS dev
+        '**/ee/**',
+        // TS incremental build info — not a real source dependency
+        '**/tsconfig.tsbuildinfo',
+        // Built artifacts inside packages
+        '**/packages/*/dist/**',
         // Additional exclusions for better performance
         '**/logs/**',
         '**/coverage/**',

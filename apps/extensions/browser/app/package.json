@@ -1,7 +1,7 @@
 {
   "author": "vincent@genfeed.ai",
   "dependencies": {
-    "@clerk/chrome-extension": "3.1.16",
+    "@clerk/chrome-extension": "3.1.18",
     "@genfeedai/client": "workspace:*",
     "@genfeedai/constants": "workspace:*",
     "@genfeedai/enums": "workspace:*",
@@ -17,7 +17,7 @@
     "axios": "1.15.2",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
-    "lucide-react": "1.9.0",
+    "lucide-react": "1.11.0",
     "plasmo": "0.90.5",
     "react": "19.2.5",
     "react-dom": "19.2.5",
@@ -35,8 +35,8 @@
     "@types/react-dom": "19.2.3",
     "@vitest/coverage-v8": "4.1.5",
     "autoprefixer": "10.5.0",
-    "jsdom": "29.0.2",
-    "postcss": "8.5.10",
+    "jsdom": "29.1.0",
+    "postcss": "8.5.12",
     "prettier": "3.8.3",
     "tailwindcss": "4.2.4",
     "typescript": "6.0.2",
