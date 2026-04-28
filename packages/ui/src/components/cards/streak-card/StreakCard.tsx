@@ -2,7 +2,6 @@
 
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useStreak } from '@genfeedai/hooks/data/streaks/use-streak/use-streak';
-import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { STREAK_CELEBRATION_EVENT } from '@genfeedai/services/engagement/streak-events';
 import StreakCelebrationBurst from '@ui/feedback/streak-celebration/StreakCelebrationBurst';
 import Link from 'next/link';
@@ -16,7 +15,6 @@ function formatDayKey(offsetFromToday: number): string {
 
 export default function StreakCard() {
   const { streak, calendar, isLoading, isVisible } = useStreak();
-  const { orgHref } = useOrgUrl();
   const [isCelebrating, setIsCelebrating] = useState(false);
 
   useEffect(() => {
@@ -93,7 +91,7 @@ export default function StreakCard() {
       </p>
 
       <Link
-        href={orgHref('/settings/personal')}
+        href="/settings"
         className="flex items-center justify-between border border-white/8 bg-white/[0.04] px-2.5 py-2 text-[12px] text-white/80 transition-colors duration-150 hover:bg-white/[0.06]"
       >
         <span>

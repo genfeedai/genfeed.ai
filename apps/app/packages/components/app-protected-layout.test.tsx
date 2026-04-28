@@ -175,11 +175,11 @@ vi.mock('@app-config/menu-items.config', () => ({
   APP_SECONDARY_MENU_ITEMS: [
     { href: '/workspace/activity', label: 'Activity' },
   ],
-  getAppSecondaryMenuItems: (brandId?: string | null) =>
-    brandId
+  getAppSecondaryMenuItems: (brandSlug?: string | null) =>
+    brandSlug
       ? [
           { href: '/workspace/activity', label: 'Activity' },
-          { href: `/settings/brands/${brandId}`, label: 'Settings' },
+          { href: '/settings', hrefScope: 'brand', label: 'Settings' },
         ]
       : [{ href: '/workspace/activity', label: 'Activity' }],
   POSTS_INSERT_AFTER_LABEL: 'Posts',
@@ -451,7 +451,8 @@ describe('AppProtectedLayout', () => {
         secondaryItems: [
           { href: '/workspace/activity', label: 'Activity' },
           {
-            href: '/settings/brands/brand-123',
+            href: '/settings',
+            hrefScope: 'brand',
             label: 'Settings',
           },
         ],

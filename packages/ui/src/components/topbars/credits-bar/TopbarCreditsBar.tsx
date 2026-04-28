@@ -9,6 +9,7 @@ import {
 } from '@genfeedai/helpers/formatting/format/format.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useSubscription } from '@genfeedai/hooks/data/subscription/use-subscription/use-subscription';
+import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { useSocketManager } from '@genfeedai/hooks/utils/use-socket-manager/use-socket-manager';
 import type {
   ICreditsEventData,
@@ -30,6 +31,7 @@ import { HiArrowPath, HiPlus } from 'react-icons/hi2';
 
 export default function TopbarCreditsBar() {
   const { organizationId } = useBrand();
+  const { orgHref } = useOrgUrl();
 
   const getOrganizationsService = useAuthedService((token: string) =>
     OrganizationsService.getInstance(token),
@@ -272,7 +274,7 @@ export default function TopbarCreditsBar() {
             </Button>
 
             <Link
-              href={`${EnvironmentService.apps.app}/settings/organization`}
+              href={orgHref('/settings')}
               target="_blank"
               rel="noopener noreferrer"
               className={cn(

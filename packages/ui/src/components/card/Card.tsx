@@ -7,11 +7,11 @@ import { memo } from 'react';
 
 const VARIANT_CLASSES: Record<CardVariant, string> = {
   [CardVariant.DEFAULT]:
-    'border border-white/[0.08] bg-card text-card-foreground shadow-[0_24px_60px_-40px_rgba(0,0,0,0.8)] hover:border-white/[0.14]',
+    'border border-border bg-card text-card-foreground hover:border-border-strong',
   [CardVariant.WHITE]:
-    'border border-black/[0.08] bg-white text-black shadow-[0_24px_60px_-40px_rgba(0,0,0,0.25)] hover:border-black/[0.14]',
+    'border border-black/[0.08] bg-white text-black hover:border-black/[0.14]',
   [CardVariant.BLACK]:
-    'border border-white/[0.08] bg-black text-white shadow-[0_24px_60px_-40px_rgba(0,0,0,0.9)] hover:border-white/[0.16]',
+    'border border-white/[0.08] bg-black text-white hover:border-white/[0.16]',
 };
 
 const Card = memo(function Card({
@@ -32,11 +32,10 @@ const Card = memo(function Card({
   onClick,
 }: CardProps) {
   const cardClasses = cn(
-    'relative overflow-hidden rounded-xl text-left transition-[border-color,background-color,box-shadow,transform] duration-200 ease-out',
+    'relative overflow-hidden rounded-md text-left transition-[border-color,background-color] duration-150 ease-out',
     VARIANT_CLASSES[variant],
     figure && 'flex flex-row',
-    onClick &&
-      'cursor-pointer hover:-translate-y-0.5 hover:shadow-[0_28px_70px_-44px_rgba(0,0,0,0.9)] active:translate-y-0',
+    onClick && 'cursor-pointer',
     className,
   );
 
@@ -57,13 +56,10 @@ const Card = memo(function Card({
       )}
 
       <div
-        className={cn(
-          'relative z-10 flex flex-col gap-4 p-5 sm:p-6',
-          bodyClassName,
-        )}
+        className={cn('relative z-10 flex flex-col gap-3 p-4', bodyClassName)}
       >
         {(icon || label || description) && (
-          <div className={cn('flex items-start gap-4', children && 'mb-2')}>
+          <div className={cn('flex items-start gap-3', children && 'mb-1')}>
             {icon && (
               <CardIcon
                 icon={icon}
@@ -76,12 +72,12 @@ const Card = memo(function Card({
               <div className="min-w-0 flex-1 flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   {label && (
-                    <h3 className="truncate text-base font-semibold tracking-[-0.02em]">
+                    <h3 className="truncate text-sm font-semibold tracking-[-0.01em]">
                       {label}
                     </h3>
                   )}
                   {description && (
-                    <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                    <p className="mt-0.5 text-xs leading-snug text-muted-foreground">
                       {description}
                     </p>
                   )}
@@ -95,7 +91,7 @@ const Card = memo(function Card({
         {children}
 
         {actions && (
-          <div className="flex items-center gap-2 border-t border-white/[0.08] pt-4">
+          <div className="flex items-center gap-2 border-t border-border pt-3">
             {actions}
           </div>
         )}

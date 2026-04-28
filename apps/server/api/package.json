@@ -1,8 +1,8 @@
 {
   "dependencies": {
     "@anthropic-ai/sdk": "0.91.1",
-    "@aws-sdk/client-cloudfront": "3.1037.0",
-    "@aws-sdk/client-ec2": "3.1037.0",
+    "@aws-sdk/client-cloudfront": "3.1038.0",
+    "@aws-sdk/client-ec2": "3.1038.0",
     "@genfeedai/config": "workspace:*",
     "@genfeedai/constants": "workspace:*",
     "@genfeedai/enums": "workspace:*",
@@ -17,7 +17,7 @@
     "@genfeedai/workflow-engine": "workspace:*",
     "@genfeedai/workflow-saas": "workspace:*",
     "@genfeedai/workflows": "workspace:*",
-    "@nestjs/event-emitter": "3.0.1",
+    "@nestjs/event-emitter": "3.1.0",
     "@prisma/adapter-pg": "7.8.0",
     "effect": "3.21.2",
     "google-auth-library": "^10.6.2",

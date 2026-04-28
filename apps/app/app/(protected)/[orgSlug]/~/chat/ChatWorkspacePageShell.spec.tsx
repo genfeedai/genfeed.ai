@@ -23,6 +23,12 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({
+    orgHref: (path: string) => `/test-org/~${path}`,
+  }),
+}));
+
 vi.mock('@clerk/nextjs', () => ({
   useAuth: () => ({
     getToken: getTokenMock,
@@ -113,7 +119,7 @@ describe('ChatWorkspacePageShell', () => {
     };
     props.onNavigateToBilling();
 
-    expect(pushMock).toHaveBeenCalledWith('/settings/organization/api-keys');
+    expect(pushMock).toHaveBeenCalledWith('/test-org/~/settings/api-keys');
   });
 
   it('routes credit pack selection to api keys in OSS mode', () => {
@@ -124,7 +130,7 @@ describe('ChatWorkspacePageShell', () => {
     };
     props.onSelectCreditPack({ label: 'Pro' });
 
-    expect(pushMock).toHaveBeenCalledWith('/settings/organization/api-keys');
+    expect(pushMock).toHaveBeenCalledWith('/test-org/~/settings/api-keys');
   });
 
   it('creates workspace follow-up tasks through the shared workspace service', async () => {

@@ -42,7 +42,7 @@ export class BotGatewayService {
     private readonly userResolverService: BotUserResolverService,
     generationService: BotGenerationService,
   ) {
-    this.settingsUrl = `${this.configService.get('APP_URL')}/settings/organization/credentials#telegram-integration`;
+    this.settingsUrl = `${this.configService.get('APP_URL')}/settings/api-keys#telegram-integration`;
     this.generationService = generationService;
     // Register adapters
     this.adapters = new Map();

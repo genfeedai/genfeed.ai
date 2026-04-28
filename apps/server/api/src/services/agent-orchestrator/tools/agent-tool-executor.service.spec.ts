@@ -755,7 +755,7 @@ describe('AgentToolExecutorService', () => {
       expect.objectContaining({
         ctas: [
           expect.objectContaining({
-            href: '/settings/organization/credentials?returnTo=%2Fagent',
+            href: '/settings/api-keys?returnTo=%2Fagent',
             label: 'Open integrations',
           }),
         ],
@@ -788,7 +788,7 @@ describe('AgentToolExecutorService', () => {
       expect.objectContaining({
         ctas: [
           expect.objectContaining({
-            href: '/settings/organization/credentials?returnTo=%2Fagent',
+            href: '/settings/api-keys?returnTo=%2Fagent',
             label: 'Open integrations',
           }),
         ],

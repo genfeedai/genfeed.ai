@@ -36,7 +36,6 @@ import {
   WORKFLOWS_MENU_ITEMS,
 } from '@app-config/workflows-menu-items.config';
 import { CommandPaletteProvider } from '@contexts/features/command-palette.context';
-import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   AGENT_PANEL_OPEN_KEY,
   AgentApiService,
@@ -307,7 +306,7 @@ function AppLayoutWithDynamicMenu({
     insertAfterLabel: POSTS_INSERT_AFTER_LABEL,
     items: APP_MENU_ITEMS,
   });
-  const { brandId } = useBrand();
+  const { href: buildHref, orgHref, orgSlug, brandSlug } = useOrgUrl();
   const agentApiService = useMemo(() => {
     if (!shouldInitAgentApiService) {
       return null;
@@ -330,13 +329,13 @@ function AppLayoutWithDynamicMenu({
   );
   const secondaryMenuItems = useMemo(
     () =>
-      getAppSecondaryMenuItems(brandId).map(
+      getAppSecondaryMenuItems(brandSlug).map(
         (item): MenuItemConfig => ({
           ...item,
           href: withTaskContextHref(item.href, taskContextSearchParams),
         }),
       ),
-    [brandId, taskContextSearchParams],
+    [brandSlug, taskContextSearchParams],
   );
 
   const [conversationActions, setConversationActions] =
@@ -430,14 +429,9 @@ function AppLayoutWithDynamicMenu({
   // Sync route context into the agent store
   useAgentPageContext(role);
 
-  const { href: buildHref, orgHref, orgSlug, brandSlug } = useOrgUrl();
   const handleNavigateToBilling = useCallback(() => {
     router.push(
-      orgHref(
-        isEEEnabled()
-          ? '/settings/organization/billing'
-          : '/settings/organization/api-keys',
-      ),
+      orgHref(isEEEnabled() ? '/settings/billing' : '/settings/api-keys'),
     );
   }, [router, orgHref]);
 
@@ -586,6 +580,11 @@ function AppLayoutWithDynamicMenu({
     if (isStudioRoute) {
       return (
         <AppSidebar
+          backHref={withTaskContextHref(
+            buildHref(STUDIO_LOGO_HREF),
+            taskContextSearchParams,
+          )}
+          backLabel="Library"
           items={studioMenuItems}
           logoHref={withTaskContextHref(
             buildHref(STUDIO_LOGO_HREF),

@@ -416,7 +416,7 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
       };
     }),
   isGenerating: false,
-  isOpen: true, // SSR-safe default; localStorage sync in useEffect
+  isOpen: false, // collapsed by default — matches shipcode TerminalDrawer
   latestProposedPlan: null,
   memoryEntries: [],
   messages: [],

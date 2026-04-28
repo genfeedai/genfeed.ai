@@ -45,6 +45,9 @@ export default function ProgressSidebarCard() {
   const streakFreezes = streak?.streakFreezes ?? 0;
   const nextMilestone = streak?.nextMilestone ?? null;
   const nextSetupStep = steps.find((step) => !step.isCompleted) ?? null;
+  const nextSetupStepHref = nextSetupStep
+    ? orgHref(nextSetupStep.href)
+    : undefined;
   const allSetupComplete = completedCount === totalCount;
 
   const handleToggle = useCallback(() => {
@@ -202,7 +205,7 @@ export default function ProgressSidebarCard() {
               <div className="mt-3 flex items-center justify-between gap-2">
                 {nextSetupStep ? (
                   <Link
-                    href={nextSetupStep.href}
+                    href={nextSetupStepHref ?? '/settings'}
                     className="gen-shell-control inline-flex min-w-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px] font-medium text-foreground/78"
                   >
                     <span className="truncate">Finish setup</span>
@@ -215,7 +218,7 @@ export default function ProgressSidebarCard() {
                 )}
 
                 <Link
-                  href={orgHref('/settings/personal')}
+                  href="/settings"
                   className="text-[11px] font-medium text-foreground/55 transition-colors hover:text-foreground"
                 >
                   View all

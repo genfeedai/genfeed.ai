@@ -42,7 +42,7 @@
     ]
   },
   "dependencies": {
-    "@electric-sql/pglite": "0.4.4",
+    "@electric-sql/pglite": "0.4.5",
     "@genfeedai/desktop-contracts": "workspace:*",
     "@genfeedai/desktop-core": "workspace:*",
     "@genfeedai/desktop-prisma": "workspace:*",

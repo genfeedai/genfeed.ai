@@ -4,7 +4,7 @@
   "private": true,
   "description": "Prisma schema, client, and PGlite adapter factory for Genfeed Desktop",
   "dependencies": {
-    "@electric-sql/pglite": "0.4.4",
+    "@electric-sql/pglite": "0.4.5",
     "@prisma/client": "7.8.0",
     "@prisma/driver-adapter-utils": "7.8.0",
     "prisma-pglite": "2.1.0"

@@ -3,6 +3,7 @@
 import type { IStreakMilestoneState } from '@genfeedai/types';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useStreak } from '@hooks/data/streaks/use-streak/use-streak';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useSetupCard } from '@hooks/utils/use-setup-card/use-setup-card';
 import { useSidebarProgressPreference } from '@hooks/utils/use-sidebar-progress-preference/use-sidebar-progress-preference';
 import Card from '@ui/card/Card';
@@ -49,6 +50,7 @@ export default function SettingsProgressPage({
   showOverviewCard = true,
 }: SettingsProgressPageProps) {
   const { completedCount, steps, totalCount } = useSetupCard();
+  const { orgHref } = useOrgUrl();
   const { calendar, isLoading, streak } = useStreak();
   const { isSaving, isVisible, setVisibility } = useSidebarProgressPreference();
 
@@ -85,7 +87,7 @@ export default function SettingsProgressPage({
 
             {nextSetupStep ? (
               <Link
-                href={nextSetupStep.href}
+                href={orgHref(nextSetupStep.href)}
                 className="inline-flex items-center gap-2 rounded-full border border-orange-400/25 bg-orange-400/10 px-4 py-2 text-sm font-medium text-orange-100 transition-colors hover:bg-orange-400/15"
               >
                 <HiOutlineSparkles className="h-4 w-4" />

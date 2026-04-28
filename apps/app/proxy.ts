@@ -67,7 +67,6 @@ const FLAT_PATH_REDIRECTS = new Map<string, string>([
   ['/compose', '/compose/article'],
   ['/library', '/library/ingredients'],
   ['/research', '/research/discovery'],
-  ['/settings', '/settings/personal'],
   ['/studio', '/studio/image'],
   ['/workspace', '/workspace/overview'],
   ['/workspace/inbox', '/workspace/inbox/unread'],
@@ -104,6 +103,10 @@ function isBareProtectedPath(pathname: string): boolean {
 
   if (!topLevelSegment) {
     return false;
+  }
+
+  if (topLevelSegment === 'settings') {
+    return pathname !== '/settings';
   }
 
   return (
@@ -257,6 +260,34 @@ async function resolveCanonicalProtectedPath(
   }
 
   const topLevelSegment = getTopLevelSegment(canonicalPath);
+
+  if (topLevelSegment === 'settings') {
+    if (canonicalPath === '/settings/personal') {
+      return '/settings';
+    }
+
+    if (canonicalPath === '/settings/organization') {
+      return `/${slugs.orgSlug}/~/settings`;
+    }
+
+    if (canonicalPath.startsWith('/settings/organization/')) {
+      return `/${slugs.orgSlug}/~${canonicalPath.replace(
+        '/settings/organization',
+        '/settings',
+      )}`;
+    }
+
+    if (canonicalPath.startsWith('/settings/brands/')) {
+      const [, , , routeBrandSlug, ...rest] = canonicalPath.split('/');
+
+      if (routeBrandSlug) {
+        const suffix = rest.length > 0 ? `/${rest.join('/')}` : '';
+        return `/${slugs.orgSlug}/${routeBrandSlug}/settings${suffix}`;
+      }
+    }
+
+    return `/${slugs.orgSlug}/~${canonicalPath}`;
+  }
 
   if (
     topLevelSegment &&

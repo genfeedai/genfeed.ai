@@ -32,7 +32,7 @@ export function useSetupCard(): UseSetupCardReturn {
     const hasEverHadCredits = publicData.hasEverHadCredits === true;
 
     const stepHrefs: Record<string, string> = {
-      platforms: '/settings/organization/credentials',
+      platforms: '/settings/api-keys',
       preferences: '/settings/brands',
     };
 

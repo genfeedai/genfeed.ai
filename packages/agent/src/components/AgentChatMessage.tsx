@@ -44,6 +44,7 @@ import type {
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { Button, buttonVariants } from '@ui/primitives/button';
 import { SCROLL_FOCUS_SURFACE_CLASS } from '@ui/styles/scroll-focus';
 import { type ReactElement, useCallback, useMemo, useState } from 'react';
@@ -132,12 +133,24 @@ function GenericOAuthConnectCard({
 }: {
   action: AgentUiAction;
 }): ReactElement {
+  const { orgHref } = useOrgUrl();
   const description =
     action.description ??
     'Connect Instagram, X, LinkedIn, TikTok, YouTube, or another supported platform to continue.';
-  const integrationHref =
-    action.ctas?.find((cta) => cta.href)?.href ??
-    '/settings/organization/credentials';
+  const rawIntegrationHref =
+    action.ctas?.find((cta) => cta.href)?.href ?? '/settings/api-keys';
+  const integrationHref = rawIntegrationHref.startsWith(
+    '/settings/organization/credentials',
+  )
+    ? orgHref(
+        rawIntegrationHref.replace(
+          '/settings/organization/credentials',
+          '/settings/api-keys',
+        ),
+      )
+    : rawIntegrationHref.startsWith('/settings/api-keys')
+      ? orgHref(rawIntegrationHref)
+      : rawIntegrationHref;
 
   return (
     <div className="mt-2 rounded-lg border border-border bg-background p-3">

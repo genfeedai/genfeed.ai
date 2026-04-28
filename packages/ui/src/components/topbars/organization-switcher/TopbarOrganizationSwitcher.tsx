@@ -3,6 +3,7 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
 import SwitcherDropdown from '@ui/menus/switcher-dropdown/SwitcherDropdown';
 import { Modal } from '@ui/modals/compound/Modal';
@@ -22,6 +23,7 @@ type OrganizationEntry = {
 
 export default function TopbarOrganizationSwitcher() {
   const router = useRouter();
+  const { orgHref } = useOrgUrl();
   const getOrganizationsService = useAuthedService((token: string) =>
     OrganizationsService.getInstance(token),
   );
@@ -93,8 +95,8 @@ export default function TopbarOrganizationSwitcher() {
   );
 
   const handleOpenOrganizationSettings = useCallback(() => {
-    router.push('/settings/organization');
-  }, [router]);
+    router.push(orgHref('/settings'));
+  }, [router, orgHref]);
 
   const handleCreateOrganization = useCallback(async () => {
     const trimmedLabel = newOrganizationLabel.trim();

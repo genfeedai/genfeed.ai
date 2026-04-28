@@ -14,11 +14,11 @@ export default function ContainerTitle({
 
   const titleContent = (
     <>
-      <h1 className="text-[1.75rem] font-semibold leading-none tracking-[-0.045em] text-foreground lg:text-[2.1rem]">
+      <h1 className="text-base font-semibold tracking-[-0.01em] text-foreground">
         {title}
       </h1>
       {description ? (
-        <DescriptionTag className="mt-2 max-w-3xl text-sm leading-5 text-foreground/54">
+        <DescriptionTag className="mt-1 max-w-3xl text-xs leading-snug text-foreground/55">
           {description}
         </DescriptionTag>
       ) : null}
@@ -26,15 +26,17 @@ export default function ContainerTitle({
   );
 
   if (!icon) {
-    return <div className="mb-1">{titleContent}</div>;
+    return <div>{titleContent}</div>;
   }
 
   return (
-    <div className="mb-1">
-      <div className="flex items-start gap-4">
-        <CardIcon icon={icon} className="gen-shell-surface rounded-md p-3" />
-        <div className="min-w-0">{titleContent}</div>
-      </div>
+    <div className="flex items-center gap-2">
+      <CardIcon
+        icon={icon}
+        className="text-foreground/60"
+        iconClassName="w-3.5 h-3.5"
+      />
+      <div className="min-w-0">{titleContent}</div>
     </div>
   );
 }

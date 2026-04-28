@@ -264,7 +264,7 @@ describe('ProvidersContent behavior', () => {
       );
     });
 
-    expect(pushMock).toHaveBeenCalledWith('/settings/organization/api-keys');
+    expect(pushMock).toHaveBeenCalledWith('/settings/api-keys');
   });
 
   it('persists cloud mode and redirects to cloud signup with brand context', async () => {

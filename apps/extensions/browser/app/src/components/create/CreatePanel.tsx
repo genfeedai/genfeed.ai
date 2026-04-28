@@ -1,5 +1,7 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
+import { Checkbox } from '@ui/primitives/checkbox';
+import { Input } from '@ui/primitives/input';
 import {
   Select,
   SelectContent,
@@ -790,9 +792,8 @@ export function CreatePanel({ onStartChat }: CreatePanelProps): ReactElement {
           </Select>
 
           <label className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-            <input
-              type="checkbox"
-              checked={postToComposer}
+            <Checkbox
+              isChecked={postToComposer}
               onChange={(event) => setPostToComposer(event.target.checked)}
             />
             Also publish from current page composer after run completes
@@ -847,7 +848,7 @@ export function CreatePanel({ onStartChat }: CreatePanelProps): ReactElement {
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             4. Analytics
           </p>
-          <input
+          <Input
             value={analyticsQuery}
             onChange={(event) => setAnalyticsQuery(event.target.value)}
             placeholder="Analytics query"

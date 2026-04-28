@@ -1,6 +1,7 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
+import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
 import { CircleHelp, Send } from 'lucide-react';
 import { memo, useCallback, useState } from 'react';
@@ -63,13 +64,13 @@ function QuestionCardInner({
                 (disabled || isAnswered) && 'pointer-events-none opacity-60',
               )}
             >
-              <input
+              <Input
                 type="radio"
                 name={`q-${question.id}`}
                 value={option}
-                checked={selectedOption === option}
+                isChecked={selectedOption === option}
                 onChange={() => setSelectedOption(option)}
-                disabled={disabled || isAnswered}
+                isDisabled={disabled || isAnswered}
                 className="sr-only"
               />
               <span

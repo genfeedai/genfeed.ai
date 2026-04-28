@@ -71,9 +71,7 @@ export default function LowCreditsBanner({
   const { orgHref } = useOrgUrl();
   const isBillingEnabled = Boolean(process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY);
   const ctaHref = orgHref(
-    isBillingEnabled
-      ? '/settings/organization/billing'
-      : '/settings/organization/api-keys',
+    isBillingEnabled ? '/settings/billing' : '/settings/api-keys',
   );
   const balance = creditsBreakdown?.total ?? null;
   const [isDismissed, setIsDismissed] = useState(() =>

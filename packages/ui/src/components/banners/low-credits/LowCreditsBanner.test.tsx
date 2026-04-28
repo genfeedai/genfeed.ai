@@ -116,7 +116,7 @@ describe('LowCreditsBanner', () => {
 
     expect(
       screen.getByRole('link', { name: 'Configure providers' }),
-    ).toHaveAttribute('href', '/test-org/~/settings/organization/api-keys');
+    ).toHaveAttribute('href', '/test-org/~/settings/api-keys');
   });
 
   it('keeps the billing CTA in EE mode', () => {
@@ -129,6 +129,6 @@ describe('LowCreditsBanner', () => {
 
     expect(
       screen.getByRole('link', { name: 'Top up credits' }),
-    ).toHaveAttribute('href', '/test-org/~/settings/organization/billing');
+    ).toHaveAttribute('href', '/test-org/~/settings/billing');
   });
 });

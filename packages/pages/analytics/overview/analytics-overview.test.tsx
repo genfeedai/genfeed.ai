@@ -32,6 +32,12 @@ vi.mock('next/link', () => ({
   ),
 }));
 
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({
+    orgHref: (path: string) => `/acme/~${path}`,
+  }),
+}));
+
 vi.mock('@genfeedai/enums', () => ({
   AlertCategory: {
     ERROR: 'error',
@@ -68,6 +74,11 @@ vi.mock('@genfeedai/enums', () => ({
     DEFAULT: 'default',
     GHOST: 'ghost',
     OUTLINE: 'outline',
+  },
+  PageScope: {
+    BRAND: 'brand',
+    ORGANIZATION: 'organization',
+    PERSONAL: 'personal',
   },
 }));
 
@@ -279,7 +290,7 @@ describe('AnalyticsOverview', () => {
     expect(markup).toContain('Coverage so far');
     expect(markup).toContain('Your analytics home is ready');
     expect(markup).toContain('First run');
-    expect(markup).toContain('/settings/organization/credentials');
+    expect(markup).toContain('/acme/~/settings/api-keys');
     expect(markup).toContain(
       'Trend lines will appear here once performance data lands',
     );

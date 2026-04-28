@@ -112,9 +112,9 @@ export function BatchGenerationCard({
                   : 'border-border text-muted-foreground hover:border-primary/50'
               }`}
             >
-              <input
+              <Input
                 type="checkbox"
-                checked={selectedPlatforms.has(platform)}
+                isChecked={selectedPlatforms.has(platform)}
                 onChange={() => togglePlatform(platform)}
                 className="sr-only"
               />

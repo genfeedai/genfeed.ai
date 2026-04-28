@@ -8,6 +8,7 @@ import {
 } from '@genfeedai/enums';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import { Button } from '@ui/primitives/button';
+import { Input } from '@ui/primitives/input';
 import {
   Select,
   SelectContent,
@@ -342,8 +343,8 @@ export function VoiceCloneCard({
                 </p>
               </div>
             )}
-            <input
-              ref={fileInputRef}
+            <Input
+              inputRef={fileInputRef}
               type="file"
               accept="audio/*"
               onChange={handleFileChange}

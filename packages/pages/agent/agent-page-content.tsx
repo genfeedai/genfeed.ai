@@ -4,6 +4,7 @@ import { useAuth } from '@clerk/nextjs';
 import { AgentApiService, AgentFullPage } from '@genfeedai/agent';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
 import { useUserRole } from '@hooks/auth/use-user-role';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useCallback, useMemo } from 'react';
 import { isEEEnabled } from '@/lib/config/edition';
 
@@ -24,6 +25,7 @@ export default function AgentPageContent({
 }: AgentPageContentProps) {
   const { getToken } = useAuth();
   const userRole = useUserRole();
+  const { orgHref } = useOrgUrl();
   const agentApiService = useMemo(
     () =>
       new AgentApiService({
@@ -34,23 +36,21 @@ export default function AgentPageContent({
   );
   const handleNavigateToBilling = useCallback(() => {
     window.open(
-      isEEEnabled()
-        ? '/settings/organization/billing'
-        : '/settings/organization/api-keys',
+      orgHref(isEEEnabled() ? '/settings/billing' : '/settings/api-keys'),
       '_self',
     );
-  }, []);
+  }, [orgHref]);
 
   const handleSelectCreditPack = useCallback(
     (pack: { label: string; price: string; credits: number }) => {
       window.open(
         isEEEnabled()
-          ? `/settings/organization/billing?pack=${pack.label.toLowerCase()}`
-          : '/settings/organization/api-keys',
+          ? orgHref(`/settings/billing?pack=${pack.label.toLowerCase()}`)
+          : orgHref('/settings/api-keys'),
         '_self',
       );
     },
-    [],
+    [orgHref],
   );
 
   return (

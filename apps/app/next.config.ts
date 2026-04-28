@@ -124,9 +124,9 @@ const config = createAppNextConfig({
       source: '/library',
     },
     {
-      destination: '/settings/personal',
+      destination: '/settings',
       permanent: false,
-      source: '/settings',
+      source: '/settings/personal',
     },
     {
       destination: '/analytics/overview',

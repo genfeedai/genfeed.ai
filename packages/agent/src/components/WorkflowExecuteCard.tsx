@@ -8,6 +8,7 @@ import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.serv
 import { ButtonVariant } from '@genfeedai/enums';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { Button } from '@ui/primitives/button';
+import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
 import {
   Select,
@@ -257,9 +258,8 @@ export function WorkflowExecuteCard({
                   )}
                   {field.type === 'boolean' ? (
                     <label className="flex items-center gap-2 border border-border px-2.5 py-2 text-sm text-foreground">
-                      <input
-                        type="checkbox"
-                        checked={Boolean(value)}
+                      <Checkbox
+                        isChecked={Boolean(value)}
                         onChange={(event) =>
                           handleChange(key, event.target.checked)
                         }

@@ -225,8 +225,8 @@ const LIBRARY_SNAPSHOT_LINKS = [
 ];
 
 const WORKSPACE_CARD_GRID_GAP_CLASS =
-  'grid gap-4 md:grid-cols-2 xl:grid-cols-4';
-const WORKSPACE_SECTION_STACK_CLASS = 'space-y-6';
+  'grid gap-3 md:grid-cols-2 xl:grid-cols-4';
+const WORKSPACE_SECTION_STACK_CLASS = 'space-y-4';
 
 function isTaskInInboxQueue(task: Task): boolean {
   return task.dismissedAt == null && task.reviewState !== 'dismissed';
@@ -1861,7 +1861,6 @@ export default function WorkspacePageContent({
       label={sectionCopy.title}
       description={sectionCopy.description}
       icon={HiOutlineSquares2X2}
-      className="py-8"
       promoteHeaderToTopbarOnScroll
       topbarRight={workspaceHeaderActions}
       {...(isInboxSection
@@ -1895,7 +1894,7 @@ export default function WorkspacePageContent({
       right={workspaceHeaderActions}
     >
       {workspaceActionError ? (
-        <p className="mb-8 rounded-2xl border border-rose-400/30 bg-rose-400/8 px-4 py-3 text-sm text-rose-200">
+        <p className="mb-4 rounded-md border border-rose-400/30 bg-rose-400/8 px-3 py-2 text-xs text-rose-200">
           {workspaceActionError}
         </p>
       ) : null}
@@ -1923,9 +1922,9 @@ export default function WorkspacePageContent({
       ) : null}
 
       {shouldShowSectionSnapshot ? (
-        <section data-testid="workspace-snapshot" className="space-y-4 mb-6">
-          <div className="space-y-1">
-            <h2 className="text-xl font-semibold tracking-[-0.02em] text-foreground">
+        <section data-testid="workspace-snapshot" className="space-y-3 mb-5">
+          <div>
+            <h2 className="text-sm font-semibold text-foreground">
               Workspace at a glance
             </h2>
           </div>
@@ -1934,12 +1933,12 @@ export default function WorkspacePageContent({
               <Card
                 key={item.label}
                 className="h-full"
-                bodyClassName="space-y-2 p-4"
+                bodyClassName="space-y-1 p-3"
               >
-                <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-foreground/35">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-foreground/55">
                   {item.label}
                 </p>
-                <div className="text-2xl font-semibold tracking-[-0.03em] text-foreground">
+                <div className="text-xl font-semibold tracking-[-0.02em] text-foreground">
                   {item.value}
                 </div>
               </Card>
@@ -1956,7 +1955,7 @@ export default function WorkspacePageContent({
                 <Card
                   label="Task queue"
                   description="Recent task requests across triage, active work, review, and completed output."
-                  bodyClassName="space-y-4 p-5 sm:p-6"
+                  bodyClassName="space-y-3 p-4"
                 >
                   {renderTaskStream(
                     activityItems,
@@ -2115,7 +2114,7 @@ export default function WorkspacePageContent({
                 <Card
                   label="In progress"
                   description="Active workspace tasks and live execution state."
-                  bodyClassName="space-y-4 p-5 sm:p-6"
+                  bodyClassName="space-y-3 p-4"
                 >
                   {renderTaskStream(
                     inProgressTasks,
@@ -2135,7 +2134,7 @@ export default function WorkspacePageContent({
                 <Card
                   label="Recent outputs"
                   description="Latest generated ingredients and posts."
-                  bodyClassName="p-5 sm:p-6"
+                  bodyClassName="p-4"
                 >
                   {initialReviewInbox.recentItems.length > 0 ? (
                     <div className="divide-y divide-white/[0.06]">
@@ -2188,7 +2187,7 @@ export default function WorkspacePageContent({
                       <Link href="/workspace/inbox/unread">Open Inbox</Link>
                     </Button>
                   }
-                  bodyClassName="p-5 sm:p-6"
+                  bodyClassName="p-4"
                 >
                   {renderTaskRows(
                     historyPreviewItems,
@@ -2201,7 +2200,7 @@ export default function WorkspacePageContent({
                 <Card
                   label="Library snapshot"
                   description="Keep the ingredient library one click away from the dashboard."
-                  bodyClassName="p-5 sm:p-6"
+                  bodyClassName="p-4"
                 >
                   <div className="divide-y divide-white/[0.06]">
                     {LIBRARY_SNAPSHOT_LINKS.map((item) => (
@@ -2226,7 +2225,7 @@ export default function WorkspacePageContent({
                 <Card
                   label="Operator tools"
                   description="Manual and expert surfaces stay available without owning the main navigation."
-                  bodyClassName="p-5 sm:p-6"
+                  bodyClassName="p-4"
                 >
                   <div className="divide-y divide-white/[0.06]">
                     {ADVANCED_TOOLS.map((tool) => (

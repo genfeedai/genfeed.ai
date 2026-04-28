@@ -14,8 +14,20 @@ let capturedFooterActions: SwitcherDropdownFooterAction[] = [];
 let capturedItems: SwitcherDropdownItem[] = [];
 
 vi.mock('next/navigation', () => ({
+  useParams: () => ({
+    orgSlug: 'acme-org',
+  }),
   useRouter: () => ({
     push: mockPush,
+  }),
+}));
+
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({
+    selectedBrand: {
+      organization: { slug: 'acme-org' },
+      slug: 'acme-brand',
+    },
   }),
 }));
 
@@ -88,7 +100,7 @@ describe('TopbarOrganizationSwitcher', () => {
 
     capturedFooterActions[0]?.onAction();
 
-    expect(mockPush).toHaveBeenCalledWith('/settings/organization');
+    expect(mockPush).toHaveBeenCalledWith('/acme-org/~/settings');
   });
 
   it('renders the compact organization trigger', async () => {

@@ -243,7 +243,7 @@ export default function ProvidersContent() {
 
     setPendingMode('byok');
     await persistAccessMode('byok');
-    router.push('/settings/organization/api-keys');
+    router.push('/settings/api-keys');
   };
 
   const handleCloudContinue = async () => {
@@ -394,7 +394,7 @@ export default function ProvidersContent() {
 
           <div className="flex w-full flex-col gap-3 md:w-auto md:flex-row">
             <Link
-              href="/settings/organization/api-keys"
+              href="/settings/api-keys"
               onClick={(event) => {
                 void handleByokClick(event);
               }}

@@ -486,7 +486,7 @@ describe('MenuShared', () => {
 
     const headerShell = screen.getByTestId('sidebar-header-shell');
 
-    expect(headerShell).toHaveClass('h-16', 'items-center', 'gap-2');
+    expect(headerShell).toHaveClass('h-12', 'items-center', 'gap-2');
     expect(headerShell).not.toHaveClass('border-b');
   });
 

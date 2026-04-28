@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/enums';
+import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { Button } from '@ui/primitives/button';
 import {
   DropdownMenu,
@@ -26,17 +27,6 @@ interface DropdownItem {
   icon: ComponentType<{ className?: string }>;
 }
 
-const DROPDOWN_ITEMS: DropdownItem[] = [
-  { href: '/settings/personal', icon: HiOutlineUser, label: 'Personal' },
-  {
-    href: '/settings/organization',
-    icon: HiOutlineBuildingOffice2,
-    label: 'Organization',
-  },
-  { href: '/settings/brands', icon: HiOutlineTag, label: 'Brands' },
-  { href: '/settings/help', icon: HiOutlineQuestionMarkCircle, label: 'Help' },
-];
-
 interface UserDropdownProps {
   userName: string;
   userEmail: string;
@@ -46,6 +36,22 @@ export default function UserDropdown({
   userName,
   userEmail,
 }: UserDropdownProps) {
+  const { orgHref } = useOrgUrl();
+  const dropdownItems: DropdownItem[] = [
+    { href: '/settings', icon: HiOutlineUser, label: 'Personal' },
+    {
+      href: orgHref('/settings'),
+      icon: HiOutlineBuildingOffice2,
+      label: 'Organization',
+    },
+    { href: orgHref('/settings/brands'), icon: HiOutlineTag, label: 'Brands' },
+    {
+      href: orgHref('/settings/help'),
+      icon: HiOutlineQuestionMarkCircle,
+      label: 'Help',
+    },
+  ];
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -68,7 +74,7 @@ export default function UserDropdown({
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {DROPDOWN_ITEMS.map((item) => (
+        {dropdownItems.map((item) => (
           <DropdownMenuItem key={item.href} asChild>
             <Link href={item.href} className="cursor-pointer">
               <item.icon className="w-4 h-4" />

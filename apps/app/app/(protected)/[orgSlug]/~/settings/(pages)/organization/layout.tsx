@@ -1,47 +1,43 @@
 'use client';
 
+import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import type { LayoutProps } from '@props/layout/layout.props';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import { isEEEnabled } from '@/lib/config/edition';
 
-const ORGANIZATION_SETTINGS_TABS = [
-  {
-    href: '/settings/organization',
-    id: 'general',
-    label: 'General',
-    matchMode: 'exact' as const,
-  },
-  {
-    href: '/settings/organization/members',
-    id: 'members',
-    label: 'Members',
-  },
-  {
-    href: '/settings/organization/billing',
-    id: 'billing',
-    label: 'Billing',
-  },
-  {
-    href: '/settings/organization/credentials',
-    id: 'credentials',
-    label: 'Credentials',
-  },
-  {
-    href: '/settings/organization/api-keys',
-    id: 'api-keys',
-    label: 'API Keys',
-  },
-  {
-    href: '/settings/organization/policy',
-    id: 'policy',
-    label: 'Policy',
-  },
-];
-
 export default function OrganizationSettingsLayout({ children }: LayoutProps) {
+  const { orgHref } = useOrgUrl();
+  const organizationSettingsTabs = [
+    {
+      href: orgHref('/settings'),
+      id: 'general',
+      label: 'General',
+      matchMode: 'exact' as const,
+    },
+    {
+      href: orgHref('/settings/members'),
+      id: 'members',
+      label: 'Members',
+    },
+    {
+      href: orgHref('/settings/billing'),
+      id: 'billing',
+      label: 'Billing',
+    },
+    {
+      href: orgHref('/settings/api-keys'),
+      id: 'api-keys',
+      label: 'API Keys',
+    },
+    {
+      href: orgHref('/settings/policy'),
+      id: 'policy',
+      label: 'Policy',
+    },
+  ];
   const tabs = isEEEnabled()
-    ? ORGANIZATION_SETTINGS_TABS
-    : ORGANIZATION_SETTINGS_TABS.filter((tab) => tab.id !== 'billing');
+    ? organizationSettingsTabs
+    : organizationSettingsTabs.filter((tab) => tab.id !== 'billing');
 
   return (
     <div className="space-y-6">

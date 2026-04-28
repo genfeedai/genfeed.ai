@@ -226,6 +226,60 @@ describe('proxy', () => {
     );
   });
 
+  it('keeps signed-in personal settings on the canonical personal route', async () => {
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      {
+        cookies: { get: vi.fn() },
+        nextUrl: { pathname: '/settings', search: '' },
+        url: 'http://localhost:3000/settings',
+      } as never,
+      {} as never,
+    );
+
+    expect(response.status).toBe(200);
+  });
+
+  it('redirects signed-in legacy org settings routes to the canonical org settings path', async () => {
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      {
+        cookies: { get: vi.fn() },
+        nextUrl: { pathname: '/settings/organization/members', search: '' },
+        url: 'http://localhost:3000/settings/organization/members',
+      } as never,
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/acme/~/settings/members',
+    );
+  });
+
+  it('redirects signed-in legacy brand settings routes to the canonical brand settings path', async () => {
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      {
+        cookies: { get: vi.fn() },
+        nextUrl: {
+          pathname: '/settings/brands/moonrise-studio/voice',
+          search: '',
+        },
+        url: 'http://localhost:3000/settings/brands/moonrise-studio/voice',
+      } as never,
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/acme/moonrise-studio/settings/voice',
+    );
+  });
+
   it('uses the bootstrap organization slug without fetching organizations', async () => {
     fetchMock.mockImplementation(async (input: string | URL) => {
       const url = String(input);

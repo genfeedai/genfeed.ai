@@ -122,9 +122,7 @@ describe('TopbarBrandSwitcher', () => {
     ]);
 
     capturedFooterActions[0]?.onAction();
-    expect(mockPush).toHaveBeenCalledWith(
-      '/acme-org/~/settings/brands/acme-brand',
-    );
+    expect(mockPush).toHaveBeenCalledWith('/acme-org/acme-brand/settings');
 
     capturedFooterActions[1]?.onAction();
     expect(openBrandOverlaySpy).toHaveBeenCalledWith(null);

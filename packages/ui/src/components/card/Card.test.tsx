@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 describe('Card', () => {
   it('renders compact surface styling by default', () => {
     const { container } = render(<Card label="Surface">Body</Card>);
-    expect(container.firstChild).toHaveClass('border-white/[0.08]');
+    expect(container.firstChild).toHaveClass('border-border');
     expect(container.firstChild).toHaveClass('bg-card');
   });
 

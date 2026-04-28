@@ -12,6 +12,7 @@ describe('operator-shell helpers', () => {
     expect(normalizeProtectedPathname('/acme/brand-x/studio/video')).toBe(
       '/studio/video',
     );
+    expect(normalizeProtectedPathname('/acme/~/settings')).toBe('/settings');
     expect(normalizeProtectedPathname('/acme/~/settings/organization')).toBe(
       '/settings/organization',
     );
