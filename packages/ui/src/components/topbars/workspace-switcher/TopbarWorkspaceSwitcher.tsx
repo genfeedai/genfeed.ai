@@ -291,13 +291,13 @@ export default function TopbarWorkspaceSwitcher() {
             withWrapper={false}
             ariaLabel="Open projects switcher"
             className={cn(
-              'gen-shell-control flex h-11 w-full items-center gap-2.5 rounded-2xl px-3.5 text-left',
+              'gen-shell-control flex h-11 w-full items-center gap-2.5 rounded-md px-3.5 text-left',
               isBusy && 'cursor-not-allowed opacity-60',
             )}
             data-active={isOpen ? 'true' : 'false'}
             isDisabled={isBusy}
           >
-            <div className="gen-shell-surface flex h-7 w-7 items-center justify-center overflow-hidden rounded-lg">
+            <div className="gen-shell-surface flex h-7 w-7 items-center justify-center overflow-hidden rounded-md">
               {logoUrl ? (
                 <Image
                   src={logoUrl}
@@ -327,7 +327,7 @@ export default function TopbarWorkspaceSwitcher() {
 
         <PopoverPanelContent
           align="start"
-          className="w-[420px] rounded-[1.5rem] p-0"
+          className="w-[420px] rounded-md p-0"
           sideOffset={10}
         >
           <div className="border-b border-white/[0.06] p-3">
@@ -338,7 +338,7 @@ export default function TopbarWorkspaceSwitcher() {
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
                 placeholder="Find Project..."
-                className="gen-shell-control h-11 rounded-2xl border-white/[0.06] bg-background/44 pr-14 text-sm placeholder:text-foreground/28"
+                className="gen-shell-control h-11 rounded-md border-white/[0.06] bg-background/44 pr-14 text-sm placeholder:text-foreground/28"
                 onKeyDown={(event) => {
                   if (event.key === 'Escape') {
                     event.preventDefault();
@@ -351,7 +351,7 @@ export default function TopbarWorkspaceSwitcher() {
                 variant={ButtonVariant.UNSTYLED}
                 withWrapper={false}
                 onClick={handleEscAction}
-                className="gen-shell-control absolute right-2 top-1/2 -translate-y-1/2 rounded-lg px-2.5 py-1 text-[11px] font-semibold tracking-[0.08em] text-foreground/52"
+                className="gen-shell-control absolute right-2 top-1/2 -translate-y-1/2 rounded px-2.5 py-1 text-[11px] font-semibold tracking-[0.08em] text-foreground/52"
               >
                 Esc
               </Button>
@@ -521,7 +521,7 @@ function WorkspaceSwitcherSection({
       </p>
 
       {items.length === 0 ? (
-        <div className="gen-shell-empty-state rounded-xl px-3 py-3 text-xs text-foreground/42">
+        <div className="gen-shell-empty-state rounded-md px-3 py-3 text-xs text-foreground/42">
           {emptyMessage}
         </div>
       ) : (
@@ -539,7 +539,7 @@ function WorkspaceSwitcherSection({
               }}
               isDisabled={item.isActive}
               className={cn(
-                'flex w-full items-center gap-3 rounded-xl px-2.5 py-2.5 text-left transition-all duration-200',
+                'flex w-full items-center gap-3 rounded-md px-2.5 py-2.5 text-left transition-all duration-200',
                 item.isActive
                   ? 'gen-shell-surface text-foreground shadow-[0_18px_40px_-32px_rgba(0,0,0,0.88)]'
                   : 'text-foreground/68 hover:bg-white/[0.035] hover:text-foreground',
@@ -609,7 +609,7 @@ function WorkspaceActionButton({
       variant={ButtonVariant.UNSTYLED}
       withWrapper={false}
       onClick={onClick}
-      className="gen-shell-control flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2.5 text-left text-sm font-medium text-foreground/72"
+      className="gen-shell-control flex w-full items-center gap-2.5 rounded-md px-2.5 py-2.5 text-left text-sm font-medium text-foreground/72"
     >
       <HiPlus className="h-4 w-4 flex-shrink-0" />
       <span>{label}</span>

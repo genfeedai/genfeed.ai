@@ -1,7 +1,10 @@
-/* App shell - base theme colors for body element */
+/* App shell - base theme colors for body element. 13px root matches shipcode density. */
 .gf-app {
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
   transition: color 0.3s, background-color 0.3s;
 }
 

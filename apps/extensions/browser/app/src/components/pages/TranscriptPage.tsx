@@ -1,5 +1,6 @@
 import { ButtonVariant, TranscriptStatus } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
+import { Input } from '@ui/primitives/input';
 import { useState } from 'react';
 import { ButtonSpinner } from '~components/ui';
 
@@ -85,7 +86,7 @@ export function TranscriptPage() {
         Convert any YouTube video into a blog article
       </p>
 
-      <input
+      <Input
         type="url"
         value={youtubeUrl}
         onChange={(e) => setYoutubeUrl(e.target.value)}

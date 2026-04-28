@@ -25,6 +25,8 @@
       "@genfeedai/interfaces/*": ["../../packages/interfaces/src/*"],
       "@genfeedai/serializers": ["../../packages/serializers/src"],
       "@genfeedai/serializers/*": ["../../packages/serializers/src/*"],
+      "@genfeedai/storage": ["../../packages/storage/src"],
+      "@genfeedai/storage/*": ["../../packages/storage/src/*"],
       "@genfeedai/workflow-engine": ["../../packages/workflow-engine/src"],
       "@genfeedai/workflow-engine/*": ["../../packages/workflow-engine/src/*"],
       "@genfeedai/workflow-saas": ["../../packages/workflow-saas/src"],

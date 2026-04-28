@@ -1866,8 +1866,8 @@ export class AgentToolExecutorService {
    */
   private presentPaymentOptions(_ctx: ToolExecutionContext): AgentToolResult {
     const billingHref = isEEEnabled()
-      ? '/settings/organization/billing'
-      : '/settings/organization/api-keys';
+      ? '/settings/billing'
+      : '/settings/api-keys';
     const billingLabel = isEEEnabled()
       ? 'View all plans'
       : 'Configure providers';
@@ -3356,7 +3356,7 @@ export class AgentToolExecutorService {
       return {
         ctas: [
           {
-            href: `/settings/organization/credentials?returnTo=${encodeURIComponent(returnTo)}`,
+            href: `/settings/api-keys?returnTo=${encodeURIComponent(returnTo)}`,
             label: 'Open integrations',
           },
         ],
@@ -3367,7 +3367,7 @@ export class AgentToolExecutorService {
       };
     }
 
-    const connectHref = `/settings/organization/credentials?connect=${normalizedPlatform}&returnTo=${encodeURIComponent(returnTo)}`;
+    const connectHref = `/settings/api-keys?connect=${normalizedPlatform}&returnTo=${encodeURIComponent(returnTo)}`;
     const label = normalizedPlatform;
 
     return {

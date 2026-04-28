@@ -63,9 +63,9 @@ export const APP_SECONDARY_MENU_ITEMS: MenuItemConfig[] = [
 ];
 
 export function getAppSecondaryMenuItems(
-  brandId?: string | null,
+  brandSlug?: string | null,
 ): MenuItemConfig[] {
-  if (!brandId) {
+  if (!brandSlug) {
     return APP_SECONDARY_MENU_ITEMS;
   }
 
@@ -73,9 +73,10 @@ export function getAppSecondaryMenuItems(
     ...APP_SECONDARY_MENU_ITEMS,
     {
       group: AppMenuGroup.Root,
-      href: `/settings/brands/${brandId}`,
+      href: '/settings',
+      hrefScope: 'brand',
       label: 'Settings',
-      matchPaths: [`/settings/brands/${brandId}`],
+      matchPaths: ['/settings'],
       outline: HiOutlineCog6Tooth,
       solid: HiCog6Tooth,
     },

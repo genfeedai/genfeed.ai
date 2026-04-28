@@ -5,6 +5,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@ui/primitives/collapsible';
+import { Input } from '@ui/primitives/input';
 import type { ReactElement } from 'react';
 import { useState } from 'react';
 import { LoadingSpinner } from '~components/ui';
@@ -105,7 +106,7 @@ export function ManualUrlInput(): ReactElement {
       </CollapsibleTrigger>
       <CollapsibleContent>
         <div className="px-4 pb-4">
-          <input
+          <Input
             type="url"
             value={url}
             onChange={(e) => setUrl(e.target.value)}

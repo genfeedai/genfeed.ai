@@ -44,6 +44,7 @@ import type {
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { Button, buttonVariants } from '@ui/primitives/button';
 import { SCROLL_FOCUS_SURFACE_CLASS } from '@ui/styles/scroll-focus';
 import { type ReactElement, useCallback, useMemo, useState } from 'react';
@@ -132,12 +133,24 @@ function GenericOAuthConnectCard({
 }: {
   action: AgentUiAction;
 }): ReactElement {
+  const { orgHref } = useOrgUrl();
   const description =
     action.description ??
     'Connect Instagram, X, LinkedIn, TikTok, YouTube, or another supported platform to continue.';
-  const integrationHref =
-    action.ctas?.find((cta) => cta.href)?.href ??
-    '/settings/organization/credentials';
+  const rawIntegrationHref =
+    action.ctas?.find((cta) => cta.href)?.href ?? '/settings/api-keys';
+  const integrationHref = rawIntegrationHref.startsWith(
+    '/settings/organization/credentials',
+  )
+    ? orgHref(
+        rawIntegrationHref.replace(
+          '/settings/organization/credentials',
+          '/settings/api-keys',
+        ),
+      )
+    : rawIntegrationHref.startsWith('/settings/api-keys')
+      ? orgHref(rawIntegrationHref)
+      : rawIntegrationHref;
 
   return (
     <div className="mt-2 rounded-lg border border-border bg-background p-3">
@@ -607,8 +620,8 @@ export function AgentChatMessage({
           'group relative overflow-hidden border text-sm transition-[border-color,background-color,box-shadow] duration-300',
           isHighlighted && SCROLL_FOCUS_SURFACE_CLASS,
           isUser
-            ? 'max-w-[82%] rounded-2xl border-border/70 bg-background/78 px-4 py-3 text-foreground shadow-[0_1px_0_rgba(0,0,0,0.18)]'
-            : 'w-full max-w-none rounded-2xl border-border/65 bg-background-secondary/72 px-4 py-3 text-foreground shadow-[0_1px_0_rgba(0,0,0,0.18)]',
+            ? 'max-w-[82%] rounded-md border-border/70 bg-background/78 px-4 py-3 text-foreground shadow-[0_1px_0_rgba(0,0,0,0.18)]'
+            : 'w-full max-w-none rounded-md border-border/65 bg-background-secondary/72 px-4 py-3 text-foreground shadow-[0_1px_0_rgba(0,0,0,0.18)]',
         )}
       >
         <div
@@ -656,7 +669,7 @@ export function AgentChatMessage({
           </div>
         )}
         {shouldSuppressFallbackMessage && !completionSummaryAction ? (
-          <div className="rounded-xl border border-border/65 bg-background/70 px-3 py-2 text-xs text-muted-foreground">
+          <div className="rounded-md border border-border/65 bg-background/70 px-3 py-2 text-xs text-muted-foreground">
             Results are ready below.
           </div>
         ) : null}

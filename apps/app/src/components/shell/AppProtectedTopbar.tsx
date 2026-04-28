@@ -45,7 +45,7 @@ export default function AppProtectedTopbar({
             <Button
               type="button"
               variant={ButtonVariant.UNSTYLED}
-              className="gen-shell-control inline-flex h-10 w-10 items-center justify-center rounded-xl md:hidden"
+              className="inline-flex h-7 w-7 items-center justify-center rounded border border-border bg-background-secondary transition-colors hover:border-border-strong hover:bg-background-tertiary md:hidden"
               data-active={isMenuOpen ? 'true' : 'false'}
               ariaLabel={
                 isMenuOpen ? 'Close navigation menu' : 'Open navigation menu'
@@ -68,7 +68,7 @@ export default function AppProtectedTopbar({
           ) : null}
 
           <div className="hidden min-w-0 md:flex">
-            <div className="gen-shell-surface flex h-10 min-w-0 items-center rounded-xl px-3">
+            <div className="flex h-7 min-w-0 items-center rounded px-2">
               <TopbarBreadcrumbs />
             </div>
           </div>
@@ -76,7 +76,7 @@ export default function AppProtectedTopbar({
 
         <div className="flex min-w-0 items-center gap-2.5">
           {taskId ? (
-            <div className="gen-shell-surface hidden items-center gap-2 rounded-xl px-3 py-2 text-xs lg:flex">
+            <div className="hidden items-center gap-2 rounded border border-border bg-background-secondary px-2 py-1 text-[11px] lg:flex">
               <span className="font-semibold uppercase tracking-[0.14em] text-emerald-200/80">
                 Task context
               </span>
@@ -100,7 +100,7 @@ export default function AppProtectedTopbar({
             <Button
               type="button"
               variant={ButtonVariant.UNSTYLED}
-              className="gen-shell-control inline-flex h-10 w-10 items-center justify-center rounded-xl"
+              className="inline-flex h-7 w-7 items-center justify-center rounded border border-border bg-background-secondary transition-colors hover:border-border-strong hover:bg-background-tertiary"
               data-active={isAgentCollapsed ? 'false' : 'true'}
               ariaLabel={
                 isAgentCollapsed ? 'Open terminal dock' : 'Close terminal dock'

@@ -16,6 +16,7 @@ type VerifyStatus = 'loading' | 'success' | 'error';
 const OAUTH1_PLATFORMS: string[] = [];
 
 const REDIRECT_DELAY_MS = 3000;
+const DEFAULT_RETURN_PATH = '/settings/api-keys';
 
 export default function OAuthPlatformForm({
   platform,
@@ -60,7 +61,7 @@ export default function OAuthPlatformForm({
 
       const returnTo = searchParams.get('return_to');
       setTimeout(() => {
-        router.push(returnTo || '/settings/brands');
+        router.push(returnTo || DEFAULT_RETURN_PATH);
       }, REDIRECT_DELAY_MS);
     } catch (error) {
       logger.error(`${url} failed`, error);
@@ -105,7 +106,7 @@ export default function OAuthPlatformForm({
             <h2 className="text-lg font-semibold">Connection Failed</h2>
             <p className="text-sm text-muted-foreground">{errorMessage}</p>
             <a
-              href={searchParams.get('return_to') || '/settings/brands'}
+              href={searchParams.get('return_to') || DEFAULT_RETURN_PATH}
               className="inline-block text-sm text-primary underline"
             >
               Go back

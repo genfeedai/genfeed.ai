@@ -194,7 +194,15 @@ export function TimeSeriesChart({
           <Tooltip
             content={
               <ChartTooltipContent
-                labelFormatter={(label) => `Date: ${formatChartDate(label)}`}
+                labelFormatter={(label) =>
+                  `Date: ${formatChartDate(
+                    typeof label === 'string' ||
+                      typeof label === 'number' ||
+                      label instanceof Date
+                      ? label
+                      : null,
+                  )}`
+                }
                 valueFormatter={(value, item) =>
                   formatValue(
                     typeof value === 'number'

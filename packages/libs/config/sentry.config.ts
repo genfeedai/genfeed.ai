@@ -11,6 +11,15 @@ export function getSentryConfig(
     return null;
   }
 
+  // Skip Sentry + OTEL instrumentation in dev unless explicitly opted in.
+  // 36 OTEL packages would otherwise load on every rebuild.
+  if (
+    process.env.NODE_ENV === 'development' &&
+    process.env.SENTRY_DEV !== 'true'
+  ) {
+    return null;
+  }
+
   const dsn =
     process.env[
       `SENTRY_DSN_${options.serviceName.toUpperCase().replace(/-/g, '_')}`

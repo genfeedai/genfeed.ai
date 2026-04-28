@@ -55,7 +55,7 @@ vi.mock('@genfeedai/hooks/utils/use-setup-card/use-setup-card', () => ({
       },
       {
         description: 'Connect Instagram, TikTok, etc.',
-        href: '/settings/organization/credentials',
+        href: '/settings/api-keys',
         isCompleted: true,
         key: 'platforms',
         label: 'Social accounts',
@@ -212,7 +212,7 @@ describe('ProgressSidebarCard', () => {
     expect(toggleButton).toHaveAttribute('aria-expanded', 'false');
     expect(screen.getByRole('link', { name: /view all/i })).toHaveAttribute(
       'href',
-      '/acme/~/settings/personal',
+      '/settings',
     );
     expect(mockMutateUser).toHaveBeenCalled();
   });

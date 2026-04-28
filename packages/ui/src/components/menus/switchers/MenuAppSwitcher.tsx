@@ -56,65 +56,68 @@ export default function MenuAppSwitcher() {
     return publicData.isSuperAdmin === true;
   }, [user]);
 
-  const allApps: AppLink[] = [
-    // Main Apps (consolidated)
-    {
-      category: 'main',
-      description: 'Content overview & dashboard',
-      href: `${EnvironmentService.apps.app}/overview`,
-      icon: <HiOutlineSquares2X2 className="w-4 h-4" />,
-      label: 'Overview',
-      shortcut: ['⌘', '1'],
-    },
-    {
-      category: 'main',
-      description: 'Create AI content',
-      href: EnvironmentService.apps.app,
-      icon: <HiOutlinePaintBrush className="w-4 h-4" />,
-      label: 'Studio',
-      shortcut: ['⌘', '2'],
-    },
-    {
-      category: 'main',
-      description: 'Manage your content library',
-      href: `${EnvironmentService.apps.app}/library/ingredients`,
-      icon: <HiOutlineFolderOpen className="w-4 h-4" />,
-      label: 'Library',
-      shortcut: ['⌘', '3'],
-    },
-    {
-      category: 'main',
-      description: 'Publish content to social platforms',
-      href: `${EnvironmentService.apps.app}${getPublisherPostsHref()}`,
-      icon: <HiOutlinePaperAirplane className="w-4 h-4" />,
-      label: 'Posts',
-      shortcut: ['⌘', '4'],
-    },
-    {
-      category: 'main',
-      description: 'View performance metrics',
-      href: `${EnvironmentService.apps.app}/analytics/overview`,
-      icon: <HiOutlineChartBar className="w-4 h-4" />,
-      label: 'Analytics',
-      shortcut: ['⌘', '5'],
-    },
-    {
-      category: 'main',
-      description: 'Manage preferences & integrations',
-      href: `${EnvironmentService.apps.app}/settings/personal`,
-      icon: <HiOutlineCog6Tooth className="w-4 h-4" />,
-      label: 'Settings',
-      shortcut: ['⌘', 'S'],
-    },
-    // Admin Apps
-    {
-      category: 'admin',
-      description: 'Govern accounts',
-      href: EnvironmentService.apps.admin,
-      icon: <HiOutlineCog6Tooth className="w-4 h-4" />,
-      label: 'Admin',
-    },
-  ];
+  const allApps = useMemo<AppLink[]>(
+    () => [
+      // Main Apps (consolidated)
+      {
+        category: 'main',
+        description: 'Content overview & dashboard',
+        href: `${EnvironmentService.apps.app}/overview`,
+        icon: <HiOutlineSquares2X2 className="w-4 h-4" />,
+        label: 'Overview',
+        shortcut: ['⌘', '1'],
+      },
+      {
+        category: 'main',
+        description: 'Create AI content',
+        href: EnvironmentService.apps.app,
+        icon: <HiOutlinePaintBrush className="w-4 h-4" />,
+        label: 'Studio',
+        shortcut: ['⌘', '2'],
+      },
+      {
+        category: 'main',
+        description: 'Manage your content library',
+        href: `${EnvironmentService.apps.app}/library/ingredients`,
+        icon: <HiOutlineFolderOpen className="w-4 h-4" />,
+        label: 'Library',
+        shortcut: ['⌘', '3'],
+      },
+      {
+        category: 'main',
+        description: 'Publish content to social platforms',
+        href: `${EnvironmentService.apps.app}${getPublisherPostsHref()}`,
+        icon: <HiOutlinePaperAirplane className="w-4 h-4" />,
+        label: 'Posts',
+        shortcut: ['⌘', '4'],
+      },
+      {
+        category: 'main',
+        description: 'View performance metrics',
+        href: `${EnvironmentService.apps.app}/analytics/overview`,
+        icon: <HiOutlineChartBar className="w-4 h-4" />,
+        label: 'Analytics',
+        shortcut: ['⌘', '5'],
+      },
+      {
+        category: 'main',
+        description: 'Manage preferences & integrations',
+        href: `${EnvironmentService.apps.app}/settings`,
+        icon: <HiOutlineCog6Tooth className="w-4 h-4" />,
+        label: 'Settings',
+        shortcut: ['⌘', 'S'],
+      },
+      // Admin Apps
+      {
+        category: 'admin',
+        description: 'Govern accounts',
+        href: EnvironmentService.apps.admin,
+        icon: <HiOutlineCog6Tooth className="w-4 h-4" />,
+        label: 'Admin',
+      },
+    ],
+    [],
+  );
 
   // Filter apps based on user permissions
   const apps = useMemo(() => {

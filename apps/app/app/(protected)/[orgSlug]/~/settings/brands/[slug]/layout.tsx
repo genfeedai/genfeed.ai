@@ -5,32 +5,42 @@ import Tabs from '@ui/navigation/tabs/Tabs';
 import { useParams } from 'next/navigation';
 
 export default function BrandSettingsLayout({ children }: LayoutProps) {
-  const params = useParams();
-  const brandId = Array.isArray(params?.slug) ? params.slug[0] : params?.slug;
+  const params = useParams<{
+    brandSlug?: string;
+    orgSlug?: string;
+    slug?: string | string[];
+  }>();
+  const routeBrandSlug =
+    params?.brandSlug ??
+    (Array.isArray(params?.slug) ? params.slug[0] : params?.slug);
+  const orgSlug = params?.orgSlug;
 
-  if (!brandId) {
+  if (!orgSlug || !routeBrandSlug) {
     return children;
   }
 
+  const settingsHref = (path = '') =>
+    `/${orgSlug}/${routeBrandSlug}/settings${path}`;
+
   const items = [
     {
-      href: `/settings/brands/${brandId}`,
+      href: settingsHref(),
       id: 'overview',
       label: 'Overview',
       matchMode: 'exact' as const,
     },
     {
-      href: `/settings/brands/${brandId}/voice`,
+      href: settingsHref('/voice'),
       id: 'voice',
       label: 'Voice',
     },
     {
-      href: `/settings/brands/${brandId}/publishing`,
+      href: settingsHref('/publishing'),
       id: 'publishing',
       label: 'Publishing',
     },
     {
-      href: `/settings/brands/${brandId}/agent-defaults`,
+      href: settingsHref('/agent-defaults'),
       id: 'agent-defaults',
       label: 'Agent Defaults',
     },

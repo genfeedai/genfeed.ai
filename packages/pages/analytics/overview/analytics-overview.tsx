@@ -27,6 +27,7 @@ import {
   type TopPostData,
   useTopPosts,
 } from '@hooks/data/analytics/use-top-posts/use-top-posts';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { User } from '@models/auth/user.model';
 import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';
 import type { TableColumn } from '@props/ui/display/table.props';
@@ -198,6 +199,7 @@ export default function AnalyticsOverview({
   const getUsersService = useAuthedService((token: string) =>
     UsersService.getInstance(token),
   );
+  const { orgHref } = useOrgUrl();
   const { dateRange, refreshTrigger } = useAnalyticsContext();
   const { startDate, endDate } = getDateRangeWithDefaults(
     dateRange.startDate ?? undefined,
@@ -499,7 +501,7 @@ export default function AnalyticsOverview({
         description:
           'This view will start surfacing winners, trends, and rankings once at least one social account is connected and content is published into the selected date range.',
         primaryAction: {
-          href: '/settings/organization/credentials',
+          href: orgHref('/settings/api-keys'),
           label: 'Connect accounts',
           variant: ButtonVariant.DEFAULT,
         },
@@ -584,7 +586,7 @@ export default function AnalyticsOverview({
       ],
       title: 'Performance snapshot',
     };
-  }, [analytics, basePath, dashboardState, scope]);
+  }, [analytics, basePath, dashboardState, orgHref, scope]);
 
   const primaryKpiItems = useMemo(() => {
     if (scope === PageScope.SUPERADMIN) {
@@ -819,7 +821,7 @@ export default function AnalyticsOverview({
                   {heroContent.primaryAction.label}
                 </Link>
                 <Link
-                  href="/settings/organization/credentials"
+                  href={orgHref('/settings/api-keys')}
                   className={buttonVariants({
                     size: ButtonSize.SM,
                     variant: ButtonVariant.SECONDARY,
@@ -975,7 +977,7 @@ export default function AnalyticsOverview({
               variant: ButtonVariant.DEFAULT,
             }}
             secondaryAction={{
-              href: '/settings/organization/credentials',
+              href: orgHref('/settings/api-keys'),
               label: 'Check connections',
               variant: ButtonVariant.SECONDARY,
             }}

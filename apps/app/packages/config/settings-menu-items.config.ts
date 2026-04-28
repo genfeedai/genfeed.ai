@@ -13,23 +13,26 @@ import {
 export const SETTINGS_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: '',
-    href: '/settings/personal',
+    href: '/settings',
+    hrefScope: 'personal',
     label: 'Personal',
-    matchPaths: ['/settings', '/settings/personal'],
+    matchPaths: ['/settings'],
     outline: HiOutlineUser,
     solid: HiUser,
   },
   {
     group: '',
-    href: '/settings/organization',
+    href: '/settings',
+    hrefScope: 'organization',
     label: 'Organization',
-    matchPaths: ['/settings/organization'],
+    matchPaths: ['/settings'],
     outline: HiOutlineBuildingOffice2,
     solid: HiBuildingOffice2,
   },
   {
     group: '',
     href: '/settings/brands',
+    hrefScope: 'organization',
     label: 'Brands',
     matchPaths: ['/settings/brands'],
     outline: HiOutlineTag,
@@ -38,6 +41,7 @@ export const SETTINGS_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: '',
     href: '/settings/help',
+    hrefScope: 'organization',
     label: 'Help',
     matchPaths: ['/settings/help'],
     outline: HiOutlineQuestionMarkCircle,

@@ -6,11 +6,11 @@ type WorkspaceSurfaceTone = 'default' | 'muted' | 'elevated';
 
 const FRAME_TONE_CLASSES: Record<WorkspaceSurfaceTone, string> = {
   default:
-    'ship-ui gen-shell-panel rounded-[1.25rem] border-white/[0.06] bg-background/88 shadow-[0_28px_72px_-48px_rgba(0,0,0,0.92)]',
+    'ship-ui gen-shell-panel rounded-md border-white/[0.06] bg-background/88 shadow-[0_28px_72px_-48px_rgba(0,0,0,0.92)]',
   elevated:
-    'ship-ui gen-shell-panel rounded-[1.35rem] border-white/[0.08] bg-background/92 shadow-[0_34px_84px_-46px_rgba(0,0,0,0.96)]',
+    'ship-ui gen-shell-panel rounded-md border-white/[0.08] bg-background/92 shadow-[0_34px_84px_-46px_rgba(0,0,0,0.96)]',
   muted:
-    'ship-ui gen-shell-panel rounded-[1.25rem] border-white/[0.05] bg-background-secondary/84 shadow-[0_24px_64px_-44px_rgba(0,0,0,0.88)]',
+    'ship-ui gen-shell-panel rounded-md border-white/[0.05] bg-background-secondary/84 shadow-[0_24px_64px_-44px_rgba(0,0,0,0.88)]',
 };
 
 const HEADER_GAP_CLASSES: Record<WorkspaceSurfaceDensity, string> = {

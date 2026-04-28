@@ -525,7 +525,7 @@ export default function BrandOverlay({
 }: BrandOverlayProps) {
   const { organizationId } = useBrand();
   const router = useRouter();
-  const { orgHref } = useOrgUrl();
+  const { orgSlug } = useOrgUrl();
   const { settings } = useOrganization();
   const clipboardService = ClipboardService.getInstance();
   const shouldAutoOpen = isOpen ?? Boolean(brand);
@@ -1097,7 +1097,7 @@ export default function BrandOverlay({
         onClose={handleClose}
         onOpenDetail={
           activeBrand?.slug
-            ? () => router.push(orgHref(`/settings/brands/${activeBrand.slug}`))
+            ? () => router.push(`/${orgSlug}/${activeBrand.slug}/settings`)
             : undefined
         }
         badges={

@@ -103,12 +103,25 @@ export default function MenuShared({
   const logoUrl = useThemeLogo();
   const rawPathname = usePathname();
   const router = useRouter();
-  const { href, orgHref } = useOrgUrl();
+  const { href, orgHref, orgSlug, brandSlug } = useOrgUrl();
   const [isConversationsCollapsed, setIsConversationsCollapsed] =
     useState(false);
   const { nestedGroupId, enterNestedGroup, exitNestedGroup } =
     useSidebarNavigation();
   const isWorkspaceShell = config.brandRailMode === 'workspace';
+  const routeScope = useMemo(() => {
+    const parts = rawPathname.split('/').filter(Boolean);
+
+    if (parts[0] === 'settings') {
+      return 'personal' as const;
+    }
+
+    if (parts[1] === '~') {
+      return 'organization' as const;
+    }
+
+    return 'brand' as const;
+  }, [rawPathname]);
 
   /** Strip org/brand prefix so we can compare against config-level paths. */
   const pathname = useMemo(() => {
@@ -122,11 +135,82 @@ export default function MenuShared({
     return rawPathname;
   }, [rawPathname]);
 
-  /** Prefix a config-level path with the correct org scope. */
+  const isAlreadyScopedHref = useCallback(
+    (path: string) => {
+      const parts = path.split('/').filter(Boolean);
+
+      return (
+        parts[0] === orgSlug &&
+        (parts[1] === '~' || (brandSlug && parts[1] === brandSlug))
+      );
+    },
+    [brandSlug, orgSlug],
+  );
+
+  const resolveLegacySettingsHref = useCallback(
+    (path: string) => {
+      if (path === '/settings/personal') {
+        return '/settings';
+      }
+
+      if (path === '/settings/organization') {
+        return orgHref('/settings');
+      }
+
+      if (path.startsWith('/settings/organization/')) {
+        return orgHref(path.replace('/settings/organization', '/settings'));
+      }
+
+      if (path.startsWith('/settings/brands/')) {
+        const [, , , routeBrandSlug, ...rest] = path.split('/');
+
+        if (routeBrandSlug) {
+          const suffix = rest.length > 0 ? `/${rest.join('/')}` : '';
+          return `/${orgSlug}/${routeBrandSlug}/settings${suffix}`;
+        }
+      }
+
+      return orgHref(path);
+    },
+    [orgHref, orgSlug],
+  );
+
+  /** Prefix a config-level path with the configured route scope. */
   const prefixHref = useCallback(
-    (path: string) =>
-      path.startsWith('/settings') ? orgHref(path) : href(path),
-    [href, orgHref],
+    (
+      item:
+        | MenuItemConfig
+        | { href: string; hrefScope?: MenuItemConfig['hrefScope'] },
+    ) => {
+      const path = item.href;
+
+      if (!path) {
+        return undefined;
+      }
+
+      if (isAlreadyScopedHref(path)) {
+        return path;
+      }
+
+      if (item.hrefScope === 'personal') {
+        return path;
+      }
+
+      if (item.hrefScope === 'organization') {
+        return resolveLegacySettingsHref(path);
+      }
+
+      if (item.hrefScope === 'brand') {
+        return href(path);
+      }
+
+      if (path.startsWith('/settings')) {
+        return resolveLegacySettingsHref(path);
+      }
+
+      return href(path);
+    },
+    [href, isAlreadyScopedHref, resolveLegacySettingsHref],
   );
 
   const primaryItems = useMemo(
@@ -150,15 +234,12 @@ export default function MenuShared({
         return false;
       }
 
-      if (
-        href.startsWith('/elements/') &&
-        Boolean(pathname?.startsWith('/elements/'))
-      ) {
+      if (href.startsWith('/elements/') && pathname?.startsWith('/elements/')) {
         return true;
       }
       if (
         href.startsWith('/ingredients/') &&
-        Boolean(pathname?.startsWith('/ingredients/'))
+        pathname?.startsWith('/ingredients/')
       ) {
         return true;
       }
@@ -166,6 +247,21 @@ export default function MenuShared({
       return pathname === href || pathname?.startsWith(href);
     },
     [pathname],
+  );
+
+  const isActiveItem = useCallback(
+    (item: MenuItemConfig) => {
+      if (!item.href) {
+        return false;
+      }
+
+      if (item.hrefScope && item.hrefScope !== routeScope) {
+        return false;
+      }
+
+      return isActive(item.href);
+    },
+    [isActive, routeScope],
   );
 
   // Group items by their group field, preserving order
@@ -217,14 +313,8 @@ export default function MenuShared({
               {group.items[0]?.drillDown ? (
                 <DrillDownGroupRow
                   group={group}
-                  isActive={group.items.some(
-                    (item) => item.href && isActive(item.href),
-                  )}
-                  defaultHref={
-                    group.items[0]?.href
-                      ? prefixHref(group.items[0].href)
-                      : undefined
-                  }
+                  isActive={group.items.some((item) => isActiveItem(item))}
+                  defaultHref={prefixHref(group.items[0])}
                   onEnter={() => enterNestedGroup(group.group)}
                 />
               ) : (
@@ -234,8 +324,8 @@ export default function MenuShared({
                     item.href?.startsWith('/workspace/inbox') ? (
                       <WorkspaceInboxMenuItem
                         key={item.href || `item-${index}`}
-                        href={item.href ? prefixHref(item.href) : undefined}
-                        isActive={isActive(item.href ?? '')}
+                        href={prefixHref(item)}
+                        isActive={isActiveItem(item)}
                         isComingSoon={item.isComingSoon}
                         label={item.label}
                         onClick={handleLinkClick}
@@ -245,12 +335,12 @@ export default function MenuShared({
                     ) : (
                       <MenuItem
                         key={item.href || `item-${index}`}
-                        href={item.href ? prefixHref(item.href) : undefined}
+                        href={prefixHref(item)}
                         label={item.label}
                         icon={item.icon}
                         outline={item.outline}
                         solid={item.solid}
-                        isActive={isActive(item.href ?? '')}
+                        isActive={isActiveItem(item)}
                         isComingSoon={item.isComingSoon}
                         onClick={handleLinkClick}
                         variant="icon"
@@ -265,7 +355,13 @@ export default function MenuShared({
         ))}
       </>
     ),
-    [enterNestedGroup, handleLinkClick, isActive, prefixHref, isWorkspaceShell],
+    [
+      enterNestedGroup,
+      handleLinkClick,
+      isActiveItem,
+      prefixHref,
+      isWorkspaceShell,
+    ],
   );
 
   // Get the nested group (for SidebarNested)
@@ -302,12 +398,12 @@ export default function MenuShared({
           {secondaryItems.map((item, index) => (
             <MenuItem
               key={item.href || `secondary-${index}`}
-              href={item.href ? prefixHref(item.href) : undefined}
+              href={prefixHref(item)}
               label={item.label}
               icon={item.icon}
               outline={item.outline}
               solid={item.solid}
-              isActive={isActive(item.href ?? '')}
+              isActive={isActiveItem(item)}
               isComingSoon={item.isComingSoon}
               onClick={handleLinkClick}
               variant="icon"
@@ -323,9 +419,9 @@ export default function MenuShared({
       {backHref && (
         <div className="pb-1">
           <Link
-            href={prefixHref(backHref)}
+            href={prefixHref({ href: backHref }) ?? backHref}
             className={cn(
-              'group flex h-10 w-full items-center gap-3 rounded-xl px-3.5 py-2 transition-colors duration-200',
+              'group flex h-8 w-full items-center gap-3 rounded px-3 py-1.5 transition-colors duration-150',
               'text-foreground/72 hover:bg-white/[0.035] hover:text-foreground',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
             )}
@@ -362,7 +458,7 @@ export default function MenuShared({
       variant={ButtonVariant.UNSTYLED}
       withWrapper={false}
       onClick={onToggleCollapse}
-      className="gen-shell-control group flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl text-foreground/56 cursor-pointer"
+      className="group flex h-7 w-7 flex-shrink-0 items-center justify-center rounded border border-border bg-background-secondary text-foreground/56 cursor-pointer transition-colors hover:border-border-strong hover:bg-background-tertiary"
       ariaLabel={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
     >
       <span className="relative flex h-4 w-4 items-center justify-center">
@@ -408,7 +504,7 @@ export default function MenuShared({
           data-testid="sidebar-brand-rail"
           className="flex h-full w-16 flex-col border-r border-white/[0.06] bg-transparent"
         >
-          <div className="gen-shell-toolbar flex h-16 items-center justify-center border-b border-white/[0.06]">
+          <div className="flex h-12 items-center justify-center border-b border-border">
             {sharedCollapseControl}
           </div>
           <SidebarBrandRail />
@@ -431,9 +527,8 @@ export default function MenuShared({
           <div
             data-testid="sidebar-header-shell"
             className={cn(
-              'gen-shell-toolbar flex h-16 flex-shrink-0 items-center gap-2 px-3',
-              shellChromeVariant === 'default' &&
-                'border-b border-white/[0.06]',
+              'flex h-12 flex-shrink-0 items-center gap-2 px-3',
+              shellChromeVariant === 'default' && 'border-b border-border',
             )}
           >
             {sharedCollapseControl}
@@ -462,9 +557,12 @@ export default function MenuShared({
               {config.primaryAction.href ? (
                 <Link
                   data-testid="sidebar-primary-action"
-                  href={prefixHref(config.primaryAction.href)}
+                  href={
+                    prefixHref(config.primaryAction) ??
+                    config.primaryAction.href
+                  }
                   onClick={handleLinkClick}
-                  className="gen-shell-control flex h-11 w-full items-center gap-3 rounded-xl px-3.5 py-2 text-left text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+                  className="flex h-9 w-full items-center gap-3 rounded-md border border-border bg-background-secondary px-3 py-1.5 text-left text-xs font-semibold transition-colors hover:border-border-strong hover:bg-background-tertiary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
                   data-tone="accent"
                 >
                   {config.primaryAction.icon ? (
@@ -494,7 +592,7 @@ export default function MenuShared({
                     handleLinkClick();
                     config.primaryAction?.onClick?.();
                   }}
-                  className="gen-shell-control flex h-11 w-full items-center gap-3 rounded-xl px-3.5 py-2 text-left text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+                  className="flex h-9 w-full items-center gap-3 rounded-md border border-border bg-background-secondary px-3 py-1.5 text-left text-xs font-semibold transition-colors hover:border-border-strong hover:bg-background-tertiary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
                   data-tone="accent"
                 >
                   {config.primaryAction.icon ? (
@@ -523,12 +621,12 @@ export default function MenuShared({
                 {primaryItems.map((item, index) => (
                   <MenuItem
                     key={item.href || `primary-${index}`}
-                    href={item.href ? prefixHref(item.href) : undefined}
+                    href={prefixHref(item)}
                     label={item.label}
                     icon={item.icon}
                     outline={item.outline}
                     solid={item.solid}
-                    isActive={isActive(item.href ?? '')}
+                    isActive={isActiveItem(item)}
                     isComingSoon={item.isComingSoon}
                     onClick={handleLinkClick}
                     variant="icon"
@@ -616,7 +714,7 @@ export default function MenuShared({
                       <div className="pb-1">
                         <Link
                           href={orgHref('/chat/new')}
-                          className="group flex h-10 w-full items-center gap-3 rounded-xl px-3.5 py-2 text-left text-foreground/72 transition-colors duration-200 cursor-pointer hover:bg-white/[0.035] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+                          className="group flex h-8 w-full items-center gap-3 rounded px-3 py-1.5 text-left text-foreground/72 transition-colors duration-150 cursor-pointer hover:bg-white/[0.035] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
                         >
                           <HiPlus className="h-4 w-4 text-foreground/42 group-hover:text-foreground/78" />
                           <span className="text-[13px] font-medium tracking-[-0.01em] text-foreground/88">
@@ -837,7 +935,7 @@ function DrillDownGroupRow({
   };
 
   const rowClasses = cn(
-    'flex w-full items-center gap-3 rounded-lg px-3 py-2 transition-colors duration-200 group',
+    'flex w-full items-center gap-3 rounded px-3 py-1.5 transition-colors duration-150 group',
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
     isActive
       ? 'bg-white/[0.08] text-white'
@@ -856,7 +954,7 @@ function DrillDownGroupRow({
       )}
       <span
         className={cn(
-          'text-sm font-medium flex-1 text-left',
+          'text-xs font-medium flex-1 text-left',
           isActive ? 'text-white font-semibold' : 'text-white/90',
         )}
       >

@@ -3,6 +3,7 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonVariant, CredentialPlatform } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { PostsService } from '@services/content/posts.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -31,6 +32,7 @@ function buildTwitterRemixTopic(params: {
 
 export default function TrendRemixPage() {
   const router = useRouter();
+  const { orgHref } = useOrgUrl();
   const searchParams = useSearchParams();
   const { credentials, isReady } = useBrand();
   const hasStartedRef = useRef(false);
@@ -174,7 +176,7 @@ export default function TrendRemixPage() {
           <Button
             label="Go to Credentials"
             variant={ButtonVariant.OUTLINE}
-            onClick={() => router.push('/settings/organization/credentials')}
+            onClick={() => router.push(orgHref('/settings/api-keys'))}
           />
         </div>
       </div>

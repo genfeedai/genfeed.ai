@@ -19,7 +19,7 @@ export default function TopbarBrandSwitcher() {
   const { user } = useUser();
   const { openBrandOverlay } = useBrandOverlay();
   const router = useRouter();
-  const { orgSlug, orgHref } = useOrgUrl();
+  const { href, orgSlug, orgHref } = useOrgUrl();
 
   const getUsersService = useAuthedService((token: string) =>
     UsersService.getInstance(token),
@@ -31,11 +31,9 @@ export default function TopbarBrandSwitcher() {
 
   const handleOpenBrandSettings = useCallback(() => {
     router.push(
-      selectedBrand
-        ? orgHref(`/settings/brands/${selectedBrand.slug}`)
-        : orgHref('/settings/brands'),
+      selectedBrand ? href('/settings') : orgHref('/settings/brands'),
     );
-  }, [router, selectedBrand, orgHref]);
+  }, [router, selectedBrand, href, orgHref]);
 
   const handleSelect = useCallback(
     async (id: string) => {

@@ -51,7 +51,7 @@ export default function MenuItem({
               : 'text-foreground/42 group-hover:text-foreground/78',
           ]
         : [
-            'gen-shell-surface h-11 w-11 rounded-2xl text-foreground/78',
+            'h-8 w-8 rounded border border-border bg-background-secondary text-foreground/78',
             'group-hover:border-white/[0.14] group-hover:bg-white/[0.07] group-hover:text-foreground',
             isActive &&
               'border-white/[0.14] bg-white text-background shadow-[0_18px_42px_-30px_rgba(0,0,0,0.88)]',
@@ -68,14 +68,14 @@ export default function MenuItem({
   const baseClasses = isIconVariant
     ? isHorizontalLayout
       ? cn(
-          'group relative flex h-10 w-full flex-row items-center gap-3 rounded-xl px-3.5 py-2 text-left transition-[background-color,color,transform] duration-200',
+          'group relative flex h-8 w-full flex-row items-center gap-2.5 rounded px-3 py-1.5 text-left transition-[background-color,color] duration-150',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         )
       : cn(
           'group relative flex w-full flex-col items-center gap-2 p-2 text-center transition-all duration-200',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         )
-    : 'group flex h-10 items-center gap-3 rounded-xl px-3.5 py-2 text-left transition-[background-color,color] duration-200';
+    : 'group flex h-8 items-center gap-2.5 rounded px-3 py-1.5 text-left transition-[background-color,color] duration-150';
 
   const activeClasses = isIconVariant
     ? isHorizontalLayout

@@ -56,6 +56,20 @@
   --color-warning-content: hsl(var(--warning-foreground));
   --color-info-content: hsl(var(--info-foreground));
   --color-error-content: hsl(var(--destructive-foreground));
+
+  /* Radius scale — match shipcode (apps/desktop/src/renderer/styles/app.scss) */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+
+  /* Semantic colors layered on shipshitdev/ui ship-* tokens */
+  --color-border-strong: var(--ship-border-strong);
+  --color-accent-hover: var(--ship-accent-hover);
+  --color-danger: var(--ship-danger);
+  --color-agent: var(--ship-agent);
+  --color-done: var(--ship-done);
 }
 
 .ship-ui {
@@ -102,59 +116,62 @@
   --ship-done: #7c3aed;
 }
 
-/* ship-ui theme overrides — use CSS custom properties on .ship-ui scope.
-   These do NOT collide with Tailwind utility classes (bg-primary, text-primary, etc.)
-   because they set CSS variables that @shipshitdev/ui primitives consume internally. */
-.ship-ui {
-  --background: var(--ship-bg-primary);
-  --background-secondary: var(--ship-bg-secondary);
-  --foreground: var(--ship-text-primary);
-  --muted-foreground: var(--ship-text-muted);
-  --accent: var(--ship-accent);
-  --accent-foreground: var(--ship-accent-foreground);
-  --border: var(--ship-border);
-  --destructive: var(--ship-danger);
-}
+/* ship-ui scoped utilities — match shipcode `app.scss` token map.
+   Do NOT override shadcn HSL component vars (--foreground/--accent/--destructive
+   etc.) here — they break hsl(var(--*)) chains in @theme inline. Instead,
+   define explicit utility overrides scoped to .ship-ui so ship Button variants
+   (bg-tertiary, text-secondary, hover:bg-hover, …) render with ship colors
+   without disturbing the rest of the app. */
 
+/* Backgrounds */
+.ship-ui.bg-primary,
+.ship-ui .bg-primary { background-color: var(--ship-bg-primary); }
+.ship-ui.bg-secondary,
+.ship-ui .bg-secondary { background-color: var(--ship-bg-secondary); }
+.ship-ui.bg-tertiary,
+.ship-ui .bg-tertiary { background-color: var(--ship-bg-tertiary); }
+.ship-ui.bg-elevated,
+.ship-ui .bg-elevated { background-color: var(--ship-bg-elevated); }
+.ship-ui.bg-hover,
+.ship-ui .bg-hover { background-color: var(--ship-bg-hover); }
+.ship-ui.bg-accent,
+.ship-ui .bg-accent { background-color: var(--ship-accent); }
+.ship-ui.bg-accent-hover,
+.ship-ui .bg-accent-hover { background-color: var(--ship-accent-hover); }
+
+/* Text */
+.ship-ui.text-primary,
+.ship-ui .text-primary { color: var(--ship-text-primary); }
+.ship-ui.text-secondary,
+.ship-ui .text-secondary { color: var(--ship-text-secondary); }
+.ship-ui.text-muted,
+.ship-ui .text-muted { color: var(--ship-text-muted); }
+.ship-ui.text-accent-foreground,
+.ship-ui .text-accent-foreground { color: var(--ship-accent-foreground); }
+
+/* Borders */
+.ship-ui.border-border,
+.ship-ui .border-border { border-color: var(--ship-border); }
 .ship-ui.border-border-strong,
-.ship-ui .border-border-strong {
-  border-color: var(--ship-border-strong);
-}
-
+.ship-ui .border-border-strong { border-color: var(--ship-border-strong); }
 .ship-ui.border-accent,
-.ship-ui .border-accent {
-  border-color: var(--ship-accent);
-}
-
+.ship-ui .border-accent { border-color: var(--ship-accent); }
 .ship-ui.border-danger\/30,
 .ship-ui .border-danger\/30 {
   border-color: color-mix(in oklab, var(--ship-danger) 30%, transparent);
 }
 
+/* Hover */
 .ship-ui.hover\:bg-hover:hover,
-.ship-ui .hover\:bg-hover:hover {
-  background-color: var(--ship-bg-hover);
-}
-
+.ship-ui .hover\:bg-hover:hover { background-color: var(--ship-bg-hover); }
 .ship-ui.hover\:bg-accent-hover:hover,
-.ship-ui .hover\:bg-accent-hover:hover {
-  background-color: var(--ship-accent-hover);
-}
-
+.ship-ui .hover\:bg-accent-hover:hover { background-color: var(--ship-accent-hover); }
 .ship-ui.hover\:text-primary:hover,
-.ship-ui .hover\:text-primary:hover {
-  color: var(--ship-text-primary);
-}
-
+.ship-ui .hover\:text-primary:hover { color: var(--ship-text-primary); }
 .ship-ui.hover\:text-secondary:hover,
-.ship-ui .hover\:text-secondary:hover {
-  color: var(--ship-text-secondary);
-}
-
+.ship-ui .hover\:text-secondary:hover { color: var(--ship-text-secondary); }
 .ship-ui.hover\:border-text-secondary:hover,
-.ship-ui .hover\:border-text-secondary:hover {
-  border-color: var(--ship-text-secondary);
-}
+.ship-ui .hover\:border-text-secondary:hover { border-color: var(--ship-text-secondary); }
 
 .app-region-drag {
   -webkit-app-region: drag;
@@ -343,58 +360,13 @@ a {
 }
 
 .gen-shell-panel {
-  position: relative;
-  isolation: isolate;
-  background:
-    linear-gradient(
-      180deg,
-      hsl(var(--background-tertiary) / 0.96) 0%,
-      hsl(var(--background-secondary) / 0.98) 100%
-    );
-  box-shadow:
-    0 28px 72px -48px rgba(0, 0, 0, 0.92),
-    inset 0 1px 0 rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(24px);
+  background: hsl(var(--background));
 }
 
-.gen-shell-panel::before {
-  position: absolute;
-  inset: 0;
-  content: '';
-  pointer-events: none;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 24%);
-}
-
-.gen-shell-panel > * {
-  position: relative;
-  z-index: 1;
-}
-
-.gen-shell-panel--terminal::after {
-  position: absolute;
-  top: -11rem;
-  right: -4rem;
-  width: 18rem;
-  height: 18rem;
-  content: '';
-  pointer-events: none;
-  background: radial-gradient(
-    circle,
-    rgba(52, 211, 153, 0.16) 0%,
-    rgba(56, 189, 248, 0.08) 38%,
-    transparent 72%
-  );
-  filter: blur(22px);
-  opacity: 0.92;
-}
 
 .gen-shell-toolbar {
   border-bottom: 1px solid hsl(var(--border) / 0.82);
-  background: linear-gradient(
-    180deg,
-    hsl(var(--background-tertiary) / 0.92) 0%,
-    hsl(var(--background-secondary) / 0.72) 100%
-  );
+  background: hsl(var(--background));
 }
 
 .gen-shell-segmented {
@@ -463,15 +435,12 @@ a {
 }
 
 .gen-shell-surface {
-  background: hsl(var(--background) / 0.44);
+  background: hsl(var(--background));
 }
 
 .gen-shell-surface[data-active='true'] {
   border-color: hsl(var(--primary) / 0.26);
-  background: hsl(var(--background-tertiary) / 0.92);
-  box-shadow:
-    0 18px 40px -30px rgba(0, 0, 0, 0.82),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  background: hsl(var(--background));
 }
 
 .gen-shell-chip {
@@ -499,68 +468,21 @@ a {
 
 .gen-shell-empty-state {
   border: 1px dashed hsl(var(--border) / 0.72);
-  background: linear-gradient(
-    180deg,
-    hsl(var(--background) / 0.5) 0%,
-    hsl(var(--background-secondary) / 0.74) 100%
-  );
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  background: hsl(var(--background));
 }
 
 [data-agent-console='true'] {
   border-color: hsl(var(--border) / 0.76);
-  background: linear-gradient(
-    180deg,
-    hsl(var(--background-secondary) / 0.98) 0%,
-    hsl(var(--background) / 0.98) 100%
-  );
-  box-shadow:
-    0 22px 54px -38px rgba(0, 0, 0, 0.92),
-    inset 0 1px 0 rgba(255, 255, 255, 0.03);
-}
-
-[data-agent-console='true']::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 22%);
-}
-
-[data-agent-console='true']::after {
-  content: '';
-  position: absolute;
-  pointer-events: none;
-  top: -9rem;
-  right: -5rem;
-  width: 14rem;
-  height: 14rem;
-  background: radial-gradient(
-    circle,
-    rgba(88, 166, 255, 0.12) 0%,
-    rgba(168, 85, 247, 0.05) 42%,
-    transparent 74%
-  );
-  filter: blur(18px);
-  opacity: 0.42;
+  background: hsl(var(--background));
 }
 
 [data-agent-console='true'] .gen-shell-toolbar {
   border-bottom-color: hsl(var(--border) / 0.72);
-  background: linear-gradient(
-    180deg,
-    hsl(var(--background) / 0.82) 0%,
-    hsl(var(--background-secondary) / 0.74) 100%
-  );
-  backdrop-filter: blur(18px);
+  background: hsl(var(--background));
 }
 
 [data-agent-console='true'] [data-panel-body] {
-  background: linear-gradient(
-    180deg,
-    hsl(var(--background-secondary) / 0.5) 0%,
-    hsl(var(--background) / 0.18) 100%
-  );
+  background: hsl(var(--background));
 }
 
 [data-agent-console='true'] .gen-shell-segmented {

@@ -97,7 +97,7 @@ export default function ModalUpgradePrompt({
   const handleUpgrade = useCallback(() => {
     setIsNavigating(true);
     const appUrl = EnvironmentService.apps.app;
-    window.location.href = `${appUrl}${orgHref('/settings/organization/billing')}`;
+    window.location.href = `${appUrl}${orgHref('/settings/billing')}`;
   }, [orgHref]);
 
   return (

@@ -20,6 +20,15 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({
+    selectedBrand: {
+      organization: { slug: 'acme-org' },
+      slug: 'acme-brand',
+    },
+  }),
+}));
+
 vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => async () => ({
     createOrganization: vi.fn(),
@@ -79,6 +88,6 @@ describe('OrganizationSwitcher', () => {
 
     capturedFooterActions[0]?.onAction();
 
-    expect(mockPush).toHaveBeenCalledWith('/acme-org/~/settings/organization');
+    expect(mockPush).toHaveBeenCalledWith('/acme-org/~/settings');
   });
 });

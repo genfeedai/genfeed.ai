@@ -9,6 +9,7 @@ import {
 } from '@genfeedai/helpers/formatting/format/format.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useSubscription } from '@genfeedai/hooks/data/subscription/use-subscription/use-subscription';
+import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { useSocketManager } from '@genfeedai/hooks/utils/use-socket-manager/use-socket-manager';
 import type {
   ICreditsEventData,
@@ -30,6 +31,7 @@ import { HiArrowPath, HiPlus } from 'react-icons/hi2';
 
 export default function TopbarCreditsBar() {
   const { organizationId } = useBrand();
+  const { orgHref } = useOrgUrl();
 
   const getOrganizationsService = useAuthedService((token: string) =>
     OrganizationsService.getInstance(token),
@@ -147,7 +149,7 @@ export default function TopbarCreditsBar() {
           withWrapper={false}
           variant={ButtonVariant.UNSTYLED}
           className={cn(
-            'gen-shell-control hidden h-10 items-center gap-3 rounded-xl px-3.5 text-left md:flex',
+            'gen-shell-control hidden h-10 items-center gap-3 rounded-md px-3.5 text-left md:flex',
           )}
           data-active={isOpen ? 'true' : 'false'}
           title={`${fullBalance} ${EnvironmentService.CREDITS_LABEL}`}
@@ -172,9 +174,9 @@ export default function TopbarCreditsBar() {
         </Button>
       </PopoverTrigger>
 
-      <PopoverPanelContent align="end" className="w-80 rounded-[1.5rem] p-4">
+      <PopoverPanelContent align="end" className="w-80 rounded-md p-4">
         <div role="dialog" className="space-y-4">
-          <div className="gen-shell-surface rounded-[1.25rem] p-4 text-center">
+          <div className="gen-shell-surface rounded-md p-4 text-center">
             <div className="flex items-baseline justify-center gap-2">
               <span className="text-4xl font-semibold tracking-[-0.05em] text-foreground">
                 {fullBalance}
@@ -186,7 +188,7 @@ export default function TopbarCreditsBar() {
           </div>
 
           {planLimit > 0 && (
-            <div className="gen-shell-surface rounded-[1.15rem] p-3">
+            <div className="gen-shell-surface rounded-md p-3">
               <div className="mb-2 flex items-center justify-between gap-3">
                 <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground/36">
                   Plan usage
@@ -256,7 +258,7 @@ export default function TopbarCreditsBar() {
               }}
               isDisabled={isLoading}
               className={cn(
-                'gen-shell-control flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium',
+                'gen-shell-control flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium',
                 isLoading && 'opacity-50 cursor-not-allowed',
               )}
               title="Refresh Balance"
@@ -272,11 +274,11 @@ export default function TopbarCreditsBar() {
             </Button>
 
             <Link
-              href={`${EnvironmentService.apps.app}/settings/organization`}
+              href={orgHref('/settings')}
               target="_blank"
               rel="noopener noreferrer"
               className={cn(
-                'gen-shell-control flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold',
+                'gen-shell-control flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2.5 text-sm font-semibold',
               )}
               data-tone="accent"
               onClick={() => setIsOpen(false)}

@@ -103,7 +103,7 @@ export default function PromptBarContainer({
         <div
           aria-hidden="true"
           className={cn(
-            'pointer-events-none absolute inset-x-0 bottom-full h-20 bg-gradient-to-t from-background via-background/72 to-transparent opacity-100 backdrop-blur-[1px] transition-opacity duration-300',
+            'pointer-events-none absolute inset-x-0 bottom-full h-20 bg-gradient-to-t from-background to-transparent opacity-100 transition-opacity duration-300',
             layoutMode === 'surface-fixed' && 'h-16',
             topFadeClassName,
           )}

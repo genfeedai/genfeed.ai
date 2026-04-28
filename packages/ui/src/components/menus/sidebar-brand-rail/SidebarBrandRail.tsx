@@ -29,7 +29,7 @@ function BrandAvatar({
     return (
       <div
         className={cn(
-          'flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl transition-transform duration-200',
+          'flex h-10 w-10 items-center justify-center overflow-hidden rounded-md transition-transform duration-200',
           isActive
             ? 'bg-white ring-2 ring-white/60'
             : 'bg-white/[0.06] ring-1 ring-white/[0.08]',
@@ -50,7 +50,7 @@ function BrandAvatar({
   return (
     <div
       className={cn(
-        'flex h-10 w-10 items-center justify-center rounded-xl text-sm font-semibold uppercase transition-colors duration-200',
+        'flex h-10 w-10 items-center justify-center rounded-md text-sm font-semibold uppercase transition-colors duration-200',
         isActive
           ? 'bg-white text-black'
           : 'bg-white/[0.08] text-white/80 hover:bg-white/[0.12] hover:text-white',
@@ -85,7 +85,7 @@ function RailButton({
         data-active={active ? 'true' : 'false'}
         onClick={onClick}
         className={cn(
-          'flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl transition-colors duration-200',
+          'flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-md transition-colors duration-200',
           active
             ? 'bg-white/[0.12] ring-2 ring-white/[0.25]'
             : 'hover:bg-white/[0.04] focus-visible:bg-white/[0.04]',
@@ -178,7 +178,7 @@ export default function SidebarBrandRail() {
         onClick={() => openBrandOverlay(null)}
         testId="sidebar-brand-create"
       >
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-dashed border-white/[0.16] text-white/70 transition-colors duration-200 hover:border-white/[0.32] hover:bg-white/[0.04] hover:text-white">
+        <div className="flex h-10 w-10 items-center justify-center rounded-md border border-dashed border-white/[0.16] text-white/70 transition-colors duration-200 hover:border-white/[0.32] hover:bg-white/[0.04] hover:text-white">
           <HiPlus className="h-5 w-5" />
         </div>
       </RailButton>

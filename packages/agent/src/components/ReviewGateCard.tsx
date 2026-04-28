@@ -1,6 +1,7 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
+import { Checkbox } from '@ui/primitives/checkbox';
 import { type ReactElement, useCallback, useState } from 'react';
 import { HiCheck, HiClipboardDocumentList, HiXMark } from 'react-icons/hi2';
 
@@ -104,9 +105,8 @@ export function ReviewGateCard({
                 : 'bg-muted border border-transparent'
             }`}
           >
-            <input
-              type="checkbox"
-              checked={selected.has(item.id)}
+            <Checkbox
+              isChecked={selected.has(item.id)}
               onChange={() => toggleItem(item.id)}
               className="rounded border-gray-300 text-blue-600"
             />

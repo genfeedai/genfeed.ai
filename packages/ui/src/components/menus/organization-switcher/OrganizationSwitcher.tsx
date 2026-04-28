@@ -106,7 +106,7 @@ export default function OrganizationSwitcher() {
   const activeOrg = orgs.find((o) => o.isActive);
   const displayLabel = error ?? activeOrg?.label ?? 'Organization';
   const handleOpenOrganizationSettings = useCallback(() => {
-    router.push(orgHref('/settings/organization'));
+    router.push(orgHref('/settings'));
   }, [router, orgHref]);
 
   return (

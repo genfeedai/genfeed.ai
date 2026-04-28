@@ -141,9 +141,9 @@ describe('AppLayout', () => {
     expect(shell).toHaveStyle({ minHeight: '380px', height: '380px' });
     expect(shell).toHaveClass('absolute', 'bottom-0', 'inset-x-0');
     expect(rail).toHaveClass(
-      'gen-shell-toolbar',
       'border-t',
-      'bg-background/92',
+      'border-border',
+      'bg-background-secondary',
     );
   });
 
@@ -213,10 +213,9 @@ describe('AppLayout', () => {
     );
 
     expect(screen.getByTestId('app-topbar-shell')).toHaveClass(
-      'gen-shell-toolbar',
       'border-b',
-      'bg-background/84',
-      'backdrop-blur-xl',
+      'border-border',
+      'bg-background',
     );
   });
 
@@ -253,7 +252,7 @@ describe('AppLayout', () => {
     const topbarShell = screen.getByTestId('app-topbar-shell');
 
     expect(topbarShell).toHaveClass(
-      'h-16',
+      'h-12',
       'fixed',
       'top-0',
       'left-0',
@@ -261,10 +260,9 @@ describe('AppLayout', () => {
       'z-50',
     );
     expect(topbarShell).not.toHaveClass(
-      'gen-shell-toolbar',
       'border-b',
-      'bg-background/84',
-      'backdrop-blur-xl',
+      'border-border',
+      'bg-background',
     );
   });
 
@@ -282,10 +280,9 @@ describe('AppLayout', () => {
     );
 
     expect(screen.getByTestId('app-topbar-shell')).toHaveClass(
-      'gen-shell-toolbar',
       'border-b',
-      'bg-background/84',
-      'backdrop-blur-xl',
+      'border-border',
+      'bg-background',
     );
   });
 
@@ -303,10 +300,9 @@ describe('AppLayout', () => {
     );
 
     expect(screen.getByTestId('app-topbar-shell')).toHaveClass(
-      'gen-shell-toolbar',
       'border-b',
-      'bg-background/84',
-      'backdrop-blur-xl',
+      'border-border',
+      'bg-background',
     );
   });
 
@@ -322,10 +318,9 @@ describe('AppLayout', () => {
     const topbarShell = screen.getByTestId('app-topbar-shell');
 
     expect(topbarShell).not.toHaveClass(
-      'gen-shell-toolbar',
       'border-b',
-      'bg-background/84',
-      'backdrop-blur-xl',
+      'border-border',
+      'bg-background',
     );
   });
 });

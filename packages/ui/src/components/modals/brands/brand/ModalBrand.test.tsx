@@ -252,8 +252,6 @@ describe('ModalBrand', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Open page' }));
 
-    expect(pushMock).toHaveBeenCalledWith(
-      '/acme-org/~/settings/brands/brand-one',
-    );
+    expect(pushMock).toHaveBeenCalledWith('/acme-org/brand-one/settings');
   });
 });

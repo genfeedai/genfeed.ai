@@ -174,7 +174,7 @@
     "securitySchemes": {
       "bearerAuth": {
         "bearerFormat": "JWT",
-        "description": "Enter your Genfeed API key. Get one at https://genfeed.ai/settings/organization/api-keys",
+        "description": "Enter your Genfeed API key. Get one at https://genfeed.ai/settings/api-keys",
         "scheme": "bearer",
         "type": "http"
       }

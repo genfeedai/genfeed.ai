@@ -140,7 +140,7 @@ export function AppSwitcher({
           size={ButtonSize.SM}
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}
-          className="gen-shell-control inline-flex h-10 items-center gap-2.5 rounded-xl px-3 text-sm font-medium text-foreground/90"
+          className="gen-shell-control inline-flex h-10 items-center gap-2.5 rounded-md px-3 text-sm font-medium text-foreground/90"
           data-active={isOpen ? 'true' : 'false'}
         >
           {activeApp ? (
@@ -157,7 +157,7 @@ export function AppSwitcher({
       </PopoverTrigger>
       <PopoverContent
         align="start"
-        className="gen-shell-panel w-60 rounded-[1.25rem] p-1.5"
+        className="gen-shell-panel w-60 rounded-md p-1.5"
         side="bottom"
         sideOffset={10}
       >
@@ -180,7 +180,7 @@ export function AppSwitcher({
                     withWrapper={false}
                     size={ButtonSize.SM}
                     aria-current={isActive ? 'page' : undefined}
-                    className="gen-shell-surface flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-sm transition-colors"
+                    className="gen-shell-surface flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors"
                     data-active={isActive ? 'true' : 'false'}
                     onClick={() => handleAppSelect(app)}
                   >

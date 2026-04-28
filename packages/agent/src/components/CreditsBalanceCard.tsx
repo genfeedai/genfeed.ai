@@ -15,8 +15,8 @@ export function CreditsBalanceCard({
   const { orgHref } = useOrgUrl();
   const billingHref = orgHref(
     process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY
-      ? '/settings/organization/billing'
-      : '/settings/organization/api-keys',
+      ? '/settings/billing'
+      : '/settings/api-keys',
   );
   const balance = action.balance ?? 0;
   const usagePercent = action.usagePercent ?? 0;

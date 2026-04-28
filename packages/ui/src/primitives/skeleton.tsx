@@ -1,3 +1,5 @@
+'use client';
+
 import { Skeleton as ShipSkeleton } from '@shipshitdev/ui/primitives';
 import type { ComponentPropsWithoutRef } from 'react';
 import { cn } from '../lib/utils';

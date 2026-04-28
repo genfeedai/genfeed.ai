@@ -35,7 +35,20 @@ export default function SidebarNested({
   onItemClick,
 }: SidebarNestedProps) {
   const rawPathname = usePathname();
-  const { href: buildHref, orgHref } = useOrgUrl();
+  const { href: buildHref, orgHref, orgSlug, brandSlug } = useOrgUrl();
+  const routeScope = useMemo(() => {
+    const parts = rawPathname.split('/').filter(Boolean);
+
+    if (parts[0] === 'settings') {
+      return 'personal' as const;
+    }
+
+    if (parts[1] === '~') {
+      return 'organization' as const;
+    }
+
+    return 'brand' as const;
+  }, [rawPathname]);
 
   /** Strip org/brand prefix so we can compare against config-level paths. */
   const pathname = useMemo(() => {
@@ -49,11 +62,78 @@ export default function SidebarNested({
     return rawPathname;
   }, [rawPathname]);
 
-  /** Prefix a config-level path with the correct org scope. */
+  const isAlreadyScopedHref = useCallback(
+    (path: string) => {
+      const parts = path.split('/').filter(Boolean);
+
+      return (
+        parts[0] === orgSlug &&
+        (parts[1] === '~' || (brandSlug && parts[1] === brandSlug))
+      );
+    },
+    [brandSlug, orgSlug],
+  );
+
+  const resolveLegacySettingsHref = useCallback(
+    (path: string) => {
+      if (path === '/settings/personal') {
+        return '/settings';
+      }
+
+      if (path === '/settings/organization') {
+        return orgHref('/settings');
+      }
+
+      if (path.startsWith('/settings/organization/')) {
+        return orgHref(path.replace('/settings/organization', '/settings'));
+      }
+
+      if (path.startsWith('/settings/brands/')) {
+        const [, , , routeBrandSlug, ...rest] = path.split('/');
+
+        if (routeBrandSlug) {
+          const suffix = rest.length > 0 ? `/${rest.join('/')}` : '';
+          return `/${orgSlug}/${routeBrandSlug}/settings${suffix}`;
+        }
+      }
+
+      return orgHref(path);
+    },
+    [orgHref, orgSlug],
+  );
+
+  /** Prefix a config-level path with the configured route scope. */
   const prefixHref = useCallback(
-    (path: string) =>
-      path.startsWith('/settings') ? orgHref(path) : buildHref(path),
-    [buildHref, orgHref],
+    (item: MenuItemConfig) => {
+      const path = item.href;
+
+      if (!path) {
+        return undefined;
+      }
+
+      if (isAlreadyScopedHref(path)) {
+        return path;
+      }
+
+      if (item.hrefScope === 'personal') {
+        return path;
+      }
+
+      if (item.hrefScope === 'organization') {
+        return resolveLegacySettingsHref(path);
+      }
+
+      if (item.hrefScope === 'brand') {
+        return buildHref(path);
+      }
+
+      if (path.startsWith('/settings')) {
+        return resolveLegacySettingsHref(path);
+      }
+
+      return buildHref(path);
+    },
+    [buildHref, isAlreadyScopedHref, resolveLegacySettingsHref],
   );
 
   const isActive = useCallback(
@@ -75,6 +155,20 @@ export default function SidebarNested({
       return pathname === href || pathname.startsWith(href);
     },
     [pathname],
+  );
+  const isActiveItem = useCallback(
+    (item: MenuItemConfig) => {
+      if (!item.href) {
+        return false;
+      }
+
+      if (item.hrefScope && item.hrefScope !== routeScope) {
+        return false;
+      }
+
+      return isActive(item.href);
+    },
+    [isActive, routeScope],
   );
   return (
     <div className="flex flex-col h-full w-full bg-background">
@@ -121,12 +215,12 @@ export default function SidebarNested({
                   </li>
                 )}
                 <MenuItem
-                  href={item.href ? prefixHref(item.href) : undefined}
+                  href={prefixHref(item)}
                   label={item.label}
                   icon={item.icon}
                   outline={item.outline}
                   solid={item.solid}
-                  isActive={isActive(item.href ?? '')}
+                  isActive={isActiveItem(item)}
                   onClick={onItemClick}
                   variant="icon"
                   isCollapsed={false}

@@ -12,11 +12,7 @@ const { combine, timestamp } = format;
 const FILTERED_ERROR_PATTERNS = [/reached/, /not found/, /not active/, /claim/];
 
 function shouldEnableFileLogging(): boolean {
-  if (process.env.ENABLE_FILE_LOGGING === 'true') {
-    return true;
-  }
-
-  return process.env.NODE_ENV === 'development';
+  return process.env.ENABLE_FILE_LOGGING === 'true';
 }
 
 function shouldFilterMessage(message: unknown): boolean {

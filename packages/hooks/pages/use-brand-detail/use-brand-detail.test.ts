@@ -13,9 +13,15 @@ const mockFindPublicImages = vi.fn();
 const mockFindPublicVideos = vi.fn();
 
 vi.mock('next/navigation', () => ({
-  useParams: vi.fn(() => ({ slug: 'brand-1' })),
+  useParams: vi.fn(() => ({ orgSlug: 'acme', slug: 'brand-1' })),
   usePathname: vi.fn(() => '/settings/brands/brand-1'),
   useRouter: vi.fn(() => ({ push: vi.fn(), replace: vi.fn() })),
+}));
+
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
+  useBrand: vi.fn(() => ({
+    brands: [],
+  })),
 }));
 
 vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => ({

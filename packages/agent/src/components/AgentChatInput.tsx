@@ -29,6 +29,7 @@ import Placeholder from '@tiptap/extension-placeholder';
 import { EditorContent, ReactRenderer, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { Button } from '@ui/primitives/button';
+import { Input } from '@ui/primitives/input';
 import PromptBarAttachedAssetsTray from '@ui/prompt-bars/components/attached-assets-tray/PromptBarAttachedAssetsTray';
 import PromptBarShell from '@ui/prompt-bars/components/shell/PromptBarShell';
 import {
@@ -659,15 +660,15 @@ export function AgentChatInput({
       `}</style>
 
       {isDragActive && (
-        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-2xl border-2 border-dashed border-primary/50 bg-primary/5">
+        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-md border-2 border-dashed border-primary/50 bg-primary/5">
           <p className="text-sm font-medium text-primary/70">
             Drop images here
           </p>
         </div>
       )}
 
-      <input
-        ref={fileInputRef}
+      <Input
+        inputRef={fileInputRef}
         type="file"
         accept="image/*"
         multiple
@@ -703,8 +704,7 @@ export function AgentChatInput({
         <div className="mt-1">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <Button
-              variant={ButtonVariant.UNSTYLED}
-              withWrapper={false}
+              variant={ButtonVariant.GHOST}
               onClick={() => {
                 void handlePlanModeToggle();
               }}
@@ -713,10 +713,9 @@ export function AgentChatInput({
                 draftPlanModeEnabled ? 'Disable plan mode' : 'Enable plan mode'
               }
               className={cn(
-                'inline-flex h-9 items-center rounded-xl border px-3 text-xs font-medium transition-colors',
-                draftPlanModeEnabled
-                  ? 'border-primary/40 bg-primary/12 text-primary'
-                  : 'border-white/12 bg-white/[0.04] text-muted-foreground hover:bg-white/[0.08] hover:text-foreground',
+                'h-9 rounded-md px-3 text-xs font-medium',
+                draftPlanModeEnabled &&
+                  'border border-primary/40 bg-primary/12 text-primary',
               )}
             >
               {draftPlanModeEnabled ? 'Plan mode on' : 'Plan mode off'}
@@ -728,7 +727,7 @@ export function AgentChatInput({
                   withWrapper={false}
                   onClick={() => fileInputRef.current?.click()}
                   isDisabled={disabled || isUploading}
-                  className="shrink-0 flex h-9 w-9 items-center justify-center rounded-xl border border-white/12 bg-white/[0.04] text-muted-foreground transition-colors hover:bg-white/[0.08] hover:text-foreground"
+                  className="shrink-0 flex h-9 w-9 items-center justify-center rounded-md border border-white/12 bg-white/[0.04] text-muted-foreground transition-colors hover:bg-white/[0.08] hover:text-foreground"
                   ariaLabel="Attach image"
                 >
                   <HiOutlinePaperClip className="h-4 w-4" />
@@ -754,7 +753,7 @@ export function AgentChatInput({
                   variant={ButtonVariant.UNSTYLED}
                   withWrapper={false}
                   isDisabled
-                  className="shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-primary/20 text-primary"
+                  className="shrink-0 flex h-9 w-9 items-center justify-center rounded-md bg-primary/20 text-primary"
                   aria-label="Transcribing"
                 >
                   <HiOutlineArrowPath className="h-4 w-4 animate-spin" />
@@ -764,7 +763,7 @@ export function AgentChatInput({
                   variant={ButtonVariant.UNSTYLED}
                   withWrapper={false}
                   onClick={stopListening}
-                  className="relative shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-red-500/20 text-red-400 transition-colors hover:bg-red-500/30"
+                  className="relative shrink-0 flex h-9 w-9 items-center justify-center rounded-md bg-red-500/20 text-red-400 transition-colors hover:bg-red-500/30"
                   aria-label="Stop listening"
                 >
                   <HiOutlineMicrophone className="h-4 w-4" />
@@ -776,7 +775,7 @@ export function AgentChatInput({
                   withWrapper={false}
                   onClick={startListening}
                   isDisabled={disabled}
-                  className="shrink-0 flex h-9 w-9 items-center justify-center rounded-xl border border-white/12 bg-white/[0.04] text-muted-foreground transition-colors hover:bg-white/[0.08] hover:text-foreground"
+                  className="shrink-0 flex h-9 w-9 items-center justify-center rounded-md border border-white/12 bg-white/[0.04] text-muted-foreground transition-colors hover:bg-white/[0.08] hover:text-foreground"
                   ariaLabel="Start voice input"
                 >
                   <HiOutlineMicrophone className="h-4 w-4" />

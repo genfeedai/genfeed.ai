@@ -28,6 +28,12 @@ vi.mock('@contexts/user/user-context/user-context', () => ({
   }),
 }));
 
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({
+    orgHref: (path: string) => `/acme/~${path}`,
+  }),
+}));
+
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => async () => ({
     patchSettings: mockPatchSettings,
@@ -48,7 +54,7 @@ vi.mock('@hooks/utils/use-setup-card/use-setup-card', () => ({
       },
       {
         description: 'Connect Instagram, TikTok, etc.',
-        href: '/settings/organization/credentials',
+        href: '/settings/api-keys',
         isCompleted: true,
         key: 'platforms',
         label: 'Social accounts',
@@ -143,7 +149,7 @@ describe('SettingsProgressPage', () => {
     ).not.toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /finish content types/i }),
-    ).toHaveAttribute('href', '/settings/brands');
+    ).toHaveAttribute('href', '/acme/~/settings/brands');
   });
 
   it('re-enables the sidebar module through the account-level toggle', async () => {

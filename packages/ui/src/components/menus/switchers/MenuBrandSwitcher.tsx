@@ -4,6 +4,7 @@ import { useUser } from '@clerk/nextjs';
 import { useBrandOverlay } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import type { BrandSwitcherProps } from '@genfeedai/props/social/brand-switcher.props';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { UsersService } from '@genfeedai/services/organization/users.service';
@@ -26,6 +27,7 @@ export default function MenuBrandSwitcher({
   const { user } = useUser();
   const { openBrandOverlay } = useBrandOverlay();
   const router = useRouter();
+  const { href, orgHref } = useOrgUrl();
   const [isUpdatingBrand, setIsUpdatingBrand] = useState(false);
 
   const isUpdating = externalIsUpdating ?? isUpdatingBrand;
@@ -33,11 +35,9 @@ export default function MenuBrandSwitcher({
 
   const handleOpenBrandSettings = useCallback(() => {
     router.push(
-      selectedBrand
-        ? `/settings/brands/${selectedBrand.slug}`
-        : '/settings/brands',
+      selectedBrand ? href('/settings') : orgHref('/settings/brands'),
     );
-  }, [router, selectedBrand]);
+  }, [router, selectedBrand, href, orgHref]);
 
   const handleSelect = useCallback(
     async (id: string) => {

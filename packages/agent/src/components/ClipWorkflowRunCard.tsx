@@ -8,6 +8,7 @@ import {
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { Button } from '@ui/primitives/button';
+import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
 import {
   Select,
@@ -368,25 +369,22 @@ export function ClipWorkflowRunCard({
 
         <div className="grid grid-cols-2 gap-2 text-xs">
           <label className="flex items-center gap-2 border border-border p-2">
-            <input
-              type="checkbox"
-              checked={autonomousMode}
+            <Checkbox
+              isChecked={autonomousMode}
               onChange={(e) => setAutonomousMode(e.target.checked)}
             />
             Autonomous mode
           </label>
           <label className="flex items-center gap-2 border border-border p-2">
-            <input
-              type="checkbox"
-              checked={requireStepConfirmation}
+            <Checkbox
+              isChecked={requireStepConfirmation}
               onChange={(e) => setRequireStepConfirmation(e.target.checked)}
             />
             Confirm each step
           </label>
           <label className="flex items-center gap-2 border border-border p-2">
-            <input
-              type="checkbox"
-              checked={mergeGeneratedVideos}
+            <Checkbox
+              isChecked={mergeGeneratedVideos}
               onChange={(e) => {
                 const checked = e.target.checked;
                 setMergeGeneratedVideos(checked);

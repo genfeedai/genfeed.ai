@@ -232,7 +232,7 @@ export default function SummaryContent() {
 
     setPendingMode('byok');
     await persistAccessMode('byok');
-    router.push('/settings/organization/api-keys');
+    router.push('/settings/api-keys');
   };
 
   const handleContinueSelfHosted = async () => {
@@ -305,7 +305,7 @@ export default function SummaryContent() {
 
           <div className="mt-5 flex flex-col gap-3 md:flex-row">
             <Link
-              href="/settings/organization/api-keys"
+              href="/settings/api-keys"
               onClick={(event) => {
                 void handleByokClick(event);
               }}
