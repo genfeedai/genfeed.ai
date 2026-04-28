@@ -46,7 +46,7 @@ jobs:
         uses: ./.github/actions/setup-bun-env
         with:
           node-version: "22.x"
-          install-command: "bun install"
+          install-command: "bun install --frozen-lockfile"
 
       - name: Build workspace
         run: bunx turbo run build --filter='./${{ matrix.package }}...'
@@ -83,7 +83,7 @@ jobs:
         uses: ./.github/actions/setup-bun-env
         with:
           node-version: "22.x"
-          install-command: "bun install"
+          install-command: "bun install --frozen-lockfile"
 
       - name: Build workspace
         run: bunx turbo run build --filter='./packages/hooks...'
@@ -108,11 +108,16 @@ jobs:
           flags: hooks
           fail_ci_if_error: false
 
-  # ── API — needs CLERK_SECRET_KEY env ──
+  # ── API — sharded 4-way; needs CLERK_SECRET_KEY env ──
   coverage-api:
-    name: Coverage — apps/server/api
+    name: Coverage — apps/server/api (shard ${{ matrix.shard }}/${{ matrix.total }})
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+        total: [4]
     steps:
       - uses: actions/checkout@v5
 
@@ -120,13 +125,13 @@ jobs:
         uses: ./.github/actions/setup-bun-env
         with:
           node-version: "22.x"
-          install-command: "bun install"
+          install-command: "bun install --frozen-lockfile"
 
       - name: Build workspace
         run: bunx turbo run build --filter=./packages/**
 
       - name: Run coverage
-        run: cd apps/server/api && bunx vitest run --coverage
+        run: cd apps/server/api && bunx vitest run --coverage --shard=${{ matrix.shard }}/${{ matrix.total }}
         env:
           NODE_ENV: test
           CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY || 'test-mock-clerk-key' }}
@@ -135,7 +140,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: coverage-api
+          name: coverage-api-${{ matrix.shard }}
           path: apps/server/api/coverage/
           retention-days: 7
 
@@ -145,5 +150,5 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           directory: apps/server/api/coverage
-          flags: api
+          flags: api,api-shard-${{ matrix.shard }}
           fail_ci_if_error: false

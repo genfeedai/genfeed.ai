@@ -1,5 +1,3 @@
-/// <reference path="../react-color.d.ts" />
-
 import { ButtonVariant } from '@genfeedai/enums';
 import { useMemo, useState } from 'react';
 import { type ColorResult, SketchPicker } from 'react-color';

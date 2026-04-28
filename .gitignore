@@ -16,7 +16,6 @@ packages/prisma/generated/
 !apps/server/api/src/types/*.d.ts
 !packages/api-types/src/generated/*.d.ts
 !packages/ui/src/css.d.ts
-!packages/ui/src/react-color.d.ts
 !packages/workflow-ui/src/css.d.ts
 .env
 .env.local
