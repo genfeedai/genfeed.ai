@@ -110,14 +110,13 @@ jobs:
 
   # ── API — sharded 4-way; needs CLERK_SECRET_KEY env ──
   coverage-api:
-    name: Coverage — apps/server/api (shard ${{ matrix.shard }}/${{ matrix.total }})
+    name: Coverage — apps/server/api (shard ${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
         shard: [1, 2, 3, 4]
-        total: [4]
     steps:
       - uses: actions/checkout@v5
 
@@ -131,7 +130,43 @@ jobs:
         run: bunx turbo run build --filter=./packages/**
 
       - name: Run coverage
-        run: cd apps/server/api && bunx vitest run --coverage --shard=${{ matrix.shard }}/${{ matrix.total }}
+        run: cd apps/server/api && bunx vitest run --reporter=blob --coverage --shard=${{ matrix.shard }}/4
+        env:
+          NODE_ENV: test
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY || 'test-mock-clerk-key' }}
+
+      - name: Upload blob report artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-api-blob-${{ matrix.shard }}
+          path: apps/server/api/.vitest-reports/
+          retention-days: 7
+
+  coverage-api-merge:
+    name: Coverage — apps/server/api (merge)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: coverage-api
+    if: always()
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+        with:
+          node-version: "22.x"
+          install-command: "bun install --frozen-lockfile"
+
+      - name: Download blob report artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: coverage-api-blob-*
+          path: apps/server/api/.vitest-reports
+          merge-multiple: true
+
+      - name: Merge coverage reports
+        run: cd apps/server/api && bunx vitest --merge-reports .vitest-reports --coverage
         env:
           NODE_ENV: test
           CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY || 'test-mock-clerk-key' }}
@@ -140,7 +175,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: coverage-api-${{ matrix.shard }}
+          name: coverage-api
           path: apps/server/api/coverage/
           retention-days: 7
 
@@ -150,5 +185,5 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           directory: apps/server/api/coverage
-          flags: api,api-shard-${{ matrix.shard }}
+          flags: api
           fail_ci_if_error: false

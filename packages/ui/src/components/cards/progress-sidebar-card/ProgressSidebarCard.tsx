@@ -24,7 +24,7 @@ const COLLAPSED_STORAGE_KEY = 'genfeed:sidebar:progress-collapsed';
 
 export default function ProgressSidebarCard() {
   const { completedCount, steps, totalCount } = useSetupCard();
-  const { orgHref } = useOrgUrl();
+  const { orgHref, orgSlug } = useOrgUrl();
   const { hideProgress, isSaving, isVisible } = useSidebarProgressPreference();
   const {
     hasPersistedPreference,
@@ -45,9 +45,8 @@ export default function ProgressSidebarCard() {
   const streakFreezes = streak?.streakFreezes ?? 0;
   const nextMilestone = streak?.nextMilestone ?? null;
   const nextSetupStep = steps.find((step) => !step.isCompleted) ?? null;
-  const nextSetupStepHref = nextSetupStep
-    ? orgHref(nextSetupStep.href)
-    : undefined;
+  const nextSetupStepHref =
+    nextSetupStep && orgSlug ? orgHref(nextSetupStep.href) : undefined;
   const allSetupComplete = completedCount === totalCount;
 
   const handleToggle = useCallback(() => {

@@ -17,6 +17,7 @@ const makeInput = (
   overrides: Partial<ContentPlanInput> = {},
 ): ContentPlanInput => ({
   brand: objectId(),
+  credentialId: objectId(),
   days: 7,
   organization: objectId(),
   personaId: objectId(),

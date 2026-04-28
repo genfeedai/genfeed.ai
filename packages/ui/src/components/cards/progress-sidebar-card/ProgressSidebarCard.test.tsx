@@ -9,21 +9,28 @@ import ProgressSidebarCard from '@ui/cards/progress-sidebar-card/ProgressSidebar
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { mockCurrentUserState, mockMutateUser, mockPatchSettings } = vi.hoisted(
-  () => ({
-    mockCurrentUserState: {
-      currentUser: {
-        id: 'user-123',
-        settings: {} as Record<string, unknown>,
-      },
+const {
+  mockCurrentUserState,
+  mockMutateUser,
+  mockPatchSettings,
+  mockRouteParams,
+} = vi.hoisted(() => ({
+  mockCurrentUserState: {
+    currentUser: {
+      id: 'user-123',
+      settings: {} as Record<string, unknown>,
     },
-    mockMutateUser: vi.fn((next: unknown) => {
-      mockCurrentUserState.currentUser =
-        next as typeof mockCurrentUserState.currentUser;
-    }),
-    mockPatchSettings: vi.fn().mockResolvedValue({}),
+  },
+  mockMutateUser: vi.fn((next: unknown) => {
+    mockCurrentUserState.currentUser =
+      next as typeof mockCurrentUserState.currentUser;
   }),
-);
+  mockPatchSettings: vi.fn().mockResolvedValue({}),
+  mockRouteParams: {
+    brandSlug: 'moonrise-studio',
+    orgSlug: 'acme',
+  } as Record<string, string | undefined>,
+}));
 
 const SCROLL_FOCUS_OUTER_SHADOW_CLASS =
   'shadow-[0_-18px_30px_-18px_rgba(0,0,0,0.88),0_18px_32px_-24px_rgba(0,0,0,0.6)]';
@@ -115,10 +122,7 @@ vi.mock('next/link', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
-  useParams: () => ({
-    brandSlug: 'moonrise-studio',
-    orgSlug: 'acme',
-  }),
+  useParams: () => mockRouteParams,
 }));
 
 describe('ProgressSidebarCard', () => {
@@ -144,6 +148,8 @@ describe('ProgressSidebarCard', () => {
     };
     mockMutateUser.mockClear();
     mockPatchSettings.mockClear();
+    mockRouteParams.brandSlug = 'moonrise-studio';
+    mockRouteParams.orgSlug = 'acme';
   });
 
   const getCard = (container: HTMLElement) =>
@@ -215,6 +221,18 @@ describe('ProgressSidebarCard', () => {
       '/settings',
     );
     expect(mockMutateUser).toHaveBeenCalled();
+  });
+
+  it('falls back to personal settings when org slug is not resolved', () => {
+    mockRouteParams.brandSlug = undefined;
+    mockRouteParams.orgSlug = undefined;
+
+    render(<ProgressSidebarCard />);
+
+    expect(screen.getByRole('link', { name: /finish setup/i })).toHaveAttribute(
+      'href',
+      '/settings',
+    );
   });
 
   it('migrates legacy localStorage preference when db value is missing', async () => {

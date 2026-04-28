@@ -428,7 +428,11 @@ export default async function proxy(req: NextRequest, event: NextFetchEvent) {
     // Offline / no active session: skip all token-dependent logic and go
     // straight to the default seeded workspace (same as self-hosted mode).
     if (!hasDesktopToken) {
-      if (pathname === '/' || isBareProtectedPath(pathname)) {
+      if (
+        pathname === '/' ||
+        pathname === '/settings' ||
+        isBareProtectedPath(pathname)
+      ) {
         return redirectPreservingSearch(req, SEEDED_WORKSPACE_PATH);
       }
       return NextResponse.next();

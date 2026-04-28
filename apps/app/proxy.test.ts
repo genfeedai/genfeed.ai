@@ -241,6 +241,35 @@ describe('proxy', () => {
     expect(response.status).toBe(200);
   });
 
+  it('redirects desktop shell bare settings to seeded workspace without a desktop token', async () => {
+    delete process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+    delete process.env.CLERK_SECRET_KEY;
+    process.env.NEXT_PUBLIC_DESKTOP_SHELL = '1';
+
+    const { default: proxy } = await import(
+      `./proxy?desktop-shell-settings=${Date.now()}`
+    );
+
+    const response = await proxy(
+      {
+        cookies: { get: vi.fn() },
+        headers: { get: vi.fn(() => null) },
+        nextUrl: { pathname: '/settings', search: '' },
+        url: 'http://localhost:3000/settings',
+      } as never,
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/default/default/workspace/overview',
+    );
+
+    delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
+    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = 'pk_test';
+    process.env.CLERK_SECRET_KEY = 'sk_test';
+  });
+
   it('redirects signed-in legacy org settings routes to the canonical org settings path', async () => {
     const { default: proxy } = await import('./proxy');
 
