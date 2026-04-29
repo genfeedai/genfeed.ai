@@ -23,7 +23,7 @@ describe('SkillExecutorService', () => {
 
   const mockSkillsService = {
     assertBrandSkillEnabled: vi.fn(),
-    getSkillBySlug: vi.fn(),
+    getSkillById: vi.fn(),
   };
 
   const mockContentRunsService = {
@@ -72,7 +72,7 @@ describe('SkillExecutorService', () => {
   });
 
   it('executes a registered skill and tracks content run', async () => {
-    mockSkillsService.getSkillBySlug.mockResolvedValue({
+    mockSkillsService.getSkillById.mockResolvedValue({
       isEnabled: true,
       requiredProviders: [],
       slug: 'content-writing',
@@ -130,7 +130,7 @@ describe('SkillExecutorService', () => {
   });
 
   it('throws when skill does not exist', async () => {
-    mockSkillsService.getSkillBySlug.mockResolvedValue(null);
+    mockSkillsService.getSkillById.mockResolvedValue(null);
 
     await expect(
       service.execute('unknown-skill', baseContext),
@@ -138,7 +138,7 @@ describe('SkillExecutorService', () => {
   });
 
   it('throws when skill is disabled', async () => {
-    mockSkillsService.getSkillBySlug.mockResolvedValue({
+    mockSkillsService.getSkillById.mockResolvedValue({
       isEnabled: false,
       slug: 'content-writing',
     });
@@ -149,7 +149,7 @@ describe('SkillExecutorService', () => {
   });
 
   it('marks run as failed when handler throws', async () => {
-    mockSkillsService.getSkillBySlug.mockResolvedValue({
+    mockSkillsService.getSkillById.mockResolvedValue({
       isEnabled: true,
       requiredProviders: [],
       slug: 'content-writing',
@@ -173,7 +173,7 @@ describe('SkillExecutorService', () => {
   });
 
   it('resolves BYOK source when skill has required providers', async () => {
-    mockSkillsService.getSkillBySlug.mockResolvedValue({
+    mockSkillsService.getSkillById.mockResolvedValue({
       isEnabled: true,
       requiredProviders: [ByokProvider.OPENAI],
       slug: 'content-writing',
@@ -202,7 +202,7 @@ describe('SkillExecutorService', () => {
   });
 
   it('marks run as failed for unregistered handler slug', async () => {
-    mockSkillsService.getSkillBySlug.mockResolvedValue({
+    mockSkillsService.getSkillById.mockResolvedValue({
       isEnabled: true,
       requiredProviders: [],
       slug: 'video-editing',
@@ -223,7 +223,7 @@ describe('SkillExecutorService', () => {
   });
 
   it('records duration on both success and failure', async () => {
-    mockSkillsService.getSkillBySlug.mockResolvedValue({
+    mockSkillsService.getSkillById.mockResolvedValue({
       isEnabled: true,
       requiredProviders: [],
       slug: 'content-writing',
@@ -249,7 +249,7 @@ describe('SkillExecutorService', () => {
   });
 
   it('captures publish context when scheduling metadata is present', async () => {
-    mockSkillsService.getSkillBySlug.mockResolvedValue({
+    mockSkillsService.getSkillById.mockResolvedValue({
       isEnabled: true,
       requiredProviders: [],
       slug: 'content-writing',

@@ -92,7 +92,7 @@ describe('OfflinePage', () => {
       const retryButton = screen.getByRole('button', {
         name: 'Try Again',
       });
-      expect(retryButton).toHaveClass('bg-primary');
+      expect(retryButton).toHaveClass('bg-accent', 'text-accent-foreground');
     });
   });
 

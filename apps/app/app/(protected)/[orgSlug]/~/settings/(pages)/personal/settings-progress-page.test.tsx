@@ -125,8 +125,41 @@ vi.mock('next/link', () => ({
   ),
 }));
 
+function createLocalStorageMock() {
+  let store: Record<string, string> = {};
+
+  return {
+    clear: vi.fn(() => {
+      store = {};
+    }),
+    getItem: vi.fn((key: string) => store[key] ?? null),
+    key: vi.fn((index: number) => Object.keys(store)[index] ?? null),
+    removeItem: vi.fn((key: string) => {
+      delete store[key];
+    }),
+    setItem: vi.fn((key: string, value: string) => {
+      store[key] = value;
+    }),
+    get length() {
+      return Object.keys(store).length;
+    },
+  };
+}
+
 describe('SettingsProgressPage', () => {
   beforeEach(() => {
+    const localStorageMock = createLocalStorageMock();
+    Object.defineProperty(globalThis, 'localStorage', {
+      configurable: true,
+      value: localStorageMock,
+      writable: true,
+    });
+    Object.defineProperty(window, 'localStorage', {
+      configurable: true,
+      value: localStorageMock,
+      writable: true,
+    });
+
     mockCurrentUserState.currentUser = {
       id: 'user-123',
       settings: {

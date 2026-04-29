@@ -230,7 +230,10 @@ describe('ShopifyController', () => {
       const mockUser = { _id: '507f191e810c19729de860ee' };
       const mockBrand = { _id: '507f191e810c19729de860ee' };
       const mockApiKey = {
-        apiKey: { _id: '507f191e810c19729de860ee' },
+        apiKey: {
+          _id: '507f191e810c19729de860ee',
+          id: '507f191e810c19729de860ee',
+        },
         plainKey: 'gf_sk_success',
       };
 
@@ -244,7 +247,7 @@ describe('ShopifyController', () => {
       expect(loggerService.log).toHaveBeenCalledWith(
         expect.stringContaining('Account provisioned successfully'),
         expect.objectContaining({
-          apiKeyId: mockApiKey.apiKey._id,
+          apiKeyId: mockApiKey.apiKey.id,
           brandId: mockBrand._id,
           organizationId: mockOrg._id,
           shopDomain: 'success-shop.myshopify.com',

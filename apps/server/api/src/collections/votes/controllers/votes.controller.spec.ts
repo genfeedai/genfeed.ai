@@ -12,9 +12,9 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 }));
 
 import { VotesController } from '@api/collections/votes/controllers/votes.controller';
-import { VoteEntity } from '@api/collections/votes/entities/vote.entity';
 import { VotesService } from '@api/collections/votes/services/votes.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { VoteEntityModel } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -35,6 +35,10 @@ describe('VotesController', () => {
   };
 
   const validEntityId = '507f191e810c19729de860ea';
+  const validCreateVoteDto = {
+    entity: validEntityId,
+    entityModel: VoteEntityModel.INGREDIENT,
+  };
 
   beforeEach(async () => {
     service = {
@@ -69,12 +73,16 @@ describe('VotesController', () => {
 
     const result = await controller.create(
       mockReq,
-      { entity: validEntityId },
+      validCreateVoteDto,
       mockUser as any,
     );
 
     expect(service.create).toHaveBeenCalledOnce();
-    expect(service.create).toHaveBeenCalledWith(expect.any(VoteEntity));
+    expect(service.create).toHaveBeenCalledWith({
+      entityId: validEntityId,
+      entityModel: VoteEntityModel.INGREDIENT,
+      userId: mockUser.publicMetadata.user,
+    });
     expect(result).toEqual(mockVote);
   });
 
@@ -98,36 +106,42 @@ describe('VotesController', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
-  // ── New tests for vote type and DELETE endpoint ──
-
-  it('creates an upvote with type field', async () => {
-    const mockVote = { _id: '2', entity: validEntityId, type: 'up' };
+  it('creates a prompt vote with entity model', async () => {
+    const mockVote = {
+      _id: '2',
+      entity: validEntityId,
+      entityModel: VoteEntityModel.PROMPT,
+    };
     service.create.mockResolvedValue(mockVote);
 
     const result = await controller.create(
       mockReq,
-      { entity: validEntityId, type: 'up' },
+      { entity: validEntityId, entityModel: VoteEntityModel.PROMPT },
       mockUser as any,
     );
 
     expect(service.create).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'up' }),
+      expect.objectContaining({ entityModel: VoteEntityModel.PROMPT }),
     );
     expect(result).toEqual(mockVote);
   });
 
-  it('creates a downvote with type field', async () => {
-    const mockVote = { _id: '3', entity: validEntityId, type: 'down' };
+  it('creates an ingredient vote with entity model', async () => {
+    const mockVote = {
+      _id: '3',
+      entity: validEntityId,
+      entityModel: VoteEntityModel.INGREDIENT,
+    };
     service.create.mockResolvedValue(mockVote);
 
     const result = await controller.create(
       mockReq,
-      { entity: validEntityId, type: 'down' },
+      validCreateVoteDto,
       mockUser as any,
     );
 
     expect(service.create).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'down' }),
+      expect.objectContaining({ entityModel: VoteEntityModel.INGREDIENT }),
     );
     expect(result).toEqual(mockVote);
   });

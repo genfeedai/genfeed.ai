@@ -29,9 +29,17 @@ type RuntimeRequireContext = {
   workspaceRoot: string | null;
 };
 
+type WorkspacePackPaths = {
+  packageJson: string;
+  sourceEntry: string;
+};
+
 const API_PACKAGE_NAME = '@genfeedai/api';
-const WORKSPACE_PACK_PACKAGE_JSON_PATHS: Record<string, string> = {
-  '@genfeedai/ee-harness': 'ee/packages/harness/package.json',
+const WORKSPACE_PACK_PATHS: Record<string, WorkspacePackPaths> = {
+  '@genfeedai/ee-harness': {
+    packageJson: 'ee/packages/harness/package.json',
+    sourceEntry: 'ee/packages/harness/src/index.ts',
+  },
 };
 
 function isApiPackageJsonPath(packageJsonPath: string): boolean {
@@ -186,29 +194,39 @@ export class ContentHarnessService {
     try {
       return this.runtimeRequireContext.require(specifier) as PackModule;
     } catch (error: unknown) {
-      const packageJsonPath = this.getWorkspacePackPackageJsonPath(specifier);
+      const workspacePackPaths = this.getWorkspacePackPaths(specifier);
 
-      if (!packageJsonPath || !isMissingRequestedModule(error, specifier)) {
+      if (!workspacePackPaths || !isMissingRequestedModule(error, specifier)) {
         throw error;
       }
 
-      return createRequire(packageJsonPath)(specifier) as PackModule;
+      const workspaceRequire = createRequire(workspacePackPaths.packageJson);
+      try {
+        return workspaceRequire(specifier) as PackModule;
+      } catch {
+        return workspaceRequire(workspacePackPaths.sourceEntry) as PackModule;
+      }
     }
   }
 
-  private getWorkspacePackPackageJsonPath(specifier: string): string | null {
-    const packageJsonRelativePath =
-      WORKSPACE_PACK_PACKAGE_JSON_PATHS[specifier];
+  private getWorkspacePackPaths(specifier: string): WorkspacePackPaths | null {
+    const workspacePackPaths = WORKSPACE_PACK_PATHS[specifier];
 
-    if (!packageJsonRelativePath || !this.runtimeRequireContext.workspaceRoot) {
+    if (!workspacePackPaths || !this.runtimeRequireContext.workspaceRoot) {
       return null;
     }
 
     const packageJsonPath = resolve(
       this.runtimeRequireContext.workspaceRoot,
-      packageJsonRelativePath,
+      workspacePackPaths.packageJson,
+    );
+    const sourceEntryPath = resolve(
+      this.runtimeRequireContext.workspaceRoot,
+      workspacePackPaths.sourceEntry,
     );
 
-    return existsSync(packageJsonPath) ? packageJsonPath : null;
+    return existsSync(packageJsonPath) && existsSync(sourceEntryPath)
+      ? { packageJson: packageJsonPath, sourceEntry: sourceEntryPath }
+      : null;
   }
 }

@@ -47,6 +47,10 @@ vi.mock('@ui/topbars/end/TopbarEnd', () => ({
   default: () => <div data-testid="topbar-end">Topbar End</div>,
 }));
 
+vi.mock('@/components/cloud-sync-indicator/CloudSyncIndicator', () => ({
+  default: () => <div data-testid="cloud-sync-indicator" />,
+}));
+
 vi.mock('next/link', () => ({
   default: ({
     children,
@@ -70,7 +74,7 @@ vi.mock('next/navigation', () => ({
 const { default: AppProtectedTopbar } = await import('./AppProtectedTopbar');
 
 describe('AppProtectedTopbar', () => {
-  it('places the app switcher in the left topbar cluster before breadcrumbs', () => {
+  it('places breadcrumbs before the app switcher', () => {
     render(<AppProtectedTopbar currentApp="workspace" orgSlug="acme" />);
 
     const appSwitcher = screen.getByTestId('app-switcher');
@@ -79,12 +83,12 @@ describe('AppProtectedTopbar', () => {
     expect(appSwitcher).toBeInTheDocument();
     expect(breadcrumbs).toBeInTheDocument();
     expect(
-      appSwitcher.compareDocumentPosition(breadcrumbs) &
+      breadcrumbs.compareDocumentPosition(appSwitcher) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
 
-  it('renders the edition badge beside the terminal dock control', () => {
+  it('renders the cloud sync indicator beside the terminal dock control', () => {
     render(
       <AppProtectedTopbar
         currentApp="workspace"
@@ -97,11 +101,10 @@ describe('AppProtectedTopbar', () => {
     const terminalButton = screen.getByRole('button', {
       name: 'Open terminal dock',
     });
-    const editionBadge = screen.getByTestId('edition-badge');
+    const cloudSyncIndicator = screen.getByTestId('cloud-sync-indicator');
 
-    expect(editionBadge).toHaveTextContent('Core');
     expect(
-      terminalButton.compareDocumentPosition(editionBadge) &
+      terminalButton.compareDocumentPosition(cloudSyncIndicator) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });

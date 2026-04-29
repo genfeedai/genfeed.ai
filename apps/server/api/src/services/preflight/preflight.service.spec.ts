@@ -9,6 +9,22 @@ const createMockConfig = (envConfig: Record<string, unknown> = {}) => ({
   envConfig,
 });
 
+function stubReadyEnv(overrides: Record<string, string> = {}) {
+  const env = {
+    AWS_ACCESS_KEY_ID: 'test-key',
+    AWS_S3_BUCKET: 'test-bucket',
+    DATABASE_URL: 'mongodb://localhost',
+    INSTAGRAM_CLIENT_ID: 'ig-id',
+    INSTAGRAM_CLIENT_SECRET: 'ig-secret',
+    OPENAI_API_KEY: 'sk-test',
+    ...overrides,
+  };
+
+  for (const [key, value] of Object.entries(env)) {
+    vi.stubEnv(key, value);
+  }
+}
+
 describe('PreflightService', () => {
   let service: PreflightService;
 
@@ -28,6 +44,7 @@ describe('PreflightService', () => {
   });
 
   beforeEach(async () => {
+    stubReadyEnv();
     service = await buildModule({
       AWS_ACCESS_KEY_ID: 'test-key',
       AWS_S3_BUCKET: 'test-bucket',
@@ -45,7 +62,6 @@ describe('PreflightService', () => {
   });
 
   it('returns not_ready when env vars missing', async () => {
-    // Clear all env vars to ensure clean state
     vi.stubEnv('OPENAI_API_KEY', '');
     vi.stubEnv('AWS_S3_BUCKET', '');
     vi.stubEnv('AWS_ACCESS_KEY_ID', '');
@@ -60,7 +76,7 @@ describe('PreflightService', () => {
   });
 
   it('returns degraded when partial', async () => {
-    // Ensure storage env vars are absent so storage check fails
+    vi.stubEnv('OPENAI_API_KEY', 'sk');
     vi.stubEnv('AWS_S3_BUCKET', '');
     vi.stubEnv('AWS_ACCESS_KEY_ID', '');
     service = await buildModule({ OPENAI_API_KEY: 'sk' });
