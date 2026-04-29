@@ -18,6 +18,11 @@ import {
   shell,
 } from 'electron';
 import { DesktopAppShellService } from './main/app-shell.service';
+import {
+  buildDesktopFailureScreenUrl,
+  buildDesktopLoadingScreenUrl,
+  getDesktopBootBackground,
+} from './main/boot-screen';
 import { DesktopCloudService } from './main/cloud.service';
 import { DesktopConfigService } from './main/config.service';
 import { DesktopDatabaseService } from './main/database.service';
@@ -127,7 +132,7 @@ if (!acquiredSingleInstanceLock) {
 
 const createWindow = async (): Promise<void> => {
   mainWindow = new BrowserWindow({
-    backgroundColor: '#05070b',
+    backgroundColor: getDesktopBootBackground(),
     height: 980,
     minHeight: 780,
     minWidth: 1280,
@@ -149,12 +154,6 @@ const createWindow = async (): Promise<void> => {
 
   const isDev = !app.isPackaged;
 
-  if (isDev && !isSmokeTest) {
-    mainWindow.webContents.once('did-finish-load', () => {
-      mainWindow?.webContents.openDevTools({ mode: 'detach' });
-    });
-  }
-
   mainWindow.webContents.on('before-input-event', (_event, input) => {
     if (input.type !== 'keyDown') {
       return;
@@ -171,12 +170,6 @@ const createWindow = async (): Promise<void> => {
 
     if (isMacToggle || isWinToggle) {
       mainWindow?.webContents.toggleDevTools();
-    }
-  });
-
-  mainWindow.webContents.on('did-finish-load', () => {
-    if (isSmokeTest) {
-      setTimeout(() => app.exit(0), 250);
     }
   });
 
@@ -213,10 +206,19 @@ const createWindow = async (): Promise<void> => {
   appShellService.registerAuthHeaders(mainWindow);
 
   try {
+    await mainWindow.loadURL(buildDesktopLoadingScreenUrl());
     await appShellService.start();
     await mainWindow.loadURL(
       appShellService.buildInitialUrl(sessionService.getSession()),
     );
+
+    if (isDev && !isSmokeTest) {
+      mainWindow.webContents.openDevTools({ mode: 'detach' });
+    }
+
+    if (isSmokeTest) {
+      setTimeout(() => app.exit(0), 250);
+    }
   } catch (error) {
     telemetryService.captureException(error, {
       surface: 'app-shell',
@@ -227,11 +229,7 @@ const createWindow = async (): Promise<void> => {
       return;
     }
 
-    await mainWindow.loadURL(
-      `data:text/html,${encodeURIComponent(
-        '<html><body style="background:#05070b;color:#f5f7fa;font-family:Inter,system-ui,sans-serif;padding:32px"><h1>Genfeed Desktop</h1><p>Failed to start the embedded app shell.</p></body></html>',
-      )}`,
-    );
+    await mainWindow.loadURL(buildDesktopFailureScreenUrl());
   }
 
   buildDesktopMenu(mainWindow, () => {

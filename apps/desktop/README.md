@@ -35,6 +35,11 @@ bun dev:desktop
 API. When no desktop cloud session is present, the app shell runs in
 local/offline mode and skips cloud bootstrap requests.
 
+The first visible desktop paint is owned by Electron, not by `apps/app`: a black
+launch screen with an animated Genfeed mark is shown while the embedded app
+shell boots. If the shell cannot start, Electron keeps the same black surface
+and shows a short failure message instead of exposing an unstyled renderer.
+
 Offline generation still needs an AI provider. Electron stores local provider
 settings in its PGlite database and exposes generation actions to `apps/app`
 through `window.genfeedDesktop`. The Electron main process calls an
