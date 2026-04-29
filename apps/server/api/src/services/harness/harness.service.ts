@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { ConfigService } from '@api/config/config.service';
 import { isEEEnabled } from '@genfeedai/config';
 import {
@@ -165,7 +166,7 @@ export class ContentHarnessService {
     specifier: string,
   ): Promise<ContentHarnessPack | null> {
     try {
-      const imported = this.loadRuntimePackModule(specifier);
+      const imported = await this.loadRuntimePackModule(specifier);
       const candidate = imported.default ?? imported.CONTENT_HARNESS_PACK;
 
       if (!isContentHarnessPack(candidate)) {
@@ -189,7 +190,7 @@ export class ContentHarnessService {
     }
   }
 
-  private loadRuntimePackModule(specifier: string): PackModule {
+  private async loadRuntimePackModule(specifier: string): Promise<PackModule> {
     try {
       return this.runtimeRequireContext.require(specifier) as PackModule;
     } catch (error: unknown) {
@@ -203,7 +204,13 @@ export class ContentHarnessService {
       try {
         return workspaceRequire(specifier) as PackModule;
       } catch {
-        return workspaceRequire(workspacePackPaths.sourceEntry) as PackModule;
+        try {
+          return workspaceRequire(workspacePackPaths.sourceEntry) as PackModule;
+        } catch {
+          return (await import(
+            pathToFileURL(workspacePackPaths.sourceEntry).href
+          )) as PackModule;
+        }
       }
     }
   }
