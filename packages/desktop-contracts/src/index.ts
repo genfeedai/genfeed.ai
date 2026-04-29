@@ -28,6 +28,10 @@ export const DESKTOP_IPC_CHANNELS = {
   filesImportAssets: 'desktop:files:importAssets',
   filesRead: 'desktop:files:read',
   filesWrite: 'desktop:files:write',
+  generationClearProviderConfig: 'desktop:generation:clearProviderConfig',
+  generationGetProviderConfig: 'desktop:generation:getProviderConfig',
+  generationSaveProviderConfig: 'desktop:generation:saveProviderConfig',
+  generationTestProviderConfig: 'desktop:generation:testProviderConfig',
   getPlatform: 'desktop:getPlatform',
   notify: 'desktop:notify',
   openFileDialog: 'desktop:openFileDialog',
@@ -137,6 +141,35 @@ export interface IDesktopSyncState {
   pendingCount: number;
   retryingCount: number;
   runningCount: number;
+}
+
+/* ─── Local Generation ─── */
+
+export type DesktopGenerationProviderKind =
+  | 'lm-studio'
+  | 'ollama'
+  | 'openai-compatible';
+
+export interface IDesktopGenerationProviderConfig {
+  apiKey?: string;
+  baseUrl: string;
+  displayName?: string;
+  model: string;
+  provider: DesktopGenerationProviderKind;
+}
+
+export interface IDesktopGenerationProviderPublicConfig {
+  apiKeyConfigured: boolean;
+  baseUrl: string;
+  displayName?: string;
+  model: string;
+  provider: DesktopGenerationProviderKind;
+}
+
+export interface IDesktopGenerationProviderTestResult {
+  latencyMs: number;
+  ok: boolean;
+  outputPreview?: string;
 }
 
 /* ─── Recents ─── */
@@ -437,6 +470,16 @@ export interface IGenfeedDesktopBridge {
       relativePath: string,
       contents: string,
     ) => Promise<void>;
+  };
+  generation: {
+    clearProviderConfig: () => Promise<void>;
+    getProviderConfig: () => Promise<IDesktopGenerationProviderPublicConfig | null>;
+    saveProviderConfig: (
+      config: IDesktopGenerationProviderConfig,
+    ) => Promise<IDesktopGenerationProviderPublicConfig>;
+    testProviderConfig: (
+      config?: IDesktopGenerationProviderConfig,
+    ) => Promise<IDesktopGenerationProviderTestResult>;
   };
   notifications: {
     notify: (title: string, body: string) => Promise<void>;

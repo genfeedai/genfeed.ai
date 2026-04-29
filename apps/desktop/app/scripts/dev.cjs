@@ -3,11 +3,13 @@
 const { spawn } = require('node:child_process');
 
 const desktopRoot = process.cwd();
-const appRoot = `${desktopRoot}/../../app`;
-const appPort = process.env.GENFEED_DESKTOP_APP_PORT || '3000';
+const appRoot = desktopRoot;
+const appPort = process.env.GENFEED_DESKTOP_APP_PORT || '3230';
 const appUrl = `http://127.0.0.1:${appPort}`;
 const apiEndpoint =
-  process.env.NEXT_PUBLIC_API_ENDPOINT || 'http://localhost:3010/v1';
+  process.env.GENFEED_DESKTOP_API_URL ||
+  process.env.NEXT_PUBLIC_API_ENDPOINT ||
+  'http://localhost:3010/v1';
 const apiBaseUrl = apiEndpoint.replace(/\/v1\/?$/, '');
 
 function run(command, args, options = {}) {
@@ -57,15 +59,20 @@ async function main() {
     process.exit(nativeBuildCode);
   }
 
-  const appServer = run('bun', ['run', 'dev'], {
-    cwd: appRoot,
-    env: {
-      API_URL: apiBaseUrl,
-      NEXT_PUBLIC_DESKTOP_SHELL: '1',
-      NEXT_PUBLIC_API_ENDPOINT: apiEndpoint,
-      PORT: appPort,
+  const appServer = run(
+    'bunx',
+    ['next', 'dev', '--hostname', '127.0.0.1', '--port', appPort],
+    {
+      cwd: appRoot,
+      env: {
+        API_URL: apiBaseUrl,
+        GENFEED_DESKTOP_API_URL: apiEndpoint,
+        NEXT_PUBLIC_DESKTOP_SHELL: '1',
+        NEXT_PUBLIC_API_ENDPOINT: apiEndpoint,
+        PORT: appPort,
+      },
     },
-  });
+  );
 
   try {
     await waitForServer(appUrl);

@@ -109,6 +109,22 @@ const desktopBridge: IGenfeedDesktopBridge = {
         contents,
       ),
   },
+  generation: {
+    clearProviderConfig: async () =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.generationClearProviderConfig),
+    getProviderConfig: async () =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.generationGetProviderConfig),
+    saveProviderConfig: async (config) =>
+      ipcRenderer.invoke(
+        DESKTOP_IPC_CHANNELS.generationSaveProviderConfig,
+        config,
+      ),
+    testProviderConfig: async (config) =>
+      ipcRenderer.invoke(
+        DESKTOP_IPC_CHANNELS.generationTestProviderConfig,
+        config,
+      ),
+  },
   notifications: {
     notify: async (title, body) =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.notify, title, body),

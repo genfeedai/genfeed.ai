@@ -13,6 +13,7 @@ import type {
   IDesktopWorkflow,
   IDesktopWorkflowRunResult,
 } from '@genfeedai/desktop-contracts';
+import type { DesktopGenerationService } from './generation.service';
 import type { DesktopPrismaService } from './prisma.service';
 
 const LOCAL_ORGANIZATION_ID = 'desktop-local-org';
@@ -171,29 +172,6 @@ function buildHookVariants(topic: string): string[] {
   ];
 }
 
-function buildGeneratedContent(
-  params: IDesktopGenerationOptions,
-  hooks: string[],
-): string {
-  const platform = params.platform;
-  const type = params.type;
-  const source = params.sourceTrendTopic
-    ? `Trend: ${params.sourceTrendTopic}`
-    : `Prompt: ${params.prompt.trim()}`;
-
-  return [
-    `${platform.toUpperCase()} ${type.toUpperCase()}`,
-    '',
-    source,
-    '',
-    hooks[0],
-    '',
-    `1. State the constraint you are solving for.`,
-    `2. Show the system or workflow that makes it repeatable.`,
-    `3. End with one concrete next step the audience can steal today.`,
-  ].join('\n');
-}
-
 function parsePlatforms(value: string): string[] {
   try {
     const parsed = JSON.parse(value) as unknown;
@@ -215,6 +193,7 @@ export interface DesktopLocalIdentitySnapshot {
 export class DesktopLocalService implements IDesktopDataService {
   constructor(
     private readonly prismaService: DesktopPrismaService,
+    private readonly generationService: DesktopGenerationService,
     private readonly getIdentity: () => DesktopLocalIdentitySnapshot,
   ) {}
 
@@ -372,7 +351,8 @@ export class DesktopLocalService implements IDesktopDataService {
     const client = await this.prismaService.getClient();
     const now = toIso();
     const hooks = buildHookVariants(params.sourceTrendTopic ?? params.prompt);
-    const generatedContent = buildGeneratedContent(params, hooks);
+    const generatedContent =
+      await this.generationService.generateContent(params);
     const contentItemId = randomUUID();
 
     await client.desktopContentItem.create({

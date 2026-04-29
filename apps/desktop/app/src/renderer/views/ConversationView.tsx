@@ -1,10 +1,12 @@
 import type {
   DesktopContentPlatform,
   DesktopContentType,
+  DesktopGenerationProviderKind,
   DesktopPublishIntent,
   IDesktopCloudProject,
   IDesktopContentRunDraft,
   IDesktopGeneratedContent,
+  IDesktopGenerationProviderPublicConfig,
   IDesktopMessage,
   IDesktopPublishResult,
   IDesktopThread,
@@ -13,6 +15,7 @@ import type {
 import { ButtonVariant } from '@genfeedai/enums';
 import { DropZone } from '@renderer/components/DropZone';
 import { Button } from '@ui/primitives/button';
+import { Input } from '@ui/primitives/input';
 import {
   Select,
   SelectContent,
@@ -67,6 +70,31 @@ const PUBLISH_INTENT_OPTIONS: Array<{
   { label: 'Create as draft', value: 'draft' },
   { label: 'Publish after generate', value: 'publish' },
 ];
+
+const PROVIDER_PRESETS: Record<
+  DesktopGenerationProviderKind,
+  {
+    baseUrl: string;
+    displayName: string;
+    model: string;
+  }
+> = {
+  'lm-studio': {
+    baseUrl: 'http://localhost:1234/v1',
+    displayName: 'LM Studio',
+    model: 'local-model',
+  },
+  ollama: {
+    baseUrl: 'http://localhost:11434/v1',
+    displayName: 'Ollama',
+    model: 'llama3.1',
+  },
+  'openai-compatible': {
+    baseUrl: 'http://localhost:8000/v1',
+    displayName: 'OpenAI-compatible',
+    model: 'gpt-4o-mini',
+  },
+};
 
 function createId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
@@ -244,6 +272,23 @@ export const ConversationView = ({
     useState<DesktopPublishIntent>('review');
   const [error, setError] = useState<string | null>(null);
   const [isLoadingDrafts, setIsLoadingDrafts] = useState(false);
+  const [providerConfig, setProviderConfig] =
+    useState<IDesktopGenerationProviderPublicConfig | null>(null);
+  const [providerKind, setProviderKind] =
+    useState<DesktopGenerationProviderKind>('ollama');
+  const [providerBaseUrl, setProviderBaseUrl] = useState(
+    PROVIDER_PRESETS.ollama.baseUrl,
+  );
+  const [providerModel, setProviderModel] = useState(
+    PROVIDER_PRESETS.ollama.model,
+  );
+  const [providerApiKey, setProviderApiKey] = useState('');
+  const [providerDisplayName, setProviderDisplayName] = useState(
+    PROVIDER_PRESETS.ollama.displayName,
+  );
+  const [providerStatus, setProviderStatus] = useState<string | null>(null);
+  const [isSavingProvider, setIsSavingProvider] = useState(false);
+  const [isTestingProvider, setIsTestingProvider] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -290,6 +335,34 @@ export const ConversationView = ({
   useEffect(() => {
     void loadWorkspaceContext();
   }, [loadWorkspaceContext]);
+
+  const loadProviderConfig = useCallback(async () => {
+    const nextConfig =
+      await window.genfeedDesktop.generation.getProviderConfig();
+    setProviderConfig(nextConfig);
+
+    if (!nextConfig) {
+      return;
+    }
+
+    setProviderKind(nextConfig.provider);
+    setProviderBaseUrl(nextConfig.baseUrl);
+    setProviderModel(nextConfig.model);
+    setProviderDisplayName(
+      nextConfig.displayName ??
+        PROVIDER_PRESETS[nextConfig.provider].displayName,
+    );
+  }, []);
+
+  useEffect(() => {
+    void loadProviderConfig().catch((nextError: unknown) => {
+      setProviderStatus(
+        nextError instanceof Error
+          ? nextError.message
+          : 'Failed to load local provider.',
+      );
+    });
+  }, [loadProviderConfig]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -467,6 +540,91 @@ export const ConversationView = ({
     },
     [workspaceId],
   );
+
+  const applyProviderPreset = useCallback(
+    (nextProviderKind: DesktopGenerationProviderKind) => {
+      const preset = PROVIDER_PRESETS[nextProviderKind];
+      setProviderKind(nextProviderKind);
+      setProviderBaseUrl(preset.baseUrl);
+      setProviderModel(preset.model);
+      setProviderDisplayName(preset.displayName);
+      setProviderStatus(null);
+    },
+    [],
+  );
+
+  const buildProviderPayload = useCallback(
+    () => ({
+      ...(providerApiKey.trim()
+        ? {
+            apiKey: providerApiKey.trim(),
+          }
+        : {}),
+      baseUrl: providerBaseUrl.trim(),
+      displayName: providerDisplayName.trim() || undefined,
+      model: providerModel.trim(),
+      provider: providerKind,
+    }),
+    [
+      providerApiKey,
+      providerBaseUrl,
+      providerDisplayName,
+      providerKind,
+      providerModel,
+    ],
+  );
+
+  const handleSaveProvider = useCallback(async () => {
+    setIsSavingProvider(true);
+    setProviderStatus(null);
+
+    try {
+      const savedConfig =
+        await window.genfeedDesktop.generation.saveProviderConfig(
+          buildProviderPayload(),
+        );
+      setProviderConfig(savedConfig);
+      setProviderApiKey('');
+      setProviderStatus(
+        `Using ${savedConfig.displayName ?? savedConfig.model}.`,
+      );
+    } catch (nextError) {
+      setProviderStatus(
+        nextError instanceof Error
+          ? nextError.message
+          : 'Failed to save local provider.',
+      );
+    } finally {
+      setIsSavingProvider(false);
+    }
+  }, [buildProviderPayload]);
+
+  const handleTestProvider = useCallback(async () => {
+    setIsTestingProvider(true);
+    setProviderStatus(null);
+
+    try {
+      const result = await window.genfeedDesktop.generation.testProviderConfig(
+        buildProviderPayload(),
+      );
+      setProviderStatus(`Connected in ${String(result.latencyMs)}ms.`);
+    } catch (nextError) {
+      setProviderStatus(
+        nextError instanceof Error
+          ? nextError.message
+          : 'Local provider test failed.',
+      );
+    } finally {
+      setIsTestingProvider(false);
+    }
+  }, [buildProviderPayload]);
+
+  const handleClearProvider = useCallback(async () => {
+    await window.genfeedDesktop.generation.clearProviderConfig();
+    setProviderConfig(null);
+    setProviderApiKey('');
+    setProviderStatus('Local provider cleared.');
+  }, []);
 
   const handlePublishGeneratedContent = useCallback(async () => {
     if (!selectedDraft?.generatedContent) {
@@ -785,6 +943,113 @@ export const ConversationView = ({
                 </span>
               </Button>
             ))}
+          </div>
+
+          <div className="provider-panel">
+            <div className="conversation-panel-header">
+              <h3>Local Provider</h3>
+              <span
+                className={`status-badge ${
+                  providerConfig ? 'status-active' : 'status-pending'
+                }`}
+              >
+                {providerConfig ? 'Ready' : 'Required'}
+              </span>
+            </div>
+
+            <div className="provider-preset-group">
+              {(
+                Object.keys(PROVIDER_PRESETS) as DesktopGenerationProviderKind[]
+              ).map((presetKey) => (
+                <Button
+                  className={`provider-preset ${
+                    providerKind === presetKey ? 'active' : ''
+                  }`}
+                  key={presetKey}
+                  onClick={() => applyProviderPreset(presetKey)}
+                  type="button"
+                  variant={ButtonVariant.UNSTYLED}
+                >
+                  {PROVIDER_PRESETS[presetKey].displayName}
+                </Button>
+              ))}
+            </div>
+
+            <label className="provider-field" htmlFor="desktop-provider-url">
+              <span>Base URL</span>
+              <Input
+                id="desktop-provider-url"
+                onChange={(event) => setProviderBaseUrl(event.target.value)}
+                placeholder="http://localhost:11434/v1"
+                type="url"
+                value={providerBaseUrl}
+              />
+            </label>
+
+            <label className="provider-field" htmlFor="desktop-provider-model">
+              <span>Model</span>
+              <Input
+                id="desktop-provider-model"
+                onChange={(event) => setProviderModel(event.target.value)}
+                placeholder="llama3.1"
+                type="text"
+                value={providerModel}
+              />
+            </label>
+
+            <label
+              className="provider-field"
+              htmlFor="desktop-provider-api-key"
+            >
+              <span>
+                API key
+                {providerConfig?.apiKeyConfigured ? ' saved' : ''}
+              </span>
+              <Input
+                id="desktop-provider-api-key"
+                onChange={(event) => setProviderApiKey(event.target.value)}
+                placeholder={
+                  providerConfig?.apiKeyConfigured
+                    ? 'Leave blank to keep saved key'
+                    : 'Optional for local providers'
+                }
+                type="password"
+                value={providerApiKey}
+              />
+            </label>
+
+            <div className="provider-actions">
+              <Button
+                className="small"
+                disabled={isSavingProvider}
+                onClick={() => void handleSaveProvider()}
+                type="button"
+                variant={ButtonVariant.GHOST}
+              >
+                {isSavingProvider ? 'Saving...' : 'Save'}
+              </Button>
+              <Button
+                className="small"
+                disabled={isTestingProvider}
+                onClick={() => void handleTestProvider()}
+                type="button"
+                variant={ButtonVariant.GHOST}
+              >
+                {isTestingProvider ? 'Testing...' : 'Test'}
+              </Button>
+              <Button
+                className="small"
+                onClick={() => void handleClearProvider()}
+                type="button"
+                variant={ButtonVariant.GHOST}
+              >
+                Clear
+              </Button>
+            </div>
+
+            {providerStatus && (
+              <p className="muted-text provider-status">{providerStatus}</p>
+            )}
           </div>
         </aside>
 

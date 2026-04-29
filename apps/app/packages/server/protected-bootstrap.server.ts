@@ -74,6 +74,10 @@ export function hasUsableServerAuthToken(token: string): boolean {
   return Boolean(token) || isSelfHostedApp || !hasClerkKeys;
 }
 
+export function shouldSkipCloudBootstrap(token: string): boolean {
+  return process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1' && !token;
+}
+
 export const loadProtectedBootstrap = cache(
   async (): Promise<ProtectedBootstrapData | null> => {
     if (await isServerBootstrapBypassed()) {
@@ -81,6 +85,10 @@ export const loadProtectedBootstrap = cache(
     }
 
     const token = await getServerAuthToken();
+
+    if (shouldSkipCloudBootstrap(token)) {
+      return null;
+    }
 
     if (!hasUsableServerAuthToken(token)) {
       return null;

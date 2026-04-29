@@ -5,6 +5,7 @@ import type {
   IDesktopContentRunDraft,
   IDesktopDataService,
   IDesktopGenerationOptions,
+  IDesktopGenerationProviderConfig,
 } from '@genfeedai/desktop-contracts';
 import { DESKTOP_IPC_CHANNELS } from '@genfeedai/desktop-contracts';
 import {
@@ -21,6 +22,7 @@ import { DesktopConfigService } from './main/config.service';
 import { DesktopDatabaseService } from './main/database.service';
 import { DesktopDraftsService } from './main/drafts.service';
 import { DesktopFilesService } from './main/files.service';
+import { DesktopGenerationService } from './main/generation.service';
 import { DesktopLocalService } from './main/local.service';
 import { LocalIdentityService } from './main/local-identity.service';
 import { buildDesktopMenu } from './main/menu.service';
@@ -44,15 +46,20 @@ const sessionService = new DesktopSessionService(database, environment);
 const workspaceService = new DesktopWorkspaceService(database);
 const filesService = new DesktopFilesService(workspaceService);
 const syncService = new DesktopSyncService(database);
+const generationService = new DesktopGenerationService(database);
 const cloudService = new DesktopCloudService(environment, () =>
   sessionService.getSession(),
 );
-const localService = new DesktopLocalService(prismaService, () => ({
-  clerkId: localIdentityService.getClerkId(),
-  localUserId: localIdentityService.getLocalUserId(),
-  userEmail: sessionService.getSession()?.userEmail,
-  userName: sessionService.getSession()?.userName,
-}));
+const localService = new DesktopLocalService(
+  prismaService,
+  generationService,
+  () => ({
+    clerkId: localIdentityService.getClerkId(),
+    localUserId: localIdentityService.getLocalUserId(),
+    userEmail: sessionService.getSession()?.userEmail,
+    userName: sessionService.getSession()?.userName,
+  }),
+);
 const draftsService = new DesktopDraftsService(workspaceService);
 const appShellService = new DesktopAppShellService(
   environment,
@@ -308,8 +315,13 @@ const registerIpcHandlers = (): void => {
   );
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.cloudGenerateContent,
-    async (_event: unknown, params: IDesktopGenerationOptions) =>
-      getDataService().generateContent(params),
+    async (_event: unknown, params: IDesktopGenerationOptions) => {
+      try {
+        return await getDataService().generateContent(params);
+      } finally {
+        await emitBootstrap();
+      }
+    },
   );
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.cloudGetTrends,
@@ -431,6 +443,25 @@ const registerIpcHandlers = (): void => {
       await emitBootstrap();
       return importedAssets;
     },
+  );
+  ipcMain.handle(DESKTOP_IPC_CHANNELS.generationGetProviderConfig, async () =>
+    generationService.getPublicProviderConfig(),
+  );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.generationSaveProviderConfig,
+    async (_event: unknown, config: IDesktopGenerationProviderConfig) =>
+      generationService.saveProviderConfig(config),
+  );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.generationClearProviderConfig,
+    async () => {
+      await generationService.clearProviderConfig();
+    },
+  );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.generationTestProviderConfig,
+    async (_event: unknown, config?: IDesktopGenerationProviderConfig) =>
+      generationService.testProviderConfig(config),
   );
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.notify,

@@ -44,6 +44,7 @@ body {
 }
 
 button,
+input,
 textarea {
   font: inherit;
 }
@@ -535,6 +536,79 @@ textarea {
   color: var(--danger);
   cursor: pointer;
   padding: 0;
+}
+
+.provider-panel {
+  border-top: 1px solid var(--card-border);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 14px;
+}
+
+.provider-preset-group {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.provider-preset {
+  background: rgba(4, 10, 18, 0.45);
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 11px;
+  min-height: 32px;
+  padding: 6px 8px;
+}
+
+.provider-preset:hover,
+.provider-preset.active {
+  background: var(--accent-soft);
+  border-color: rgba(114, 240, 194, 0.28);
+  color: var(--accent);
+}
+
+.provider-field {
+  color: var(--muted);
+  display: flex;
+  flex-direction: column;
+  font-size: 11px;
+  font-weight: 600;
+  gap: 6px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.provider-field input {
+  background: rgba(4, 10, 18, 0.8);
+  border: 1px solid rgba(141, 167, 188, 0.15);
+  border-radius: 10px;
+  color: var(--text);
+  font-size: 12px;
+  letter-spacing: 0;
+  min-width: 0;
+  padding: 9px 10px;
+  text-transform: none;
+  width: 100%;
+}
+
+.provider-field input:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.provider-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.provider-status {
+  font-size: 12px;
+  margin: 0;
+  word-break: break-word;
 }
 
 .generating-badge {

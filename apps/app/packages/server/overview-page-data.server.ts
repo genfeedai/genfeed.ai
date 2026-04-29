@@ -3,6 +3,7 @@ import 'server-only';
 import {
   getServerAuthToken,
   hasUsableServerAuthToken,
+  shouldSkipCloudBootstrap,
 } from '@app-server/protected-bootstrap.server';
 import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';
 import { AuthService } from '@services/auth/auth.service';
@@ -27,6 +28,24 @@ export interface OverviewPageData {
 export const loadOverviewPageData = cache(
   async (): Promise<OverviewPageData> => {
     const token = await getServerAuthToken();
+
+    if (shouldSkipCloudBootstrap(token)) {
+      return {
+        activeRuns: [],
+        analytics: {},
+        reviewInbox: {
+          approvedCount: 0,
+          changesRequestedCount: 0,
+          pendingCount: 0,
+          readyCount: 0,
+          recentItems: [],
+          rejectedCount: 0,
+        },
+        runs: [],
+        stats: null,
+        timeSeriesData: [],
+      };
+    }
 
     if (!hasUsableServerAuthToken(token)) {
       return {
