@@ -302,13 +302,13 @@
   "dependencies": {
     "@clerk/clerk-js": "6.7.7",
     "@genfeedai/ui": "workspace:*",
-    "@sentry/node": "10.50.0"
+    "@sentry/node": "10.51.0"
   },
   "description": "Content copilot for Genfeed.ai campaigns in VS Code/Cursor",
   "devDependencies": {
     "@biomejs/biome": "2.4.13",
     "@types/node": "25.6.0",
-    "@types/vscode": "1.116.0",
+    "@types/vscode": "1.118.0",
     "@vscode/vsce": "3.9.1",
     "bun-types": "latest",
     "esbuild": "0.28.0",

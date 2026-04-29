@@ -47,8 +47,7 @@
     "@genfeedai/desktop-core": "workspace:*",
     "@genfeedai/desktop-prisma": "workspace:*",
     "@genfeedai/enums": "workspace:*",
-    "@genfeedai/workflows": "workspace:*",
-    "@sentry/browser": "10.50.0",
+    "@sentry/browser": "10.51.0",
     "next": "16.2.4",
     "react": "19.2.5",
     "react-dom": "19.2.5"
