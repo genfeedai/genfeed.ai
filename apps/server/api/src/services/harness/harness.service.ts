@@ -79,15 +79,14 @@ function createRuntimeRequireContext(): RuntimeRequireContext {
   };
 }
 
-function isMissingRequestedModule(error: unknown, specifier: string): boolean {
+function isModuleResolutionError(error: unknown): boolean {
   if (!(error instanceof Error)) {
     return false;
   }
 
-  return (
-    (error as NodeJS.ErrnoException).code === 'MODULE_NOT_FOUND' &&
-    error.message.includes(`'${specifier}'`)
-  );
+  const code = (error as NodeJS.ErrnoException).code;
+
+  return code === 'MODULE_NOT_FOUND' || code === 'ERR_MODULE_NOT_FOUND';
 }
 
 @Injectable()
@@ -196,7 +195,7 @@ export class ContentHarnessService {
     } catch (error: unknown) {
       const workspacePackPaths = this.getWorkspacePackPaths(specifier);
 
-      if (!workspacePackPaths || !isMissingRequestedModule(error, specifier)) {
+      if (!workspacePackPaths || !isModuleResolutionError(error)) {
         throw error;
       }
 
