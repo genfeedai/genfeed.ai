@@ -58,13 +58,17 @@ export function AgentRuntimeSelector({
   providerSummary,
   selectedRuntimeKey,
   onRuntimeChange,
-}: AgentRuntimeSelectorProps): ReactElement {
+}: AgentRuntimeSelectorProps): ReactElement | null {
   const [open, setOpen] = useState(false);
   const selectedRuntime = useMemo(
     () =>
       options.find((option) => option.key === selectedRuntimeKey) ?? options[0],
     [options, selectedRuntimeKey],
   );
+
+  if (!selectedRuntime) {
+    return null;
+  }
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

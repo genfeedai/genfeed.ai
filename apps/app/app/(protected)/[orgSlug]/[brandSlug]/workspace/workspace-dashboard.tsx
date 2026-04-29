@@ -64,6 +64,10 @@ function formatRelativeTime(date: string): string {
   return `${Math.floor(hours / 24)}d ago`;
 }
 
+function formatOptionalRelativeTime(date?: string | null): string {
+  return date ? formatRelativeTime(date) : 'unknown';
+}
+
 function formatStatusLabel(status: AgentExecutionStatus): string {
   return status.charAt(0).toUpperCase() + status.slice(1);
 }
@@ -634,11 +638,15 @@ export function DashboardRecentActivity({
                   <TableRow key={task.id}>
                     <TableCell className="w-px whitespace-nowrap pr-2 align-top pt-2.5">
                       <span
+                        aria-hidden="true"
                         className={cn(
                           'inline-block h-1.5 w-1.5 rounded-full',
                           getTaskStatusClass(task),
                         )}
                       />
+                      <span className="sr-only">
+                        {task.status.replaceAll('_', ' ')}
+                      </span>
                     </TableCell>
                     <TableCell className="max-w-0 w-full">
                       <div className="truncate text-[12px] text-foreground">
@@ -655,10 +663,8 @@ export function DashboardRecentActivity({
                       ) : null}
                     </TableCell>
                     <TableCell className="w-px whitespace-nowrap text-right text-[10px] text-foreground/35">
-                      {formatRelativeTime(
-                        task.updatedAt ??
-                          task.createdAt ??
-                          new Date().toISOString(),
+                      {formatOptionalRelativeTime(
+                        task.updatedAt ?? task.createdAt,
                       )}
                     </TableCell>
                   </TableRow>
@@ -744,18 +750,14 @@ export function DashboardRecentTasks({
                     </div>
                     <div className="truncate text-[11px] text-foreground/45">
                       {task.status.replaceAll('_', ' ')} &middot;{' '}
-                      {formatRelativeTime(
-                        task.updatedAt ??
-                          task.createdAt ??
-                          new Date().toISOString(),
+                      {formatOptionalRelativeTime(
+                        task.updatedAt ?? task.createdAt,
                       )}
                     </div>
                   </TableCell>
                   <TableCell className="w-px whitespace-nowrap text-right text-[10px] text-foreground/35 align-top pt-2.5">
-                    {formatRelativeTime(
-                      task.updatedAt ??
-                        task.createdAt ??
-                        new Date().toISOString(),
+                    {formatOptionalRelativeTime(
+                      task.updatedAt ?? task.createdAt,
                     )}
                   </TableCell>
                 </TableRow>

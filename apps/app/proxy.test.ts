@@ -242,32 +242,53 @@ describe('proxy', () => {
   });
 
   it('redirects desktop shell bare settings to seeded workspace without a desktop token', async () => {
-    delete process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-    delete process.env.CLERK_SECRET_KEY;
-    process.env.NEXT_PUBLIC_DESKTOP_SHELL = '1';
+    const previousDesktopShell = process.env.NEXT_PUBLIC_DESKTOP_SHELL;
+    const previousPublishableKey =
+      process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+    const previousSecretKey = process.env.CLERK_SECRET_KEY;
 
-    const { default: proxy } = await import(
-      `./proxy?desktop-shell-settings=${Date.now()}`
-    );
+    try {
+      delete process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+      delete process.env.CLERK_SECRET_KEY;
+      process.env.NEXT_PUBLIC_DESKTOP_SHELL = '1';
 
-    const response = await proxy(
-      {
-        cookies: { get: vi.fn() },
-        headers: { get: vi.fn(() => null) },
-        nextUrl: { pathname: '/settings', search: '' },
-        url: 'http://localhost:3000/settings',
-      } as never,
-      {} as never,
-    );
+      const { default: proxy } = await import(
+        `./proxy?desktop-shell-settings=${Date.now()}`
+      );
 
-    expect(response.status).toBe(307);
-    expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/default/default/workspace/overview',
-    );
+      const response = await proxy(
+        {
+          cookies: { get: vi.fn() },
+          headers: { get: vi.fn(() => null) },
+          nextUrl: { pathname: '/settings', search: '' },
+          url: 'http://localhost:3000/settings',
+        } as never,
+        {} as never,
+      );
 
-    delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
-    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = 'pk_test';
-    process.env.CLERK_SECRET_KEY = 'sk_test';
+      expect(response.status).toBe(307);
+      expect(response.headers.get('location')).toBe(
+        'http://localhost:3000/default/default/workspace/overview',
+      );
+    } finally {
+      if (previousDesktopShell === undefined) {
+        delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
+      } else {
+        process.env.NEXT_PUBLIC_DESKTOP_SHELL = previousDesktopShell;
+      }
+
+      if (previousPublishableKey === undefined) {
+        delete process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+      } else {
+        process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = previousPublishableKey;
+      }
+
+      if (previousSecretKey === undefined) {
+        delete process.env.CLERK_SECRET_KEY;
+      } else {
+        process.env.CLERK_SECRET_KEY = previousSecretKey;
+      }
+    }
   });
 
   it('redirects signed-in legacy org settings routes to the canonical org settings path', async () => {

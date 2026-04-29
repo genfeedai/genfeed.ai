@@ -4,7 +4,7 @@ import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { AppSwitcherItemConfig } from '@genfeedai/interfaces';
 import type { AppSwitcherProps } from '@genfeedai/props/ui/app-switcher.props';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   HiOutlineChartBarSquare,
   HiOutlineCog6Tooth,
@@ -116,15 +116,11 @@ export function AppSwitcher({
   orgSlug,
   preservedSearch,
 }: AppSwitcherProps) {
-  const router = useRouter();
-
   const activeApp = ALL_APPS.find((app) => app.id === currentApp);
   const ActiveIcon = activeApp?.icon ?? HiOutlineSquares2X2;
 
-  function handleAppSelect(app: AppSwitcherItemConfig) {
-    router.push(
-      withPreservedSearch(app.route(orgSlug, brandSlug), preservedSearch),
-    );
+  function getAppHref(app: AppSwitcherItemConfig) {
+    return withPreservedSearch(app.route(orgSlug, brandSlug), preservedSearch);
   }
 
   return (
@@ -150,18 +146,27 @@ export function AppSwitcher({
           return (
             <SimpleTooltip key={app.id} label={app.label} position="left">
               <DropdownMenuItem
+                asChild
                 className={cn(
                   'flex items-center justify-center px-3 py-2',
                   isActive && 'bg-hover',
                 )}
-                onClick={() => handleAppSelect(app)}
               >
-                <Icon
-                  className={cn(
-                    'h-4 w-4',
-                    isActive ? 'text-foreground' : 'text-foreground/55',
-                  )}
-                />
+                <Link
+                  href={getAppHref(app)}
+                  aria-current={isActive ? 'page' : undefined}
+                  aria-label={app.label}
+                  data-active={isActive ? 'true' : undefined}
+                >
+                  <Icon
+                    aria-hidden="true"
+                    className={cn(
+                      'h-4 w-4',
+                      isActive ? 'text-foreground' : 'text-foreground/55',
+                    )}
+                  />
+                  <span className="sr-only">{app.label}</span>
+                </Link>
               </DropdownMenuItem>
             </SimpleTooltip>
           );
@@ -176,18 +181,27 @@ export function AppSwitcher({
           return (
             <SimpleTooltip key={app.id} label={app.label} position="left">
               <DropdownMenuItem
+                asChild
                 className={cn(
                   'flex items-center justify-center px-3 py-2',
                   isActive && 'bg-hover',
                 )}
-                onClick={() => handleAppSelect(app)}
               >
-                <Icon
-                  className={cn(
-                    'h-4 w-4',
-                    isActive ? 'text-foreground' : 'text-foreground/55',
-                  )}
-                />
+                <Link
+                  href={getAppHref(app)}
+                  aria-current={isActive ? 'page' : undefined}
+                  aria-label={app.label}
+                  data-active={isActive ? 'true' : undefined}
+                >
+                  <Icon
+                    aria-hidden="true"
+                    className={cn(
+                      'h-4 w-4',
+                      isActive ? 'text-foreground' : 'text-foreground/55',
+                    )}
+                  />
+                  <span className="sr-only">{app.label}</span>
+                </Link>
               </DropdownMenuItem>
             </SimpleTooltip>
           );

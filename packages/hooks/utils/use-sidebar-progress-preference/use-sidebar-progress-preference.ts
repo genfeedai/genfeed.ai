@@ -10,14 +10,27 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 const SIDEBAR_PROGRESS_VISIBLE_STORAGE_KEY = 'genfeed:sidebar:progress-visible';
 
-function getStoredVisibility(): boolean | undefined {
+function getSidebarProgressVisibleStorageKey(
+  userId?: string | null,
+): string | undefined {
+  const normalizedUserId = userId?.trim();
+
+  return normalizedUserId
+    ? `${SIDEBAR_PROGRESS_VISIBLE_STORAGE_KEY}:${normalizedUserId}`
+    : undefined;
+}
+
+function getStoredVisibility(userId?: string | null): boolean | undefined {
   if (typeof window === 'undefined') {
     return undefined;
   }
 
-  const stored = window.localStorage.getItem(
-    SIDEBAR_PROGRESS_VISIBLE_STORAGE_KEY,
-  );
+  const storageKey = getSidebarProgressVisibleStorageKey(userId);
+  if (!storageKey) {
+    return undefined;
+  }
+
+  const stored = window.localStorage.getItem(storageKey);
 
   if (stored === null) {
     return undefined;
@@ -36,9 +49,10 @@ export interface UseSidebarProgressPreferenceReturn {
 
 export function useSidebarProgressPreference(): UseSidebarProgressPreferenceReturn {
   const { currentUser, mutateUser } = useCurrentUser();
+  const currentUserId = currentUser?.id;
   const [isSaving, setIsSaving] = useState(false);
   const [localVisibility, setLocalVisibility] = useState<boolean | undefined>(
-    getStoredVisibility,
+    undefined,
   );
 
   const getUsersService = useAuthedService((token: string) =>
@@ -49,11 +63,10 @@ export function useSidebarProgressPreference(): UseSidebarProgressPreferenceRetu
     async (next: boolean) => {
       setLocalVisibility(next);
 
-      if (typeof window !== 'undefined') {
-        window.localStorage.setItem(
-          SIDEBAR_PROGRESS_VISIBLE_STORAGE_KEY,
-          String(next),
-        );
+      const storageKey = getSidebarProgressVisibleStorageKey(currentUser?.id);
+
+      if (typeof window !== 'undefined' && storageKey) {
+        window.localStorage.setItem(storageKey, String(next));
       }
 
       if (!currentUser) {
@@ -89,25 +102,28 @@ export function useSidebarProgressPreference(): UseSidebarProgressPreferenceRetu
   );
 
   useEffect(() => {
-    const persistedVisibility = currentUser?.settings?.isSidebarProgressVisible;
-
-    if (persistedVisibility === undefined || persistedVisibility === null) {
+    const storedVisibility = getStoredVisibility(currentUserId);
+    if (storedVisibility !== undefined) {
+      setLocalVisibility(storedVisibility);
       return;
     }
 
-    if (localVisibility !== undefined && persistedVisibility) {
+    const persistedVisibility = currentUser?.settings?.isSidebarProgressVisible;
+
+    if (persistedVisibility === undefined || persistedVisibility === null) {
+      setLocalVisibility(undefined);
       return;
     }
 
     setLocalVisibility(persistedVisibility);
 
     if (typeof window !== 'undefined') {
-      window.localStorage.setItem(
-        SIDEBAR_PROGRESS_VISIBLE_STORAGE_KEY,
-        String(persistedVisibility),
-      );
+      const storageKey = getSidebarProgressVisibleStorageKey(currentUserId);
+      if (storageKey) {
+        window.localStorage.setItem(storageKey, String(persistedVisibility));
+      }
     }
-  }, [currentUser?.settings?.isSidebarProgressVisible, localVisibility]);
+  }, [currentUser?.settings?.isSidebarProgressVisible, currentUserId]);
 
   return useMemo(
     () => ({

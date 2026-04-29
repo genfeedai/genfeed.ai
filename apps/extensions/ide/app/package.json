@@ -352,7 +352,7 @@
     "lint:fix": "biome check --apply ./src",
     "package": "bun run build && bash ./scripts/package-vsix.sh",
     "publish": "vsce publish",
-    "test": "find ./src -name '*.test.ts' ! -name '*.e2e.test.ts' -print0 | xargs -0 bun test --timeout 15000",
+    "test": "find ./src -name '*.test.ts' ! -name '*.e2e.test.ts' -print0 | xargs -0 -r bun test --timeout 15000",
     "test:e2e": "find ./src -name '*.e2e.test.ts' -print0 | xargs -0 bun test --timeout 15000",
     "type-check": "tsc --noEmit",
     "vscode:prepublish": "bun run build",
