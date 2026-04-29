@@ -29,6 +29,7 @@ export const DESKTOP_IPC_CHANNELS = {
   filesRead: 'desktop:files:read',
   filesWrite: 'desktop:files:write',
   generationClearProviderConfig: 'desktop:generation:clearProviderConfig',
+  generationGenerateWorkflow: 'desktop:generation:generateWorkflow',
   generationGetProviderConfig: 'desktop:generation:getProviderConfig',
   generationSaveProviderConfig: 'desktop:generation:saveProviderConfig',
   generationTestProviderConfig: 'desktop:generation:testProviderConfig',
@@ -170,6 +171,16 @@ export interface IDesktopGenerationProviderTestResult {
   latencyMs: number;
   ok: boolean;
   outputPreview?: string;
+}
+
+export interface IDesktopWorkflowGenerationOptions {
+  description: string;
+  targetPlatforms?: string[];
+}
+
+export interface IDesktopWorkflowGenerationResult {
+  tokensUsed: number;
+  workflow: Record<string, unknown>;
 }
 
 /* ─── Recents ─── */
@@ -473,6 +484,9 @@ export interface IGenfeedDesktopBridge {
   };
   generation: {
     clearProviderConfig: () => Promise<void>;
+    generateWorkflow: (
+      params: IDesktopWorkflowGenerationOptions,
+    ) => Promise<IDesktopWorkflowGenerationResult>;
     getProviderConfig: () => Promise<IDesktopGenerationProviderPublicConfig | null>;
     saveProviderConfig: (
       config: IDesktopGenerationProviderConfig,

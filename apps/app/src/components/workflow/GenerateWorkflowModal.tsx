@@ -14,6 +14,7 @@ import { Textarea } from '@ui/primitives/textarea';
 import { clsx } from 'clsx';
 import { AlertCircle, Loader2, Sparkles, X } from 'lucide-react';
 import { memo, useCallback, useState } from 'react';
+import { getDesktopBridge, isDesktopShell } from '@/lib/desktop/runtime';
 import { useWorkflowStore } from '@/store/workflowStore';
 
 // =============================================================================
@@ -112,6 +113,37 @@ const EXAMPLE_PROMPTS = [
   'Create a lip-synced avatar video from an audio file',
 ];
 
+async function generateWorkflow(params: {
+  contentLevel: ContentLevel;
+  description: string;
+  model: string;
+}): Promise<GeneratedWorkflow> {
+  const desktopBridge = getDesktopBridge();
+
+  if (isDesktopShell() && desktopBridge) {
+    const result = await desktopBridge.generation.generateWorkflow({
+      description: params.description,
+    });
+
+    return result.workflow as unknown as GeneratedWorkflow;
+  }
+
+  const response = await fetch('/v1/core/workflows/generate', {
+    body: JSON.stringify(params),
+    headers: { 'Content-Type': 'application/json' },
+    method: 'POST',
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.message ?? 'Failed to generate workflow');
+  }
+
+  const data = await response.json();
+
+  return (data?.data?.workflow ?? data.workflow ?? data) as GeneratedWorkflow;
+}
+
 // =============================================================================
 // MAIN COMPONENT
 // =============================================================================
@@ -139,18 +171,11 @@ function GenerateWorkflowModalComponent() {
     setGeneratedWorkflow(null);
 
     try {
-      const response = await fetch('/v1/core/workflows/generate', {
-        body: JSON.stringify({ contentLevel, description, model }),
-        headers: { 'Content-Type': 'application/json' },
-        method: 'POST',
+      const workflow = await generateWorkflow({
+        contentLevel,
+        description,
+        model,
       });
-
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.message ?? 'Failed to generate workflow');
-      }
-
-      const workflow = await response.json();
       setGeneratedWorkflow(workflow);
     } catch (err) {
       setError(

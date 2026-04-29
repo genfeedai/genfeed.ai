@@ -4,7 +4,14 @@ import type {
   IDesktopGenerationProviderConfig,
   IDesktopGenerationProviderPublicConfig,
   IDesktopGenerationProviderTestResult,
+  IDesktopWorkflowGenerationOptions,
+  IDesktopWorkflowGenerationResult,
 } from '@genfeedai/desktop-contracts';
+import {
+  buildWorkflowGenerationMessages,
+  DEFAULT_WORKFLOW_GENERATION_NODE_TYPES,
+  parseWorkflowGenerationResponse,
+} from '@genfeedai/workflows';
 import type { DesktopDatabaseService, SyncJobRow } from './database.service';
 
 const PROVIDER_CONFIG_KEY = 'desktop.generation.provider';
@@ -294,6 +301,23 @@ export class DesktopGenerationService {
       );
       throw error;
     }
+  }
+
+  async generateWorkflow(
+    params: IDesktopWorkflowGenerationOptions,
+  ): Promise<IDesktopWorkflowGenerationResult> {
+    const config = await this.requireProviderConfig();
+    const messages = buildWorkflowGenerationMessages({
+      availableNodeTypes: DEFAULT_WORKFLOW_GENERATION_NODE_TYPES,
+      description: params.description,
+      targetPlatforms: params.targetPlatforms,
+    });
+    const raw = await this.requestCompletion(config, messages);
+
+    return {
+      tokensUsed: 0,
+      workflow: parseWorkflowGenerationResponse(raw).workflow,
+    };
   }
 
   private async createGenerationJob(

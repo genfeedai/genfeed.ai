@@ -35,6 +35,8 @@
       "@genfeedai/types": ["../../../packages/types/src/index.ts"],
       "@genfeedai/types/*": ["../../../packages/types/src/*"],
       "@genfeedai/ui": ["../../../packages/ui/src/index.ts"],
+      "@genfeedai/workflows": ["../../../packages/workflows/src/index.ts"],
+      "@genfeedai/workflows/*": ["../../../packages/workflows/src/*"],
       "@genfeedai/ui/*": [
         "../../../packages/ui/src/*",
         "../../../packages/ui/src/components/*"

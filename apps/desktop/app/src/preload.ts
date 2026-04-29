@@ -112,6 +112,11 @@ const desktopBridge: IGenfeedDesktopBridge = {
   generation: {
     clearProviderConfig: async () =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.generationClearProviderConfig),
+    generateWorkflow: async (params) =>
+      ipcRenderer.invoke(
+        DESKTOP_IPC_CHANNELS.generationGenerateWorkflow,
+        params,
+      ),
     getProviderConfig: async () =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.generationGetProviderConfig),
     saveProviderConfig: async (config) =>

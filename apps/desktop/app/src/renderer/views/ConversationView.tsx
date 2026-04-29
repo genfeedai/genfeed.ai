@@ -71,6 +71,8 @@ const PUBLISH_INTENT_OPTIONS: Array<{
   { label: 'Publish after generate', value: 'publish' },
 ];
 
+const UNLINKED_PROJECT_VALUE = '__not_linked__';
+
 const PROVIDER_PRESETS: Record<
   DesktopGenerationProviderKind,
   {
@@ -1132,14 +1134,20 @@ export const ConversationView = ({
                 Cloud project
               </label>
               <Select
-                onValueChange={(value) => void handleProjectLink(value)}
-                value={workspace?.linkedProjectId ?? ''}
+                onValueChange={(value) =>
+                  void handleProjectLink(
+                    value === UNLINKED_PROJECT_VALUE ? '' : value,
+                  )
+                }
+                value={workspace?.linkedProjectId ?? UNLINKED_PROJECT_VALUE}
               >
                 <SelectTrigger id="desktop-project-link">
                   <SelectValue placeholder="Not linked" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Not linked</SelectItem>
+                  <SelectItem value={UNLINKED_PROJECT_VALUE}>
+                    Not linked
+                  </SelectItem>
                   {projects.map((project) => (
                     <SelectItem key={project.id} value={project.id}>
                       {project.name}

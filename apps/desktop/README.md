@@ -1,6 +1,6 @@
 # Desktop App
 
-`apps/desktop/app` is the standalone Genfeed desktop Content OS shell for the macOS-first installed app release.
+`apps/desktop/app` is the Electron native shell for the macOS-first installed app release. It embeds the real `apps/app` Next.js frontend and provides desktop-local backend actions through typed IPC.
 
 The desktop app must be useful by itself. A fresh source checkout can run the
 desktop shell in local/offline mode without starting the NestJS API, and a
@@ -31,14 +31,15 @@ bun dev:desktop
 ```
 
 `bun dev:desktop` builds the Electron main/preload bundle, starts the embedded
-Next.js app shell, and launches Electron. It does not start the NestJS API. When
-no desktop cloud session is present, the app shell runs in local/offline mode
-and skips cloud bootstrap requests.
+`apps/app` Next.js shell, and launches Electron. It does not start the NestJS
+API. When no desktop cloud session is present, the app shell runs in
+local/offline mode and skips cloud bootstrap requests.
 
-Offline generation still needs an AI provider. The desktop app stores local
-provider settings in its PGlite database and calls an OpenAI-compatible
-`/chat/completions` endpoint directly from the Electron main process. Supported
-first-class presets:
+Offline generation still needs an AI provider. Electron stores local provider
+settings in its PGlite database and exposes generation actions to `apps/app`
+through `window.genfeedDesktop`. The Electron main process calls an
+OpenAI-compatible `/chat/completions` endpoint directly. Supported first-class
+presets:
 
 - Ollama: `http://localhost:11434/v1`
 - LM Studio: `http://localhost:1234/v1`
@@ -79,11 +80,11 @@ local background API is added later, it should be a packaged desktop-local
 service with explicit lifecycle management, not an implicit `nest start` from
 the repository.
 
-For offline desktop generation, do not add a second REST API. Keep the reusable
-generation contract in packages, keep cloud/self-hosted behavior behind the
-NestJS REST API, and keep desktop-only execution in Electron main-process
-services. That keeps the downloaded app useful without requiring Redis,
-BullMQ, or the server repo.
+For offline desktop generation, do not add a second REST API and do not fork the
+frontend. Keep reusable generation logic in packages, keep cloud/self-hosted
+behavior behind the NestJS REST API, and keep desktop-only execution in Electron
+main-process services exposed to `apps/app` through IPC. That keeps the
+downloaded app useful without requiring Redis, BullMQ, or the server repo.
 
 ## Release
 
@@ -101,9 +102,9 @@ Optional signing and notarization environment variables:
 
 ## Current Scope
 
-- Electron desktop shell with native renderer views for conversation, trends, agents, workflows, analytics, and library
-- Typed preload/IPC bridge for auth, workspace, files, drafts, notifications, diagnostics, sync, and local generation provider settings
+- Electron desktop shell embedding the real `apps/app` frontend
+- Typed preload/IPC bridge for auth, workspace, files, drafts, notifications, diagnostics, sync, local generation provider settings, and workflow generation
 - PGlite-backed local cache for workspaces, recents, session metadata, provider settings, and sync/generation jobs
 - Workspace-backed content run drafts stored in `.genfeed/content-runs.json`
-- Offline text generation through user-configured OpenAI-compatible local providers
+- Offline generation through user-configured OpenAI-compatible local providers
 - macOS artifact generation via `electron-builder`, icon generation, and optional notarization hook

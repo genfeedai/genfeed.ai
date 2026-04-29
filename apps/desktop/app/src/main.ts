@@ -6,6 +6,7 @@ import type {
   IDesktopDataService,
   IDesktopGenerationOptions,
   IDesktopGenerationProviderConfig,
+  IDesktopWorkflowGenerationOptions,
 } from '@genfeedai/desktop-contracts';
 import { DESKTOP_IPC_CHANNELS } from '@genfeedai/desktop-contracts';
 import {
@@ -446,6 +447,11 @@ const registerIpcHandlers = (): void => {
   );
   ipcMain.handle(DESKTOP_IPC_CHANNELS.generationGetProviderConfig, async () =>
     generationService.getPublicProviderConfig(),
+  );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.generationGenerateWorkflow,
+    async (_event: unknown, params: IDesktopWorkflowGenerationOptions) =>
+      generationService.generateWorkflow(params),
   );
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.generationSaveProviderConfig,

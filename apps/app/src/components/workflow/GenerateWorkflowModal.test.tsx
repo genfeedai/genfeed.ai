@@ -10,6 +10,10 @@ import { GenerateWorkflowModal } from './GenerateWorkflowModal';
 
 const mockToggleAIGenerator = vi.fn();
 const mockLoadWorkflow = vi.fn();
+const desktopRuntimeMocks = vi.hoisted(() => ({
+  getDesktopBridge: vi.fn(),
+  isDesktopShell: vi.fn(),
+}));
 
 vi.mock('@genfeedai/workflow-ui/stores', () => ({
   useUIStore: vi.fn(() => ({
@@ -22,6 +26,11 @@ vi.mock('@/store/workflowStore', () => ({
   useWorkflowStore: vi.fn(() => ({
     loadWorkflow: mockLoadWorkflow,
   })),
+}));
+
+vi.mock('@/lib/desktop/runtime', () => ({
+  getDesktopBridge: desktopRuntimeMocks.getDesktopBridge,
+  isDesktopShell: desktopRuntimeMocks.isDesktopShell,
 }));
 
 // Import mocked modules at top level (vi.mock is hoisted above these imports)
@@ -61,6 +70,8 @@ describe('GenerateWorkflowModal', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     global.fetch = vi.fn() as unknown as typeof fetch;
+    desktopRuntimeMocks.getDesktopBridge.mockReturnValue(null);
+    desktopRuntimeMocks.isDesktopShell.mockReturnValue(false);
 
     // Reset store mocks to default values (vi.clearAllMocks doesn't reset mockReturnValue)
     vi.mocked(useUIStore).mockReturnValue({
@@ -221,6 +232,37 @@ describe('GenerateWorkflowModal', () => {
             method: 'POST',
           },
         );
+      });
+    });
+
+    it('should use Electron IPC instead of REST in desktop shell mode', async () => {
+      const generateWorkflow = vi.fn().mockResolvedValue({
+        tokensUsed: 0,
+        workflow: mockGeneratedWorkflow,
+      });
+      desktopRuntimeMocks.isDesktopShell.mockReturnValue(true);
+      desktopRuntimeMocks.getDesktopBridge.mockReturnValue({
+        generation: { generateWorkflow },
+      });
+
+      render(<GenerateWorkflowModal />);
+
+      const textarea = screen.getByPlaceholderText(
+        /Generate an image from a prompt/,
+      );
+      fireEvent.change(textarea, { target: { value: 'Test description' } });
+
+      const generateButton = screen
+        .getByText('Generate Workflow')
+        .closest('button');
+      if (generateButton) fireEvent.click(generateButton);
+
+      await waitFor(() => {
+        expect(generateWorkflow).toHaveBeenCalledWith({
+          description: 'Test description',
+        });
+        expect(global.fetch).not.toHaveBeenCalled();
+        expect(screen.getByText('Apply to Canvas')).toBeInTheDocument();
       });
     });
 

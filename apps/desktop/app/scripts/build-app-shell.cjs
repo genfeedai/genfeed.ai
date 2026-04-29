@@ -4,7 +4,7 @@ const { spawn } = require('node:child_process');
 const path = require('node:path');
 
 const desktopRoot = path.resolve(__dirname, '..');
-const appRoot = desktopRoot;
+const appRoot = path.resolve(desktopRoot, '../../app');
 const apiEndpoint =
   process.env.GENFEED_DESKTOP_API_URL || 'http://localhost:3010/v1';
 const apiBaseUrl = apiEndpoint.replace(/\/v1\/?$/, '');

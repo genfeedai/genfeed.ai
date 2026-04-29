@@ -145,6 +145,59 @@ describe('DesktopGenerationService', () => {
     expect(jobs[0]?.error).toContain('model missing');
   });
 
+  it('generates workflows through the same local provider', async () => {
+    const database = createDatabaseMock();
+    const service = new DesktopGenerationService(
+      database as unknown as DesktopDatabaseService,
+    );
+
+    await service.saveProviderConfig(providerConfig);
+
+    globalThis.fetch = (async (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ) => {
+      expect(String(input)).toBe('http://localhost:11434/v1/chat/completions');
+      const body = JSON.parse(String(init?.body)) as {
+        messages: Array<{ content: string; role: string }>;
+      };
+      expect(body.messages[0]?.content).toContain('Available node types');
+
+      return new Response(
+        JSON.stringify({
+          choices: [
+            {
+              message: {
+                content: JSON.stringify({
+                  description: 'Local workflow',
+                  edges: [],
+                  name: 'Local Workflow',
+                  nodes: [],
+                }),
+              },
+            },
+          ],
+        }),
+        {
+          headers: { 'content-type': 'application/json' },
+          status: 200,
+        },
+      );
+    }) as typeof fetch;
+
+    await expect(
+      service.generateWorkflow({ description: 'Make a local workflow' }),
+    ).resolves.toEqual({
+      tokensUsed: 0,
+      workflow: {
+        description: 'Local workflow',
+        edges: [],
+        name: 'Local Workflow',
+        nodes: [],
+      },
+    });
+  });
+
   it('normalizes completion URLs for OpenAI-compatible providers', () => {
     expect(
       __desktopGenerationServiceTestUtils.buildCompletionUrl(
