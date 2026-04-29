@@ -24,6 +24,7 @@ export function AgentTerminalHeader({
   return (
     <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
       <span
+        aria-hidden="true"
         className={cn(
           'inline-flex h-1.5 w-1.5 shrink-0 rounded-full',
           catalog.environmentLabel === 'local'
@@ -31,6 +32,7 @@ export function AgentTerminalHeader({
             : 'bg-sky-400',
         )}
       />
+      <span className="sr-only">{catalog.environmentLabel}</span>
       <p className="shrink-0 truncate text-[11px] text-foreground/55">
         {threadLabel || 'New session'}
       </p>

@@ -75,6 +75,7 @@ export function AgentRuntimeSelector({
           className="gen-shell-control flex items-center gap-1.5 rounded-md px-2 py-1 text-left"
           data-active={open ? 'true' : 'false'}
         >
+          <span className="sr-only">Runtime</span>
           <RuntimeIcon
             category={selectedRuntime.category}
             provider={selectedRuntime.provider}
