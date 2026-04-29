@@ -9,7 +9,7 @@
     "@genfeedai/props": "workspace:*",
     "@genfeedai/services": "workspace:*",
     "@genfeedai/utils": "workspace:*",
-    "@shipshitdev/ui": "0.6.0",
+    "@shipshitdev/ui": "0.6.2",
     "@tiptap/extension-blockquote": "3.22.5",
     "@tiptap/extension-bold": "3.22.5",
     "@tiptap/extension-code": "3.22.5",
