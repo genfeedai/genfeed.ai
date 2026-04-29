@@ -17,6 +17,7 @@ import SidebarBrandRail from '@ui/menus/sidebar-brand-rail/SidebarBrandRail';
 import SidebarNested from '@ui/menus/sidebar-nested/SidebarNested';
 import UserDropdown from '@ui/menus/user-dropdown/UserDropdown';
 import { Button } from '@ui/primitives/button';
+import TopbarWorkspaceSwitcher from '@ui/topbars/workspace-switcher/TopbarWorkspaceSwitcher';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -94,7 +95,7 @@ export default function MenuShared({
   backLabel,
   sectionLabel,
   isCollapsed,
-  shellChromeVariant = 'default',
+  shellChromeVariant: _shellChromeVariant = 'default',
   onToggleCollapse,
   showPrimaryItems = true,
   conversationActions,
@@ -318,7 +319,7 @@ export default function MenuShared({
                   onEnter={() => enterNestedGroup(group.group)}
                 />
               ) : (
-                <ul className="flex flex-col gap-0.5">
+                <ul className="flex flex-col gap-px">
                   {group.items.map((item, index) =>
                     isWorkspaceShell &&
                     item.href?.startsWith('/workspace/inbox') ? (
@@ -394,7 +395,7 @@ export default function MenuShared({
         data-testid="sidebar-secondary-items"
         className="mt-3 border-t border-white/[0.08] pt-2"
       >
-        <ul className="flex flex-col gap-0.5">
+        <ul className="flex flex-col gap-px">
           {secondaryItems.map((item, index) => (
             <MenuItem
               key={item.href || `secondary-${index}`}
@@ -421,7 +422,7 @@ export default function MenuShared({
           <Link
             href={prefixHref({ href: backHref }) ?? backHref}
             className={cn(
-              'group flex h-8 w-full items-center gap-3 rounded px-3 py-1.5 transition-colors duration-150',
+              'group flex h-7 w-full items-center gap-2 rounded px-2.5 py-1 transition-colors duration-150',
               'text-foreground/72 hover:bg-white/[0.035] hover:text-foreground',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
             )}
@@ -523,18 +524,19 @@ export default function MenuShared({
             : undefined
         }
       >
-        {!isWorkspaceShell ? (
+        {!isWorkspaceShell && (
           <div
             data-testid="sidebar-header-shell"
-            className={cn(
-              'flex h-12 flex-shrink-0 items-center gap-2 px-3',
-              shellChromeVariant === 'default' && 'border-b border-border',
-            )}
+            className="flex h-12 shrink-0 items-center gap-1.5 px-3"
           >
             {sharedCollapseControl}
-            <div className="flex-1" />
+            {!isCollapsed && (
+              <div className="-mx-1 min-w-0 flex-1">
+                <TopbarWorkspaceSwitcher compact />
+              </div>
+            )}
           </div>
-        ) : null}
+        )}
 
         {/* Body — fades out when collapsed, pointer-events disabled */}
         <div
@@ -546,9 +548,7 @@ export default function MenuShared({
           )}
         >
           {renderTopSlot ? (
-            <div className="px-3 pb-2 pt-3">
-              <div className="space-y-3">{renderTopSlot()}</div>
-            </div>
+            <div className="px-3 pt-2">{renderTopSlot()}</div>
           ) : null}
 
           {/* Primary actions */}
@@ -638,14 +638,9 @@ export default function MenuShared({
           ) : null}
 
           {renderBody ? (
-            <>
-              {/* Custom body content */}
-              <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin">
-                {renderBody()}
-              </div>
-
-              <SidebarUserProfile />
-            </>
+            <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin">
+              {renderBody()}
+            </div>
           ) : nestedGroup && nestedGroupId ? (
             <div
               className="flex-1 overflow-hidden"
@@ -678,8 +673,8 @@ export default function MenuShared({
                   data-testid="sidebar-navigation-section"
                   className={cn(
                     renderAfterNavigation
-                      ? 'shrink-0 px-3 py-2'
-                      : 'flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin px-3 py-2',
+                      ? 'shrink-0 px-3 pb-2'
+                      : 'flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin px-3 pb-2',
                   )}
                 >
                   {navigationContent}
@@ -745,22 +740,34 @@ export default function MenuShared({
               {renderFooterSlot && (
                 <div className="px-3 pb-1">{renderFooterSlot()}</div>
               )}
-
-              <SidebarUserProfile />
             </>
           )}
         </div>
+
+        <SidebarUserProfile isCollapsed={isCollapsed} />
       </div>
     </div>
   );
 }
 
-function SidebarUserProfile() {
+function SidebarUserProfile({
+  isCollapsed = false,
+}: {
+  isCollapsed?: boolean;
+}) {
   const { isSignedIn } = useAuth();
   const { user } = useUser();
 
   if (!user) {
     return null;
+  }
+
+  if (isCollapsed) {
+    return (
+      <div className="border-t border-white/[0.06] px-3 py-3 flex justify-center">
+        {isSignedIn ? <UserButton /> : null}
+      </div>
+    );
   }
 
   return (

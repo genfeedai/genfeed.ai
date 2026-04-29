@@ -14,6 +14,7 @@ const {
   mockMutateUser,
   mockPatchSettings,
   mockRouteParams,
+  mockSetupCardState,
 } = vi.hoisted(() => ({
   mockCurrentUserState: {
     currentUser: {
@@ -30,26 +31,7 @@ const {
     brandSlug: 'moonrise-studio',
     orgSlug: 'acme',
   } as Record<string, string | undefined>,
-}));
-
-const SCROLL_FOCUS_OUTER_SHADOW_CLASS =
-  'shadow-[0_-18px_30px_-18px_rgba(0,0,0,0.88),0_18px_32px_-24px_rgba(0,0,0,0.6)]';
-
-vi.mock('@genfeedai/contexts/user/user-context/user-context', () => ({
-  useCurrentUser: () => ({
-    currentUser: mockCurrentUserState.currentUser,
-    mutateUser: mockMutateUser,
-  }),
-}));
-
-vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => async () => ({
-    patchSettings: mockPatchSettings,
-  }),
-}));
-
-vi.mock('@genfeedai/hooks/utils/use-setup-card/use-setup-card', () => ({
-  useSetupCard: () => ({
+  mockSetupCardState: {
     completedCount: 1,
     isVisible: true,
     steps: [
@@ -69,7 +51,27 @@ vi.mock('@genfeedai/hooks/utils/use-setup-card/use-setup-card', () => ({
       },
     ],
     totalCount: 2,
+  },
+}));
+
+const SCROLL_FOCUS_OUTER_SHADOW_CLASS =
+  'shadow-[0_-18px_30px_-18px_rgba(0,0,0,0.88),0_18px_32px_-24px_rgba(0,0,0,0.6)]';
+
+vi.mock('@genfeedai/contexts/user/user-context/user-context', () => ({
+  useCurrentUser: () => ({
+    currentUser: mockCurrentUserState.currentUser,
+    mutateUser: mockMutateUser,
   }),
+}));
+
+vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
+  useAuthedService: () => async () => ({
+    patchSettings: mockPatchSettings,
+  }),
+}));
+
+vi.mock('@genfeedai/hooks/utils/use-setup-card/use-setup-card', () => ({
+  useSetupCard: () => mockSetupCardState,
 }));
 
 vi.mock('@genfeedai/hooks/data/streaks/use-streak/use-streak', () => ({
@@ -150,6 +152,25 @@ describe('ProgressSidebarCard', () => {
     mockPatchSettings.mockClear();
     mockRouteParams.brandSlug = 'moonrise-studio';
     mockRouteParams.orgSlug = 'acme';
+    mockSetupCardState.completedCount = 1;
+    mockSetupCardState.isVisible = true;
+    mockSetupCardState.steps = [
+      {
+        description: 'Choose what you want to create',
+        href: '/settings/brands',
+        isCompleted: false,
+        key: 'preferences',
+        label: 'Content types',
+      },
+      {
+        description: 'Connect Instagram, TikTok, etc.',
+        href: '/settings/api-keys',
+        isCompleted: true,
+        key: 'platforms',
+        label: 'Social accounts',
+      },
+    ];
+    mockSetupCardState.totalCount = 2;
   });
 
   const getCard = (container: HTMLElement) =>
@@ -278,7 +299,50 @@ describe('ProgressSidebarCard', () => {
     expect(mockMutateUser).toHaveBeenCalled();
   });
 
-  it('reappears when the saved visibility preference is enabled again', async () => {
+  it('does not render when setup progress is complete', () => {
+    mockSetupCardState.completedCount = 2;
+    mockSetupCardState.isVisible = false;
+    mockSetupCardState.steps = mockSetupCardState.steps.map((step) => ({
+      ...step,
+      isCompleted: true,
+    }));
+
+    render(<ProgressSidebarCard />);
+
+    expect(
+      document.querySelector('[data-card-index="0"]'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('hides immediately while the account preference request is still pending', async () => {
+    let resolvePatch: (() => void) | undefined;
+    mockPatchSettings.mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        resolvePatch = resolve;
+      }),
+    );
+
+    render(<ProgressSidebarCard />);
+
+    fireEvent.click(screen.getByRole('button', { name: /hide progress/i }));
+
+    await waitFor(() => {
+      expect(
+        document.querySelector('[data-card-index="0"]'),
+      ).not.toBeInTheDocument();
+    });
+
+    expect(
+      globalThis.localStorage.getItem('genfeed:sidebar:progress-visible'),
+    ).toBe('false');
+    expect(mockPatchSettings).toHaveBeenCalledWith('user-123', {
+      isSidebarProgressVisible: false,
+    });
+
+    resolvePatch?.();
+  });
+
+  it('keeps the local hidden preference when stale account data still says visible', async () => {
     mockCurrentUserState.currentUser = {
       id: 'user-123',
       settings: {
@@ -304,7 +368,7 @@ describe('ProgressSidebarCard', () => {
     await waitFor(() => {
       expect(
         document.querySelector('[data-card-index="0"]'),
-      ).toBeInTheDocument();
+      ).not.toBeInTheDocument();
     });
   });
 });

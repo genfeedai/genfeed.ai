@@ -88,7 +88,8 @@ describe('AppLayout', () => {
 
     const rail = screen.getByTestId('desktop-sidebar-rail');
     expect(rail).toBeInTheDocument();
-    expect(rail).toHaveClass('border-r');
+    expect(rail).not.toHaveClass('border-r');
+    expect(rail).toHaveClass('bg-transparent');
     expect(rail).toHaveClass('fixed', 'inset-y-0', 'left-0');
     expect(screen.getAllByTestId('menu-component')).toHaveLength(2);
   });
@@ -105,9 +106,9 @@ describe('AppLayout', () => {
 
     const rail = screen.getByTestId('desktop-sidebar-rail');
 
-    expect(rail).toHaveClass('bg-transparent', 'shadow-none');
+    expect(rail).toHaveClass('bg-transparent');
     expect(rail).not.toHaveClass('border-r');
-    expect(rail).not.toHaveClass('bg-background/95');
+    expect(rail).not.toHaveClass('bg-background-secondary');
   });
 
   it('renders agent dock and fixed-height shell when agent panel is provided', () => {
@@ -212,11 +213,8 @@ describe('AppLayout', () => {
       </AppLayout>,
     );
 
-    expect(screen.getByTestId('app-topbar-shell')).toHaveClass(
-      'border-b',
-      'border-border',
-      'bg-background',
-    );
+    expect(screen.getByTestId('app-topbar-shell')).toHaveClass('bg-background');
+    expect(screen.getByTestId('app-topbar-shell')).not.toHaveClass('border-b');
   });
 
   it('does not offset the topbar for the collapsed bottom dock', () => {
@@ -279,11 +277,8 @@ describe('AppLayout', () => {
       </AppLayout>,
     );
 
-    expect(screen.getByTestId('app-topbar-shell')).toHaveClass(
-      'border-b',
-      'border-border',
-      'bg-background',
-    );
+    expect(screen.getByTestId('app-topbar-shell')).toHaveClass('bg-background');
+    expect(screen.getByTestId('app-topbar-shell')).not.toHaveClass('border-b');
   });
 
   it('keeps topbar chrome when a secondary topbar is present', () => {
@@ -299,11 +294,8 @@ describe('AppLayout', () => {
       </AppLayout>,
     );
 
-    expect(screen.getByTestId('app-topbar-shell')).toHaveClass(
-      'border-b',
-      'border-border',
-      'bg-background',
-    );
+    expect(screen.getByTestId('app-topbar-shell')).toHaveClass('bg-background');
+    expect(screen.getByTestId('app-topbar-shell')).not.toHaveClass('border-b');
   });
 
   it('keeps topbar borderless when transparent override is explicit', () => {

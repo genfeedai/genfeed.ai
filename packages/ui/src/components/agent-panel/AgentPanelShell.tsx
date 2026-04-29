@@ -63,11 +63,9 @@ function AgentPanelShell({
             !isOpen && 'w-0 overflow-hidden opacity-0 pointer-events-none',
           )}
         >
-          <span className="shrink-0 rounded-md bg-background-tertiary px-2.5 py-0.5 text-[11px] font-medium text-foreground">
+          <span className="shrink-0 text-[11px] font-semibold text-foreground">
             {title}
           </span>
-
-          <span className="h-4 w-px shrink-0 bg-foreground/15" />
 
           <div className="flex min-w-0 flex-1 items-center gap-2">
             {headerContent}

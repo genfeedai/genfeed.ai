@@ -31,6 +31,7 @@ export default function AppTable<T>({
   onSelectionChange,
   getItemId,
   onRowClick,
+  hideHeader = false,
 }: TableProps<T>) {
   // Ref for callback to prevent re-renders
   const onSelectionChangeRef = useRef(onSelectionChange);
@@ -122,7 +123,12 @@ export default function AppTable<T>({
     <div className="relative overflow-hidden rounded border border-white/[0.08] bg-card shadow-[0_24px_60px_-40px_rgba(0,0,0,0.8)]">
       <div className="overflow-x-auto rounded">
         <table className="w-full caption-bottom text-sm">
-          <thead className="sticky top-0 z-10 bg-card/95 backdrop-blur-lg">
+          <thead
+            className={cn(
+              'sticky top-0 z-10 bg-card/95 backdrop-blur-lg',
+              hideHeader && 'sr-only',
+            )}
+          >
             <tr className="border-b border-white/[0.08] transition-colors">
               {selectable && (
                 <th className="h-12 w-12 px-4 text-left align-middle font-medium text-muted-foreground">

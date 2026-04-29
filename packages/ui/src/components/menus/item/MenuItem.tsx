@@ -68,23 +68,23 @@ export default function MenuItem({
   const baseClasses = isIconVariant
     ? isHorizontalLayout
       ? cn(
-          'group relative flex h-8 w-full flex-row items-center gap-2.5 rounded px-3 py-1.5 text-left transition-[background-color,color] duration-150',
+          'group relative flex h-7 w-full flex-row items-center gap-2 rounded px-2.5 py-1 text-left transition-[background-color,color] duration-150',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         )
       : cn(
           'group relative flex w-full flex-col items-center gap-2 p-2 text-center transition-all duration-200',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         )
-    : 'group flex h-8 items-center gap-2.5 rounded px-3 py-1.5 text-left transition-[background-color,color] duration-150';
+    : 'group flex h-7 items-center gap-2 rounded px-2.5 py-1 text-left transition-[background-color,color] duration-150';
 
   const activeClasses = isIconVariant
     ? isHorizontalLayout
       ? isActive
-        ? 'bg-white/[0.06] text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]'
+        ? 'bg-white/[0.06] text-foreground'
         : 'hover:bg-white/[0.035] hover:text-foreground'
       : '' // No outer wrapper styling for vertical card variant - highlighting is on the icon itself
     : isActive
-      ? 'bg-white/[0.06] text-foreground font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]'
+      ? 'bg-white/[0.06] text-foreground font-semibold'
       : 'text-foreground/72 hover:bg-white/[0.035] hover:text-foreground';
 
   const listItemClass = cn(

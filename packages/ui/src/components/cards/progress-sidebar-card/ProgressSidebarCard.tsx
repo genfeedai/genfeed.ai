@@ -23,7 +23,12 @@ import {
 const COLLAPSED_STORAGE_KEY = 'genfeed:sidebar:progress-collapsed';
 
 export default function ProgressSidebarCard() {
-  const { completedCount, steps, totalCount } = useSetupCard();
+  const {
+    completedCount,
+    isVisible: isSetupProgressVisible,
+    steps,
+    totalCount,
+  } = useSetupCard();
   const { orgHref, orgSlug } = useOrgUrl();
   const { hideProgress, isSaving, isVisible } = useSidebarProgressPreference();
   const {
@@ -90,7 +95,7 @@ export default function ProgressSidebarCard() {
     void setCollapsed(stored === 'true');
   }, [hasPersistedPreference, isCollapsed, setCollapsed]);
 
-  if (!isVisible) {
+  if (!isVisible || !isSetupProgressVisible) {
     return null;
   }
 
