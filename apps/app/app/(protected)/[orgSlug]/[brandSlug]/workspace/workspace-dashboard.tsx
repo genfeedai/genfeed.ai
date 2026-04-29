@@ -12,6 +12,14 @@ import type { Task } from '@services/management/tasks.service';
 import Card from '@ui/card/Card';
 import { DashboardGrid } from '@ui/dashboard/DashboardGrid';
 import { Button } from '@ui/primitives/button';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@ui/primitives/table';
 import Link from 'next/link';
 import { useMemo } from 'react';
 import { HiOutlineArrowRight, HiOutlineCpuChip } from 'react-icons/hi2';
@@ -567,43 +575,6 @@ function formatTaskEventLabel(task: Task): string {
   return latestEvent.type.replaceAll('_', ' ');
 }
 
-function ActivityRow({ task }: { task: Task }) {
-  const latestEvent = task.eventStream?.at(-1);
-  const message =
-    typeof latestEvent?.payload?.summary === 'string'
-      ? latestEvent.payload.summary
-      : typeof latestEvent?.payload?.message === 'string'
-        ? latestEvent.payload.message
-        : task.progress?.message || task.request;
-
-  return (
-    <div className="-mx-2.5 flex items-start justify-between gap-3 rounded-xl px-2.5 py-3 transition-colors first:pt-0 last:pb-0 hover:bg-white/[0.03]">
-      <div className="flex items-center gap-2.5 min-w-0">
-        <span
-          className={cn(
-            'mt-1.5 inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full',
-            getTaskStatusClass(task),
-          )}
-        />
-        <div className="min-w-0">
-          <p className="text-sm text-foreground">
-            <span className="font-medium">{task.title}</span>{' '}
-            <span className="text-foreground/50">
-              {formatTaskEventLabel(task)}
-            </span>
-          </p>
-          <p className="line-clamp-2 text-xs text-foreground/45">{message}</p>
-        </div>
-      </div>
-      <span className="flex-shrink-0 text-xs text-foreground/35">
-        {formatRelativeTime(
-          task.updatedAt ?? task.createdAt ?? new Date().toISOString(),
-        )}
-      </span>
-    </div>
-  );
-}
-
 export function DashboardRecentActivity({
   workspaceTasks,
 }: {
@@ -622,69 +593,85 @@ export function DashboardRecentActivity({
   );
 
   return (
-    <Card
-      label="Recent Activity"
-      headerAction={
-        <Button asChild variant={ButtonVariant.GHOST} size={ButtonSize.XS}>
-          <Link href="/workspace/inbox/unread">View All</Link>
+    <div>
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-foreground">
+          Recent Activity
+        </h2>
+        <Button
+          asChild
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.XS}
+          className="h-auto px-0 text-[11px] font-normal text-foreground/45 hover:bg-transparent"
+        >
+          <Link href="/workspace/inbox/unread">View All &rarr;</Link>
         </Button>
-      }
-      className="rounded-md border-border bg-background-secondary shadow-none"
-      bodyClassName="p-4"
-    >
-      {sortedTasks.length > 0 ? (
-        <div className="divide-y divide-white/[0.06]">
-          {sortedTasks.map((task) => (
-            <ActivityRow key={task.id} task={task} />
-          ))}
-        </div>
-      ) : (
-        <div className="gen-shell-empty-state rounded-[1rem] px-4 py-8 text-center text-sm text-foreground/45">
-          Activity will appear here once workspace tasks start running.
-        </div>
-      )}
-    </Card>
-  );
-}
-
-function TaskRow({ task }: { task: Task }) {
-  return (
-    <div className="-mx-2.5 flex items-center justify-between gap-3 rounded-xl px-2.5 py-3 transition-colors first:pt-0 last:pb-0 hover:bg-white/[0.03]">
-      <div className="flex items-center gap-3 min-w-0">
-        <span
-          className={cn(
-            'inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium',
-            task.status === 'failed'
-              ? 'bg-rose-500/10 text-rose-300 border-rose-500/20'
-              : task.status === 'in_review'
-                ? 'bg-amber-500/10 text-amber-300 border-amber-500/20'
-                : task.status === 'done'
-                  ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20'
-                  : 'bg-sky-500/10 text-sky-300 border-sky-500/20',
-          )}
-        >
-          {task.status.replaceAll('_', ' ')}
-        </span>
-        <div className="min-w-0">
-          <p className="line-clamp-1 text-sm font-medium text-foreground">
-            {task.title}
-          </p>
-          <p className="text-xs text-foreground/40">
-            {task.progress?.percent ?? 0}% &middot;{' '}
-            {formatRelativeTime(
-              task.updatedAt ?? task.createdAt ?? new Date().toISOString(),
-            )}
-          </p>
-        </div>
       </div>
-      <Button asChild variant={ButtonVariant.GHOST} size={ButtonSize.XS}>
-        <Link
-          href={`/workspace/inbox/unread?taskId=${task.id}`}
-          aria-label={`Open ${task.title}`}
-        >
-          <HiOutlineArrowRight className="h-3.5 w-3.5" />
-        </Link>
-      </Button>
+      <Card
+        className="rounded-md border-border bg-background-secondary shadow-none"
+        bodyClassName="p-0"
+      >
+        {sortedTasks.length > 0 ? (
+          <Table>
+            <TableHeader className="sr-only">
+              <TableRow>
+                <TableHead>Status</TableHead>
+                <TableHead>Activity</TableHead>
+                <TableHead>Time</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sortedTasks.map((task) => {
+                const latestEvent = task.eventStream?.at(-1);
+                const message =
+                  typeof latestEvent?.payload?.summary === 'string'
+                    ? latestEvent.payload.summary
+                    : typeof latestEvent?.payload?.message === 'string'
+                      ? latestEvent.payload.message
+                      : task.progress?.message || task.request;
+
+                return (
+                  <TableRow key={task.id}>
+                    <TableCell className="w-px whitespace-nowrap pr-2 align-top pt-2.5">
+                      <span
+                        className={cn(
+                          'inline-block h-1.5 w-1.5 rounded-full',
+                          getTaskStatusClass(task),
+                        )}
+                      />
+                    </TableCell>
+                    <TableCell className="max-w-0 w-full">
+                      <div className="truncate text-[12px] text-foreground">
+                        {task.title}
+                        {' — '}
+                        <span className="text-foreground/50">
+                          {formatTaskEventLabel(task)}
+                        </span>
+                      </div>
+                      {message ? (
+                        <div className="truncate text-[11px] text-foreground/45">
+                          {message}
+                        </div>
+                      ) : null}
+                    </TableCell>
+                    <TableCell className="w-px whitespace-nowrap text-right text-[10px] text-foreground/35">
+                      {formatRelativeTime(
+                        task.updatedAt ??
+                          task.createdAt ??
+                          new Date().toISOString(),
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        ) : (
+          <div className="px-4 py-6 text-center text-xs text-foreground/45">
+            No activity yet.
+          </div>
+        )}
+      </Card>
     </div>
   );
 }
@@ -707,28 +694,81 @@ export function DashboardRecentTasks({
   );
 
   return (
-    <Card
-      label="Recent Tasks"
-      headerAction={
-        <Button asChild variant={ButtonVariant.GHOST} size={ButtonSize.XS}>
-          <Link href="/workspace/inbox/unread">View All</Link>
+    <div>
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-foreground">Recent Tasks</h2>
+        <Button
+          asChild
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.XS}
+          className="h-auto px-0 text-[11px] font-normal text-foreground/45 hover:bg-transparent"
+        >
+          <Link href="/workspace/inbox/unread">View All &rarr;</Link>
         </Button>
-      }
-      className="rounded-md border-border bg-background-secondary shadow-none"
-      bodyClassName="p-4"
-    >
-      {sortedTasks.length > 0 ? (
-        <div className="divide-y divide-white/[0.06]">
-          {sortedTasks.map((task) => (
-            <TaskRow key={task.id} task={task} />
-          ))}
-        </div>
-      ) : (
-        <div className="gen-shell-empty-state rounded-[1rem] px-4 py-8 text-center text-sm text-foreground/45">
-          Recent tasks will appear here once work begins.
-        </div>
-      )}
-    </Card>
+      </div>
+      <Card
+        className="rounded-md border-border bg-background-secondary shadow-none"
+        bodyClassName="p-0"
+      >
+        {sortedTasks.length > 0 ? (
+          <Table>
+            <TableHeader className="sr-only">
+              <TableRow>
+                <TableHead>Status</TableHead>
+                <TableHead>Task</TableHead>
+                <TableHead>Time</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sortedTasks.map((task) => (
+                <TableRow key={task.id}>
+                  <TableCell className="w-px whitespace-nowrap pr-2 align-top pt-2.5">
+                    <span
+                      className={cn(
+                        'inline-flex items-center justify-center rounded border border-border px-2 py-0.5 text-[9px] font-medium uppercase',
+                        task.status === 'failed'
+                          ? 'bg-rose-500/10 text-rose-300 border-rose-500/20'
+                          : task.status === 'in_review'
+                            ? 'bg-amber-500/10 text-amber-300 border-amber-500/20'
+                            : task.status === 'done'
+                              ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20'
+                              : 'bg-sky-500/10 text-sky-300 border-sky-500/20',
+                      )}
+                    >
+                      {task.status.replaceAll('_', ' ')}
+                    </span>
+                  </TableCell>
+                  <TableCell className="max-w-0 w-full">
+                    <div className="truncate text-[12px] text-foreground">
+                      {task.title}
+                    </div>
+                    <div className="truncate text-[11px] text-foreground/45">
+                      {task.status.replaceAll('_', ' ')} &middot;{' '}
+                      {formatRelativeTime(
+                        task.updatedAt ??
+                          task.createdAt ??
+                          new Date().toISOString(),
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="w-px whitespace-nowrap text-right text-[10px] text-foreground/35 align-top pt-2.5">
+                    {formatRelativeTime(
+                      task.updatedAt ??
+                        task.createdAt ??
+                        new Date().toISOString(),
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        ) : (
+          <div className="px-4 py-6 text-center text-xs text-foreground/45">
+            No recent tasks.
+          </div>
+        )}
+      </Card>
+    </div>
   );
 }
 

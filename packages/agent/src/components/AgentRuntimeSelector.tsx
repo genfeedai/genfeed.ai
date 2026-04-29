@@ -72,26 +72,20 @@ export function AgentRuntimeSelector({
         <Button
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}
-          className="gen-shell-control flex min-w-[11.75rem] items-center justify-between gap-3 rounded-2xl px-3.5 py-2.5 text-left"
+          className="gen-shell-control flex items-center gap-1.5 rounded-md px-2 py-1 text-left"
           data-active={open ? 'true' : 'false'}
         >
-          <div className="flex min-w-0 items-center gap-2.5">
-            <RuntimeIcon
-              category={selectedRuntime.category}
-              provider={selectedRuntime.provider}
-            />
-            <div className="min-w-0">
-              <p className="truncate text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/42">
-                Runtime
-              </p>
-              <p className="truncate text-sm font-semibold tracking-[-0.01em] text-foreground">
-                {selectedRuntime.label}
-              </p>
-            </div>
-          </div>
+          <span className="sr-only">Runtime</span>
+          <RuntimeIcon
+            category={selectedRuntime.category}
+            provider={selectedRuntime.provider}
+          />
+          <span className="text-[11px] font-medium text-foreground">
+            {selectedRuntime.label}
+          </span>
           <HiChevronDown
             className={cn(
-              'h-3.5 w-3.5 text-foreground/42 transition-transform',
+              'h-3 w-3 text-foreground/42 transition-transform',
               open && 'rotate-180',
             )}
           />

@@ -24,20 +24,17 @@ export function AgentTerminalHeader({
   return (
     <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
       <span
+        aria-hidden="true"
         className={cn(
-          'gen-shell-chip shrink-0 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em]',
-          catalog.environmentLabel === 'local' ? 'text-success' : 'text-info',
+          'inline-flex h-1.5 w-1.5 shrink-0 rounded-full',
+          catalog.environmentLabel === 'local'
+            ? 'bg-emerald-400'
+            : 'bg-sky-400',
         )}
-        data-tone={catalog.environmentLabel === 'local' ? 'success' : 'info'}
-      >
-        {catalog.environmentLabel}
-      </span>
-      <p className="shrink-0 truncate font-mono text-[11px] uppercase tracking-[0.12em] text-foreground/55">
-        {threadLabel || 'new-session'}
-      </p>
-      <span className="hidden h-3 w-px shrink-0 bg-foreground/15 md:block" />
-      <p className="hidden truncate text-[11px] text-foreground/45 md:block">
-        {catalog.providerSummary}
+      />
+      <span className="sr-only">{catalog.environmentLabel}</span>
+      <p className="shrink-0 truncate text-[11px] text-foreground/55">
+        {threadLabel || 'New session'}
       </p>
 
       <div className="ml-auto shrink-0">

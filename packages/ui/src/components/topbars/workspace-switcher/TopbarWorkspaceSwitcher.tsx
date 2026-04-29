@@ -46,7 +46,11 @@ type OrganizationEntry = {
   brand: { id: string; label: string } | null;
 };
 
-export default function TopbarWorkspaceSwitcher() {
+export default function TopbarWorkspaceSwitcher({
+  compact = false,
+}: {
+  compact?: boolean;
+} = {}) {
   const logoUrl = useThemeLogo();
   const pathname = usePathname();
   const router = useRouter();
@@ -291,13 +295,19 @@ export default function TopbarWorkspaceSwitcher() {
             withWrapper={false}
             ariaLabel="Open projects switcher"
             className={cn(
-              'gen-shell-control flex h-11 w-full items-center gap-2.5 rounded-md px-3.5 text-left',
+              'gen-shell-control flex w-full items-center rounded-md text-left',
+              compact ? 'h-7 gap-2 px-2.5' : 'h-11 gap-2.5 px-3.5',
               isBusy && 'cursor-not-allowed opacity-60',
             )}
             data-active={isOpen ? 'true' : 'false'}
             isDisabled={isBusy}
           >
-            <div className="gen-shell-surface flex h-7 w-7 items-center justify-center overflow-hidden rounded-md">
+            <div
+              className={cn(
+                'gen-shell-surface flex items-center justify-center overflow-hidden rounded-md',
+                compact ? 'h-5 w-5' : 'h-7 w-7',
+              )}
+            >
               {logoUrl ? (
                 <Image
                   src={logoUrl}

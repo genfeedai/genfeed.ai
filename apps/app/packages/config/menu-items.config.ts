@@ -2,11 +2,9 @@ import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interf
 import {
   HiClipboardDocumentList,
   HiClock,
-  HiCog6Tooth,
   HiInboxStack,
   HiOutlineClipboardDocumentList,
   HiOutlineClock,
-  HiOutlineCog6Tooth,
   HiOutlineInboxStack,
   HiOutlineSquares2X2,
   HiSquares2X2,
@@ -49,9 +47,6 @@ export const APP_MENU_ITEMS: MenuItemConfig[] = [
     outline: HiOutlineClipboardDocumentList,
     solid: HiClipboardDocumentList,
   },
-];
-
-export const APP_SECONDARY_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: AppMenuGroup.Root,
     href: '/workspace/activity',
@@ -63,24 +58,9 @@ export const APP_SECONDARY_MENU_ITEMS: MenuItemConfig[] = [
 ];
 
 export function getAppSecondaryMenuItems(
-  brandSlug?: string | null,
+  _brandSlug?: string | null,
 ): MenuItemConfig[] {
-  if (!brandSlug) {
-    return APP_SECONDARY_MENU_ITEMS;
-  }
-
-  return [
-    ...APP_SECONDARY_MENU_ITEMS,
-    {
-      group: AppMenuGroup.Root,
-      href: '/settings',
-      hrefScope: 'brand',
-      label: 'Settings',
-      matchPaths: ['/settings'],
-      outline: HiOutlineCog6Tooth,
-      solid: HiCog6Tooth,
-    },
-  ];
+  return [];
 }
 
 export const APP_LOGO_HREF = '/workspace/overview';

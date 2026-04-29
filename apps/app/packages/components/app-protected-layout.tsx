@@ -78,7 +78,6 @@ import SidebarSearchTrigger from '@ui/menus/sidebar-search-trigger/SidebarSearch
 import AdminSidebar from '@ui/shell/menus/AdminSidebar';
 import AppSidebar from '@ui/shell/menus/AppSidebar';
 import AdminTopbar from '@ui/shell/topbars/AdminTopbar';
-import TopbarWorkspaceSwitcher from '@ui/topbars/workspace-switcher/TopbarWorkspaceSwitcher';
 import { COMPOSE_ROUTES } from '@ui-constants/compose.constant';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
@@ -92,7 +91,7 @@ import {
   useState,
 } from 'react';
 import { HiPlus } from 'react-icons/hi2';
-import ModeIndicator from '@/components/mode-indicator/ModeIndicator';
+
 import AppProtectedTopbar from '@/components/shell/AppProtectedTopbar';
 import { useOptionalAuth } from '@/hooks/useOptionalAuth';
 import { isEEEnabled } from '@/lib/config/edition';
@@ -592,7 +591,6 @@ function AppLayoutWithDynamicMenu({
           )}
           sectionLabel="Studio"
           shellChromeVariant={shellChromeVariant}
-          renderFooterSlot={() => <ModeIndicator />}
         />
       );
     }
@@ -619,7 +617,6 @@ function AppLayoutWithDynamicMenu({
           )}
           sectionLabel="Compose"
           shellChromeVariant={shellChromeVariant}
-          renderFooterSlot={() => <ModeIndicator />}
         />
       );
     }
@@ -634,7 +631,6 @@ function AppLayoutWithDynamicMenu({
           )}
           sectionLabel="Workflows"
           shellChromeVariant={shellChromeVariant}
-          renderFooterSlot={() => <ModeIndicator />}
         />
       );
     }
@@ -649,7 +645,6 @@ function AppLayoutWithDynamicMenu({
           )}
           sectionLabel="Editor"
           shellChromeVariant={shellChromeVariant}
-          renderFooterSlot={() => <ModeIndicator />}
         />
       );
     }
@@ -664,7 +659,6 @@ function AppLayoutWithDynamicMenu({
           )}
           sectionLabel="Analytics"
           shellChromeVariant={shellChromeVariant}
-          renderFooterSlot={() => <ModeIndicator />}
         />
       );
     }
@@ -679,7 +673,6 @@ function AppLayoutWithDynamicMenu({
           )}
           sectionLabel="Organization"
           shellChromeVariant={shellChromeVariant}
-          renderFooterSlot={() => <ModeIndicator />}
         />
       );
     }
@@ -694,7 +687,6 @@ function AppLayoutWithDynamicMenu({
           )}
           sectionLabel="Settings"
           shellChromeVariant={shellChromeVariant}
-          renderFooterSlot={() => <ModeIndicator />}
         />
       );
     }
@@ -713,19 +705,16 @@ function AppLayoutWithDynamicMenu({
           isChatRoute
             ? undefined
             : () => (
-                <div className="space-y-2">
-                  <TopbarWorkspaceSwitcher />
-                  <div className="space-y-0.5">
-                    <SidebarSearchTrigger onClick={handleOpenCommandPalette} />
-                    <SidebarActionTrigger
-                      ariaLabel="Open new task modal"
-                      icon={<HiPlus className="h-4 w-4 flex-shrink-0" />}
-                      label="New Task"
-                      onClick={dispatchOpenTaskComposer}
-                      shortcut="⌘⇧N"
-                    />
-                  </div>
-                </div>
+                <>
+                  <SidebarActionTrigger
+                    ariaLabel="Open new task modal"
+                    icon={<HiPlus className="h-4 w-4 flex-shrink-0" />}
+                    label="New Task"
+                    onClick={dispatchOpenTaskComposer}
+                    shortcut="⌘⇧N"
+                  />
+                  <SidebarSearchTrigger onClick={handleOpenCommandPalette} />
+                </>
               )
         }
         secondaryItems={isChatRoute ? undefined : secondaryMenuItems}
@@ -743,7 +732,6 @@ function AppLayoutWithDynamicMenu({
         showPrimaryItems={!isChatRoute}
         sidebarWidth={isChatRoute ? undefined : 304}
         shellChromeVariant={shellChromeVariant}
-        renderFooterSlot={() => <ModeIndicator />}
       />
     );
   }, [

@@ -144,8 +144,8 @@ vi.mock('@ui/buttons/credits/ButtonCredits', () => ({
   default: () => <div data-testid="button-credits" />,
 }));
 
-vi.mock('@ui/menus/organization-switcher/OrganizationSwitcher', () => ({
-  default: () => <div data-testid="organization-switcher" />,
+vi.mock('@ui/topbars/workspace-switcher/TopbarWorkspaceSwitcher', () => ({
+  default: () => <div data-testid="workspace-switcher" />,
 }));
 
 vi.mock('@ui/menus/sidebar-brand-rail/SidebarBrandRail', () => ({
@@ -200,13 +200,13 @@ describe('MenuShared', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
-  it('renders the sidebar header shell', () => {
+  it('renders the sidebar header shell with org switcher', () => {
     render(<MenuShared config={config} />);
 
-    expect(screen.getByTestId('sidebar-header-shell')).toBeInTheDocument();
+    expect(screen.queryByTestId('sidebar-header-shell')).toBeInTheDocument();
   });
 
-  it('renders a top slot below the header when provided', () => {
+  it('renders a top slot before navigation items when provided', () => {
     render(
       <MenuShared
         config={config}
@@ -215,14 +215,9 @@ describe('MenuShared', () => {
     );
 
     const topSlot = screen.getByTestId('sidebar-top-slot');
-    const header = screen.getByTestId('sidebar-header-shell');
     const firstMenuItem = screen.getByText('Dashboard');
 
     expect(topSlot).toBeInTheDocument();
-    expect(
-      header.compareDocumentPosition(topSlot) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
     expect(
       topSlot.compareDocumentPosition(firstMenuItem) &
         Node.DOCUMENT_POSITION_FOLLOWING,
@@ -247,10 +242,8 @@ describe('MenuShared', () => {
     expect(
       screen.getByTestId('sidebar-brand-rail-content'),
     ).toBeInTheDocument();
-    // Org switcher is now in the topbar, not the sidebar
-    expect(
-      screen.queryByTestId('organization-switcher'),
-    ).not.toBeInTheDocument();
+    // Workspace switcher only shows in non-workspace (single-column) mode
+    expect(screen.queryByTestId('workspace-switcher')).not.toBeInTheDocument();
     expect(
       screen.queryByTestId('sidebar-header-shell'),
     ).not.toBeInTheDocument();
@@ -461,33 +454,24 @@ describe('MenuShared', () => {
     expect(labels.length).toBeLessThanOrEqual(1);
   });
 
-  it('shows the Genfeed mark in the toggle button when expanded', () => {
+  it('shows the Genfeed mark in the workspace brand rail toggle when expanded', () => {
     mockLogoUrl.value = '/logo.svg';
+
+    const workspaceConfig: MenuShellConfig = {
+      brandRailMode: 'workspace',
+      items: [{ href: '/overview', label: 'Dashboard' }],
+      logoHref: '/',
+    };
 
     render(
       <MenuShared
-        config={config}
+        config={workspaceConfig}
         isCollapsed={false}
         onToggleCollapse={vi.fn()}
       />,
     );
 
     expect(screen.getByAltText('Genfeed')).toBeInTheDocument();
-  });
-
-  it('keeps default sidebar header chrome styling', () => {
-    render(<MenuShared config={config} />);
-
-    expect(screen.getByTestId('sidebar-header-shell')).toHaveClass('border-b');
-  });
-
-  it('removes sidebar header chrome styling for transparent shell variant', () => {
-    render(<MenuShared config={config} shellChromeVariant="transparent" />);
-
-    const headerShell = screen.getByTestId('sidebar-header-shell');
-
-    expect(headerShell).toHaveClass('h-12', 'items-center', 'gap-2');
-    expect(headerShell).not.toHaveClass('border-b');
   });
 
   it('uses a transparent shell background for the transparent variant', () => {

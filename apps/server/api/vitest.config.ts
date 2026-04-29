@@ -3,6 +3,7 @@ import path from 'node:path';
 import process from 'node:process';
 import swc from 'unplugin-swc';
 import { defineConfig } from 'vitest/config';
+import legacyMongooseSpecs from './test/legacy-mongoose-specs.json';
 
 const SOURCEMAP_WARNING_FRAGMENT = 'points to missing source files';
 const SOURCEMAP_WARNING_PREFIX = 'Sourcemap for';
@@ -270,44 +271,8 @@ export default defineConfig({
     },
     environment: 'node',
     // Tracked in #251 — rewrite to PrismaService mock pattern.
-    // Remove an entry when its spec is migrated.
-    exclude: [
-      '**/node_modules/**',
-      '**/dist/**',
-      'src/auth/controllers/auth-cli.controller.spec.ts',
-      'src/collections/activities/controllers/activities.controller.spec.ts',
-      'src/collections/activities/services/activities.service.spec.ts',
-      'src/collections/ad-optimization-audit-logs/services/ad-optimization-audit-logs.service.spec.ts',
-      'src/collections/agent-campaigns/services/agent-campaign-execution.service.spec.ts',
-      'src/collections/agent-strategies/controllers/agent-strategies.controller.spec.ts',
-      'src/collections/agent-strategies/services/agent-strategy-opportunities.service.spec.ts',
-      'src/collections/bots/services/bots-livestream.service.spec.ts',
-      'src/collections/brands/services/default-recurring-content.service.spec.ts',
-      'src/collections/credits/services/credits.utils.service.spec.ts',
-      'src/collections/elements/elements.service.spec.ts',
-      'src/collections/links/controllers/links.controller.spec.ts',
-      'src/collections/members/controllers/members.controller.spec.ts',
-      'src/collections/members/services/members.service.spec.ts',
-      'src/collections/newsletters/services/newsletters.service.spec.ts',
-      'src/collections/optimizers/services/optimizers.service.spec.ts',
-      'src/collections/organizations/controllers/organizations-multi-org.controller.spec.ts',
-      'src/collections/organizations/controllers/organizations.controller.spec.ts',
-      'src/collections/outreach-campaigns/controllers/outreach-campaigns.controller.spec.ts',
-      'src/collections/posts/controllers/posts.controller.spec.ts',
-      'src/collections/trends/services/trend-reference-corpus.service.spec.ts',
-      'src/endpoints/analytics/business-analytics.service.spec.ts',
-      'src/endpoints/analytics/schemas/analytic.schema.spec.ts',
-      'src/endpoints/onboarding/onboarding.service.spec.ts',
-      'src/guards/asset-access.guard.spec.ts',
-      'src/helpers/utils/transaction/transaction.util.spec.ts',
-      'src/queues/pattern-extraction/pattern-extraction.processor.spec.ts',
-      'src/services/ad-aggregation/ad-aggregation.service.spec.ts',
-      'src/services/agent-context-assembly/agent-context-assembly.service.spec.ts',
-      'src/services/brand-memory/brand-memory-sync.service.spec.ts',
-      'src/shared/services/polling/polling.service.spec.ts',
-      'src/skills-pro/services/skill-download.service.spec.ts',
-      'src/workflows/agent-workflows.service.spec.ts',
-    ],
+    // Remove entries from the manifest when specs are migrated.
+    exclude: ['**/node_modules/**', '**/dist/**', ...legacyMongooseSpecs],
     globals: true,
     include: ['src/**/*.spec.ts'],
     name: '@genfeedai/api-unit',

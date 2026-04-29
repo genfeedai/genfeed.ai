@@ -133,13 +133,11 @@ function DesktopSidebar({
   children,
   collapsedWidth = SIDEBAR_COLLAPSED_WIDTH,
   isCollapsed,
-  shellChromeVariant,
   width = SIDEBAR_WIDTH,
 }: {
   children: ReactNode;
   collapsedWidth?: number;
   isCollapsed: boolean;
-  shellChromeVariant: 'default' | 'transparent';
   width?: number;
 }) {
   const targetWidth = isCollapsed ? collapsedWidth : width;
@@ -149,9 +147,7 @@ function DesktopSidebar({
       data-testid="desktop-sidebar-rail"
       className={cn(
         'fixed inset-y-0 left-0 z-30 hidden flex-col overflow-hidden md:flex',
-        shellChromeVariant === 'default'
-          ? 'border-r border-border bg-background-secondary'
-          : 'bg-transparent shadow-none',
+        'bg-transparent',
       )}
       style={{
         minWidth: targetWidth,
@@ -418,7 +414,6 @@ export default function AppLayout({
             <DesktopSidebar
               collapsedWidth={desktopSidebarCollapsedWidth}
               isCollapsed={isDesktopCollapsed}
-              shellChromeVariant={shellChromeVariant}
               width={desktopSidebarExpandedWidth}
             >
               {renderMenu()}
@@ -466,8 +461,7 @@ export default function AppLayout({
               data-testid="app-topbar-shell"
               className={cn(
                 'fixed top-0 right-0 left-0 z-50 h-12 md:left-[var(--desktop-sidebar-width)]',
-                shouldRenderTopbarChrome &&
-                  'border-b border-border bg-background',
+                shouldRenderTopbarChrome && 'bg-background',
               )}
             >
               {topbarContent}
