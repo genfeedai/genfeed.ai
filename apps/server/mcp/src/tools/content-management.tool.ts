@@ -1,11 +1,5 @@
 import type { ClientService } from '@mcp/services/client.service';
-import type { SocialPlatform } from '@mcp/shared/interfaces/post.interface';
-
-function isSocialPlatform(value: string): value is SocialPlatform {
-  return ['twitter', 'linkedin', 'instagram', 'tiktok', 'youtube'].includes(
-    value,
-  );
-}
+import { isSocialPlatform } from '@mcp/tools/tool-validators';
 
 export function createContentListTool(client: ClientService) {
   return {
