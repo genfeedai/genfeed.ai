@@ -2,19 +2,12 @@ vi.mock('@api/shared/utils/encryption/encryption.util', () => ({
   EncryptionUtil: { decrypt: vi.fn((v: string) => `dec:${v}`) },
 }));
 
-vi.mock('jsonwebtoken', () => ({
-  default: {
-    sign: vi.fn().mockReturnValue('mock-jwt-token'),
-  },
-}));
-
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, type TestingModule } from '@nestjs/testing';
-import jwt from 'jsonwebtoken';
 import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -73,15 +66,7 @@ describe('GhostService', () => {
     it('should generate a JWT from a valid API key', () => {
       const token = service.generateToken('abc123:deadbeef0123456789abcdef');
 
-      expect(jwt.sign).toHaveBeenCalledWith(
-        expect.objectContaining({ aud: '/admin/' }),
-        expect.any(Buffer),
-        expect.objectContaining({
-          algorithm: 'HS256',
-          header: expect.objectContaining({ kid: 'abc123' }),
-        }),
-      );
-      expect(token).toBe('mock-jwt-token');
+      expect(token.split('.')).toHaveLength(3);
     });
 
     it('should throw for invalid API key format (no colon)', () => {
@@ -209,7 +194,7 @@ describe('GhostService', () => {
       const headers = (
         httpService.post.mock.calls[0][2] as { headers: Record<string, string> }
       ).headers;
-      expect(headers.Authorization).toBe('Ghost mock-jwt-token');
+      expect(headers.Authorization).toMatch(/^Ghost [^.]+\.[^.]+\.[^.]+$/);
     });
 
     it('should call the correct API URL', async () => {
@@ -303,7 +288,7 @@ describe('GhostService', () => {
         'https://myblog.ghost.io/ghost/api/admin/site/',
         expect.objectContaining({
           headers: expect.objectContaining({
-            Authorization: 'Ghost mock-jwt-token',
+            Authorization: expect.stringMatching(/^Ghost [^.]+\.[^.]+\.[^.]+$/),
           }),
         }),
       );

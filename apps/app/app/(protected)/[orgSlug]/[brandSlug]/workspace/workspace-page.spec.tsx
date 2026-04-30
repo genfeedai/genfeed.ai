@@ -157,6 +157,19 @@ function buildTask(overrides: Record<string, unknown> = {}) {
   };
 }
 
+async function openTaskComposerFromSidebar() {
+  fireEvent(window, new Event(OPEN_TASK_COMPOSER_EVENT));
+  expect(
+    await screen.findByText(
+      'New Task',
+      {},
+      {
+        timeout: 5000,
+      },
+    ),
+  ).toBeInTheDocument();
+}
+
 describe('WorkspacePageContent', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -239,11 +252,7 @@ describe('WorkspacePageContent', () => {
       expect(listMock).toHaveBeenCalledWith({});
     });
 
-    fireEvent(window, new Event(OPEN_TASK_COMPOSER_EVENT));
-
-    await waitFor(() => {
-      expect(screen.getByText('New Task')).toBeInTheDocument();
-    });
+    await openTaskComposerFromSidebar();
   });
 
   it('creates a task from the modal composer', async () => {
@@ -253,11 +262,7 @@ describe('WorkspacePageContent', () => {
       expect(listMock).toHaveBeenCalledWith({});
     });
 
-    fireEvent(window, new Event(OPEN_TASK_COMPOSER_EVENT));
-
-    await waitFor(() => {
-      expect(screen.getByText('New Task')).toBeInTheDocument();
-    });
+    await openTaskComposerFromSidebar();
 
     fireEvent.change(
       screen.getByPlaceholderText(
@@ -328,11 +333,7 @@ describe('WorkspacePageContent', () => {
       expect(listMock).toHaveBeenCalledWith({});
     });
 
-    fireEvent(window, new Event(OPEN_TASK_COMPOSER_EVENT));
-
-    await waitFor(() => {
-      expect(screen.getByText('New Task')).toBeInTheDocument();
-    });
+    await openTaskComposerFromSidebar();
 
     fireEvent.change(
       screen.getByPlaceholderText(

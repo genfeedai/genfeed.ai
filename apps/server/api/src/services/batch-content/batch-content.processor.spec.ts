@@ -110,12 +110,16 @@ describe('BatchContentProcessor', () => {
       }),
     );
 
-    expect(skillExecutor.execute).toHaveBeenCalledWith({
-      brandId: 'brand-2',
-      organizationId: 'org-2',
-      params: { tone: 'formal' },
-      skillSlug: 'social-post',
-    });
+    expect(skillExecutor.execute).toHaveBeenCalledWith(
+      'social-post',
+      {
+        brandId: 'brand-2',
+        brandVoice: '',
+        organizationId: 'org-2',
+        platforms: [],
+      },
+      { tone: 'formal' },
+    );
   });
 
   it('should mark item completed with draft on success', async () => {

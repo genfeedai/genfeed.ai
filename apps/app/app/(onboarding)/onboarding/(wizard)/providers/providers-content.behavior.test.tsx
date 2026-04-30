@@ -247,6 +247,9 @@ describe('ProvidersContent behavior', () => {
         screen.getByRole('link', { name: 'Add my own API keys' }),
       ).toBeInTheDocument();
     });
+    expect(
+      await screen.findByText('Runtime: server defaults are ready'),
+    ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('link', { name: 'Add my own API keys' }));
 
