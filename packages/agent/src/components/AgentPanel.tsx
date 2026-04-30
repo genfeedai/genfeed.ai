@@ -1,4 +1,5 @@
 import { AgentChatContainer } from '@genfeedai/agent/components/AgentChatContainer';
+import { AgentCliTerminal } from '@genfeedai/agent/components/AgentCliTerminal';
 import { AgentOutputsPanel } from '@genfeedai/agent/components/AgentOutputsPanel';
 import { AgentTerminalHeader } from '@genfeedai/agent/components/AgentTerminalHeader';
 import type { AgentRuntimeOption } from '@genfeedai/agent/models/agent-runtime.model';
@@ -268,11 +269,15 @@ export function AgentPanel({
     );
   }, [messages]);
 
+  const [isCliMode, setIsCliMode] = useState(true);
+
   const placeholder =
     pageContext?.placeholder ??
     'Ask for help with content, review, or planning...';
 
-  const chatContent = (
+  const chatContent = isCliMode ? (
+    <AgentCliTerminal apiService={apiService} />
+  ) : (
     <AgentChatContainer
       apiService={apiService}
       isStreaming
@@ -304,12 +309,15 @@ export function AgentPanel({
       onExpand={handleExpand}
       onTabChange={handleTabChange}
       defaultTab={defaultTab}
+      title={isCliMode ? 'genfeed' : 'Console'}
       headerContent={
         <AgentTerminalHeader
           catalog={runtimeCatalog}
           selectedRuntime={selectedRuntime}
           threadLabel={threadLabel}
           onRuntimeChange={handleRuntimeChange}
+          isCliMode={isCliMode}
+          onToggleCliMode={() => setIsCliMode((prev) => !prev)}
         />
       }
       subtitle="Thread transcript, runtime routing, and generated outputs"

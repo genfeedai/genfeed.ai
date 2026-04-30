@@ -6,15 +6,17 @@ import { startTransition, useCallback, useEffect, useState } from 'react';
 import OnboardingWizard from './components/OnboardingWizard';
 import ReconnectBanner from './components/ReconnectBanner';
 import { Sidebar } from './components/Sidebar';
+import { Topbar } from './components/Topbar';
 import { useThreads } from './hooks/useThreads';
 import type { NavView } from './nav-view';
 import { useSyncEngine } from './sync/useSyncEngine';
 import { initializeRendererTelemetry } from './telemetry';
 import { AgentsView } from './views/AgentsView';
 import { AnalyticsView } from './views/AnalyticsView';
-import { ConversationView } from './views/ConversationView';
+
 import { LibraryView } from './views/LibraryView';
 import { MissionControlView } from './views/MissionControlView';
+import { TerminalView } from './views/TerminalView';
 import { TrendsView } from './views/TrendsView';
 import { WorkflowsView } from './views/WorkflowsView';
 
@@ -53,7 +55,7 @@ export const App = () => {
   const [isOnline, setIsOnline] = useState(
     typeof navigator === 'undefined' ? true : navigator.onLine,
   );
-  const [pendingTrend, setPendingTrend] = useState<{
+  const [_pendingTrend, setPendingTrend] = useState<{
     id: string;
     platform: 'instagram' | 'linkedin' | 'twitter' | 'tiktok' | 'youtube';
     topic: string;
@@ -63,17 +65,20 @@ export const App = () => {
     loaded: false,
   });
   const [isDismissedReconnect, setIsDismissedReconnect] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  const handleToggleSidebarCollapse = useCallback(() => {
+    setIsSidebarCollapsed((prev) => !prev);
+  }, []);
 
   const localUserId = bootstrap.localUserId || null;
   const selectedWorkspaceId = bootstrap.workspaces[0]?.id ?? null;
 
   const {
-    activeThread,
     activeThreadId,
     addMessage,
     createThread,
     setActiveThreadId,
-    setThreadStatus,
     threads,
   } = useThreads(selectedWorkspaceId, localUserId);
 
@@ -136,7 +141,7 @@ export const App = () => {
     );
 
     const disposeSidebar = window.genfeedDesktop.app.onToggleSidebar(() => {
-      // Toggle sidebar visibility if needed
+      setIsSidebarCollapsed((prev) => !prev);
     });
 
     const disposeQuickGenerate = window.genfeedDesktop.onQuickGenerate(() => {
@@ -210,6 +215,14 @@ export const App = () => {
     createThread();
   }, [createThread]);
 
+  const handleOpenTerminal = useCallback(() => {
+    setActiveView('conversation');
+  }, []);
+
+  const handleOpenSettings = useCallback(() => {
+    // TODO: add settings view
+  }, []);
+
   const handleGenerateFromTrend = useCallback(
     (trend: {
       id: string;
@@ -257,17 +270,7 @@ export const App = () => {
   const renderMainView = () => {
     switch (activeView) {
       case 'conversation':
-        return (
-          <ConversationView
-            onCreateThread={createThread}
-            onSendMessage={addMessage}
-            onSetStatus={setThreadStatus}
-            onTrendConsumed={() => setPendingTrend(null)}
-            pendingTrend={pendingTrend}
-            thread={activeThread}
-            workspaceId={selectedWorkspaceId}
-          />
-        );
+        return <TerminalView workspaceId={selectedWorkspaceId} />;
       case 'workflows':
         return <WorkflowsView />;
       case 'agents':
@@ -281,17 +284,7 @@ export const App = () => {
       case 'trends':
         return <TrendsView onGenerateFromTrend={handleGenerateFromTrend} />;
       default:
-        return (
-          <ConversationView
-            onCreateThread={createThread}
-            onSendMessage={addMessage}
-            onSetStatus={setThreadStatus}
-            onTrendConsumed={() => setPendingTrend(null)}
-            pendingTrend={pendingTrend}
-            thread={activeThread}
-            workspaceId={selectedWorkspaceId}
-          />
-        );
+        return <TerminalView workspaceId={selectedWorkspaceId} />;
     }
   };
 
@@ -312,6 +305,7 @@ export const App = () => {
       <Sidebar
         activeThreadId={activeThreadId}
         activeView={activeView}
+        isCollapsed={isSidebarCollapsed}
         isSyncing={isSyncing}
         lastSyncAt={lastSyncAt}
         onLogout={() => void handleLogout()}
@@ -326,7 +320,15 @@ export const App = () => {
         threads={threads}
         workspaces={bootstrap.workspaces}
       />
-      <main className="main-area">{renderMainView()}</main>
+      <div className="main-column">
+        <Topbar
+          isSidebarCollapsed={isSidebarCollapsed}
+          onToggleSidebar={handleToggleSidebarCollapse}
+          onOpenSettings={handleOpenSettings}
+          onOpenTerminal={handleOpenTerminal}
+        />
+        <main className="main-area">{renderMainView()}</main>
+      </div>
     </div>
   );
 };

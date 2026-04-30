@@ -74,7 +74,7 @@ vi.mock('next/navigation', () => ({
 const { default: AppProtectedTopbar } = await import('./AppProtectedTopbar');
 
 describe('AppProtectedTopbar', () => {
-  it('places breadcrumbs before the app switcher', () => {
+  it('places the app switcher before breadcrumbs', () => {
     render(<AppProtectedTopbar currentApp="workspace" orgSlug="acme" />);
 
     const appSwitcher = screen.getByTestId('app-switcher');
@@ -83,7 +83,7 @@ describe('AppProtectedTopbar', () => {
     expect(appSwitcher).toBeInTheDocument();
     expect(breadcrumbs).toBeInTheDocument();
     expect(
-      breadcrumbs.compareDocumentPosition(appSwitcher) &
+      appSwitcher.compareDocumentPosition(breadcrumbs) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });

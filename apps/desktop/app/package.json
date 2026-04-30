@@ -95,8 +95,8 @@
     "pack:mac": "bun run electron:install-binary && bun run native:rebuild && bun run build:release && electron-builder --mac --dir --publish never",
     "prepare:release": "bun run icon:mac",
     "release:mac": "bun run electron:install-binary && bun run native:rebuild && bun run build:release && electron-builder --mac dmg zip --publish never",
-    "smoke": "bun run electron:install-binary && bun run native:rebuild && bun run build && electron dist/main.js --smoke-test",
-    "start": "bun run electron:install-binary && bun run native:rebuild && electron dist/main.js",
+    "smoke": "bun run electron:install-binary && bun run native:rebuild && bun run build && ELECTRON_RUN_AS_NODE= electron dist/main.js --smoke-test",
+    "start": "bun run electron:install-binary && bun run native:rebuild && ELECTRON_RUN_AS_NODE= electron dist/main.js",
     "test": "bun test ./src/**/*.test.ts && vitest run --config vitest.config.ts",
     "type-check": "rm -rf .next && next typegen && bunx tsc --noEmit"
   },

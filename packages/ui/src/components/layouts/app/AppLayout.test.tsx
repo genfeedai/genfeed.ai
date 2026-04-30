@@ -168,7 +168,7 @@ describe('AppLayout', () => {
 
     const rail = screen.getByTestId('agent-panel-rail');
 
-    expect(rail).toHaveClass('bg-transparent', 'shadow-none', 'border-t');
+    expect(rail).toHaveClass('bg-transparent', 'shadow-none');
   });
 
   it('passes agent toggle to topbar when agent rail is mounted', () => {

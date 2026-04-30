@@ -206,16 +206,34 @@ export interface DesktopPgliteContext {
 export class DesktopPgliteService {
   private context: DesktopPgliteContext | null = null;
   private contextPromise: Promise<DesktopPgliteContext> | null = null;
-  private readonly databaseDirPath: string;
-  private readonly wasJustInitialized: boolean;
+  private _databaseDirPath: string | null = null;
+  private _wasJustInitialized: boolean | null = null;
 
-  constructor() {
+  /**
+   * Resolve paths lazily — `app.getPath()` requires Electron app to be ready,
+   * but this service may be instantiated at module scope before `app.whenReady()`.
+   */
+  private ensurePaths(): void {
+    if (this._databaseDirPath) {
+      return;
+    }
+
     const userDataPath = app.getPath('userData');
     fs.mkdirSync(userDataPath, { recursive: true });
 
-    this.databaseDirPath = path.join(userDataPath, 'pglite-db');
-    this.wasJustInitialized = !fs.existsSync(this.databaseDirPath);
-    fs.mkdirSync(this.databaseDirPath, { recursive: true });
+    this._databaseDirPath = path.join(userDataPath, 'pglite-db');
+    this._wasJustInitialized = !fs.existsSync(this._databaseDirPath);
+    fs.mkdirSync(this._databaseDirPath, { recursive: true });
+  }
+
+  private get databaseDirPath(): string {
+    this.ensurePaths();
+    return this._databaseDirPath!;
+  }
+
+  private get wasJustInitialized(): boolean {
+    this.ensurePaths();
+    return this._wasJustInitialized!;
   }
 
   getDatabasePath(): string {

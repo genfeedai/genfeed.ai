@@ -35,20 +35,30 @@ async function waitForServer(url: string, timeoutMs = 60_000): Promise<void> {
 
 export class DesktopAppShellService {
   private appServerProcess: ChildProcess | null = null;
-  private readonly appUrl: URL;
+  private _appUrl: URL | null = null;
   private headersRegistered = false;
   private started = false;
 
   constructor(
     private readonly environment: IDesktopEnvironment,
     private readonly getSession: () => IDesktopSession | null,
-    private readonly sessionDbPath: string,
-  ) {
-    this.appUrl = new URL(
-      this.isExternalDevServer()
-        ? process.env.GENFEED_DESKTOP_APP_URL || environment.appEndpoint
-        : environment.appEndpoint,
-    );
+    private readonly getSessionDbPath: () => string,
+  ) {}
+
+  /**
+   * Lazy — `app.isPackaged` requires the Electron app module to be fully loaded,
+   * but this service is instantiated at module scope before `app.whenReady()`.
+   */
+  private get appUrl(): URL {
+    if (!this._appUrl) {
+      this._appUrl = new URL(
+        this.isExternalDevServer()
+          ? process.env.GENFEED_DESKTOP_APP_URL || this.environment.appEndpoint
+          : this.environment.appEndpoint,
+      );
+    }
+
+    return this._appUrl;
   }
 
   private isExternalDevServer(): boolean {
@@ -106,7 +116,7 @@ export class DesktopAppShellService {
       API_URL: stripApiVersionSuffix(this.environment.apiEndpoint),
       ELECTRON_RUN_AS_NODE: '1',
       GENFEED_DESKTOP_APP_PORT: String(this.environment.appPort),
-      GENFEED_DESKTOP_SESSION_DB_PATH: this.sessionDbPath,
+      GENFEED_DESKTOP_SESSION_DB_PATH: this.getSessionDbPath(),
       HOSTNAME: this.appUrl.hostname,
       NEXT_PUBLIC_API_ENDPOINT: this.environment.apiEndpoint,
       NEXT_PUBLIC_DESKTOP_SHELL: '1',

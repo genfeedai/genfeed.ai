@@ -2,6 +2,7 @@
 
 const { spawn } = require('node:child_process');
 const path = require('node:path');
+const electronPath = require('electron');
 
 const desktopRoot = process.cwd();
 const appRoot = path.resolve(desktopRoot, '../../app');
@@ -82,9 +83,10 @@ async function main() {
     throw error;
   }
 
-  const electronProcess = run('electron', ['dist/main.js'], {
+  const electronProcess = run(electronPath, ['dist/main.js'], {
     cwd: desktopRoot,
     env: {
+      ELECTRON_RUN_AS_NODE: '',
       GENFEED_DESKTOP_APP_URL: appUrl,
       NEXT_PUBLIC_DESKTOP_SHELL: '1',
     },

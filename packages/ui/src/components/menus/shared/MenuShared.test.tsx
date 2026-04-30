@@ -152,10 +152,6 @@ vi.mock('@ui/menus/sidebar-brand-rail/SidebarBrandRail', () => ({
   default: () => <div data-testid="sidebar-brand-rail-content" />,
 }));
 
-vi.mock('@ui/cards/progress-sidebar-card/ProgressSidebarCard', () => ({
-  default: () => <div data-testid="progress-sidebar-card" />,
-}));
-
 vi.mock('@genfeedai/services/core/environment.service', () => ({
   EnvironmentService: {
     LOGO_ALT: 'Genfeed',
@@ -200,7 +196,7 @@ describe('MenuShared', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
-  it('renders the sidebar header shell with org switcher', () => {
+  it('renders the sidebar header spacer', () => {
     render(<MenuShared config={config} />);
 
     expect(screen.queryByTestId('sidebar-header-shell')).toBeInTheDocument();
@@ -409,12 +405,6 @@ describe('MenuShared', () => {
       'flex-col',
     );
     expect(screen.getByTestId('thread-list')).toBeInTheDocument();
-  });
-
-  it('renders the consolidated progress module in the default sidebar body', () => {
-    render(<MenuShared config={config} />);
-
-    expect(screen.getByTestId('progress-sidebar-card')).toBeInTheDocument();
   });
 
   it('can hide primary CTA when rendering contextual sidebar content', () => {

@@ -473,6 +473,7 @@ a {
 
 [data-agent-console='true'] {
   border-color: hsl(var(--border) / 0.76);
+  border-top: none;
   background: hsl(var(--background));
 }
 

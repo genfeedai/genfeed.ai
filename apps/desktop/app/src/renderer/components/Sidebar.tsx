@@ -7,20 +7,68 @@ import type {
 import { ButtonVariant } from '@genfeedai/enums';
 import type { NavView } from '@renderer/nav-view';
 import { Button } from '@ui/primitives/button';
+import type { ComponentType } from 'react';
+import {
+  HiArrowRightOnRectangle,
+  HiBolt,
+  HiChartBar,
+  HiCpuChip,
+  HiFolderOpen,
+  HiOutlineBolt,
+  HiOutlineChartBar,
+  HiOutlineCpuChip,
+  HiOutlineFolderOpen,
+  HiOutlinePlusCircle,
+  HiOutlineRocketLaunch,
+  HiOutlineSquares2X2,
+  HiRocketLaunch,
+  HiSquares2X2,
+} from 'react-icons/hi2';
 
 interface NavItem {
-  icon: string;
   id: NavView;
   label: string;
+  outline: ComponentType<{ className?: string }>;
+  solid: ComponentType<{ className?: string }>;
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { icon: '⚡', id: 'workflows', label: 'Automations' },
-  { icon: '🤖', id: 'agents', label: 'Agents' },
-  { icon: '🧪', id: 'mission-control', label: 'Mission Control' },
-  { icon: '📊', id: 'analytics', label: 'Analytics' },
-  { icon: '📂', id: 'library', label: 'Library' },
-  { icon: '📈', id: 'trends', label: 'Trends' },
+  {
+    id: 'workflows',
+    label: 'Automations',
+    outline: HiOutlineBolt,
+    solid: HiBolt,
+  },
+  {
+    id: 'agents',
+    label: 'Agents',
+    outline: HiOutlineCpuChip,
+    solid: HiCpuChip,
+  },
+  {
+    id: 'mission-control',
+    label: 'Mission Control',
+    outline: HiOutlineRocketLaunch,
+    solid: HiRocketLaunch,
+  },
+  {
+    id: 'analytics',
+    label: 'Analytics',
+    outline: HiOutlineChartBar,
+    solid: HiChartBar,
+  },
+  {
+    id: 'library',
+    label: 'Library',
+    outline: HiOutlineFolderOpen,
+    solid: HiFolderOpen,
+  },
+  {
+    id: 'trends',
+    label: 'Trends',
+    outline: HiOutlineSquares2X2,
+    solid: HiSquares2X2,
+  },
 ];
 
 function timeAgo(dateStr: string): string {
@@ -37,6 +85,7 @@ function timeAgo(dateStr: string): string {
 interface SidebarProps {
   activeView: NavView;
   activeThreadId: string | null;
+  isCollapsed: boolean;
   isSyncing: boolean;
   lastSyncAt: string | null;
   onNavigate: (view: NavView) => void;
@@ -55,6 +104,7 @@ interface SidebarProps {
 export const Sidebar = ({
   activeView,
   activeThreadId,
+  isCollapsed,
   isSyncing,
   lastSyncAt,
   onNavigate,
@@ -84,32 +134,50 @@ export const Sidebar = ({
   }
 
   return (
-    <aside className="sidebar">
-      <div className="sidebar-logo">
-        <span className="logo-mark">G</span>
-        <span className="logo-text">GenFeed</span>
-      </div>
+    <aside className={`sidebar ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
+      {!isCollapsed && (
+        <div className="sidebar-header">
+          <div className="sidebar-logo">
+            <span className="logo-mark">G</span>
+            <span className="logo-text">GenFeed</span>
+          </div>
+        </div>
+      )}
 
       {/* New thread button */}
-      <Button
-        className="new-thread-button"
-        onClick={onNewThread}
-        type="button"
-        variant={ButtonVariant.UNSTYLED}
-      >
-        <span>＋</span> New thread
-      </Button>
-      <Button
-        className="sidebar-action-button"
-        onClick={onOpenWorkspace}
-        type="button"
-        variant={ButtonVariant.GHOST}
-      >
-        <span className="nav-icon">📁</span>
-        <span>Open workspace</span>
-      </Button>
+      {!isCollapsed ? (
+        <>
+          <Button
+            className="new-thread-button"
+            onClick={onNewThread}
+            type="button"
+            variant={ButtonVariant.UNSTYLED}
+          >
+            <HiOutlinePlusCircle className="nav-icon-svg" /> New thread
+          </Button>
+          <Button
+            className="sidebar-action-button"
+            onClick={onOpenWorkspace}
+            type="button"
+            variant={ButtonVariant.GHOST}
+          >
+            <HiOutlineFolderOpen className="nav-icon-svg" />
+            <span>Open workspace</span>
+          </Button>
+        </>
+      ) : (
+        <Button
+          className="sidebar-action-collapsed"
+          onClick={onNewThread}
+          type="button"
+          variant={ButtonVariant.UNSTYLED}
+          ariaLabel="New thread"
+        >
+          <HiOutlinePlusCircle className="nav-icon-svg" />
+        </Button>
+      )}
 
-      {workspaces[0] && (
+      {!isCollapsed && workspaces[0] && (
         <div className="sidebar-workspace-card">
           <span className="sidebar-section-label">Active Workspace</span>
           <strong>{workspaces[0].name}</strong>
@@ -128,172 +196,190 @@ export const Sidebar = ({
 
       {/* Nav items */}
       <nav className="sidebar-nav">
-        {NAV_ITEMS.map((item) => (
-          <Button
-            className={`nav-item ${activeView === item.id ? 'active' : ''}`}
-            key={item.id}
-            onClick={() => onNavigate(item.id)}
-            type="button"
-            variant={ButtonVariant.UNSTYLED}
-          >
-            <span className="nav-icon">{item.icon}</span>
-            <span className="nav-label">{item.label}</span>
-          </Button>
-        ))}
-      </nav>
-
-      {/* Divider */}
-      <div className="sidebar-divider" />
-
-      {/* Conversations section */}
-      <div className="sidebar-threads">
-        <span className="sidebar-section-label">Conversations</span>
-
-        {/* Grouped by workspace */}
-        {workspaces.map((ws) => {
-          const wsThreads = threadsByWorkspace.get(ws.id);
-          if (!wsThreads || wsThreads.length === 0) return null;
+        {NAV_ITEMS.map((item) => {
+          const isActive = activeView === item.id;
+          const IconComponent = isActive ? item.solid : item.outline;
 
           return (
-            <div className="thread-group" key={ws.id}>
-              <span className="thread-group-label">
-                <span className="nav-icon">📁</span> {ws.name}
-              </span>
-              {wsThreads.map((thread) => (
-                <Button
-                  className={`thread-item ${
-                    activeView === 'conversation' &&
-                    activeThreadId === thread.id
-                      ? 'active'
-                      : ''
-                  }`}
-                  key={thread.id}
-                  onClick={() => onSelectThread(thread.id)}
-                  type="button"
-                  variant={ButtonVariant.UNSTYLED}
-                >
-                  <span className="thread-title">{thread.title}</span>
-                  <span className="thread-meta">
-                    <span className="thread-time">
-                      {timeAgo(thread.updatedAt)}
-                    </span>
-                    {thread.status === 'awaiting-response' && (
-                      <span className="thread-status-badge">Awaiting</span>
-                    )}
-                  </span>
-                </Button>
-              ))}
-            </div>
+            <Button
+              className={`nav-item ${isActive ? 'active' : ''}`}
+              key={item.id}
+              onClick={() => onNavigate(item.id)}
+              type="button"
+              variant={ButtonVariant.UNSTYLED}
+              ariaLabel={isCollapsed ? item.label : undefined}
+            >
+              <IconComponent className="nav-icon-svg" />
+              {!isCollapsed && <span className="nav-label">{item.label}</span>}
+            </Button>
           );
         })}
+      </nav>
 
-        {/* Ungrouped threads */}
-        {ungrouped.length > 0 && (
-          <div className="thread-group">
-            {workspaces.length > 0 && (
-              <span className="thread-group-label">
-                <span className="nav-icon">💬</span> General
-              </span>
-            )}
-            {ungrouped.map((thread) => (
-              <Button
-                className={`thread-item ${
-                  activeView === 'conversation' && activeThreadId === thread.id
-                    ? 'active'
-                    : ''
-                }`}
-                key={thread.id}
-                onClick={() => onSelectThread(thread.id)}
-                type="button"
-                variant={ButtonVariant.UNSTYLED}
-              >
-                <span className="thread-title">{thread.title}</span>
-                <span className="thread-meta">
-                  <span className="thread-time">
-                    {timeAgo(thread.updatedAt)}
+      {!isCollapsed && (
+        <>
+          {/* Divider */}
+          <div className="sidebar-divider" />
+
+          {/* Conversations section */}
+          <div className="sidebar-threads">
+            <span className="sidebar-section-label">Conversations</span>
+
+            {/* Grouped by workspace */}
+            {workspaces.map((ws) => {
+              const wsThreads = threadsByWorkspace.get(ws.id);
+              if (!wsThreads || wsThreads.length === 0) return null;
+
+              return (
+                <div className="thread-group" key={ws.id}>
+                  <span className="thread-group-label">
+                    <HiFolderOpen className="nav-icon-svg" /> {ws.name}
                   </span>
-                  {thread.status === 'awaiting-response' && (
-                    <span className="thread-status-badge">Awaiting</span>
-                  )}
-                </span>
-              </Button>
-            ))}
-          </div>
-        )}
+                  {wsThreads.map((thread) => (
+                    <Button
+                      className={`thread-item ${
+                        activeView === 'conversation' &&
+                        activeThreadId === thread.id
+                          ? 'active'
+                          : ''
+                      }`}
+                      key={thread.id}
+                      onClick={() => onSelectThread(thread.id)}
+                      type="button"
+                      variant={ButtonVariant.UNSTYLED}
+                    >
+                      <span className="thread-title">{thread.title}</span>
+                      <span className="thread-meta">
+                        <span className="thread-time">
+                          {timeAgo(thread.updatedAt)}
+                        </span>
+                        {thread.status === 'awaiting-response' && (
+                          <span className="thread-status-badge">Awaiting</span>
+                        )}
+                      </span>
+                    </Button>
+                  ))}
+                </div>
+              );
+            })}
 
-        {threads.length === 0 && (
-          <p className="empty-state sidebar-empty">
-            No conversations yet. Click "New thread" to start.
-          </p>
-        )}
-      </div>
+            {/* Ungrouped threads */}
+            {ungrouped.length > 0 && (
+              <div className="thread-group">
+                {workspaces.length > 0 && (
+                  <span className="thread-group-label">General</span>
+                )}
+                {ungrouped.map((thread) => (
+                  <Button
+                    className={`thread-item ${
+                      activeView === 'conversation' &&
+                      activeThreadId === thread.id
+                        ? 'active'
+                        : ''
+                    }`}
+                    key={thread.id}
+                    onClick={() => onSelectThread(thread.id)}
+                    type="button"
+                    variant={ButtonVariant.UNSTYLED}
+                  >
+                    <span className="thread-title">{thread.title}</span>
+                    <span className="thread-meta">
+                      <span className="thread-time">
+                        {timeAgo(thread.updatedAt)}
+                      </span>
+                      {thread.status === 'awaiting-response' && (
+                        <span className="thread-status-badge">Awaiting</span>
+                      )}
+                    </span>
+                  </Button>
+                ))}
+              </div>
+            )}
+
+            {threads.length === 0 && (
+              <p className="empty-state sidebar-empty">
+                No conversations yet. Click &quot;New thread&quot; to start.
+              </p>
+            )}
+          </div>
+        </>
+      )}
 
       {/* Footer */}
       <div className="sidebar-footer">
         {/* Cloud sync status */}
-        {isSyncing && (
+        {!isCollapsed && isSyncing && (
           <div className="sync-indicator">
-            <span className="sync-dot sync-dot-active" />⟳ Syncing...
+            <span className="sync-dot sync-dot-active" />
+            Syncing...
           </div>
         )}
-        {!isSyncing && syncErrors.length > 0 && (
+        {!isCollapsed && !isSyncing && syncErrors.length > 0 && (
           <div className="sync-indicator sync-indicator-error">
-            <span>⚠ Sync error</span>
+            <span>Sync error</span>
             <Button
               className="sync-retry-btn"
               onClick={onTriggerSync}
               type="button"
               variant={ButtonVariant.UNSTYLED}
             >
-              · Retry
+              Retry
             </Button>
           </div>
         )}
-        {!isSyncing && syncErrors.length === 0 && lastSyncAt && (
-          <div className="sync-indicator sync-indicator-success">
-            <span>✓ Synced {timeAgo(lastSyncAt)}</span>
-            <Button
-              className="sync-manual-btn"
-              onClick={onTriggerSync}
-              title="Sync now"
-              type="button"
-              variant={ButtonVariant.UNSTYLED}
-            >
-              ⟳
-            </Button>
-          </div>
-        )}
+        {!isCollapsed &&
+          !isSyncing &&
+          syncErrors.length === 0 &&
+          lastSyncAt && (
+            <div className="sync-indicator sync-indicator-success">
+              <span>Synced {timeAgo(lastSyncAt)}</span>
+              <Button
+                className="sync-manual-btn"
+                onClick={onTriggerSync}
+                title="Sync now"
+                type="button"
+                variant={ButtonVariant.UNSTYLED}
+              >
+                ⟳
+              </Button>
+            </div>
+          )}
 
         {/* Local job queue indicator */}
-        {syncState.pendingCount > 0 && (
+        {!isCollapsed && syncState.pendingCount > 0 && (
           <div className="sync-indicator">
             <span className="sync-dot" />
             {syncState.pendingCount} pending
           </div>
         )}
 
-        <div className="user-info">
-          <span className="user-avatar">
-            {session
-              ? (session.userName ?? session.userEmail ?? 'U')[0].toUpperCase()
-              : '?'}
-          </span>
-          <div className="user-details">
-            <span className="user-name">
-              {session?.userName ?? (session ? 'User' : 'Offline')}
+        {!isCollapsed && (
+          <div className="user-info">
+            <span className="user-avatar">
+              {session
+                ? (session.userName ??
+                    session.userEmail ??
+                    'U')[0].toUpperCase()
+                : '?'}
             </span>
-            <span className="user-email">{session?.userEmail ?? ''}</span>
+            <div className="user-details">
+              <span className="user-name">
+                {session?.userName ?? (session ? 'User' : 'Offline')}
+              </span>
+              <span className="user-email">{session?.userEmail ?? ''}</span>
+            </div>
           </div>
-        </div>
+        )}
 
         <Button
           className="nav-item logout-btn"
           onClick={onLogout}
           type="button"
           variant={ButtonVariant.UNSTYLED}
+          ariaLabel={isCollapsed ? 'Sign Out' : undefined}
         >
-          <span className="nav-icon">🚪</span>
-          <span className="nav-label">Sign Out</span>
+          <HiArrowRightOnRectangle className="nav-icon-svg" />
+          {!isCollapsed && <span className="nav-label">Sign Out</span>}
         </Button>
       </div>
     </aside>

@@ -11,13 +11,13 @@ import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interf
 import type { MenuSharedProps } from '@genfeedai/props/navigation/menu.props';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { Kbd } from '@genfeedai/ui';
-import ProgressSidebarCard from '@ui/cards/progress-sidebar-card/ProgressSidebarCard';
+
 import MenuItem from '@ui/menus/item/MenuItem';
 import SidebarBrandRail from '@ui/menus/sidebar-brand-rail/SidebarBrandRail';
 import SidebarNested from '@ui/menus/sidebar-nested/SidebarNested';
 import UserDropdown from '@ui/menus/user-dropdown/UserDropdown';
 import { Button } from '@ui/primitives/button';
-import TopbarWorkspaceSwitcher from '@ui/topbars/workspace-switcher/TopbarWorkspaceSwitcher';
+
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -95,7 +95,7 @@ export default function MenuShared({
   backLabel,
   sectionLabel,
   isCollapsed,
-  shellChromeVariant: _shellChromeVariant = 'default',
+  shellChromeVariant = 'default',
   onToggleCollapse,
   showPrimaryItems = true,
   conversationActions,
@@ -524,19 +524,19 @@ export default function MenuShared({
             : undefined
         }
       >
-        {!isWorkspaceShell && (
+        {!isWorkspaceShell ? (
           <div
             data-testid="sidebar-header-shell"
-            className="flex h-12 shrink-0 items-center gap-1.5 px-3"
+            className={cn(
+              'flex h-12 flex-shrink-0 items-center gap-2 px-3',
+              shellChromeVariant === 'default' &&
+                'border-b border-white/[0.06]',
+            )}
           >
             {sharedCollapseControl}
-            {!isCollapsed && (
-              <div className="-mx-1 min-w-0 flex-1">
-                <TopbarWorkspaceSwitcher compact />
-              </div>
-            )}
+            <div className="flex-1" />
           </div>
-        )}
+        ) : null}
 
         {/* Body — fades out when collapsed, pointer-events disabled */}
         <div
@@ -734,8 +734,6 @@ export default function MenuShared({
                   </div>
                 )}
               </div>
-
-              <ProgressSidebarCard />
 
               {renderFooterSlot && (
                 <div className="px-3 pb-1">{renderFooterSlot()}</div>

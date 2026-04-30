@@ -82,6 +82,10 @@ vi.mock('@genfeedai/agent/components/AgentOutputsPanel', () => ({
   AgentOutputsPanel: () => <div data-testid="agent-outputs-panel" />,
 }));
 
+vi.mock('@genfeedai/agent/components/AgentCliTerminal', () => ({
+  AgentCliTerminal: () => <div data-testid="agent-cli-terminal" />,
+}));
+
 describe('AgentPanel', () => {
   it('fetches credits on mount and renders chat container', async () => {
     const apiService = {
@@ -101,7 +105,8 @@ describe('AgentPanel', () => {
     expect(mockSetCreditsRemaining).toHaveBeenCalledWith(123);
     expect(mockSetModelCosts).toHaveBeenCalledWith({});
 
-    expect(screen.getByTestId('agent-chat-container')).toBeInTheDocument();
+    // Default mode is CLI — AgentCliTerminal renders instead of AgentChatContainer
+    expect(screen.getByTestId('agent-cli-terminal')).toBeInTheDocument();
     expect(screen.getByTestId('agent-outputs-panel')).toBeInTheDocument();
   });
 

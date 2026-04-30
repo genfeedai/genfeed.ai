@@ -34,7 +34,7 @@ export default function MenuItem({
 
     if (OutlineIcon && SolidIcon) {
       const IconComponent = isActive ? SolidIcon : OutlineIcon;
-      return <IconComponent className="w-4 h-4" />;
+      return <IconComponent className="w-5 h-5" />;
     }
 
     return null;
@@ -45,7 +45,7 @@ export default function MenuItem({
     isIconVariant
       ? isHorizontalLayout
         ? [
-            'h-4 w-4 shrink-0',
+            'h-5 w-5 shrink-0',
             isActive
               ? 'text-foreground'
               : 'text-foreground/42 group-hover:text-foreground/78',
@@ -68,14 +68,14 @@ export default function MenuItem({
   const baseClasses = isIconVariant
     ? isHorizontalLayout
       ? cn(
-          'group relative flex h-7 w-full flex-row items-center gap-2 rounded px-2.5 py-1 text-left transition-[background-color,color] duration-150',
+          'group relative flex h-8 w-full flex-row items-center gap-2.5 rounded px-2.5 py-1.5 text-left transition-[background-color,color] duration-150',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         )
       : cn(
           'group relative flex w-full flex-col items-center gap-2 p-2 text-center transition-all duration-200',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         )
-    : 'group flex h-7 items-center gap-2 rounded px-2.5 py-1 text-left transition-[background-color,color] duration-150';
+    : 'group flex h-8 items-center gap-2.5 rounded px-2.5 py-1.5 text-left transition-[background-color,color] duration-150';
 
   const activeClasses = isIconVariant
     ? isHorizontalLayout

@@ -4,6 +4,10 @@ export interface TopbarProps {
   showMountCheck?: boolean;
   onMenuToggle?: () => void;
   isMenuOpen?: boolean;
+  /** Whether the desktop sidebar is collapsed */
+  isSidebarCollapsed?: boolean;
+  /** Toggle desktop sidebar collapsed state */
+  onSidebarToggle?: () => void;
   /** Whether the agent panel is collapsed */
   isAgentCollapsed?: boolean;
   /** Toggle agent panel visibility */

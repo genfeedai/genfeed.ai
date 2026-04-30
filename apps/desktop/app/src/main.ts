@@ -70,7 +70,7 @@ const draftsService = new DesktopDraftsService(workspaceService);
 const appShellService = new DesktopAppShellService(
   environment,
   () => sessionService.getSession(),
-  database.getDatabasePath(),
+  () => database.getDatabasePath(),
 );
 
 const telemetryService = new DesktopTelemetryService(environment);
@@ -250,6 +250,10 @@ const createWindow = async (): Promise<void> => {
       setTimeout(() => app.exit(0), 250);
     }
   } catch (error) {
+    process.stderr.write(
+      `[desktop] app shell boot failed: ${error instanceof Error ? error.stack || error.message : String(error)}\n`,
+    );
+
     telemetryService.captureException(error, {
       surface: 'app-shell',
     });

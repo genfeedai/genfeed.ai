@@ -322,14 +322,18 @@ export default function AppLayout({
       currentApp,
       isAgentCollapsed,
       isMenuOpen: isSidebarOpen,
+      isSidebarCollapsed: isDesktopCollapsed,
       onAgentToggle,
       onMenuToggle: handleToggleSidebar,
+      onSidebarToggle: handleToggleDesktopSidebar,
       orgSlug,
     };
   }, [
     brandSlug,
     currentApp,
     handleToggleSidebar,
+    handleToggleDesktopSidebar,
+    isDesktopCollapsed,
     isSidebarOpen,
     isAgentCollapsed,
     onAgentToggle,
@@ -496,9 +500,8 @@ export default function AppLayout({
             className={cn(
               'fixed right-0 bottom-0 left-0 z-20 hidden overflow-hidden lg:flex',
               shellChromeVariant === 'transparent'
-                ? !isAgentCollapsed &&
-                    'border-t border-border bg-transparent shadow-none'
-                : 'border-t border-border bg-background-secondary',
+                ? !isAgentCollapsed && 'bg-transparent shadow-none'
+                : 'bg-background-secondary',
               shellChromeVariant === 'transparent' && 'shadow-none',
               menuComponent && 'md:left-[var(--desktop-sidebar-width)]',
             )}
@@ -510,7 +513,7 @@ export default function AppLayout({
           >
             <div
               data-testid="agent-panel-resize-handle"
-              className="absolute top-0 left-0 right-0 z-10 h-1.5 cursor-row-resize border-t border-border bg-white/[0.03]"
+              className="absolute top-0 left-0 right-0 z-10 h-1.5 cursor-row-resize border-t border-border"
               onMouseDown={handleAgentPanelResizeStart}
             />
             <div

@@ -56,6 +56,17 @@ export default function AppProtectedTopbar({
             </Button>
           ) : null}
 
+          {currentApp && orgSlug ? (
+            <div className="shrink-0">
+              <AppSwitcher
+                currentApp={currentApp}
+                orgSlug={orgSlug}
+                brandSlug={brandSlug}
+                preservedSearch={searchParams?.toString()}
+              />
+            </div>
+          ) : null}
+
           <div className="hidden min-w-0 md:flex">
             <div className="flex h-7 min-w-0 items-center rounded px-2">
               <TopbarBreadcrumbs />
@@ -83,15 +94,6 @@ export default function AppProtectedTopbar({
                 </Link>
               ) : null}
             </div>
-          ) : null}
-
-          {currentApp && orgSlug ? (
-            <AppSwitcher
-              currentApp={currentApp}
-              orgSlug={orgSlug}
-              brandSlug={brandSlug}
-              preservedSearch={searchParams?.toString()}
-            />
           ) : null}
 
           {onAgentToggle ? (
