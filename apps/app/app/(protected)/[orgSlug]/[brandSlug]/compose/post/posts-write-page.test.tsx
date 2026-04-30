@@ -14,6 +14,10 @@ const trackMock = vi.fn();
 const useBrandMock = vi.fn();
 const copyToClipboardMock = vi.fn();
 const workingTitlePlaceholder = 'Optional internal title for the draft';
+const desktopRuntimeMocks = vi.hoisted(() => ({
+  getDesktopBridge: vi.fn(),
+  isDesktopShell: vi.fn(),
+}));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => useBrandMock(),
@@ -48,6 +52,11 @@ vi.mock('@vercel/analytics', () => ({
   track: (...args: unknown[]) => trackMock(...args),
 }));
 
+vi.mock('@/lib/desktop/runtime', () => ({
+  getDesktopBridge: desktopRuntimeMocks.getDesktopBridge,
+  isDesktopShell: desktopRuntimeMocks.isDesktopShell,
+}));
+
 describe('PostsWritePage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -57,6 +66,8 @@ describe('PostsWritePage', () => {
     useBrandMock.mockReturnValue({
       credentials: [],
     });
+    desktopRuntimeMocks.getDesktopBridge.mockReturnValue(null);
+    desktopRuntimeMocks.isDesktopShell.mockReturnValue(false);
   });
 
   it('shows the empty state when no connected accounts are available', () => {
@@ -236,6 +247,93 @@ describe('PostsWritePage', () => {
       'content_write_prompt_generated',
       expect.objectContaining({ mode: 'thread' }),
     );
+  });
+
+  it('generates local desktop content when no connected accounts are available', async () => {
+    const generateContent = vi.fn().mockResolvedValue({
+      content: 'Generated local post',
+      id: 'local-post-1',
+      platform: 'twitter',
+      type: 'caption',
+    });
+    const queueJob = vi.fn().mockResolvedValue({ id: 'job-1' });
+    desktopRuntimeMocks.isDesktopShell.mockReturnValue(true);
+    desktopRuntimeMocks.getDesktopBridge.mockReturnValue({
+      cloud: { generateContent },
+      sync: { queueJob },
+    });
+
+    render(<PostsWritePage />);
+
+    fireEvent.change(screen.getByLabelText('Prompt'), {
+      target: { value: 'Write locally about offline workflows' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Generate post' }));
+
+    await waitFor(() => {
+      expect(generateContent).toHaveBeenCalledWith({
+        platform: 'twitter',
+        prompt: 'Tone: professional\nWrite locally about offline workflows',
+        publishIntent: 'review',
+        type: 'caption',
+      });
+    });
+
+    expect(screen.getByLabelText('Draft content')).toHaveValue(
+      'Generated local post',
+    );
+    expect(queueJob).toHaveBeenCalledWith(
+      'post-draft',
+      expect.stringContaining('Generated local post'),
+    );
+    expect(pushMock).not.toHaveBeenCalled();
+  });
+
+  it('falls back to desktop IPC when cloud generation fails in desktop shell', async () => {
+    useBrandMock.mockReturnValue({
+      credentials: [
+        {
+          id: 'cred-1',
+          isConnected: true,
+          platform: 'twitter',
+        },
+      ],
+    });
+    generateTweetsMock.mockRejectedValue(new Error('network offline'));
+    const generateContent = vi.fn().mockResolvedValue({
+      content: 'Desktop fallback post',
+      id: 'fallback-post-1',
+      platform: 'twitter',
+      type: 'caption',
+    });
+    desktopRuntimeMocks.isDesktopShell.mockReturnValue(true);
+    desktopRuntimeMocks.getDesktopBridge.mockReturnValue({
+      cloud: { generateContent },
+      sync: { queueJob: vi.fn().mockResolvedValue({ id: 'job-1' }) },
+    });
+
+    render(<PostsWritePage />);
+
+    fireEvent.change(screen.getByLabelText('Prompt'), {
+      target: { value: 'Recover from cloud failure' },
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Generate post in Genfeed' }),
+    );
+
+    await waitFor(() => {
+      expect(generateContent).toHaveBeenCalledWith({
+        platform: 'twitter',
+        prompt: 'Tone: professional\nRecover from cloud failure',
+        publishIntent: 'review',
+        type: 'caption',
+      });
+    });
+
+    expect(screen.getByLabelText('Draft content')).toHaveValue(
+      'Desktop fallback post',
+    );
+    expect(pushMock).not.toHaveBeenCalled();
   });
 
   it('preserves the prompt and shows an inline error when generation fails', async () => {

@@ -26,6 +26,7 @@ coverage/
 out/
 *.log
 next-env.d.ts
+apps/desktop/app/build/
 apps/desktop/app/release/
 *.dmg
 *.zip
@@ -42,4 +43,3 @@ apps/desktop/app/release/
 # Agent scratch dirs at any depth (apps/<name>/.agents/, apps/<surface>/<name>/.agents/)
 # Covers apps/app/.agents, apps/mobile/app/.agents, apps/extensions/browser/app/.agents, etc.
 **/apps/**/.agents/
-

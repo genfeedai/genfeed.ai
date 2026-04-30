@@ -22,13 +22,14 @@ import {
 const SIDEBAR_WIDTH = 240;
 const SIDEBAR_COLLAPSED_WIDTH = 48;
 const AGENT_PANEL_HEIGHT = 380;
-const AGENT_COLLAPSED_HEIGHT = 48;
+const DESKTOP_TITLEBAR_HEIGHT = 32;
 const SIDEBAR_TRANSITION_DURATION_MS = 300;
 const SIDEBAR_TRANSITION_EASING = 'cubic-bezier(0.32, 0.72, 0, 1)';
 const SIDEBAR_COLLAPSED_STORAGE_PREFIX = 'genfeed:sidebar:collapsed';
 const AGENT_PANEL_HEIGHT_STORAGE_KEY = 'genfeed:agent-panel:height';
 const AGENT_PANEL_MIN_HEIGHT = 240;
 const AGENT_PANEL_MAX_HEIGHT = 720;
+const IS_DESKTOP_SHELL = process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1';
 
 function getSidebarCollapsedStorageKey(): string {
   if (typeof window === 'undefined') {
@@ -146,11 +147,12 @@ function DesktopSidebar({
     <aside
       data-testid="desktop-sidebar-rail"
       className={cn(
-        'fixed inset-y-0 left-0 z-30 hidden flex-col overflow-hidden md:flex',
+        'fixed bottom-0 left-0 z-30 hidden flex-col overflow-hidden md:flex',
         'bg-transparent',
       )}
       style={{
         minWidth: targetWidth,
+        top: 'var(--desktop-titlebar-height)',
         transition: `width ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, min-width ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}`,
         width: targetWidth,
       }}
@@ -361,14 +363,14 @@ export default function AppLayout({
       ? desktopSidebarCollapsedWidth
       : desktopSidebarExpandedWidth
     : 0;
-  const desktopAgentHeight = agentPanel
-    ? isAgentCollapsed
-      ? AGENT_COLLAPSED_HEIGHT
-      : agentPanelHeight
-    : 0;
+  const desktopAgentHeight =
+    agentPanel && !isAgentCollapsed ? agentPanelHeight : 0;
   const layoutStyle = {
     '--desktop-agent-height': `${desktopAgentHeight}px`,
     '--desktop-sidebar-width': `${desktopSidebarWidth}px`,
+    '--desktop-titlebar-height': IS_DESKTOP_SHELL
+      ? `${DESKTOP_TITLEBAR_HEIGHT}px`
+      : '0px',
   } as CSSProperties;
 
   const handleAgentPanelResizeStart = useCallback(
@@ -463,6 +465,9 @@ export default function AppLayout({
                 'fixed top-0 right-0 left-0 z-50 h-12 md:left-[var(--desktop-sidebar-width)]',
                 shouldRenderTopbarChrome && 'bg-background',
               )}
+              style={{
+                top: 'var(--desktop-titlebar-height)',
+              }}
             >
               {topbarContent}
             </div>
@@ -470,10 +475,12 @@ export default function AppLayout({
 
           <main
             data-testid="app-main-content"
-            className={cn(
-              'relative z-0 bg-background',
-              topbarContent && 'pt-12',
-            )}
+            className={cn('relative z-0 bg-background')}
+            style={{
+              paddingTop: topbarContent
+                ? 'calc(var(--desktop-titlebar-height) + 3rem)'
+                : 'var(--desktop-titlebar-height)',
+            }}
           >
             {bannerComponent ? (
               <div data-testid="app-banner-shell">{bannerComponent}</div>
@@ -483,7 +490,7 @@ export default function AppLayout({
         </section>
 
         {/* Agent panel bottom dock — animated via topbar toggle or Cmd+L */}
-        {agentPanel && (
+        {agentPanel && !isAgentCollapsed && (
           <aside
             data-testid="agent-panel-rail"
             className={cn(
@@ -496,22 +503,16 @@ export default function AppLayout({
               menuComponent && 'md:left-[var(--desktop-sidebar-width)]',
             )}
             style={{
-              height: isAgentCollapsed
-                ? AGENT_COLLAPSED_HEIGHT
-                : agentPanelHeight,
-              minHeight: isAgentCollapsed
-                ? AGENT_COLLAPSED_HEIGHT
-                : agentPanelHeight,
+              height: agentPanelHeight,
+              minHeight: agentPanelHeight,
               transition: `height ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, min-height ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}`,
             }}
           >
-            {!isAgentCollapsed ? (
-              <div
-                data-testid="agent-panel-resize-handle"
-                className="absolute top-0 left-0 right-0 z-10 h-1.5 cursor-row-resize border-t border-border bg-white/[0.03]"
-                onMouseDown={handleAgentPanelResizeStart}
-              />
-            ) : null}
+            <div
+              data-testid="agent-panel-resize-handle"
+              className="absolute top-0 left-0 right-0 z-10 h-1.5 cursor-row-resize border-t border-border bg-white/[0.03]"
+              onMouseDown={handleAgentPanelResizeStart}
+            />
             <div
               data-testid="agent-panel-shell"
               className="absolute inset-x-0 bottom-0 flex flex-col"

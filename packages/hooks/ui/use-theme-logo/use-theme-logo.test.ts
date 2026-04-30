@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock dependencies
 let mockIsMounted = true;
+const originalDesktopShell = process.env.NEXT_PUBLIC_DESKTOP_SHELL;
 
 vi.mock('@hooks/utils/use-mounted/use-mounted', () => ({
   useMounted: vi.fn(() => mockIsMounted),
@@ -19,6 +20,11 @@ describe('useThemeLogo', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockIsMounted = true;
+    if (originalDesktopShell === undefined) {
+      delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
+    } else {
+      process.env.NEXT_PUBLIC_DESKTOP_SHELL = originalDesktopShell;
+    }
   });
 
   describe('Initial State', () => {
@@ -45,6 +51,17 @@ describe('useThemeLogo', () => {
 
       await waitFor(() => {
         expect(result.current).toBe('https://example.com/logo.svg');
+      });
+    });
+
+    it('returns the bundled desktop logo in desktop shell mode', async () => {
+      process.env.NEXT_PUBLIC_DESKTOP_SHELL = '1';
+      mockIsMounted = true;
+
+      const { result } = renderHook(() => useThemeLogo());
+
+      await waitFor(() => {
+        expect(result.current).toBe('/genfeed-icon.svg');
       });
     });
   });

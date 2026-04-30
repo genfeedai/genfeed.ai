@@ -1,5 +1,5 @@
 import type { PrismaClient } from '@genfeedai/desktop-prisma';
-import { DesktopPrismaService } from './prisma.service';
+import type { DesktopPrismaService } from './prisma.service';
 
 export interface WorkspaceRow {
   createdAt: string;
@@ -30,9 +30,7 @@ export interface SyncJobRow {
 export class DesktopDatabaseService {
   private clientPromise: Promise<PrismaClient> | null = null;
 
-  constructor(
-    private readonly prismaService: DesktopPrismaService = new DesktopPrismaService(),
-  ) {}
+  constructor(private readonly prismaService: DesktopPrismaService) {}
 
   getDatabasePath(): string {
     return this.prismaService.getDatabasePath();

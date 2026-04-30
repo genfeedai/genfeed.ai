@@ -16,6 +16,7 @@ import {
   X,
 } from 'lucide-react';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { getDesktopBridge, isDesktopShell } from '@/lib/desktop/runtime';
 import { useWorkflowStore } from '@/store/workflowStore';
 import { PanelContainer } from './PanelContainer';
 
@@ -80,17 +81,32 @@ function AIGeneratorPanelComponent() {
         role: m.role,
       }));
 
-      const response = await fetch('/v1/core/ai/generate-workflow', {
-        body: JSON.stringify({
-          conversationHistory,
-          prompt: userMessage.content,
-        }),
-        headers: { 'Content-Type': 'application/json' },
-        method: 'POST',
-        signal: controller.signal,
-      });
-
-      const data = await response.json();
+      const desktopBridge = getDesktopBridge();
+      const data =
+        isDesktopShell() && desktopBridge
+          ? await desktopBridge.generation
+              .generateWorkflow({
+                description: [
+                  ...conversationHistory.map(
+                    (entry) => `${entry.role}: ${entry.content}`,
+                  ),
+                  `user: ${userMessage.content}`,
+                ].join('\n'),
+              })
+              .then((result) => ({
+                message: 'Workflow generated locally.',
+                success: true,
+                workflow: result.workflow,
+              }))
+          : await fetch('/v1/core/ai/generate-workflow', {
+              body: JSON.stringify({
+                conversationHistory,
+                prompt: userMessage.content,
+              }),
+              headers: { 'Content-Type': 'application/json' },
+              method: 'POST',
+              signal: controller.signal,
+            }).then((response) => response.json());
 
       const assistantMessage: Message = {
         content: data.message || data.error || 'Failed to generate workflow',

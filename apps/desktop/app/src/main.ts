@@ -121,8 +121,38 @@ const getBootstrap = async (): Promise<IDesktopBootstrap> => {
   };
 };
 
-const getDataService = (): IDesktopDataService =>
-  sessionService.getSession() ? cloudService : localService;
+const runDataService = async <T>(
+  operation: string,
+  callback: (service: IDesktopDataService) => Promise<T>,
+): Promise<T> => {
+  if (!sessionService.getSession()) {
+    return callback(localService);
+  }
+
+  try {
+    return await callback(cloudService);
+  } catch (cloudError) {
+    telemetryService.captureException(cloudError, {
+      operation,
+      surface: 'desktop-cloud-fallback',
+    });
+
+    try {
+      return await callback(localService);
+    } catch (localError) {
+      const localMessage =
+        localError instanceof Error ? localError.message : String(localError);
+
+      if (localMessage.includes('Configure a local generation provider')) {
+        throw new Error(
+          'Cloud request failed and local generation is not configured. Add a local provider in Settings > API Keys, then try again.',
+        );
+      }
+
+      throw localError;
+    }
+  }
+};
 
 const acquiredSingleInstanceLock = app.requestSingleInstanceLock();
 
@@ -137,7 +167,7 @@ const createWindow = async (): Promise<void> => {
     minHeight: 780,
     minWidth: 1280,
     show: false,
-    title: 'Genfeed Desktop',
+    title: 'GenFeed',
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     webPreferences: {
       contextIsolation: true,
@@ -271,7 +301,7 @@ const handleAuthCallback = async (rawUrl: string): Promise<void> => {
   await emitBootstrap();
   void new Notification({
     body: session.userEmail || 'Authenticated successfully.',
-    title: 'Genfeed Desktop',
+    title: 'GenFeed',
   }).show();
 };
 
@@ -305,18 +335,22 @@ const registerIpcHandlers = (): void => {
     await emitBootstrap();
   });
   ipcMain.handle(DESKTOP_IPC_CHANNELS.cloudListProjects, async () =>
-    getDataService().listProjects(),
+    runDataService('listProjects', (service) => service.listProjects()),
   );
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.cloudGenerateHooks,
     async (_event: unknown, topic: string) =>
-      getDataService().generateHooks(topic),
+      runDataService('generateHooks', (service) =>
+        service.generateHooks(topic),
+      ),
   );
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.cloudGenerateContent,
     async (_event: unknown, params: IDesktopGenerationOptions) => {
       try {
-        return await getDataService().generateContent(params);
+        return await runDataService('generateContent', (service) =>
+          service.generateContent(params),
+        );
       } finally {
         await emitBootstrap();
       }
@@ -325,40 +359,43 @@ const registerIpcHandlers = (): void => {
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.cloudGetTrends,
     async (_event: unknown, platform: string) =>
-      getDataService().getTrends(platform),
+      runDataService('getTrends', (service) => service.getTrends(platform)),
   );
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.cloudGetIngredients,
     async (_event: unknown, filter?: { limit?: number; platform?: string }) =>
-      getDataService().getIngredients(filter),
+      runDataService('getIngredients', (service) =>
+        service.getIngredients(filter),
+      ),
   );
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.cloudPublishPost,
     async (
       _event: unknown,
       params: { content: string; draftId?: string; platform: string },
-    ) => getDataService().publishPost(params),
+    ) =>
+      runDataService('publishPost', (service) => service.publishPost(params)),
   );
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.cloudGetAnalytics,
     async (_event: unknown, params: { days: number }) =>
-      getDataService().getAnalytics(params),
+      runDataService('getAnalytics', (service) => service.getAnalytics(params)),
   );
   ipcMain.handle(DESKTOP_IPC_CHANNELS.cloudListAgents, async () =>
-    getDataService().listAgents(),
+    runDataService('listAgents', (service) => service.listAgents()),
   );
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.cloudRunAgent,
     async (_event: unknown, agentId: string) =>
-      getDataService().runAgent(agentId),
+      runDataService('runAgent', (service) => service.runAgent(agentId)),
   );
   ipcMain.handle(DESKTOP_IPC_CHANNELS.cloudListWorkflows, async () =>
-    getDataService().listWorkflows(),
+    runDataService('listWorkflows', (service) => service.listWorkflows()),
   );
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.cloudRunWorkflow,
     async (_event: unknown, params: { batch?: boolean; workflowId: string }) =>
-      getDataService().runWorkflow(params),
+      runDataService('runWorkflow', (service) => service.runWorkflow(params)),
   );
   ipcMain.handle(DESKTOP_IPC_CHANNELS.workspaceOpen, async () => {
     const workspace = await workspaceService.openWorkspace();
@@ -627,6 +664,7 @@ app.on('second-instance', (_event: unknown, argv: string[]) => {
       mainWindow.restore();
     }
 
+    mainWindow.show();
     mainWindow.focus();
   }
 });

@@ -90,7 +90,8 @@ describe('AppLayout', () => {
     expect(rail).toBeInTheDocument();
     expect(rail).not.toHaveClass('border-r');
     expect(rail).toHaveClass('bg-transparent');
-    expect(rail).toHaveClass('fixed', 'inset-y-0', 'left-0');
+    expect(rail).toHaveClass('fixed', 'bottom-0', 'left-0');
+    expect(rail).toHaveStyle({ top: 'var(--desktop-titlebar-height)' });
     expect(screen.getAllByTestId('menu-component')).toHaveLength(2);
   });
 
@@ -128,27 +129,20 @@ describe('AppLayout', () => {
     expect(screen.getByTestId('agent-panel-resize-handle')).toBeInTheDocument();
   });
 
-  it('keeps fixed shell height while collapsed and clips via dock rail', () => {
+  it('does not render the bottom agent rail while collapsed', () => {
     render(
       <AppLayout agentPanel={<div>Agent panel</div>} isAgentCollapsed>
         <div>Content</div>
       </AppLayout>,
     );
 
-    const rail = screen.getByTestId('agent-panel-rail');
-    const shell = screen.getByTestId('agent-panel-shell');
-
-    expect(rail).toHaveStyle({ minHeight: '48px', height: '48px' });
-    expect(shell).toHaveStyle({ minHeight: '380px', height: '380px' });
-    expect(shell).toHaveClass('absolute', 'bottom-0', 'inset-x-0');
-    expect(rail).toHaveClass(
-      'border-t',
-      'border-border',
-      'bg-background-secondary',
-    );
+    expect(screen.queryByTestId('agent-panel-rail')).not.toBeInTheDocument();
+    expect(screen.getByTestId('app-content-shell').parentElement).toHaveStyle({
+      '--desktop-agent-height': '0px',
+    });
   });
 
-  it('keeps the collapsed agent rail borderless in transparent shell mode', () => {
+  it('keeps the collapsed agent rail hidden in transparent shell mode', () => {
     render(
       <AppLayout
         agentPanel={<div>Agent panel</div>}
@@ -159,10 +153,7 @@ describe('AppLayout', () => {
       </AppLayout>,
     );
 
-    const rail = screen.getByTestId('agent-panel-rail');
-
-    expect(rail).toHaveClass('shadow-none');
-    expect(rail).not.toHaveClass('border-t');
+    expect(screen.queryByTestId('agent-panel-rail')).not.toBeInTheDocument();
   });
 
   it('shows the agent dock border in transparent shell mode when expanded', () => {
@@ -234,7 +225,7 @@ describe('AppLayout', () => {
       'lg:right-[var(--desktop-agent-width)]',
     );
     expect(screen.getByTestId('app-content-shell').parentElement).toHaveStyle({
-      '--desktop-agent-height': '48px',
+      '--desktop-agent-height': '0px',
     });
   });
 

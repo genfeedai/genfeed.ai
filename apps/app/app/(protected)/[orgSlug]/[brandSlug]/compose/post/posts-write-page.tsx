@@ -1,6 +1,12 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import type {
+  DesktopContentPlatform,
+  DesktopContentType,
+  IDesktopGeneratedContent,
+  IGenfeedDesktopBridge,
+} from '@genfeedai/desktop-contracts';
 import {
   ButtonVariant,
   CredentialPlatform,
@@ -32,6 +38,7 @@ import {
   HiDocumentText,
   HiSparkles,
 } from 'react-icons/hi2';
+import { getDesktopBridge, isDesktopShell } from '@/lib/desktop/runtime';
 
 type Tone = 'professional' | 'casual' | 'viral' | 'educational' | 'humorous';
 
@@ -58,6 +65,69 @@ const PLATFORM_LABELS: Partial<Record<CredentialPlatform, string>> = {
   [CredentialPlatform.YOUTUBE]: 'YouTube',
 };
 
+const DESKTOP_PLATFORM_OPTIONS: Array<{
+  label: string;
+  value: DesktopContentPlatform;
+}> = [
+  { label: 'X', value: 'twitter' },
+  { label: 'LinkedIn', value: 'linkedin' },
+  { label: 'Instagram', value: 'instagram' },
+  { label: 'TikTok', value: 'tiktok' },
+  { label: 'YouTube', value: 'youtube' },
+];
+
+function toDesktopPlatform(
+  platform?: CredentialPlatform | string,
+): DesktopContentPlatform {
+  const value = String(platform ?? '').toLowerCase();
+
+  return DESKTOP_PLATFORM_OPTIONS.some((option) => option.value === value)
+    ? (value as DesktopContentPlatform)
+    : 'twitter';
+}
+
+function getDesktopContentType(mode: 'post' | 'thread'): DesktopContentType {
+  return mode === 'thread' ? 'thread' : 'caption';
+}
+
+async function generateDesktopContent(params: {
+  bridge: IGenfeedDesktopBridge;
+  mode: 'post' | 'thread';
+  platform: DesktopContentPlatform;
+  prompt: string;
+  tone: Tone;
+}): Promise<IDesktopGeneratedContent> {
+  const promptWithTone = [`Tone: ${params.tone}`, params.prompt].join('\n');
+
+  return params.bridge.cloud.generateContent({
+    platform: params.platform,
+    prompt: promptWithTone,
+    publishIntent: 'review',
+    type: getDesktopContentType(params.mode),
+  });
+}
+
+async function queueDesktopPostSync(params: {
+  bridge: IGenfeedDesktopBridge;
+  generated: IDesktopGeneratedContent;
+  mode: 'post' | 'thread';
+  prompt: string;
+  title: string;
+}): Promise<void> {
+  await params.bridge.sync.queueJob(
+    'post-draft',
+    JSON.stringify({
+      content: params.generated.content,
+      generatedId: params.generated.id,
+      mode: params.mode,
+      platform: params.generated.platform,
+      prompt: params.prompt,
+      title: params.title,
+      type: params.generated.type,
+    }),
+  );
+}
+
 function getCredentialLabel(credential: ICredential): string {
   const platform =
     PLATFORM_LABELS[credential.platform as CredentialPlatform] ??
@@ -83,10 +153,13 @@ export default function PostsWritePage() {
   const [workingTitle, setWorkingTitle] = useState(prefilledTitle);
   const [prompt, setPrompt] = useState('');
   const [localContent, setLocalContent] = useState(prefilledDescription);
+  const [desktopPlatform, setDesktopPlatform] =
+    useState<DesktopContentPlatform>('twitter');
   const [tone, setTone] = useState<Tone>('professional');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const clipboardService = useMemo(() => ClipboardService.getInstance(), []);
+  const desktop = isDesktopShell();
 
   const getPostsService = useAuthedService((token: string) =>
     PostsService.getInstance(token),
@@ -137,6 +210,14 @@ export default function PostsWritePage() {
     }
   }, [connectedCredentials, selectedCredentialId]);
 
+  useEffect(() => {
+    if (!selectedCredential?.platform) {
+      return;
+    }
+
+    setDesktopPlatform(toDesktopPlatform(selectedCredential.platform));
+  }, [selectedCredential?.platform]);
+
   const handleStartBlankDraft = async () => {
     if (!selectedCredential) {
       return;
@@ -185,7 +266,9 @@ export default function PostsWritePage() {
   };
 
   const handleGenerate = async (mode: 'post' | 'thread') => {
-    if (!selectedCredential || !prompt.trim()) {
+    const desktopBridge = desktop ? getDesktopBridge() : null;
+
+    if ((!selectedCredential && !desktopBridge) || !prompt.trim()) {
       return;
     }
 
@@ -193,21 +276,92 @@ export default function PostsWritePage() {
     setIsSubmitting(true);
 
     try {
-      const postsService = await getPostsService();
-      const generatedPosts =
-        mode === 'thread'
-          ? await postsService.generateThread({
-              count: 5,
-              credential: selectedCredential.id,
-              tone,
-              topic: prompt.trim(),
-            })
-          : await postsService.generateTweets({
-              count: 1,
-              credential: selectedCredential.id,
-              tone,
-              topic: prompt.trim(),
-            });
+      if (!selectedCredential && desktopBridge) {
+        const generated = await generateDesktopContent({
+          bridge: desktopBridge,
+          mode,
+          platform: desktopPlatform,
+          prompt: prompt.trim(),
+          tone,
+        });
+        const nextTitle =
+          workingTitle.trim() ||
+          `${DESKTOP_PLATFORM_OPTIONS.find((option) => option.value === desktopPlatform)?.label ?? 'Desktop'} ${mode}`;
+
+        setLocalContent(generated.content);
+        setWorkingTitle(nextTitle);
+        await queueDesktopPostSync({
+          bridge: desktopBridge,
+          generated,
+          mode,
+          prompt: prompt.trim(),
+          title: nextTitle,
+        }).catch(() => undefined);
+        track('content_write_prompt_generated', {
+          mode,
+          platform: desktopPlatform,
+          source: 'desktop-ipc',
+          tone,
+        });
+        return;
+      }
+
+      if (!selectedCredential) {
+        return;
+      }
+
+      let generatedPosts: Awaited<ReturnType<PostsService['generateTweets']>>;
+
+      try {
+        const postsService = await getPostsService();
+        generatedPosts =
+          mode === 'thread'
+            ? await postsService.generateThread({
+                count: 5,
+                credential: selectedCredential.id,
+                tone,
+                topic: prompt.trim(),
+              })
+            : await postsService.generateTweets({
+                count: 1,
+                credential: selectedCredential.id,
+                tone,
+                topic: prompt.trim(),
+              });
+      } catch (cloudError) {
+        if (!desktopBridge) {
+          throw cloudError;
+        }
+
+        const generated = await generateDesktopContent({
+          bridge: desktopBridge,
+          mode,
+          platform: toDesktopPlatform(selectedCredential.platform),
+          prompt: prompt.trim(),
+          tone,
+        });
+        const nextTitle =
+          workingTitle.trim() ||
+          `${getCredentialLabel(selectedCredential)} ${mode}`;
+
+        setLocalContent(generated.content);
+        setWorkingTitle(nextTitle);
+        await queueDesktopPostSync({
+          bridge: desktopBridge,
+          generated,
+          mode,
+          prompt: prompt.trim(),
+          title: nextTitle,
+        }).catch(() => undefined);
+        track('content_write_prompt_generated', {
+          credentialId: selectedCredential.id,
+          mode,
+          platform: selectedCredential.platform,
+          source: 'desktop-ipc-fallback',
+          tone,
+        });
+        return;
+      }
 
       const rootPost = generatedPosts[0];
       if (!rootPost?.id) {
@@ -230,6 +384,17 @@ export default function PostsWritePage() {
 
   const hasConnectedCredentials = connectedCredentials.length > 0;
   const hasPrefilledIngredient = preselectedIngredientId.length > 0;
+  const canGenerate = Boolean(
+    prompt.trim() && !isSubmitting && (selectedCredential || desktop),
+  );
+  const generatePostLabel =
+    desktop && !selectedCredential
+      ? 'Generate post'
+      : 'Generate post in Genfeed';
+  const generateThreadLabel =
+    desktop && !selectedCredential
+      ? 'Generate thread'
+      : 'Generate thread in Genfeed';
 
   return (
     <section className="grid gap-6 lg:grid-cols-[1.25fr_0.75fr]">
@@ -277,6 +442,29 @@ export default function PostsWritePage() {
               </Select>
             </div>
           )}
+
+          {desktop && !selectedCredential ? (
+            <div className="grid gap-2 text-sm text-foreground/75">
+              <span>Platform</span>
+              <Select
+                value={desktopPlatform}
+                onValueChange={(value) =>
+                  setDesktopPlatform(value as DesktopContentPlatform)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {DESKTOP_PLATFORM_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : null}
 
           <div className="grid gap-2 text-sm text-foreground/75">
             <span>Working title</span>
@@ -356,21 +544,21 @@ export default function PostsWritePage() {
               type="button"
               variant={ButtonVariant.UNSTYLED}
               onClick={() => void handleGenerate('post')}
-              disabled={!selectedCredential || !prompt.trim() || isSubmitting}
+              disabled={!canGenerate}
               className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <HiSparkles className="h-4 w-4" />
-              {isSubmitting ? 'Working...' : 'Generate post in Genfeed'}
+              {isSubmitting ? 'Working...' : generatePostLabel}
             </Button>
             <Button
               type="button"
               variant={ButtonVariant.UNSTYLED}
               onClick={() => void handleGenerate('thread')}
-              disabled={!selectedCredential || !prompt.trim() || isSubmitting}
+              disabled={!canGenerate}
               className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-4 py-2.5 text-sm font-medium text-foreground transition hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <HiArrowPathRoundedSquare className="h-4 w-4" />
-              {isSubmitting ? 'Working...' : 'Generate thread in Genfeed'}
+              {isSubmitting ? 'Working...' : generateThreadLabel}
             </Button>
           </div>
         </div>

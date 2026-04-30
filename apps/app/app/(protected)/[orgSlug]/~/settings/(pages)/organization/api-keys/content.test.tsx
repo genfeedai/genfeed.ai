@@ -17,5 +17,7 @@ describe('app/(protected)/[orgSlug]/~/settings/(pages)/organization/api-keys/con
     );
     expect(source).toContain('override hosted access');
     expect(source).toContain('no credits are deducted');
+    expect(source).toContain('DesktopLocalProviderSettings');
+    expect(source).toContain('isDesktopShell');
   });
 });

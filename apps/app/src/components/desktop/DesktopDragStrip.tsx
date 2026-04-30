@@ -36,8 +36,9 @@ export default function DesktopDragStrip() {
     <div
       aria-hidden="true"
       data-desktop-drag="true"
+      className="ship-ui border-b border-white/[0.06] bg-background/95 backdrop-blur"
       style={{
-        height: 22,
+        height: 32,
         left: 0,
         position: 'fixed',
         right: 0,

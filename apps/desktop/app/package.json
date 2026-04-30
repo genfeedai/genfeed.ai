@@ -3,7 +3,7 @@
   "build": {
     "afterSign": "scripts/notarize.cjs",
     "appId": "ai.genfeed.desktop",
-    "artifactName": "Genfeed-Desktop-${version}-${arch}.${ext}",
+    "artifactName": "GenFeed-${version}-${arch}.${ext}",
     "asar": true,
     "asarUnpack": [
       "dist/app-shell/**/*",
@@ -52,7 +52,7 @@
     "react": "19.2.5",
     "react-dom": "19.2.5"
   },
-  "description": "GenFeed Desktop — Electron native app for content creation",
+  "description": "GenFeed — Electron native app for content creation",
   "devDependencies": {
     "@biomejs/biome": "2.4.13",
     "@electron/notarize": "3.1.1",
@@ -75,7 +75,7 @@
     "typescript": "6.0.2"
   },
   "private": true,
-  "productName": "GenfeedDesktop",
+  "productName": "GenFeed",
   "scripts": {
     "build": "bun run build:native && bun run build:app-shell && bun run copy:app-shell",
     "build:app-shell": "node ./scripts/build-app-shell.cjs",
