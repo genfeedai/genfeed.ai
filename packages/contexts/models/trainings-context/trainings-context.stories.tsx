@@ -2,9 +2,6 @@ import TrainingsContext from '@genfeedai/contexts/models/trainings-context/train
 import type { Meta, StoryObj } from '@storybook/nextjs';
 
 const meta: Meta<typeof TrainingsContext> = {
-  argTypes: {
-    // TODO: Add argTypes for component props
-  },
   component: TrainingsContext,
   parameters: {
     layout: 'centered',
@@ -17,13 +14,9 @@ export default meta;
 type Story = StoryObj<typeof TrainingsContext>;
 
 export const Default: Story = {
-  args: {
-    // TODO: Add default props
-  },
+  args: {},
 };
 
 export const Interactive: Story = {
-  args: {
-    // TODO: Add interactive props
-  },
+  args: {},
 };
