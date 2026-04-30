@@ -1,7 +1,11 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import type { IHarnessProfile } from '@genfeedai/interfaces';
+import type {
+  HarnessProfileScope,
+  ICreateHarnessProfilePayload,
+  IHarnessProfile,
+} from '@genfeedai/interfaces';
 import { HarnessProfilesService } from '@genfeedai/services/ai/harness-profiles.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -12,10 +16,23 @@ import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
+const HARNESS_PROFILE_SCOPES = [
+  'brand',
+  'channel',
+  'company',
+  'founder',
+] as const satisfies readonly HarnessProfileScope[];
 const DEFAULT_PLATFORMS = ['x', 'linkedin', 'instagram', 'tiktok'];
 const DEFAULT_SHORT_FORM = [
   'Hook',
@@ -47,11 +64,15 @@ function joinLines(value: string[] | undefined): string {
   return (value ?? []).join('\n');
 }
 
+function isHarnessProfileScope(value: string): value is HarnessProfileScope {
+  return HARNESS_PROFILE_SCOPES.includes(value as HarnessProfileScope);
+}
+
 function createDraft(
   brandId: string,
   label: string,
   existing?: IHarnessProfile | null,
-): Partial<IHarnessProfile> & { brandId: string; label: string } {
+): ICreateHarnessProfilePayload {
   if (existing) {
     return {
       ...existing,
@@ -109,14 +130,15 @@ export default function BrandSettingsHarnessPage() {
   );
 
   const [profile, setProfile] = useState<IHarnessProfile | null>(null);
-  const [draft, setDraft] = useState<
-    Partial<IHarnessProfile> & { brandId: string; label: string }
-  >(() => createDraft('', 'Brand'));
+  const [draft, setDraft] = useState<ICreateHarnessProfilePayload>(() =>
+    createDraft('', 'Brand'),
+  );
   const [isFetching, setIsFetching] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (!brandId || !brand) {
+      setIsFetching(false);
       return;
     }
 
@@ -164,6 +186,15 @@ export default function BrandSettingsHarnessPage() {
       setDraft((current) => ({ ...current, [key]: value }));
     },
     [],
+  );
+
+  const updateScope = useCallback(
+    (value: string) => {
+      if (isHarnessProfileScope(value)) {
+        updateDraft('scope', value);
+      }
+    },
+    [updateDraft],
   );
 
   const updateVoice = useCallback(
@@ -288,16 +319,21 @@ export default function BrandSettingsHarnessPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="harness-scope">Scope</Label>
-                <Input
-                  id="harness-scope"
-                  onChange={(event) =>
-                    updateDraft(
-                      'scope',
-                      event.target.value as IHarnessProfile['scope'],
-                    )
-                  }
+                <Select
+                  onValueChange={updateScope}
                   value={draft.scope ?? 'brand'}
-                />
+                >
+                  <SelectTrigger id="harness-scope">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {HARNESS_PROFILE_SCOPES.map((scope) => (
+                      <SelectItem key={scope} value={scope}>
+                        {scope}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="harness-description">Description</Label>

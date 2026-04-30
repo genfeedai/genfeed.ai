@@ -1,3 +1,4 @@
+import type { UpdateHarnessProfileDto } from '@api/collections/harness-profiles/dto/update-harness-profile.dto';
 import type { UpsertHarnessProfileDto } from '@api/collections/harness-profiles/dto/upsert-harness-profile.dto';
 import type { HarnessProfileDocument } from '@api/collections/harness-profiles/schemas/harness-profile.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -102,16 +103,22 @@ export class HarnessProfilesService {
   ): Promise<HarnessProfileDocument[]> {
     const profiles = await this.prisma.profile.findMany({
       orderBy: { updatedAt: 'desc' },
-      where: { isDeleted: false, organizationId },
+      where: {
+        AND: [
+          { data: { equals: brandId, path: ['brandId'] } },
+          {
+            data: {
+              equals: HARNESS_PROFILE_TYPE,
+              path: ['profileType'],
+            },
+          },
+        ],
+        isDeleted: false,
+        organizationId,
+      },
     });
 
-    return profiles
-      .map((profile) => this.normalizeProfile(profile))
-      .filter(
-        (profile) =>
-          profile.profileType === HARNESS_PROFILE_TYPE &&
-          profile.brandId === brandId,
-      );
+    return profiles.map((profile) => this.normalizeProfile(profile));
   }
 
   async getActiveForBrand(
@@ -131,7 +138,7 @@ export class HarnessProfilesService {
 
   async update(
     id: string,
-    dto: Partial<UpsertHarnessProfileDto>,
+    dto: UpdateHarnessProfileDto,
     organizationId: string,
   ): Promise<HarnessProfileDocument> {
     const existing = await this.findOneRaw(id, organizationId);
@@ -140,7 +147,7 @@ export class HarnessProfilesService {
       {
         ...existingProfile,
         ...dto,
-        brandId: dto.brandId ?? existingProfile.brandId,
+        brandId: existingProfile.brandId,
         examples: {
           ...existingProfile.examples,
           ...dto.examples,
@@ -232,20 +239,26 @@ export class HarnessProfilesService {
     excludeId?: string,
   ): Promise<void> {
     const profiles = await this.findForBrand(organizationId, brandId);
-    await Promise.all(
-      profiles
-        .filter((profile) => profile.id !== excludeId && profile.isDefault)
-        .map((profile) =>
-          this.prisma.profile.update({
-            data: {
-              data: serializeJsonRecord({
-                ...readRecord(profile.data),
-                isDefault: false,
-              }),
-            } as never,
-            where: { id: profile.id },
-          }),
-        ),
+    const profilesToUpdate = profiles.filter(
+      (profile) => profile.id !== excludeId && profile.isDefault,
+    );
+
+    if (profilesToUpdate.length === 0) {
+      return;
+    }
+
+    await this.prisma.$transaction(
+      profilesToUpdate.map((profile) =>
+        this.prisma.profile.update({
+          data: {
+            data: serializeJsonRecord({
+              ...readRecord(profile.data),
+              isDefault: false,
+            }),
+          } as never,
+          where: { id: profile.id },
+        }),
+      ),
     );
   }
 

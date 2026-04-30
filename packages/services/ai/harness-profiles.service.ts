@@ -1,6 +1,9 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import type { JsonApiResponseDocument } from '@genfeedai/helpers/data/json-api/json-api.helper';
-import type { IHarnessProfile } from '@genfeedai/interfaces';
+import type {
+  ICreateHarnessProfilePayload,
+  IHarnessProfile,
+} from '@genfeedai/interfaces';
 import { HarnessProfile } from '@genfeedai/models/ai/harness-profile.model';
 import { HarnessProfileSerializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';
@@ -29,7 +32,7 @@ export class HarnessProfilesService extends BaseService<HarnessProfile> {
   }
 
   public async createForBrand(
-    data: Partial<IHarnessProfile> & { brandId: string; label: string },
+    data: ICreateHarnessProfilePayload,
   ): Promise<HarnessProfile> {
     return await this.instance
       .post<JsonApiResponseDocument>('', data)

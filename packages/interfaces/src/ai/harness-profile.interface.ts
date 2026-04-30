@@ -56,3 +56,8 @@ export interface IHarnessProfile extends IBaseEntity {
   guardrails: string[];
   metadata?: Record<string, unknown>;
 }
+
+export type ICreateHarnessProfilePayload = Partial<IHarnessProfile> & {
+  brandId: string;
+  label: string;
+};

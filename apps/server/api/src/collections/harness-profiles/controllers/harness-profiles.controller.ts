@@ -12,6 +12,7 @@ import {
 import type { User } from '@clerk/backend';
 import { HarnessProfileSerializer } from '@genfeedai/serializers';
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -41,9 +42,14 @@ export class HarnessProfilesController {
     @Query('brandId') brandId: string,
   ) {
     const { organization } = getPublicMetadata(user);
-    const docs = brandId
-      ? await this.harnessProfilesService.findForBrand(organization, brandId)
-      : [];
+    if (!brandId?.trim()) {
+      throw new BadRequestException('brandId query parameter is required');
+    }
+
+    const docs = await this.harnessProfilesService.findForBrand(
+      organization,
+      brandId,
+    );
 
     return serializeCollection(request, HarnessProfileSerializer, { docs });
   }
@@ -56,12 +62,14 @@ export class HarnessProfilesController {
     @Query('brandId') brandId: string,
   ) {
     const { organization } = getPublicMetadata(user);
-    const profile = brandId
-      ? await this.harnessProfilesService.getActiveForBrand(
-          organization,
-          brandId,
-        )
-      : null;
+    if (!brandId?.trim()) {
+      throw new BadRequestException('brandId query parameter is required');
+    }
+
+    const profile = await this.harnessProfilesService.getActiveForBrand(
+      organization,
+      brandId,
+    );
 
     return serializeSingle(request, HarnessProfileSerializer, profile);
   }
