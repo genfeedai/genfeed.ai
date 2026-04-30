@@ -70,7 +70,7 @@ describe('AiInfluencerService', () => {
       isDeleted: false,
       label: 'Luna AI',
       loraModelPath: 's3://models/luna-lora.safetensors',
-      loraStatus: LoraStatus.TRAINED,
+      loraStatus: LoraStatus.READY,
       niche: 'lifestyle',
       organization: mockOrganizationId,
       slug: 'luna-ai',
@@ -299,7 +299,7 @@ describe('AiInfluencerService', () => {
     it('should include LoRA in fal.ai request when persona has trained LoRA', async () => {
       const persona = createMockPersona({
         loraModelPath: 's3://models/luna-lora.safetensors',
-        loraStatus: LoraStatus.TRAINED,
+        loraStatus: LoraStatus.READY,
       });
       personasService.findOne.mockResolvedValue(persona);
       openRouterService.chatCompletion.mockResolvedValue(mockCaptionResponse);

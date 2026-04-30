@@ -62,12 +62,17 @@ describe('ClipWorkflowRunCard', () => {
 
     const runNextButton = screen.getByRole('button', { name: 'Run Next Step' });
 
-    await waitFor(() => {
-      fireEvent.click(runNextButton);
-    });
+    fireEvent.click(runNextButton);
 
     await waitFor(() => {
-      fireEvent.click(runNextButton);
+      expect(apiService.generateIngredientEffect).toHaveBeenCalledTimes(1);
+    });
+    expect(screen.getByText('Generated clips: 1')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Run Next Step' }));
+
+    await waitFor(() => {
+      expect(apiService.reframeVideoEffect).toHaveBeenCalledTimes(1);
     });
 
     const reviewLink = await screen.findByRole('link', {

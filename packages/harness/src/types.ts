@@ -71,6 +71,7 @@ export interface ContentHarnessInput {
   intent: ContentHarnessIntent;
   voiceProfile?: HarnessVoiceProfile;
   personaProfile?: HarnessPersonaProfile;
+  profileContribution?: ContentHarnessContribution;
   sources?: HarnessSourceRecord[];
   metadata?: Record<string, unknown>;
 }

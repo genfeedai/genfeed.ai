@@ -367,7 +367,6 @@ function useWorkspaceTaskLinkedRunSummary(
     const linkedRunIds = capturedTask.linkedRunIds ?? [];
 
     let isCancelled = false;
-    const controller = new AbortController();
 
     async function loadLinkedRunSummary() {
       try {
@@ -384,41 +383,22 @@ function useWorkspaceTaskLinkedRunSummary(
         }
 
         const service = AgentRunsService.getInstance(token);
-        const runResults = await Promise.allSettled(
-          linkedRunIds.map(async (runId) => {
-            const [run, content] = await Promise.all([
-              service.getById(runId) as Promise<
-                IAgentRun & { thread?: string }
-              >,
-              service.getRunContent(runId, controller.signal),
-            ]);
-
-            return {
-              contentCount:
-                (content.ingredients?.length ?? 0) +
-                (content.posts?.length ?? 0),
-              threadId: isNonEmptyString(run.thread) ? run.thread : null,
-            };
-          }),
-        );
+        const batchResults = await service.getBatch(linkedRunIds);
 
         if (isCancelled) {
           return;
         }
 
-        const fulfilledResults = runResults.flatMap((result) =>
-          result.status === 'fulfilled' ? [result.value] : [],
-        );
         const reportThreadIds = Array.from(
           new Set(
-            fulfilledResults
+            batchResults
               .map((result) => result.threadId)
               .filter(isNonEmptyString),
           ),
         );
 
         setSummary({
-          generatedContentCount: fulfilledResults.reduce(
+          generatedContentCount: batchResults.reduce(
             (total, result) => total + result.contentCount,
             0,
           ),
@@ -426,7 +406,7 @@ function useWorkspaceTaskLinkedRunSummary(
           reportThreadId: reportThreadIds[0] ?? null,
         });
       } catch (error: unknown) {
-        if ((error as Error).name === 'AbortError' || isCancelled) {
+        if (isCancelled) {
           return;
         }
 
@@ -447,7 +427,6 @@ function useWorkspaceTaskLinkedRunSummary(
 
     return () => {
       isCancelled = true;
-      controller.abort();
     };
   }, [getToken, task]);
 
@@ -657,30 +636,16 @@ function useWorkspaceTaskLinkedOutputs(
         const linkedOutputIds = Array.from(
           new Set(capturedTask.linkedOutputIds ?? []),
         );
-        const results = await Promise.allSettled(
-          linkedOutputIds.map(
-            async (outputId) => await service.findOne(outputId),
-          ),
-        );
+        const outputs = await service.findByIds(linkedOutputIds);
 
         if (isCancelled) {
           return;
         }
 
-        const outputs = results.flatMap((result) =>
-          result.status === 'fulfilled' ? [result.value as Ingredient] : [],
-        );
-        const rejectedCount = results.filter(
-          (result) => result.status === 'rejected',
-        ).length;
-
         setSummary({
-          error:
-            rejectedCount > 0
-              ? 'Some linked outputs could not be loaded.'
-              : null,
+          error: null,
           isLoading: false,
-          outputs,
+          outputs: outputs as Ingredient[],
         });
       } catch (error: unknown) {
         if (isCancelled) {

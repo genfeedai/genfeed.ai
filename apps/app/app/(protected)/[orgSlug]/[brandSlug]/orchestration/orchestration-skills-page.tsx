@@ -399,65 +399,69 @@ export default function OrchestrationSkillsPage() {
               const isEnabled = enabledSlugs.includes(skill.slug);
 
               return (
-                <Button
-                  className={`h-auto w-full flex-col items-stretch rounded-2xl border p-4 text-left ${
+                <div
+                  className={`relative rounded-2xl border ${
                     isSelected
                       ? 'border-white/30 bg-white/[0.06]'
                       : 'border-white/10 bg-white/[0.03] hover:border-white/20'
                   } ${!isEnabled ? 'opacity-50' : ''}`}
                   key={skill.id}
-                  onClick={() => setSelectedSkillId(skill.id)}
-                  variant={ButtonVariant.UNSTYLED}
                 >
-                  <div className="mb-3 flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-semibold text-foreground">
-                      {skill.name}
-                    </span>
-                    <Badge
-                      className="px-2 py-1 text-[11px] uppercase tracking-[0.14em]"
-                      variant={getSourceBadgeVariant(skill.source)}
-                    >
-                      {skill.source.replace('_', ' ')}
-                    </Badge>
-                    <Badge
-                      className="px-2 py-1 text-[11px] uppercase tracking-[0.14em]"
-                      variant="ghost"
-                    >
-                      {skill.workflowStage}
-                    </Badge>
-                    <Switch
-                      checked={isEnabled}
-                      className="ml-auto"
-                      onClick={(event) => event.stopPropagation()}
-                      onCheckedChange={() => void toggleSkill(skill.slug)}
-                    />
-                  </div>
-
-                  <p className="mb-3 text-sm text-foreground/65">
-                    {skill.description}
-                  </p>
-
-                  <div className="flex flex-wrap gap-2 text-[11px] uppercase tracking-[0.14em] text-foreground/45">
-                    {skill.modalities.map((modality) => (
+                  <Button
+                    className="h-auto w-full flex-col items-stretch rounded-2xl p-4 pr-16 text-left"
+                    onClick={() => setSelectedSkillId(skill.id)}
+                    variant={ButtonVariant.UNSTYLED}
+                    withWrapper={false}
+                  >
+                    <div className="mb-3 flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-semibold text-foreground">
+                        {skill.name}
+                      </span>
                       <Badge
                         className="px-2 py-1 text-[11px] uppercase tracking-[0.14em]"
-                        key={`${skill.id}-${modality}`}
-                        variant={getModalityBadgeVariant(modality)}
+                        variant={getSourceBadgeVariant(skill.source)}
                       >
-                        {modality}
+                        {skill.source.replace('_', ' ')}
                       </Badge>
-                    ))}
-                    {skill.channels.map((channel) => (
                       <Badge
                         className="px-2 py-1 text-[11px] uppercase tracking-[0.14em]"
-                        key={`${skill.id}-${channel}`}
-                        variant="outline"
+                        variant="ghost"
                       >
-                        {channel}
+                        {skill.workflowStage}
                       </Badge>
-                    ))}
-                  </div>
-                </Button>
+                    </div>
+
+                    <p className="mb-3 text-sm text-foreground/65">
+                      {skill.description}
+                    </p>
+
+                    <div className="flex flex-wrap gap-2 text-[11px] uppercase tracking-[0.14em] text-foreground/45">
+                      {skill.modalities.map((modality) => (
+                        <Badge
+                          className="px-2 py-1 text-[11px] uppercase tracking-[0.14em]"
+                          key={`${skill.id}-${modality}`}
+                          variant={getModalityBadgeVariant(modality)}
+                        >
+                          {modality}
+                        </Badge>
+                      ))}
+                      {skill.channels.map((channel) => (
+                        <Badge
+                          className="px-2 py-1 text-[11px] uppercase tracking-[0.14em]"
+                          key={`${skill.id}-${channel}`}
+                          variant="outline"
+                        >
+                          {channel}
+                        </Badge>
+                      ))}
+                    </div>
+                  </Button>
+                  <Switch
+                    checked={isEnabled}
+                    className="absolute top-4 right-4"
+                    onCheckedChange={() => void toggleSkill(skill.slug)}
+                  />
+                </div>
               );
             })}
           </div>

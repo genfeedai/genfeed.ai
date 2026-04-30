@@ -487,6 +487,105 @@ describe('proxy', () => {
     process.env.CLERK_SECRET_KEY = 'sk_test';
   });
 
+  it('skips API call when valid slug cookie is present', async () => {
+    process.env.COOKIE_SECRET = 'test-secret-at-least-32-chars-long!!';
+
+    const { default: proxy } = await import(
+      `./proxy?cookie-cache=${Date.now()}`
+    );
+
+    const firstResponse = await proxy(
+      {
+        cookies: { get: vi.fn() },
+        nextUrl: { pathname: '/workspace/overview', search: '' },
+        url: 'http://localhost:3000/workspace/overview',
+      } as never,
+      {} as never,
+    );
+
+    expect(firstResponse.status).toBe(307);
+    expect(firstResponse.headers.get('location')).toBe(
+      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
+    );
+
+    const setCookieHeader = firstResponse.headers.get('set-cookie') ?? '';
+    const cookieMatch = setCookieHeader.match(/gf_ws=([^;]+)/);
+    expect(cookieMatch).toBeTruthy();
+    const cookieValue = cookieMatch?.[1];
+
+    fetchMock.mockClear();
+
+    const secondResponse = await proxy(
+      {
+        cookies: {
+          get: vi.fn((name: string) =>
+            name === 'gf_ws'
+              ? { name: 'gf_ws', value: cookieValue }
+              : undefined,
+          ),
+        },
+        nextUrl: { pathname: '/posts', search: '' },
+        url: 'http://localhost:3000/posts',
+      } as never,
+      {} as never,
+    );
+
+    expect(secondResponse.status).toBe(307);
+    expect(secondResponse.headers.get('location')).toBe(
+      'http://localhost:3000/acme/moonrise-studio/posts',
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    delete process.env.COOKIE_SECRET;
+  });
+
+  it('falls back to API when cookie is expired or tampered', async () => {
+    process.env.COOKIE_SECRET = 'test-secret-at-least-32-chars-long!!';
+
+    const { default: proxy } = await import(
+      `./proxy?cookie-tampered=${Date.now()}`
+    );
+
+    const response = await proxy(
+      {
+        cookies: {
+          get: vi.fn((name: string) =>
+            name === 'gf_ws'
+              ? { name: 'gf_ws', value: 'tampered.cookie' }
+              : undefined,
+          ),
+        },
+        nextUrl: { pathname: '/workspace/overview', search: '' },
+        url: 'http://localhost:3000/workspace/overview',
+      } as never,
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    expect(fetchMock).toHaveBeenCalled();
+
+    delete process.env.COOKIE_SECRET;
+  });
+
+  it('deletes slug cookie on logout', async () => {
+    const { default: proxy } = await import(
+      `./proxy?logout-cookie=${Date.now()}`
+    );
+
+    const response = await proxy(
+      {
+        cookies: { get: vi.fn() },
+        nextUrl: { pathname: '/logout', search: '' },
+        url: 'http://localhost:3000/logout',
+      } as never,
+      {} as never,
+    );
+
+    const setCookieHeader = response.headers.get('set-cookie') ?? '';
+    expect(setCookieHeader).toContain('gf_ws');
+    expect(setCookieHeader).toMatch(/Max-Age=0|expires=Thu, 01 Jan 1970/i);
+  });
+
   it('lets desktop shell login render when the injected desktop token is stale', async () => {
     delete process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
     delete process.env.CLERK_SECRET_KEY;

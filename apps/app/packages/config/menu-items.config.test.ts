@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   APP_LOGO_HREF,
   APP_MENU_ITEMS,
-  APP_SECONDARY_MENU_ITEMS,
   AppMenuGroup,
+  getAppSecondaryMenuItems,
 } from './menu-items.config';
 
 describe('APP_MENU_ITEMS', () => {
@@ -19,7 +19,12 @@ describe('APP_MENU_ITEMS', () => {
       (item) => item.group === AppMenuGroup.Root && !item.isPrimary,
     ).map((item) => item.label);
 
-    expect(ungroupedLabels).toEqual(['Dashboard', 'Inbox', 'Tasks']);
+    expect(ungroupedLabels).toEqual([
+      'Dashboard',
+      'Inbox',
+      'Tasks',
+      'Activity',
+    ]);
   });
 
   it('does not surface content drilldowns in the shared sidebar', () => {
@@ -42,7 +47,12 @@ describe('APP_MENU_ITEMS', () => {
       (item) => item.group === AppMenuGroup.Root,
     ).map((item) => item.label);
 
-    expect(workspaceLabels).toEqual(['Dashboard', 'Inbox', 'Tasks']);
+    expect(workspaceLabels).toEqual([
+      'Dashboard',
+      'Inbox',
+      'Tasks',
+      'Activity',
+    ]);
   });
 
   it('does not include analytics group items pointing to /analytics/* routes', () => {
@@ -55,14 +65,9 @@ describe('APP_MENU_ITEMS', () => {
     expect(analyticsGroupHrefs).toHaveLength(0);
   });
 
-  it('keeps activity out of primary navigation and exposes it as a secondary destination', () => {
-    expect(APP_SECONDARY_MENU_ITEMS).toEqual([
-      expect.objectContaining({
-        href: '/workspace/activity',
-        label: 'Activity',
-      }),
-    ]);
-    expect(APP_MENU_ITEMS.map((item) => item.href)).not.toContain(
+  it('keeps activity in the workspace navigation and no longer exposes secondary destinations', () => {
+    expect(getAppSecondaryMenuItems()).toEqual([]);
+    expect(APP_MENU_ITEMS.map((item) => item.href)).toContain(
       '/workspace/activity',
     );
   });

@@ -333,7 +333,9 @@ describe('ProgressSidebarCard', () => {
     });
 
     expect(
-      globalThis.localStorage.getItem('genfeed:sidebar:progress-visible'),
+      globalThis.localStorage.getItem(
+        'genfeed:sidebar:progress-visible:user-123',
+      ),
     ).toBe('false');
     expect(mockPatchSettings).toHaveBeenCalledWith('user-123', {
       isSidebarProgressVisible: false,

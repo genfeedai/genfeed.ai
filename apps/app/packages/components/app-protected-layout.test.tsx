@@ -467,26 +467,20 @@ describe('AppProtectedLayout', () => {
     expect(screen.getByTestId('agent-panel')).toBeInTheDocument();
   });
 
-  it('renders the workspace switcher before the workspace quick actions', () => {
+  it('renders the workspace quick actions in the sidebar top slot', () => {
     render(
       <AppProtectedLayout>
         <div>Protected content</div>
       </AppProtectedLayout>,
     );
 
-    const workspaceSwitcher = screen.getByTestId('workspace-switcher');
-    const newSearchButton = screen.getByRole('button', { name: 'New Search' });
     const newTaskButton = screen.getByRole('button', { name: 'New Task' });
+    const newSearchButton = screen.getByRole('button', { name: 'New Search' });
 
-    expect(workspaceSwitcher).toBeInTheDocument();
-    expect(newSearchButton).toBeInTheDocument();
     expect(newTaskButton).toBeInTheDocument();
+    expect(newSearchButton).toBeInTheDocument();
     expect(
-      workspaceSwitcher.compareDocumentPosition(newSearchButton) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    expect(
-      newSearchButton.compareDocumentPosition(newTaskButton) &
+      newTaskButton.compareDocumentPosition(newSearchButton) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });

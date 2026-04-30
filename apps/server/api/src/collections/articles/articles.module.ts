@@ -11,6 +11,7 @@ import { ArticlesAnalyticsService } from '@api/collections/articles/services/art
 import { ArticlesContentService } from '@api/collections/articles/services/articles-content.service';
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
+import { HarnessProfilesModule } from '@api/collections/harness-profiles/harness-profiles.module';
 import { ModelsModule } from '@api/collections/models/models.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
@@ -44,6 +45,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => ConfigModule),
     forwardRef(() => CreditsModule),
     forwardRef(() => ModelsModule),
+    HarnessProfilesModule,
     forwardRef(() => NotificationsModule),
     forwardRef(() => OrganizationSettingsModule),
     forwardRef(() => OrganizationsModule),

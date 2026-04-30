@@ -7,6 +7,7 @@ import { resolveEffectiveBrandAgentConfig } from '@api/collections/brands/utils/
 import type { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
 import type {
   ContentHarnessBrief,
+  ContentHarnessContribution,
   ContentHarnessInput,
   ContentHarnessIntent,
   HarnessPersonaProfile,
@@ -181,6 +182,7 @@ export const buildHarnessInput = (params: {
   intent: ContentHarnessIntent;
   organizationId: string;
   persona?: PersonaSource | null;
+  profileContribution?: ContentHarnessContribution;
 }): ContentHarnessInput => {
   const voiceProfile = params.brand
     ? buildHarnessVoiceProfile(params.brand, params.intent.platform)
@@ -193,6 +195,7 @@ export const buildHarnessInput = (params: {
     intent: params.intent,
     organizationId: params.organizationId,
     personaProfile,
+    profileContribution: params.profileContribution,
     sources: params.additionalSources,
     voiceProfile,
   };

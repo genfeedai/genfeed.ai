@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 'use client';
 
+import { useOverviewBootstrap } from '@hooks/data/overview/use-overview-bootstrap';
 import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -44,16 +45,12 @@ describe('useOverviewBootstrap', () => {
     );
   });
 
-  it('waits for Clerk auth readiness before enabling the overview bootstrap fetch', async () => {
+  it('waits for Clerk auth readiness before enabling the overview bootstrap fetch', () => {
     useAuthMock.mockReturnValue({
       isLoaded: false,
       isSignedIn: false,
       userId: null,
     });
-
-    const { useOverviewBootstrap } = await import(
-      '@hooks/data/overview/use-overview-bootstrap'
-    );
 
     renderHook(() => useOverviewBootstrap());
 
@@ -68,7 +65,7 @@ describe('useOverviewBootstrap', () => {
     expect(useAuthedServiceMock).not.toHaveBeenCalled();
   });
 
-  it('uses hydrated overview data without forcing a fetch on mount', async () => {
+  it('uses hydrated overview data without forcing a fetch on mount', () => {
     const initialReviewInbox = {
       approvedCount: 1,
       changesRequestedCount: 2,
@@ -77,10 +74,6 @@ describe('useOverviewBootstrap', () => {
       recentItems: [],
       rejectedCount: 5,
     };
-
-    const { useOverviewBootstrap } = await import(
-      '@hooks/data/overview/use-overview-bootstrap'
-    );
 
     renderHook(() =>
       useOverviewBootstrap({

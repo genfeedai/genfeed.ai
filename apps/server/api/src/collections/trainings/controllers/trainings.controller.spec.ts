@@ -3,7 +3,6 @@ import { ModelsService } from '@api/collections/models/services/models.service';
 import { TrainingsController } from '@api/collections/trainings/controllers/trainings.controller';
 import type { CreateTrainingDto } from '@api/collections/trainings/dto/create-training.dto';
 import type { TrainingsQueryDto } from '@api/collections/trainings/dto/trainings-query.dto';
-import { TrainingEntity } from '@api/collections/trainings/entities/training.entity';
 import type { TrainingDocument } from '@api/collections/trainings/schemas/training.schema';
 import { TrainingsService } from '@api/collections/trainings/services/trainings.service';
 import { ConfigService } from '@api/config/config.service';
@@ -277,7 +276,23 @@ describe('TrainingsController', () => {
 
       expect(ingredientsService.findAll).toHaveBeenCalled();
       expect(trainingsService.create).toHaveBeenCalledWith(
-        expect.any(TrainingEntity),
+        expect.objectContaining({
+          brandId: mockUser.publicMetadata.brand,
+          config: expect.objectContaining({
+            model: 'default-trainer-model',
+            status: IngredientStatus.PROCESSING,
+            steps: 1000,
+            trigger: 'NEWTOK',
+          }),
+          label: 'New Training',
+          organizationId: mockUser.publicMetadata.organization,
+          sources: {
+            connect: expect.arrayContaining([
+              { id: '507f191e810c19729de860ee' },
+            ]),
+          },
+          userId: mockUser.publicMetadata.user,
+        }),
       );
       expect(result).toBeDefined();
     });

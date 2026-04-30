@@ -10,6 +10,7 @@ export * from './ai/agent-ui-block.interface';
 export * from './ai/agent-wizard.interface';
 export * from './ai/ai-actions.interface';
 export * from './ai/harness-pack-registry.interface';
+export * from './ai/harness-profile.interface';
 export * from './ai/tone-profile.interface';
 export * from './analytics/activity.interface';
 export * from './analytics/aggregation.interface';

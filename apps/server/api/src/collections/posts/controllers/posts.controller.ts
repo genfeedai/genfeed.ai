@@ -29,9 +29,11 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
+import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
   returnBadRequest,
+  serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
@@ -52,7 +54,7 @@ import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/interfaces';
-import { PostSerializer } from '@genfeedai/serializers';
+import { PostListSerializer, PostSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,
@@ -543,12 +545,18 @@ export class PostsController extends BaseCRUDController<
   @Get()
   @RolesDecorator('superadmin')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
-  findAll(
+  async findAll(
     @Req() request: Request,
     @CurrentUser() user: User,
     @Query() query: PostsQueryDto,
   ): Promise<JsonApiCollectionResponse> {
-    return super.findAll(request, user, query);
+    const options = {
+      customLabels,
+      ...QueryDefaultsUtil.getPaginationDefaults(query),
+    };
+    const aggregate = this.buildFindAllPipeline(user, query);
+    const data = await this.postsService.findAll(aggregate, options);
+    return serializeCollection(request, PostListSerializer, data);
   }
 
   @Get(':postId')

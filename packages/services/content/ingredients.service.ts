@@ -147,6 +147,16 @@ export class IngredientsService<
       .then((res) => this.mapMany(res.data));
   }
 
+  public async findByIds(ids: string[]): Promise<T[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    return await this.instance
+      .get<JsonApiResponseDocument>(`batch?ids=${ids.join(',')}`)
+      .then((res) => this.mapMany(res.data));
+  }
+
   public async postUpload(
     formData: FormData,
     progressCallback?: (

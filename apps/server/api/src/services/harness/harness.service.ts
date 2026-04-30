@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { ConfigService } from '@api/config/config.service';
 import { isEEEnabled } from '@genfeedai/config';
 import {
@@ -29,9 +30,17 @@ type RuntimeRequireContext = {
   workspaceRoot: string | null;
 };
 
+type WorkspacePackPaths = {
+  packageJson: string;
+  sourceEntry: string;
+};
+
 const API_PACKAGE_NAME = '@genfeedai/api';
-const WORKSPACE_PACK_PACKAGE_JSON_PATHS: Record<string, string> = {
-  '@genfeedai/ee-harness': 'ee/packages/harness/package.json',
+const WORKSPACE_PACK_PATHS: Record<string, WorkspacePackPaths> = {
+  '@genfeedai/ee-harness': {
+    packageJson: 'ee/packages/harness/package.json',
+    sourceEntry: 'ee/packages/harness/src/index.ts',
+  },
 };
 
 function isApiPackageJsonPath(packageJsonPath: string): boolean {
@@ -71,15 +80,14 @@ function createRuntimeRequireContext(): RuntimeRequireContext {
   };
 }
 
-function isMissingRequestedModule(error: unknown, specifier: string): boolean {
+function isModuleResolutionError(error: unknown): boolean {
   if (!(error instanceof Error)) {
     return false;
   }
 
-  return (
-    (error as NodeJS.ErrnoException).code === 'MODULE_NOT_FOUND' &&
-    error.message.includes(`'${specifier}'`)
-  );
+  const code = (error as NodeJS.ErrnoException).code;
+
+  return code === 'MODULE_NOT_FOUND' || code === 'ERR_MODULE_NOT_FOUND';
 }
 
 @Injectable()
@@ -158,7 +166,7 @@ export class ContentHarnessService {
     specifier: string,
   ): Promise<ContentHarnessPack | null> {
     try {
-      const imported = this.loadRuntimePackModule(specifier);
+      const imported = await this.loadRuntimePackModule(specifier);
       const candidate = imported.default ?? imported.CONTENT_HARNESS_PACK;
 
       if (!isContentHarnessPack(candidate)) {
@@ -182,33 +190,49 @@ export class ContentHarnessService {
     }
   }
 
-  private loadRuntimePackModule(specifier: string): PackModule {
+  private async loadRuntimePackModule(specifier: string): Promise<PackModule> {
     try {
       return this.runtimeRequireContext.require(specifier) as PackModule;
     } catch (error: unknown) {
-      const packageJsonPath = this.getWorkspacePackPackageJsonPath(specifier);
+      const workspacePackPaths = this.getWorkspacePackPaths(specifier);
 
-      if (!packageJsonPath || !isMissingRequestedModule(error, specifier)) {
+      if (!workspacePackPaths || !isModuleResolutionError(error)) {
         throw error;
       }
 
-      return createRequire(packageJsonPath)(specifier) as PackModule;
+      const workspaceRequire = createRequire(workspacePackPaths.packageJson);
+      try {
+        return workspaceRequire(specifier) as PackModule;
+      } catch {
+        try {
+          return workspaceRequire(workspacePackPaths.sourceEntry) as PackModule;
+        } catch {
+          return (await import(
+            pathToFileURL(workspacePackPaths.sourceEntry).href
+          )) as PackModule;
+        }
+      }
     }
   }
 
-  private getWorkspacePackPackageJsonPath(specifier: string): string | null {
-    const packageJsonRelativePath =
-      WORKSPACE_PACK_PACKAGE_JSON_PATHS[specifier];
+  private getWorkspacePackPaths(specifier: string): WorkspacePackPaths | null {
+    const workspacePackPaths = WORKSPACE_PACK_PATHS[specifier];
 
-    if (!packageJsonRelativePath || !this.runtimeRequireContext.workspaceRoot) {
+    if (!workspacePackPaths || !this.runtimeRequireContext.workspaceRoot) {
       return null;
     }
 
     const packageJsonPath = resolve(
       this.runtimeRequireContext.workspaceRoot,
-      packageJsonRelativePath,
+      workspacePackPaths.packageJson,
+    );
+    const sourceEntryPath = resolve(
+      this.runtimeRequireContext.workspaceRoot,
+      workspacePackPaths.sourceEntry,
     );
 
-    return existsSync(packageJsonPath) ? packageJsonPath : null;
+    return existsSync(packageJsonPath) && existsSync(sourceEntryPath)
+      ? { packageJson: packageJsonPath, sourceEntry: sourceEntryPath }
+      : null;
   }
 }

@@ -124,18 +124,29 @@ export function useFindAll<T>(
   query?: Record<string, unknown>,
   options?: UseResourceOptions<T[]>,
 ): UseResourceReturn<T[]> {
-  // Use JSON.stringify for content-based comparison instead of reference-based
-  // This prevents unnecessary re-fetches when callers pass inline query objects
   const queryString = query ? JSON.stringify(query) : null;
   const queryDependency = useMemo(() => queryString, [queryString]);
+  const serviceTypeRef = useRef<string | null>(null);
+  const [autoCacheKey, setAutoCacheKey] = useState<string | undefined>(
+    undefined,
+  );
+
+  const resolvedCacheKey = options?.cacheKey ?? autoCacheKey;
 
   return useResource<T[]>(
     async () => {
       const service = await getService();
+      if (!serviceTypeRef.current && service._serializer?.type) {
+        serviceTypeRef.current = service._serializer.type;
+        const key = `findAll:${service._serializer.type}:${queryString ?? ''}`;
+        setAutoCacheKey(key);
+      }
       return service.findAll(query ?? {});
     },
     {
       ...options,
+      cacheKey: resolvedCacheKey,
+      cacheTimeMs: options?.cacheTimeMs ?? 30_000,
       defaultValue: options?.defaultValue ?? ([] as T[]),
       dependencies: [...(options?.dependencies ?? []), queryDependency],
     },
@@ -161,10 +172,14 @@ export function useFindOne<T>(
   query?: Record<string, unknown>,
   options?: UseResourceOptions<T>,
 ): UseResourceReturnNullable<T> {
-  // Use JSON.stringify for content-based comparison instead of reference-based
-  // This prevents unnecessary re-fetches when callers pass inline query objects
   const queryString = query ? JSON.stringify(query) : null;
   const queryDependency = useMemo(() => queryString, [queryString]);
+  const serviceTypeRef = useRef<string | null>(null);
+  const [autoCacheKey, setAutoCacheKey] = useState<string | undefined>(
+    undefined,
+  );
+
+  const resolvedCacheKey = options?.cacheKey ?? autoCacheKey;
 
   return useResource<T>(
     async () => {
@@ -172,12 +187,19 @@ export function useFindOne<T>(
         throw new Error('ID is required for findOne');
       }
       const service = await getService();
+      if (!serviceTypeRef.current && service._serializer?.type) {
+        serviceTypeRef.current = service._serializer.type;
+        const key = `findOne:${service._serializer.type}:${id}:${queryString ?? ''}`;
+        setAutoCacheKey(key);
+      }
       return service.findOne(id, query ?? {});
     },
     {
       ...options,
+      cacheKey: resolvedCacheKey,
+      cacheTimeMs: options?.cacheTimeMs ?? 30_000,
       dependencies: [...(options?.dependencies ?? []), id, queryDependency],
-      enabled: options?.enabled !== false && !!id, // Only fetch if ID exists
+      enabled: options?.enabled !== false && !!id,
     },
   );
 }

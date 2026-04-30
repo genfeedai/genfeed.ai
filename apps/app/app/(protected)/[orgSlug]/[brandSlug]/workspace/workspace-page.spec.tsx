@@ -20,9 +20,8 @@ const getTokenMock = vi.fn();
 const listMock = vi.fn();
 const createTaskMock = vi.fn();
 const ensurePlanningThreadMock = vi.fn();
-const getRunByIdMock = vi.fn();
-const getRunContentMock = vi.fn();
-const findIngredientMock = vi.fn();
+const getBatchMock = vi.fn();
+const findIngredientsByIdsMock = vi.fn();
 const findIssueMock = vi.fn();
 const routerPushMock = vi.fn();
 
@@ -157,6 +156,19 @@ function buildTask(overrides: Record<string, unknown> = {}) {
   };
 }
 
+async function openTaskComposerFromSidebar() {
+  fireEvent(window, new Event(OPEN_TASK_COMPOSER_EVENT));
+  expect(
+    await screen.findByText(
+      'New Task',
+      {},
+      {
+        timeout: 5000,
+      },
+    ),
+  ).toBeInTheDocument();
+}
+
 describe('WorkspacePageContent', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -170,21 +182,22 @@ describe('WorkspacePageContent', () => {
       seeded: true,
       threadId: 'thread-plan-123',
     });
-    getRunByIdMock.mockResolvedValue({
-      id: 'run-1',
-      thread: 'thread-report-123',
-    });
-    getRunContentMock.mockResolvedValue({
-      ingredients: [],
-      posts: [],
-    });
-    findIngredientMock.mockResolvedValue({
-      category: 'ingredient',
-      id: 'ingredient-1',
-      metadataDescription: 'Hook variants for the campaign brief.',
-      metadataLabel: 'Campaign Hook Pack',
-      promptText: 'Create three launch-ready hooks.',
-    });
+    getBatchMock.mockResolvedValue([
+      {
+        contentCount: 1,
+        id: 'run-1',
+        threadId: 'thread-report-123',
+      },
+    ]);
+    findIngredientsByIdsMock.mockResolvedValue([
+      {
+        category: 'ingredient',
+        id: 'ingredient-1',
+        metadataDescription: 'Hook variants for the campaign brief.',
+        metadataLabel: 'Campaign Hook Pack',
+        promptText: 'Create three launch-ready hooks.',
+      },
+    ]);
     findIssueMock.mockResolvedValue({
       id: 'issue-1',
       identifier: 'GEN-42',
@@ -200,11 +213,10 @@ describe('WorkspacePageContent', () => {
       requestChanges: vi.fn(),
     } as unknown as ReturnType<typeof TasksService.getInstance>);
     vi.mocked(AgentRunsService.getInstance).mockReturnValue({
-      getById: getRunByIdMock,
-      getRunContent: getRunContentMock,
+      getBatch: getBatchMock,
     } as unknown as ReturnType<typeof AgentRunsService.getInstance>);
     vi.mocked(IngredientsService.getInstance).mockReturnValue({
-      findOne: findIngredientMock,
+      findByIds: findIngredientsByIdsMock,
     } as unknown as ReturnType<typeof IngredientsService.getInstance>);
   });
 
@@ -239,11 +251,7 @@ describe('WorkspacePageContent', () => {
       expect(listMock).toHaveBeenCalledWith({});
     });
 
-    fireEvent(window, new Event(OPEN_TASK_COMPOSER_EVENT));
-
-    await waitFor(() => {
-      expect(screen.getByText('New Task')).toBeInTheDocument();
-    });
+    await openTaskComposerFromSidebar();
   });
 
   it('creates a task from the modal composer', async () => {
@@ -253,11 +261,7 @@ describe('WorkspacePageContent', () => {
       expect(listMock).toHaveBeenCalledWith({});
     });
 
-    fireEvent(window, new Event(OPEN_TASK_COMPOSER_EVENT));
-
-    await waitFor(() => {
-      expect(screen.getByText('New Task')).toBeInTheDocument();
-    });
+    await openTaskComposerFromSidebar();
 
     fireEvent.change(
       screen.getByPlaceholderText(
@@ -328,11 +332,7 @@ describe('WorkspacePageContent', () => {
       expect(listMock).toHaveBeenCalledWith({});
     });
 
-    fireEvent(window, new Event(OPEN_TASK_COMPOSER_EVENT));
-
-    await waitFor(() => {
-      expect(screen.getByText('New Task')).toBeInTheDocument();
-    });
+    await openTaskComposerFromSidebar();
 
     fireEvent.change(
       screen.getByPlaceholderText(
@@ -518,11 +518,7 @@ describe('WorkspacePageContent', () => {
     });
 
     await waitFor(() => {
-      expect(getRunByIdMock).toHaveBeenCalledWith('run-1');
-      expect(getRunContentMock).toHaveBeenCalledWith(
-        'run-1',
-        expect.any(AbortSignal),
-      );
+      expect(getBatchMock).toHaveBeenCalledWith(['run-1']);
     });
 
     await waitFor(() => {
@@ -571,7 +567,7 @@ describe('WorkspacePageContent', () => {
     });
 
     await waitFor(() => {
-      expect(findIngredientMock).toHaveBeenCalledWith('ingredient-1');
+      expect(findIngredientsByIdsMock).toHaveBeenCalledWith(['ingredient-1']);
     });
 
     const inspector = screen.getByTestId('workspace-task-inspector');
