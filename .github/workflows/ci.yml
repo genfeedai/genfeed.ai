@@ -64,7 +64,7 @@ jobs:
       - name: Run lint
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            bunx turbo run lint --affected
+            TURBO_SCM_BASE="${{ github.event.pull_request.base.sha }}" bunx turbo run lint --affected
           else
             bun run lint
           fi
@@ -97,7 +97,7 @@ jobs:
       - name: Run typecheck
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            bunx turbo run type-check --affected
+            TURBO_SCM_BASE="${{ github.event.pull_request.base.sha }}" bunx turbo run type-check --affected
           else
             bun run type-check
           fi
@@ -130,7 +130,7 @@ jobs:
       - name: Run tests
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            bunx turbo run test --affected
+            TURBO_SCM_BASE="${{ github.event.pull_request.base.sha }}" bunx turbo run test --affected
           else
             bun run test
           fi
@@ -164,7 +164,7 @@ jobs:
       - name: Run build
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            bunx turbo run build --filter='./packages/*' --affected
+            TURBO_SCM_BASE="${{ github.event.pull_request.base.sha }}" bunx turbo run build --filter='./packages/*' --affected
           else
             bun run build
           fi
