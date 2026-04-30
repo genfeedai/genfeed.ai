@@ -1,17 +1,11 @@
 import type { ClientService } from '@mcp/services/client.service';
-import type { SocialPlatform } from '@mcp/shared/interfaces/post.interface';
+import { isSocialPlatform } from '@mcp/tools/tool-validators';
 
 export interface PublishParams {
   ingredientId: string;
   platforms: string[];
   caption?: string;
   scheduledAt?: string;
-}
-
-function isSocialPlatform(value: string): value is SocialPlatform {
-  return ['twitter', 'linkedin', 'instagram', 'tiktok', 'youtube'].includes(
-    value,
-  );
 }
 
 export function createPublishingTool(client: ClientService) {
