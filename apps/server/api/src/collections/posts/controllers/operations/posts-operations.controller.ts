@@ -59,7 +59,7 @@ import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/interfaces';
-import { PostSerializer } from '@genfeedai/serializers';
+import { PostListSerializer, PostSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,
@@ -335,7 +335,7 @@ export class PostsOperationsController {
       }
 
       // Return immediately with PROCESSING posts
-      const response = serializeCollection(request, PostSerializer, {
+      const response = serializeCollection(request, PostListSerializer, {
         docs: createdPosts,
       });
 
@@ -426,7 +426,7 @@ export class PostsOperationsController {
       }
 
       // Return immediately with PROCESSING posts
-      const response = serializeCollection(request, PostSerializer, {
+      const response = serializeCollection(request, PostListSerializer, {
         docs: createdPosts,
       });
 
@@ -554,7 +554,7 @@ export class PostsOperationsController {
     }
 
     // Return immediately with all posts (original + processing children)
-    const response = serializeCollection(request, PostSerializer, {
+    const response = serializeCollection(request, PostListSerializer, {
       docs: createdPosts,
     });
 
@@ -1274,7 +1274,7 @@ export class PostsOperationsController {
         );
       }
 
-      return serializeCollection(request, PostSerializer, {
+      return serializeCollection(request, PostListSerializer, {
         docs: updatedPosts,
       });
     } catch (error) {

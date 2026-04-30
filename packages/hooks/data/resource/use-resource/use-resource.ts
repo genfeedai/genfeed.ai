@@ -313,9 +313,18 @@ export function useResource<T>(
     await fetchData(true);
   }, [fetchData]);
 
-  const mutate = useCallback((newData: T) => {
-    setData(newData);
-  }, []);
+  const mutate = useCallback(
+    (newData: T) => {
+      setData(newData);
+      if (cacheKey) {
+        resourceCache.set(cacheKey, {
+          data: newData,
+          updatedAt: Date.now(),
+        });
+      }
+    },
+    [cacheKey],
+  );
 
   // Shallow comparison utility for dependencies
   const shallowEqual = (a: DependencyList, b: DependencyList): boolean => {

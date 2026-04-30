@@ -453,6 +453,50 @@ export class AgentRunsService extends BaseService<
     };
   }
 
+  @HandleErrors('get batch with content', 'agent-runs')
+  async getBatchWithContent(
+    ids: string[],
+    organizationId: string,
+  ): Promise<
+    Array<{ id: string; threadId: string | null; contentCount: number }>
+  > {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    const [runs, postGroups, ingredientGroups] = await Promise.all([
+      this.prisma.agentRun.findMany({
+        select: { id: true, threadId: true },
+        where: { id: { in: ids }, isDeleted: false, organizationId },
+      }),
+      this.prisma.post.groupBy({
+        by: ['agentRunId'],
+        where: { agentRunId: { in: ids }, isDeleted: false },
+        _count: true,
+      }),
+      this.prisma.ingredient.groupBy({
+        by: ['agentRunId'],
+        where: { agentRunId: { in: ids }, isDeleted: false },
+        _count: true,
+      }),
+    ]);
+
+    const postCountByRunId = new Map<string, number>(
+      postGroups.map((g) => [g.agentRunId as string, g._count]),
+    );
+    const ingredientCountByRunId = new Map<string, number>(
+      ingredientGroups.map((g) => [g.agentRunId as string, g._count]),
+    );
+
+    return runs.map((run) => ({
+      contentCount:
+        (postCountByRunId.get(run.id) ?? 0) +
+        (ingredientCountByRunId.get(run.id) ?? 0),
+      id: run.id,
+      threadId: run.threadId ?? null,
+    }));
+  }
+
   @HandleErrors('get run content', 'agent-runs')
   async getRunContent(
     runId: string,
