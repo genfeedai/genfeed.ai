@@ -35,6 +35,11 @@ export default function BrandSettingsLayout({ children }: LayoutProps) {
       label: 'Voice',
     },
     {
+      href: settingsHref('/harness'),
+      id: 'harness',
+      label: 'Harness',
+    },
+    {
       href: settingsHref('/publishing'),
       id: 'publishing',
       label: 'Publishing',

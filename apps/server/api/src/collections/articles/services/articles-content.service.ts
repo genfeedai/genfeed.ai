@@ -20,6 +20,7 @@ import { UpdateArticleDto } from '@api/collections/articles/dto/update-article.d
 import { type ArticleDocument } from '@api/collections/articles/schemas/article.schema';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { HarnessProfilesService } from '@api/collections/harness-profiles/services/harness-profiles.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { baseModelKey } from '@api/collections/models/utils/model-key.util';
 import type { PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
@@ -119,6 +120,8 @@ export class ArticlesContentService {
     @Optional() private readonly brandsService?: BrandsService,
     @Optional() private readonly personasService?: PersonasService,
     @Optional() private readonly contentHarnessService?: ContentHarnessService,
+    @Optional()
+    private readonly harnessProfilesService?: HarnessProfilesService,
   ) {}
 
   /**
@@ -834,6 +837,11 @@ export class ArticlesContentService {
       organizationId: params.organizationId,
     });
     const harnessPersona = this.normalizeHarnessPersona(persona);
+    const profileContribution =
+      await this.harnessProfilesService?.buildContributionForBrand(
+        params.organizationId,
+        params.brandId,
+      );
 
     const brief = await this.contentHarnessService.composeBrief(
       buildHarnessInput({
@@ -851,6 +859,7 @@ export class ArticlesContentService {
         },
         organizationId: params.organizationId,
         persona: harnessPersona,
+        profileContribution: profileContribution ?? undefined,
       }),
     );
 

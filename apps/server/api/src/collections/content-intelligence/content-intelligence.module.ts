@@ -15,6 +15,7 @@ import { CreatorScraperService } from '@api/collections/content-intelligence/ser
 import { PatternAnalyzerService } from '@api/collections/content-intelligence/services/pattern-analyzer.service';
 import { PatternStoreService } from '@api/collections/content-intelligence/services/pattern-store.service';
 import { PlaybookBuilderService } from '@api/collections/content-intelligence/services/playbook-builder.service';
+import { HarnessProfilesModule } from '@api/collections/harness-profiles/harness-profiles.module';
 import { PersonasModule } from '@api/collections/personas/personas.module';
 import { AgentContextAssemblyModule } from '@api/services/agent-context-assembly/agent-context-assembly.module';
 import { ContentHarnessModule } from '@api/services/harness/harness.module';
@@ -43,6 +44,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => BrandsModule),
     ApifyModule,
     ContentHarnessModule,
+    HarnessProfilesModule,
     HttpModule,
     OpenRouterModule,
     forwardRef(() => PersonasModule),
