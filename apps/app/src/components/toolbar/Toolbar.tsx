@@ -215,37 +215,45 @@ export function Toolbar() {
 
   // handleOpenFolder removed — desktop-only, not available in web
 
-  const handleDuplicate = useCallback(async () => {
-    if (!workflowId) return;
-    try {
+  const duplicateWorkflowAndRoute = useCallback(
+    async (renameTo?: string) => {
+      if (!workflowId) return false;
+
       const duplicated = await duplicateWorkflowApi(workflowId);
-      router.push(href(`/workflows/${duplicated._id}`));
+      const renameQuery = renameTo
+        ? `?rename=${encodeURIComponent(renameTo)}`
+        : '';
+
+      router.push(href(`/workflows/${duplicated._id}${renameQuery}`));
+      return true;
+    },
+    [workflowId, duplicateWorkflowApi, router, href],
+  );
+
+  const handleDuplicate = useCallback(async () => {
+    try {
+      await duplicateWorkflowAndRoute();
     } catch (error) {
       logger.error('Failed to duplicate workflow', error, {
         context: 'Toolbar',
       });
     }
-  }, [workflowId, duplicateWorkflowApi, router, href]);
+  }, [duplicateWorkflowAndRoute]);
 
   const handleSaveAs = useCallback(
     async (newName: string) => {
-      if (!workflowId) return;
       try {
-        const duplicated = await duplicateWorkflowApi(workflowId);
-        // Navigate to the duplicated workflow - the name will be set on the new workflow
-        router.push(
-          href(
-            `/workflows/${duplicated._id}?rename=${encodeURIComponent(newName)}`,
-          ),
-        );
-        setShowSaveAsDialog(false);
+        const didDuplicate = await duplicateWorkflowAndRoute(newName);
+        if (didDuplicate) {
+          setShowSaveAsDialog(false);
+        }
       } catch (error) {
         logger.error('Failed to save workflow as copy', error, {
           context: 'Toolbar',
         });
       }
     },
-    [workflowId, duplicateWorkflowApi, router, href],
+    [duplicateWorkflowAndRoute],
   );
 
   const handleScreenshot = useCallback(async () => {
