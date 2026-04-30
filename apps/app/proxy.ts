@@ -125,7 +125,9 @@ type WorkspaceSlugs = {
   orgSlug: string;
 };
 
-const WORKSPACE_SLUG_CACHE_TTL_MS = 30_000;
+const WORKSPACE_SLUG_CACHE_TTL_MS = 300_000;
+const WORKSPACE_SLUG_COOKIE_NAME = 'gf_ws';
+const WORKSPACE_SLUG_COOKIE_MAX_AGE_S = 300;
 const workspaceSlugCache = new Map<
   string,
   {
@@ -133,6 +135,97 @@ const workspaceSlugCache = new Map<
     slugs: WorkspaceSlugs;
   }
 >();
+
+async function getCookieSecret(): Promise<CryptoKey | null> {
+  const secret = process.env.COOKIE_SECRET;
+  if (!secret) return null;
+  const encoder = new TextEncoder();
+  return crypto.subtle.importKey(
+    'raw',
+    encoder.encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign', 'verify'],
+  );
+}
+
+function uint8ToBase64Url(bytes: Uint8Array): string {
+  let binary = '';
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary)
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
+function base64UrlToUint8(str: string): Uint8Array<ArrayBuffer> {
+  const padded = str.replace(/-/g, '+').replace(/_/g, '/');
+  const binary = atob(padded);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
+
+async function encodeSlugCookie(slugs: WorkspaceSlugs): Promise<string | null> {
+  const key = await getCookieSecret();
+  if (!key) return null;
+  const payload = JSON.stringify({
+    e: Date.now() + WORKSPACE_SLUG_CACHE_TTL_MS,
+    s: slugs,
+  });
+  const encoder = new TextEncoder();
+  const payloadBytes = encoder.encode(payload);
+  const sig = new Uint8Array(
+    await crypto.subtle.sign('HMAC', key, payloadBytes),
+  );
+  return `${uint8ToBase64Url(payloadBytes)}.${uint8ToBase64Url(sig)}`;
+}
+
+async function decodeSlugCookie(value: string): Promise<WorkspaceSlugs | null> {
+  try {
+    const key = await getCookieSecret();
+    if (!key) return null;
+    const [payloadPart, sigPart] = value.split('.');
+    if (!payloadPart || !sigPart) return null;
+    const payloadBytes = base64UrlToUint8(payloadPart);
+    const sigBytes = base64UrlToUint8(sigPart);
+    const valid = await crypto.subtle.verify(
+      'HMAC',
+      key,
+      sigBytes,
+      payloadBytes,
+    );
+    if (!valid) return null;
+    const decoder = new TextDecoder();
+    const parsed = JSON.parse(decoder.decode(payloadBytes)) as {
+      e: number;
+      s: WorkspaceSlugs;
+    };
+    if (parsed.e <= Date.now()) return null;
+    if (!parsed.s?.orgSlug || !parsed.s?.brandSlug) return null;
+    return parsed.s;
+  } catch {
+    return null;
+  }
+}
+
+function setSlugCookie(response: NextResponse, cookieValue: string): void {
+  response.cookies.set(WORKSPACE_SLUG_COOKIE_NAME, cookieValue, {
+    httpOnly: true,
+    maxAge: WORKSPACE_SLUG_COOKIE_MAX_AGE_S,
+    path: '/',
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+  });
+}
+
+function deleteSlugCookie(response: NextResponse): void {
+  response.cookies.delete(WORKSPACE_SLUG_COOKIE_NAME);
+}
 
 function readWorkspaceSlugCache(
   cacheKey?: string | null,
@@ -168,13 +261,30 @@ function writeWorkspaceSlugCache(
   });
 }
 
+type SlugResolution = {
+  cookieValue: string | null;
+  slugs: WorkspaceSlugs;
+};
+
 async function resolveActiveWorkspaceSlugs(
   token: string,
   cacheKey?: string | null,
-): Promise<WorkspaceSlugs | null> {
+  req?: NextRequest,
+): Promise<SlugResolution | null> {
   const cached = readWorkspaceSlugCache(cacheKey);
   if (cached) {
-    return cached;
+    return { cookieValue: null, slugs: cached };
+  }
+
+  if (req) {
+    const cookieRaw = req.cookies.get(WORKSPACE_SLUG_COOKIE_NAME)?.value;
+    if (cookieRaw) {
+      const fromCookie = await decodeSlugCookie(cookieRaw);
+      if (fromCookie) {
+        writeWorkspaceSlugCache(cacheKey, fromCookie);
+        return { cookieValue: null, slugs: fromCookie };
+      }
+    }
   }
 
   const headers = {
@@ -244,37 +354,48 @@ async function resolveActiveWorkspaceSlugs(
 
   const slugs = { brandCount: brands.length, brandSlug, orgSlug };
   writeWorkspaceSlugCache(cacheKey, slugs);
-  return slugs;
+  const cookieValue = await encodeSlugCookie(slugs);
+  return { cookieValue, slugs };
 }
+
+type CanonicalResolution = {
+  cookieValue: string | null;
+  path: string;
+};
 
 async function resolveCanonicalProtectedPath(
   pathname: string,
   token: string,
   cacheKey?: string | null,
-): Promise<string | null> {
+  req?: NextRequest,
+): Promise<CanonicalResolution | null> {
   const canonicalPath = canonicalizeFlatProtectedPath(pathname);
-  const slugs = await resolveActiveWorkspaceSlugs(token, cacheKey);
+  const resolution = await resolveActiveWorkspaceSlugs(token, cacheKey, req);
 
-  if (!slugs) {
+  if (!resolution) {
     return null;
   }
 
+  const { cookieValue, slugs } = resolution;
   const topLevelSegment = getTopLevelSegment(canonicalPath);
 
   if (topLevelSegment === 'settings') {
     if (canonicalPath === '/settings/personal') {
-      return '/settings';
+      return { cookieValue, path: '/settings' };
     }
 
     if (canonicalPath === '/settings/organization') {
-      return `/${slugs.orgSlug}/~/settings`;
+      return { cookieValue, path: `/${slugs.orgSlug}/~/settings` };
     }
 
     if (canonicalPath.startsWith('/settings/organization/')) {
-      return `/${slugs.orgSlug}/~${canonicalPath.replace(
-        '/settings/organization',
-        '/settings',
-      )}`;
+      return {
+        cookieValue,
+        path: `/${slugs.orgSlug}/~${canonicalPath.replace(
+          '/settings/organization',
+          '/settings',
+        )}`,
+      };
     }
 
     if (canonicalPath.startsWith('/settings/brands/')) {
@@ -282,11 +403,14 @@ async function resolveCanonicalProtectedPath(
 
       if (routeBrandSlug) {
         const suffix = rest.length > 0 ? `/${rest.join('/')}` : '';
-        return `/${slugs.orgSlug}/${routeBrandSlug}/settings${suffix}`;
+        return {
+          cookieValue,
+          path: `/${slugs.orgSlug}/${routeBrandSlug}/settings${suffix}`,
+        };
       }
     }
 
-    return `/${slugs.orgSlug}/~${canonicalPath}`;
+    return { cookieValue, path: `/${slugs.orgSlug}/~${canonicalPath}` };
   }
 
   if (
@@ -295,10 +419,13 @@ async function resolveCanonicalProtectedPath(
       topLevelSegment as (typeof ORG_SCOPED_PREFIXES)[number],
     )
   ) {
-    return `/${slugs.orgSlug}/~${canonicalPath}`;
+    return { cookieValue, path: `/${slugs.orgSlug}/~${canonicalPath}` };
   }
 
-  return `/${slugs.orgSlug}/${slugs.brandSlug}${canonicalPath}`;
+  return {
+    cookieValue,
+    path: `/${slugs.orgSlug}/${slugs.brandSlug}${canonicalPath}`,
+  };
 }
 
 const isPublicRoute = isCloudConnected
@@ -337,12 +464,20 @@ const clerkProxy = isCloudConnected
 
           const token = await session.getToken?.();
           if (token) {
-            const slugs = await resolveActiveWorkspaceSlugs(token, sessionId);
-            if (slugs) {
-              return redirectPreservingSearch(
+            const resolution = await resolveActiveWorkspaceSlugs(
+              token,
+              sessionId,
+              req,
+            );
+            if (resolution) {
+              const response = redirectPreservingSearch(
                 req,
-                `/${slugs.orgSlug}/${slugs.brandSlug}/workspace/overview`,
+                `/${resolution.slugs.orgSlug}/${resolution.slugs.brandSlug}/workspace/overview`,
               );
+              if (resolution.cookieValue) {
+                setSlugCookie(response, resolution.cookieValue);
+              }
+              return response;
             }
           }
           return NextResponse.next();
@@ -353,18 +488,32 @@ const clerkProxy = isCloudConnected
           const shouldSkipRedirect = skipRedirectPrefixes.some((p) =>
             pathname.startsWith(p),
           );
-          if (userId && sessionId && !shouldSkipRedirect) {
+          if (shouldSkipRedirect) {
+            if (pathname.startsWith('/logout')) {
+              const response = NextResponse.next();
+              deleteSlugCookie(response);
+              return response;
+            }
+            return NextResponse.next();
+          }
+
+          if (userId && sessionId) {
             const token = await session.getToken?.();
-            const resolvedPath = token
+            const resolved = token
               ? await resolveCanonicalProtectedPath(
                   '/workspace/overview',
                   token,
                   sessionId,
+                  req,
                 )
               : null;
 
-            if (resolvedPath) {
-              return redirectPreservingSearch(req, resolvedPath);
+            if (resolved) {
+              const response = redirectPreservingSearch(req, resolved.path);
+              if (resolved.cookieValue) {
+                setSlugCookie(response, resolved.cookieValue);
+              }
+              return response;
             }
 
             return NextResponse.next();
@@ -373,24 +522,38 @@ const clerkProxy = isCloudConnected
         }
 
         if (!userId || !sessionId) {
-          // Desktop offline: no session is valid — pass straight through.
           if (isDesktopShell) {
             return NextResponse.next();
           }
           return redirectPreservingSearch(req, '/login');
         }
 
+        if (pathname.startsWith('/logout')) {
+          const response = NextResponse.next();
+          deleteSlugCookie(response);
+          return response;
+        }
+
         if (isBareProtectedPath(pathname)) {
           const token = await session.getToken?.();
-          const resolvedPath = token
-            ? await resolveCanonicalProtectedPath(pathname, token, sessionId)
+          const resolved = token
+            ? await resolveCanonicalProtectedPath(
+                pathname,
+                token,
+                sessionId,
+                req,
+              )
             : null;
 
-          if (!resolvedPath) {
+          if (!resolved) {
             return NextResponse.next();
           }
 
-          return redirectPreservingSearch(req, resolvedPath);
+          const response = redirectPreservingSearch(req, resolved.path);
+          if (resolved.cookieValue) {
+            setSlugCookie(response, resolved.cookieValue);
+          }
+          return response;
         }
 
         return NextResponse.next();
@@ -414,19 +577,20 @@ export default async function proxy(req: NextRequest, event: NextFetchEvent) {
       pathname.startsWith('/sign-up') ||
       pathname.startsWith('/logout') ||
       pathname.startsWith('/onboarding');
-    const resolveDesktopWorkspacePath = async (): Promise<string | null> => {
-      if (!desktopToken) {
-        return null;
-      }
+    const resolveDesktopWorkspace =
+      async (): Promise<CanonicalResolution | null> => {
+        if (!desktopToken) {
+          return null;
+        }
 
-      return await resolveCanonicalProtectedPath(
-        '/workspace/overview',
-        desktopToken,
-      );
-    };
+        return await resolveCanonicalProtectedPath(
+          '/workspace/overview',
+          desktopToken,
+          undefined,
+          req,
+        );
+      };
 
-    // Offline / no active session: skip all token-dependent logic and go
-    // straight to the default seeded workspace (same as self-hosted mode).
     if (!hasDesktopToken) {
       if (
         pathname === '/' ||
@@ -439,32 +603,51 @@ export default async function proxy(req: NextRequest, event: NextFetchEvent) {
     }
 
     if (pathname === '/') {
-      const resolvedPath = await resolveDesktopWorkspacePath();
-      return redirectPreservingSearch(req, resolvedPath ?? '/login');
+      const resolved = await resolveDesktopWorkspace();
+      const response = redirectPreservingSearch(
+        req,
+        resolved?.path ?? '/login',
+      );
+      if (resolved?.cookieValue) {
+        setSlugCookie(response, resolved.cookieValue);
+      }
+      return response;
     }
 
     if (pathname === '/logout') {
-      return NextResponse.next();
+      const response = NextResponse.next();
+      deleteSlugCookie(response);
+      return response;
     }
 
     if (isAuthRoute) {
-      const resolvedPath = await resolveDesktopWorkspacePath();
+      const resolved = await resolveDesktopWorkspace();
 
-      if (resolvedPath) {
-        return redirectPreservingSearch(req, resolvedPath);
+      if (resolved) {
+        const response = redirectPreservingSearch(req, resolved.path);
+        if (resolved.cookieValue) {
+          setSlugCookie(response, resolved.cookieValue);
+        }
+        return response;
       }
 
       return NextResponse.next();
     }
 
     if (hasDesktopToken && isBareProtectedPath(pathname) && desktopToken) {
-      const resolvedPath = await resolveCanonicalProtectedPath(
+      const resolved = await resolveCanonicalProtectedPath(
         pathname,
         desktopToken,
+        undefined,
+        req,
       );
 
-      if (resolvedPath) {
-        return redirectPreservingSearch(req, resolvedPath);
+      if (resolved) {
+        const response = redirectPreservingSearch(req, resolved.path);
+        if (resolved.cookieValue) {
+          setSlugCookie(response, resolved.cookieValue);
+        }
+        return response;
       }
 
       return redirectPreservingSearch(req, '/login');

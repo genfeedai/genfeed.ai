@@ -26,6 +26,7 @@ import { AgentExecutionStatus } from '@genfeedai/enums';
 import { AgentRunSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
+  BadRequestException,
   Controller,
   Get,
   HttpCode,
@@ -208,6 +209,39 @@ export class AgentRunsController extends BaseCRUDController<
       publicMetadata.organization,
       query,
     );
+  }
+
+  @Get('batch')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get summary data for multiple agent runs by ID' })
+  @ApiResponse({ description: 'Batch run summaries returned', status: 200 })
+  async getBatch(
+    @Query('ids') idsParam: string,
+    @CurrentUser() user: User,
+  ): Promise<{
+    runs: Array<{ id: string; threadId: string | null; contentCount: number }>;
+  }> {
+    if (!idsParam || idsParam.trim().length === 0) {
+      throw new BadRequestException('ids query parameter is required');
+    }
+
+    const ids = idsParam
+      .split(',')
+      .map((id) => id.trim())
+      .filter((id) => id.length > 0)
+      .slice(0, 50);
+
+    if (ids.length === 0) {
+      throw new BadRequestException('At least one valid ID is required');
+    }
+
+    const publicMetadata = getPublicMetadata(user);
+    const runs = await this.agentRunsService.getBatchWithContent(
+      ids,
+      publicMetadata.organization,
+    );
+
+    return { runs };
   }
 
   @Get(':id/content')

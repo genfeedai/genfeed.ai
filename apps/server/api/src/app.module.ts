@@ -5,6 +5,7 @@
  */
 
 import { join } from 'node:path';
+import process from 'node:process';
 import { AuthModule } from '@api/auth/auth.module';
 import { ActivitiesModule } from '@api/collections/activities/activities.module';
 import { AgentCampaignsModule } from '@api/collections/agent-campaigns/agent-campaigns.module';
@@ -55,6 +56,7 @@ import { FoldersModule } from '@api/collections/folders/folders.module';
 import { FontFamiliesModule } from '@api/collections/font-families/font-families.module';
 import { GifsModule } from '@api/collections/gifs/gifs.module';
 import { GoalsModule } from '@api/collections/goals/goals.module';
+import { HarnessProfilesModule } from '@api/collections/harness-profiles/harness-profiles.module';
 import { ImagesModule } from '@api/collections/images/images.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { InsightsModule } from '@api/collections/insights/insights.module';
@@ -277,6 +279,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
     FoldersModule,
     FontFamiliesModule,
     GifsModule,
+    HarnessProfilesModule,
     HealthModule,
     HookRemixModule,
     ImagesModule,

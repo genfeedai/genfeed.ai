@@ -3,6 +3,7 @@ import { GenerateContentDto } from '@api/collections/content-intelligence/dto/ge
 import { type ContentPatternDocument } from '@api/collections/content-intelligence/schemas/content-pattern.schema';
 import { PatternStoreService } from '@api/collections/content-intelligence/services/pattern-store.service';
 import { PlaybookBuilderService } from '@api/collections/content-intelligence/services/playbook-builder.service';
+import { HarnessProfilesService } from '@api/collections/harness-profiles/services/harness-profiles.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { ConfigService } from '@api/config/config.service';
 import { SecurityUtil } from '@api/helpers/utils/security/security.util';
@@ -51,6 +52,8 @@ export class ContentGeneratorService {
     @Optional() private readonly brandsService?: BrandsService,
     @Optional() private readonly personasService?: PersonasService,
     @Optional() private readonly contentHarnessService?: ContentHarnessService,
+    @Optional()
+    private readonly harnessProfilesService?: HarnessProfilesService,
   ) {
     this.defaultModel =
       this.configService.get('XAI_MODEL') || 'x-ai/grok-4-fast';
@@ -202,6 +205,11 @@ export class ContentGeneratorService {
         isDeleted: false,
         organization: organizationId,
       });
+      const profileContribution =
+        await this.harnessProfilesService?.buildContributionForBrand(
+          organizationId.toString(),
+          dto.brandId.toString(),
+        );
 
       const brief = await this.contentHarnessService.composeBrief(
         buildHarnessInput({
@@ -220,6 +228,7 @@ export class ContentGeneratorService {
           },
           organizationId: organizationId.toString(),
           persona,
+          profileContribution: profileContribution ?? undefined,
         }),
       );
 

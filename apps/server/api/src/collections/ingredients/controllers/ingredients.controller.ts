@@ -9,13 +9,27 @@ import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
 import { buildUpdateOperations } from '@api/helpers/utils/objectid/update-operations.util';
 import {
   returnNotFound,
+  serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import type { User } from '@clerk/backend';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { IngredientSerializer } from '@genfeedai/serializers';
-import { Body, Controller, Param, Patch, Req, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import type { Request } from 'express';
 
 @AutoSwagger()
@@ -25,6 +39,40 @@ export class IngredientsController {
   private readonly constructorName: string = String(this.constructor.name);
 
   constructor(private readonly ingredientsService: IngredientsService) {}
+
+  @Get('batch')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get multiple ingredients by ID' })
+  @ApiResponse({ description: 'Batch ingredients returned', status: 200 })
+  async getBatch(
+    @Req() request: Request,
+    @Query('ids') idsParam: string,
+    @CurrentUser() user: User,
+  ) {
+    if (!idsParam || idsParam.trim().length === 0) {
+      throw new BadRequestException('ids query parameter is required');
+    }
+
+    const ids = idsParam
+      .split(',')
+      .map((id) => id.trim())
+      .filter((id) => id.length > 0)
+      .slice(0, 50);
+
+    if (ids.length === 0) {
+      throw new BadRequestException('At least one valid ID is required');
+    }
+
+    const publicMetadata = getPublicMetadata(user);
+    const ingredients = await this.ingredientsService.findByIds(
+      ids,
+      publicMetadata.organization,
+    );
+
+    return serializeCollection(request, IngredientSerializer, {
+      docs: ingredients,
+    });
+  }
 
   @Patch(':ingredientId')
   @UseGuards(AssetAccessGuard)

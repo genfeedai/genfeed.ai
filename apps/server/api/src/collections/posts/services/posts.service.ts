@@ -1,3 +1,4 @@
+import process from 'node:process';
 import { CredentialEntity } from '@api/collections/credentials/entities/credential.entity';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { IngredientEntity } from '@api/collections/ingredients/entities/ingredient.entity';
@@ -487,6 +488,10 @@ export class PostsService extends BaseService<
 
   /**
    * Find the root post of a thread.
+   *
+   * Uses a single recursive CTE to traverse the full parent chain in one
+   * database round-trip, eliminating the N+1 query from the previous
+   * while-loop implementation.
    */
   @HandleErrors('find root post', 'posts')
   async findRootPost(
@@ -494,54 +499,44 @@ export class PostsService extends BaseService<
     populate: PopulateOption[] = [],
     maxDepth: number = 100,
   ): Promise<PostDocument | null> {
-    let current = await this.findOne({ _id: postId }, populate);
-    if (!current) {
+    const ancestors = await this.prisma.$queryRaw<
+      Array<{ id: string; parentId: string | null }>
+    >`
+      WITH RECURSIVE ancestors AS (
+        SELECT id, "parentId"
+        FROM "Post"
+        WHERE id = ${postId} AND "isDeleted" = false
+        UNION ALL
+        SELECT p.id, p."parentId"
+        FROM "Post" p
+        INNER JOIN ancestors a ON p.id = a."parentId"
+        WHERE p."isDeleted" = false
+      )
+      SELECT id, "parentId" FROM ancestors
+      LIMIT ${maxDepth + 1}
+    `;
+
+    if (!ancestors || ancestors.length === 0) {
       return null;
     }
 
-    const visited = new Set<string>();
-    visited.add(current._id.toString());
-
-    let depth = 0;
-
-    while (current.parent) {
-      depth++;
-
-      if (depth > maxDepth) {
-        this.logger.error('Max depth exceeded in findRootPost', {
-          depth,
-          maxDepth,
-          postId,
-        });
-        throw new BadRequestException(
-          `Max hierarchy depth (${maxDepth}) exceeded for post ${postId}`,
-        );
-      }
-
-      const parentId = current.parent.toString();
-
-      if (visited.has(parentId)) {
-        this.logger.error('Circular reference detected in post hierarchy', {
-          currentId: current._id.toString(),
-          parentId,
-          postId,
-          visited: Array.from(visited),
-        });
-        throw new BadRequestException(
-          `Circular reference detected in post hierarchy: ${parentId}`,
-        );
-      }
-
-      visited.add(parentId);
-
-      const parent = await this.findOne({ _id: current.parent }, populate);
-      if (!parent) {
-        break;
-      }
-      current = parent;
+    if (ancestors.length > maxDepth) {
+      this.logger.error('Max depth exceeded in findRootPost', {
+        depth: ancestors.length,
+        maxDepth,
+        postId,
+      });
+      throw new BadRequestException(
+        `Max hierarchy depth (${maxDepth}) exceeded for post ${postId}`,
+      );
     }
 
-    return current;
+    const rootRow = ancestors.find((a) => a.parentId === null);
+    if (!rootRow) {
+      return this.findOne({ _id: postId }, populate);
+    }
+
+    return this.findOne({ _id: rootRow.id }, populate);
   }
 
   /**

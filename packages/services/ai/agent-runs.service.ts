@@ -138,6 +138,31 @@ class AgentRunsServiceClass {
     return deserializeResource<IAgentRun>(json);
   }
 
+  async getBatch(
+    ids: string[],
+  ): Promise<
+    Array<{ id: string; threadId: string | null; contentCount: number }>
+  > {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    const result = await this.request<{
+      runs: Array<{
+        id: string;
+        threadId: string | null;
+        contentCount: number;
+      }>;
+    }>(
+      `/runs/batch?ids=${ids.join(',')}`,
+      'GET',
+      undefined,
+      'Failed to get batch agent runs',
+    );
+
+    return result.runs;
+  }
+
   async getRunContent(
     id: string,
     signal?: AbortSignal,
