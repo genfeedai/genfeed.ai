@@ -4,6 +4,7 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import { PublicPostsController } from '@api/endpoints/public/controllers/posts/public.posts.controller';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { asMatchStage } from '@api/test/query-stage-assertions';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { AssetScope, PostStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -19,9 +20,6 @@ const createBaseQuery = (partial: Partial<BaseQueryDto> = {}): BaseQueryDto =>
     sort: 'createdAt: -1',
     ...partial,
   }) as BaseQueryDto;
-
-const asMatchStage = (stage: Record<string, unknown>) =>
-  stage as Record<string, unknown> & { $match: Record<string, unknown> };
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnNotFound: vi.fn((type, id) => ({

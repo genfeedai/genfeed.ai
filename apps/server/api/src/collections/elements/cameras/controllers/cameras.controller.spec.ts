@@ -5,6 +5,7 @@ import { ElementsCamerasService } from '@api/collections/elements/cameras/servic
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import type { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
+import { asMatchStage, asSortStage } from '@api/test/query-stage-assertions';
 import type { User } from '@clerk/backend';
 import { CameraSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -23,12 +24,6 @@ const createBaseQuery = (
     sort: 'createdAt: -1',
     ...partial,
   }) as BaseQueryDto;
-
-const asMatchStage = (stage: Record<string, unknown>) =>
-  stage as Record<string, unknown> & { $match: Record<string, unknown> };
-
-const asSortStage = (stage: Record<string, unknown>) =>
-  stage as Record<string, unknown> & { $sort: Record<string, unknown> };
 
 vi.mock('@genfeedai/helpers', async () => ({
   ...(await vi.importActual('@genfeedai/helpers')),

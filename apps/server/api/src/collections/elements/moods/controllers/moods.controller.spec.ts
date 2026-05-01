@@ -5,6 +5,7 @@ import { ElementsMoodsService } from '@api/collections/elements/moods/services/m
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import type { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
+import { asMatchStage, asSortStage } from '@api/test/query-stage-assertions';
 import type { User } from '@clerk/backend';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -19,12 +20,6 @@ const createBaseQuery = (partial: Partial<BaseQueryDto> = {}): BaseQueryDto =>
     sort: 'createdAt: -1',
     ...partial,
   }) as BaseQueryDto;
-
-const asMatchStage = (stage: Record<string, unknown>) =>
-  stage as Record<string, unknown> & { $match: Record<string, unknown> };
-
-const asSortStage = (stage: Record<string, unknown>) =>
-  stage as Record<string, unknown> & { $sort: Record<string, unknown> };
 
 vi.mock('@genfeedai/helpers', async () => ({
   ...(await vi.importActual('@genfeedai/helpers')),
