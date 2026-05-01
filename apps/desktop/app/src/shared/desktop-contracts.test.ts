@@ -10,6 +10,9 @@ import {
 describe('desktop shared packages', () => {
   it('exposes stable desktop IPC channel names', () => {
     expect(DESKTOP_IPC_CHANNELS.authLogin).toBe('desktop:auth:login');
+    expect(DESKTOP_IPC_CHANNELS.appOpenExternalPath).toBe(
+      'desktop:app:openExternalPath',
+    );
     expect(DESKTOP_IPC_CHANNELS.workspaceOpen).toBe('desktop:workspace:open');
     expect(DESKTOP_IPC_CHANNELS.draftsSave).toBe('desktop:drafts:save');
   });

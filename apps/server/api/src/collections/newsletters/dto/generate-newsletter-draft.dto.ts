@@ -1,9 +1,9 @@
 import { NewsletterSourceRefDto } from '@api/collections/newsletters/dto/newsletter-source-ref.dto';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsArray,
-  IsMongoId,
   IsOptional,
   IsString,
   MaxLength,
@@ -32,7 +32,7 @@ export class GenerateNewsletterDraftDto {
   instructions?: string;
 
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({
     description: 'Existing newsletter to update',
     required: false,
@@ -41,7 +41,7 @@ export class GenerateNewsletterDraftDto {
 
   @IsOptional()
   @IsArray()
-  @IsMongoId({ each: true })
+  @IsEntityId({ each: true })
   @ApiProperty({
     description: 'Override newsletter memory set',
     required: false,

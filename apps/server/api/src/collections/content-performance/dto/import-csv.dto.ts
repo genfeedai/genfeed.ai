@@ -1,3 +1,4 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
@@ -5,7 +6,6 @@ import {
   IsArray,
   IsDateString,
   IsEnum,
-  IsMongoId,
   IsNumber,
   IsOptional,
   IsString,
@@ -79,7 +79,7 @@ export class ImportCsvDto {
     required: false,
   })
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   brandId?: string;
 
   @ApiProperty({

@@ -1,9 +1,9 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { OrganizationCategory } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsBoolean,
   IsEnum,
-  IsMongoId,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -13,7 +13,7 @@ import {
 } from 'class-validator';
 
 export class CreateOrganizationDto {
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({
     description: 'The user ID who owns this organization',
     required: true,

@@ -1,7 +1,8 @@
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { AssetScope } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsMongoId, IsOptional } from 'class-validator';
+import { IsEnum, IsOptional } from 'class-validator';
 
 export class PromptQueryDto extends BaseQueryDto {
   @ApiProperty({
@@ -19,6 +20,6 @@ export class PromptQueryDto extends BaseQueryDto {
     required: false,
   })
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   brand?: string;
 }

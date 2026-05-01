@@ -1,3 +1,4 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { PostCategory, PostFrequency, PostStatus } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import {
@@ -7,7 +8,6 @@ import {
   IsBoolean,
   IsDateString,
   IsEnum,
-  IsMongoId,
   IsNumber,
   IsOptional,
   IsString,
@@ -15,7 +15,7 @@ import {
 
 export class CreatePostDto {
   @IsArray()
-  @IsMongoId({ each: true })
+  @IsEntityId({ each: true })
   @ArrayMinSize(0)
   @ArrayMaxSize(35)
   @ApiProperty({
@@ -35,7 +35,7 @@ export class CreatePostDto {
   @IsString()
   readonly campaign?: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({
     description: 'The credential ID (platform account) to use for publishing',
     required: true,
@@ -205,7 +205,7 @@ export class CreatePostDto {
     required: false,
   })
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   readonly parent?: string;
 
   @ApiProperty({
@@ -249,7 +249,7 @@ export class CreatePostDto {
     required: false,
   })
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   readonly contentRunId?: string;
 
   @ApiProperty({

@@ -1,11 +1,6 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsArray,
-  IsMongoId,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-} from 'class-validator';
+import { IsArray, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateFolderDto {
   @ApiProperty({
@@ -13,7 +8,7 @@ export class CreateFolderDto {
     required: false,
   })
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   brand?: string;
 
   @ApiProperty({

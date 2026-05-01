@@ -1,10 +1,10 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { AssetScope, FontFamily } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsBoolean,
   IsEnum,
-  IsMongoId,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -31,7 +31,7 @@ export class CreateBrandDto {
   @ApiProperty({ description: 'A description of the brand', required: false })
   readonly description?: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({
     description: 'Optional voice ID to use for this brand',
@@ -39,7 +39,7 @@ export class CreateBrandDto {
   })
   readonly voice?: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({
     description: 'Optional music ID to use for this brand',

@@ -3,6 +3,7 @@ import {
   AGENT_STRATEGY_GOAL_PROFILES,
 } from '@api/collections/agent-strategies/schemas/agent-strategy-policy.schema';
 import type { AgentPolicyQualityTier } from '@api/collections/organization-settings/schemas/organization-setting.schema';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { AGENT_TYPE_VALUES } from '@api/services/agent-orchestrator/constants/agent-type.constants';
 import {
   AgentAutonomyMode,
@@ -16,7 +17,6 @@ import {
   IsBoolean,
   IsEnum,
   IsIn,
-  IsMongoId,
   IsNumber,
   IsOptional,
   IsString,
@@ -180,7 +180,7 @@ export class ReportingPolicyDto {
   weeklySummaryEnabled?: boolean;
 
   @IsArray()
-  @IsMongoId({ each: true })
+  @IsEntityId({ each: true })
   @IsOptional()
   @ApiProperty({
     description: 'Optional report recipient user IDs',
@@ -227,22 +227,22 @@ export class RankingPolicyDto {
 }
 
 export class CreateAgentStrategyDto {
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({ description: 'Organization ID', required: false })
   organization?: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({ description: 'User ID', required: false })
   user?: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({ description: 'Brand ID', required: false })
   brand?: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({ description: 'Optional linked goal ID', required: false })
   goalId?: string;

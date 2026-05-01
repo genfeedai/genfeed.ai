@@ -1,5 +1,6 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsMongoId, IsNumber, IsOptional } from 'class-validator';
+import { IsEnum, IsNumber, IsOptional } from 'class-validator';
 
 export enum Platform {
   TIKTOK = 'tiktok',
@@ -35,7 +36,7 @@ export class GenerateTrendIdeasDto {
     description: 'Organization ID',
     required: false,
   })
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   organizationId?: string;
 
@@ -43,7 +44,7 @@ export class GenerateTrendIdeasDto {
     description: 'Brand ID to generate trend ideas for',
     required: false,
   })
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   brandId?: string;
 }

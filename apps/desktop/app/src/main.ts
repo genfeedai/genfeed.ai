@@ -93,6 +93,14 @@ const isLocalProviderRequiredError = (error: unknown): boolean =>
   error instanceof Error &&
   error.message.includes(LOCAL_PROVIDER_REQUIRED_ERROR);
 
+const buildExternalAppUrl = (pathname: string): string => {
+  if (!pathname.startsWith('/')) {
+    throw new Error('Desktop external app paths must start with /.');
+  }
+
+  return new URL(pathname, new URL(environment.authEndpoint).origin).toString();
+};
+
 const emitQuickGenerate = (): void => {
   mainWindow?.webContents.send(DESKTOP_IPC_CHANNELS.quickGenerate);
 };
@@ -341,6 +349,12 @@ const registerIpcHandlers = (): void => {
     releaseChannel: app.isPackaged ? 'production' : 'development',
     version: app.getVersion(),
   }));
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.appOpenExternalPath,
+    async (_event: unknown, pathname: string) => {
+      await shell.openExternal(buildExternalAppUrl(pathname));
+    },
+  );
   ipcMain.handle(DESKTOP_IPC_CHANNELS.authGetSession, async () =>
     sessionService.getSession(),
   );

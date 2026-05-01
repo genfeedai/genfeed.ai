@@ -1,13 +1,14 @@
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
-import { CacheResult } from '@api/helpers/utils/cache/cache.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import type { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
 
 /**
- * Utility class for ObjectId validation and conversion
+ * Utility class for legacy id validation and conversion.
+ * The name is kept for compatibility with existing callsites.
  */
 export class ObjectIdUtil {
-  // Common field names that should be validated as ObjectIds
+  // Common field names that should be validated as entity IDs
   private static readonly OBJECTID_FIELDS = [
     '_id',
     'id',
@@ -25,7 +26,7 @@ export class ObjectIdUtil {
   ];
 
   /**
-   * Validate that a string is a valid ObjectId
+   * Validate that a string is a supported entity id.
    */
   static validate(id: string, fieldName: string = 'id'): string {
     if (!id || typeof id !== 'string') {
@@ -34,9 +35,9 @@ export class ObjectIdUtil {
       );
     }
 
-    if (!/^[0-9a-f]{24}$/i.test(id)) {
+    if (!isEntityId(id)) {
       throw new ValidationException(
-        `Invalid ${fieldName} format. Must be a valid ObjectId.`,
+        `Invalid ${fieldName} format. Must be a valid entity id.`,
       );
     }
 
@@ -44,7 +45,7 @@ export class ObjectIdUtil {
   }
 
   /**
-   * Validate multiple ObjectIds at once
+   * Validate multiple entity IDs at once.
    */
   static validateMany(ids: string[], fieldName: string = 'ids'): string[] {
     if (!Array.isArray(ids)) {
@@ -61,15 +62,8 @@ export class ObjectIdUtil {
   }
 
   /**
-   * Process search parameters and convert known ObjectId fields with caching
+   * Process search parameters and validate known id fields with caching.
    */
-  @CacheResult({
-    keyGenerator: (...args: unknown[]) => {
-      const [params = {}] = args as [Record<string, unknown>?];
-      return `searchParams:${JSON.stringify(params)}`;
-    },
-    ttl: 300_000, // 5 minutes cache
-  })
   static async processSearchParams(
     params: BaseQueryDto,
   ): Promise<BaseQueryDto> {
@@ -79,19 +73,17 @@ export class ObjectIdUtil {
       if (ObjectIdUtil.OBJECTID_FIELDS.includes(key)) {
         if (value && typeof value === 'string') {
           try {
-            // Await validate in case CacheResult decorator makes it async
             const validated = await Promise.resolve(
               ObjectIdUtil.validate(value, key),
             );
             processed[key] = validated;
           } catch {
-            // If ObjectId validation fails, keep original value to let MongoDB handle it
             processed[key] = value;
           }
         } else if (Array.isArray(value)) {
-          // Handle arrays of ObjectIds (e.g., for in queries)
+          // Handle arrays of ids (e.g., for in queries)
           processed[key] = value.map((item) => {
-            if (typeof item === 'string' && /^[0-9a-f]{24}$/i.test(item)) {
+            if (isEntityId(item)) {
               return item;
             }
             return item;
@@ -109,10 +101,10 @@ export class ObjectIdUtil {
   }
 
   /**
-   * Safely convert string to ObjectId without throwing
+   * Safely validate string id without throwing.
    */
   static toObjectId(id: string): string | null {
-    if (!id || typeof id !== 'string' || !/^[0-9a-f]{24}$/i.test(id)) {
+    if (!isEntityId(id)) {
       return null;
     }
 
@@ -120,7 +112,7 @@ export class ObjectIdUtil {
   }
 
   /**
-   * Normalize a value to ObjectId, handling various input types.
+   * Normalize a value to an id string, handling various input types.
    * Returns undefined for invalid/empty values (does not throw).
    */
   static normalizeToObjectId(
@@ -150,7 +142,7 @@ export class ObjectIdUtil {
   }
 
   /**
-   * Normalize an array of values to ObjectIds, filtering out invalid entries.
+   * Normalize an array of values to id strings, filtering out invalid entries.
    */
   static normalizeArrayToObjectIds(
     values: Array<string | null | undefined> | undefined,
@@ -167,14 +159,14 @@ export class ObjectIdUtil {
   }
 
   /**
-   * Check if a value is a valid ObjectId string
+   * Check if a value is a supported entity id string.
    */
   static isValid(id: unknown): id is string {
-    return typeof id === 'string' && /^[0-9a-f]{24}$/i.test(id);
+    return isEntityId(id);
   }
 
   /**
-   * Convert ObjectId to string safely
+   * Convert id to string safely.
    */
   static toString(id: string | { toString(): string }): string {
     if (typeof id === 'string') {
@@ -232,18 +224,8 @@ export class ObjectIdUtil {
   }
 
   /**
-   * Create a secure query object with proper ObjectId conversion and caching
+   * Create a secure query object with id validation and caching.
    */
-  @CacheResult({
-    keyGenerator: (...args: unknown[]) => {
-      const [baseQuery = {}, userContext] = args as [
-        Record<string, unknown>?,
-        IClerkPublicMetadata?,
-      ];
-      return `secureQuery:${JSON.stringify(userContext)}:${JSON.stringify(baseQuery)}`;
-    },
-    ttl: 300_000, // 5 minutes cache
-  })
   static async createSecureQuery(
     baseQuery: Record<string, unknown>,
     userContext?: IClerkPublicMetadata,
@@ -276,7 +258,7 @@ export class ObjectIdUtil {
   }
 
   /**
-   * Validate array of ObjectId strings for bulk operations
+   * Validate array of entity ids for bulk operations.
    */
   static validateBulkIds(ids: string[], maxCount: number = 100): string[] {
     if (!Array.isArray(ids)) {
@@ -297,8 +279,8 @@ export class ObjectIdUtil {
   }
 
   /**
-   * Convert relationship ObjectId field (parent, folder, etc.) from various input types
-   * Handles: string ObjectIds, null (remove relationship), empty objects, invalid data
+   * Convert relationship id field (parent, folder, etc.) from various input types.
+   * Handles: string ids, null (remove relationship), empty objects, invalid data.
    */
   static async convertRelationshipField(
     value: unknown,
@@ -309,9 +291,8 @@ export class ObjectIdUtil {
       return null;
     }
 
-    // Handle valid string ObjectId
+    // Handle valid string id
     if (typeof value === 'string') {
-      // Await validate in case CacheResult decorator makes it async
       return await Promise.resolve(ObjectIdUtil.validate(value, fieldName));
     }
 
@@ -327,7 +308,7 @@ export class ObjectIdUtil {
     // Handle invalid objects or other types
     if (typeof value === 'object' && value !== null) {
       throw new ValidationException(
-        `Invalid ${fieldName} format. Must be a valid ObjectId string or null`,
+        `Invalid ${fieldName} format. Must be a valid entity id string or null`,
       );
     }
 

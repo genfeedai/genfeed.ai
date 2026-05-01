@@ -3,8 +3,9 @@ import type {
   BrandAgentConfig,
   BrandReferenceImage,
 } from '@api/collections/brands/schemas/brand.schema';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty, PartialType } from '@nestjs/swagger';
-import { IsArray, IsBoolean, IsMongoId, IsOptional } from 'class-validator';
+import { IsArray, IsBoolean, IsOptional } from 'class-validator';
 
 export class UpdateBrandDto extends PartialType(CreateBrandDto) {
   @IsBoolean()
@@ -33,7 +34,7 @@ export class UpdateBrandDto extends PartialType(CreateBrandDto) {
   readonly referenceImages?: BrandReferenceImage[];
 
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({
     description: 'Owning user identifier',
     required: false,

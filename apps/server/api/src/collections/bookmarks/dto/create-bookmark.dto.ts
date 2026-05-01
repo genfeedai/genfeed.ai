@@ -1,3 +1,4 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   BookmarkCategory,
   BookmarkIntent,
@@ -7,7 +8,6 @@ import { ApiProperty } from '@nestjs/swagger';
 import {
   IsArray,
   IsEnum,
-  IsMongoId,
   IsObject,
   IsOptional,
   IsString,
@@ -21,7 +21,7 @@ export class CreateBookmarkDto {
     required: false,
   })
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   folder?: string;
 
   @ApiProperty({
@@ -31,7 +31,7 @@ export class CreateBookmarkDto {
   })
   @IsOptional()
   @IsArray()
-  @IsMongoId({ each: true })
+  @IsEntityId({ each: true })
   tags?: string[];
 
   @ApiProperty({
@@ -39,7 +39,7 @@ export class CreateBookmarkDto {
     required: false,
   })
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   brand?: string;
 
   @ApiProperty({

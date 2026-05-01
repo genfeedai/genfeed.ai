@@ -2,6 +2,7 @@ import {
   AGENT_POLICY_QUALITY_TIERS,
   type AgentPolicyQualityTier,
 } from '@api/collections/organization-settings/schemas/organization-setting.schema';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { DefaultVoiceRefDto } from '@api/shared/default-voice-ref/default-voice-ref.dto';
 import { AgentAutonomyMode, AgentReplyStyle } from '@genfeedai/enums';
 import {
@@ -14,7 +15,6 @@ import {
   IsBoolean,
   IsEnum,
   IsIn,
-  IsMongoId,
   IsNumber,
   IsOptional,
   IsString,
@@ -169,7 +169,7 @@ export class CreateOrganizationSettingDto {
   })
   readonly onboardingJourneyCompletedAt?: Date | string | null;
 
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({ required: true })
   readonly organization!: string;
 
@@ -327,7 +327,7 @@ export class CreateOrganizationSettingDto {
   })
   readonly webhookSecret?: string;
 
-  @IsMongoId({ each: true })
+  @IsEntityId({ each: true })
   @IsOptional()
   @ApiProperty({
     default: [],
@@ -392,7 +392,7 @@ export class CreateOrganizationSettingDto {
   })
   readonly defaultAvatarPhotoUrl?: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({
     description: 'Default avatar ingredient ID for identity generation',
@@ -400,7 +400,7 @@ export class CreateOrganizationSettingDto {
   })
   readonly defaultAvatarIngredientId?: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({
     description: 'Default cloned voice ingredient ID for identity generation',

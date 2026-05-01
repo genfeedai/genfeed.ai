@@ -1,10 +1,10 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsArray,
   IsBoolean,
   IsEnum,
-  IsMongoId,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -37,15 +37,15 @@ export class CreateCredentialVerifyDto {
 }
 
 export class CreateCredentialDto {
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({ required: true })
   readonly user!: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({ required: true })
   readonly brand!: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({ required: true })
   readonly organization!: string;
 

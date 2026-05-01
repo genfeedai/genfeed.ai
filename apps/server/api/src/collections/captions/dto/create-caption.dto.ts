@@ -1,9 +1,10 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { CaptionFormat } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsMongoId, IsString } from 'class-validator';
+import { IsEnum, IsString } from 'class-validator';
 
 export class CreateCaptionDto {
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({
     description: 'The ingredient ID that this caption belongs to',
     required: true,

@@ -1,15 +1,6 @@
 import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
 import { InputValidationUtil } from '@api/helpers/utils/input-validation/input-validation.util';
 
-// Mock ObjectIdUtil
-vi.mock('@api/helpers/utils/objectid/objectid.util', () => ({
-  ObjectIdUtil: {
-    validate: vi.fn(),
-  },
-}));
-
-import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
-
 const expectValidationDetail = (fn: () => unknown, detail: string) => {
   try {
     fn();
@@ -164,10 +155,11 @@ describe('InputValidationUtil', () => {
     });
 
     it('should detect multiple NoSQL injection patterns', () => {
+      const op = String.fromCharCode(36);
       expectValidationDetail(
         () =>
           InputValidationUtil.validateString(
-            '{ $where: "this.a == this.b", contains: ".*", not: null }',
+            `{ ${op}where: "this.a == this.b", ${op}regex: ".*", ${op}not: null }`,
             'testField',
           ),
         'testField contains potentially malicious NoSQL patterns',
@@ -482,22 +474,19 @@ describe('InputValidationUtil', () => {
   });
 
   describe('validateObjectId', () => {
-    beforeEach(() => {
-      vi.mocked(ObjectIdUtil.validate).mockClear();
-    });
-
-    it('should validate ObjectId string', () => {
-      vi.mocked(ObjectIdUtil.validate).mockImplementation(() => true);
-
+    it('should validate supported entity id strings', () => {
       const result = InputValidationUtil.validateObjectId(
-        '507f1f77bcf86cd799439011',
+        'clv2f9w8d000008l4h9a1b2c3',
         'idField',
       );
 
-      expect(result).toBe('507f1f77bcf86cd799439011');
-      expect(ObjectIdUtil.validate).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439011',
-        'idField',
+      expect(result).toBe('clv2f9w8d000008l4h9a1b2c3');
+    });
+
+    it('should throw error for invalid id format', () => {
+      expectValidationDetail(
+        () => InputValidationUtil.validateObjectId('not-an-id', 'idField'),
+        'Invalid idField format. Must be a valid entity id.',
       );
     });
 
@@ -562,8 +551,8 @@ describe('InputValidationUtil', () => {
 
   describe('security - NoSQL injection prevention', () => {
     it('should reject NoSQL injection when multiple operators present', () => {
-      const noSqlPattern =
-        '{ "$where": "this.a == this.b", "not": null, "OR": [] }';
+      const op = String.fromCharCode(36);
+      const noSqlPattern = `{ "${op}where": "this.a == this.b", "${op}not": null, "${op}or": [] }`;
 
       expectValidationDetail(
         () => InputValidationUtil.validateString(noSqlPattern, 'testField'),

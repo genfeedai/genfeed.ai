@@ -1,4 +1,5 @@
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   AGENT_RUN_SORT_MODES,
   AGENT_RUN_TIME_RANGES,
@@ -7,13 +8,7 @@ import {
 } from '@genfeedai/types';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
-import {
-  IsBoolean,
-  IsIn,
-  IsMongoId,
-  IsOptional,
-  IsString,
-} from 'class-validator';
+import { IsBoolean, IsIn, IsOptional, IsString } from 'class-validator';
 
 export class AgentRunsQueryDto extends BaseQueryDto {
   @ApiProperty({
@@ -76,7 +71,7 @@ export class AgentRunsQueryDto extends BaseQueryDto {
     required: false,
   })
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   strategy?: string;
 
   @ApiProperty({

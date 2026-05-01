@@ -1,23 +1,19 @@
-const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 
 export class ObjectIdValidator {
   /**
-   * Validates if a string is a valid MongoDB ObjectId
+   * Validates if a string is a supported entity id.
    * @param id - The string to validate
-   * @returns true if valid ObjectId, false otherwise
+   * @returns true if valid, false otherwise
    */
-  static isValid(id: string): boolean {
-    if (!id || typeof id !== 'string') {
-      return false;
-    }
-
-    return OBJECT_ID_REGEX.test(id);
+  static isValid(id: unknown): boolean {
+    return isEntityId(id);
   }
 
   /**
-   * Validates an array of ObjectId strings
+   * Validates an array of entity id strings.
    * @param ids - Array of strings to validate
-   * @returns true if all are valid ObjectIds, false otherwise
+   * @returns true if all are valid ids, false otherwise
    */
   static areAllValid(ids: string[]): boolean {
     if (!Array.isArray(ids) || ids.length === 0) {
@@ -29,14 +25,13 @@ export class ObjectIdValidator {
 
   /**
    * Returns the id string if valid, throws if invalid.
-   * Prisma uses string IDs — no ObjectId conversion needed.
    * @param id - The string to validate
    * @returns The id string
-   * @throws Error if invalid ObjectId string
+   * @throws Error if invalid id string
    */
   static createObjectId(id: string): string {
     if (!ObjectIdValidator.isValid(id)) {
-      throw new Error(`Invalid ObjectId: ${id}`);
+      throw new Error(`Invalid entity id: ${id}`);
     }
 
     return id;

@@ -4,12 +4,12 @@ import {
   TASK_PRIORITIES,
   TASK_STATUSES,
 } from '@api/collections/tasks/schemas/task.schema';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsArray,
   IsEnum,
-  IsMongoId,
   IsOptional,
   IsString,
   MaxLength,
@@ -17,7 +17,7 @@ import {
 } from 'class-validator';
 
 export class LinkedEntityDto {
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({
     description: 'Entity ID reference',
     required: true,
@@ -74,7 +74,7 @@ export class CreateTaskDto {
   priority?: (typeof TASK_PRIORITIES)[number];
 
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({
     description: 'Parent task ID for sub-tasks',
     required: false,

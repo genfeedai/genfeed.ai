@@ -1,9 +1,9 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { VoiceProvider } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsEnum,
-  IsMongoId,
   IsOptional,
   IsString,
   IsUrl,
@@ -28,7 +28,7 @@ export class DefaultVoiceRefDto {
   })
   readonly provider!: VoiceProvider;
 
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({
     description: 'Internal cloned voice ingredient ID',

@@ -1,9 +1,10 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { LinkCategory } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsMongoId, IsString, IsUrl } from 'class-validator';
+import { IsEnum, IsString, IsUrl } from 'class-validator';
 
 export class CreateLinkDto {
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({
     description: 'The brand ID this link belongs to',
     required: true,

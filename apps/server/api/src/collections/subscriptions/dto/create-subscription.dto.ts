@@ -1,8 +1,8 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsBoolean,
   IsDate,
-  IsMongoId,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -63,14 +63,14 @@ export class CreateCheckoutSessionDto {
 }
 
 export class CreateSubscriptionDto {
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({
     description: 'The organization ID that owns the subscription',
     required: true,
   })
   readonly organization!: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({
     description: 'The customer ID associated with the subscription',
     required: true,
@@ -78,7 +78,7 @@ export class CreateSubscriptionDto {
   readonly customer!: string;
 
   // admin user id
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({
     description: 'The admin user ID who created the subscription',
     required: true,
