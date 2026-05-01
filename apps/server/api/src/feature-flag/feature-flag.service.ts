@@ -4,8 +4,14 @@ import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 export type FeatureFlagAttributes = Record<string, unknown>;
 
+interface ParsedFeatureFlagDefaults {
+  defaults: Record<string, unknown>;
+  isConfigured: boolean;
+}
+
 @Injectable()
 export class FeatureFlagService implements OnModuleInit {
+  private isLocalDefaultsConfigured = false;
   private localDefaults: Record<string, unknown> = {};
 
   constructor(
@@ -18,27 +24,40 @@ export class FeatureFlagService implements OnModuleInit {
   }
 
   async init(): Promise<void> {
-    this.localDefaults = this.parseLocalDefaults();
+    const parsedDefaults = this.parseLocalDefaults();
+    this.localDefaults = parsedDefaults.defaults;
+    this.isLocalDefaultsConfigured = parsedDefaults.isConfigured;
 
     this.loggerService.debug(
       'Feature flags initialized with local defaults only',
       {
+        isConfigured: this.isLocalDefaultsConfigured,
         localDefaultCount: Object.keys(this.localDefaults).length,
       },
     );
   }
 
   isEnabled(flagKey: string, _attributes?: FeatureFlagAttributes): boolean {
+    if (!this.isLocalDefaultsConfigured) {
+      this.loggerService.debug('Feature flag evaluated', {
+        flagKey,
+        isEnabled: true,
+        source: 'localDefaultsMissing',
+      });
+
+      return true;
+    }
+
     const value = this.localDefaults[flagKey];
-    const enabled = value === true;
+    const isEnabled = value === true;
 
     this.loggerService.debug('Feature flag evaluated', {
-      enabled,
       flagKey,
+      isEnabled,
       source: 'localDefault',
     });
 
-    return enabled;
+    return isEnabled;
   }
 
   getFeatureValue<T>(
@@ -58,13 +77,13 @@ export class FeatureFlagService implements OnModuleInit {
     return resolvedValue;
   }
 
-  private parseLocalDefaults(): Record<string, unknown> {
+  private parseLocalDefaults(): ParsedFeatureFlagDefaults {
     const rawDefaults = String(
       this.configService.get('FEATURE_FLAG_DEFAULTS') || '',
-    );
+    ).trim();
 
     if (!rawDefaults) {
-      return {};
+      return { defaults: {}, isConfigured: false };
     }
 
     try {
@@ -74,13 +93,16 @@ export class FeatureFlagService implements OnModuleInit {
         throw new Error('FEATURE_FLAG_DEFAULTS must be a JSON object');
       }
 
-      return parsed as Record<string, unknown>;
+      return {
+        defaults: parsed as Record<string, unknown>,
+        isConfigured: true,
+      };
     } catch (error) {
       this.loggerService.warn(
-        'Failed to parse FEATURE_FLAG_DEFAULTS; ignoring local feature flag defaults',
+        'Failed to parse FEATURE_FLAG_DEFAULTS; feature flags will fail closed',
         { error },
       );
-      return {};
+      return { defaults: {}, isConfigured: true };
     }
   }
 }

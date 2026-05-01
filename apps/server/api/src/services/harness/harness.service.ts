@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
+import process from 'node:process';
 import { pathToFileURL } from 'node:url';
 import { ConfigService } from '@api/config/config.service';
 import { isEEEnabled } from '@genfeedai/config';
@@ -88,6 +89,21 @@ function isModuleResolutionError(error: unknown): boolean {
   const code = (error as NodeJS.ErrnoException).code;
 
   return code === 'MODULE_NOT_FOUND' || code === 'ERR_MODULE_NOT_FOUND';
+}
+
+function resolveModuleSpecifier(
+  requireFn: NodeJS.Require,
+  specifier: string,
+): string | null {
+  try {
+    return requireFn.resolve(specifier);
+  } catch (error: unknown) {
+    if (isModuleResolutionError(error)) {
+      return null;
+    }
+
+    throw error;
+  }
 }
 
 @Injectable()
@@ -191,27 +207,39 @@ export class ContentHarnessService {
   }
 
   private async loadRuntimePackModule(specifier: string): Promise<PackModule> {
-    try {
+    const resolvedSpecifier = resolveModuleSpecifier(
+      this.runtimeRequireContext.require,
+      specifier,
+    );
+
+    if (resolvedSpecifier) {
+      return this.runtimeRequireContext.require(
+        resolvedSpecifier,
+      ) as PackModule;
+    }
+
+    const workspacePackPaths = this.getWorkspacePackPaths(specifier);
+
+    if (!workspacePackPaths) {
       return this.runtimeRequireContext.require(specifier) as PackModule;
-    } catch (error: unknown) {
-      const workspacePackPaths = this.getWorkspacePackPaths(specifier);
+    }
 
-      if (!workspacePackPaths || !isModuleResolutionError(error)) {
-        throw error;
-      }
+    const workspaceRequire = createRequire(workspacePackPaths.packageJson);
+    const resolvedWorkspaceSpecifier = resolveModuleSpecifier(
+      workspaceRequire,
+      specifier,
+    );
 
-      const workspaceRequire = createRequire(workspacePackPaths.packageJson);
-      try {
-        return workspaceRequire(specifier) as PackModule;
-      } catch {
-        try {
-          return workspaceRequire(workspacePackPaths.sourceEntry) as PackModule;
-        } catch {
-          return (await import(
-            pathToFileURL(workspacePackPaths.sourceEntry).href
-          )) as PackModule;
-        }
-      }
+    if (resolvedWorkspaceSpecifier) {
+      return workspaceRequire(resolvedWorkspaceSpecifier) as PackModule;
+    }
+
+    try {
+      return workspaceRequire(workspacePackPaths.sourceEntry) as PackModule;
+    } catch {
+      return (await import(
+        pathToFileURL(workspacePackPaths.sourceEntry).href
+      )) as PackModule;
     }
   }
 

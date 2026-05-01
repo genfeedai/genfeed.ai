@@ -8,13 +8,13 @@ function createConfigService(overrides: Record<string, string> = {}) {
 }
 
 describe('FeatureFlagService', () => {
-  it('returns false when no defaults are configured', () => {
+  it('returns true when no defaults are configured', () => {
     const service = new FeatureFlagService(
       createConfigService() as never,
       { debug: vi.fn(), warn: vi.fn() } as never,
     );
 
-    expect(service.isEnabled('new-dashboard')).toBe(false);
+    expect(service.isEnabled('new-dashboard')).toBe(true);
   });
 
   it('uses explicit local defaults', async () => {
@@ -49,7 +49,20 @@ describe('FeatureFlagService', () => {
     expect(service.getFeatureValue('theme-variant', 'control')).toBe('control');
   });
 
-  it('logs a warning when FEATURE_FLAG_DEFAULTS is invalid JSON', async () => {
+  it('returns false for missing flags when defaults are configured', async () => {
+    const service = new FeatureFlagService(
+      createConfigService({
+        FEATURE_FLAG_DEFAULTS: JSON.stringify({ other: true }),
+      }) as never,
+      { debug: vi.fn(), warn: vi.fn() } as never,
+    );
+
+    await service.init();
+
+    expect(service.isEnabled('new-dashboard')).toBe(false);
+  });
+
+  it('fails closed when FEATURE_FLAG_DEFAULTS is invalid JSON', async () => {
     const loggerService = {
       debug: vi.fn(),
       warn: vi.fn(),
@@ -65,11 +78,12 @@ describe('FeatureFlagService', () => {
     await service.init();
 
     expect(loggerService.warn).toHaveBeenCalledWith(
-      'Failed to parse FEATURE_FLAG_DEFAULTS; ignoring local feature flag defaults',
+      'Failed to parse FEATURE_FLAG_DEFAULTS; feature flags will fail closed',
       expect.objectContaining({
         error: expect.any(Error),
       }),
     );
+    expect(service.isEnabled('new-dashboard')).toBe(false);
   });
 
   it('accepts optional attributes parameter without error', async () => {
