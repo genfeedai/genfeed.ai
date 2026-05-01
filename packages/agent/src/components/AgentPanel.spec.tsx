@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Effect } from 'effect';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
@@ -140,6 +140,10 @@ function createCreditsInfoApiService() {
 describe('AgentPanel', () => {
   it('renders quick ask chrome and passes the rail-scoped prompt bar mode into the embedded chat container', () => {
     render(<AgentPanel apiService={createCreditsInfoApiService() as never} />);
+
+    expect(screen.getByTestId('agent-cli-terminal')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText('Switch to chat mode'));
 
     expect(screen.getByTestId('agent-chat-container')).toHaveAttribute(
       'data-prompt-layout-mode',
