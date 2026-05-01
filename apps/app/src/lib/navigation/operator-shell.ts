@@ -19,6 +19,7 @@ const KNOWN_PROTECTED_PREFIXES = [
   'workspace',
   'studio',
   'settings',
+  'agent',
   'agents',
   'posts',
   'analytics',

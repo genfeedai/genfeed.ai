@@ -1,4 +1,4 @@
-export type CoreAppId = 'workflows' | 'studio' | 'editor';
+export type CoreAppId = 'agent' | 'workflows' | 'studio' | 'editor';
 
 export interface CoreAppDefinition {
   description: string;
@@ -9,6 +9,14 @@ export interface CoreAppDefinition {
 }
 
 export const CORE_APPS: CoreAppDefinition[] = [
+  {
+    description:
+      'Control content creation from a full-page agent conversation.',
+    href: '/agent',
+    id: 'agent',
+    label: 'Agent',
+    shortLabel: 'Agent',
+  },
   {
     description:
       'Build reusable node-based automation pipelines and manage saved workflows.',

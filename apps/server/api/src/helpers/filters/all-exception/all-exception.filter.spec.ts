@@ -1,11 +1,31 @@
-import { AllExceptionFilter } from '@api/helpers/filters/all-exception/all-exception.filter';
 import { type ArgumentsHost, HttpStatus } from '@nestjs/common';
-import * as Sentry from '@sentry/nestjs';
 
-vi.mock('@sentry/nestjs');
+vi.mock('jsonapi-serializer', () => ({
+  Error: class JsonApiError {
+    errors: unknown[];
+
+    constructor(payload: unknown) {
+      this.errors = [payload];
+    }
+  },
+}));
+
+vi.mock('@sentry/nestjs', () => ({
+  captureException: vi.fn(),
+}));
+
+type FilterInstance = {
+  catch(exception: unknown, host: ArgumentsHost): void;
+};
+type FilterConstructor = new (
+  loggerService: unknown,
+  configService: unknown,
+) => FilterInstance;
 
 describe('AllExceptionFilter', () => {
-  let filter: AllExceptionFilter;
+  let AllExceptionFilterClass: FilterConstructor;
+  let Sentry: typeof import('@sentry/nestjs');
+  let filter: FilterInstance;
   let mockLoggerService: {
     debug: ReturnType<typeof vi.fn>;
     error: ReturnType<typeof vi.fn>;
@@ -22,6 +42,15 @@ describe('AllExceptionFilter', () => {
     json: ReturnType<typeof vi.fn>;
   };
   let mockRequest: { url: string; method: string };
+
+  beforeAll(async () => {
+    const module = await import(
+      '@api/helpers/filters/all-exception/all-exception.filter'
+    );
+    AllExceptionFilterClass =
+      module.AllExceptionFilter as unknown as FilterConstructor;
+    Sentry = await import('@sentry/nestjs');
+  });
 
   beforeEach(() => {
     // Clear all mocks
@@ -69,7 +98,7 @@ describe('AllExceptionFilter', () => {
       }),
     };
 
-    filter = new AllExceptionFilter(mockLoggerService, mockConfigService);
+    filter = new AllExceptionFilterClass(mockLoggerService, mockConfigService);
   });
 
   it('should be defined', () => {
@@ -125,7 +154,7 @@ describe('AllExceptionFilter', () => {
     });
 
     // Create new filter instance with development config
-    const devFilter = new AllExceptionFilter(
+    const devFilter = new AllExceptionFilterClass(
       mockLoggerService,
       mockConfigService,
     );

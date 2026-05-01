@@ -22,6 +22,7 @@ import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription
 import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
@@ -58,11 +59,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
-
-const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
-function isValidObjectId(id: unknown): id is string {
-  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
-}
 
 @AutoSwagger()
 @Controller('videos')
@@ -163,9 +159,7 @@ export class VideosReframeController {
 
     const promptData = await this.promptsService.create(
       new PromptEntity({
-        brand: isValidObjectId(parent.brand)
-          ? parent.brand
-          : publicMetadata.brand,
+        brand: isEntityId(parent.brand) ? parent.brand : publicMetadata.brand,
         category: PromptCategory.MODELS_PROMPT_VIDEO,
         model: MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO,
         organization: publicMetadata.organization,
@@ -181,15 +175,13 @@ export class VideosReframeController {
     const { metadataData, ingredientData } =
       await this.sharedService.saveDocuments(user, {
         ...createVideoDto,
-        brand: isValidObjectId(parent.brand)
-          ? parent.brand
-          : publicMetadata.brand,
+        brand: isEntityId(parent.brand) ? parent.brand : publicMetadata.brand,
         category: IngredientCategory.VIDEO,
         duration: parentMetadata.duration,
         extension: MetadataExtension.MP4,
         height: targetHeight,
         model: MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO,
-        organization: isValidObjectId(parent.organization)
+        organization: isEntityId(parent.organization)
           ? parent.organization
           : publicMetadata.organization,
         parent: parent._id,
@@ -208,9 +200,7 @@ export class VideosReframeController {
     // Create activity for video reframe start
     const activity = await this.activitiesService.create(
       new ActivityEntity({
-        brand: isValidObjectId(parent.brand)
-          ? parent.brand
-          : publicMetadata.brand,
+        brand: isEntityId(parent.brand) ? parent.brand : publicMetadata.brand,
         entityId: ingredientData._id,
         entityModel: ActivityEntityModel.INGREDIENT,
         key: ActivityKey.VIDEO_REFRAME_PROCESSING,

@@ -18,6 +18,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import type { User } from '@clerk/backend';
 import { ActivityEntityModel, IngredientCategory } from '@genfeedai/enums';
@@ -39,11 +40,6 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import type { Request } from 'express';
-
-const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
-function isValidObjectId(id: unknown): id is string {
-  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
-}
 
 @AutoSwagger()
 @Controller('gifs')
@@ -191,7 +187,7 @@ export class GifsController {
                     isDeleted,
                     status,
                     // Filter default GIFs by brand when brand is specified
-                    ...(isValidObjectId(query.brand) ? { brand } : {}),
+                    ...(isEntityId(query.brand) ? { brand } : {}),
                   },
                   folderConditions,
                   ...(Object.keys(parentConditions).length > 0

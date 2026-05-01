@@ -4,6 +4,7 @@ import type { CreateMetadataDto } from '@api/collections/metadata/dto/create-met
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import type { User } from '@clerk/backend';
 import {
   IngredientCategory,
@@ -14,10 +15,8 @@ import {
 import { Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
-const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
-
 const toId = (value: unknown): string | undefined => {
-  if (typeof value === 'string' && OBJECT_ID_REGEX.test(value)) {
+  if (isEntityId(value)) {
     return value;
   }
   return undefined;

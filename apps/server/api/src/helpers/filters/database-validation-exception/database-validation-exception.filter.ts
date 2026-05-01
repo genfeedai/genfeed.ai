@@ -1,14 +1,11 @@
 import { AllExceptionFilter } from '@api/helpers/filters/all-exception/all-exception.filter';
 import { type ArgumentsHost, Catch, HttpStatus } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
-import type {
-  Request as ExpressRequest,
-  Response as ExpressResponse,
-} from 'express';
+import type { Request as ExpressRequest } from 'express';
 
 // Generic validation error filter for database validation failures (Prisma or otherwise)
 @Catch(Error)
-export class MongoValidationExceptionFilter extends AllExceptionFilter {
+export class DatabaseValidationExceptionFilter extends AllExceptionFilter {
   public catch(exception: Error, host: ArgumentsHost) {
     // Only handle validation errors (Prisma validation or custom validation errors)
     if (
@@ -18,7 +15,7 @@ export class MongoValidationExceptionFilter extends AllExceptionFilter {
       throw exception;
     }
     const ctx = host.switchToHttp();
-    const res = ctx.getResponse<ExpressResponse>();
+    const res = ctx.getResponse();
     const req = ctx.getRequest<ExpressRequest>();
     const status: HttpStatus = HttpStatus.BAD_REQUEST;
 
@@ -39,15 +36,11 @@ export class MongoValidationExceptionFilter extends AllExceptionFilter {
       );
     }
 
-    res.status(status).json(
-      new this.JSONAPIError({
-        code: status.toString(),
-        detail,
-        source: {
-          pointer: req.originalUrl,
-        },
-        title,
-      }),
-    );
+    this.writeJsonApiError(res, {
+      detail,
+      pointer: req.originalUrl,
+      status,
+      title,
+    });
   }
 }

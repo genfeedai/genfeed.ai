@@ -17,6 +17,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { WhisperService } from '@api/services/whisper/whisper.service';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { User } from '@clerk/backend';
@@ -40,11 +41,6 @@ import {
   Req,
 } from '@nestjs/common';
 import type { Request } from 'express';
-
-const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
-function isValidObjectId(id: unknown): id is string {
-  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
-}
 
 @AutoSwagger()
 @Controller('captions')

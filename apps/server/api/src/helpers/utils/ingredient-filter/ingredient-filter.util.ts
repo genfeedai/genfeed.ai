@@ -1,7 +1,4 @@
-const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
-function isValidObjectId(id: unknown): id is string {
-  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
-}
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 
 /**
  * IngredientFilterUtil - Utility for building consistent ingredient query filters
@@ -38,7 +35,7 @@ export class IngredientFilterUtil {
       if (parent === null || parent === 'null' || parent === '') {
         // Explicitly requesting root ingredients
         return { parent: null };
-      } else if (isValidObjectId(parent)) {
+      } else if (isEntityId(parent)) {
         // Valid parent ID provided
         return { parent: parent };
       } else {
@@ -68,7 +65,7 @@ export class IngredientFilterUtil {
     const hasFolderParam = folder !== undefined;
 
     if (hasFolderParam) {
-      if (isValidObjectId(folder)) {
+      if (isEntityId(folder)) {
         return { folder: folder };
       } else {
         // null, 'null', '' or invalid ID → no folder
@@ -94,7 +91,7 @@ export class IngredientFilterUtil {
     training: string | undefined,
   ): Record<string, unknown> {
     if (training) {
-      if (isValidObjectId(training)) {
+      if (isEntityId(training)) {
         // Show only ingredients with this specific training
         return { training: training };
       } else {
@@ -120,7 +117,7 @@ export class IngredientFilterUtil {
   static buildBrandFilter(
     brand: string | undefined,
   ): string | Record<string, boolean> {
-    if (isValidObjectId(brand)) {
+    if (isEntityId(brand)) {
       return brand;
     }
     return { not: true };

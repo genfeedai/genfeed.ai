@@ -45,6 +45,7 @@ import { PiPushPinSimple } from 'react-icons/pi';
 interface AgentThreadListProps {
   apiService: AgentApiService;
   isActive?: boolean;
+  routeBasePath?: '/agent' | '/chat';
   onNavigate?: (path: string) => void;
   onActionsChange?: (actions: ReactNode) => void;
 }
@@ -193,6 +194,7 @@ function getErrorMessage(error: unknown, fallback: string): string {
 export function AgentThreadList({
   apiService,
   isActive = true,
+  routeBasePath = '/chat',
   onNavigate,
   onActionsChange,
 }: AgentThreadListProps): ReactElement {
@@ -223,6 +225,14 @@ export function AgentThreadList({
   const abortRef = useRef<AbortController | null>(null);
   const menuButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const renameInputRef = useRef<HTMLInputElement | null>(null);
+  const getThreadHref = useCallback(
+    (threadId: string) => `${routeBasePath}/${threadId}`,
+    [routeBasePath],
+  );
+  const getNewThreadHref = useCallback(
+    () => `${routeBasePath}/new`,
+    [routeBasePath],
+  );
 
   useEffect(() => {
     if (renamingThreadId) {
@@ -398,7 +408,7 @@ export function AgentThreadList({
       abortRef.current = new AbortController();
 
       if (onNavigate) {
-        onNavigate(`/chat/${thread.id}`);
+        onNavigate(getThreadHref(thread.id));
         return;
       }
 
@@ -444,6 +454,7 @@ export function AgentThreadList({
       activeThreadId,
       apiService,
       clearThreadAttention,
+      getThreadHref,
       onNavigate,
       setError,
       setActiveRun,
@@ -465,7 +476,7 @@ export function AgentThreadList({
         if (thread.id === activeThreadId) {
           clearMessages();
           if (onNavigate) {
-            onNavigate('/chat/new');
+            onNavigate(getNewThreadHref());
           }
         }
       } catch {
@@ -474,7 +485,14 @@ export function AgentThreadList({
         setOpenMenuThreadId(null);
       }
     },
-    [apiService, activeThreadId, clearMessages, onNavigate, setThreads],
+    [
+      apiService,
+      activeThreadId,
+      clearMessages,
+      getNewThreadHref,
+      onNavigate,
+      setThreads,
+    ],
   );
 
   const handleUnarchiveFromMenu = useCallback(
@@ -507,7 +525,7 @@ export function AgentThreadList({
         );
 
         if (onNavigate) {
-          onNavigate(`/chat/${branchedThread.id}`);
+          onNavigate(getThreadHref(branchedThread.id));
           return;
         }
 
@@ -526,6 +544,7 @@ export function AgentThreadList({
     [
       apiService,
       clearMessages,
+      getThreadHref,
       onNavigate,
       resetStreamState,
       setActiveRun,
@@ -572,13 +591,20 @@ export function AgentThreadList({
       if (archivedActiveThread) {
         clearMessages();
         if (onNavigate) {
-          onNavigate('/chat/new');
+          onNavigate(getNewThreadHref());
         }
       }
     } catch {
       // Silently ignore failed bulk archive
     }
-  }, [activeThreadId, apiService, clearMessages, onNavigate, setThreads]);
+  }, [
+    activeThreadId,
+    apiService,
+    clearMessages,
+    getNewThreadHref,
+    onNavigate,
+    setThreads,
+  ]);
 
   const handleStartRename = useCallback((thread: AgentThread) => {
     setOpenMenuThreadId(null);
@@ -819,7 +845,7 @@ export function AgentThreadList({
             </div>
           ) : (
             <Link
-              href={`/chat/${conv.id}`}
+              href={getThreadHref(conv.id)}
               className="flex h-full min-w-0 flex-1 items-center gap-1.5 rounded-md px-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
               onClick={() => {
                 handleSelect(conv).catch(() => undefined);
@@ -942,6 +968,7 @@ export function AgentThreadList({
       handleThreadContextMenu,
       handleTogglePinned,
       handleUnarchiveFromMenu,
+      getThreadHref,
       isArchivedView,
       isStreaming,
       openMenuThreadId,

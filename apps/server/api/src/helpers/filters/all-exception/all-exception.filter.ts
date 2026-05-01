@@ -62,7 +62,7 @@ export class AllExceptionFilter implements ExceptionFilter {
         title = (exceptionObj.name as string) || title;
       }
     } else if (exceptionObj.errmsg || exceptionObj.codeName) {
-      // MongoDB errors
+      // Legacy database driver errors
       status = HttpStatus.BAD_REQUEST;
       detail = (exceptionObj.errmsg as string) || detail;
       title = (exceptionObj.codeName as string) || 'Database Error';
@@ -84,14 +84,32 @@ export class AllExceptionFilter implements ExceptionFilter {
       Sentry.captureException(exception);
     }
 
-    res.status(status).json(
+    this.writeJsonApiError(res, {
+      detail,
+      pointer: req.originalUrl,
+      status,
+      title,
+    });
+  }
+
+  protected writeJsonApiError(
+    res: ExpressResponse,
+    error: {
+      detail: string;
+      pointer: string;
+      source?: Record<string, unknown>;
+      status: number;
+      title: string;
+    },
+  ) {
+    res.status(error.status).json(
       new this.JSONAPIError({
-        code: status.toString(),
-        detail,
-        source: {
-          pointer: req.originalUrl,
+        code: error.status.toString(),
+        detail: error.detail,
+        source: error.source ?? {
+          pointer: error.pointer,
         },
-        title,
+        title: error.title,
       }),
     );
   }

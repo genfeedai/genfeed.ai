@@ -10,6 +10,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   AssetScope,
   IngredientCategory,
@@ -27,11 +28,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Controller, Get, Param, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
-
-const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
-function isValidObjectId(id: unknown): id is string {
-  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
-}
 
 @AutoSwagger()
 @Public()
@@ -73,12 +69,12 @@ export class PublicPostsController {
     };
 
     // Filter by ingredient if provided
-    if (ingredient && isValidObjectId(ingredient)) {
+    if (ingredient && isEntityId(ingredient)) {
       matchQuery.ingredient = ingredient;
     }
 
     // Filter by brand if provided
-    if (brand && isValidObjectId(brand)) {
+    if (brand && isEntityId(brand)) {
       matchQuery.brand = brand;
     }
 
@@ -105,7 +101,7 @@ export class PublicPostsController {
   ): Promise<JsonApiSingleResponse> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    if (!isValidObjectId(postId)) {
+    if (!isEntityId(postId)) {
       return returnNotFound(this.constructorName, postId);
     }
 
@@ -160,7 +156,7 @@ export class PublicPostsController {
     }
 
     // Filter by brand if provided
-    if (brand && isValidObjectId(brand)) {
+    if (brand && isEntityId(brand)) {
       matchQuery.brand = brand;
     }
 

@@ -1,11 +1,31 @@
-import { HttpExceptionFilter } from '@api/helpers/filters/http-exception/http-exception.filter';
 import { type ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
-import * as Sentry from '@sentry/nestjs';
 
-vi.mock('@sentry/nestjs');
+vi.mock('jsonapi-serializer', () => ({
+  Error: class JsonApiError {
+    errors: unknown[];
+
+    constructor(payload: unknown) {
+      this.errors = [payload];
+    }
+  },
+}));
+
+vi.mock('@sentry/nestjs', () => ({
+  captureException: vi.fn(),
+}));
+
+type FilterInstance = {
+  catch(exception: HttpException, host: ArgumentsHost): void;
+};
+type FilterConstructor = new (
+  loggerService: unknown,
+  configService: unknown,
+) => FilterInstance;
 
 describe('HttpExceptionFilter', () => {
-  let filter: HttpExceptionFilter;
+  let HttpExceptionFilterClass: FilterConstructor;
+  let Sentry: typeof import('@sentry/nestjs');
+  let filter: FilterInstance;
   let mockLoggerService: {
     debug: ReturnType<typeof vi.fn>;
     error: ReturnType<typeof vi.fn>;
@@ -22,6 +42,15 @@ describe('HttpExceptionFilter', () => {
     json: ReturnType<typeof vi.fn>;
   };
   let mockRequest: { url: string; method: string };
+
+  beforeAll(async () => {
+    const module = await import(
+      '@api/helpers/filters/http-exception/http-exception.filter'
+    );
+    HttpExceptionFilterClass =
+      module.HttpExceptionFilter as unknown as FilterConstructor;
+    Sentry = await import('@sentry/nestjs');
+  });
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -70,7 +99,7 @@ describe('HttpExceptionFilter', () => {
       }),
     };
 
-    filter = new HttpExceptionFilter(mockLoggerService, mockConfigService);
+    filter = new HttpExceptionFilterClass(mockLoggerService, mockConfigService);
   });
 
   it('should be defined', () => {
@@ -332,7 +361,7 @@ describe('HttpExceptionFilter', () => {
         return null;
       });
 
-      const devFilter = new HttpExceptionFilter(
+      const devFilter = new HttpExceptionFilterClass(
         mockLoggerService,
         mockConfigService,
       );

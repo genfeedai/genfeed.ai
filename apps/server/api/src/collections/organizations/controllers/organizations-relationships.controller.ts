@@ -89,10 +89,7 @@ import type { Request } from 'express';
 
 type MatchConditions = Record<string, unknown>;
 
-const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
-function isValidObjectId(id: unknown): id is string {
-  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
-}
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 
 @AutoSwagger()
 @ApiTags('organizations')
@@ -377,7 +374,7 @@ export class OrganizationsRelationshipsController {
         : {}),
       ...(query.category && { category: query.category }),
       ...(query.brand &&
-        isValidObjectId(query.brand) && {
+        isEntityId(query.brand) && {
           brand: query.brand,
         }),
       ...(Object.keys(parentConditions).length > 0 && {

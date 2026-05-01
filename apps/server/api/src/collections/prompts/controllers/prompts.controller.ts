@@ -29,6 +29,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { MarketplaceApiClient } from '@api/marketplace-integration/marketplace-api-client';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
@@ -62,11 +63,6 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import type { Request } from 'express';
-
-const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
-function isValidObjectId(id: unknown): id is string {
-  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
-}
 
 function toPromptBrandContext(
   brand: BrandDocument | null | undefined,
@@ -143,7 +139,7 @@ export class PromptsController {
       ).creditsConfig?.amount ?? 0;
 
     let selectedBrand: BrandDocument | undefined;
-    if (isValidObjectId(createPromptDto.brand)) {
+    if (isEntityId(createPromptDto.brand)) {
       const brand = await this.brandsService.findOne({
         _id: createPromptDto.brand,
         isDeleted: false,
@@ -160,7 +156,7 @@ export class PromptsController {
 
     const enrichedDto = {
       ...createPromptDto,
-      brand: isValidObjectId(createPromptDto.brand)
+      brand: isEntityId(createPromptDto.brand)
         ? createPromptDto.brand
         : undefined,
       category: normalizedType,
@@ -289,7 +285,7 @@ export class PromptsController {
     };
 
     // Add brand filter if provided
-    if (query.brand && isValidObjectId(query.brand)) {
+    if (query.brand && isEntityId(query.brand)) {
       match.brand = query.brand;
     }
 

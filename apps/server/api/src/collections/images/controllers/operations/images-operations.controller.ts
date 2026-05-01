@@ -46,6 +46,7 @@ import { resolveGenerationDefaultModel } from '@api/helpers/utils/generation-def
 import { buildReferenceImageUrls } from '@api/helpers/utils/reference/reference.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ComfyUIService } from '@api/services/integrations/comfyui/comfyui.service';
 import { FalService } from '@api/services/integrations/fal/fal.service';
@@ -97,11 +98,6 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import type { Request } from 'express';
-
-const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
-function isValidObjectId(id: unknown): id is string {
-  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
-}
 
 import sharp from 'sharp';
 
@@ -400,7 +396,7 @@ export class ImagesOperationsController {
 
     const promptData = await this.promptsService.create(
       new PromptEntity({
-        brand: isValidObjectId(createImageDto.brand)
+        brand: isEntityId(createImageDto.brand)
           ? createImageDto.brand
           : publicMetadata.brand,
         category: PromptCategory.MODELS_PROMPT_IMAGE,
@@ -454,7 +450,7 @@ export class ImagesOperationsController {
         height,
         model,
         organization: publicMetadata.organization,
-        parent: isValidObjectId(createImageDto.parent)
+        parent: isEntityId(createImageDto.parent)
           ? createImageDto.parent
           : undefined,
         prompt: promptData._id,
@@ -1273,7 +1269,7 @@ export class ImagesOperationsController {
   }> {
     const publicMetadata = getPublicMetadata(user);
 
-    if (!isValidObjectId(id)) {
+    if (!isEntityId(id)) {
       throw new HttpException(
         {
           detail: 'The provided image ID is not valid',

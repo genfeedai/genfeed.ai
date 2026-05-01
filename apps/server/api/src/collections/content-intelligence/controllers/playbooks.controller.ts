@@ -12,6 +12,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import type { User } from '@clerk/backend';
 import type {
   JsonApiCollectionResponse,
@@ -29,11 +30,6 @@ import {
   Req,
 } from '@nestjs/common';
 import type { Request } from 'express';
-
-const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
-function isValidObjectId(id: unknown): id is string {
-  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
-}
 
 // Simple serializer for pattern playbook
 const PatternPlaybookSerializer = {
@@ -107,7 +103,7 @@ export class PlaybooksController {
     @CurrentUser() user: User,
     @Param('id') id: string,
   ): Promise<JsonApiSingleResponse> {
-    if (!isValidObjectId(id)) {
+    if (!isEntityId(id)) {
       ErrorResponse.notFound('PatternPlaybook', id);
     }
 
@@ -151,7 +147,7 @@ export class PlaybooksController {
     @Param('id') id: string,
     @Body() dto: UpdatePlaybookDto,
   ): Promise<JsonApiSingleResponse> {
-    if (!isValidObjectId(id)) {
+    if (!isEntityId(id)) {
       ErrorResponse.notFound('PatternPlaybook', id);
     }
 
@@ -177,7 +173,7 @@ export class PlaybooksController {
     @CurrentUser() user: User,
     @Param('id') id: string,
   ): Promise<JsonApiSingleResponse> {
-    if (!isValidObjectId(id)) {
+    if (!isEntityId(id)) {
       ErrorResponse.notFound('PatternPlaybook', id);
     }
 
@@ -204,7 +200,7 @@ export class PlaybooksController {
     @CurrentUser() user: User,
     @Param('id') id: string,
   ): Promise<JsonApiSingleResponse> {
-    if (!isValidObjectId(id)) {
+    if (!isEntityId(id)) {
       ErrorResponse.notFound('PatternPlaybook', id);
     }
 

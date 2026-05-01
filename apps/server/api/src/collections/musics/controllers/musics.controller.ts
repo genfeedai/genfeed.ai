@@ -16,6 +16,7 @@ import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/colle
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { User } from '@clerk/backend';
@@ -66,9 +67,6 @@ export class MusicsController extends BaseCRUDController<
 
     const status = QueryDefaultsUtil.parseMusicStatusFilter(query.status);
 
-    // Format and provider filters will be applied after metadata lookup
-    const hasMetadataFilters = query.format || query.provider;
-
     return {
       where: {
         OR: [
@@ -86,18 +84,12 @@ export class MusicsController extends BaseCRUDController<
             scope,
             status,
             // Filter default musics by brand when brand is specified
-            ...(query.brand && this.isValidObjectId(query.brand)
-              ? { brand }
-              : {}),
+            ...(query.brand && isEntityId(query.brand) ? { brand } : {}),
           },
         ],
       },
       orderBy: query.sort ? handleQuerySort(query.sort) : { createdAt: -1 },
     };
-  }
-
-  private isValidObjectId(id: string): boolean {
-    return /^[0-9a-f]{24}$/i.test(id);
   }
 
   @Get('latest')

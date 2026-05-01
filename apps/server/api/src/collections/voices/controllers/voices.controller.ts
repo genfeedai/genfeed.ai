@@ -25,6 +25,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ByokService } from '@api/services/byok/byok.service';
 import { ElevenLabsService } from '@api/services/integrations/elevenlabs/elevenlabs.service';
 import { FleetService } from '@api/services/integrations/fleet/fleet.service';
@@ -70,11 +71,6 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Request } from 'express';
-
-const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
-function isValidObjectId(id: unknown): id is string {
-  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
-}
 
 interface UploadedAudioFile {
   buffer: Buffer;
@@ -285,7 +281,7 @@ export class VoicesController {
       throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
     }
 
-    if (!isValidObjectId(id)) {
+    if (!isEntityId(id)) {
       throw new HttpException(
         { detail: 'Invalid voice ID', title: 'Validation failed' },
         HttpStatus.BAD_REQUEST,
@@ -562,7 +558,7 @@ export class VoicesController {
           ? existingVoice.metadata._id
           : existingVoice.metadata;
 
-      if (metadataId && isValidObjectId(String(metadataId))) {
+      if (metadataId && isEntityId(String(metadataId))) {
         await this.metadataService.patch(String(metadataId), {
           externalId: input.externalVoiceId,
           externalProvider: input.provider,
@@ -757,7 +753,7 @@ export class VoicesController {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const publicMetadata = getPublicMetadata(user);
 
-    if (!isValidObjectId(id)) {
+    if (!isEntityId(id)) {
       throw new HttpException(
         { detail: 'Invalid voice ID', title: 'Validation failed' },
         HttpStatus.BAD_REQUEST,

@@ -15,6 +15,7 @@ import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.
 import { PresetFilterUtil } from '@api/helpers/utils/preset-filter/preset-filter.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import type { User } from '@clerk/backend';
 import type { SortObject } from '@genfeedai/interfaces';
@@ -33,11 +34,6 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
-
-const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
-function isValidObjectId(id: unknown): id is string {
-  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
-}
 
 @AutoSwagger()
 @ApiTags('presets')
@@ -134,7 +130,7 @@ export class PresetsController extends BaseCRUDController<
     @Param('presetId') presetId: string,
     @Body() updateDto: UpdatePresetDto,
   ) {
-    if (!isValidObjectId(presetId)) {
+    if (!isEntityId(presetId)) {
       ErrorResponse.notFound(this.entityName, presetId);
     }
 
@@ -146,8 +142,6 @@ export class PresetsController extends BaseCRUDController<
     if (!existing) {
       ErrorResponse.notFound(this.entityName, presetId);
     }
-
-    const publicMetadata = getPublicMetadata(user);
 
     // Return 404 instead of 403 for security
     if (

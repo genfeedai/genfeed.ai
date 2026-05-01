@@ -114,6 +114,7 @@ describe('AppSwitcher', () => {
       'Library',
       'Posts',
       'Workspace',
+      'Agent',
       'Studio',
       'Workflows',
       'Editor',
@@ -187,6 +188,14 @@ describe('AppSwitcher', () => {
       expect(screen.getByRole('link', { name: 'Analytics' })).toHaveAttribute(
         'href',
         '/acme/~/analytics/overview',
+      );
+    });
+
+    it('links to the org-scoped agent app route', () => {
+      render(<AppSwitcher orgSlug="acme" currentApp="workspace" />);
+      expect(screen.getByRole('link', { name: 'Agent' })).toHaveAttribute(
+        'href',
+        '/acme/~/agent',
       );
     });
 

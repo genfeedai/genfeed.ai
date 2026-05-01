@@ -1,10 +1,5 @@
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ArticleStatus } from '@genfeedai/enums';
-
-const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
-
-function isValidObjectId(id: unknown): id is string {
-  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
-}
 
 export class ArticleFilterUtil {
   static buildArticleStatusFilter(
@@ -37,7 +32,7 @@ export class ArticleFilterUtil {
   }
 
   static buildTagFilter(tagId?: string): Record<string, unknown> {
-    return tagId && isValidObjectId(tagId) ? { tags: tagId } : {};
+    return tagId && isEntityId(tagId) ? { tags: tagId } : {};
   }
 
   static buildContentSearchFilter(search?: string): Record<string, unknown> {

@@ -7,6 +7,7 @@ import type { AppSwitcherProps } from '@genfeedai/props/ui/app-switcher.props';
 import Link from 'next/link';
 import {
   HiOutlineChartBarSquare,
+  HiOutlineChatBubbleLeftRight,
   HiOutlineCog6Tooth,
   HiOutlineDocumentText,
   HiOutlineFolder,
@@ -48,6 +49,12 @@ const PLATFORM_APPS: AppSwitcherItemConfig[] = [
     id: 'workspace',
     label: 'Workspace',
     route: (org) => `/${org}/~/overview`,
+  },
+  {
+    icon: HiOutlineChatBubbleLeftRight,
+    id: 'agent',
+    label: 'Agent',
+    route: (org) => `/${org}/~/agent`,
   },
   {
     icon: HiOutlineSparkles,

@@ -48,7 +48,7 @@ export class QueryProcessor {
     // Process sort
     const sort = query.sort ? handleQuerySort(query.sort) : opts.defaultSort;
 
-    // Calculate skip for MongoDB
+    // Calculate pagination skip
     const skip = (page - 1) * limit;
 
     return {
@@ -92,7 +92,7 @@ export class QueryProcessor {
 
     const trimmedSearch = searchTerm.trim();
 
-    // Use MongoDB text search if available
+    // Use text search if available
     if (searchFields.includes('$text')) {
       return {
         $text: {

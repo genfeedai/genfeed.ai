@@ -1,9 +1,5 @@
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { AssetScope } from '@genfeedai/enums';
-
-const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
-function isValidObjectId(id: unknown): id is string {
-  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
-}
 
 /**
  * CollectionFilterUtil - Utility for building consistent collection query filters
@@ -58,8 +54,8 @@ export class CollectionFilterUtil {
       return null;
     }
 
-    const hasOrg = query.organization && isValidObjectId(query.organization);
-    const hasBrand = query.brand && isValidObjectId(query.brand);
+    const hasOrg = query.organization && isEntityId(query.organization);
+    const hasBrand = query.brand && isEntityId(query.brand);
 
     if (!hasOrg && !hasBrand) {
       return null;
@@ -111,7 +107,7 @@ export class CollectionFilterUtil {
     publicMetadata?: { brand?: string },
     defaultTo: 'user' | 'exists' | 'none' = 'user',
   ): string | Record<string, unknown> {
-    if (isValidObjectId(brand)) {
+    if (isEntityId(brand)) {
       return String(brand);
     }
 
@@ -458,8 +454,8 @@ export class CollectionFilterUtil {
    * Delegates to QueryDefaultsUtil.parseBooleanFilter.
    *
    * @param value - Boolean value from query params (can be string or boolean)
-   * @param defaultValue - Default MongoDB query object when undefined
-   * @returns Boolean value or MongoDB query object
+   * @param defaultValue - Default query object when undefined
+   * @returns Boolean value or query object
    *
    * @example
    * // Explicit true
@@ -496,12 +492,12 @@ export class CollectionFilterUtil {
   /**
    * Build sort object from query string
    *
-   * Converts sort query param to MongoDB sort object.
+   * Converts sort query param to sort object.
    * Supports multiple sort fields and directions.
    *
    * @param sort - Sort string from query params (e.g., '-createdAt', 'label,createdAt')
    * @param defaultSort - Default sort object
-   * @returns MongoDB sort object
+   * @returns sort object
    *
    * @example
    * // Descending sort

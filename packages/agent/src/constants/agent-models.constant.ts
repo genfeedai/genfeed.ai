@@ -28,6 +28,15 @@ export const AGENT_MODELS: AgentModelOption[] = [
     label: 'Kimi 2.5',
   },
   {
+    brandSlug: 'google',
+    costTier: CostTier.LOW,
+    creditCost: 4,
+    description: 'Fast agentic OpenRouter model',
+    isReasoning: true,
+    key: 'google/gemini-3-flash-preview',
+    label: 'Gemini 3 Flash',
+  },
+  {
     brandSlug: 'deepseek-ai',
     costTier: CostTier.LOW,
     creditCost: 1,

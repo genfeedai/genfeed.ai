@@ -39,7 +39,7 @@ export function AgentOverlay({
     setIsOpen(false);
   }, []);
 
-  if (pathname.startsWith('/chat')) {
+  if (pathname.startsWith('/agent') || pathname.startsWith('/chat')) {
     return null;
   }
 

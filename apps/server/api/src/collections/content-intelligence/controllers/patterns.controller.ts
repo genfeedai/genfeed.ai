@@ -10,6 +10,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import type { User } from '@clerk/backend';
 import { ContentPatternType } from '@genfeedai/enums';
 import type {
@@ -19,11 +20,6 @@ import type {
 import { LoggerService } from '@libs/logger/logger.service';
 import { Controller, Delete, Get, Param, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
-
-const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
-function isValidObjectId(id: unknown): id is string {
-  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
-}
 
 type SerializableDocument = Record<string, unknown> & {
   _id?: string | { toString(): string };
@@ -210,7 +206,7 @@ export class PatternsController {
     @CurrentUser() user: User,
     @Param('id') id: string,
   ): Promise<JsonApiSingleResponse> {
-    if (!isValidObjectId(id)) {
+    if (!isEntityId(id)) {
       ErrorResponse.notFound('ContentPattern', id);
     }
 
@@ -234,7 +230,7 @@ export class PatternsController {
     @CurrentUser() user: User,
     @Param('id') id: string,
   ): Promise<JsonApiSingleResponse> {
-    if (!isValidObjectId(id)) {
+    if (!isEntityId(id)) {
       ErrorResponse.notFound('ContentPattern', id);
     }
 

@@ -1,8 +1,4 @@
-const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
-
-function isValidObjectId(id: unknown): id is string {
-  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
-}
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 
 type QueryFragment = Record<string, unknown>;
 
@@ -36,7 +32,7 @@ export class BaseFilterUtil {
   }
 
   static buildObjectIdFilter(field: string, id?: string): QueryFragment {
-    return id && isValidObjectId(id) ? { [field]: id } : {};
+    return id && isEntityId(id) ? { [field]: id } : {};
   }
 
   static buildSortStage(

@@ -149,6 +149,11 @@ const config = createAppNextConfig({
       source: '/:orgSlug/:brandSlug([^~/][^/]*)/chat/:path*',
     },
     {
+      destination: '/:orgSlug/~/agent/:path*',
+      permanent: false,
+      source: '/:orgSlug/:brandSlug([^~/][^/]*)/agent/:path*',
+    },
+    {
       destination: '/studio/image',
       permanent: false,
       source: '/studio',

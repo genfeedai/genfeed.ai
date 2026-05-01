@@ -41,6 +41,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { generateLabel } from '@api/shared/utils/label/label.util';
@@ -77,11 +78,6 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
-
-const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
-function isValidObjectId(id: unknown): id is string {
-  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
-}
 @AutoSwagger()
 @ApiTags('organizations')
 @ApiBearerAuth()
@@ -297,7 +293,7 @@ export class OrganizationsController extends BaseCRUDController<
       }),
       ...(query.category && { category: query.category }),
       ...(query.brand &&
-        isValidObjectId(query.brand) && {
+        isEntityId(query.brand) && {
           brand: query.brand,
         }),
     };

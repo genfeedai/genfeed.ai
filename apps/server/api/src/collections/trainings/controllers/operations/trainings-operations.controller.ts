@@ -271,7 +271,7 @@ export class TrainingsOperationsController {
       };
 
       // NOT NEEDED RIGHT NOW
-      // if (query.brand && isValidObjectId(query.brand)) {
+      // if (query.brand && isEntityId(query.brand)) {
       //   imageMatchConditions.brand = query.brand;
       // }
 

@@ -9,6 +9,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { AssetScope, PostStatus } from '@genfeedai/enums';
 import type {
@@ -25,11 +26,6 @@ import type {
   Request as ExpressRequest,
   Response as ExpressResponse,
 } from 'express';
-
-const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
-function isValidObjectId(id: unknown): id is string {
-  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
-}
 
 @AutoSwagger()
 @Public()
@@ -70,7 +66,7 @@ export class PublicMusicsController {
     };
 
     // Filter by brand if provided
-    if (brand && isValidObjectId(brand)) {
+    if (brand && isEntityId(brand)) {
       matchQuery.brand = brand;
     }
 
@@ -97,7 +93,7 @@ export class PublicMusicsController {
   ): Promise<JsonApiSingleResponse> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    if (!isValidObjectId(musicId)) {
+    if (!isEntityId(musicId)) {
       return returnNotFound(this.constructorName, musicId);
     }
 

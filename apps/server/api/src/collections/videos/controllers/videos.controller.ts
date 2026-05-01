@@ -271,7 +271,7 @@ export class VideosController {
             isDeleted,
             scope,
             status,
-            // ...(isValidObjectId(query.references)
+            // ...(isEntityId(query.references)
             //   ? { references: query.references }
             //   : {}),
           },
@@ -949,12 +949,9 @@ export class VideosController {
 
           // Update metadata and videos in parallel
           await Promise.all(
-            additionalDocuments.flatMap(
-              ({ metadataData, ingredientData }, index) => {
-                const i = index + 1;
-                return { where: {} };
-              },
-            ),
+            additionalDocuments.map(() => {
+              return { where: {} };
+            }),
           );
 
           // Add all ingredient IDs to pending list

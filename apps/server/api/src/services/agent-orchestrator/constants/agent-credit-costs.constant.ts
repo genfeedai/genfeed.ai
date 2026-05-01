@@ -39,6 +39,7 @@ export const AGENT_MODEL_TURN_COSTS: Record<string, number> = {
   'anthropic/claude-opus-4-6': 15,
   'anthropic/claude-sonnet-4-5-20250929': 10,
   'deepseek/deepseek-chat': 1,
+  'google/gemini-3-flash-preview': 4,
   'local/mistral-small': 0,
   'local/qwen-32b': 0,
   'openai/gpt-4o': 8,

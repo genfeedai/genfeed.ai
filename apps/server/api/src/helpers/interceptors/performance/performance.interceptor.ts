@@ -1,3 +1,4 @@
+import process from 'node:process';
 import { MemoryMonitorService } from '@api/helpers/memory/monitor/memory-monitor.service';
 import { PerformanceMetrics } from '@api/shared/interfaces/performance/performance.interface';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -218,7 +219,7 @@ export class APIMetricsInterceptor implements NestInterceptor {
   private extractEndpoint(url: string): string {
     // Extract endpoint pattern (e.g., /v1/videos/:id becomes /v1/videos/*)
     return url
-      .replace(/\/[0-9a-fA-F]{24}/g, '/*') // MongoDB ObjectIds
+      .replace(/\/[0-9a-fA-F]{24}/g, '/*') // entity IDs
       .replace(/\/\d+/g, '/*') // Numeric IDs
       .replace(/\/[a-zA-Z0-9-_]+$/g, '/*'); // Generic IDs at the end
   }

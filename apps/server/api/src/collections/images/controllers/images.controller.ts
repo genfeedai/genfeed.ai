@@ -17,6 +17,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import type { User } from '@clerk/backend';
 import { ActivityEntityModel, IngredientCategory } from '@genfeedai/enums';
@@ -37,11 +38,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
-
-const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
-function isValidObjectId(id: unknown): id is string {
-  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
-}
 
 @AutoSwagger()
 @Controller('images')
@@ -66,7 +62,7 @@ export class ImagesController {
   async findLatest(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Query('limit') limit: number = 10,
+    @Query('limit') _limit: number = 10,
   ): Promise<JsonApiCollectionResponse> {
     const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(false);
@@ -146,7 +142,7 @@ export class ImagesController {
       'exists',
     );
 
-    // const references = isValidObjectId(query.references)
+    // const references = isEntityId(query.references)
     //   ? query.references
     //   : { not: true };
 
@@ -221,7 +217,7 @@ export class ImagesController {
                           isDeleted,
                           status,
                           // Filter default images by brand when brand is specified
-                          ...(isValidObjectId(query.brand) ? { brand } : {}),
+                          ...(isEntityId(query.brand) ? { brand } : {}),
                           // references,
                         },
                         folderConditions,

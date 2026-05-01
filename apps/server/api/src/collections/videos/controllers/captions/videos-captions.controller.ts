@@ -20,6 +20,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
@@ -54,11 +55,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
-
-const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
-function isValidObjectId(id: unknown): id is string {
-  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
-}
 
 /**
  * VideosCaption Controller
@@ -161,7 +157,7 @@ export class VideosCaptionsController {
     }
 
     let caption;
-    if (isValidObjectId(createVideoWithCaptionsDto.caption)) {
+    if (isEntityId(createVideoWithCaptionsDto.caption)) {
       caption = await this.captionsService.findOne({
         _id: createVideoWithCaptionsDto.caption,
       });

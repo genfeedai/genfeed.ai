@@ -61,7 +61,7 @@ export class QueryDefaultsUtil {
   /**
    * Parse status filter to handle arrays and single values.
    * @param status - The status from query params (array or single value)
-   * @returns MongoDB query object for status filter, or undefined to omit the filter
+   * @returns query object for status filter, or undefined to omit the filter
    *
    * @example
    * // Single status
@@ -106,7 +106,7 @@ export class QueryDefaultsUtil {
   /**
    * Parse status filter for music ingredients, excluding failed by default.
    * @param status - The status from query params (array or single value)
-   * @returns MongoDB query object for status filter
+   * @returns query object for status filter
    *
    * @example
    * // Single status
@@ -145,8 +145,8 @@ export class QueryDefaultsUtil {
   /**
    * Parse boolean filter from query params, avoiding the Boolean('false') === true pitfall
    * @param value - The boolean value from query params (can be string or boolean)
-   * @param defaultValue - Optional default MongoDB query object when value is undefined
-   * @returns Boolean value or MongoDB query object
+   * @param defaultValue - Optional default query object when value is undefined
+   * @returns Boolean value or query object
    *
    * @example
    * // Explicit true

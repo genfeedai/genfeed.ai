@@ -9,6 +9,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import {
   AssetScope,
@@ -31,11 +32,6 @@ import type {
   Request as ExpressRequest,
   Response as ExpressResponse,
 } from 'express';
-
-const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
-function isValidObjectId(id: unknown): id is string {
-  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
-}
 
 @AutoSwagger()
 @Public()
@@ -60,7 +56,7 @@ export class PublicVideosController {
     @Query() query: BaseQueryDto,
     @Query('tag') tag?: string,
     @Query('brand') brand?: string,
-    @Query('format') format?: string,
+    @Query('format') _format?: string,
   ): Promise<JsonApiCollectionResponse> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.logger.log(url, { query });
@@ -80,7 +76,7 @@ export class PublicVideosController {
     };
 
     // Filter by brand if provided
-    if (brand && isValidObjectId(brand)) {
+    if (brand && isEntityId(brand)) {
       match.brand = brand;
     }
 
@@ -107,7 +103,7 @@ export class PublicVideosController {
   ): Promise<JsonApiSingleResponse> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    if (!isValidObjectId(videoId)) {
+    if (!isEntityId(videoId)) {
       return returnNotFound(this.constructorName, videoId);
     }
 

@@ -11,6 +11,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ArticleStatus, AssetScope, IngredientStatus } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,
@@ -29,11 +30,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Controller, Get, Param, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
-
-const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
-function isValidObjectId(id: unknown): id is string {
-  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
-}
 
 type BrandCollectionFailure = {
   data: unknown[];
@@ -87,7 +83,7 @@ export class PublicBrandsController {
 
     this.logger.log(url, { query: { isHighlighted, limit } });
 
-    const maxLimit = Math.min(Number(limit), 100); // Cap at 100
+    const _maxLimit = Math.min(Number(limit), 100); // Cap at 100
     const aggregate = { where: filter, orderBy: { createdAt: -1 } };
 
     const options = {
@@ -145,7 +141,7 @@ export class PublicBrandsController {
   ): Promise<JsonApiSingleResponse | BrandSingleFailure> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    if (!isValidObjectId(brandId)) {
+    if (!isEntityId(brandId)) {
       return { data: null, message: 'Invalid brand ID format' };
     }
 
@@ -181,7 +177,7 @@ export class PublicBrandsController {
   ): Promise<JsonApiCollectionResponse | BrandCollectionFailure> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    if (!isValidObjectId(brandId)) {
+    if (!isEntityId(brandId)) {
       return { data: [], message: 'Invalid brand ID format' };
     }
 
@@ -231,7 +227,7 @@ export class PublicBrandsController {
   ): Promise<JsonApiCollectionResponse | BrandCollectionFailure> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    if (!isValidObjectId(brandId)) {
+    if (!isEntityId(brandId)) {
       return {
         data: [],
         message: 'Invalid brand ID format',
@@ -287,7 +283,7 @@ export class PublicBrandsController {
   ): Promise<JsonApiCollectionResponse | BrandCollectionFailure> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    if (!isValidObjectId(brandId)) {
+    if (!isEntityId(brandId)) {
       return {
         data: [],
         message: 'Invalid brand ID format',
@@ -344,7 +340,7 @@ export class PublicBrandsController {
   ): Promise<JsonApiCollectionResponse | BrandCollectionFailure> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    if (!isValidObjectId(brandId)) {
+    if (!isEntityId(brandId)) {
       return {
         data: [],
         message: 'Invalid brand ID format',
@@ -398,7 +394,7 @@ export class PublicBrandsController {
   // async getBrandStats(@Param('brandId') brandId: string): Promise<unknown> {
   //   const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
   //
-  //   if (!isValidObjectId(brandId)) {
+  //   if (!isEntityId(brandId)) {
   //     return returnNotFound(this.constructorName, brandId);
   //   }
   //

@@ -10,6 +10,7 @@ import AppProtectedLayout from './app-protected-layout';
 const {
   appLayoutSpy,
   appSidebarSpy,
+  agentThreadListSpy,
   agentPanelSpy,
   beginOverlaySessionSpy,
   commandPaletteOpenSpy,
@@ -22,6 +23,7 @@ const {
   toggleOpenSpy,
 } = vi.hoisted(() => ({
   agentPanelSpy: vi.fn(),
+  agentThreadListSpy: vi.fn(),
   appLayoutSpy: vi.fn(),
   appSidebarSpy: vi.fn(),
   beginOverlaySessionSpy: vi.fn(),
@@ -243,7 +245,9 @@ vi.mock('@genfeedai/agent', () => ({
   },
   AgentThreadList: (props: {
     onActionsChange?: (actions: ReactNode) => void;
+    routeBasePath?: string;
   }) => {
+    agentThreadListSpy(props);
     useEffect(() => {
       props.onActionsChange?.(
         <button type="button">Conversation header action</button>,
@@ -389,6 +393,7 @@ describe('AppProtectedLayout', () => {
     beginOverlaySessionSpy.mockClear();
     endOverlaySessionSpy.mockClear();
     agentPanelSpy.mockClear();
+    agentThreadListSpy.mockClear();
     commandPaletteOpenSpy.mockClear();
     dispatchOpenTaskComposerSpy.mockClear();
     onboardingGuardSpy.mockClear();
@@ -592,6 +597,29 @@ describe('AppProtectedLayout', () => {
     expect(
       screen.queryByTestId('conversation-actions-slot'),
     ).not.toBeInTheDocument();
+  });
+
+  it('renders the focused agent route as the full-page conversation app', async () => {
+    mockPathname.value = '/agent';
+
+    render(
+      <AppProtectedLayout>
+        <div>Protected content</div>
+      </AppProtectedLayout>,
+    );
+
+    expect(await screen.findByTestId('agent-thread-list')).toBeInTheDocument();
+    expect(screen.queryByTestId('agent-panel')).not.toBeInTheDocument();
+    expect(agentThreadListSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        routeBasePath: '/agent',
+      }),
+    );
+    expect(appLayoutSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        currentApp: 'agent',
+      }),
+    );
   });
 
   it('hides sidebar and topbar chrome for focused onboarding chat routes', () => {

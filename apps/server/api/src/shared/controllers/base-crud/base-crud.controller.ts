@@ -57,10 +57,7 @@ type AggregatePaginateResult<T> = {
   [key: string]: unknown;
 };
 
-const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
-function isValidObjectId(id: unknown): id is string {
-  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
-}
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 
 @AutoSwagger()
 export abstract class BaseCRUDController<
@@ -144,7 +141,7 @@ export abstract class BaseCRUDController<
     @CurrentUser() _user: User,
     @Param('id') id: string,
   ): Promise<JsonApiSingleResponse> {
-    if (!isValidObjectId(id)) {
+    if (!isEntityId(id)) {
       ErrorResponse.notFound(this.entityName, id);
     }
 
@@ -193,7 +190,7 @@ export abstract class BaseCRUDController<
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.logger.log(url, { params: { id }, updateDto });
 
-    if (!isValidObjectId(id)) {
+    if (!isEntityId(id)) {
       ErrorResponse.notFound(this.entityName, id);
     }
 
@@ -208,8 +205,6 @@ export abstract class BaseCRUDController<
     if (!existing) {
       ErrorResponse.notFound(this.entityName, id);
     }
-
-    const publicMetadata = getPublicMetadata(user);
 
     // Return 404 instead of 403 for security
     if (
@@ -244,7 +239,7 @@ export abstract class BaseCRUDController<
     @CurrentUser() user: User,
     @Param('id') id: string,
   ): Promise<JsonApiSingleResponse> {
-    if (!isValidObjectId(id)) {
+    if (!isEntityId(id)) {
       ErrorResponse.notFound(this.entityName, id);
     }
 
