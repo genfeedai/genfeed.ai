@@ -95,26 +95,26 @@ describe('FoldersController', () => {
     expect(controller).toBeDefined();
   });
 
-  describe('buildFindAllPipeline', () => {
-    it('should build pipeline with user and organization match', () => {
+  describe('buildFindAllQuery', () => {
+    it('should build query with user and organization match', () => {
       const query: BaseQueryDto = {};
 
-      const result = controller.buildFindAllPipeline(mockUser, query);
+      const result = controller.buildFindAllQuery(mockUser, query);
 
       expect(result).toBeDefined();
       expect(result.length).toBeGreaterThanOrEqual(1);
-      const matchStage = result[0] as { $match: Record<string, unknown> };
-      expect(matchStage.$match).toBeDefined();
-      expect(matchStage.$match.isDeleted).toBe(false);
+      const matchStage = result[0] as { match: Record<string, unknown> };
+      expect(matchStage.match).toBeDefined();
+      expect(matchStage.match.isDeleted).toBe(false);
     });
 
     it('should handle deleted items', () => {
       const query: BaseQueryDto = { isDeleted: true };
 
-      const result = controller.buildFindAllPipeline(mockUser, query);
+      const result = controller.buildFindAllQuery(mockUser, query);
 
-      const matchStage = result[0] as { $match: Record<string, unknown> };
-      expect(matchStage.$match.isDeleted).toBe(true);
+      const matchStage = result[0] as { match: Record<string, unknown> };
+      expect(matchStage.match.isDeleted).toBe(true);
     });
   });
 

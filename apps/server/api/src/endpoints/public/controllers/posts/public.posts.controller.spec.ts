@@ -21,7 +21,7 @@ const createBaseQuery = (partial: Partial<BaseQueryDto> = {}): BaseQueryDto =>
   }) as BaseQueryDto;
 
 const asMatchStage = (stage: Record<string, unknown>) =>
-  stage as Record<string, unknown> & { $match: Record<string, unknown> };
+  stage as Record<string, unknown> & { match: Record<string, unknown> };
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnNotFound: vi.fn((type, id) => ({
@@ -133,8 +133,8 @@ describe('PublicPostsController', () => {
 
       const callArgs = postsService.findAll.mock.calls[0][0];
       const matchStage = asMatchStage(callArgs[0]);
-      expect(matchStage.$match.brand).toBeDefined();
-      expect((matchStage.$match.brand as string).toString()).toBe(brandId);
+      expect(matchStage.match.brand).toBeDefined();
+      expect((matchStage.match.brand as string).toString()).toBe(brandId);
     });
 
     it('should filter by tag when provided', async () => {
@@ -154,13 +154,13 @@ describe('PublicPostsController', () => {
 
       const callArgs = postsService.findAll.mock.calls[0][0];
       const matchStage = asMatchStage(callArgs[0]);
-      expect(matchStage.$match['metadata.tags']).toBeDefined();
+      expect(matchStage.match['metadata.tags']).toBeDefined();
       expect(
-        (matchStage.$match['metadata.tags'] as { $regex: string }).$regex,
+        (matchStage.match['metadata.tags'] as { contains: string }).contains,
       ).toBe(tag);
-      expect(
-        (matchStage.$match['metadata.tags'] as { $options: string }).$options,
-      ).toBe('i');
+      expect((matchStage.match['metadata.tags'] as { mode: string }).mode).toBe(
+        'i',
+      );
     });
 
     it('should apply correct match query for public posts', async () => {
@@ -178,7 +178,7 @@ describe('PublicPostsController', () => {
       await controller.findPublicPosts(mockRequest, query);
 
       const callArgs = postsService.findAll.mock.calls[0][0];
-      expect(asMatchStage(callArgs[0]).$match).toEqual({
+      expect(asMatchStage(callArgs[0]).match).toEqual({
         isDeleted: false,
         scope: AssetScope.PUBLIC,
         status: PostStatus.PUBLIC,
@@ -206,7 +206,7 @@ describe('PublicPostsController', () => {
       );
 
       const callArgs = postsService.findAll.mock.calls[0][0];
-      expect(asMatchStage(callArgs[0]).$match.brand).toBeUndefined();
+      expect(asMatchStage(callArgs[0]).match.brand).toBeUndefined();
     });
   });
 

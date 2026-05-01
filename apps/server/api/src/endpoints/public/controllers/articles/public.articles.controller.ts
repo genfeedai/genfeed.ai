@@ -16,7 +16,7 @@ import type {
 } from '@genfeedai/interfaces';
 import { ArticleSerializer } from '@genfeedai/serializers';
 import { Public } from '@libs/decorators/public.decorator';
-import { MongoMatchQuery } from '@libs/interfaces/query.interface';
+import { PrismaWhereQuery } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Controller, Get, Param, Query, Req } from '@nestjs/common';
@@ -60,18 +60,18 @@ export class PublicArticlesController {
       sortOrder = 'desc',
     } = query;
 
-    const matchQuery: MongoMatchQuery = {
+    const matchQuery: PrismaWhereQuery = {
       isDeleted: false,
-      publishedAt: { $exists: true },
+      publishedAt: { not: true },
       status: ArticleStatus.PUBLIC,
     };
 
     // Add search filter
     if (search) {
-      matchQuery.$or = [
-        { label: { $options: 'i', $regex: search } },
-        { summary: { $options: 'i', $regex: search } },
-        { content: { $options: 'i', $regex: search } },
+      matchQuery.OR = [
+        { label: { mode: 'insensitive', contains: search } },
+        { summary: { mode: 'insensitive', contains: search } },
+        { content: { mode: 'insensitive', contains: search } },
       ];
     }
 
@@ -90,70 +90,10 @@ export class PublicArticlesController {
       matchQuery.brand = brand;
     }
 
-    const aggregate: Record<string, unknown>[] = [
-      { $match: matchQuery },
-      // Populate tags
-      {
-        $lookup: {
-          as: 'tags',
-          foreignField: '_id',
-          from: 'tags',
-          localField: 'tags',
-          pipeline: [
-            {
-              $project: {
-                _id: 1,
-                backgroundColor: 1,
-                label: 1,
-                textColor: 1,
-              },
-            },
-          ],
-        },
-      },
-      // Populate user
-      {
-        $lookup: {
-          as: 'user',
-          foreignField: '_id',
-          from: 'users',
-          localField: 'user',
-          pipeline: [
-            {
-              $project: {
-                _id: 1,
-                email: 1,
-                firstName: 1,
-                handle: 1,
-                lastName: 1,
-              },
-            },
-          ],
-        },
-      },
-      { $unwind: { path: '$user', preserveNullAndEmptyArrays: true } },
-      // Populate organization
-      {
-        $lookup: {
-          as: 'organization',
-          foreignField: '_id',
-          from: 'organizations',
-          localField: 'organization',
-          pipeline: [
-            {
-              $project: {
-                _id: 1,
-                label: 1,
-              },
-            },
-          ],
-        },
-      },
-      {
-        $unwind: { path: '$organization', preserveNullAndEmptyArrays: true },
-      },
-      { $sort: { [sortBy]: sortOrder === 'desc' ? -1 : 1 } },
-    ];
+    const aggregate = {
+      where: matchQuery,
+      orderBy: { [sortBy]: sortOrder === 'desc' ? -1 : 1 },
+    };
 
     const data = await this.articlesService.findAll(aggregate, options);
     return serializeCollection(request, ArticleSerializer, data);
@@ -204,7 +144,7 @@ export class PublicArticlesController {
     const article = await this.articlesService.findOne({
       _id: articleId,
       isDeleted: false,
-      publishedAt: { $exists: true },
+      publishedAt: { not: true },
       status: ArticleStatus.PUBLIC,
     });
 

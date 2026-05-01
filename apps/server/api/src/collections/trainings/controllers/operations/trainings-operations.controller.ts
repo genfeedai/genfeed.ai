@@ -79,7 +79,7 @@ export class TrainingsOperationsController {
 
       const existingTraining = await this.trainingsService.findOne({
         _id: trainingId,
-        $or: [
+        OR: [
           { user: publicMetadata.user },
           { organization: publicMetadata.organization },
         ],
@@ -112,33 +112,17 @@ export class TrainingsOperationsController {
       let sourceImages: TrainingSourceImage[] = [];
       if (sourceIds.length > 0) {
         const sourceResult = await this.ingredientsService.findAll(
-          [
-            {
-              $match: {
-                _id: {
-                  $in: sourceIds.map((sid: unknown) =>
-                    typeof sid === 'string' ? sid : sid,
-                  ),
-                },
-                category: IngredientCategory.SOURCE,
-                user: publicMetadata.user,
+          {
+            where: {
+              _id: {
+                in: sourceIds.map((sid: unknown) =>
+                  typeof sid === 'string' ? sid : sid,
+                ),
               },
+              category: IngredientCategory.SOURCE,
+              user: publicMetadata.user,
             },
-            {
-              $lookup: {
-                as: 'metadata',
-                foreignField: '_id',
-                from: 'metadata',
-                localField: 'metadata',
-              },
-            },
-            {
-              $unwind: {
-                path: '$metadata',
-                preserveNullAndEmptyArrays: false,
-              },
-            },
-          ],
+          },
           {
             pagination: false,
           },
@@ -242,7 +226,7 @@ export class TrainingsOperationsController {
       // Find the training
       const training = await this.trainingsService.findOne({
         _id: trainingId,
-        $or: [
+        OR: [
           { user: publicMetadata.user },
           { organization: publicMetadata.organization },
         ],
@@ -259,18 +243,11 @@ export class TrainingsOperationsController {
       }
 
       const metadataResult = await this.metadataService.findAll(
-        [
-          {
-            $match: {
-              model: training.model,
-            },
+        {
+          where: {
+            model: training.model,
           },
-          {
-            $project: {
-              _id: 1,
-            },
-          },
-        ],
+        },
         {
           pagination: false,
         },
@@ -290,7 +267,7 @@ export class TrainingsOperationsController {
 
       const imageMatchConditions: Record<string, unknown> = {
         category: IngredientCategory.IMAGE,
-        metadata: { $in: metadataIds },
+        metadata: { in: metadataIds },
       };
 
       // NOT NEEDED RIGHT NOW
@@ -299,25 +276,7 @@ export class TrainingsOperationsController {
       // }
 
       const data = await this.ingredientsService.findAll(
-        [
-          {
-            $match: imageMatchConditions,
-          },
-          {
-            $lookup: {
-              as: 'metadata',
-              foreignField: '_id',
-              from: 'metadata',
-              localField: 'metadata',
-            },
-          },
-          {
-            $unwind: {
-              path: '$metadata',
-              preserveNullAndEmptyArrays: false,
-            },
-          },
-        ],
+        { where: imageMatchConditions },
         {
           customLabels,
           ...QueryDefaultsUtil.getPaginationDefaults(query),
@@ -349,7 +308,7 @@ export class TrainingsOperationsController {
 
       const training = await this.trainingsService.findOne({
         _id: trainingId,
-        $or: [
+        OR: [
           { user: publicMetadata.user },
           { organization: publicMetadata.organization },
         ],
@@ -368,18 +327,16 @@ export class TrainingsOperationsController {
       const sources = Array.isArray(training.sources) ? training.sources : [];
 
       const sourceResult = await this.ingredientsService.findAll(
-        [
-          {
-            $match: {
-              _id: {
-                $in: sources,
-              },
-              category: IngredientCategory.SOURCE,
-              isDeleted: false,
-              status: IngredientStatus.UPLOADED,
+        {
+          where: {
+            _id: {
+              in: sources,
             },
+            category: IngredientCategory.SOURCE,
+            isDeleted: false,
+            status: IngredientStatus.UPLOADED,
           },
-        ],
+        },
         {
           customLabels,
           ...QueryDefaultsUtil.getPaginationDefaults(query),

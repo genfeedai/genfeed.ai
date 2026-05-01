@@ -67,10 +67,7 @@ export class OutreachCampaignsController extends BaseCRUDController<
     );
   }
 
-  public buildFindAllPipeline(
-    user: User,
-    query: OutreachCampaignsQueryDto,
-  ): Record<string, unknown>[] {
+  public buildFindAllQuery(user: User, query: OutreachCampaignsQueryDto) {
     const publicMetadata = getPublicMetadata(user);
     const match: Record<string, unknown> = {
       isDeleted: query.isDeleted ?? false,
@@ -103,12 +100,10 @@ export class OutreachCampaignsController extends BaseCRUDController<
       match.isActive = query.isActive;
     }
 
-    const pipeline: Record<string, unknown>[] = [
-      { $match: match },
-      { $sort: handleQuerySort(query.sort) },
-    ];
-
-    return pipeline;
+    return {
+      orderBy: handleQuerySort(query.sort),
+      where: match,
+    };
   }
 
   @Get(':id')

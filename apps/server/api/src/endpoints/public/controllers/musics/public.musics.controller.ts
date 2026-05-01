@@ -17,7 +17,7 @@ import type {
 } from '@genfeedai/interfaces';
 import { MusicSerializer } from '@genfeedai/serializers';
 import { Public } from '@libs/decorators/public.decorator';
-import { MongoMatchQuery } from '@libs/interfaces/query.interface';
+import { PrismaWhereQuery } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Controller, Get, Param, Query, Req, Res } from '@nestjs/common';
@@ -63,7 +63,7 @@ export class PublicMusicsController {
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
-    const matchQuery: MongoMatchQuery = {
+    const matchQuery: PrismaWhereQuery = {
       isDeleted: false,
       scope: AssetScope.PUBLIC,
       status: PostStatus.PUBLIC,
@@ -76,73 +76,10 @@ export class PublicMusicsController {
 
     // Filter by tag if provided (assuming tags are stored in metadata)
     if (tag) {
-      matchQuery['metadata.tags'] = { $options: 'i', $regex: tag };
+      matchQuery['metadata.tags'] = { mode: 'insensitive', contains: tag };
     }
 
-    const aggregate: Record<string, unknown>[] = [
-      { $match: matchQuery },
-      {
-        $lookup: {
-          as: 'metadata',
-          foreignField: '_id',
-          from: 'metadata',
-          localField: 'metadata',
-        },
-      },
-      {
-        $unwind: {
-          path: '$metadata',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $lookup: {
-          as: 'brand',
-          foreignField: '_id',
-          from: 'brands',
-          localField: 'brand',
-        },
-      },
-      {
-        $unwind: {
-          path: '$brand',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $lookup: {
-          as: 'brandLogo',
-          from: 'assets',
-          let: { brandId: '$brand._id' },
-          pipeline: [
-            {
-              $match: {
-                $expr: {
-                  $and: [
-                    { $eq: ['$parent', '$$brandId'] },
-                    { $eq: ['$category', 'logo'] },
-                    { $eq: ['$isDeleted', false] },
-                  ],
-                },
-              },
-            },
-          ],
-        },
-      },
-      {
-        $unwind: {
-          path: '$brandLogo',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $addFields: { 'brand.logo': '$brandLogo._id' },
-      },
-      {
-        $project: { brandLogo: 0 },
-      },
-      { $sort: { createdAt: -1 } },
-    ];
+    const aggregate = { where: matchQuery, orderBy: { createdAt: -1 } };
 
     const data = await this.musicsService.findAll(aggregate, options);
     return serializeCollection(request, MusicSerializer, data);

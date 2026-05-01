@@ -88,17 +88,7 @@ export class PublicBrandsController {
     this.logger.log(url, { query: { isHighlighted, limit } });
 
     const maxLimit = Math.min(Number(limit), 100); // Cap at 100
-    const aggregate: Record<string, unknown>[] = [
-      { $match: filter },
-      ...BrandFilterUtil.buildBrandAssetLookups({
-        includeBanner: true,
-        includeCredentials: false,
-        includeLogo: true,
-        includeReferences: false,
-      }),
-      { $sort: { createdAt: -1 } },
-      { $limit: maxLimit },
-    ];
+    const aggregate = { where: filter, orderBy: { createdAt: -1 } };
 
     const options = {
       customLabels,
@@ -128,7 +118,7 @@ export class PublicBrandsController {
 
     this.logger.log(url, { query: { slug } });
     const data = await this.brandsService.findOneBySlug({
-      slug: { $options: 'i', $regex: `^${slug}$` },
+      slug: { mode: 'insensitive', contains: `^${slug}$` },
     });
 
     if (!data) {
@@ -212,16 +202,14 @@ export class PublicBrandsController {
       pagination: false,
     };
 
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: {
-          brand: brandId,
-          isDeleted: false,
-          scope: AssetScope.PUBLIC,
-        },
+    const aggregate = {
+      where: {
+        brand: brandId,
+        isDeleted: false,
+        scope: AssetScope.PUBLIC,
       },
-      { $sort: { createdAt: -1, type: 1 } },
-    ];
+      orderBy: { createdAt: -1, type: 1 },
+    };
 
     const data = await this.linksService.findAll(aggregate, options);
     return serializeCollection(request, LinkSerializer, data);
@@ -269,17 +257,15 @@ export class PublicBrandsController {
       pagination: true,
     };
 
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: {
-          brand: brandId,
-          isDeleted: false,
-          scope: AssetScope.PUBLIC,
-          status: IngredientStatus.GENERATED,
-        },
+    const aggregate = {
+      where: {
+        brand: brandId,
+        isDeleted: false,
+        scope: AssetScope.PUBLIC,
+        status: IngredientStatus.GENERATED,
       },
-      { $sort: { createdAt: -1, type: 1 } },
-    ];
+      orderBy: { createdAt: -1, type: 1 },
+    };
 
     const data = await this.videosService.findAll(aggregate, options);
     return serializeCollection(request, VideoSerializer, data);
@@ -328,17 +314,15 @@ export class PublicBrandsController {
       pagination: true,
     };
 
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: {
-          brand: brandId,
-          isDeleted: false,
-          scope: AssetScope.PUBLIC,
-          status: IngredientStatus.GENERATED,
-        },
+    const aggregate = {
+      where: {
+        brand: brandId,
+        isDeleted: false,
+        scope: AssetScope.PUBLIC,
+        status: IngredientStatus.GENERATED,
       },
-      { $sort: { createdAt: -1, type: 1 } },
-    ];
+      orderBy: { createdAt: -1, type: 1 },
+    };
 
     const data = await this.imagesService.findAll(aggregate, options);
     return serializeCollection(request, IngredientSerializer, data);
@@ -387,17 +371,15 @@ export class PublicBrandsController {
       pagination: true,
     };
 
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: {
-          brand: brandId,
-          isDeleted: false,
-          scope: AssetScope.PUBLIC,
-          status: ArticleStatus.PUBLIC,
-        },
+    const aggregate = {
+      where: {
+        brand: brandId,
+        isDeleted: false,
+        scope: AssetScope.PUBLIC,
+        status: ArticleStatus.PUBLIC,
       },
-      { $sort: { createdAt: -1, publishedAt: -1 } },
-    ];
+      orderBy: { createdAt: -1, publishedAt: -1 },
+    };
 
     const data = await this.articlesService.findAll(aggregate, options);
     return serializeCollection(request, ArticleSerializer, data);

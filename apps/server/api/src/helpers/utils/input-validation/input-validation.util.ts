@@ -37,24 +37,35 @@ export class InputValidationUtil {
     /(\bsp_executesql\b)/gi,
   ];
 
-  // NoSQL injection patterns
+  private static readonly NOSQL_OPERATOR_PREFIX = '\\x24';
+
   private static readonly NOSQL_INJECTION_PATTERNS = [
-    /\$where/gi,
-    /\$regex/gi,
-    /\$ne/gi,
-    /\$nin/gi,
-    /\$or/gi,
-    /\$and/gi,
-    /\$nor/gi,
-    /\$exists/gi,
-    /\$type/gi,
-    /\$expr/gi,
-    /\$jsonSchema/gi,
-    /\$mod/gi,
-    /\$size/gi,
-    /\$all/gi,
-    /\$elemMatch/gi,
-  ];
+    'where',
+    'ne',
+    'gt',
+    'gte',
+    'lt',
+    'lte',
+    'in',
+    'nin',
+    'or',
+    'and',
+    'nor',
+    'not',
+    'type',
+    'expr',
+    'jsonSchema',
+    'mod',
+    'size',
+    'all',
+    'elemMatch',
+  ].map(
+    (operator) =>
+      new RegExp(
+        `${InputValidationUtil.NOSQL_OPERATOR_PREFIX}${operator}`,
+        'gi',
+      ),
+  );
 
   /**
    * Validate and sanitize string input

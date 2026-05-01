@@ -17,7 +17,10 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { BaseService } from '@api/shared/services/base/base.service';
+import {
+  BaseService,
+  type PrismaFindAllInput,
+} from '@api/shared/services/base/base.service';
 import {
   PopulateBuilder,
   PopulatePatterns,
@@ -43,7 +46,6 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 
-type PipelineStage = Record<string, unknown>;
 type AggregatePaginateResult<T> = {
   docs: T[];
   totalDocs: number;
@@ -81,7 +83,7 @@ export abstract class BaseCRUDController<
 
     // Convert string populate fields to optimized versions.
     // NOTE: 'user' is excluded because User data lives on the AUTH database.
-    // Use $lookup-based aggregation when a CLOUD record needs user details.
+    // Use relationInclude-based aggregation when a CLOUD record needs user details.
     this.optimizedPopulateFields = populateFields
       .filter((field) => field !== 'user')
       .map((field) => {
@@ -123,11 +125,10 @@ export abstract class BaseCRUDController<
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
-    // Build base aggregation pipeline - child controllers can override this
-    const aggregate = this.buildFindAllPipeline(user, query);
+    const findAllQuery = this.buildFindAllQuery(user, query);
 
     const data: AggregatePaginateResult<T> = await this.service.findAll(
-      aggregate,
+      findAllQuery,
       options,
     );
     return serializeCollection(request, this.serializer, data);
@@ -268,10 +269,10 @@ export abstract class BaseCRUDController<
   }
 
   /**
-   * Build the aggregation pipeline for findAll
+   * Build the findAll query for findAll
    * Child controllers can override this to customize the query
    */
-  public buildFindAllPipeline(user: User, query: QueryDto): PipelineStage[] {
+  public buildFindAllQuery(user: User, query: QueryDto): PrismaFindAllInput {
     const publicMetadata = getPublicMetadata(user);
     const adminFilter = CollectionFilterUtil.buildAdminFilter(
       publicMetadata,
@@ -288,7 +289,10 @@ export abstract class BaseCRUDController<
       matchFilter.user = publicMetadata.user;
     }
 
-    return [{ $match: matchFilter }, { $sort: handleQuerySort(query.sort) }];
+    return {
+      orderBy: handleQuerySort(query.sort),
+      where: matchFilter,
+    };
   }
 
   /**

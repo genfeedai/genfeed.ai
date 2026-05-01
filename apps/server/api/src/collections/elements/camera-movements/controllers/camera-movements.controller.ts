@@ -5,7 +5,7 @@ import {
   type ElementCameraMovementDocument,
 } from '@api/collections/elements/camera-movements/schemas/camera-movement.schema';
 import { ElementsCameraMovementsService } from '@api/collections/elements/camera-movements/services/camera-movements.service';
-import { buildElementFindAllPipeline } from '@api/collections/elements/shared/build-element-find-all-pipeline.util';
+import { buildElementFindAllQuery } from '@api/collections/elements/shared/build-element-find-all-pipeline.util';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -108,17 +108,14 @@ export class ElementsCameraMovementsController extends BaseCRUDController<
    * Override the base pipeline to load camera movements
    * Load items with: (no org AND no user) OR (user's org) OR (user's user)
    */
-  public buildFindAllPipeline(
-    user: User,
-    query: BaseQueryDto,
-  ): Record<string, unknown>[] {
+  public buildFindAllQuery(user: User, query: BaseQueryDto) {
     const publicMetadata = getPublicMetadata(user);
     const adminFilter = CollectionFilterUtil.buildAdminFilter(
       publicMetadata,
       query,
     );
 
-    return buildElementFindAllPipeline({
+    return buildElementFindAllQuery({
       adminFilter,
       includeStateFilters: true,
       metadata: {

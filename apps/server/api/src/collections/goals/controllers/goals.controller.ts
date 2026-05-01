@@ -55,10 +55,7 @@ export class GoalsController extends BaseCRUDController<
     return serializeSingle(request, GoalSerializer, doc);
   }
 
-  public override buildFindAllPipeline(
-    user: User,
-    query: GoalQueryDto,
-  ): Record<string, unknown>[] {
+  public override buildFindAllQuery(user: User, query: GoalQueryDto) {
     const publicMetadata = getPublicMetadata(user);
     const match: Record<string, unknown> = {
       isDeleted: query.isDeleted ?? false,
@@ -75,7 +72,10 @@ export class GoalsController extends BaseCRUDController<
 
     const sort = handleQuerySort(query.sort);
 
-    return [{ $match: match }, { $sort: sort }];
+    return {
+      orderBy: sort,
+      where: match,
+    };
   }
 
   public override canUserModifyEntity(

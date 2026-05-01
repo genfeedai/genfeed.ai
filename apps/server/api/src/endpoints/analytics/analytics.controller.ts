@@ -177,48 +177,33 @@ export class AnalyticsController {
       totalModels,
       pendingPosts,
     ] = await Promise.all([
-      this.subscriptionsService.findAll([{ $count: 'total' }], options),
-      this.usersService.findAll([{ $count: 'total' }], options),
-      this.postsService.findAll([{ $count: 'total' }], options),
-      this.brandsService.findAll([{ $count: 'total' }], options),
+      this.subscriptionsService.findAll({ where: {} }, options),
+      this.usersService.findAll({ where: {} }, options),
+      this.postsService.findAll({ where: {} }, options),
+      this.brandsService.findAll({ where: {} }, options),
       this.ingredientsService.findAll(
-        [
-          { $match: { category: IngredientCategory.VIDEO } },
-          { $count: 'total' },
-        ],
+        { where: { category: IngredientCategory.VIDEO } },
         options,
       ),
       this.ingredientsService.findAll(
-        [
-          { $match: { category: IngredientCategory.IMAGE } },
-          { $count: 'total' },
-        ],
+        { where: { category: IngredientCategory.IMAGE } },
         options,
       ),
       this.organizationsService.findAll(
-        [{ $match: { isDeleted: false } }, { $count: 'total' }],
+        { where: { isDeleted: false } },
         options,
       ),
       this.workflowsService.findAll(
-        [
-          { $match: { isDeleted: false, status: WorkflowStatus.ACTIVE } },
-          { $count: 'total' },
-        ],
+        { where: { isDeleted: false, status: WorkflowStatus.ACTIVE } },
         options,
       ),
       this.botsService.findAll(
-        [{ $match: { enabled: true, isDeleted: false } }, { $count: 'total' }],
+        { where: { enabled: true, isDeleted: false } },
         options,
       ),
-      this.modelsService.findAll(
-        [{ $match: { isDeleted: false } }, { $count: 'total' }],
-        options,
-      ),
+      this.modelsService.findAll({ where: { isDeleted: false } }, options),
       this.postsService.findAll(
-        [
-          { $match: { isDeleted: false, status: PostStatus.PENDING } },
-          { $count: 'total' },
-        ],
+        { where: { isDeleted: false, status: PostStatus.PENDING } },
         options,
       ),
     ]);
@@ -359,7 +344,7 @@ export class AnalyticsController {
       ): Promise<unknown[]> =>
         fetcher().catch((err: unknown) => {
           this.loggerService.error(`${url} ${label} failed`, err);
-          return [];
+          return { where: {} };
         });
 
       const [tiktokTrends, twitterTrends, youtubeTrends, instagramTrends] =

@@ -62,10 +62,7 @@ export class AgentRunsController extends BaseCRUDController<
     ]);
   }
 
-  public buildFindAllPipeline(
-    user: User,
-    query: AgentRunsQueryDto,
-  ): Record<string, unknown>[] {
+  public buildFindAllQuery(user: User, query: AgentRunsQueryDto) {
     const publicMetadata = getPublicMetadata(user);
     const match: Record<string, unknown> = {
       isDeleted: false,
@@ -78,7 +75,7 @@ export class AgentRunsController extends BaseCRUDController<
 
     if (query.historyOnly) {
       match.status = {
-        $nin: [AgentExecutionStatus.PENDING, AgentExecutionStatus.RUNNING],
+        notIn: [AgentExecutionStatus.PENDING, AgentExecutionStatus.RUNNING],
       };
     } else if (query.status) {
       match.status = query.status;
@@ -101,7 +98,7 @@ export class AgentRunsController extends BaseCRUDController<
     }
 
     if (query.model) {
-      match.$or = [
+      match.OR = [
         { 'metadata.actualModel': query.model },
         { 'metadata.requestedModel': query.model },
       ];
@@ -118,34 +115,26 @@ export class AgentRunsController extends BaseCRUDController<
         { 'metadata.routingPolicy': searchRegex },
       ];
 
-      if (Array.isArray(match.$or)) {
-        match.$and = [{ $or: [...match.$or] }, { $or: searchConditions }];
-        delete match.$or;
+      if (Array.isArray(match.OR)) {
+        match.AND = [{ OR: [...match.OR] }, { OR: searchConditions }];
+        delete match.OR;
       } else {
-        match.$or = searchConditions;
+        match.OR = searchConditions;
       }
     }
 
-    const pipeline: Record<string, unknown>[] = [{ $match: match }];
-
+    let orderBy: Record<string, number>;
     if (query.sortMode === 'model') {
-      pipeline.push({
-        $addFields: {
-          _sortModel: {
-            $ifNull: ['$metadata.actualModel', '$metadata.requestedModel'],
-          },
-        },
-      });
-      pipeline.push({ $sort: { _sortModel: 1, createdAt: -1 } });
+      orderBy = { createdAt: -1 };
     } else if (query.sortMode === 'credits') {
-      pipeline.push({ $sort: { createdAt: -1, creditsUsed: -1 } });
+      orderBy = { createdAt: -1, creditsUsed: -1 };
     } else if (query.sortMode === 'duration') {
-      pipeline.push({ $sort: { createdAt: -1, durationMs: -1 } });
+      orderBy = { createdAt: -1, durationMs: -1 };
     } else {
-      pipeline.push({ $sort: handleQuerySort(query.sort) });
+      orderBy = handleQuerySort(query.sort);
     }
 
-    return pipeline;
+    return { orderBy, where: match };
   }
 
   @Get()
@@ -161,7 +150,7 @@ export class AgentRunsController extends BaseCRUDController<
       customLabels,
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
-    const aggregate = this.buildFindAllPipeline(user, query);
+    const aggregate = this.buildFindAllQuery(user, query);
     const data = await this.agentRunsService.findAll(aggregate, options);
     return serializeCollection(request, AgentRunSerializer, data);
   }

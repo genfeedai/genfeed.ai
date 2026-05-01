@@ -34,15 +34,13 @@ export class CronByokBillingService {
     try {
       // Find all BYOK organizations with Stripe customer IDs
       const byokOrgs = await this.organizationSettingsService.findAll(
-        [
-          {
-            $match: {
-              byokBillingStatus: { $ne: ByokBillingStatus.SUSPENDED },
-              isDeleted: { $ne: true },
-              subscriptionTier: SubscriptionTier.BYOK,
-            },
+        {
+          where: {
+            byokBillingStatus: { not: ByokBillingStatus.SUSPENDED },
+            isDeleted: false,
+            subscriptionTier: SubscriptionTier.BYOK,
           },
-        ],
+        },
         { pagination: false },
       );
 

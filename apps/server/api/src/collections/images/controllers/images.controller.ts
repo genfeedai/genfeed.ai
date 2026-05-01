@@ -70,80 +70,45 @@ export class ImagesController {
   ): Promise<JsonApiCollectionResponse> {
     const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(false);
-    const scope = { $ne: null };
+    const scope = { not: null };
     const brand = publicMetadata.brand;
 
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: {
-          $and: [
-            {
-              $or: [
-                {
-                  $and: [
-                    {
-                      brand,
-                      category: IngredientCategory.IMAGE,
-                      isDeleted,
-                      scope,
-                      // Exclude training source images by default
-                      training: { $exists: false },
-                      user: publicMetadata.user,
-                    },
-                  ],
-                },
-                {
-                  $and: [
-                    {
-                      // Filter default images by brand when brand is specified
-                      brand,
-                      category: IngredientCategory.IMAGE,
-                      isDefault: true,
-                      isDeleted,
-                      scope,
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-        },
+    const aggregate = {
+      where: {
+        AND: [
+          {
+            OR: [
+              {
+                AND: [
+                  {
+                    brand,
+                    category: IngredientCategory.IMAGE,
+                    isDeleted,
+                    scope,
+                    // Exclude training source images by default
+                    training: { not: false },
+                    user: publicMetadata.user,
+                  },
+                ],
+              },
+              {
+                AND: [
+                  {
+                    // Filter default images by brand when brand is specified
+                    brand,
+                    category: IngredientCategory.IMAGE,
+                    isDefault: true,
+                    isDeleted,
+                    scope,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
       },
-      {
-        $lookup: {
-          as: 'metadata',
-          foreignField: '_id',
-          from: 'metadata',
-          localField: 'metadata',
-        },
-      },
-      {
-        $unwind: {
-          path: '$metadata',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $lookup: {
-          as: 'prompt',
-          foreignField: '_id',
-          from: 'prompts',
-          localField: 'prompt',
-        },
-      },
-      {
-        $unwind: {
-          path: '$prompt',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $sort: { createdAt: -1 },
-      },
-      {
-        $limit: Math.min(limit, 50), // Cap at 50 for performance
-      },
-    ];
+      orderBy: { createdAt: -1 },
+    };
 
     const data = await this.imagesService.findAll(aggregate, {
       pagination: false,
@@ -183,7 +148,7 @@ export class ImagesController {
 
     // const references = isValidObjectId(query.references)
     //   ? query.references
-    //   : { $exists: true };
+    //   : { not: true };
 
     // Use IngredientFilterUtil to build ingredient-specific filters
     const parentConditions = IngredientFilterUtil.buildParentFilter(
@@ -202,265 +167,77 @@ export class ImagesController {
     const isPublicFilter =
       query.isPublic !== undefined ? { isPublic: query.isPublic } : {};
 
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: {
-          $and: [
-            {
-              $or: [
-                {
-                  $and: [
+    const aggregate = {
+      where: {
+        AND: [
+          {
+            OR: [
+              {
+                AND: [
+                  {
+                    OR: [
+                      // User's own ingredients (when not filtering by isPublic)
+                      ...(query.isPublic === undefined
+                        ? [
+                            { user: publicMetadata.user },
+                            {
+                              organization: publicMetadata.organization,
+                            },
+                          ]
+                        : []),
+                      // Public ingredients in user's organization (when isPublic=true)
+                      ...(query.isPublic === true
+                        ? [
+                            {
+                              isPublic: true,
+                              organization: publicMetadata.organization,
+                            },
+                          ]
+                        : []),
+                    ],
+                    category: IngredientCategory.IMAGE,
+                    isDeleted,
+                    ...(query.isPublic === undefined ? { scope } : {}),
+                    brand,
+                    status,
+                    ...isPublicFilter,
+                    // references,
+                  },
+                  folderConditions,
+                  trainingFilter,
+                  ...(Object.keys(parentConditions).length > 0
+                    ? [parentConditions]
+                    : []),
+                ],
+              },
+              // Default images (only when not filtering by isPublic)
+              ...(query.isPublic === undefined
+                ? [
                     {
-                      $or: [
-                        // User's own ingredients (when not filtering by isPublic)
-                        ...(query.isPublic === undefined
-                          ? [
-                              { user: publicMetadata.user },
-                              {
-                                organization: publicMetadata.organization,
-                              },
-                            ]
-                          : []),
-                        // Public ingredients in user's organization (when isPublic=true)
-                        ...(query.isPublic === true
-                          ? [
-                              {
-                                isPublic: true,
-                                organization: publicMetadata.organization,
-                              },
-                            ]
+                      AND: [
+                        {
+                          category: IngredientCategory.IMAGE,
+                          isDefault: true,
+                          isDeleted,
+                          status,
+                          // Filter default images by brand when brand is specified
+                          ...(isValidObjectId(query.brand) ? { brand } : {}),
+                          // references,
+                        },
+                        folderConditions,
+                        ...(Object.keys(parentConditions).length > 0
+                          ? [parentConditions]
                           : []),
                       ],
-                      category: IngredientCategory.IMAGE,
-                      isDeleted,
-                      ...(query.isPublic === undefined ? { scope } : {}),
-                      brand,
-                      status,
-                      ...isPublicFilter,
-                      // references,
                     },
-                    folderConditions,
-                    trainingFilter,
-                    ...(Object.keys(parentConditions).length > 0
-                      ? [parentConditions]
-                      : []),
-                  ],
-                },
-                // Default images (only when not filtering by isPublic)
-                ...(query.isPublic === undefined
-                  ? [
-                      {
-                        $and: [
-                          {
-                            category: IngredientCategory.IMAGE,
-                            isDefault: true,
-                            isDeleted,
-                            status,
-                            // Filter default images by brand when brand is specified
-                            ...(isValidObjectId(query.brand) ? { brand } : {}),
-                            // references,
-                          },
-                          folderConditions,
-                          ...(Object.keys(parentConditions).length > 0
-                            ? [parentConditions]
-                            : []),
-                        ],
-                      },
-                    ]
-                  : []),
-              ],
-            },
-          ],
-        },
+                  ]
+                : []),
+            ],
+          },
+        ],
       },
-      ...IngredientFilterUtil.buildMetadataLookup(),
-      ...IngredientFilterUtil.buildFormatFilterStage(query.format),
-      ...IngredientFilterUtil.buildPromptLookup(query.lightweight),
-      {
-        $lookup: {
-          as: 'brand',
-          foreignField: '_id',
-          from: 'brands',
-          localField: 'brand',
-        },
-      },
-      {
-        $unwind: {
-          path: '$brand',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      // Skip expensive lookups in lightweight mode (for gallery views)
-      ...(query.lightweight
-        ? [
-            // Only include minimal brand data
-            {
-              $project: {
-                'brand._id': 1,
-                'brand.label': 1,
-                'brand.slug': 1,
-                createdAt: 1,
-              },
-            },
-          ]
-        : [
-            // Full lookups for detailed views
-            {
-              $lookup: {
-                as: 'brandLogo',
-                from: 'assets',
-                let: { brandId: '$brand._id' },
-                pipeline: [
-                  {
-                    $match: {
-                      $expr: {
-                        $and: [
-                          { $eq: ['$parent', '$$brandId'] },
-                          { $eq: ['$category', 'logo'] },
-                          { $eq: ['$isDeleted', false] },
-                        ],
-                      },
-                    },
-                  },
-                ],
-              },
-            },
-            {
-              $unwind: {
-                path: '$brandLogo',
-                preserveNullAndEmptyArrays: true,
-              },
-            },
-            {
-              $addFields: { 'brand.logo': '$brandLogo._id' },
-            },
-            {
-              $project: { brandLogo: 0 },
-            },
-            {
-              $lookup: {
-                as: 'children',
-                from: 'ingredients',
-                let: { parentId: '$_id' },
-                pipeline: [
-                  {
-                    $match: {
-                      $expr: {
-                        $and: [
-                          { $eq: ['$parent', '$$parentId'] },
-                          { $eq: ['$isDeleted', false] },
-                        ],
-                      },
-                    },
-                  },
-                ],
-              },
-            },
-            {
-              $addFields: { totalChildren: { $size: '$children' } },
-            },
-            {
-              $project: { children: 0 },
-            },
-            {
-              $lookup: {
-                as: 'totalVotes',
-                from: 'votes',
-                let: { entityId: '$_id' },
-                pipeline: [
-                  {
-                    $match: {
-                      $expr: {
-                        $and: [
-                          { $eq: ['$entity', '$$entityId'] },
-                          { $eq: ['$isDeleted', false] },
-                        ],
-                      },
-                    },
-                  },
-                ],
-              },
-            },
-            {
-              $addFields: {
-                totalVotes: { $size: '$totalVotes' },
-              },
-            },
-            {
-              $lookup: {
-                as: 'hasVoted',
-                from: 'votes',
-                let: { entityId: '$_id' },
-                pipeline: [
-                  {
-                    $match: {
-                      $expr: {
-                        $and: [
-                          {
-                            $eq: [
-                              '$entityModel',
-                              ActivityEntityModel.INGREDIENT,
-                            ],
-                          },
-                          { $eq: ['$entity', '$$entityId'] },
-                          { $eq: ['$isDeleted', false] },
-                          {
-                            $eq: ['$user', publicMetadata.user],
-                          },
-                        ],
-                      },
-                    },
-                  },
-                ],
-              },
-            },
-            {
-              $addFields: {
-                hasVoted: { $gt: [{ $size: '$hasVoted' }, 0] },
-              },
-            },
-          ]),
-      // Add text search if search query is provided
-      ...(query.search
-        ? [
-            {
-              $match: {
-                $or: [
-                  { 'metadata.label': { $options: 'i', $regex: query.search } },
-                  {
-                    'metadata.description': {
-                      $options: 'i',
-                      $regex: query.search,
-                    },
-                  },
-                ],
-              },
-            },
-          ]
-        : []),
-      // Always populate tags (lightweight - just tag IDs)
-      {
-        $lookup: {
-          as: 'tags',
-          foreignField: '_id',
-          from: 'tags',
-          localField: 'tags',
-          pipeline: query.lightweight
-            ? [
-                {
-                  $project: {
-                    _id: 1,
-                    label: 1,
-                  },
-                },
-              ]
-            : [],
-        },
-      },
-      {
-        $sort: handleQuerySort(query.sort),
-      },
-    ];
+      orderBy: handleQuerySort(query.sort),
+    };
 
     const data = await this.imagesService.findAll(aggregate, options);
     return serializeCollection(request, IngredientSerializer, data);
@@ -475,53 +252,8 @@ export class ImagesController {
   ): Promise<JsonApiSingleResponse> {
     const publicMetadata = getPublicMetadata(user);
 
-    // Build aggregation pipeline to fetch image with evaluation
-    const pipeline: Record<string, unknown>[] = [
-      {
-        $match: {
-          _id: imageId,
-          isDeleted: false,
-          organization: publicMetadata.organization,
-        },
-      },
-      // Lookup latest COMPLETED evaluation for this image (full document)
-      {
-        $lookup: {
-          as: 'evaluation',
-          from: 'evaluations',
-          let: { imageId: '$_id' },
-          pipeline: [
-            {
-              $match: {
-                $expr: { $eq: ['$content', '$$imageId'] },
-                contentType: IngredientCategory.IMAGE,
-                isDeleted: false,
-                status: 'COMPLETED',
-              },
-            },
-            { $sort: { updatedAt: -1 } },
-            { $limit: 1 },
-            // NO $project - include full evaluation document
-          ],
-        },
-      },
-      // Flatten evaluation to single object (or null)
-      {
-        $addFields: {
-          evaluation: {
-            $ifNull: [{ $arrayElemAt: ['$evaluation', 0] }, null],
-          },
-        },
-      },
-    ];
-
-    // Prisma migration fallback: evaluation lookup is not available through the
-    // old Mongoose aggregation path here.
     const aggregatedData: Record<string, unknown> = { evaluation: null };
 
-    // Populate relationships that aren't in aggregation
-    // User data is resolved via $lookup in IngredientsService.findOne()
-    // (User model is on AUTH connection, cannot .populate() from CLOUD connection)
     const data = await this.imagesService.findOne(
       {
         _id: imageId,

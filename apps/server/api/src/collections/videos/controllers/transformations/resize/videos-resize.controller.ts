@@ -73,7 +73,7 @@ export class VideosResizeController {
 
     const video = await this.videosService.findOne({
       _id: videoId,
-      $or: [
+      OR: [
         { user: publicMetadata.user },
         { organization: publicMetadata.organization },
       ],

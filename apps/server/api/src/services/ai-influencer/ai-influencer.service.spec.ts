@@ -766,7 +766,7 @@ describe('AiInfluencerService', () => {
       expect(personasService.findAll).toHaveBeenCalledWith(
         [
           {
-            $match: {
+            match: {
               isAutopilotEnabled: true,
               isDarkroomCharacter: true,
               isDeleted: false,
@@ -887,8 +887,8 @@ describe('AiInfluencerService', () => {
       expect(ingredientsService.findAll).toHaveBeenCalledWith(
         expect.arrayContaining([
           expect.objectContaining({
-            $match: expect.objectContaining({
-              generationSource: { $regex: /^ai-influencer/ },
+            match: expect.objectContaining({
+              generationSource: { contains: /^ai-influencer/ },
               isDeleted: false,
             }),
           }),
@@ -913,7 +913,7 @@ describe('AiInfluencerService', () => {
       expect(ingredientsService.findAll).toHaveBeenCalledWith(
         expect.arrayContaining([
           expect.objectContaining({
-            $match: expect.objectContaining({
+            match: expect.objectContaining({
               personaSlug: 'luna-ai',
             }),
           }),

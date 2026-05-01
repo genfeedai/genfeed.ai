@@ -19,8 +19,8 @@ describe('PresetFilterUtil', () => {
 
       expect(conditions).toHaveLength(3);
       expect(conditions[0]).toEqual({
-        organization: { $exists: false },
-        user: { $exists: false },
+        organization: { not: false },
+        user: { not: false },
       });
       expect(conditions[1].organization).toBe(organization);
       expect(conditions[2].user).toBe(user);
@@ -29,7 +29,7 @@ describe('PresetFilterUtil', () => {
     it('falls back to global scope when metadata empty', () => {
       const conditions = PresetFilterUtil.buildScopeOrConditions({});
       expect(conditions).toEqual([
-        { organization: { $exists: false }, user: { $exists: false } },
+        { organization: { not: false }, user: { not: false } },
       ]);
     });
   });
@@ -118,7 +118,7 @@ describe('PresetFilterUtil', () => {
         isDeleted: false,
         isFavorite: false,
       });
-      expect(match.$or).toHaveLength(3);
+      expect(match.OR).toHaveLength(3);
     });
   });
 });

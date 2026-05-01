@@ -133,8 +133,24 @@ export function TerminalView({ workspaceId }: TerminalViewProps) {
       if (trimmed.startsWith('/generate ')) {
         const prompt = trimmed.slice('/generate '.length);
         addLine('output', `generating: "${prompt}"...`);
-        // TODO: wire to genfeedDesktop.cloud.generateContent
-        addLine('system', 'generation pipeline not yet connected to CLI');
+        window.genfeedDesktop.cloud
+          .generateContent({
+            platform: 'twitter',
+            prompt,
+            publishIntent: 'review',
+            type: 'hook',
+          })
+          .then((generated) => {
+            addLine('output', generated.content);
+          })
+          .catch((nextError: unknown) => {
+            addLine(
+              'error',
+              nextError instanceof Error
+                ? nextError.message
+                : 'generation failed',
+            );
+          });
         return;
       }
 

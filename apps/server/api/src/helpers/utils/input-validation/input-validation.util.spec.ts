@@ -167,7 +167,7 @@ describe('InputValidationUtil', () => {
       expectValidationDetail(
         () =>
           InputValidationUtil.validateString(
-            '{ $where: "this.a == this.b", $regex: ".*", $ne: null }',
+            '{ $where: "this.a == this.b", contains: ".*", not: null }',
             'testField',
           ),
         'testField contains potentially malicious NoSQL patterns',
@@ -563,7 +563,7 @@ describe('InputValidationUtil', () => {
   describe('security - NoSQL injection prevention', () => {
     it('should reject NoSQL injection when multiple operators present', () => {
       const noSqlPattern =
-        '{ "$where": "this.a == this.b", "$ne": null, "$or": [] }';
+        '{ "$where": "this.a == this.b", "not": null, "OR": [] }';
 
       expectValidationDetail(
         () => InputValidationUtil.validateString(noSqlPattern, 'testField'),

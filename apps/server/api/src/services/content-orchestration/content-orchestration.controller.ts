@@ -1,6 +1,6 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { ContentOrchestrationService } from '@api/services/content-orchestration/content-orchestration.service';
-import { ContentPipelineQueueService } from '@api/services/content-orchestration/content-pipeline-queue.service';
+import { ContentqueryQueueService } from '@api/services/content-orchestration/content-pipeline-queue.service';
 import type {
   PipelineStep,
   PublishMode,
@@ -40,7 +40,7 @@ interface BatchGenerateDto {
 export class ContentOrchestrationController {
   constructor(
     private readonly contentOrchestrationService: ContentOrchestrationService,
-    private readonly contentPipelineQueueService: ContentPipelineQueueService,
+    private readonly contentqueryQueueService: ContentqueryQueueService,
     private readonly brandsService: BrandsService,
   ) {}
 
@@ -70,7 +70,7 @@ export class ContentOrchestrationController {
     @Body() dto: GenerateAndPublishDto,
   ) {
     if (!dto.steps || dto.steps.length === 0) {
-      throw new BadRequestException('Pipeline must have at least one step');
+      throw new BadRequestException('query must have at least one step');
     }
 
     await this.validateBrandOwnership(dto.brandId, req.organization.id);
@@ -83,21 +83,20 @@ export class ContentOrchestrationController {
       );
     }
 
-    const jobId =
-      await this.contentPipelineQueueService.queueGenerateAndPublish({
-        brandId: dto.brandId,
-        idempotencyKey: dto.idempotencyKey,
-        organizationId: req.organization.id,
-        personaId,
-        platforms: dto.platforms,
-        prompt: dto.prompt,
-        publishMode: dto.publishMode,
-        scheduledDate: dto.scheduledDate
-          ? new Date(dto.scheduledDate)
-          : undefined,
-        steps: dto.steps,
-        userId: req.user.id,
-      });
+    const jobId = await this.contentqueryQueueService.queueGenerateAndPublish({
+      brandId: dto.brandId,
+      idempotencyKey: dto.idempotencyKey,
+      organizationId: req.organization.id,
+      personaId,
+      platforms: dto.platforms,
+      prompt: dto.prompt,
+      publishMode: dto.publishMode,
+      scheduledDate: dto.scheduledDate
+        ? new Date(dto.scheduledDate)
+        : undefined,
+      steps: dto.steps,
+      userId: req.user.id,
+    });
 
     return { jobId, status: 'queued', stepCount: dto.steps.length };
   }
@@ -129,7 +128,7 @@ export class ContentOrchestrationController {
       }
     }
 
-    const jobId = await this.contentPipelineQueueService.queueBatchGenerate({
+    const jobId = await this.contentqueryQueueService.queueBatchGenerate({
       brandId: dto.brandId,
       count: dto.items.length,
       items: dto.items.map((item) => ({
@@ -150,11 +149,11 @@ export class ContentOrchestrationController {
    * Check pipeline job status.
    */
   @Get('status')
-  async getPipelineStatus(
+  async getqueryStatus(
     @Param('personaId') personaId: string,
     @Req() req: { organization: { id: string } },
   ) {
-    const jobs = await this.contentPipelineQueueService.getJobsByPersona(
+    const jobs = await this.contentqueryQueueService.getJobsByPersona(
       personaId,
       req.organization.id,
     );

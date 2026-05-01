@@ -61,8 +61,8 @@ describe('OutreachCampaignsController', () => {
     expect(controller).toBeDefined();
   });
 
-  describe('buildFindAllPipeline', () => {
-    it('should build pipeline with organization and brand filter', () => {
+  describe('buildFindAllQuery', () => {
+    it('should build query with organization and brand filter', () => {
       const brandId = '507f191e810c19729de860ee'.toString();
       const user = {
         id: 'user-123',
@@ -73,12 +73,12 @@ describe('OutreachCampaignsController', () => {
         },
       } as never;
       const query = { isDeleted: false } as never;
-      const pipeline = controller.buildFindAllPipeline(user, query);
-      expect(pipeline).toBeInstanceOf(Array);
-      expect(pipeline.length).toBeGreaterThan(0);
+      const query = controller.buildFindAllQuery(user, query);
+      expect(query).toBeInstanceOf(Array);
+      expect(query.length).toBeGreaterThan(0);
     });
 
-    it('should include $match with correct organization ObjectId', () => {
+    it('should include match with correct organization ObjectId', () => {
       const orgId = '507f191e810c19729de860ee'.toString();
       const brandId = '507f191e810c19729de860ee'.toString();
       const user = {
@@ -90,10 +90,10 @@ describe('OutreachCampaignsController', () => {
         },
       } as never;
       const query = { isDeleted: false } as never;
-      const pipeline = controller.buildFindAllPipeline(user, query);
-      const matchStage = pipeline[0] as { $match: Record<string, unknown> };
-      expect(matchStage.$match.brand).toEqual(brandId);
-      expect(matchStage.$match.organization).toEqual(orgId);
+      const query = controller.buildFindAllQuery(user, query);
+      const matchStage = query[0] as { match: Record<string, unknown> };
+      expect(matchStage.match.brand).toEqual(brandId);
+      expect(matchStage.match.organization).toEqual(orgId);
     });
 
     it('should omit brand match when no brand is selected', () => {
@@ -105,16 +105,16 @@ describe('OutreachCampaignsController', () => {
           user: '507f191e810c19729de860ee'.toString(),
         },
       } as never;
-      const pipeline = controller.buildFindAllPipeline(user, {
+      const query = controller.buildFindAllQuery(user, {
         isDeleted: false,
       } as never);
-      const matchStage = pipeline[0] as { $match: Record<string, unknown> };
+      const matchStage = query[0] as { match: Record<string, unknown> };
 
-      expect(matchStage.$match.brand).toBeUndefined();
-      expect(matchStage.$match.organization).toEqual(orgId);
+      expect(matchStage.match.brand).toBeUndefined();
+      expect(matchStage.match.organization).toEqual(orgId);
     });
 
-    it('should include $sort stage in pipeline', () => {
+    it('should include orderBy stage in query', () => {
       const user = {
         id: 'user-123',
         publicMetadata: {
@@ -123,9 +123,9 @@ describe('OutreachCampaignsController', () => {
         },
       } as never;
       const query = { isDeleted: false } as never;
-      const pipeline = controller.buildFindAllPipeline(user, query);
-      const hasSort = pipeline.some(
-        (stage) => '$sort' in (stage as Record<string, unknown>),
+      const query = controller.buildFindAllQuery(user, query);
+      const hasSort = query.some(
+        (stage) => 'orderBy' in (stage as Record<string, unknown>),
       );
       expect(hasSort).toBe(true);
     });

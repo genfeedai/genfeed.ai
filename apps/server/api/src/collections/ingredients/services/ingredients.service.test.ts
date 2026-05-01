@@ -172,7 +172,7 @@ describe('IngredientsService', () => {
 
   describe('findAll', () => {
     it('should find all ingredients with pagination', async () => {
-      const aggregate: PipelineStage[] = [{ $match: { user: 'user-id' } }];
+      const aggregate: PipelineStage[] = [{ match: { user: 'user-id' } }];
       const options = { limit: 10, page: 1 };
 
       const result = await service.findAll(aggregate, options);

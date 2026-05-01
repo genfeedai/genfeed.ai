@@ -14,7 +14,6 @@ import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import { PipelineBuilder } from '@api/shared/utils/pipeline-builder/pipeline-builder.util';
 import type { User } from '@clerk/backend';
 import { MemberRole } from '@genfeedai/enums';
 import { MoodSerializer } from '@genfeedai/serializers';
@@ -104,10 +103,7 @@ export class ElementsMoodsController extends BaseCRUDController<
    * Override the base pipeline to load moods
    * Load items with: (no org AND no user) OR (user's org) OR (user's user)
    */
-  public buildFindAllPipeline(
-    user: User,
-    query: BaseQueryDto,
-  ): Record<string, unknown>[] {
+  public buildFindAllQuery(user: User, query: BaseQueryDto) {
     const publicMetadata = getPublicMetadata(user);
     const adminFilter = CollectionFilterUtil.buildAdminFilter(
       publicMetadata,
@@ -116,7 +112,7 @@ export class ElementsMoodsController extends BaseCRUDController<
 
     // Build OR conditions: global items OR user's org items OR user's items
     const orConditions: Record<string, unknown>[] = [
-      { organization: { $exists: false }, user: { $exists: false } }, // global items
+      { organization: null, user: null }, // global items
     ];
 
     if (publicMetadata.organization) {
@@ -129,14 +125,14 @@ export class ElementsMoodsController extends BaseCRUDController<
       orConditions.push({ user: publicMetadata.user });
     }
 
-    return PipelineBuilder.create()
-      .match({
+    return {
+      where: {
         isDeleted: query.isDeleted ?? false,
-        ...(adminFilter ?? { $or: orConditions }),
-      })
-      .sort(
-        query.sort ? handleQuerySort(query.sort) : { createdAt: -1, label: 1 },
-      )
-      .build();
+        ...(adminFilter ?? { OR: orConditions }),
+      },
+      orderBy: query.sort
+        ? handleQuerySort(query.sort)
+        : { createdAt: -1, label: 1 },
+    };
   }
 }

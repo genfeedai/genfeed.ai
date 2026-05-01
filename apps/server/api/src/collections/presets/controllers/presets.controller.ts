@@ -58,14 +58,11 @@ export class PresetsController extends BaseCRUDController<
   }
 
   /**
-   * Override buildFindAllPipeline to implement preset-specific filtering
+   * Override buildFindAllQuery to implement preset-specific filtering
    * Load items with: (no org AND no user) OR (user's org) OR (user's user)
    * Uses PresetFilterUtil for consistent three-tier scope filtering
    */
-  public buildFindAllPipeline(
-    user: User,
-    query: PresetsQueryDto,
-  ): Record<string, unknown>[] {
+  public buildFindAllQuery(user: User, query: PresetsQueryDto) {
     const publicMetadata = getPublicMetadata(user);
 
     // Use PresetFilterUtil to build base match stage
@@ -79,14 +76,12 @@ export class PresetsController extends BaseCRUDController<
       query.isDeleted ?? false,
     );
 
-    return [
-      { $match: matchStage },
-      {
-        $sort: query.sort
-          ? handleQuerySort(query.sort)
-          : ({ createdAt: -1, key: 1, label: 1, type: 1 } as SortObject),
-      },
-    ];
+    return {
+      where: matchStage,
+      orderBy: query.sort
+        ? handleQuerySort(query.sort)
+        : ({ createdAt: -1, key: 1, label: 1, type: 1 } as SortObject),
+    };
   }
 
   /**

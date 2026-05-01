@@ -44,7 +44,7 @@ export class WorkflowExecutionsController {
     private readonly workflowExecutorService: WorkflowExecutorService,
   ) {}
 
-  private buildFindAllPipeline(
+  private buildFindAllQuery(
     organizationId: string,
     query: WorkflowExecutionQueryDto,
   ): Record<string, unknown>[] {
@@ -65,7 +65,10 @@ export class WorkflowExecutionsController {
       match.trigger = query.trigger;
     }
 
-    return [{ $match: match }, { $sort: handleQuerySort(query.sort) }];
+    return {
+      orderBy: handleQuerySort(query.sort),
+      where: match,
+    };
   }
 
   @Get()
@@ -99,7 +102,7 @@ export class WorkflowExecutionsController {
       limit !== undefined ? Number(limit) : (query.limit ?? undefined);
     const parsedOffset = offset !== undefined ? Number(offset) : 0;
     const result = await this.workflowExecutionsService.findAll(
-      this.buildFindAllPipeline(publicMetadata.organization, query),
+      this.buildFindAllQuery(publicMetadata.organization, query),
       {
         customLabels,
         ...QueryDefaultsUtil.getPaginationDefaults({

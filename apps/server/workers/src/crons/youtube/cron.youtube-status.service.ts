@@ -46,40 +46,25 @@ export class CronYoutubeStatusService {
       };
 
       const posts: unknown = await this.postsService.findAll(
-        [
-          {
-            $match: {
-              // Only check recent posts (last 7 days) to avoid checking old videos
-              createdAt: { $gte: sevenDaysAgo },
-              externalId: { $exists: true, $ne: null },
-              isDeleted: false,
-              platform: CredentialPlatform.YOUTUBE,
-              // Only check non-public statuses (PRIVATE, UNLISTED, SCHEDULED)
-              // Once PUBLIC, no need to keep checking
-              status: {
-                $in: [
-                  PostStatus.PRIVATE,
-                  PostStatus.UNLISTED,
-                  PostStatus.SCHEDULED, // Videos waiting to be uploaded
-                ],
-              },
+        {
+          include: { credential: true },
+          where: {
+            // Only check recent posts (last 7 days) to avoid checking old videos
+            createdAt: { gte: sevenDaysAgo },
+            externalId: { not: null },
+            isDeleted: false,
+            platform: CredentialPlatform.YOUTUBE,
+            // Only check non-public statuses (PRIVATE, UNLISTED, SCHEDULED)
+            // Once PUBLIC, no need to keep checking
+            status: {
+              in: [
+                PostStatus.PRIVATE,
+                PostStatus.UNLISTED,
+                PostStatus.SCHEDULED, // Videos waiting to be uploaded
+              ],
             },
           },
-          {
-            $lookup: {
-              as: 'credential',
-              foreignField: '_id',
-              from: 'credentials',
-              localField: 'credential',
-            },
-          },
-          {
-            $unwind: {
-              path: '$credential',
-              preserveNullAndEmptyArrays: true,
-            },
-          },
-        ],
+        },
         options,
       );
 

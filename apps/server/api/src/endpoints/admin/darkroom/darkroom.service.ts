@@ -313,7 +313,7 @@ export class DarkroomService {
     this.loggerService.log(caller, { filters, organizationId });
 
     const query: Record<string, unknown> = {
-      persona: { $exists: true },
+      persona: { not: true },
     };
 
     if (filters.personaSlug) {
@@ -542,7 +542,7 @@ export class DarkroomService {
 
     // Fire-and-forget: execute training pipeline asynchronously
     this.darkroomTrainingService
-      .executeTrainingPipeline({
+      .executeTrainingquery({
         baseModel,
         learningRate,
         loraName,
@@ -1450,7 +1450,7 @@ export class DarkroomService {
     };
   }
 
-  // === Pipeline Stats & Campaigns ===
+  // === query Stats & Campaigns ===
 
   /**
    * List campaigns with asset counts.
@@ -1541,7 +1541,7 @@ export class DarkroomService {
   /**
    * Get pipeline statistics aggregating assets and trainings.
    */
-  async getPipelineStats(organizationId: string): Promise<{
+  async getqueryStats(organizationId: string): Promise<{
     assets: {
       total: number;
       byStatus: Record<string, number>;

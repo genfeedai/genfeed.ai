@@ -15,9 +15,7 @@ import {
 
 @Controller('organizations/:organizationId/twitter-pipeline')
 export class TwitterPipelineController {
-  constructor(
-    private readonly twitterPipelineService: TwitterPipelineService,
-  ) {}
+  constructor(private readonly twitterqueryService: TwitterPipelineService) {}
 
   @Post('search')
   @HttpCode(HttpStatus.OK)
@@ -25,7 +23,7 @@ export class TwitterPipelineController {
     @Param('organizationId') organizationId: string,
     @Body() dto: TwitterPipelineSearchDto,
   ) {
-    return this.twitterPipelineService.search(
+    return this.twitterqueryService.search(
       organizationId,
       dto.brandId,
       dto.query,
@@ -41,7 +39,7 @@ export class TwitterPipelineController {
     @Param('organizationId') organizationId: string,
     @Body() dto: TwitterPipelineDraftDto,
   ) {
-    return this.twitterPipelineService.draft(
+    return this.twitterqueryService.draft(
       organizationId,
       dto.searchResults,
       dto.voiceConfig,
@@ -54,7 +52,7 @@ export class TwitterPipelineController {
     @Param('organizationId') organizationId: string,
     @Body() dto: TwitterPipelinePublishDto,
   ) {
-    return this.twitterPipelineService.publish(organizationId, dto.brandId, {
+    return this.twitterqueryService.publish(organizationId, dto.brandId, {
       targetTweetId: dto.targetTweetId,
       text: dto.text,
       type: dto.type,

@@ -73,80 +73,46 @@ export class GifsController {
   ): Promise<JsonApiCollectionResponse> {
     const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(false);
-    const scope = { $ne: null };
+    const scope = { not: null };
     const brand = publicMetadata.brand;
 
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: {
-          $and: [
-            {
-              $or: [
-                {
-                  $and: [
-                    {
-                      brand,
-                      category: IngredientCategory.GIF,
-                      isDeleted,
-                      scope,
-                      user: publicMetadata.user,
-                    },
-                  ],
-                },
-                {
-                  $and: [
-                    {
-                      // Filter default GIFs by brand when brand is specified
-                      brand,
-                      category: IngredientCategory.GIF,
-                      isDefault: true,
-                      isDeleted,
-                      scope,
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-        },
+    const aggregate = {
+      where: {
+        AND: [
+          {
+            OR: [
+              {
+                AND: [
+                  {
+                    brand,
+                    category: IngredientCategory.GIF,
+                    isDeleted,
+                    scope,
+                    user: publicMetadata.user,
+                  },
+                ],
+              },
+              {
+                AND: [
+                  {
+                    // Filter default GIFs by brand when brand is specified
+                    brand,
+                    category: IngredientCategory.GIF,
+                    isDefault: true,
+                    isDeleted,
+                    scope,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
       },
-      {
-        $lookup: {
-          as: 'metadata',
-          foreignField: '_id',
-          from: 'metadata',
-          localField: 'metadata',
-        },
-      },
-      {
-        $unwind: {
-          path: '$metadata',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $lookup: {
-          as: 'prompt',
-          foreignField: '_id',
-          from: 'prompts',
-          localField: 'prompt',
-        },
-      },
-      {
-        $unwind: {
-          path: '$prompt',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $sort: { createdAt: -1 },
-      },
-      {
-        $limit: Math.min(limit, 50), // Cap at 50 for performance
-      },
-    ];
+      orderBy: { createdAt: -1 },
+    };
 
     const data = await this.gifsService.findAll(aggregate, {
+      limit: Math.min(Number(limit) || 10, 50),
       pagination: false,
     });
 
@@ -191,242 +157,54 @@ export class GifsController {
       query.folder,
     );
 
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: {
-          $and: [
-            {
-              $or: [
-                {
-                  $and: [
-                    {
-                      $or: [
-                        { user: publicMetadata.user },
-                        {
-                          organization: publicMetadata.organization,
-                        },
-                      ],
-                      brand,
-                      category: IngredientCategory.GIF,
-                      isDeleted,
-                      scope,
-                      status,
-                    },
-                    folderConditions,
-                    ...(Object.keys(parentConditions).length > 0
-                      ? [parentConditions]
-                      : []),
-                  ],
-                },
-                {
-                  $and: [
-                    {
-                      category: IngredientCategory.GIF,
-                      isDefault: true,
-                      isDeleted,
-                      status,
-                      // Filter default GIFs by brand when brand is specified
-                      ...(isValidObjectId(query.brand) ? { brand } : {}),
-                    },
-                    folderConditions,
-                    ...(Object.keys(parentConditions).length > 0
-                      ? [parentConditions]
-                      : []),
-                  ],
-                },
-              ],
-            },
-          ],
-        },
-      },
-      ...IngredientFilterUtil.buildMetadataLookup(),
-      ...IngredientFilterUtil.buildFormatFilterStage(query.format),
-      ...IngredientFilterUtil.buildPromptLookup(query.lightweight),
-      {
-        $lookup: {
-          as: 'brand',
-          foreignField: '_id',
-          from: 'brands',
-          localField: 'brand',
-        },
-      },
-      {
-        $unwind: {
-          path: '$brand',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      // Skip expensive lookups in lightweight mode (for gallery views)
-      ...(query.lightweight
-        ? [
-            // Only include minimal brand data
-            {
-              $project: {
-                'brand._id': 1,
-                'brand.label': 1,
-                'brand.slug': 1,
-                createdAt: 1,
-              },
-            },
-          ]
-        : [
-            // Full lookups for detailed views
-            {
-              $lookup: {
-                as: 'brandLogo',
-                from: 'assets',
-                let: { brandId: '$brand._id' },
-                pipeline: [
+    const aggregate = {
+      where: {
+        AND: [
+          {
+            OR: [
+              {
+                AND: [
                   {
-                    $match: {
-                      $expr: {
-                        $and: [
-                          { $eq: ['$parent', '$$brandId'] },
-                          { $eq: ['$category', 'logo'] },
-                          { $eq: ['$isDeleted', false] },
-                        ],
+                    OR: [
+                      { user: publicMetadata.user },
+                      {
+                        organization: publicMetadata.organization,
                       },
-                    },
+                    ],
+                    brand,
+                    category: IngredientCategory.GIF,
+                    isDeleted,
+                    scope,
+                    status,
                   },
+                  folderConditions,
+                  ...(Object.keys(parentConditions).length > 0
+                    ? [parentConditions]
+                    : []),
                 ],
               },
-            },
-            {
-              $unwind: {
-                path: '$brandLogo',
-                preserveNullAndEmptyArrays: true,
-              },
-            },
-            {
-              $addFields: { 'brand.logo': '$brandLogo._id' },
-            },
-            {
-              $project: { brandLogo: 0 },
-            },
-            {
-              $lookup: {
-                as: 'children',
-                from: 'ingredients',
-                let: { parentId: '$_id' },
-                pipeline: [
+              {
+                AND: [
                   {
-                    $match: {
-                      $expr: {
-                        $and: [
-                          { $eq: ['$parent', '$$parentId'] },
-                          { $eq: ['$isDeleted', false] },
-                        ],
-                      },
-                    },
+                    category: IngredientCategory.GIF,
+                    isDefault: true,
+                    isDeleted,
+                    status,
+                    // Filter default GIFs by brand when brand is specified
+                    ...(isValidObjectId(query.brand) ? { brand } : {}),
                   },
+                  folderConditions,
+                  ...(Object.keys(parentConditions).length > 0
+                    ? [parentConditions]
+                    : []),
                 ],
               },
-            },
-            {
-              $addFields: { totalChildren: { $size: '$children' } },
-            },
-            {
-              $project: { children: 0 },
-            },
-            {
-              $lookup: {
-                as: 'totalVotes',
-                from: 'votes',
-                let: { entityId: '$_id' },
-                pipeline: [
-                  {
-                    $match: {
-                      $expr: {
-                        $and: [
-                          { $eq: ['$entity', '$$entityId'] },
-                          { $eq: ['$isDeleted', false] },
-                        ],
-                      },
-                    },
-                  },
-                ],
-              },
-            },
-            {
-              $addFields: {
-                totalVotes: { $size: '$totalVotes' },
-              },
-            },
-            {
-              $lookup: {
-                as: 'hasVoted',
-                from: 'votes',
-                let: { entityId: '$_id' },
-                pipeline: [
-                  {
-                    $match: {
-                      $expr: {
-                        $and: [
-                          {
-                            $eq: [
-                              '$entityModel',
-                              ActivityEntityModel.INGREDIENT,
-                            ],
-                          },
-                          { $eq: ['$entity', '$$entityId'] },
-                          { $eq: ['$isDeleted', false] },
-                          {
-                            $eq: ['$user', publicMetadata.user],
-                          },
-                        ],
-                      },
-                    },
-                  },
-                ],
-              },
-            },
-            {
-              $addFields: {
-                hasVoted: { $gt: [{ $size: '$hasVoted' }, 0] },
-              },
-            },
-          ]),
-      // Add text search if search query is provided
-      ...(query.search
-        ? [
-            {
-              $match: {
-                $or: [
-                  { 'metadata.label': { $options: 'i', $regex: query.search } },
-                  {
-                    'metadata.description': {
-                      $options: 'i',
-                      $regex: query.search,
-                    },
-                  },
-                ],
-              },
-            },
-          ]
-        : []),
-      // Always populate tags (lightweight - just tag IDs)
-      {
-        $lookup: {
-          as: 'tags',
-          foreignField: '_id',
-          from: 'tags',
-          localField: 'tags',
-          pipeline: query.lightweight
-            ? [
-                {
-                  $project: {
-                    _id: 1,
-                    label: 1,
-                  },
-                },
-              ]
-            : [],
-        },
+            ],
+          },
+        ],
       },
-      {
-        $sort: handleQuerySort(query.sort),
-      },
-    ];
+      orderBy: handleQuerySort(query.sort),
+    };
 
     const data = await this.gifsService.findAll(aggregate, options);
     return serializeCollection(request, IngredientSerializer, data);

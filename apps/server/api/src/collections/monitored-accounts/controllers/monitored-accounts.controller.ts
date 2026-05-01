@@ -51,10 +51,7 @@ export class MonitoredAccountsController extends BaseCRUDController<
     );
   }
 
-  public buildFindAllPipeline(
-    user: User,
-    query: MonitoredAccountsQueryDto,
-  ): Record<string, unknown>[] {
+  public buildFindAllQuery(user: User, query: MonitoredAccountsQueryDto) {
     const publicMetadata = getPublicMetadata(user);
     const match: Record<string, unknown> = {
       isDeleted: query.isDeleted ?? false,
@@ -83,12 +80,10 @@ export class MonitoredAccountsController extends BaseCRUDController<
       match.isActive = query.isActive;
     }
 
-    const pipeline: Record<string, unknown>[] = [
-      { $match: match },
-      { $sort: handleQuerySort(query.sort) },
-    ];
-
-    return pipeline;
+    return {
+      orderBy: handleQuerySort(query.sort),
+      where: match,
+    };
   }
 
   public canUserModifyEntity(user: User, entity: unknown): boolean {

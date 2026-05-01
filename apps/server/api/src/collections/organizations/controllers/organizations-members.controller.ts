@@ -10,7 +10,6 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { InviteMemberDto } from '@api/collections/members/dto/invite-member.dto';
 import { UpdateMemberDto } from '@api/collections/members/dto/update-member.dto';
-import { type MemberDocument } from '@api/collections/members/schemas/member.schema';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
@@ -36,7 +35,6 @@ import {
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { generateLabel } from '@api/shared/utils/label/label.util';
-import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { User } from '@clerk/backend';
 import type { JsonApiCollectionResponse } from '@genfeedai/interfaces';
 import { MemberSerializer } from '@genfeedai/serializers';
@@ -93,56 +91,21 @@ export class OrganizationsMembersController {
     };
 
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const aggregate: Record<string, unknown>[] = [
+    const data = await this.membersService.findAll(
       {
-        $match: {
+        include: {
+          brands: true,
+          role: true,
+          user: true,
+        },
+        orderBy: handleQuerySort(query.sort),
+        where: {
           isDeleted,
           organization: organizationId,
         },
       },
-      {
-        $lookup: {
-          as: 'user',
-          foreignField: '_id',
-          from: 'users',
-          localField: 'user',
-        },
-      },
-      {
-        $unwind: {
-          path: '$user',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $lookup: {
-          as: 'role',
-          foreignField: '_id',
-          from: 'roles',
-          localField: 'role',
-        },
-      },
-      {
-        $unwind: {
-          path: '$role',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $lookup: {
-          as: 'accounts',
-          foreignField: '_id',
-          from: 'brands',
-          localField: 'accounts',
-        },
-      },
-      {
-        $sort: handleQuerySort(query.sort),
-      },
-    ];
-
-    const data: AggregatePaginateResult<MemberDocument> =
-      await this.membersService.findAll(aggregate, options);
+      options,
+    );
     return serializeCollection(request, MemberSerializer, data);
   }
 
@@ -422,15 +385,13 @@ export class OrganizationsMembersController {
     };
 
     const validBrands = await this.brandsService.findAll(
-      [
-        {
-          $match: {
-            _id: { $in: brandIds },
-            isDeleted: false,
-            organization: organizationId,
-          },
+      {
+        where: {
+          _id: { in: brandIds },
+          isDeleted: false,
+          organization: organizationId,
         },
-      ],
+      },
       options,
     );
 

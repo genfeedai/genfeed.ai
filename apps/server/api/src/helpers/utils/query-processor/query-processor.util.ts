@@ -60,24 +60,19 @@ export class QueryProcessor {
     };
   }
 
-  /**
-   * Create MongoDB aggregation pipeline for pagination
-   */
-  static createPaginationPipeline(
+  static createPaginationQuery(
     processedQuery: ProcessedPaginationQuery,
   ): Array<Record<string, unknown>> {
-    const pipeline: Array<Record<string, unknown>> = [];
+    const query: Array<Record<string, unknown>> = [];
 
-    // Add sorting
-    pipeline.push({ $sort: processedQuery.sort });
+    query.push({ orderBy: processedQuery.sort });
 
-    // Add pagination if enabled
     if (processedQuery.pagination) {
-      pipeline.push({ $skip: processedQuery.skip });
-      pipeline.push({ $limit: processedQuery.limit });
+      query.push({ skip: processedQuery.skip });
+      query.push({ take: processedQuery.limit });
     }
 
-    return pipeline;
+    return query;
   }
 
   /**
@@ -115,7 +110,7 @@ export class QueryProcessor {
     }
 
     return {
-      $or: searchFields.map((field) => ({ [field]: searchRegex })),
+      OR: searchFields.map((field) => ({ [field]: searchRegex })),
     };
   }
 
@@ -137,7 +132,7 @@ export class QueryProcessor {
           `Invalid start date format: ${String(startDate)}`,
         );
       }
-      dateQuery.$gte = start;
+      dateQuery.gte = start;
       hasDateFilter = true;
     }
 
@@ -148,7 +143,7 @@ export class QueryProcessor {
           `Invalid end date format: ${String(endDate)}`,
         );
       }
-      dateQuery.$lte = end;
+      dateQuery.lte = end;
       hasDateFilter = true;
     }
 
@@ -173,7 +168,7 @@ export class QueryProcessor {
       return validFilters[0] as Record<string, unknown>;
     }
 
-    return { $and: validFilters };
+    return { AND: validFilters };
   }
 
   /**

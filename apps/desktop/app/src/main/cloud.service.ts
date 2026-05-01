@@ -84,37 +84,29 @@ export class DesktopCloudService implements IDesktopDataService {
   async generateContent(
     params: IDesktopGenerationOptions,
   ): Promise<IDesktopGeneratedContent> {
-    const response = await this.fetchJson<{
-      data?: {
-        attributes?: Record<string, unknown>;
-        id?: string;
-      };
-    }>('/posts', {
-      body: JSON.stringify({
-        content: params.prompt,
-        contentType: params.type,
-        metadata: {
-          desktopDraftId: params.sourceDraftId,
-          projectId: params.projectId,
-          publishIntent: params.publishIntent,
-          sourceTrendId: params.sourceTrendId,
-          sourceTrendTopic: params.sourceTrendTopic,
-        },
-        platform: params.platform,
-        status: 'draft',
-      }),
-      method: 'POST',
-    });
+    const response = await this.fetchJson<{ hooks?: string[] }>(
+      '/posts/hook-generations',
+      {
+        body: JSON.stringify({
+          count: 1,
+          platform: params.platform,
+          topic: params.sourceTrendTopic ?? params.prompt,
+        }),
+        method: 'POST',
+      },
+    );
+    const generatedContent = response.hooks?.[0];
 
-    const data = response.data;
+    if (!generatedContent) {
+      throw new Error('Genfeed server returned no generated content.');
+    }
+
     return {
-      content: String(data?.attributes?.content ?? params.prompt),
-      hooks: Array.isArray(data?.attributes?.hooks)
-        ? (data.attributes.hooks as string[])
-        : undefined,
-      id: String(data?.id ?? ''),
-      platform: String(data?.attributes?.platform ?? params.platform),
-      type: String(data?.attributes?.contentType ?? params.type),
+      content: generatedContent,
+      hooks: response.hooks,
+      id: params.sourceDraftId ?? '',
+      platform: params.platform,
+      type: params.type,
     };
   }
 

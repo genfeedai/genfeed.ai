@@ -178,7 +178,7 @@ export class ContentOptimizationService {
     }
   }
 
-  // ─── 3. Pipeline Recommendations ─────────────────────────────────
+  // ─── 3. query Recommendations ─────────────────────────────────
 
   async getRecommendations(
     organizationId: string,
@@ -216,7 +216,7 @@ export class ContentOptimizationService {
       type: ct.category,
     }));
 
-    // Pipeline config suggestions
+    // query config suggestions
     const pipelineConfigs = this.derivePipelineConfigs(summary);
 
     // A/B test suggestions

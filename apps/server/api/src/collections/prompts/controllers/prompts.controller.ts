@@ -279,7 +279,7 @@ export class PromptsController {
 
     const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const scope = query.scope || { $ne: null };
+    const scope = query.scope || { not: null };
 
     // Build match conditions
     const match: Record<string, unknown> = {
@@ -298,51 +298,7 @@ export class PromptsController {
       match.isFavorite = query.isFavorite;
     }
 
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: match,
-      },
-      {
-        $sort: handleQuerySort(query.sort),
-      },
-      // First lookup: Get ingredient from prompt.ingredient reference
-      {
-        $lookup: {
-          as: 'ingredientFromPrompt',
-          foreignField: '_id',
-          from: 'ingredients',
-          localField: 'ingredient',
-        },
-      },
-      // Second lookup: Get ingredients that reference this prompt
-      {
-        $lookup: {
-          as: 'ingredientFromIngredient',
-          foreignField: 'prompt',
-          from: 'ingredients',
-          localField: '_id',
-        },
-      },
-      // Combine both lookups - prefer prompt.ingredient if exists, otherwise use ingredient.prompt
-      {
-        $addFields: {
-          ingredient: {
-            $cond: {
-              else: { $arrayElemAt: ['$ingredientFromIngredient', 0] },
-              if: { $gt: [{ $size: '$ingredientFromPrompt' }, 0] },
-              then: { $arrayElemAt: ['$ingredientFromPrompt', 0] },
-            },
-          },
-        },
-      },
-      // Clean up temporary fields
-      {
-        $project: {
-          ingredientFromIngredient: 0,
-          ingredientFromPrompt: 0,
-        },
-      },
-    ];
+    const aggregate = { where: match, orderBy: handleQuerySort(query.sort) };
 
     const data: AggregatePaginateResult<PromptDocument> =
       await this.promptsService.findAll(aggregate, options);
@@ -400,7 +356,7 @@ export class PromptsController {
     // Verify the prompt exists and belongs to the user
     const prompt = await this.promptsService.findOne({
       _id: promptId,
-      $or: [
+      OR: [
         { user: publicMetadata.user },
         { organization: publicMetadata.organization },
       ],

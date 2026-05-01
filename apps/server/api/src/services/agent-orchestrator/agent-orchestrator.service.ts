@@ -2203,7 +2203,7 @@ export class AgentOrchestratorService {
       isDeleted: false,
       organization: params.context.organizationId,
       user: {
-        $in: [params.context.userId],
+        in: [params.context.userId],
       },
     })) as { title?: string } | null;
 
@@ -2233,7 +2233,7 @@ export class AgentOrchestratorService {
       _id: threadId,
       isDeleted: false,
       organization: organizationId,
-      user: { $in: [userId] },
+      user: { in: [userId] },
     });
 
     return thread ? String(thread._id ?? thread.id) : null;

@@ -83,9 +83,9 @@ export class FailedGenerationService {
       // Try to find existing PROCESSING activity
       if (processingKey && ingredientId) {
         const existingActivity = await this.activitiesService.findOne({
-          $or: [
+          OR: [
             // Try to find by ingredientId in JSON value
-            { value: { $regex: ingredientId } },
+            { value: { contains: ingredientId } },
             // Also check if value is just the ingredientId string
             { value: ingredientId },
           ],

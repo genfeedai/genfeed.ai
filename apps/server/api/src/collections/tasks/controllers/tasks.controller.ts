@@ -156,10 +156,7 @@ export class TasksController extends BaseCRUDController<
     return response;
   }
 
-  public override buildFindAllPipeline(
-    user: User,
-    query: TaskQueryDto,
-  ): Record<string, unknown>[] {
+  public override buildFindAllQuery(user: User, query: TaskQueryDto) {
     const publicMetadata = getPublicMetadata(user);
     const match: Record<string, unknown> = {
       isDeleted: query.isDeleted ?? false,
@@ -199,13 +196,13 @@ export class TasksController extends BaseCRUDController<
     }
 
     if (query.view === 'in_progress') {
-      match.status = { $in: ['backlog', 'in_progress'] };
+      match.status = { in: ['backlog', 'in_progress'] };
     }
 
     if (query.view === 'inbox') {
-      match.$or = [
-        { reviewState: { $in: ['pending_approval', 'changes_requested'] } },
-        { status: { $in: ['done', 'failed'] } },
+      match.OR = [
+        { reviewState: { in: ['pending_approval', 'changes_requested'] } },
+        { status: { in: ['done', 'failed'] } },
       ];
     }
 
@@ -214,7 +211,10 @@ export class TasksController extends BaseCRUDController<
         ? { updatedAt: -1 as const }
         : handleQuerySort(query.sort);
 
-    return [{ $match: match }, { $sort: sort }];
+    return {
+      orderBy: sort,
+      where: match,
+    };
   }
 
   public override canUserModifyEntity(

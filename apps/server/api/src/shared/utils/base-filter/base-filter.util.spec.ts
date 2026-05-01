@@ -13,20 +13,20 @@ describe('BaseFilterUtil', () => {
       expect(result).toEqual([]);
     });
 
-    it('builds $in filter for single value', () => {
+    it('builds in filter for single value', () => {
       const result = BaseFilterUtil.buildArrayInFilter('industries', 'tech');
       expect(result).toHaveLength(1);
-      expect(result[0]).toEqual({ $match: { industries: { $in: ['tech'] } } });
+      expect(result[0]).toEqual({ match: { industries: { in: ['tech'] } } });
     });
 
-    it('builds $in filter for array of values', () => {
+    it('builds in filter for array of values', () => {
       const result = BaseFilterUtil.buildArrayInFilter('platforms', [
         'twitter',
         'instagram',
       ]);
       expect(result).toHaveLength(1);
       expect(result[0]).toEqual({
-        $match: { platforms: { $in: ['twitter', 'instagram'] } },
+        match: { platforms: { in: ['twitter', 'instagram'] } },
       });
     });
 
@@ -68,14 +68,14 @@ describe('BaseFilterUtil', () => {
       expect(result).toEqual([]);
     });
 
-    it('builds $or match stage for search term', () => {
+    it('builds OR match stage for search term', () => {
       const result = BaseFilterUtil.buildSearchFilter('test', [
         'label',
         'description',
       ]);
       expect(result).toHaveLength(1);
-      const matchStage = result[0] as { $match: { $or: unknown[] } };
-      expect(matchStage.$match.$or).toHaveLength(2);
+      const matchStage = result[0] as { match: { OR: unknown[] } };
+      expect(matchStage.match.OR).toHaveLength(2);
     });
   });
 });

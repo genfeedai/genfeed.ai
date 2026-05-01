@@ -239,7 +239,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
 
   /**
    * Get current period analytics grouped by entity ID.
-   * Uses $queryRaw to replicate MongoDB $group aggregation on PostAnalytics.
+   * Uses Prisma raw SQL aggregation on PostAnalytics.
    */
   private async getCurrentAnalytics(
     entityIds: string[],
@@ -346,14 +346,14 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       this.parseDateRange(startDateStr, endDateStr);
 
     const orgsResult = await this.organizationsService.findAll(
-      [{ $match: { isDeleted: false } }],
+      { where: { isDeleted: false } },
       { pagination: false },
     );
     const allOrgs =
       (orgsResult as AggregatePaginateResult<OrganizationDoc>).docs || [];
 
     if (allOrgs.length === 0) {
-      return [];
+      return { where: {} };
     }
 
     const orgIds = allOrgs.map((o: OrganizationDoc) => o.id);
@@ -432,30 +432,19 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       this.parseDateRange(startDateStr, endDateStr);
 
     const brandsResult = await this.brandsService.findAll(
-      [
-        {
-          $match: {
-            isDeleted: false,
-            ...(organizationId && { organization: organizationId }),
-          },
+      {
+        where: {
+          isDeleted: false,
+          ...(organizationId && { organization: organizationId }),
         },
-        {
-          $lookup: {
-            as: 'org',
-            foreignField: '_id',
-            from: 'organizations',
-            localField: 'organization',
-          },
-        },
-        { $unwind: { path: '$org', preserveNullAndEmptyArrays: true } },
-      ],
+      },
       { pagination: false },
     );
     const allBrands =
       (brandsResult as AggregatePaginateResult<BrandDoc>).docs || [];
 
     if (allBrands.length === 0) {
-      return [];
+      return { where: {} };
     }
 
     const brandIds = allBrands.map((b: BrandDoc) => b.id);
@@ -517,7 +506,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       this.parseDateRange(startDateStr, endDateStr);
 
     const orgsResult = await this.organizationsService.findAll(
-      [{ $match: { isDeleted: false } }],
+      { where: { isDeleted: false } },
       { pagination: false },
     );
     const allOrgs =
@@ -608,23 +597,12 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       this.parseDateRange(startDateStr, endDateStr);
 
     const brandsResult = await this.brandsService.findAll(
-      [
-        {
-          $match: {
-            isDeleted: false,
-            ...(organizationId && { organization: organizationId }),
-          },
+      {
+        where: {
+          isDeleted: false,
+          ...(organizationId && { organization: organizationId }),
         },
-        {
-          $lookup: {
-            as: 'org',
-            foreignField: '_id',
-            from: 'organizations',
-            localField: 'organization',
-          },
-        },
-        { $unwind: { path: '$org', preserveNullAndEmptyArrays: true } },
-      ],
+      },
       { pagination: false },
     );
     const allBrands =
@@ -719,36 +697,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       matchStage.organization = organizationId;
     }
 
-    const aggregate = [
-      { $match: matchStage },
-      {
-        $lookup: {
-          as: 'ingredient',
-          foreignField: '_id',
-          from: 'ingredients',
-          localField: 'ingredient',
-        },
-      },
-      { $unwind: '$ingredient' },
-      {
-        $lookup: {
-          as: 'metadata',
-          foreignField: '_id',
-          from: 'metadata',
-          localField: 'ingredient.metadata',
-        },
-      },
-      { $unwind: '$metadata' },
-      {
-        $lookup: {
-          as: 'credential',
-          foreignField: '_id',
-          from: 'credentials',
-          localField: 'credential',
-        },
-      },
-      { $unwind: '$credential' },
-    ];
+    const aggregate = { where: matchStage };
 
     const result = await this.postsService.findAll(aggregate, {
       pagination: false,

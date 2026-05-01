@@ -31,17 +31,17 @@ describe('CollectionFilterUtil', () => {
         undefined,
         undefined,
       );
-      expect(result).toEqual({ $exists: true });
+      expect(result).toEqual({ not: true });
     });
 
     it('supports defaultTo exists and none modes', () => {
       expect(
         CollectionFilterUtil.buildBrandFilter(undefined, undefined, 'exists'),
-      ).toEqual({ $exists: true });
+      ).toEqual({ not: true });
 
       expect(
         CollectionFilterUtil.buildBrandFilter(undefined, undefined, 'none'),
-      ).toEqual({ $ne: null });
+      ).toEqual({ not: null });
     });
   });
 
@@ -53,7 +53,7 @@ describe('CollectionFilterUtil', () => {
 
     it('returns not-null filter when scope missing', () => {
       const result = CollectionFilterUtil.buildScopeFilter(undefined);
-      expect(result).toEqual({ $ne: null });
+      expect(result).toEqual({ not: null });
     });
   });
 
@@ -73,11 +73,11 @@ describe('CollectionFilterUtil', () => {
 
       expect(stages).toHaveLength(1);
       const matchStage = stages[0] as Record<string, unknown> & {
-        $match: Record<string, unknown>;
+        match: Record<string, unknown>;
       };
-      expect(matchStage.$match?.$or).toHaveLength(2);
-      expect(matchStage.$match?.$or?.[0]).toEqual({
-        'metadata.label': { $options: 'i', $regex: 'hello' },
+      expect(matchStage.match?.OR).toHaveLength(2);
+      expect(matchStage.match?.OR?.[0]).toEqual({
+        'metadata.label': { mode: 'insensitive', contains: 'hello' },
       });
     });
   });
@@ -86,16 +86,16 @@ describe('CollectionFilterUtil', () => {
     const userId = '507f191e810c19729de860ee';
     const organizationId = '507f191e810c19729de860ee';
 
-    it('builds $or filter when user and organization exist', () => {
+    it('builds OR filter when user and organization exist', () => {
       const result = CollectionFilterUtil.buildOwnershipFilter({
         organization: organizationId,
         user: userId,
       });
 
-      expect(result).toHaveProperty('$or');
-      expect(result.$or).toHaveLength(2);
-      expect(result.$or?.[0].user).toBe(userId);
-      expect(result.$or?.[1].organization).toBe(organizationId);
+      expect(result).toHaveProperty('OR');
+      expect(result.OR).toHaveLength(2);
+      expect(result.OR?.[0].user).toBe(userId);
+      expect(result.OR?.[1].organization).toBe(organizationId);
     });
 
     it('returns single condition when only user provided', () => {
@@ -118,7 +118,7 @@ describe('CollectionFilterUtil', () => {
       expect(CollectionFilterUtil.buildDateRangeFilter()).toEqual({});
     });
 
-    it('creates $gte/$lte when dates provided', () => {
+    it('creates gte/lte when dates provided', () => {
       const result = CollectionFilterUtil.buildDateRangeFilter(
         '2024-01-01',
         '2024-12-31',
@@ -126,20 +126,20 @@ describe('CollectionFilterUtil', () => {
       );
       expect(result).toHaveProperty('evaluatedAt');
       expect(result.evaluatedAt).toMatchObject({
-        $gte: new Date('2024-01-01'),
-        $lte: new Date('2024-12-31'),
+        gte: new Date('2024-01-01'),
+        lte: new Date('2024-12-31'),
       });
     });
 
     it('supports single-ended ranges', () => {
       const onlyStart = CollectionFilterUtil.buildDateRangeFilter('2024-01-01');
-      expect(onlyStart.createdAt.$gte).toEqual(new Date('2024-01-01'));
+      expect(onlyStart.createdAt.gte).toEqual(new Date('2024-01-01'));
 
       const onlyEnd = CollectionFilterUtil.buildDateRangeFilter(
         undefined,
         '2024-12-31',
       );
-      expect(onlyEnd.createdAt.$lte).toEqual(new Date('2024-12-31'));
+      expect(onlyEnd.createdAt.lte).toEqual(new Date('2024-12-31'));
     });
   });
 
@@ -150,7 +150,7 @@ describe('CollectionFilterUtil', () => {
 
     it('wraps single string in array', () => {
       const result = CollectionFilterUtil.buildArrayFilter('tech', 'tags');
-      expect(result).toEqual({ tags: { $in: ['tech'] } });
+      expect(result).toEqual({ tags: { in: ['tech'] } });
     });
 
     it('uses $all when matchAll is true', () => {
@@ -171,7 +171,7 @@ describe('CollectionFilterUtil', () => {
     it('handles array of statuses', () => {
       expect(
         CollectionFilterUtil.buildStatusFilter(['completed', 'failed']),
-      ).toEqual({ status: { $in: ['completed', 'failed'] } });
+      ).toEqual({ status: { in: ['completed', 'failed'] } });
     });
 
     it('treats comma separated string as a single literal value', () => {
@@ -192,10 +192,10 @@ describe('CollectionFilterUtil', () => {
       expect(CollectionFilterUtil.buildCategoryFilter()).toEqual({});
     });
 
-    it('wraps arrays with $in operator', () => {
+    it('wraps arrays with in operator', () => {
       expect(
         CollectionFilterUtil.buildCategoryFilter(['video', 'image']),
-      ).toEqual({ category: { $in: ['video', 'image'] } });
+      ).toEqual({ category: { in: ['video', 'image'] } });
     });
 
     it('returns direct category for single value', () => {
@@ -206,7 +206,7 @@ describe('CollectionFilterUtil', () => {
   });
 
   describe('conditionalStages', () => {
-    const stages: Record<string, unknown>[] = [{ $limit: 5 }];
+    const stages: Record<string, unknown>[] = [{ take: 5 }];
 
     it('returns stages when condition true', () => {
       expect(CollectionFilterUtil.conditionalStages(true, stages)).toEqual(
@@ -222,7 +222,7 @@ describe('CollectionFilterUtil', () => {
   describe('buildBooleanFilter', () => {
     it('returns default when value undefined', () => {
       expect(CollectionFilterUtil.buildBooleanFilter(undefined)).toEqual({
-        $ne: null,
+        not: null,
       });
     });
 

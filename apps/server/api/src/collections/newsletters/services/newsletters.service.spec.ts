@@ -49,16 +49,16 @@ describe('NewslettersService', () => {
       });
 
       expect(pipeline[0]).toEqual({
-        $match: {
-          $or: [
-            { label: { $options: 'i', $regex: 'signal' } },
-            { topic: { $options: 'i', $regex: 'signal' } },
-            { content: { $options: 'i', $regex: 'signal' } },
+        match: {
+          OR: [
+            { label: { mode: 'insensitive', contains: 'signal' } },
+            { topic: { mode: 'insensitive', contains: 'signal' } },
+            { content: { mode: 'insensitive', contains: 'signal' } },
           ],
           brand: tenantContext.brandId,
           isDeleted: false,
           organization: tenantContext.organizationId,
-          status: { $in: ['published'] },
+          status: { in: ['published'] },
         },
       });
     });
@@ -168,7 +168,7 @@ describe('NewslettersService', () => {
       expect(findAllSpy).toHaveBeenCalledWith(
         expect.arrayContaining([
           expect.objectContaining({
-            $match: expect.objectContaining({
+            match: expect.objectContaining({
               brand: tenantContext.brandId,
               isDeleted: false,
               organization: tenantContext.organizationId,
@@ -179,7 +179,7 @@ describe('NewslettersService', () => {
         { pagination: false },
       );
       expect(findSpy).toHaveBeenCalledWith({
-        _id: { $in: [contextNewsletterId] },
+        _id: { in: [contextNewsletterId] },
         brand: tenantContext.brandId,
         isDeleted: false,
         organization: tenantContext.organizationId,

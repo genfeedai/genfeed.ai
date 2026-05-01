@@ -89,7 +89,7 @@ export class ObjectIdUtil {
             processed[key] = value;
           }
         } else if (Array.isArray(value)) {
-          // Handle arrays of ObjectIds (e.g., for $in queries)
+          // Handle arrays of ObjectIds (e.g., for in queries)
           processed[key] = value.map((item) => {
             if (typeof item === 'string' && /^[0-9a-f]{24}$/i.test(item)) {
               return item;

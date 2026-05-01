@@ -130,13 +130,10 @@ export class CreatorsController {
       match.niche = query.niche;
     }
     if (query.tags && query.tags.length > 0) {
-      match.tags = { $in: query.tags };
+      match.tags = { in: query.tags };
     }
 
-    const pipeline: Record<string, unknown>[] = [
-      { $match: match },
-      { $sort: { createdAt: -1 } },
-    ];
+    const pipeline = { where: match, orderBy: { createdAt: -1 } };
 
     const data = await this.contentIntelligenceService.findAll(
       pipeline,

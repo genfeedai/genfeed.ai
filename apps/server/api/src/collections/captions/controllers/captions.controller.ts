@@ -88,50 +88,7 @@ export class CaptionsController {
       matchConditions.format = query.format;
     }
 
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: matchConditions,
-      },
-      {
-        $lookup: {
-          as: 'ingredient',
-          foreignField: '_id',
-          from: 'ingredients',
-          localField: 'ingredient',
-        },
-      },
-      {
-        $unwind: {
-          path: '$ingredient',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      // Filter by brand if provided
-      ...(query.brand && isValidObjectId(query.brand)
-        ? [
-            {
-              $match: {
-                'ingredient.brand': query.brand,
-              },
-            },
-          ]
-        : []),
-      {
-        $lookup: {
-          as: 'ingredient.metadata',
-          foreignField: '_id',
-          from: 'metadata',
-          localField: 'ingredient.metadata',
-        },
-      },
-      {
-        $unwind: {
-          path: '$ingredient.metadata',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      { $sort: { createdAt: -1 } },
-    ];
+    const aggregate = { where: matchConditions, orderBy: { createdAt: -1 } };
 
     const data: AggregatePaginateResult<CaptionDocument> =
       await this.captionsService.findAll(aggregate, options);

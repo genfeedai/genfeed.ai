@@ -15,15 +15,23 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { ConfigService } from '@workers/config/config.service';
 
 /**
- * Type for aggregation result with metadataDoc lookup
+ * Type for ingredient results loaded with metadata.
  */
 interface IngredientWithMetadataDoc {
   _id: string;
   category: IngredientCategory;
-  metadata: string;
-  metadataDoc: {
+  metadata:
+    | string
+    | {
+        _id?: string;
+        id?: string;
+        width?: number | null;
+        height?: number | null;
+      };
+  metadataDoc?: {
     _id: string;
   };
+  metadataId?: string;
 }
 
 /**
@@ -103,31 +111,16 @@ export class CronIngredientsService {
       // Calculate the cutoff time: 30 minutes ago
       const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
 
-      // Find ingredients stuck in PROCESSING status for more than 30 minutes
-      // Use aggregation pipeline to find stuck ingredients
       const stuckIngredients = await this.ingredientsService.findAll(
-        [
-          {
-            $match: {
-              createdAt: { $lt: thirtyMinutesAgo },
-              isDeleted: false,
-              status: IngredientStatus.PROCESSING,
-            },
-          },
-          { $limit: 100 }, // Process max 100 ingredients per cycle to avoid overload
-          {
-            $project: {
-              _id: 1,
-              brand: 1,
-              category: 1,
-              createdAt: 1,
-              organization: 1,
-              status: 1,
-              user: 1,
-            },
-          },
-        ],
         {
+          where: {
+            createdAt: { lt: thirtyMinutesAgo },
+            isDeleted: false,
+            status: IngredientStatus.PROCESSING,
+          },
+        },
+        {
+          limit: 100, // Process max 100 ingredients per cycle to avoid overload
           pagination: false,
         },
       );
@@ -147,9 +140,22 @@ export class CronIngredientsService {
       // Update all stuck ingredients to FAILED status using service
       const result = await this.ingredientsService.patchAll(
         {
-          _id: {
-            $in: stuckIngredients.docs.map((ing: unknown) => ing._id),
-          },
+          OR: [
+            {
+              id: {
+                in: stuckIngredients.docs.map((ing: unknown) =>
+                  String(ing._id),
+                ),
+              },
+            },
+            {
+              mongoId: {
+                in: stuckIngredients.docs.map((ing: unknown) =>
+                  String(ing._id),
+                ),
+              },
+            },
+          ],
           isDeleted: false,
           status: IngredientStatus.PROCESSING, // Double-check status hasn't changed
         },
@@ -198,7 +204,10 @@ export class CronIngredientsService {
           }
 
           const existingActivity = await this.activitiesService.findOne({
-            $or: [{ value: { $regex: ingredientId } }, { value: ingredientId }],
+            OR: [
+              { value: { contains: ingredientId } },
+              { value: ingredientId },
+            ],
             isDeleted: false,
             key: keys.processing,
             user: ing.user,
@@ -268,24 +277,15 @@ export class CronIngredientsService {
     const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
 
     const stuckIngredients = await this.ingredientsService.findAll(
-      [
-        {
-          $match: {
-            createdAt: { $lt: thirtyMinutesAgo },
-            isDeleted: false,
-            status: IngredientStatus.PROCESSING,
-          },
-        },
-        { $limit: 100 },
-        {
-          $project: {
-            _id: 1,
-            createdAt: 1,
-            status: 1,
-          },
-        },
-      ],
       {
+        where: {
+          createdAt: { lt: thirtyMinutesAgo },
+          isDeleted: false,
+          status: IngredientStatus.PROCESSING,
+        },
+      },
+      {
+        limit: 100,
         pagination: false,
       },
     );
@@ -298,9 +298,18 @@ export class CronIngredientsService {
 
     const result = await this.ingredientsService.patchAll(
       {
-        _id: {
-          $in: stuckIngredients.docs.map((ing: unknown) => ing._id),
-        },
+        OR: [
+          {
+            id: {
+              in: stuckIngredients.docs.map((ing: unknown) => String(ing._id)),
+            },
+          },
+          {
+            mongoId: {
+              in: stuckIngredients.docs.map((ing: unknown) => String(ing._id)),
+            },
+          },
+        ],
         isDeleted: false,
         status: IngredientStatus.PROCESSING,
       },
@@ -348,53 +357,39 @@ export class CronIngredientsService {
 
       // Find completed videos and images with missing or zero width/height in metadata
       const ingredientsNeedingRefresh = await this.ingredientsService.findAll(
-        [
-          {
-            $match: {
-              category: {
-                $in: [IngredientCategory.VIDEO, IngredientCategory.IMAGE],
-              },
-              isDeleted: false,
-              metadata: { $exists: true, $ne: null },
-              status: IngredientStatus.GENERATED,
-            },
-          },
-          {
-            $lookup: {
-              as: 'metadataDoc',
-              foreignField: '_id',
-              from: 'metadata',
-              localField: 'metadata',
-            },
-          },
-          {
-            $unwind: {
-              path: '$metadataDoc',
-              preserveNullAndEmptyArrays: false,
-            },
-          },
-          {
-            $match: {
-              $or: [
-                { 'metadataDoc.width': { $exists: false } },
-                { 'metadataDoc.width': { $lte: 0 } },
-                { 'metadataDoc.height': { $exists: false } },
-                { 'metadataDoc.height': { $lte: 0 } },
-              ],
-            },
-          },
-          { $limit: 50 }, // Process max 50 ingredients per cycle to avoid overload
-          {
-            $project: {
-              _id: 1,
-              category: 1,
-              metadata: 1,
-              'metadataDoc._id': 1,
-            },
-          },
-        ],
         {
+          include: { metadata: true },
+          where: {
+            category: {
+              in: [IngredientCategory.VIDEO, IngredientCategory.IMAGE],
+            },
+            isDeleted: false,
+            metadataId: { not: null },
+            status: IngredientStatus.GENERATED,
+          },
+        },
+        {
+          limit: 50, // Process max 50 ingredients per cycle to avoid overload
           pagination: false,
+        },
+      );
+
+      ingredientsNeedingRefresh.docs = ingredientsNeedingRefresh.docs.filter(
+        (ingredient: IngredientWithMetadataDoc) => {
+          const metadata =
+            typeof ingredient.metadata === 'object'
+              ? ingredient.metadata
+              : undefined;
+
+          return (
+            !metadata ||
+            metadata.width === undefined ||
+            metadata.width === null ||
+            metadata.width <= 0 ||
+            metadata.height === undefined ||
+            metadata.height === null ||
+            metadata.height <= 0
+          );
         },
       );
 
@@ -443,7 +438,21 @@ export class CronIngredientsService {
             uploadMeta.height &&
             uploadMeta.height > 0
           ) {
-            const metadataId = ingredient.metadataDoc._id.toString();
+            const metadataId =
+              ingredient.metadataDoc?._id ??
+              (typeof ingredient.metadata === 'object'
+                ? (ingredient.metadata.id ?? ingredient.metadata._id)
+                : (ingredient.metadataId ?? ingredient.metadata));
+
+            if (!metadataId) {
+              this.logger.warn(
+                `Skipping ingredient ${ingredientId} without metadata id`,
+                context,
+              );
+              errorCount++;
+              continue;
+            }
+
             const updateData: Partial<Record<string, unknown>> = {
               height: uploadMeta.height,
               width: uploadMeta.width,

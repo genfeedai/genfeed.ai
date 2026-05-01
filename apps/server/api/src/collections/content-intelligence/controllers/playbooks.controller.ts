@@ -84,15 +84,13 @@ export class PlaybooksController {
     const publicMetadata = getPublicMetadata(user);
     const organizationId = publicMetadata.organization;
 
-    const pipeline: Record<string, unknown>[] = [
-      {
-        $match: {
-          isDeleted: false,
-          organization: organizationId,
-        },
+    const pipeline = {
+      where: {
+        isDeleted: false,
+        organization: organizationId,
       },
-      { $sort: { createdAt: -1 } },
-    ];
+      orderBy: { createdAt: -1 },
+    };
 
     const data = await this.playbookBuilderService.findAll(pipeline, {
       customLabels,

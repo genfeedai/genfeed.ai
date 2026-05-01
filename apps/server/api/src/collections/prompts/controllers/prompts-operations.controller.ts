@@ -135,7 +135,7 @@ export class PromptsOperationsController {
     if (isValidObjectId(createParsePromptDto.brand)) {
       const brand = await this.brandsService.findOne({
         _id: createParsePromptDto.brand,
-        $or: [
+        OR: [
           { user: publicMetadata.user },
           { organization: publicMetadata.organization },
         ],

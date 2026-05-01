@@ -42,7 +42,7 @@ export class IngredientsService extends BaseService<
     // NOTE: User populate is intentionally excluded from all contexts.
     // The User model is on the AUTH connection, but Ingredients are on CLOUD.
     // Cross-database relation loading is not supported here. Use
-    // createUserLookupPipeline() in aggregation pipelines instead.
+    // createUserLookupPipeline() in findAll queries instead.
     switch (context) {
       case 'list':
         return [

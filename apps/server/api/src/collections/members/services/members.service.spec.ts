@@ -91,8 +91,9 @@ describe('MembersService', () => {
 
       await service.setLastUsedBrand(filter, brandId);
 
-      expect(mockModel.updateOne).toHaveBeenCalledWith(filter, {
-        $set: { lastUsedBrand: brandId },
+      expect(mockModel.updateMany).toHaveBeenCalledWith({
+        data: { lastUsedBrandId: brandId },
+        where: filter,
       });
     });
 
@@ -145,10 +146,13 @@ describe('MembersService', () => {
       mockModel.aggregatePaginate.mockResolvedValue(aggResult);
       mockModel.aggregate.mockReturnValue([]);
 
-      const result = await service.findAll([{ $match: { isDeleted: false } }], {
-        limit: 10,
-        page: 1,
-      });
+      const result = await service.findAll(
+        { where: { isDeleted: false } },
+        {
+          limit: 10,
+          page: 1,
+        },
+      );
 
       expect(result).toEqual(aggResult);
     });

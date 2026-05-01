@@ -133,7 +133,10 @@ describe('BaseService', () => {
       delegate.findMany.mockResolvedValue([{ id: '1' }]);
       delegate.count.mockResolvedValue(1);
 
-      const result = await service.findAll([], { page: 1, limit: 10 });
+      const result = await service.findAll(
+        { where: {} },
+        { page: 1, limit: 10 },
+      );
 
       expect(result.docs).toHaveLength(1);
       expect(result.totalDocs).toBe(1);
@@ -145,7 +148,10 @@ describe('BaseService', () => {
     it('returns all docs without pagination when pagination: false', async () => {
       delegate.findMany.mockResolvedValue([{ id: '1' }, { id: '2' }]);
 
-      const result = await service.findAll([], { pagination: false });
+      const result = await service.findAll(
+        { where: {} },
+        { pagination: false },
+      );
 
       expect(result.docs).toHaveLength(2);
       expect(result.totalDocs).toBe(2);
@@ -158,7 +164,7 @@ describe('BaseService', () => {
       delegate.findMany.mockResolvedValue([{ id: '1' }]);
       delegate.count.mockResolvedValue(1);
 
-      await service.findAll([], { page: 1, limit: 10 });
+      await service.findAll({ where: {} }, { page: 1, limit: 10 });
 
       expect(delegate.findMany).toHaveBeenCalledWith({
         where: {},
@@ -175,12 +181,51 @@ describe('BaseService', () => {
       );
       delegate.count.mockResolvedValue(25);
 
-      const result = await service.findAll([], { page: 2, limit: 10 });
+      const result = await service.findAll(
+        { where: {} },
+        { page: 2, limit: 10 },
+      );
 
       expect(result.hasNextPage).toBe(true);
       expect(result.hasPrevPage).toBe(true);
       expect(result.nextPage).toBe(3);
       expect(result.prevPage).toBe(1);
+    });
+
+    it('applies explicit Prisma where, orderBy, and include options', async () => {
+      delegate.findMany.mockResolvedValue([{ id: '1' }]);
+      delegate.count.mockResolvedValue(1);
+
+      await service.findAll(
+        {
+          include: { organization: true },
+          orderBy: { label: 'asc' },
+          where: {
+            organization: 'org-1',
+            status: { in: ['active', 'pending'] },
+          },
+        },
+        { page: 1, limit: 10 },
+      );
+
+      expect(delegate.findMany).toHaveBeenCalledWith({
+        include: { organization: true },
+        orderBy: { label: 'asc' },
+        skip: 0,
+        take: 10,
+        where: {
+          isDeleted: false,
+          organizationId: 'org-1',
+          status: { in: ['active', 'pending'] },
+        },
+      });
+      expect(delegate.count).toHaveBeenCalledWith({
+        where: {
+          isDeleted: false,
+          organizationId: 'org-1',
+          status: { in: ['active', 'pending'] },
+        },
+      });
     });
   });
 
@@ -254,12 +299,12 @@ describe('BaseService', () => {
       expect(result).toEqual({ ...updated, _id: 'id_1' });
     });
 
-    it('flattens $set/$unset operators into plain data', async () => {
+    it('passes null field updates through as Prisma data', async () => {
       delegate.update.mockResolvedValue({ id: 'id_1' });
 
       await service.patch('id_1', {
-        $set: { name: 'NewName' },
-        $unset: { oldField: '' },
+        name: 'NewName',
+        oldField: null,
       });
 
       expect(delegate.update).toHaveBeenCalledWith({
@@ -297,13 +342,10 @@ describe('BaseService', () => {
       expect(result).toEqual({ modifiedCount: 3 });
     });
 
-    it('flattens $set operator in update arg', async () => {
+    it('bulk updates with plain Prisma data', async () => {
       delegate.updateMany.mockResolvedValue({ count: 2 });
 
-      await service.patchAll(
-        { isDeleted: false },
-        { $set: { archived: true } },
-      );
+      await service.patchAll({ isDeleted: false }, { archived: true });
 
       expect(delegate.updateMany).toHaveBeenCalledWith({
         where: { isDeleted: false },

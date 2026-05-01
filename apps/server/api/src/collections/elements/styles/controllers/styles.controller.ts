@@ -1,4 +1,4 @@
-import { buildElementFindAllPipeline } from '@api/collections/elements/shared/build-element-find-all-pipeline.util';
+import { buildElementFindAllQuery } from '@api/collections/elements/shared/build-element-find-all-pipeline.util';
 import { CreateElementStyleDto } from '@api/collections/elements/styles/dto/create-style.dto';
 import { UpdateElementStyleDto } from '@api/collections/elements/styles/dto/update-style.dto';
 import {
@@ -103,17 +103,14 @@ export class ElementsStylesController extends BaseCRUDController<
    * Override the base pipeline to load styles
    * Load items with: (no org AND no user) OR (user's org) OR (user's user)
    */
-  public buildFindAllPipeline(
-    user: User,
-    query: BaseQueryDto,
-  ): Record<string, unknown>[] {
+  public buildFindAllQuery(user: User, query: BaseQueryDto) {
     const publicMetadata = getPublicMetadata(user);
     const adminFilter = CollectionFilterUtil.buildAdminFilter(
       publicMetadata,
       query,
     );
 
-    return buildElementFindAllPipeline({
+    return buildElementFindAllQuery({
       adminFilter,
       metadata: {
         organization: publicMetadata.organization,

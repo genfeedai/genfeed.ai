@@ -200,8 +200,8 @@ export class AiInfluencerService {
       caption,
     );
 
-    const videoPipelineResults = this.requiresVideoPipeline(validPlatforms)
-      ? await this.generateVideoPipeline(persona, caption, ingredient._id)
+    const videoqueryResults = this.requiresVideoquery(validPlatforms)
+      ? await this.generateVideoquery(persona, caption, ingredient._id)
       : undefined;
 
     // 6. Publish to platforms
@@ -210,7 +210,7 @@ export class AiInfluencerService {
       imageUrl,
       caption,
       persona,
-      videoPipelineResults,
+      videoqueryResults,
     );
 
     const result: GeneratePostResult = {
@@ -219,8 +219,8 @@ export class AiInfluencerService {
       ingredientId: ingredient._id.toString(),
       personaSlug,
       publishResults,
-      videoResult: videoPipelineResults?.videoResult,
-      voiceResult: videoPipelineResults?.voiceResult,
+      videoResult: videoqueryResults?.videoResult,
+      voiceResult: videoqueryResults?.voiceResult,
     };
 
     this.loggerService.log(caller, {
@@ -242,15 +242,13 @@ export class AiInfluencerService {
     });
 
     const personas = await this.personasService.findAll(
-      [
-        {
-          $match: {
-            isAutopilotEnabled: true,
-            isDarkroomCharacter: true,
-            isDeleted: false,
-          },
+      {
+        where: {
+          isAutopilotEnabled: true,
+          isDarkroomCharacter: true,
+          isDeleted: false,
         },
-      ],
+      },
       { limit: 100, page: 1 },
     );
 
@@ -322,7 +320,7 @@ export class AiInfluencerService {
     this.loggerService.log(caller, { filters });
 
     const matchStage: Record<string, unknown> = {
-      generationSource: { $regex: /^ai-influencer/ },
+      generationSource: { contains: /^ai-influencer/ },
       isDeleted: false,
     };
 
@@ -331,7 +329,7 @@ export class AiInfluencerService {
     }
 
     const result = await this.ingredientsService.findAll(
-      [{ $match: matchStage }, { $sort: { createdAt: -1 } }],
+      { where: matchStage, orderBy: { createdAt: -1 } },
       {
         limit: filters.limit ?? 20,
         page: filters.page ?? 1,
@@ -586,7 +584,7 @@ export class AiInfluencerService {
     imageUrl: string,
     caption: string,
     persona: PersonaDocument,
-    videoPipelineResults?: {
+    videoqueryResults?: {
       voiceResult: GenerationResult;
       videoResult: GenerationResult;
     },
@@ -599,7 +597,7 @@ export class AiInfluencerService {
         imageUrl,
         caption,
         persona,
-        videoPipelineResults,
+        videoqueryResults,
       );
       results.push(result);
     }
@@ -615,7 +613,7 @@ export class AiInfluencerService {
     imageUrl: string,
     caption: string,
     persona: PersonaDocument,
-    videoPipelineResults?: {
+    videoqueryResults?: {
       voiceResult: GenerationResult;
       videoResult: GenerationResult;
     },
@@ -671,7 +669,7 @@ export class AiInfluencerService {
 
         case 'tiktok':
         case 'youtube': {
-          if (!videoPipelineResults) {
+          if (!videoqueryResults) {
             return {
               error: `Video pipeline was not prepared for ${platform}`,
               platform,
@@ -680,7 +678,7 @@ export class AiInfluencerService {
             };
           }
 
-          const { videoResult } = videoPipelineResults;
+          const { videoResult } = videoqueryResults;
           if (videoResult.status === 'failed') {
             return {
               error: `Video generation failed for ${platform}`,
@@ -730,11 +728,11 @@ export class AiInfluencerService {
     }
   }
 
-  private requiresVideoPipeline(platforms: AiInfluencerPlatform[]): boolean {
+  private requiresVideoquery(platforms: AiInfluencerPlatform[]): boolean {
     return platforms.includes('tiktok') || platforms.includes('youtube');
   }
 
-  private async generateVideoPipeline(
+  private async generateVideoquery(
     persona: PersonaDocument,
     script: string,
     ingredientId: string,

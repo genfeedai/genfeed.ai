@@ -25,10 +25,10 @@ const createBaseQuery = (
   }) as BaseQueryDto;
 
 const asMatchStage = (stage: Record<string, unknown>) =>
-  stage as Record<string, unknown> & { $match: Record<string, unknown> };
+  stage as Record<string, unknown> & { match: Record<string, unknown> };
 
 const asSortStage = (stage: Record<string, unknown>) =>
-  stage as Record<string, unknown> & { $sort: Record<string, unknown> };
+  stage as Record<string, unknown> & { orderBy: Record<string, unknown> };
 
 vi.mock('@genfeedai/helpers', async () => ({
   ...(await vi.importActual('@genfeedai/helpers')),
@@ -124,33 +124,33 @@ describe('ElementsCamerasController', () => {
     expect(controller).toBeDefined();
   });
 
-  describe('buildFindAllPipeline', () => {
-    it('should build pipeline with isDeleted filter', () => {
+  describe('buildFindAllQuery', () => {
+    it('should build query with isDeleted filter', () => {
       const query = createBaseQuery();
 
-      const result = controller.buildFindAllPipeline(mockSuperAdminUser, query);
+      const result = controller.buildFindAllQuery(mockSuperAdminUser, query);
 
       expect(result).toHaveLength(2);
-      expect(asMatchStage(result[0]).$match).toHaveProperty('isDeleted', false);
-      expect(asSortStage(result[1]).$sort).toBeDefined();
+      expect(asMatchStage(result[0]).match).toHaveProperty('isDeleted', false);
+      expect(asSortStage(result[1]).orderBy).toBeDefined();
     });
 
-    it('should build pipeline with custom sort', () => {
+    it('should build query with custom sort', () => {
       const query = createBaseQuery({ sort: '-label' });
 
-      const result = controller.buildFindAllPipeline(mockSuperAdminUser, query);
+      const result = controller.buildFindAllQuery(mockSuperAdminUser, query);
 
       expect(result).toHaveLength(2);
-      expect(asSortStage(result[1]).$sort).toBeDefined();
+      expect(asSortStage(result[1]).orderBy).toBeDefined();
     });
 
-    it('should build pipeline for regular users with $or filter', () => {
+    it('should build query for regular users with OR filter', () => {
       const query = createBaseQuery();
 
-      const result = controller.buildFindAllPipeline(mockRegularUser, query);
+      const result = controller.buildFindAllQuery(mockRegularUser, query);
 
-      expect(asMatchStage(result[0]).$match).toHaveProperty('isDeleted', false);
-      expect(asMatchStage(result[0]).$match).toHaveProperty('$or');
+      expect(asMatchStage(result[0]).match).toHaveProperty('isDeleted', false);
+      expect(asMatchStage(result[0]).match).toHaveProperty('OR');
     });
   });
 

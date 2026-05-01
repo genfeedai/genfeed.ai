@@ -186,39 +186,39 @@ describe('ModelsController', () => {
     });
   });
 
-  describe('buildFindAllPipeline', () => {
-    it('should build pipeline with default sort', () => {
+  describe('buildFindAllQuery', () => {
+    it('should build query with default sort', () => {
       const query: ModelsQueryDto = {};
 
-      const result = controller.buildFindAllPipeline(mockRegularUser, query);
+      const result = controller.buildFindAllQuery(mockRegularUser, query);
 
       expect(result).toEqual([
         {
-          $match: {
+          match: {
             isDeleted: false,
           },
         },
         {
-          $sort: { createdAt: -1, key: 1, label: 1, type: 1 },
+          orderBy: { createdAt: -1, key: 1, label: 1, type: 1 },
         },
       ]);
     });
 
-    it('should build pipeline with custom sort', () => {
+    it('should build query with custom sort', () => {
       const query: ModelsQueryDto = {
         isDeleted: true,
         sort: '-label,key',
       };
 
-      const result = controller.buildFindAllPipeline(mockRegularUser, query);
+      const result = controller.buildFindAllQuery(mockRegularUser, query);
 
       expect(result).toHaveLength(2);
       expect(result[0]).toEqual({
-        $match: {
+        match: {
           isDeleted: true,
         },
       });
-      expect(result[1].$sort).toBeDefined();
+      expect(result[1].orderBy).toBeDefined();
     });
   });
 
@@ -266,7 +266,7 @@ describe('ModelsController', () => {
       expect(result).toBeDefined();
     });
 
-    it('should append org-scoped $match stage when request context has organizationId', async () => {
+    it('should append org-scoped match stage when request context has organizationId', async () => {
       const mockModels = {
         docs: [],
         hasNextPage: false,
@@ -286,22 +286,22 @@ describe('ModelsController', () => {
 
       await controller.findAll(mockRequest, mockRegularUser, query);
 
-      const pipelineArg = modelsService.findAll.mock.calls[0][0];
+      const queryArg = modelsService.findAll.mock.calls[0][0];
 
-      // Last stage must be the org filter $match
-      const lastStage = pipelineArg[pipelineArg.length - 1];
+      // Last stage must be the org filter match
+      const lastStage = queryArg[queryArg.length - 1];
       expect(lastStage).toEqual({
-        $match: {
-          $or: [
+        match: {
+          OR: [
             { organization: null },
-            { organization: { $exists: false } },
+            { organization: { not: false } },
             { organization: mockOrgId },
           ],
         },
       });
     });
 
-    it('should not append org $match stage when request context has no organizationId', async () => {
+    it('should not append org match stage when request context has no organizationId', async () => {
       const mockModels = {
         docs: [],
         hasNextPage: false,
@@ -321,13 +321,13 @@ describe('ModelsController', () => {
 
       await controller.findAll(mockRequestNoContext, mockRegularUser, query);
 
-      const pipelineArg = modelsService.findAll.mock.calls[0][0];
+      const queryArg = modelsService.findAll.mock.calls[0][0];
 
-      // No stage should contain $or with organization filter
-      const hasOrgMatchStage = pipelineArg.some(
+      // No stage should contain OR with organization filter
+      const hasOrgMatchStage = queryArg.some(
         (stage: Record<string, unknown>) =>
-          stage.$match &&
-          (stage.$match as Record<string, unknown>).$or !== undefined,
+          stage.match &&
+          (stage.match as Record<string, unknown>).OR !== undefined,
       );
       expect(hasOrgMatchStage).toBe(false);
     });
@@ -362,25 +362,25 @@ describe('ModelsController', () => {
 
       await controller.findAll(mockRequest, mockRegularUser, query);
 
-      const pipelineArg = modelsService.findAll.mock.calls[0][0];
+      const queryArg = modelsService.findAll.mock.calls[0][0];
 
-      // Verify the org-scoped $match is appended as the final stage
-      const lastStage = pipelineArg[pipelineArg.length - 1];
+      // Verify the org-scoped match is appended as the final stage
+      const lastStage = queryArg[queryArg.length - 1];
       expect(lastStage).toEqual({
-        $match: {
-          $or: [
+        match: {
+          OR: [
             { organization: null },
-            { organization: { $exists: false } },
+            { organization: { not: false } },
             { organization: mockOrgObjectId },
           ],
         },
       });
 
-      // Verify the enabledModels $match is also present (first stage)
-      const firstStage = pipelineArg[0];
+      // Verify the enabledModels match is also present (first stage)
+      const firstStage = queryArg[0];
       expect(firstStage).toEqual({
-        $match: {
-          _id: { $in: [enabledModelId] },
+        match: {
+          _id: { in: [enabledModelId] },
         },
       });
     });

@@ -195,16 +195,14 @@ export class AutoMergeService {
   private async findGroupVideos(
     groupId: string,
   ): Promise<IngredientDocument[]> {
-    const groupAggregate = [
-      {
-        $match: {
-          category: IngredientCategory.VIDEO,
-          groupId,
-          isDeleted: false,
-        },
+    const groupAggregate = {
+      where: {
+        category: IngredientCategory.VIDEO,
+        groupId,
+        isDeleted: false,
       },
-      { $sort: { groupIndex: 1 as const } },
-    ];
+      orderBy: { groupIndex: 1 as const },
+    };
 
     const result = await this.ingredientsService.findAll(groupAggregate, {
       pagination: false,
@@ -237,7 +235,7 @@ export class AutoMergeService {
       category: IngredientCategory.VIDEO,
       groupId,
       isDeleted: false,
-      transformations: { $in: [TransformationCategory.MERGED] },
+      transformations: { in: [TransformationCategory.MERGED] },
     });
 
     if (existingMerge) {

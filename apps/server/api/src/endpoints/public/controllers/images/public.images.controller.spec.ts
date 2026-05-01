@@ -140,12 +140,12 @@ describe('PublicImagesController', () => {
       expect(imagesService.findAll).toHaveBeenCalledWith(
         expect.arrayContaining([
           expect.objectContaining({
-            $match: expect.objectContaining({
+            match: expect.objectContaining({
               category: IngredientCategory.IMAGE,
               isDeleted: false,
               scope: AssetScope.PUBLIC,
               status: {
-                $in: [IngredientStatus.GENERATED],
+                in: [IngredientStatus.GENERATED],
               },
             }),
           }),
@@ -181,7 +181,7 @@ describe('PublicImagesController', () => {
       expect(imagesService.findAll).toHaveBeenCalledWith(
         expect.arrayContaining([
           expect.objectContaining({
-            $match: expect.objectContaining({
+            match: expect.objectContaining({
               brand: brandId,
             }),
           }),
@@ -209,8 +209,8 @@ describe('PublicImagesController', () => {
       expect(imagesService.findAll).toHaveBeenCalledWith(
         expect.arrayContaining([
           expect.objectContaining({
-            $match: expect.objectContaining({
-              'metadata.tags': { $options: 'i', $regex: tag },
+            match: expect.objectContaining({
+              'metadata.tags': { mode: 'insensitive', contains: tag },
             }),
           }),
         ]),

@@ -34,10 +34,10 @@ const createTrainingsQuery = (
   }) as TrainingsQueryDto;
 
 const asMatchStage = (stage: Record<string, unknown>) =>
-  stage as Record<string, unknown> & { $match: Record<string, unknown> };
+  stage as Record<string, unknown> & { match: Record<string, unknown> };
 
 const asSortStage = (stage: Record<string, unknown>) =>
-  stage as Record<string, unknown> & { $sort: Record<string, unknown> };
+  stage as Record<string, unknown> & { orderBy: Record<string, unknown> };
 
 vi.mock('@genfeedai/helpers', async () => ({
   ...(await vi.importActual('@genfeedai/helpers')),
@@ -221,17 +221,17 @@ describe('TrainingsController', () => {
       });
       await controller.findAll(mockRequest, mockUser, query);
 
-      const pipeline = controller.buildFindAllPipeline(mockUser, query);
-      const matchStage = asMatchStage(pipeline[0]);
-      expect(matchStage.$match.status).toEqual(IngredientStatus.GENERATED);
+      const query = controller.buildFindAllQuery(mockUser, query);
+      const matchStage = asMatchStage(query[0]);
+      expect(matchStage.match.status).toEqual(IngredientStatus.GENERATED);
     });
 
     it('should apply sorting when sort parameter is provided', () => {
       const query = createTrainingsQuery({ sort: 'createdAt: -1' });
 
-      const pipeline = controller.buildFindAllPipeline(mockUser, query);
-      const sortStage = asSortStage(pipeline[pipeline.length - 1]);
-      expect(sortStage.$sort).toBeDefined();
+      const query = controller.buildFindAllQuery(mockUser, query);
+      const sortStage = asSortStage(query[query.length - 1]);
+      expect(sortStage.orderBy).toBeDefined();
     });
   });
 
@@ -410,33 +410,33 @@ describe('TrainingsController', () => {
     });
   });
 
-  describe('buildFindAllPipeline', () => {
-    it('should build pipeline with user and organization filter', () => {
+  describe('buildFindAllQuery', () => {
+    it('should build query with user and organization filter', () => {
       const query = createTrainingsQuery();
-      const pipeline = controller.buildFindAllPipeline(mockUser, query);
+      const query = controller.buildFindAllQuery(mockUser, query);
 
-      expect(pipeline.length).toBeGreaterThanOrEqual(2);
-      const matchStage = asMatchStage(pipeline[0]);
-      expect(matchStage.$match.$or).toBeDefined();
-      expect(matchStage.$match.isDeleted).toBe(false);
+      expect(query.length).toBeGreaterThanOrEqual(2);
+      const matchStage = asMatchStage(query[0]);
+      expect(matchStage.match.OR).toBeDefined();
+      expect(matchStage.match.isDeleted).toBe(false);
     });
 
     it('should include status filter when provided', () => {
       const query = createTrainingsQuery({
         status: [IngredientStatus.GENERATED] as unknown as IngredientStatus[],
       });
-      const pipeline = controller.buildFindAllPipeline(mockUser, query);
+      const query = controller.buildFindAllQuery(mockUser, query);
 
-      const matchStage = asMatchStage(pipeline[0]);
-      expect(matchStage.$match.status).toEqual(IngredientStatus.GENERATED);
+      const matchStage = asMatchStage(query[0]);
+      expect(matchStage.match.status).toEqual(IngredientStatus.GENERATED);
     });
 
     it('should handle isDeleted parameter', () => {
       const query = createTrainingsQuery({ isDeleted: true });
-      const pipeline = controller.buildFindAllPipeline(mockUser, query);
+      const query = controller.buildFindAllQuery(mockUser, query);
 
-      const matchStage = asMatchStage(pipeline[0]);
-      expect(matchStage.$match.isDeleted).toBe(true);
+      const matchStage = asMatchStage(query[0]);
+      expect(matchStage.match.isDeleted).toBe(true);
     });
   });
 });

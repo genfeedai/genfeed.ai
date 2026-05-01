@@ -102,9 +102,9 @@ describe('ActivitiesController', () => {
 
       const aggregateArg = service.findAll.mock.calls[0][0];
       const matchStage = aggregateArg.find(
-        (s: Record<string, unknown>) => '$match' in s,
+        (s: Record<string, unknown>) => 'match' in s,
       );
-      expect(matchStage.$match.isDeleted).toBe(true);
+      expect(matchStage.match.isDeleted).toBe(true);
     });
   });
 

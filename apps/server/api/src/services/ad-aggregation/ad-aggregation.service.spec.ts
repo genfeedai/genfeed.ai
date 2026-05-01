@@ -106,7 +106,7 @@ describe('AdAggregationService', () => {
       expect(mockAggregate).toHaveBeenCalledTimes(8);
       // Check that the first call's pipeline includes industry filter
       const firstCallPipeline = mockAggregate.mock.calls[0][0];
-      expect(firstCallPipeline[0].$match.industry).toBe('ecommerce');
+      expect(firstCallPipeline[0].match.industry).toBe('ecommerce');
     });
 
     it('should not include industry filter when not provided', async () => {
@@ -115,7 +115,7 @@ describe('AdAggregationService', () => {
       await service.computeTopHeadlines();
 
       const firstCallPipeline = mockAggregate.mock.calls[0][0];
-      expect(firstCallPipeline[0].$match.industry).toBeUndefined();
+      expect(firstCallPipeline[0].match.industry).toBeUndefined();
     });
 
     it('should handle aggregate errors gracefully per category', async () => {
@@ -209,7 +209,7 @@ describe('AdAggregationService', () => {
       await service.computeBestCtas('saas');
 
       const firstCallPipeline = mockAggregate.mock.calls[0][0];
-      expect(firstCallPipeline[0].$match.industry).toBe('saas');
+      expect(firstCallPipeline[0].match.industry).toBe('saas');
     });
 
     it('should handle errors gracefully per CTA category', async () => {
@@ -306,7 +306,7 @@ describe('AdAggregationService', () => {
       await service.computeOptimalSpend('meta');
 
       const pipeline = mockAggregate.mock.calls[0][0];
-      expect(pipeline[0].$match.adPlatform).toBe('meta');
+      expect(pipeline[0].match.adPlatform).toBe('meta');
     });
 
     it('should filter by industry when provided', async () => {
@@ -315,7 +315,7 @@ describe('AdAggregationService', () => {
       await service.computeOptimalSpend(undefined, 'retail');
 
       const pipeline = mockAggregate.mock.calls[0][0];
-      expect(pipeline[0].$match.industry).toBe('retail');
+      expect(pipeline[0].match.industry).toBe('retail');
     });
 
     it('should filter by both platform and industry', async () => {
@@ -324,8 +324,8 @@ describe('AdAggregationService', () => {
       await service.computeOptimalSpend('google', 'finance');
 
       const pipeline = mockAggregate.mock.calls[0][0];
-      expect(pipeline[0].$match.adPlatform).toBe('google');
-      expect(pipeline[0].$match.industry).toBe('finance');
+      expect(pipeline[0].match.adPlatform).toBe('google');
+      expect(pipeline[0].match.industry).toBe('finance');
     });
 
     it('should handle aggregate errors gracefully', async () => {
@@ -470,7 +470,7 @@ describe('AdAggregationService', () => {
       await service.computePlatformBenchmarks('healthcare');
 
       const pipeline = mockAggregate.mock.calls[0][0];
-      expect(pipeline[0].$match.industry).toBe('healthcare');
+      expect(pipeline[0].match.industry).toBe('healthcare');
     });
 
     it('should handle aggregate errors gracefully', async () => {

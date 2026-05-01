@@ -76,7 +76,7 @@ export class CronModelDeprecationService {
       const candidates = await this.modelsService.find({
         isActive: true,
         isDeleted: false,
-        succeededBy: { $exists: true, $ne: null },
+        succeededBy: { not: null },
       });
 
       if (!candidates || candidates.length === 0) {
@@ -233,28 +233,10 @@ export class CronModelDeprecationService {
         isDeleted: false,
       });
 
-      const result = await this.modelsService.findAll(
-        [
-          {
-            $match: {
-              category,
-              isDeleted: false,
-            },
-          },
-          {
-            $group: {
-              _id: null,
-              total: { $sum: 1 },
-            },
-          },
-        ],
-        { limit: 1, pagination: false },
-      );
-
-      const totalInCategory =
-        result.docs.length > 0
-          ? (result.docs[0] as Record<string, number>).total
-          : 0;
+      const totalInCategory = await this.modelsService.count({
+        category,
+        isDeleted: false,
+      });
 
       if (totalInCategory === 0 || totalCategoryUsage === 0) {
         return 0;

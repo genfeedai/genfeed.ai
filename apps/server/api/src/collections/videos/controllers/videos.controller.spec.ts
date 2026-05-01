@@ -486,14 +486,9 @@ describe('VideosController', () => {
       await controller.findLatest(mockRequest, mockUser, 100);
 
       const callArgs = videosService.findAll.mock.calls[0];
-      const aggregate = callArgs[0] as unknown as Array<
-        Record<string, unknown>
-      >;
-      const limitStage = aggregate.find(
-        (stage: Record<string, unknown>) => stage.$limit,
-      ) as { $limit: number } | undefined;
+      const options = callArgs[1];
 
-      expect(limitStage?.$limit).toBe(50);
+      expect(options.limit).toBe(50);
     });
 
     it('should use default limit of 10 if not provided', async () => {
@@ -566,17 +561,17 @@ describe('VideosController', () => {
 
       const callArgs = videosService.findAll.mock.calls[0];
       const aggregate = callArgs[0] as unknown as Array<{
-        $match?: {
-          $or?: Array<{
+        match?: {
+          OR?: Array<{
             'metadata.label'?: {
-              $regex?: unknown;
+              contains?: unknown;
             };
           }>;
         };
       }>;
       const searchStage = aggregate.find((stage) =>
-        stage.$match?.$or?.some(
-          (condition) => condition['metadata.label']?.$regex,
+        stage.match?.OR?.some(
+          (condition) => condition['metadata.label']?.contains,
         ),
       );
 

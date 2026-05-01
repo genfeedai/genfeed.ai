@@ -25,10 +25,10 @@ const createBaseQuery = (
   }) as BaseQueryDto;
 
 const asMatchStage = (stage: Record<string, unknown>) =>
-  stage as Record<string, unknown> & { $match: Record<string, unknown> };
+  stage as Record<string, unknown> & { match: Record<string, unknown> };
 
 const asSortStage = (stage: Record<string, unknown>) =>
-  stage as Record<string, unknown> & { $sort: Record<string, unknown> };
+  stage as Record<string, unknown> & { orderBy: Record<string, unknown> };
 
 vi.mock('@genfeedai/helpers', async () => ({
   ...(await vi.importActual('@genfeedai/helpers')),
@@ -127,46 +127,46 @@ describe('ElementsLightingsController', () => {
     expect(controller).toBeDefined();
   });
 
-  describe('buildFindAllPipeline', () => {
-    it('should build pipeline with organization filter', () => {
+  describe('buildFindAllQuery', () => {
+    it('should build query with organization filter', () => {
       const query = createBaseQuery();
 
-      const result = controller.buildFindAllPipeline(mockSuperAdminUser, query);
+      const result = controller.buildFindAllQuery(mockSuperAdminUser, query);
 
       expect(result).toHaveLength(2);
-      expect(result[0]).toHaveProperty('$match');
-      expect(asMatchStage(result[0]).$match).toHaveProperty('isDeleted', false);
-      expect(result[1]).toHaveProperty('$sort');
+      expect(result[0]).toHaveProperty('match');
+      expect(asMatchStage(result[0]).match).toHaveProperty('isDeleted', false);
+      expect(result[1]).toHaveProperty('orderBy');
     });
 
-    it('should build pipeline with search filter', () => {
+    it('should build query with search filter', () => {
       const query = createBaseQuery({ search: 'soft' });
 
-      const result = controller.buildFindAllPipeline(mockSuperAdminUser, query);
+      const result = controller.buildFindAllQuery(mockSuperAdminUser, query);
 
       expect(result.length).toBeGreaterThan(1);
       const searchStage = result.find((stage) => {
-        const match = asMatchStage(stage).$match;
-        return match?.$or;
+        const match = asMatchStage(stage).match;
+        return match?.OR;
       });
       expect(searchStage).toBeDefined();
     });
 
-    it('should build pipeline with custom sort', () => {
+    it('should build query with custom sort', () => {
       const query = createBaseQuery({ sort: '-label' });
 
-      const result = controller.buildFindAllPipeline(mockSuperAdminUser, query);
+      const result = controller.buildFindAllQuery(mockSuperAdminUser, query);
 
       expect(result).toHaveLength(2);
-      expect(asSortStage(result[1]).$sort).toBeDefined();
+      expect(asSortStage(result[1]).orderBy).toBeDefined();
     });
 
-    it('should build pipeline for users with organization', () => {
+    it('should build query for users with organization', () => {
       const query = createBaseQuery();
 
-      const result = controller.buildFindAllPipeline(mockRegularUser, query);
+      const result = controller.buildFindAllQuery(mockRegularUser, query);
 
-      expect(asMatchStage(result[0]).$match).toHaveProperty('$or');
+      expect(asMatchStage(result[0]).match).toHaveProperty('OR');
     });
   });
 

@@ -51,10 +51,7 @@ export class AgentStrategiesController extends BaseCRUDController<
     );
   }
 
-  public buildFindAllPipeline(
-    user: User,
-    query: AgentStrategiesQueryDto,
-  ): Record<string, unknown>[] {
+  public buildFindAllQuery(user: User, query: AgentStrategiesQueryDto) {
     const publicMetadata = getPublicMetadata(user);
     const match: Record<string, unknown> = {
       isDeleted: query.isDeleted ?? false,
@@ -81,12 +78,10 @@ export class AgentStrategiesController extends BaseCRUDController<
       match.agentType = query.agentType;
     }
 
-    const pipeline: Record<string, unknown>[] = [
-      { $match: match },
-      { $sort: handleQuerySort(query.sort) },
-    ];
-
-    return pipeline;
+    return {
+      orderBy: handleQuerySort(query.sort),
+      where: match,
+    };
   }
 
   public canUserModifyEntity(

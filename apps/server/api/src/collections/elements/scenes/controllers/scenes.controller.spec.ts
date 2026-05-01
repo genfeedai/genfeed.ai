@@ -38,10 +38,10 @@ const createBaseQuery = (partial: Partial<BaseQueryDto> = {}): BaseQueryDto =>
   }) as BaseQueryDto;
 
 const asMatchStage = (stage: Record<string, unknown>) =>
-  stage as Record<string, unknown> & { $match: Record<string, unknown> };
+  stage as Record<string, unknown> & { match: Record<string, unknown> };
 
 const asSortStage = (stage: Record<string, unknown>) =>
-  stage as Record<string, unknown> & { $sort: Record<string, unknown> };
+  stage as Record<string, unknown> & { orderBy: Record<string, unknown> };
 
 vi.mock('@genfeedai/helpers', async () => ({
   ...(await vi.importActual('@genfeedai/helpers')),
@@ -262,72 +262,69 @@ describe('ElementsScenesController', () => {
     });
   });
 
-  describe('buildFindAllPipeline', () => {
-    it('should build pipeline for user with organization', () => {
+  describe('buildFindAllQuery', () => {
+    it('should build query for user with organization', () => {
       const query = createBaseQuery();
-      const pipeline = controller.buildFindAllPipeline(mockUser, query);
+      const query = controller.buildFindAllQuery(mockUser, query);
 
-      expect(pipeline).toHaveLength(2);
-      const matchStage = asMatchStage(pipeline[0]);
-      expect(matchStage.$match.$or).toBeDefined();
-      expect(
-        (matchStage.$match.$or as unknown[]).length,
-      ).toBeGreaterThanOrEqual(2);
-      expect(matchStage.$match.isDeleted).toBe(false);
+      expect(query).toHaveLength(2);
+      const matchStage = asMatchStage(query[0]);
+      expect(matchStage.match.OR).toBeDefined();
+      expect((matchStage.match.OR as unknown[]).length).toBeGreaterThanOrEqual(
+        2,
+      );
+      expect(matchStage.match.isDeleted).toBe(false);
     });
 
-    it('should build pipeline for user without organization', () => {
+    it('should build query for user without organization', () => {
       const query = createBaseQuery();
-      const pipeline = controller.buildFindAllPipeline(
-        mockUserWithoutOrg,
-        query,
-      );
+      const query = controller.buildFindAllQuery(mockUserWithoutOrg, query);
 
-      const matchStage = asMatchStage(pipeline[0]);
-      // Without org, falls back to $or with global items and user items
-      expect(matchStage.$match.$or).toBeDefined();
-      expect(matchStage.$match.isDeleted).toBe(false);
+      const matchStage = asMatchStage(query[0]);
+      // Without org, falls back to OR with global items and user items
+      expect(matchStage.match.OR).toBeDefined();
+      expect(matchStage.match.isDeleted).toBe(false);
     });
 
     it('should filter by isFavorite when provided', () => {
       const query = createBaseQuery({ isFavorite: true });
-      const pipeline = controller.buildFindAllPipeline(mockUser, query);
+      const query = controller.buildFindAllQuery(mockUser, query);
 
-      const matchStage = asMatchStage(pipeline[0]);
-      expect(matchStage.$match.isFavorite).toBe(true);
+      const matchStage = asMatchStage(query[0]);
+      expect(matchStage.match.isFavorite).toBe(true);
     });
 
     it('should handle isDeleted parameter', () => {
       const query = createBaseQuery({ isDeleted: true });
-      const pipeline = controller.buildFindAllPipeline(mockUser, query);
+      const query = controller.buildFindAllQuery(mockUser, query);
 
-      const matchStage = asMatchStage(pipeline[0]);
-      expect(matchStage.$match.isDeleted).toBe(true);
+      const matchStage = asMatchStage(query[0]);
+      expect(matchStage.match.isDeleted).toBe(true);
     });
 
     it('should include sorting stage', () => {
       const query = createBaseQuery({ sort: 'name: 1' });
-      const pipeline = controller.buildFindAllPipeline(mockUser, query);
+      const query = controller.buildFindAllQuery(mockUser, query);
 
-      expect(pipeline).toHaveLength(2);
-      const sortStage = asSortStage(pipeline[1]);
-      expect(sortStage.$sort).toBeDefined();
+      expect(query).toHaveLength(2);
+      const sortStage = asSortStage(query[1]);
+      expect(sortStage.orderBy).toBeDefined();
     });
 
     it('should load organization scenes or defaults', () => {
       const query = createBaseQuery();
-      const pipeline = controller.buildFindAllPipeline(mockUser, query);
+      const query = controller.buildFindAllQuery(mockUser, query);
 
-      const matchStage = asMatchStage(pipeline[0]);
-      const orConditions = matchStage.$match.$or as Array<
+      const matchStage = asMatchStage(query[0]);
+      const orConditions = matchStage.match.OR as Array<
         Record<string, unknown>
       >;
 
       // orConditions[0] = global (no org, no user)
       // orConditions[1] = org condition
       expect(orConditions[0]).toEqual({
-        organization: { $exists: false },
-        user: { $exists: false },
+        organization: { not: false },
+        user: { not: false },
       });
       expect(orConditions[1].organization).toEqual(
         mockUser.publicMetadata.organization as string,

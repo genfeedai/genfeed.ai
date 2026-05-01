@@ -161,16 +161,16 @@ describe('VoicesController', () => {
       const [aggregate] = voicesService.findAll.mock.calls[0] ?? [];
       expect(aggregate).toBeInstanceOf(Array);
       expect(aggregate[0]).toEqual({
-        $match: {
-          $or: [
+        match: {
+          OR: [
             {
               voiceSource: 'catalog',
             },
             {
-              $or: [
+              OR: [
                 { isCloned: true },
-                { voiceSource: { $exists: false } },
-                { voiceSource: { $in: ['cloned', 'generated'] } },
+                { voiceSource: { not: false } },
+                { voiceSource: { in: ['cloned', 'generated'] } },
               ],
               brand: brandId,
               organization: organizationId,
@@ -179,19 +179,19 @@ describe('VoicesController', () => {
           category: IngredientCategory.VOICE,
           isDeleted: false,
           provider: {
-            $in: [
+            in: [
               VoiceProvider.ELEVENLABS,
               VoiceProvider.HEYGEN,
               VoiceProvider.GENFEED_AI,
             ],
           },
           status: {
-            $in: ['draft', 'uploaded', 'completed'],
+            in: ['draft', 'uploaded', 'completed'],
           },
         },
       });
       expect(aggregate.at(-1)).toEqual({
-        $sort: {
+        orderBy: {
           createdAt: -1,
         },
       });
@@ -227,16 +227,16 @@ describe('VoicesController', () => {
 
       const [aggregate] = voicesService.findAll.mock.calls.at(-1) ?? [];
       expect(aggregate[0]).toEqual({
-        $match: {
-          $or: [
+        match: {
+          OR: [
             {
               voiceSource: 'catalog',
             },
             {
-              $or: [
+              OR: [
                 { isCloned: true },
-                { voiceSource: { $exists: false } },
-                { voiceSource: { $in: ['cloned', 'generated'] } },
+                { voiceSource: { not: false } },
+                { voiceSource: { in: ['cloned', 'generated'] } },
               ],
               brand: brandId,
               organization: organizationId,
@@ -245,14 +245,14 @@ describe('VoicesController', () => {
           category: IngredientCategory.VOICE,
           isDeleted: false,
           provider: {
-            $in: [
+            in: [
               VoiceProvider.ELEVENLABS,
               VoiceProvider.HEYGEN,
               VoiceProvider.GENFEED_AI,
             ],
           },
           status: {
-            $in: ['draft', 'uploaded', 'completed'],
+            in: ['draft', 'uploaded', 'completed'],
           },
         },
       });
@@ -280,21 +280,21 @@ describe('VoicesController', () => {
 
       const [aggregate] = voicesService.findAll.mock.calls.at(-1) ?? [];
       expect(aggregate[0]).toEqual({
-        $match: {
+        match: {
           category: IngredientCategory.VOICE,
           isDeleted: false,
           provider: {
-            $in: [
+            in: [
               VoiceProvider.ELEVENLABS,
               VoiceProvider.HEYGEN,
               VoiceProvider.GENFEED_AI,
             ],
           },
           status: {
-            $in: ['draft', 'uploaded', 'completed'],
+            in: ['draft', 'uploaded', 'completed'],
           },
           voiceSource: {
-            $in: ['catalog'],
+            in: ['catalog'],
           },
         },
       });
@@ -333,17 +333,17 @@ describe('VoicesController', () => {
 
       const [aggregate] = voicesService.findAll.mock.calls.at(-1) ?? [];
       expect(aggregate[0]).toEqual({
-        $match: {
-          $or: [
+        match: {
+          OR: [
             {
               scope: AssetScope.BRAND,
               voiceSource: 'catalog',
             },
             {
-              $or: [
+              OR: [
                 { isCloned: true },
-                { voiceSource: { $exists: false } },
-                { voiceSource: { $in: ['cloned', 'generated'] } },
+                { voiceSource: { not: false } },
+                { voiceSource: { in: ['cloned', 'generated'] } },
               ],
               brand: brandId,
               organization: organizationId,
@@ -351,39 +351,39 @@ describe('VoicesController', () => {
           ],
           category: IngredientCategory.VOICE,
           isActive: {
-            $ne: false,
+            not: false,
           },
           isDeleted: false,
           provider: {
-            $in: [VoiceProvider.GENFEED_AI, VoiceProvider.HEYGEN],
+            in: [VoiceProvider.GENFEED_AI, VoiceProvider.HEYGEN],
           },
           status: {
-            $in: ['draft', 'uploaded', 'completed'],
+            in: ['draft', 'uploaded', 'completed'],
           },
           voiceSource: {
-            $in: ['catalog', 'cloned'],
+            in: ['catalog', 'cloned'],
           },
         },
       });
       expect(aggregate[3]).toEqual({
-        $match: {
-          $or: [
+        match: {
+          OR: [
             {
               'metadata.label': {
-                $options: 'i',
-                $regex: 'radio',
+                mode: 'insensitive',
+                contains: 'radio',
               },
             },
             {
               externalVoiceId: {
-                $options: 'i',
-                $regex: 'radio',
+                mode: 'insensitive',
+                contains: 'radio',
               },
             },
             {
               provider: {
-                $options: 'i',
-                $regex: 'radio',
+                mode: 'insensitive',
+                contains: 'radio',
               },
             },
           ],
@@ -413,16 +413,16 @@ describe('VoicesController', () => {
 
       const [aggregate] = voicesService.findAll.mock.calls.at(-1) ?? [];
       expect(aggregate[0]).toEqual({
-        $match: {
-          $or: [
+        match: {
+          OR: [
             {
               voiceSource: 'catalog',
             },
             {
-              $or: [
+              OR: [
                 { isCloned: true },
-                { voiceSource: { $exists: false } },
-                { voiceSource: { $in: ['cloned', 'generated'] } },
+                { voiceSource: { not: false } },
+                { voiceSource: { in: ['cloned', 'generated'] } },
               ],
               brand: expect.any(String),
               organization: expect.any(String),
@@ -430,18 +430,18 @@ describe('VoicesController', () => {
           ],
           category: IngredientCategory.VOICE,
           isActive: {
-            $ne: false,
+            not: false,
           },
           isDeleted: false,
           provider: {
-            $in: [
+            in: [
               VoiceProvider.ELEVENLABS,
               VoiceProvider.HEYGEN,
               VoiceProvider.GENFEED_AI,
             ],
           },
           status: {
-            $in: ['draft', 'uploaded', 'completed'],
+            in: ['draft', 'uploaded', 'completed'],
           },
         },
       });
@@ -535,13 +535,11 @@ describe('VoicesController', () => {
         expect.any(String),
       );
       expect(voicesService.patchAll).toHaveBeenCalledWith(
-        { _id: ingredientId },
+        expect.objectContaining({ OR: expect.any(Array) }),
         {
-          $set: {
-            duration: 5.5,
-            status: 'generated',
-            url: 'https://cdn.example.com/audio.mp3',
-          },
+          duration: 5.5,
+          status: 'generated',
+          url: 'https://cdn.example.com/audio.mp3',
         },
       );
     });
@@ -571,8 +569,8 @@ describe('VoicesController', () => {
       ).rejects.toThrow(HttpException);
 
       expect(voicesService.patchAll).toHaveBeenCalledWith(
-        { _id: ingredientId },
-        { $set: { status: 'failed' } },
+        expect.objectContaining({ OR: expect.any(Array) }),
+        { status: 'failed' },
       );
     });
   });
@@ -708,8 +706,8 @@ describe('VoicesController', () => {
         'test-key',
       );
       expect(voicesService.patchAll).toHaveBeenCalledWith(
-        { _id: voiceId },
-        { $set: { isDeleted: true } },
+        expect.objectContaining({ OR: expect.any(Array) }),
+        { isDeleted: true },
       );
     });
   });

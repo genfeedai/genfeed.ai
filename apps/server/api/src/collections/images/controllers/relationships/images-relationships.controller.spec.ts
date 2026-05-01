@@ -84,12 +84,12 @@ describe('ImagesRelationshipsController', () => {
       const callArgs = (imagesService.findAll as ReturnType<typeof vi.fn>).mock
         .calls[0];
       const pipeline = callArgs[0] as Array<{
-        $match?: Record<string, unknown>;
+        match?: Record<string, unknown>;
       }>;
       const matchStage = pipeline.find(
-        (s): s is { $match: Record<string, unknown> } => '$match' in s,
+        (s): s is { match: Record<string, unknown> } => 'match' in s,
       );
-      expect(matchStage?.$match.parent).toEqual('507f1f77bcf86cd799439014');
+      expect(matchStage?.match.parent).toEqual('507f1f77bcf86cd799439014');
     });
 
     it('should include isDeleted filter in pipeline', async () => {
@@ -102,15 +102,15 @@ describe('ImagesRelationshipsController', () => {
       const callArgs = (imagesService.findAll as ReturnType<typeof vi.fn>).mock
         .calls[0];
       const pipeline = callArgs[0] as Array<{
-        $match?: Record<string, unknown>;
+        match?: Record<string, unknown>;
       }>;
       const matchStage = pipeline.find(
-        (s): s is { $match: Record<string, unknown> } => '$match' in s,
+        (s): s is { match: Record<string, unknown> } => 'match' in s,
       );
-      expect(matchStage?.$match.isDeleted).toBe(false);
+      expect(matchStage?.match.isDeleted).toBe(false);
     });
 
-    it('should include $sort stage in pipeline', async () => {
+    it('should include orderBy stage in pipeline', async () => {
       await controller.findChildren(
         mockRequest,
         '507f1f77bcf86cd799439014',
@@ -120,7 +120,7 @@ describe('ImagesRelationshipsController', () => {
       const callArgs = (imagesService.findAll as ReturnType<typeof vi.fn>).mock
         .calls[0];
       const pipeline = callArgs[0] as Array<Record<string, unknown>>;
-      const sortStage = pipeline.find((s) => '$sort' in s);
+      const sortStage = pipeline.find((s) => 'orderBy' in s);
       expect(sortStage).toBeDefined();
     });
 

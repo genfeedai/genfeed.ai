@@ -113,7 +113,7 @@ export class ReplyBotQueueService implements OnModuleInit {
     try {
       // Get all organizations
       const orgsResult = await this.organizationsService.findAll(
-        [{ $match: { isDeleted: false } }],
+        { where: { isDeleted: false } },
         { pagination: false },
       );
       const organizations = orgsResult.docs || [];
@@ -150,7 +150,7 @@ export class ReplyBotQueueService implements OnModuleInit {
       return results;
     } catch (error: unknown) {
       this.logger.error(`${url} failed`, error);
-      return [];
+      return { where: {} };
     }
   }
 

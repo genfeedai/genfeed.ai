@@ -389,19 +389,15 @@ export class ClipProjectsController {
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: {
-          isDeleted: false,
-          organization: publicMetadata.organization,
-        },
+    const aggregate = {
+      where: {
+        isDeleted: false,
+        organization: publicMetadata.organization,
       },
-      {
-        $sort: query.sort
-          ? handleQuerySort(query.sort)
-          : ({ createdAt: -1 } as SortObject),
-      },
-    ];
+      orderBy: query.sort
+        ? handleQuerySort(query.sort)
+        : ({ createdAt: -1 } as SortObject),
+    };
 
     const data: AggregatePaginateResult<ClipProjectDocument> =
       await this.clipProjectsService.findAll(aggregate, options);

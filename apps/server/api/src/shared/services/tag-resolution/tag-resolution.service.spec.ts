@@ -71,13 +71,13 @@ describe('TagResolutionService', () => {
       expect(tagsService.findAll).toHaveBeenCalledWith(
         [
           {
-            $match: {
-              _id: { $in: tagIds },
+            match: {
+              _id: { in: tagIds },
               isDeleted: false,
             },
           },
           {
-            $project: {
+            select: {
               label: 1,
             },
           },

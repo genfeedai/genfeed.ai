@@ -241,9 +241,7 @@ export class SyncService {
       syncDirection: 'push',
     };
 
-    await this.workflowsService.patch(localWorkflowId, {
-      $set: { cloudSync },
-    });
+    await this.workflowsService.patch(localWorkflowId, { cloudSync });
 
     this.logger.log('Workflow pushed to cloud successfully', {
       localWorkflowId,
@@ -339,9 +337,7 @@ export class SyncService {
     const localId = String(
       created._id ?? (created as Record<string, unknown>).id,
     );
-    await this.workflowsService.patch(localId, {
-      $set: { cloudSync },
-    });
+    await this.workflowsService.patch(localId, { cloudSync });
 
     this.logger.log('Workflow pulled from cloud successfully', {
       localId,

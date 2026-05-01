@@ -261,15 +261,14 @@ describe('AgentCampaignExecutionService', () => {
   });
 
   describe('updateCreditsUsed()', () => {
-    it('should call patchAll with $inc for creditsUsed', async () => {
-      mockAgentCampaignsService.patchAll.mockResolvedValue(undefined);
+    it('should patch creditsUsed with the incremented value', async () => {
+      mockAgentCampaignsService.findOne.mockResolvedValue({ creditsUsed: 25 });
 
       await service.updateCreditsUsed(campaignId, 50);
 
-      expect(mockAgentCampaignsService.patchAll).toHaveBeenCalledWith(
-        expect.objectContaining({ isDeleted: false }),
-        { $inc: { creditsUsed: 50 } },
-      );
+      expect(mockAgentCampaignsService.patch).toHaveBeenCalledWith(campaignId, {
+        creditsUsed: 75,
+      });
     });
   });
 

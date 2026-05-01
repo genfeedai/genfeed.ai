@@ -81,28 +81,28 @@ describe('PublicVideosController', () => {
       brandId,
     );
     const aggregateArg = mockVideosService.findAll.mock.calls[0][0] as Array<{
-      $match?: {
+      match?: {
         brand?: string;
       };
     }>;
     const matchStage = aggregateArg[0];
-    expect(matchStage.$match?.brand).toEqual(brandId);
+    expect(matchStage.match?.brand).toEqual(brandId);
   });
 
   it('should pass tag filter as regex when provided', async () => {
     await controller.findPublicVideos(mockRequest, {} as never, 'funny');
     const aggregateArg = mockVideosService.findAll.mock.calls[0][0] as Array<{
-      $match?: {
+      match?: {
         'metadata.tags'?: {
-          $options: string;
-          $regex: string;
+          mode: string;
+          contains: string;
         };
       };
     }>;
     const matchStage = aggregateArg[0];
-    expect(matchStage.$match?.['metadata.tags']).toEqual({
-      $options: 'i',
-      $regex: 'funny',
+    expect(matchStage.match?.['metadata.tags']).toEqual({
+      mode: 'insensitive',
+      contains: 'funny',
     });
   });
 
@@ -115,12 +115,12 @@ describe('PublicVideosController', () => {
       'portrait',
     );
     const aggregateArg = mockVideosService.findAll.mock.calls[0][0] as Array<{
-      $match?: {
+      match?: {
         $expr?: unknown;
       };
     }>;
-    // Should have extra $match stage for format
-    const formatStage = aggregateArg.find((stage) => stage.$match?.$expr);
+    // Should have extra match stage for format
+    const formatStage = aggregateArg.find((stage) => stage.match?.$expr);
     expect(formatStage).toBeDefined();
   });
 

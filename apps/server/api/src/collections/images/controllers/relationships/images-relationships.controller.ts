@@ -36,17 +36,13 @@ export class ImagesRelationshipsController {
     };
 
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: {
-          isDeleted,
-          parent: imageId,
-        },
+    const aggregate = {
+      where: {
+        isDeleted,
+        parent: imageId,
       },
-      {
-        $sort: handleQuerySort(query.sort),
-      },
-    ];
+      orderBy: handleQuerySort(query.sort),
+    };
 
     const data = await this.imagesService.findAll(aggregate, options);
     return serializeCollection(request, ImageSerializer, data);

@@ -1,13 +1,12 @@
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { PipelineBuilder } from '@api/shared/utils/pipeline-builder/pipeline-builder.util';
 
 interface ElementMetadata {
   organization?: string;
   user?: string;
 }
 
-interface BuildElementFindAllPipelineOptions {
+interface BuildElementFindAllQueryOptions {
   adminFilter?: Record<string, unknown> | null;
   defaultSort?: Record<string, 1 | -1>;
   includeStateFilters?: boolean;
@@ -16,17 +15,17 @@ interface BuildElementFindAllPipelineOptions {
   searchableFields?: string[];
 }
 
-export function buildElementFindAllPipeline({
+export function buildElementFindAllQuery({
   adminFilter,
   defaultSort = { createdAt: -1, label: 1 },
   includeStateFilters = false,
   metadata,
   query,
   searchableFields = [],
-}: BuildElementFindAllPipelineOptions): Record<string, unknown>[] {
+}: BuildElementFindAllQueryOptions): Record<string, unknown> {
   const queryAny = query as unknown as Record<string, unknown>;
   const orConditions: Record<string, unknown>[] = [
-    { organization: { $exists: false }, user: { $exists: false } },
+    { organization: null, user: null },
   ];
 
   if (metadata.organization) {
@@ -39,7 +38,7 @@ export function buildElementFindAllPipeline({
     orConditions.push({ user: metadata.user });
   }
 
-  const builder = PipelineBuilder.create().match({
+  const where: Record<string, unknown> = {
     isDeleted: query.isDeleted ?? false,
     ...(includeStateFilters &&
       typeof queryAny.isActive === 'boolean' && {
@@ -49,18 +48,22 @@ export function buildElementFindAllPipeline({
       typeof queryAny.isDefault === 'boolean' && {
         isDefault: queryAny.isDefault,
       }),
-    ...(adminFilter ?? { $or: orConditions }),
-  });
+    ...(adminFilter ?? { OR: orConditions }),
+  };
 
   if (searchableFields.length > 0 && typeof queryAny.search === 'string') {
     const search = queryAny.search;
-    builder.match({
-      $or: searchableFields.map((field) => ({
-        [field]: { $options: 'i', $regex: search },
-      })),
-    });
+    where.AND = [
+      {
+        OR: searchableFields.map((field) => ({
+          [field]: { contains: search, mode: 'insensitive' },
+        })),
+      },
+    ];
   }
 
-  builder.sort(query.sort ? handleQuerySort(query.sort) : defaultSort);
-  return builder.build();
+  return {
+    orderBy: query.sort ? handleQuerySort(query.sort) : defaultSort,
+    where,
+  };
 }

@@ -217,7 +217,7 @@ export class TrendsService {
       this.loggerService.log(
         'No cached trends found, returning empty result without live fetch',
       );
-      return [];
+      return { where: {} };
     }
 
     // No cached trends, fetch fresh
@@ -270,25 +270,23 @@ export class TrendsService {
   async getConnectedPlatforms(organizationId: string): Promise<string[]> {
     try {
       const credentials = await this.credentialsService.findAll(
-        [
-          {
-            $match: {
-              isConnected: true,
-              isDeleted: false,
-              organizationId: organizationId,
-            },
+        {
+          where: {
+            isConnected: true,
+            isDeleted: false,
+            organizationId: organizationId,
           },
-        ],
+        },
         { limit: 100 },
       );
 
       if (credentials?.docs) {
         return credentials.docs.map((cred) => cred.platform.toLowerCase());
       }
-      return [];
+      return { where: {} };
     } catch (error: unknown) {
       this.loggerService.error('Failed to get connected platforms', error);
-      return [];
+      return { where: {} };
     }
   }
 
@@ -572,7 +570,7 @@ export class TrendsService {
   ): Promise<TrendSourceItem[]> {
     const trend = await this.getTrendById(trendId, organizationId);
     if (!trend) {
-      return [];
+      return { where: {} };
     }
 
     try {
@@ -795,7 +793,7 @@ export class TrendsService {
       case 'reddit':
         return this.fetchRedditSourceItems(trend, limit);
       default:
-        return [];
+        return { where: {} };
     }
   }
 
@@ -805,7 +803,7 @@ export class TrendsService {
   ): Promise<TrendSourceItem[]> {
     const hashtag = this.getTrendSearchTerm(trend);
     if (!hashtag) {
-      return [];
+      return { where: {} };
     }
 
     const posts = await this.apifyService.searchInstagramByHashtag(hashtag, {
@@ -823,7 +821,7 @@ export class TrendsService {
   ): Promise<TrendSourceItem[]> {
     const hashtag = this.getTrendSearchTerm(trend);
     if (!hashtag) {
-      return [];
+      return { where: {} };
     }
 
     const videos = await this.apifyService.searchTikTokByHashtag(hashtag, {
@@ -841,7 +839,7 @@ export class TrendsService {
   ): Promise<TrendSourceItem[]> {
     const query = this.getTrendSearchTerm(trend);
     if (!query) {
-      return [];
+      return { where: {} };
     }
 
     const tweets = await this.apifyService.searchTwitterTweets(query, {
@@ -857,7 +855,7 @@ export class TrendsService {
   ): Promise<TrendSourceItem[]> {
     const query = this.getTrendSearchTerm(trend);
     if (!query) {
-      return [];
+      return { where: {} };
     }
 
     const videos = await this.apifyService.searchYouTubeVideos(query, {
@@ -875,7 +873,7 @@ export class TrendsService {
   ): Promise<TrendSourceItem[]> {
     const query = this.getTrendSearchTerm(trend);
     if (!query) {
-      return [];
+      return { where: {} };
     }
 
     const posts = await this.apifyService.searchRedditPosts(query, { limit });
@@ -1088,7 +1086,7 @@ export class TrendsService {
   ): TrendSourceItem[] {
     const cachedItems = trend.metadata?.sourcePreviewCache;
     if (!Array.isArray(cachedItems)) {
-      return [];
+      return { where: {} };
     }
 
     return cachedItems

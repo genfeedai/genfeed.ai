@@ -85,25 +85,17 @@ export class IngredientsController {
   ): Promise<JsonApiSingleResponse> {
     const publicMetadata = getPublicMetadata(user);
 
-    // Build update operations for relationship fields (folder, parent)
-    // This separates fields into $set (non-null) and $unset (null) operations
-    const updateOps = await buildUpdateOperations(
+    const processedDto = await buildUpdateOperations(
       updateIngredientDto as unknown as Record<string, unknown>,
       ['folder', 'parent'],
     );
 
-    // Start with the update operations
-    const processedDto: Record<string, unknown> = { ...updateOps };
-
-    // Convert tags array to ObjectIds (if present in $set)
     if (
-      updateOps.$set &&
-      Object.hasOwn(updateOps.$set, 'tags') &&
-      Array.isArray(updateOps.$set.tags)
+      Object.hasOwn(processedDto, 'tags') &&
+      Array.isArray(processedDto.tags)
     ) {
-      updateOps.$set.tags = updateOps.$set.tags.map(
+      processedDto.tags = processedDto.tags.map(
         (tag: string | { _id: string }) => {
-          // If tag is a string ID, convert to ObjectId
           if (typeof tag === 'string') {
             return tag;
           }
@@ -123,7 +115,7 @@ export class IngredientsController {
     const ingredient = await this.ingredientsService.findOne(
       {
         _id: ingredientId,
-        $or: [
+        OR: [
           { user: publicMetadata.user },
           { organization: publicMetadata.organization },
         ],
@@ -135,7 +127,6 @@ export class IngredientsController {
       return returnNotFound(this.constructorName, ingredientId);
     }
 
-    // Update the ingredient - processedDto may contain $set/$unset operators
     await this.ingredientsService.patch(
       ingredientId,
       processedDto as unknown as UpdateIngredientDto,

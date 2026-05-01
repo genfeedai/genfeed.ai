@@ -72,10 +72,7 @@ export class FoldersController extends BaseCRUDController<
    * - If organization query param (no brand): folders without org + org folders
    * - Default: user folders + organization folders
    */
-  public buildFindAllPipeline(
-    user: User,
-    query: BaseQueryDto,
-  ): Record<string, unknown>[] {
+  public buildFindAllQuery(user: User, query: BaseQueryDto) {
     const publicMetadata = getPublicMetadata(user);
     const organizationId = publicMetadata.organization;
 
@@ -91,14 +88,14 @@ export class FoldersController extends BaseCRUDController<
       : null;
 
     const matchStage: Record<string, unknown> & {
-      $or?: Array<Record<string, unknown>>;
+      OR?: Array<Record<string, unknown>>;
     } = {
       isDeleted: query.isDeleted ?? false,
     };
 
     if (brandId) {
       // Brand context: show folders without org + org folders without brand + brand folders
-      matchStage.$or = [
+      matchStage.OR = [
         { organization: null }, // Folders without organization
         {
           brand: null,
@@ -108,39 +105,18 @@ export class FoldersController extends BaseCRUDController<
       ];
     } else if (queryOrganizationId) {
       // Organization context (no brand): show folders without org + org folders
-      matchStage.$or = [
+      matchStage.OR = [
         { organization: null }, // Folders without organization
         { organization: queryOrganizationId }, // Organization folders
       ];
     } else {
       // Default: user folders + organization folders
-      matchStage.$or = [
+      matchStage.OR = [
         { user: publicMetadata.user },
         { organization: organizationId },
       ];
     }
 
-    return [
-      {
-        $match: matchStage,
-      },
-      {
-        $lookup: {
-          as: 'brand',
-          foreignField: '_id',
-          from: 'brands',
-          localField: 'brand',
-        },
-      },
-      {
-        $unwind: {
-          path: '$brand',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $sort: { createdAt: -1, label: 1 },
-      },
-    ];
+    return { where: matchStage, orderBy: { createdAt: -1, label: 1 } };
   }
 }

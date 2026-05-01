@@ -64,17 +64,12 @@ export class ActivitiesController {
 
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
 
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: { isDeleted },
-      },
-      ...ActivitiesService.buildEntityLookup(),
-      {
-        $sort: query.sort
-          ? handleQuerySort(query.sort)
-          : ({ createdAt: -1, key: 1 } as SortObject),
-      },
-    ];
+    const aggregate = {
+      where: { isDeleted },
+      orderBy: query.sort
+        ? handleQuerySort(query.sort)
+        : ({ createdAt: -1, key: 1 } as SortObject),
+    };
 
     const data: AggregatePaginateResult<ActivityDocument> =
       await this.activitiesService.findAll(aggregate, options);
@@ -94,7 +89,7 @@ export class ActivitiesController {
     // Find and verify ownership
     const activity = await this.activitiesService.findOne({
       _id: activityId,
-      $or: [
+      OR: [
         { user: publicMetadata.user },
         { organization: publicMetadata.organization },
       ],

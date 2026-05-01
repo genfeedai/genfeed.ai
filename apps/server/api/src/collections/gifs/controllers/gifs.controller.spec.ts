@@ -34,15 +34,15 @@ vi.mock('@api/helpers/utils/query-defaults/query-defaults.util', () => ({
     getIsDeletedDefault: vi.fn((val: boolean) => val ?? false),
     getPaginationDefaults: vi.fn(() => ({ limit: 10, page: 1 })),
     parseStatusFilter: vi.fn(
-      (val: unknown) => val ?? { $in: ['draft', 'uploaded', 'completed'] },
+      (val: unknown) => val ?? { in: ['draft', 'uploaded', 'completed'] },
     ),
   },
 }));
 
 vi.mock('@api/helpers/utils/collection-filter/collection-filter.util', () => ({
   CollectionFilterUtil: {
-    buildBrandFilter: vi.fn(() => ({ $ne: null })),
-    buildScopeFilter: vi.fn(() => ({ $ne: null })),
+    buildBrandFilter: vi.fn(() => ({ not: null })),
+    buildScopeFilter: vi.fn(() => ({ not: null })),
   },
 }));
 
@@ -149,20 +149,14 @@ describe('GifsController', () => {
 
     it('should cap limit at 50', async () => {
       await controller.findLatest(mockRequest, mockUser, 100);
-      const pipeline = gifsService.findAll.mock.calls[0][0] as Array<{
-        $limit?: number;
-      }>;
-      const limitStage = pipeline.find((s) => '$limit' in s);
-      expect(limitStage?.$limit).toBeLessThanOrEqual(50);
+      const options = gifsService.findAll.mock.calls[0][1];
+      expect(options.limit).toBeLessThanOrEqual(50);
     });
 
     it('should use default limit of 10', async () => {
       await controller.findLatest(mockRequest, mockUser);
-      const pipeline = gifsService.findAll.mock.calls[0][0] as Array<{
-        $limit?: number;
-      }>;
-      const limitStage = pipeline.find((s) => '$limit' in s);
-      expect(limitStage?.$limit).toBe(10);
+      const options = gifsService.findAll.mock.calls[0][1];
+      expect(options.limit).toBe(10);
     });
   });
 
@@ -182,7 +176,7 @@ describe('GifsController', () => {
       const pipeline = gifsService.findAll.mock.calls[0][0] as Array<
         Record<string, unknown>
       >;
-      const matchStages = pipeline.filter((s) => '$match' in s);
+      const matchStages = pipeline.filter((s) => 'match' in s);
       // Should have at least 2 match stages (main filter + search)
       expect(matchStages.length).toBeGreaterThanOrEqual(2);
     });
@@ -195,8 +189,8 @@ describe('GifsController', () => {
       >;
       const lookupStages = pipeline.filter(
         (s) =>
-          '$lookup' in s &&
-          (s.$lookup as Record<string, string>).from === 'tags',
+          'relationInclude' in s &&
+          (s.relationInclude as Record<string, string>).from === 'tags',
       );
       expect(lookupStages.length).toBe(1);
     });

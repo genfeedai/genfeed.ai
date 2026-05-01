@@ -23,7 +23,7 @@ import type {
 } from '@genfeedai/interfaces';
 import { IngredientSerializer } from '@genfeedai/serializers';
 import { Public } from '@libs/decorators/public.decorator';
-import { MongoMatchQuery } from '@libs/interfaces/query.interface';
+import { PrismaWhereQuery } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Controller, Get, Param, Query, Req, Res } from '@nestjs/common';
@@ -70,12 +70,12 @@ export class PublicImagesController {
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
-    const matchQuery: MongoMatchQuery = {
+    const matchQuery: PrismaWhereQuery = {
       category: IngredientCategory.IMAGE,
       isDeleted: false,
       scope: AssetScope.PUBLIC,
       status: {
-        $in: [IngredientStatus.GENERATED],
+        in: [IngredientStatus.GENERATED],
       },
     };
 
@@ -86,95 +86,10 @@ export class PublicImagesController {
 
     // Filter by tag if provided (assuming tags are stored in metadata)
     if (tag) {
-      matchQuery['metadata.tags'] = { $options: 'i', $regex: tag };
+      matchQuery['metadata.tags'] = { mode: 'insensitive', contains: tag };
     }
 
-    const aggregate: Record<string, unknown>[] = [
-      { $match: matchQuery },
-      {
-        $lookup: {
-          as: 'metadata',
-          foreignField: '_id',
-          from: 'metadata',
-          localField: 'metadata',
-        },
-      },
-      {
-        $unwind: {
-          path: '$metadata',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      // Filter by format (portrait/landscape/square) based on metadata dimensions
-      ...(format
-        ? [
-            {
-              $match: {
-                $expr: this.getFormatExpression(format),
-              },
-            } as Record<string, unknown>,
-          ]
-        : []),
-      {
-        $lookup: {
-          as: 'brand',
-          from: 'brands',
-          let: { brandId: '$brand' },
-          pipeline: [
-            {
-              $match: {
-                $expr: {
-                  $and: [
-                    { $eq: ['$_id', '$$brandId'] },
-                    { $eq: ['$scope', 'public'] },
-                    { $eq: ['$isDeleted', false] },
-                  ],
-                },
-              },
-            },
-          ],
-        },
-      },
-      {
-        $unwind: {
-          path: '$brand',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $lookup: {
-          as: 'brandLogo',
-          from: 'assets',
-          let: { brandId: '$brand._id' },
-          pipeline: [
-            {
-              $match: {
-                $expr: {
-                  $and: [
-                    { $eq: ['$parent', '$$brandId'] },
-                    { $eq: ['$category', 'logo'] },
-                    { $eq: ['$isDeleted', false] },
-                  ],
-                },
-              },
-            },
-          ],
-        },
-      },
-      {
-        $unwind: {
-          path: '$brandLogo',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $addFields: { 'brand.logo': '$brandLogo._id' },
-      },
-      {
-        $project: { brandLogo: 0 },
-      },
-      { $sort: { createdAt: -1 } },
-    ];
+    const aggregate = { where: matchQuery, orderBy: { createdAt: -1 } };
 
     const data = await this.imagesService.findAll(aggregate, options);
     return serializeCollection(request, IngredientSerializer, data);
@@ -213,36 +128,6 @@ export class PublicImagesController {
     }
 
     return serializeSingle(request, IngredientSerializer, image);
-  }
-
-  /**
-   * Get MongoDB expression for format filtering based on width/height
-   * @param format - The format filter (portrait, landscape, square)
-   * @returns MongoDB expression object
-   */
-  private getFormatExpression(format: string): unknown {
-    const normalizedFormat = format.toLowerCase();
-
-    switch (normalizedFormat) {
-      case IngredientFormat.PORTRAIT:
-        // Portrait: height > width
-        return {
-          $gt: ['$metadata.height', '$metadata.width'],
-        };
-      case IngredientFormat.LANDSCAPE:
-        // Landscape: width > height
-        return {
-          $gt: ['$metadata.width', '$metadata.height'],
-        };
-      case IngredientFormat.SQUARE:
-        // Square: width === height
-        return {
-          $eq: ['$metadata.width', '$metadata.height'],
-        };
-      default:
-        // Invalid format, return true to include all
-        return true;
-    }
   }
 
   @Get(':imageId/image.jpg')

@@ -114,7 +114,7 @@ export class VideosCaptionsController {
     // Verify video exists and user has access
     const video = await this.videosService.findOne({
       _id: videoId,
-      $or: [
+      OR: [
         { user: publicMetadata.user },
         { organization: publicMetadata.organization },
       ],
@@ -131,43 +131,13 @@ export class VideosCaptionsController {
     };
 
     // Build aggregation pipeline to get captions for this video (ingredient)
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: {
-          ingredient: videoId,
-          isDeleted: false,
-        },
+    const aggregate = {
+      where: {
+        ingredient: videoId,
+        isDeleted: false,
       },
-      {
-        $lookup: {
-          as: 'ingredient',
-          foreignField: '_id',
-          from: 'ingredients',
-          localField: 'ingredient',
-        },
-      },
-      {
-        $unwind: {
-          path: '$ingredient',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $lookup: {
-          as: 'ingredient.metadata',
-          foreignField: '_id',
-          from: 'metadata',
-          localField: 'ingredient.metadata',
-        },
-      },
-      {
-        $unwind: {
-          path: '$ingredient.metadata',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      { $sort: { createdAt: -1 } },
-    ];
+      orderBy: { createdAt: -1 },
+    };
 
     const data = await this.captionsService.findAll(aggregate, options);
     return serializeCollection(request, CaptionSerializer, data);

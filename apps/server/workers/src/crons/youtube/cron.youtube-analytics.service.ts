@@ -34,29 +34,17 @@ export class CronYoutubeAnalyticsService {
     try {
       // Find all published YouTube posts with external IDs
       const posts: unknown = await this.postsService.findAll(
-        [
-          {
-            $match: {
-              externalId: { $exists: true, $ne: null },
-              isDeleted: false,
-              platform: CredentialPlatform.YOUTUBE,
-              status: {
-                $in: [PostStatus.PUBLIC],
-              },
+        {
+          include: { credential: true },
+          where: {
+            externalId: { not: null },
+            isDeleted: false,
+            platform: CredentialPlatform.YOUTUBE,
+            status: {
+              in: [PostStatus.PUBLIC],
             },
           },
-          {
-            $lookup: {
-              as: 'credential',
-              foreignField: '_id',
-              from: 'credentials',
-              localField: 'credential',
-            },
-          },
-          {
-            $unwind: '$credential',
-          },
-        ],
+        },
         { customLabels, pagination: false },
       );
 

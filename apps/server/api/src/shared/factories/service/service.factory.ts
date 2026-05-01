@@ -155,7 +155,7 @@ export function createUserScopedService<TEntity, TCreateDto, TUpdateDto>(
         });
       }
 
-      return this.findAll([], { ...options, ...matchConditions });
+      return this.findAll({ where: matchConditions }, options);
     }
 
     /**

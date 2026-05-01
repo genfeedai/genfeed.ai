@@ -24,22 +24,19 @@ export class ElementsService {
   ) {}
 
   async findAllElements(organizationId: string | null | undefined) {
-    // Build aggregation pipeline to get both default (no org) and org-specific elements
-    const buildPipeline = (): Record<string, unknown>[] => {
+    // Build findAll query to get both default (no org) and org-specific elements
+    const buildQuery = (): Record<string, unknown> => {
       // Always filter by isDeleted: false, and add org logic
       const baseMatch: Record<string, unknown> = { isDeleted: false };
 
       // Common: default elements (no org)
-      const defaultOrgConditions = [
-        { organization: null },
-        { organization: { $exists: false } },
-      ];
+      const defaultOrgConditions = [{ organization: null }];
 
-      baseMatch.$or = organizationId
+      baseMatch.OR = organizationId
         ? [{ organization: organizationId }, ...defaultOrgConditions]
         : defaultOrgConditions;
 
-      return [{ $match: baseMatch }, { $sort: { createdAt: -1, key: 1 } }];
+      return { where: baseMatch, orderBy: { createdAt: -1, key: 1 } };
     };
 
     const [
@@ -54,31 +51,31 @@ export class ElementsService {
       cameraMovements,
     ] = await Promise.all([
       this.camerasService
-        .findAll(buildPipeline(), { pagination: false })
+        .findAll(buildQuery(), { pagination: false })
         .then((result) => result.docs),
       this.moodsService
-        .findAll(buildPipeline(), { pagination: false })
+        .findAll(buildQuery(), { pagination: false })
         .then((result) => result.docs),
       this.scenesService
-        .findAll(buildPipeline(), { pagination: false })
+        .findAll(buildQuery(), { pagination: false })
         .then((result) => result.docs),
       this.stylesService
-        .findAll(buildPipeline(), { pagination: false })
+        .findAll(buildQuery(), { pagination: false })
         .then((result) => result.docs),
       this.soundsService
-        .findAll(buildPipeline(), { pagination: false })
+        .findAll(buildQuery(), { pagination: false })
         .then((result) => result.docs),
       this.blacklistsService
-        .findAll(buildPipeline(), { pagination: false })
+        .findAll(buildQuery(), { pagination: false })
         .then((result) => result.docs),
       this.lightingsService
-        .findAll(buildPipeline(), { pagination: false })
+        .findAll(buildQuery(), { pagination: false })
         .then((result) => result.docs),
       this.lensesService
-        .findAll(buildPipeline(), { pagination: false })
+        .findAll(buildQuery(), { pagination: false })
         .then((result) => result.docs),
       this.cameraMovementsService
-        .findAll(buildPipeline(), { pagination: false })
+        .findAll(buildQuery(), { pagination: false })
         .then((result) => result.docs),
     ]);
 

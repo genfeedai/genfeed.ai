@@ -9,7 +9,7 @@ describe('buildUpdateOperations', () => {
     vi.restoreAllMocks();
   });
 
-  it('converts relationship fields into $set entries', async () => {
+  it('converts relationship fields into plain Prisma update data', async () => {
     const folderId = '507f191e810c19729de860ee';
     const spy = vi
       .spyOn(ObjectIdUtil, 'convertRelationshipField')
@@ -21,14 +21,13 @@ describe('buildUpdateOperations', () => {
     );
 
     expect(spy).toHaveBeenCalledWith('raw-folder', 'folder');
-    expect(result.$set).toEqual({
+    expect(result).toEqual({
       folder: folderId,
       label: 'Sample',
     });
-    expect(result.$unset).toBeUndefined();
   });
 
-  it('moves null relationship values into $unset', async () => {
+  it('keeps null relationship values as null updates', async () => {
     vi.spyOn(ObjectIdUtil, 'convertRelationshipField')
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce('507f191e810c19729de860ee');
@@ -38,18 +37,17 @@ describe('buildUpdateOperations', () => {
       ['parent', 'folder'],
     );
 
-    expect(result.$set).toEqual({
+    expect(result).toEqual({
       folder: expect.any(String),
+      parent: null,
     });
-    expect(result.$unset).toEqual({ parent: '' });
   });
 
-  it('omits $set or $unset when no fields remain', async () => {
+  it('returns null fields when no relationship value remains', async () => {
     vi.spyOn(ObjectIdUtil, 'convertRelationshipField').mockResolvedValue(null);
 
     const result = await buildUpdateOperations({ parent: null }, ['parent']);
 
-    expect(result.$set).toBeUndefined();
-    expect(result.$unset).toEqual({ parent: '' });
+    expect(result).toEqual({ parent: null });
   });
 });

@@ -69,20 +69,20 @@ export class QueryDefaultsUtil {
    *
    * @example
    * // Array of statuses
-   * QueryDefaultsUtil.parseStatusFilter(['processing', 'completed']) // returns { $in: ['processing', 'completed'] }
+   * QueryDefaultsUtil.parseStatusFilter(['processing', 'completed']) // returns { in: ['processing', 'completed'] }
    *
    * @example
    * // Empty/undefined status - returns default: draft, uploaded, completed
-   * QueryDefaultsUtil.parseStatusFilter(undefined) // returns { $in: ['draft', 'uploaded', 'completed'] }
+   * QueryDefaultsUtil.parseStatusFilter(undefined) // returns { in: ['draft', 'uploaded', 'completed'] }
    *
    * @example
    * // Empty string or whitespace - returns default
-   * QueryDefaultsUtil.parseStatusFilter('') // returns { $in: ['draft', 'uploaded', 'completed'] }
+   * QueryDefaultsUtil.parseStatusFilter('') // returns { in: ['draft', 'uploaded', 'completed'] }
    *
    */
   static parseStatusFilter(status?: string | string[]): unknown {
     // Default to showing non-validated (draft, uploaded) + generated (completed) assets
-    const DEFAULT_STATUSES = { $in: ['draft', 'uploaded', 'completed'] };
+    const DEFAULT_STATUSES = { in: ['draft', 'uploaded', 'completed'] };
 
     if (!status) {
       return DEFAULT_STATUSES;
@@ -91,7 +91,7 @@ export class QueryDefaultsUtil {
     // Handle array input
     if (Array.isArray(status)) {
       const statusArray = status.map((s) => String(s).trim()).filter(Boolean); // Remove empty strings
-      return statusArray.length > 0 ? { $in: statusArray } : DEFAULT_STATUSES;
+      return statusArray.length > 0 ? { in: statusArray } : DEFAULT_STATUSES;
     }
 
     const statusStr = String(status);
@@ -115,28 +115,28 @@ export class QueryDefaultsUtil {
    * @example
    * // Array of statuses
    * QueryDefaultsUtil.parseMusicStatusFilter(['processing', 'uploaded', 'completed', 'validated'])
-   * // returns { $in: ['processing', 'uploaded', 'completed', 'validated'] }
+   * // returns { in: ['processing', 'uploaded', 'completed', 'validated'] }
    *
    * @example
    * // Empty/undefined status - returns default: exclude failed
-   * QueryDefaultsUtil.parseMusicStatusFilter(undefined) // returns { $ne: 'failed' }
+   * QueryDefaultsUtil.parseMusicStatusFilter(undefined) // returns { not: 'failed' }
    */
   static parseMusicStatusFilter(status?: string | string[]): unknown {
     // Default to excluding failed items
     if (!status) {
-      return { $ne: 'failed' };
+      return { not: 'failed' };
     }
 
     // Handle array input
     if (Array.isArray(status)) {
       const statusArray = status.map((s) => String(s).trim()).filter(Boolean); // Remove empty strings
-      return statusArray.length > 0 ? { $in: statusArray } : { $ne: 'failed' };
+      return statusArray.length > 0 ? { in: statusArray } : { not: 'failed' };
     }
 
     const statusStr = String(status);
 
     if (statusStr.trim() === '') {
-      return { $ne: 'failed' };
+      return { not: 'failed' };
     }
 
     return statusStr.trim();
@@ -160,11 +160,11 @@ export class QueryDefaultsUtil {
    *
    * @example
    * // Undefined with default
-   * QueryDefaultsUtil.parseBooleanFilter(undefined, { $ne: null }) // returns { $ne: null }
+   * QueryDefaultsUtil.parseBooleanFilter(undefined, { not: null }) // returns { not: null }
    */
   static parseBooleanFilter(
     value?: string | boolean,
-    defaultValue: Record<string, unknown> = { $ne: null },
+    defaultValue: Record<string, unknown> = { not: null },
   ): boolean | Record<string, unknown> {
     if (value === undefined) {
       return defaultValue;

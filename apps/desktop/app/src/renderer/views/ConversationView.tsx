@@ -955,9 +955,13 @@ export const ConversationView = ({
                   providerConfig ? 'status-active' : 'status-pending'
                 }`}
               >
-                {providerConfig ? 'Ready' : 'Required'}
+                {providerConfig ? 'Ready' : 'Optional'}
               </span>
             </div>
+            <p className="muted-text provider-status">
+              Genfeed server credits are the default when connected. Configure a
+              local provider only for offline or bring-your-own-key generation.
+            </p>
 
             <div className="provider-preset-group">
               {(

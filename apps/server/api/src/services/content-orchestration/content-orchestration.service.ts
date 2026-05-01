@@ -85,7 +85,7 @@ export class ContentOrchestrationService {
    */
   validateSteps(steps: PipelineStep[]): void {
     if (!steps || steps.length === 0) {
-      throw new Error('Pipeline must have at least one step');
+      throw new Error('query must have at least one step');
     }
 
     for (let i = 0; i < steps.length; i++) {
@@ -350,7 +350,7 @@ export class ContentOrchestrationService {
         }
       } catch (error: unknown) {
         const errorMessage =
-          error instanceof Error ? error.message : 'Pipeline execution failed';
+          error instanceof Error ? error.message : 'query execution failed';
 
         this.loggerService.error(
           `${caller} batch item failed: ${errorMessage}`,

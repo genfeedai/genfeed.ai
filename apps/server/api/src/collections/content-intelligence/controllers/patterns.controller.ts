@@ -118,22 +118,22 @@ export class PatternsController {
       match.sourceCreator = query.sourceCreator.toString();
     }
     if (query.tags && query.tags.length > 0) {
-      match.tags = { $in: query.tags };
+      match.tags = { in: query.tags };
     }
     if (query.minRelevanceWeight !== undefined) {
-      match.relevanceWeight = { $gte: query.minRelevanceWeight };
+      match.relevanceWeight = { gte: query.minRelevanceWeight };
     }
     if (query.minEngagementRate !== undefined) {
-      match['sourceMetrics.engagementRate'] = { $gte: query.minEngagementRate };
+      match['sourceMetrics.engagementRate'] = { gte: query.minEngagementRate };
     }
 
     const sortField = query.sortBy || 'sourceMetrics.engagementRate';
     const sortOrder = query.sortOrder === 'asc' ? 1 : -1;
 
-    const pipeline: Record<string, unknown>[] = [
-      { $match: match },
-      { $sort: { [sortField]: sortOrder, createdAt: -1 } },
-    ];
+    const pipeline = {
+      where: match,
+      orderBy: { [sortField]: sortOrder, createdAt: -1 },
+    };
 
     const data = await this.patternStoreService.findAll(pipeline, options);
     return serializeCollection(request, ContentPatternSerializer, data);
@@ -195,10 +195,10 @@ export class PatternsController {
       match.templateCategory = query.templateCategory;
     }
 
-    const pipeline: Record<string, unknown>[] = [
-      { $match: match },
-      { $sort: { createdAt: -1, 'sourceMetrics.engagementRate': -1 } },
-    ];
+    const pipeline = {
+      where: match,
+      orderBy: { createdAt: -1, 'sourceMetrics.engagementRate': -1 },
+    };
 
     const data = await this.patternStoreService.findAll(pipeline, options);
     return serializeCollection(request, ContentPatternSerializer, data);

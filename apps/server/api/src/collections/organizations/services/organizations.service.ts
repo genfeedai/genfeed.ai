@@ -141,7 +141,7 @@ export class OrganizationsService extends BaseService<
         slug: candidate,
       };
       if (excludeOrgId) {
-        filter._id = { $ne: excludeOrgId };
+        filter._id = { not: excludeOrgId };
       }
       if (
         !(await this.prisma.organization.findFirst({ where: filter as never }))

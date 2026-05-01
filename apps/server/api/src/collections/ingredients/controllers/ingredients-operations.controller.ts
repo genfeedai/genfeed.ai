@@ -269,7 +269,7 @@ export class IngredientsOperationsController {
     const ingredient = await this.ingredientsService.findOne(
       {
         _id: ingredientId,
-        $or: [
+        OR: [
           { user: publicMetadata.user },
           { organization: publicMetadata.organization },
         ],
@@ -382,7 +382,7 @@ export class IngredientsOperationsController {
     const ingredient = await this.ingredientsService.findOne(
       {
         _id: ingredientId,
-        $or: [
+        OR: [
           { user: publicMetadata.user },
           { organization: publicMetadata.organization },
         ],
@@ -441,7 +441,7 @@ export class IngredientsOperationsController {
     // Find the ingredient first to ensure it exists and belongs to the user or organization
     const ingredient = await this.ingredientsService.findOne({
       _id: ingredientId,
-      $or: [
+      OR: [
         { user: publicMetadata.user },
         { organization: publicMetadata.organization },
       ],

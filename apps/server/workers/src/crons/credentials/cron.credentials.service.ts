@@ -72,21 +72,17 @@ export class CronCredentialsService {
       // Find credentials expiring in the next hour
       const oneHourFromNow = new Date(Date.now() + 60 * 60 * 1000);
 
-      // Use aggregation pipeline format (required by BaseService.findAll)
       const result = await this.credentialsService.findAll(
-        [
-          {
-            $match: {
-              accessTokenExpiry: {
-                $exists: true,
-                $lt: oneHourFromNow,
-                $ne: null,
-              },
-              isConnected: true,
-              isDeleted: false,
+        {
+          where: {
+            accessTokenExpiry: {
+              lt: oneHourFromNow,
+              not: null,
             },
+            isConnected: true,
+            isDeleted: false,
           },
-        ],
+        },
         { limit: 100, pagination: false },
       );
 

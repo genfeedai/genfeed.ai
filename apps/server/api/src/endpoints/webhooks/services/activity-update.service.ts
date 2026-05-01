@@ -231,7 +231,7 @@ export class ActivityUpdateService {
     dbUserId: string,
   ): Promise<ActivityDocument | null> {
     return this.activitiesService.findOne({
-      $or: [{ value: { $regex: ingredientId } }, { value: ingredientId }],
+      OR: [{ value: { contains: ingredientId } }, { value: ingredientId }],
       isDeleted: false,
       key: processingKey,
       user: dbUserId,

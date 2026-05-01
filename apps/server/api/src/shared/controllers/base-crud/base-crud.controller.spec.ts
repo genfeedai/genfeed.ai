@@ -21,10 +21,10 @@ class TestController extends BaseCRUDController<
   unknown,
   BaseQueryDto
 > {
-  buildFindAllPipeline(user: User, query: BaseQueryDto) {
+  buildFindAllQuery(user: User, query: BaseQueryDto) {
     return [
       {
-        $match: {
+        match: {
           isDeleted: query.isDeleted ?? false,
           user: user.publicMetadata.user as string,
         },
@@ -153,7 +153,7 @@ describe('BaseCRUDController', () => {
       expect(service.findAll).toHaveBeenCalledWith(
         expect.arrayContaining([
           expect.objectContaining({
-            $match: expect.objectContaining({
+            match: expect.objectContaining({
               isDeleted: false,
               user: MOCK_USER_ID,
             }),
@@ -398,13 +398,13 @@ describe('BaseCRUDController', () => {
   });
 
   describe('protected methods', () => {
-    it('should build aggregation pipeline correctly', () => {
+    it('should build aggregation query correctly', () => {
       const query = { search: 'test' } as unknown as BaseQueryDto;
-      const pipeline = controller.buildFindAllPipeline(mockUser, query);
+      const query = controller.buildFindAllQuery(mockUser, query);
 
-      expect(pipeline).toEqual([
+      expect(query).toEqual([
         {
-          $match: {
+          match: {
             isDeleted: false,
             user: MOCK_USER_ID,
           },

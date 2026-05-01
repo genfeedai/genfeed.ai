@@ -65,31 +65,25 @@ describe('MusicsController', () => {
     expect(controller.constructorName).toBe('MusicsController');
   });
 
-  describe('buildFindAllPipeline', () => {
-    it('should build a pipeline with default filters', () => {
+  describe('buildFindAllQuery', () => {
+    it('should build a query with default filters', () => {
       const user = createMockUser();
       const query = {};
-      const pipeline = controller.buildFindAllPipeline(
-        user as never,
-        query as never,
-      );
+      const query = controller.buildFindAllQuery(user as never, query as never);
 
-      expect(Array.isArray(pipeline)).toBe(true);
-      expect(pipeline.length).toBeGreaterThanOrEqual(5);
-      // Should have $match, $lookup for metadata, $unwind, $lookup for prompt, $unwind, $sort
-      expect(pipeline[0]).toHaveProperty('$match');
+      expect(Array.isArray(query)).toBe(true);
+      expect(query.length).toBeGreaterThanOrEqual(5);
+      // Should have match, relationInclude for metadata, relationFlatten, relationInclude for prompt, relationFlatten, orderBy
+      expect(query[0]).toHaveProperty('match');
     });
 
     it('should include metadata lookup stages', () => {
       const user = createMockUser();
       const query = {};
-      const pipeline = controller.buildFindAllPipeline(
-        user as never,
-        query as never,
-      );
+      const query = controller.buildFindAllQuery(user as never, query as never);
 
-      const lookups = pipeline.filter(
-        (stage: Record<string, unknown>) => '$lookup' in stage,
+      const lookups = query.filter(
+        (stage: Record<string, unknown>) => 'relationInclude' in stage,
       );
       expect(lookups.length).toBeGreaterThanOrEqual(2);
     });
@@ -97,13 +91,10 @@ describe('MusicsController', () => {
     it('should add search filter when search query is provided', () => {
       const user = createMockUser();
       const query = { search: 'test song' };
-      const pipeline = controller.buildFindAllPipeline(
-        user as never,
-        query as never,
-      );
+      const query = controller.buildFindAllQuery(user as never, query as never);
 
-      const matchStages = pipeline.filter(
-        (stage: Record<string, unknown>) => '$match' in stage,
+      const matchStages = query.filter(
+        (stage: Record<string, unknown>) => 'match' in stage,
       );
       // Should have at least 2 match stages: initial filter + search filter
       expect(matchStages.length).toBeGreaterThanOrEqual(2);
@@ -112,13 +103,10 @@ describe('MusicsController', () => {
     it('should add metadata filters for format and provider', () => {
       const user = createMockUser();
       const query = { format: 'mp3', provider: 'suno' };
-      const pipeline = controller.buildFindAllPipeline(
-        user as never,
-        query as never,
-      );
+      const query = controller.buildFindAllQuery(user as never, query as never);
 
-      const matchStages = pipeline.filter(
-        (stage: Record<string, unknown>) => '$match' in stage,
+      const matchStages = query.filter(
+        (stage: Record<string, unknown>) => 'match' in stage,
       );
       expect(matchStages.length).toBeGreaterThanOrEqual(2);
     });
@@ -126,13 +114,10 @@ describe('MusicsController', () => {
     it('should apply custom sort when specified', () => {
       const user = createMockUser();
       const query = { sort: 'createdAt' };
-      const pipeline = controller.buildFindAllPipeline(
-        user as never,
-        query as never,
-      );
+      const query = controller.buildFindAllQuery(user as never, query as never);
 
-      const sortStage = pipeline.find(
-        (stage: Record<string, unknown>) => '$sort' in stage,
+      const sortStage = query.find(
+        (stage: Record<string, unknown>) => 'orderBy' in stage,
       );
       expect(sortStage).toBeDefined();
     });
@@ -140,27 +125,21 @@ describe('MusicsController', () => {
     it('should default to createdAt desc sort', () => {
       const user = createMockUser();
       const query = {};
-      const pipeline = controller.buildFindAllPipeline(
-        user as never,
-        query as never,
-      );
+      const query = controller.buildFindAllQuery(user as never, query as never);
 
-      const sortStage = pipeline.find(
-        (stage: Record<string, unknown>) => '$sort' in stage,
-      ) as { $sort: Record<string, number> };
-      expect(sortStage?.$sort).toEqual({ createdAt: -1 });
+      const sortStage = query.find(
+        (stage: Record<string, unknown>) => 'orderBy' in stage,
+      ) as { orderBy: Record<string, number> };
+      expect(sortStage?.orderBy).toEqual({ createdAt: -1 });
     });
 
     it('should filter by brand when valid ObjectId is provided', () => {
       const brandId = '507f191e810c19729de860ee';
       const user = createMockUser();
       const query = { brand: brandId };
-      const pipeline = controller.buildFindAllPipeline(
-        user as never,
-        query as never,
-      );
+      const query = controller.buildFindAllQuery(user as never, query as never);
 
-      expect(pipeline[0]).toHaveProperty('$match');
+      expect(query[0]).toHaveProperty('match');
     });
   });
 
@@ -210,11 +189,8 @@ describe('MusicsController', () => {
       await controller.findLatest(request as never, user as never, 100);
 
       const callArgs = musicsService.findAll.mock.calls[0];
-      const pipeline = callArgs[0];
-      const limitStage = pipeline.find(
-        (stage: Record<string, unknown>) => '$limit' in stage,
-      ) as { $limit: number };
-      expect(limitStage.$limit).toBeLessThanOrEqual(50);
+      const options = callArgs[1];
+      expect(options.limit).toBeLessThanOrEqual(50);
     });
   });
 });

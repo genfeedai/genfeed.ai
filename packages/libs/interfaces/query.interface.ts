@@ -1,13 +1,12 @@
 /**
- * Generic MongoDB match query for aggregation pipelines
- * Used in $match stage of aggregation
+ * Generic Prisma-style where query.
  */
-export interface MongoMatchQuery<T = unknown> {
+export interface PrismaWhereQuery<T = unknown> {
   [key: string]: T;
 }
 
 /**
- * MongoDB aggregation pagination options
+ * Prisma pagination options.
  */
 export interface AggregationOptions {
   page?: number;

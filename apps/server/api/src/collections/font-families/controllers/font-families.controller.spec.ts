@@ -144,13 +144,13 @@ describe('FontFamiliesController', () => {
     });
   });
 
-  describe('buildFindAllPipeline', () => {
-    it('should build pipeline with organization filter', () => {
+  describe('buildFindAllQuery', () => {
+    it('should build query with organization filter', () => {
       const query = {};
-      const pipeline = controller.buildFindAllPipeline(mockUser, query, false);
+      const query = controller.buildFindAllQuery(mockUser, query, false);
 
-      expect(pipeline).toBeDefined();
-      expect(Array.isArray(pipeline)).toBe(true);
+      expect(query).toBeDefined();
+      expect(Array.isArray(query)).toBe(true);
     });
 
     it('should load defaults when no organization', () => {
@@ -161,13 +161,9 @@ describe('FontFamiliesController', () => {
       } as unknown as User;
 
       const query = {};
-      const pipeline = controller.buildFindAllPipeline(
-        userWithoutOrg,
-        query,
-        false,
-      );
+      const query = controller.buildFindAllQuery(userWithoutOrg, query, false);
 
-      expect(pipeline).toBeDefined();
+      expect(query).toBeDefined();
     });
   });
 });

@@ -140,7 +140,7 @@ describe('PublicArticlesController', () => {
       expect(articlesService.findAll).toHaveBeenCalled();
       const call = mockArticlesService.findAll.mock.calls[0];
       const pipeline = call[0];
-      expect(pipeline[0].$match.$or).toBeDefined();
+      expect(pipeline[0].match.OR).toBeDefined();
     });
 
     it('should filter by category', async () => {
@@ -164,7 +164,7 @@ describe('PublicArticlesController', () => {
       expect(articlesService.findAll).toHaveBeenCalled();
       const call = mockArticlesService.findAll.mock.calls[0];
       const pipeline = call[0];
-      expect(pipeline[0].$match.category).toBe(ArticleCategory.POST);
+      expect(pipeline[0].match.category).toBe(ArticleCategory.POST);
     });
 
     it('should filter by tag', async () => {

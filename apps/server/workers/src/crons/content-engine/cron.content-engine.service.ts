@@ -52,13 +52,26 @@ export class CronContentEngineService {
       );
 
       const brands = await this.brandsService.find({
-        'agentConfig.autoPublish.enabled': true,
-        'agentConfig.strategy.contentTypes.0': { $exists: true },
         isActive: true,
         isDeleted: false,
       });
 
-      const eligibleBrands = brands.slice(0, MAX_BRANDS_PER_CYCLE);
+      const eligibleBrands = brands
+        .filter((brand) => {
+          const agentConfig = brand.agentConfig as
+            | {
+                autoPublish?: { enabled?: boolean };
+                strategy?: { contentTypes?: unknown[] };
+              }
+            | undefined;
+
+          return (
+            agentConfig?.autoPublish?.enabled === true &&
+            Array.isArray(agentConfig.strategy?.contentTypes) &&
+            agentConfig.strategy.contentTypes.length > 0
+          );
+        })
+        .slice(0, MAX_BRANDS_PER_CYCLE);
 
       this.logger.log(
         `Found ${eligibleBrands.length} brands with active content strategy`,

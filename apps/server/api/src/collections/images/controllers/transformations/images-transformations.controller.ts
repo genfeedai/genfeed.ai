@@ -433,7 +433,7 @@ export class ImagesTransformationsController {
     const parent = await this.imagesService.findOne(
       {
         _id: imageId,
-        $or: [
+        OR: [
           { user: publicMetadata.user },
           { organization: publicMetadata.organization },
         ],

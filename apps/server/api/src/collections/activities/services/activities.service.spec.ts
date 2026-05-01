@@ -59,13 +59,14 @@ describe('ActivitiesService', () => {
 
       const result = await service.bulkPatch(filter, updateDto);
 
-      expect(model.updateMany).toHaveBeenCalledWith(filter, {
-        $set: { status: 'completed' },
+      expect(model.updateMany).toHaveBeenCalledWith({
+        data: { status: 'completed' },
+        where: filter,
       });
       expect(result).toEqual(updateResult);
     });
 
-    it('strips the filter field from updateDto before applying $set', async () => {
+    it('strips the filter field from updateDto before applying update data', async () => {
       model.updateMany.mockReturnValue({
         exec: vi.fn().mockResolvedValue({ matchedCount: 1, modifiedCount: 1 }),
       });
@@ -75,9 +76,12 @@ describe('ActivitiesService', () => {
         { filter: { organization: 'org-1' }, isDeleted: false, isRead: true },
       );
 
-      const setArg = model.updateMany.mock.calls[0][1];
-      expect(setArg.$set).not.toHaveProperty('filter');
-      expect(setArg.$set).toEqual({ isDeleted: false, isRead: true });
+      const updateArg = model.updateMany.mock.calls[0][0];
+      expect(updateArg.data).not.toHaveProperty('filter');
+      expect(updateArg.data).toEqual({
+        data: { isRead: true },
+        isDeleted: false,
+      });
     });
 
     it('throws when updateDto is null or not an object', async () => {
@@ -120,13 +124,13 @@ describe('ActivitiesService', () => {
       expect(stages.length).toBeGreaterThanOrEqual(4);
     });
 
-    it('includes $lookup stages for ingredients, posts, and articles', () => {
+    it('includes relationInclude stages for ingredients, posts, and articles', () => {
       const stages = ActivitiesService.buildEntityLookup();
-      const lookups = stages.filter((s) => '$lookup' in s) as Array<{
-        $lookup: { from: string };
+      const lookups = stages.filter((s) => 'relationInclude' in s) as Array<{
+        relationInclude: { from: string };
       }>;
 
-      const collections = lookups.map((l) => l.$lookup.from);
+      const collections = lookups.map((l) => l.relationInclude.from);
       expect(collections).toContain('ingredients');
       expect(collections).toContain('posts');
       expect(collections).toContain('articles');

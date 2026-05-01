@@ -27,7 +27,6 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { TrainingFilterUtil } from '@api/helpers/utils/training-filter/training-filter.util';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
@@ -93,67 +92,16 @@ export class TrainingsController extends BaseCRUDController<
   }
 
   /**
-   * Build virtual fields pipeline stages (totalSources, totalGeneratedImages)
-   * Shared between findAll and findOne
+   * Override buildFindAllQuery to support both user and organization filtering
    */
-  private buildVirtualFieldsStages(): Record<string, unknown>[] {
-    return [
-      {
-        $lookup: {
-          as: 'metadataWithModel',
-          from: 'metadata',
-          let: { trainingModel: '$model' },
-          pipeline: [
-            {
-              $match: {
-                $expr: { $eq: ['$model', '$$trainingModel'] },
-              },
-            },
-          ],
-        },
-      },
-      TrainingFilterUtil.buildSourceImagesLookup({
-        as: 'sourceImages',
-        category: IngredientCategory.SOURCE,
-        sourceIdsVar: '$sources',
-        userIdVar: '$user',
-      }),
-      TrainingFilterUtil.buildGeneratedImagesLookup({
-        as: 'generatedImages',
-        metadataIdsVar: '$metadataWithModel._id',
-      }),
-      {
-        $addFields: {
-          totalGeneratedImages: {
-            $size: { $ifNull: ['$generatedImages', []] },
-          },
-          totalSources: { $size: { $ifNull: ['$sourceImages', []] } },
-        },
-      },
-      {
-        $project: {
-          generatedImages: 0,
-          metadataWithModel: 0,
-          sourceImages: 0,
-        },
-      },
-    ];
-  }
-
-  /**
-   * Override buildFindAllPipeline to support both user and organization filtering
-   */
-  public buildFindAllPipeline(
-    user: User,
-    query: TrainingsQueryDto,
-  ): Record<string, unknown>[] {
+  public buildFindAllQuery(user: User, query: TrainingsQueryDto) {
     const publicMetadata = getPublicMetadata(user);
     const adminFilter = CollectionFilterUtil.buildAdminFilter(
       publicMetadata,
       query,
     );
 
-    // Build ownership $or conditions (used when adminFilter is null)
+    // Build ownership OR conditions (used when adminFilter is null)
     const ownershipOr = [
       { user: publicMetadata.user },
       { brand: publicMetadata.brand },
@@ -163,34 +111,20 @@ export class TrainingsController extends BaseCRUDController<
       },
     ];
 
-    const pipeline: Record<string, unknown>[] = [
-      {
-        $match: {
-          ...(adminFilter ?? { $or: ownershipOr }),
-          isDeleted: query.isDeleted ?? false,
-        },
-      },
-      ...this.buildVirtualFieldsStages(),
-    ];
+    const where: Record<string, unknown> = {
+      ...(adminFilter ?? { OR: ownershipOr }),
+      isDeleted: query.isDeleted ?? false,
+    };
 
     const statusFilter = CollectionFilterUtil.buildStatusFilter(query.status);
     if (Object.keys(statusFilter).length > 0) {
-      const matchStage = pipeline[0] as { $match: Record<string, unknown> };
-      Object.assign(matchStage.$match, statusFilter);
+      Object.assign(where, statusFilter);
     }
 
-    pipeline.push({
-      $sort: handleQuerySort(query.sort),
-    });
-
-    return pipeline;
-  }
-
-  /**
-   * Build pipeline for findOne with virtual fields
-   */
-  public buildFindOnePipeline(id: string): Record<string, unknown>[] {
-    return [{ $match: { _id: id } }, ...this.buildVirtualFieldsStages()];
+    return {
+      orderBy: handleQuerySort(query.sort),
+      where,
+    };
   }
 
   /**
@@ -213,11 +147,7 @@ export class TrainingsController extends BaseCRUDController<
       );
     }
 
-    const pipeline = this.buildFindOnePipeline(trainingId);
-    const result = await this.trainingsService.findAll(pipeline, {
-      pagination: false,
-    });
-    const data = result.docs?.[0];
+    const data = await this.trainingsService.findOne({ _id: trainingId });
 
     if (!data) {
       throw new HttpException(
@@ -247,7 +177,7 @@ export class TrainingsController extends BaseCRUDController<
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
-    const aggregate = this.buildFindAllPipeline(user, query);
+    const aggregate = this.buildFindAllQuery(user, query);
 
     const data: AggregatePaginateResult<TrainingDocument> =
       await this.trainingsService.findAll(aggregate, options);
@@ -326,36 +256,20 @@ export class TrainingsController extends BaseCRUDController<
       const sourceIds = sources.map((source) => source);
 
       const sourceResult = await this.ingredientsService.findAll(
-        [
-          {
-            $match: {
-              _id: {
-                $in: sourceIds,
+        {
+          where: {
+            _id: {
+              in: sourceIds,
+            },
+            OR: [
+              { user: publicMetadata.user },
+              {
+                organization: publicMetadata.organization,
               },
-              $or: [
-                { user: publicMetadata.user },
-                {
-                  organization: publicMetadata.organization,
-                },
-              ],
-              category: IngredientCategory.IMAGE,
-            },
+            ],
+            category: IngredientCategory.IMAGE,
           },
-          {
-            $lookup: {
-              as: 'metadata',
-              foreignField: '_id',
-              from: 'metadata',
-              localField: 'metadata',
-            },
-          },
-          {
-            $unwind: {
-              path: '$metadata',
-              preserveNullAndEmptyArrays: false,
-            },
-          },
-        ],
+        },
         {
           pagination: false,
         },
@@ -384,7 +298,7 @@ export class TrainingsController extends BaseCRUDController<
         try {
           const defaultTrainer = await this.modelsService.findOne({
             isDefault: true,
-            key: { $regex: `^${MODEL_KEYS.REPLICATE_FAST_FLUX_TRAINER}` },
+            key: { contains: `^${MODEL_KEYS.REPLICATE_FAST_FLUX_TRAINER}` },
             provider: 'replicate',
           });
           resolvedModel = defaultTrainer?.key;

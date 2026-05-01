@@ -115,7 +115,7 @@ export class BrandsController extends BaseCRUDController<
 
     const brand = await this.brandsService.findOne({
       _id: brandId,
-      $or: [
+      OR: [
         { user: publicMetadata.user },
         { organization: publicMetadata.organization },
       ],
@@ -191,26 +191,17 @@ export class BrandsController extends BaseCRUDController<
   }
 
   /**
-   * Override buildFindAllPipeline to add logo and banner lookups
+   * Override buildFindAllQuery to add logo and banner lookups
    */
-  public buildFindAllPipeline(
-    user: User,
-    query: BaseQueryDto,
-  ): Record<string, unknown>[] {
+  public buildFindAllQuery(user: User, query: BaseQueryDto) {
     const publicMetadata = getPublicMetadata(user);
-    return [
-      {
-        $match: {
-          isDeleted: query.isDeleted ?? false,
-          user: publicMetadata.user,
-        },
+    return {
+      where: {
+        isDeleted: query.isDeleted ?? false,
+        user: publicMetadata.user,
       },
-      // Lookup brand assets (logo, banner, references, credentials)
-      ...BrandFilterUtil.buildBrandAssetLookups(),
-      {
-        $sort: handleQuerySort(query.sort),
-      },
-    ];
+      orderBy: handleQuerySort(query.sort),
+    };
   }
 
   @Get('agent-config/strategy-templates')
@@ -250,7 +241,7 @@ export class BrandsController extends BaseCRUDController<
     const publicMetadata = getPublicMetadata(user);
     const brand = await this.brandsService.findOneBySlug({
       slug,
-      $or: [
+      OR: [
         { user: publicMetadata.user },
         { organization: publicMetadata.organization },
       ],

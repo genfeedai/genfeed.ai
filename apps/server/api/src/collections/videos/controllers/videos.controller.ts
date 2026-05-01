@@ -176,62 +176,28 @@ export class VideosController {
   ): Promise<JsonApiCollectionResponse> {
     const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(false);
-    const scope = { $ne: null };
+    const scope = { not: null };
     const brand = publicMetadata.brand;
 
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: {
-          $and: [
-            {
-              brand,
-              category: IngredientCategory.VIDEO,
-              isDeleted,
-              scope,
-              // Exclude training source videos by default
-              training: { $exists: false },
-              user: publicMetadata.user,
-            },
-          ],
-        },
+    const aggregate = {
+      where: {
+        AND: [
+          {
+            brand,
+            category: IngredientCategory.VIDEO,
+            isDeleted,
+            scope,
+            // Exclude training source videos by default
+            training: { not: false },
+            user: publicMetadata.user,
+          },
+        ],
       },
-      {
-        $lookup: {
-          as: 'metadata',
-          foreignField: '_id',
-          from: 'metadata',
-          localField: 'metadata',
-        },
-      },
-      {
-        $unwind: {
-          path: '$metadata',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $lookup: {
-          as: 'prompt',
-          foreignField: '_id',
-          from: 'prompts',
-          localField: 'prompt',
-        },
-      },
-      {
-        $unwind: {
-          path: '$prompt',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $sort: { createdAt: -1 },
-      },
-      {
-        $limit: Math.min(limit, 50), // Cap at 50 for performance
-      },
-    ];
+      orderBy: { createdAt: -1 },
+    };
 
     const data = await this.videosService.findAll(aggregate, {
+      limit: Math.min(Number(limit) || 10, 50),
       pagination: false,
     });
 
@@ -286,191 +252,36 @@ export class VideosController {
     );
 
     // Handle format filter based on metadata dimensions
-    // Format is now filtered after metadata lookup using $expr
+    // Format is now filtered after metadata lookup
 
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: {
-          $and: [
-            {
-              $or: [
-                { user: publicMetadata.user },
-                {
-                  organization: publicMetadata.organization,
-                },
-              ],
-            },
-            {
-              brand,
-              category: IngredientCategory.VIDEO,
-              isDeleted,
-              scope,
-              status,
-              // ...(isValidObjectId(query.references)
-              //   ? { references: query.references }
-              //   : {}),
-            },
-            folderConditions,
-            parentConditions,
-            trainingFilter,
-          ],
-        },
-      },
-      ...IngredientFilterUtil.buildMetadataLookup(),
-      ...IngredientFilterUtil.buildFormatFilterStage(query.format),
-      ...IngredientFilterUtil.buildPromptLookup(query.lightweight),
-      {
-        $lookup: {
-          as: 'brand',
-          foreignField: '_id',
-          from: 'brands',
-          localField: 'brand',
-        },
-      },
-      {
-        $unwind: {
-          path: '$brand',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $lookup: {
-          as: 'brandLogo',
-          from: 'assets',
-          let: { brandId: '$brand._id' },
-          pipeline: [
-            {
-              $match: {
-                $expr: {
-                  $and: [
-                    { $eq: ['$parent', '$$brandId'] },
-                    { $eq: ['$category', 'logo'] },
-                    { $eq: ['$isDeleted', false] },
-                  ],
-                },
+    const aggregate = {
+      where: {
+        AND: [
+          {
+            OR: [
+              { user: publicMetadata.user },
+              {
+                organization: publicMetadata.organization,
               },
-            },
-          ],
-        },
+            ],
+          },
+          {
+            brand,
+            category: IngredientCategory.VIDEO,
+            isDeleted,
+            scope,
+            status,
+            // ...(isValidObjectId(query.references)
+            //   ? { references: query.references }
+            //   : {}),
+          },
+          folderConditions,
+          parentConditions,
+          trainingFilter,
+        ],
       },
-      {
-        $unwind: {
-          path: '$brandLogo',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $addFields: { 'brand.logo': '$brandLogo._id' },
-      },
-      {
-        $project: { brandLogo: 0 },
-      },
-      {
-        $lookup: {
-          as: 'children',
-          from: 'ingredients',
-          let: { parentId: '$_id' },
-          pipeline: [
-            {
-              $match: {
-                $expr: {
-                  $and: [
-                    { $eq: ['$parent', '$$parentId'] },
-                    { $eq: ['$isDeleted', false] },
-                  ],
-                },
-              },
-            },
-          ],
-        },
-      },
-      {
-        $addFields: { totalChildren: { $size: '$children' } },
-      },
-      {
-        $project: { children: 0 },
-      },
-      {
-        $lookup: {
-          as: 'totalVotes',
-          from: 'votes',
-          let: { entityId: '$_id' },
-          pipeline: [
-            {
-              $match: {
-                $expr: {
-                  $and: [
-                    { $eq: ['$entityModel', ActivityEntityModel.INGREDIENT] },
-                    { $eq: ['$entity', '$$entityId'] },
-                    { $eq: ['$isDeleted', false] },
-                  ],
-                },
-              },
-            },
-          ],
-        },
-      },
-      {
-        $addFields: {
-          totalVotes: { $size: '$totalVotes' },
-        },
-      },
-      {
-        $lookup: {
-          as: 'hasVoted',
-          from: 'votes',
-          let: { entityId: '$_id' },
-          pipeline: [
-            {
-              $match: {
-                $expr: {
-                  $and: [
-                    { $eq: ['$entityModel', ActivityEntityModel.INGREDIENT] },
-                    { $eq: ['$entity', '$$entityId'] },
-                    { $eq: ['$isDeleted', false] },
-                    { $eq: ['$user', publicMetadata.user] },
-                  ],
-                },
-              },
-            },
-          ],
-        },
-      },
-      {
-        $addFields: {
-          hasVoted: { $gt: [{ $size: '$hasVoted' }, 0] },
-        },
-      },
-      // Add text search if search query is provided
-      ...(query.search
-        ? [
-            {
-              $match: {
-                $or: [
-                  { 'metadata.label': { $options: 'i', $regex: query.search } },
-                  {
-                    'metadata.description': {
-                      $options: 'i',
-                      $regex: query.search,
-                    },
-                  },
-                ],
-              },
-            },
-          ]
-        : []),
-      {
-        $lookup: {
-          as: 'tags',
-          foreignField: '_id',
-          from: 'tags',
-          localField: 'tags',
-        },
-      },
-      {
-        $sort: handleQuerySort(query.sort),
-      },
-    ];
+      orderBy: handleQuerySort(query.sort),
+    };
 
     const data = await this.videosService.findAll(aggregate, options);
     return serializeCollection(request, VideoSerializer, data);
@@ -491,47 +302,14 @@ export class VideosController {
   ): Promise<JsonApiSingleResponse> {
     const publicMetadata = getPublicMetadata(user);
 
-    // Build aggregation pipeline to fetch video with evaluation
-    const pipeline: Record<string, unknown>[] = [
-      {
-        $match: {
-          _id: videoId,
-          isDeleted: false,
-          organization: publicMetadata.organization,
-        },
+    const pipeline = {
+      where: {
+        _id: videoId,
+        isDeleted: false,
+        organization: publicMetadata.organization,
       },
-      // Lookup latest COMPLETED evaluation for this video (full document)
-      {
-        $lookup: {
-          as: 'evaluation',
-          from: 'evaluations',
-          let: { videoId: '$_id' },
-          pipeline: [
-            {
-              $match: {
-                $expr: { $eq: ['$content', '$$videoId'] },
-                contentType: IngredientCategory.VIDEO,
-                isDeleted: false,
-                status: 'COMPLETED',
-              },
-            },
-            { $sort: { updatedAt: -1 } },
-            { $limit: 1 },
-            // NO $project - include full evaluation document
-          ],
-        },
-      },
-      // Flatten evaluation to single object (or null)
-      {
-        $addFields: {
-          evaluation: {
-            $ifNull: [{ $arrayElemAt: ['$evaluation', 0] }, null],
-          },
-        },
-      },
-    ];
+    };
 
-    // Execute aggregation using service method
     const result = await this.videosService.findAll(pipeline, {
       pagination: false,
     });
@@ -662,7 +440,7 @@ export class VideosController {
     // Find the video first to ensure it exists and belongs to the user or is part of the same organization
     const video = await this.videosService.findOne({
       _id: videoId,
-      $or: [
+      OR: [
         { user: publicMetadata.user },
         { organization: publicMetadata.organization },
       ],
@@ -1174,17 +952,7 @@ export class VideosController {
             additionalDocuments.flatMap(
               ({ metadataData, ingredientData }, index) => {
                 const i = index + 1;
-                return [
-                  this.metadataService.patch(
-                    metadataData._id,
-                    new MetadataEntity({
-                      externalId: `${generationId}_${i}`,
-                    }),
-                  ),
-                  this.videosService.patch(ingredientData._id, {
-                    prompt: promptData._id,
-                  }),
-                ];
+                return { where: {} };
               },
             ),
           );

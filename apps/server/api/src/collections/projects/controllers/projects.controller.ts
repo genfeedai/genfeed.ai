@@ -55,10 +55,7 @@ export class ProjectsController extends BaseCRUDController<
     return serializeSingle(request, ProjectSerializer, doc);
   }
 
-  public override buildFindAllPipeline(
-    user: User,
-    query: ProjectQueryDto,
-  ): Record<string, unknown>[] {
+  public override buildFindAllQuery(user: User, query: ProjectQueryDto) {
     const publicMetadata = getPublicMetadata(user);
     const match: Record<string, unknown> = {
       isDeleted: query.isDeleted ?? false,
@@ -71,7 +68,10 @@ export class ProjectsController extends BaseCRUDController<
 
     const sort = handleQuerySort(query.sort);
 
-    return [{ $match: match }, { $sort: sort }];
+    return {
+      orderBy: sort,
+      where: match,
+    };
   }
 
   public override canUserModifyEntity(

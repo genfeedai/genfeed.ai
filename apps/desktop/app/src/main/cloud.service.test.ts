@@ -112,6 +112,54 @@ describe('DesktopCloudService', () => {
     expect(result.status).toBe('published');
   });
 
+  it('generates desktop content through the credit-backed Genfeed server endpoint', async () => {
+    globalThis.fetch = (async (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ) => {
+      expect(String(input)).toBe(
+        'https://api.genfeed.ai/v1/posts/hook-generations',
+      );
+      expect(init?.method).toBe('POST');
+      expect(init?.headers).toMatchObject({
+        Authorization: 'Bearer gf_desktop_key',
+      });
+      expect(init?.body).toBe(
+        JSON.stringify({
+          count: 1,
+          platform: 'twitter',
+          topic: 'Launch Genfeed Desktop',
+        }),
+      );
+
+      return new Response(
+        JSON.stringify({
+          hooks: ['Launch faster with Genfeed Desktop.'],
+        }),
+        {
+          headers: { 'content-type': 'application/json' },
+          status: 200,
+        },
+      );
+    }) as typeof fetch;
+
+    const service = new DesktopCloudService(environment, () => session);
+    const result = await service.generateContent({
+      platform: 'twitter',
+      prompt: 'Launch Genfeed Desktop',
+      publishIntent: 'review',
+      type: 'hook',
+    });
+
+    expect(result).toEqual({
+      content: 'Launch faster with Genfeed Desktop.',
+      hooks: ['Launch faster with Genfeed Desktop.'],
+      id: '',
+      platform: 'twitter',
+      type: 'hook',
+    });
+  });
+
   it('rejects cloud calls without a session', async () => {
     const service = new DesktopCloudService(environment, () => null);
 

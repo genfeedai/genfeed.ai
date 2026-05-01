@@ -180,20 +180,16 @@ export class EditorProjectsController {
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: {
-          ...(publicMetadata.brand ? { brand: publicMetadata.brand } : {}),
-          isDeleted: false,
-          organization: publicMetadata.organization,
-        },
+    const aggregate = {
+      where: {
+        ...(publicMetadata.brand ? { brand: publicMetadata.brand } : {}),
+        isDeleted: false,
+        organization: publicMetadata.organization,
       },
-      {
-        $sort: query.sort
-          ? handleQuerySort(query.sort)
-          : ({ updatedAt: -1 } as SortObject),
-      },
-    ];
+      orderBy: query.sort
+        ? handleQuerySort(query.sort)
+        : ({ updatedAt: -1 } as SortObject),
+    };
 
     const data: AggregatePaginateResult<EditorProjectDocument> =
       await this.editorProjectsService.findAll(aggregate, options);

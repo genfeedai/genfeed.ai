@@ -63,27 +63,27 @@ describe('AgentStrategiesController', () => {
     expect(controller).toBeDefined();
   });
 
-  describe('buildFindAllPipeline', () => {
-    it('should build pipeline with filters', () => {
+  describe('buildFindAllQuery', () => {
+    it('should build query with filters', () => {
       const user = {
         id: 'user-123',
         publicMetadata: { organization: '507f191e810c19729de860ee'.toString() },
       } as never;
       const query = { isDeleted: false } as never;
-      const pipeline = controller.buildFindAllPipeline(user, query);
-      expect(pipeline).toBeInstanceOf(Array);
+      const query = controller.buildFindAllQuery(user, query);
+      expect(query).toBeInstanceOf(Array);
     });
 
-    it('should include $match with organization from user metadata', () => {
+    it('should include match with organization from user metadata', () => {
       const orgId = '507f191e810c19729de860ee'.toString();
       const user = {
         id: 'user-123',
         publicMetadata: { organization: orgId },
       } as never;
       const query = { isDeleted: false } as never;
-      const pipeline = controller.buildFindAllPipeline(user, query);
-      const matchStage = pipeline[0] as { $match: Record<string, unknown> };
-      expect(matchStage.$match.organization).toEqual(orgId);
+      const query = controller.buildFindAllQuery(user, query);
+      const matchStage = query[0] as { match: Record<string, unknown> };
+      expect(matchStage.match.organization).toEqual(orgId);
     });
 
     it('should filter by platform when provided', () => {
@@ -92,20 +92,20 @@ describe('AgentStrategiesController', () => {
         publicMetadata: { organization: '507f191e810c19729de860ee'.toString() },
       } as never;
       const query = { isDeleted: false, platform: 'instagram' } as never;
-      const pipeline = controller.buildFindAllPipeline(user, query);
-      const matchStage = pipeline[0] as { $match: Record<string, unknown> };
-      expect(matchStage.$match.platforms).toBe('instagram');
+      const query = controller.buildFindAllQuery(user, query);
+      const matchStage = query[0] as { match: Record<string, unknown> };
+      expect(matchStage.match.platforms).toBe('instagram');
     });
 
-    it('should include $sort stage', () => {
+    it('should include orderBy stage', () => {
       const user = {
         id: 'user-123',
         publicMetadata: { organization: '507f191e810c19729de860ee'.toString() },
       } as never;
       const query = { isDeleted: false } as never;
-      const pipeline = controller.buildFindAllPipeline(user, query);
-      expect(pipeline.length).toBeGreaterThanOrEqual(2);
-      expect(pipeline[1]).toHaveProperty('$sort');
+      const query = controller.buildFindAllQuery(user, query);
+      expect(query.length).toBeGreaterThanOrEqual(2);
+      expect(query[1]).toHaveProperty('orderBy');
     });
   });
 
