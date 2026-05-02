@@ -5,6 +5,7 @@ import { ElementsLensesService } from '@api/collections/elements/lenses/services
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import type { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
+import { asMatchStage, asSortStage } from '@api/test/query-stage-assertions';
 import type { User } from '@clerk/backend';
 import { LensSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -23,12 +24,6 @@ const createBaseQuery = (
     sort: 'createdAt: -1',
     ...partial,
   }) as BaseQueryDto;
-
-const asMatchStage = (stage: Record<string, unknown>) =>
-  stage as Record<string, unknown> & { match: Record<string, unknown> };
-
-const asSortStage = (stage: Record<string, unknown>) =>
-  stage as Record<string, unknown> & { orderBy: Record<string, unknown> };
 
 vi.mock('@genfeedai/helpers', async () => ({
   ...(await vi.importActual('@genfeedai/helpers')),
@@ -125,46 +120,46 @@ describe('ElementsLensesController', () => {
     expect(controller).toBeDefined();
   });
 
-  describe('buildFindAllQuery', () => {
-    it('should build query with organization filter', () => {
+  describe('buildFindAllPipeline', () => {
+    it('should build pipeline with organization filter', () => {
       const query = createBaseQuery();
 
-      const result = controller.buildFindAllQuery(mockSuperAdminUser, query);
+      const result = controller.buildFindAllPipeline(mockSuperAdminUser, query);
 
       expect(result).toHaveLength(2);
-      expect(result[0]).toHaveProperty('match');
-      expect(asMatchStage(result[0]).match).toHaveProperty('isDeleted', false);
-      expect(result[1]).toHaveProperty('orderBy');
+      expect(result[0]).toHaveProperty('$match');
+      expect(asMatchStage(result[0]).$match).toHaveProperty('isDeleted', false);
+      expect(result[1]).toHaveProperty('$sort');
     });
 
-    it('should build query with search filter', () => {
+    it('should build pipeline with search filter', () => {
       const query = createBaseQuery({ search: 'wide' });
 
-      const result = controller.buildFindAllQuery(mockSuperAdminUser, query);
+      const result = controller.buildFindAllPipeline(mockSuperAdminUser, query);
 
       expect(result.length).toBeGreaterThan(1);
       const searchStage = result.find((stage) => {
-        const match = asMatchStage(stage).match;
-        return match?.OR;
+        const match = asMatchStage(stage).$match;
+        return match?.$or;
       });
       expect(searchStage).toBeDefined();
     });
 
-    it('should build query with custom sort', () => {
+    it('should build pipeline with custom sort', () => {
       const query = createBaseQuery({ sort: '-label' });
 
-      const result = controller.buildFindAllQuery(mockSuperAdminUser, query);
+      const result = controller.buildFindAllPipeline(mockSuperAdminUser, query);
 
       expect(result).toHaveLength(2);
-      expect(asSortStage(result[1]).orderBy).toBeDefined();
+      expect(asSortStage(result[1]).$sort).toBeDefined();
     });
 
-    it('should build query for users with organization', () => {
+    it('should build pipeline for users with organization', () => {
       const query = createBaseQuery();
 
-      const result = controller.buildFindAllQuery(mockRegularUser, query);
+      const result = controller.buildFindAllPipeline(mockRegularUser, query);
 
-      expect(asMatchStage(result[0]).match).toHaveProperty('OR');
+      expect(asMatchStage(result[0]).$match).toHaveProperty('$or');
     });
   });
 

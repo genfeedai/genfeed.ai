@@ -1,13 +1,16 @@
-import { writeFile } from 'node:fs/promises';
-import chalk from 'chalk';
 import { Command } from 'commander';
 import ora from 'ora';
 import { requireAuth } from '@/api/client.js';
 import { createImage, getImage, type Image } from '@/api/images.js';
-import { getActiveBrand, getActiveProfile } from '@/config/store.js';
-import { formatLabel, print, printJson } from '@/ui/theme.js';
-import { handleError, NoBrandError } from '@/utils/errors.js';
-import { waitForCompletion } from '@/utils/websocket.js';
+import { getActiveProfile } from '@/config/store.js';
+import { handleError } from '@/utils/errors.js';
+import {
+  downloadGeneratedFile,
+  printGeneratedResult,
+  printGenerationStarted,
+  requireGenerationBrand,
+  waitForGenerated,
+} from './helpers.js';
 
 export const imageCommand = new Command('image')
   .description('Generate an AI image')
@@ -23,12 +26,7 @@ export const imageCommand = new Command('image')
     try {
       await requireAuth();
 
-      const activeBrandId = await getActiveBrand();
-      const brandId = options.brand ?? activeBrandId;
-      if (!brandId) {
-        throw new NoBrandError();
-      }
-
+      const brandId = await requireGenerationBrand(options.brand);
       const { profile } = await getActiveProfile();
       const model = options.model ?? profile.defaults.imageModel;
 
@@ -44,63 +42,42 @@ export const imageCommand = new Command('image')
 
       if (!options.wait) {
         spinner.succeed('Image generation started');
-
-        if (options.json) {
-          printJson({ id: image.id, status: image.status });
-        } else {
-          print(formatLabel('ID', image.id));
-          print(formatLabel('Status', image.status));
-          print();
-          print(chalk.dim(`Check status with: gf status ${image.id}`));
-        }
+        printGenerationStarted(image.id, image.status, options.json);
         return;
       }
 
-      spinner.text = 'Generating image...';
-
-      const { result, elapsed } = await waitForCompletion<Image>({
-        getResult: () => getImage(image.id),
+      const { result, elapsed } = await waitForGenerated<Image>(
         spinner,
-        taskId: image.id,
-        taskType: 'IMAGE',
-        timeout: 300000,
-      });
+        'image',
+        'Image',
+        () => getImage(image.id),
+        image.id,
+        'IMAGE',
+        300000
+      );
 
-      const elapsedSec = (elapsed / 1000).toFixed(1);
-      spinner.succeed(`Image generated (${elapsedSec}s)`);
-
-      if (options.json) {
-        printJson({
-          elapsed: elapsed,
+      printGeneratedResult(
+        options.json,
+        {
+          elapsed,
           height: result.height,
           id: result.id,
           model: result.model,
           status: result.status,
           url: result.url,
           width: result.width,
-        });
-      } else {
-        print(formatLabel('URL', result.url ?? 'N/A'));
-        if (result.width && result.height) {
-          print(formatLabel('Dimensions', `${result.width} × ${result.height}`));
-        }
-        print(formatLabel('Model', result.model));
-      }
+        },
+        [
+          ['URL', result.url ?? 'N/A'],
+          result.width && result.height
+            ? ['Dimensions', `${result.width} × ${result.height}`]
+            : false,
+          ['Model', result.model],
+        ]
+      );
 
       if (options.output && result.url) {
-        const downloadSpinner = ora('Downloading image...').start();
-        try {
-          const response = await fetch(result.url);
-          if (!response.ok) {
-            throw new Error(`Failed to download: ${response.statusText}`);
-          }
-          const buffer = await response.arrayBuffer();
-          await writeFile(options.output, Buffer.from(buffer));
-          downloadSpinner.succeed(`Saved to ${options.output}`);
-        } catch (err) {
-          downloadSpinner.fail('Failed to download image');
-          throw err;
-        }
+        await downloadGeneratedFile('image', options.output, result.url);
       }
     } catch (error) {
       handleError(error);
