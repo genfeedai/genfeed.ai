@@ -3,26 +3,11 @@ const DESKTOP_BOOT_BACKGROUND = '#000000';
 const buildDataUrl = (html: string): string =>
   `data:text/html;charset=utf-8,${encodeURIComponent(html)}`;
 
-export const getDesktopBootBackground = (): string => DESKTOP_BOOT_BACKGROUND;
-
-export const buildDesktopLoadingScreenHtml = (): string => `<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1, viewport-fit=cover"
-    />
-    <title>Genfeed</title>
-    <style>
+const BASE_BOOT_STYLES = `
       :root {
         background: ${DESKTOP_BOOT_BACKGROUND};
         color: #f7f7f7;
         color-scheme: dark;
-      }
-
-      * {
-        box-sizing: border-box;
       }
 
       html,
@@ -30,7 +15,6 @@ export const buildDesktopLoadingScreenHtml = (): string => `<!doctype html>
         width: 100%;
         height: 100%;
         margin: 0;
-        overflow: hidden;
       }
 
       body {
@@ -41,6 +25,45 @@ export const buildDesktopLoadingScreenHtml = (): string => `<!doctype html>
           Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
           "Segoe UI", sans-serif;
         -webkit-font-smoothing: antialiased;
+      }
+`;
+
+const buildDesktopBootHtml = ({
+  body,
+  styles,
+  title,
+}: {
+  body: string;
+  styles: string;
+  title: string;
+}): string => `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>${title}</title>
+    <style>${BASE_BOOT_STYLES}${styles}
+    </style>
+  </head>
+  <body>${body}
+  </body>
+</html>`;
+
+export const getDesktopBootBackground = (): string => DESKTOP_BOOT_BACKGROUND;
+
+export const buildDesktopLoadingScreenHtml = (): string =>
+  buildDesktopBootHtml({
+    title: 'Genfeed',
+    styles: `
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        overflow: hidden;
       }
 
       .boot-mark {
@@ -101,9 +124,8 @@ export const buildDesktopLoadingScreenHtml = (): string => `<!doctype html>
           animation: none;
         }
       }
-    </style>
-  </head>
-  <body>
+`,
+    body: `
     <main class="boot-mark" aria-label="Genfeed is loading">
       <svg
         class="logo"
@@ -144,42 +166,13 @@ export const buildDesktopLoadingScreenHtml = (): string => `<!doctype html>
       </svg>
       <div class="spinner" aria-hidden="true"></div>
     </main>
-  </body>
-</html>`;
+`,
+  });
 
-export const buildDesktopFailureScreenHtml = (): string => `<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1, viewport-fit=cover"
-    />
-    <title>Genfeed failed to start</title>
-    <style>
-      :root {
-        background: ${DESKTOP_BOOT_BACKGROUND};
-        color: #f7f7f7;
-        color-scheme: dark;
-      }
-
-      html,
-      body {
-        width: 100%;
-        height: 100%;
-        margin: 0;
-      }
-
-      body {
-        display: grid;
-        place-items: center;
-        background: ${DESKTOP_BOOT_BACKGROUND};
-        font-family:
-          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-          "Segoe UI", sans-serif;
-        -webkit-font-smoothing: antialiased;
-      }
-
+export const buildDesktopFailureScreenHtml = (): string =>
+  buildDesktopBootHtml({
+    title: 'Genfeed failed to start',
+    styles: `
       main {
         max-width: 460px;
         padding: 32px;
@@ -199,15 +192,14 @@ export const buildDesktopFailureScreenHtml = (): string => `<!doctype html>
         font-size: 14px;
         line-height: 1.6;
       }
-    </style>
-  </head>
-  <body>
+`,
+    body: `
     <main role="alert">
       <h1>Genfeed could not start</h1>
       <p>The embedded app shell failed to boot. Restart Genfeed and check the desktop logs if this keeps happening.</p>
     </main>
-  </body>
-</html>`;
+`,
+  });
 
 export const buildDesktopLoadingScreenUrl = (): string =>
   buildDataUrl(buildDesktopLoadingScreenHtml());
