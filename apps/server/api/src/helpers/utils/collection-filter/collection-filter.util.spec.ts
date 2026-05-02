@@ -31,13 +31,13 @@ describe('CollectionFilterUtil', () => {
         undefined,
         undefined,
       );
-      expect(result).toEqual({ not: true });
+      expect(result).toEqual({ not: null });
     });
 
     it('supports defaultTo exists and none modes', () => {
       expect(
         CollectionFilterUtil.buildBrandFilter(undefined, undefined, 'exists'),
-      ).toEqual({ not: true });
+      ).toEqual({ not: null });
 
       expect(
         CollectionFilterUtil.buildBrandFilter(undefined, undefined, 'none'),
@@ -58,25 +58,22 @@ describe('CollectionFilterUtil', () => {
   });
 
   describe('buildSearchFilter', () => {
-    it('returns empty array when no search term', () => {
+    it('returns empty where filter when no search term', () => {
       const result = CollectionFilterUtil.buildSearchFilter(undefined, [
         'metadata.label',
       ]);
-      expect(result).toEqual([]);
+      expect(result).toEqual({ where: {} });
     });
 
-    it('creates pipeline stages for provided fields', () => {
-      const stages = CollectionFilterUtil.buildSearchFilter('hello', [
+    it('creates OR where filter for provided fields', () => {
+      const result = CollectionFilterUtil.buildSearchFilter('hello', [
         'metadata.label',
         'metadata.description',
       ]);
 
-      expect(stages).toHaveLength(1);
-      const matchStage = stages[0] as Record<string, unknown> & {
-        match: Record<string, unknown>;
-      };
-      expect(matchStage.match?.OR).toHaveLength(2);
-      expect(matchStage.match?.OR?.[0]).toEqual({
+      const where = result.where as { OR: unknown[] };
+      expect(where.OR).toHaveLength(2);
+      expect(where.OR[0]).toEqual({
         'metadata.label': { mode: 'insensitive', contains: 'hello' },
       });
     });
@@ -159,7 +156,7 @@ describe('CollectionFilterUtil', () => {
         'tags',
         true,
       );
-      expect(result).toEqual({ tags: { $all: ['a', 'b'] } });
+      expect(result).toEqual({ tags: { hasEvery: ['a', 'b'] } });
     });
   });
 

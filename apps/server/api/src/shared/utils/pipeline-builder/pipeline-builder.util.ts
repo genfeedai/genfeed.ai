@@ -1,5 +1,6 @@
 import type {
   MatchConditions,
+  PipelineStage,
   PrismaFindAllQuery,
   SortOrder,
 } from '@api/shared/utils/pipeline-builder/pipeline-builder.types';
@@ -20,6 +21,15 @@ export class PipelineBuilder {
     return { orderBy: sort };
   }
 
+  static buildLookup(lookup: {
+    as: string;
+    foreignField: string;
+    from: string;
+    localField: string;
+  }): PipelineStage {
+    return { relationInclude: lookup };
+  }
+
   static mergeMatches(conditions: MatchConditions[]): MatchConditions {
     return conditions.reduce<MatchConditions>(
       (acc, condition) => ({ ...acc, ...condition }),
@@ -29,6 +39,14 @@ export class PipelineBuilder {
 
   match(conditions: MatchConditions): this {
     this.where = PipelineBuilder.mergeMatches([this.where, conditions]);
+    return this;
+  }
+
+  matchIf(condition: boolean, conditions: MatchConditions): this {
+    if (condition) {
+      this.match(conditions);
+    }
+
     return this;
   }
 
