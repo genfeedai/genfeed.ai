@@ -347,6 +347,24 @@ import { ConfigService } from '@workers/config/config.service';
         },
         name: 'heygen-poll',
       },
+      {
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: { delay: 2000, type: 'exponential' },
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        },
+        name: 'analytics-facebook',
+      },
+      {
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: { delay: 2000, type: 'exponential' },
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        },
+        name: 'analytics-threads',
+      },
     ),
   ],
   providers: [

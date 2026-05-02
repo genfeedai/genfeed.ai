@@ -1,3 +1,4 @@
+export * from './analytics-feedback';
 export * from './beat-analysis';
 export * from './beat-sync-editor';
 export * from './brand';

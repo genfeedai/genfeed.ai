@@ -1,3 +1,4 @@
+export * from '@workflow-engine/executors/saas/analytics-feedback-executor';
 export * from '@workflow-engine/executors/saas/beat-analysis-executor';
 export * from '@workflow-engine/executors/saas/beat-sync-editor-executor';
 export * from '@workflow-engine/executors/saas/brand-asset-executor';
