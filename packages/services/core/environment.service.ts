@@ -145,6 +145,17 @@ export const EnvironmentService = {
 
   GA_ID: process.env.NEXT_PUBLIC_GA_ID || '',
 
+  marketing: {
+    consentDefault:
+      process.env.NEXT_PUBLIC_MARKETING_CONSENT_DEFAULT === 'granted'
+        ? 'granted'
+        : 'denied',
+    gtmContainerId: process.env.NEXT_PUBLIC_GTM_CONTAINER_ID || '',
+    linkedinPartnerId: process.env.NEXT_PUBLIC_LINKEDIN_PARTNER_ID || '',
+    metaPixelId: process.env.NEXT_PUBLIC_META_PIXEL_ID || '',
+    xPixelId: process.env.NEXT_PUBLIC_X_PIXEL_ID || '',
+  },
+
   getApiUrl(): string {
     return this.apiEndpoint;
   },

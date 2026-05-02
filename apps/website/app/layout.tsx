@@ -110,6 +110,13 @@ export default async function RootLayout({ children }: LayoutProps) {
         initialTheme={initialTheme}
         storageKey={THEME_STORAGE_KEY}
         googleAnalyticsId={EnvironmentService.GA_ID}
+        marketingConsentDefault={EnvironmentService.marketing.consentDefault}
+        marketingGtmContainerId={EnvironmentService.marketing.gtmContainerId}
+        marketingLinkedinPartnerId={
+          EnvironmentService.marketing.linkedinPartnerId
+        }
+        marketingMetaPixelId={EnvironmentService.marketing.metaPixelId}
+        marketingXPixelId={EnvironmentService.marketing.xPixelId}
       >
         {children}
       </AppProviders>
