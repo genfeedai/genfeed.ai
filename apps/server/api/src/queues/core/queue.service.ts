@@ -36,6 +36,10 @@ export class QueueService {
     private readonly adOptimizationQueue: Queue,
     @InjectQueue('telegram-distribute')
     private readonly telegramDistributeQueue: Queue,
+    @InjectQueue('analytics-facebook')
+    private readonly analyticsFacebookQueue: Queue,
+    @InjectQueue('analytics-threads')
+    private readonly analyticsThreadsQueue: Queue,
   ) {}
 
   add<T = Record<string, unknown>>(
@@ -73,6 +77,10 @@ export class QueueService {
         return this.adOptimizationQueue;
       case 'telegram-distribute':
         return this.telegramDistributeQueue;
+      case 'analytics-facebook':
+        return this.analyticsFacebookQueue;
+      case 'analytics-threads':
+        return this.analyticsThreadsQueue;
       default:
         return this.defaultQueue;
     }

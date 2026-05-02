@@ -1,6 +1,8 @@
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
+import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
+import { MastodonService } from '@api/services/integrations/mastodon/services/mastodon.service';
 import { PinterestService } from '@api/services/integrations/pinterest/services/pinterest.service';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import {
@@ -30,6 +32,8 @@ export class AnalyticsSocialProcessor extends WorkerHost {
 
   constructor(
     private readonly instagramService: InstagramService,
+    private readonly linkedInService: LinkedInService,
+    private readonly mastodonService: MastodonService,
     private readonly tiktokService: TiktokService,
     private readonly pinterestService: PinterestService,
     private readonly postAnalyticsService: PostAnalyticsService,
@@ -105,6 +109,22 @@ export class AnalyticsSocialProcessor extends WorkerHost {
         platformProcessors.push(
           this.processPinterestPosts(
             postsByPlatform.get(CredentialPlatform.PINTEREST)!,
+          ),
+        );
+      }
+
+      if (postsByPlatform.has(CredentialPlatform.LINKEDIN)) {
+        platformProcessors.push(
+          this.processLinkedInPosts(
+            postsByPlatform.get(CredentialPlatform.LINKEDIN)!,
+          ),
+        );
+      }
+
+      if (postsByPlatform.has(CredentialPlatform.MASTODON)) {
+        platformProcessors.push(
+          this.processMastodonPosts(
+            postsByPlatform.get(CredentialPlatform.MASTODON)!,
           ),
         );
       }
@@ -316,6 +336,118 @@ export class AnalyticsSocialProcessor extends WorkerHost {
 
     this.logger.log(
       `Pinterest analytics completed - ${processed}/${posts.length} posts`,
+    );
+  }
+
+  private async processLinkedInPosts(
+    posts: SocialAnalyticsJobData['posts'],
+  ): Promise<void> {
+    this.logger.log(`Processing ${posts.length} LinkedIn posts`);
+    let processed = 0;
+
+    for (const post of posts) {
+      try {
+        const analytics = await this.linkedInService.getMediaAnalytics(
+          post.organization,
+          post.brand,
+          post.externalId,
+        );
+
+        // LinkedIn returns reactions as an object — map fields explicitly (no spread)
+        await this.postAnalyticsService.processLinkedInAnalytics(post._id, {
+          clicks: analytics.clicks,
+          comments: analytics.comments,
+          engagementRate: analytics.engagementRate,
+          impressions: analytics.impressions,
+          likes: analytics.likes,
+          mediaType: analytics.mediaType,
+          reach: analytics.reach,
+          shares: analytics.shares,
+          views: analytics.views,
+        });
+        processed++;
+
+        // Rate limiting delay
+        if (processed < posts.length) {
+          await this.delay(this.DEFAULT_DELAY_MS);
+        }
+      } catch (error: unknown) {
+        this.logger.error(
+          `Failed to fetch LinkedIn analytics for post ${post._id}`,
+          error,
+        );
+
+        // Disable analytics for this post to prevent repeated failures
+        try {
+          await this.postsService.patch(post._id, {
+            isAnalyticsEnabled: false,
+          });
+          this.logger.log(
+            `Disabled analytics tracking for post ${post._id} due to fetch failure`,
+          );
+        } catch (patchError: unknown) {
+          this.logger.error(
+            `Failed to disable analytics for post ${post._id}`,
+            patchError,
+          );
+        }
+      }
+    }
+
+    this.logger.log(
+      `LinkedIn analytics completed - ${processed}/${posts.length} posts`,
+    );
+  }
+
+  private async processMastodonPosts(
+    posts: SocialAnalyticsJobData['posts'],
+  ): Promise<void> {
+    this.logger.log(`Processing ${posts.length} Mastodon posts`);
+    let processed = 0;
+
+    for (const post of posts) {
+      try {
+        const analytics = await this.mastodonService.getMediaAnalytics(
+          post.organization,
+          post.brand,
+          post.externalId,
+        );
+
+        await this.postAnalyticsService.processMastodonAnalytics(
+          post._id,
+          analytics,
+        );
+        processed++;
+
+        // Rate limiting delay
+        if (processed < posts.length) {
+          await this.delay(this.DEFAULT_DELAY_MS);
+        }
+      } catch (error: unknown) {
+        this.logger.error(
+          `Failed to fetch Mastodon analytics for post ${post._id}`,
+          error,
+        );
+
+        // Disable analytics for this post to prevent repeated failures
+        try {
+          await this.postsService.patch(post._id, {
+            isAnalyticsEnabled: false,
+          });
+          this.logger.log(
+            `Disabled analytics tracking for post ${post._id} due to fetch failure`,
+          );
+        } catch (patchError: unknown) {
+          this.logger.error(
+            `Failed to disable analytics for post ${post._id}`,
+            patchError,
+          );
+        }
+      }
+    }
+
+    this.logger.log(
+      `Mastodon analytics completed - ${processed}/${posts.length} posts`,
     );
   }
 

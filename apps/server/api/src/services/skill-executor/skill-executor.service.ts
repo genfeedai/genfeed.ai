@@ -5,6 +5,7 @@ import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-fac
 import { ContentWritingHandler } from '@api/services/skill-executor/handlers/content-writing.handler';
 import { ImageGenerationHandler } from '@api/services/skill-executor/handlers/image-generation.handler';
 import { TrendDiscoveryHandler } from '@api/services/skill-executor/handlers/trend-discovery.handler';
+import { TrendRemixHandler } from '@api/services/skill-executor/handlers/trend-remix.handler';
 import type {
   GatewayExecutionContext,
   GatewayExecutionResult,
@@ -35,11 +36,13 @@ export class SkillExecutorService {
     contentWritingHandler: ContentWritingHandler,
     imageGenerationHandler: ImageGenerationHandler,
     trendDiscoveryHandler: TrendDiscoveryHandler,
+    trendRemixHandler: TrendRemixHandler,
   ) {
     this.handlers = {
       'content-writing': contentWritingHandler,
       'image-generation': imageGenerationHandler,
       'trend-discovery': trendDiscoveryHandler,
+      'trend-remix': trendRemixHandler,
     };
   }
 

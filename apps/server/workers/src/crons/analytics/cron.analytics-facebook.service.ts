@@ -1,7 +1,7 @@
 import { PostEntity } from '@api/collections/posts/entities/post.entity';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
-import type { SocialAnalyticsJobData } from '@api/queues/analytics-social/analytics-social.processor';
+import type { FacebookAnalyticsJobData } from '@api/queues/analytics-facebook/analytics-facebook.processor';
 import { QueueService } from '@api/queues/core/queue.service';
 import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -10,15 +10,15 @@ import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
 /**
- * Social Media Analytics Cron Service
- * Fetches analytics for Instagram, TikTok, and Pinterest posts every hour
- * These platforms don't support batch APIs, so posts are processed individually with parallel processing
+ * Facebook Analytics Cron Service
+ * Fetches analytics for Facebook posts every hour
+ * Facebook Graph API does not support batch analytics — posts are processed individually
  */
 @Injectable()
-export class CronAnalyticsSocialService {
+export class CronAnalyticsFacebookService {
   private readonly constructorName: string = String(this.constructor.name);
-  private readonly QUEUE_NAME = 'analytics-social';
-  private readonly CHUNK_SIZE = 50; // Process 50 posts per job for better parallelization
+  private readonly QUEUE_NAME = 'analytics-facebook';
+  private readonly CHUNK_SIZE = 50;
 
   constructor(
     private readonly logger: LoggerService,
@@ -27,27 +27,20 @@ export class CronAnalyticsSocialService {
   ) {}
 
   @Cron(CronExpression.EVERY_HOUR)
-  async trackSocialAnalytics(): Promise<void> {
+  async trackFacebookAnalytics(): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.logger.log(`${url} started`);
 
     try {
-      // Find all published social media posts with external IDs and analytics enabled
       const result = await this.postsService.findAll(
         {
           include: { credential: true },
           where: {
             externalId: { not: null },
-            isAnalyticsEnabled: { not: false }, // Track unless explicitly disabled
+            isAnalyticsEnabled: { not: false },
             isDeleted: false,
             platform: {
-              in: [
-                CredentialPlatform.INSTAGRAM,
-                CredentialPlatform.LINKEDIN,
-                CredentialPlatform.MASTODON,
-                CredentialPlatform.TIKTOK,
-                CredentialPlatform.PINTEREST,
-              ],
+              in: [CredentialPlatform.FACEBOOK],
             },
             status: PostStatus.PUBLIC,
           },
@@ -57,16 +50,16 @@ export class CronAnalyticsSocialService {
       const posts = result as unknown as { docs: PostEntity[] };
 
       if (!posts.docs || posts.docs.length === 0) {
-        this.logger.log(`${url} no social media posts to track`);
+        this.logger.log(`${url} no Facebook posts to track`);
         return;
       }
 
       this.logger.log(
-        `${url} found ${posts.docs.length} social media posts to track`,
+        `${url} found ${posts.docs.length} Facebook posts to track`,
       );
 
       // Group posts into chunks for parallel processing
-      const chunks: (typeof posts.docs)[] = [];
+      const chunks: PostEntity[][] = [];
       for (let i = 0; i < posts.docs.length; i += this.CHUNK_SIZE) {
         chunks.push(posts.docs.slice(i, i + this.CHUNK_SIZE));
       }
@@ -78,7 +71,7 @@ export class CronAnalyticsSocialService {
       // Add each chunk to the queue
       for (let i = 0; i < chunks.length; i++) {
         const chunk = chunks[i];
-        const jobData: SocialAnalyticsJobData = {
+        const jobData: FacebookAnalyticsJobData = {
           posts: chunk.map((post: PostEntity) => ({
             _id: post._id.toString(),
             brand: post.brand.toString(),
