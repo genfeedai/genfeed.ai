@@ -1,12 +1,14 @@
-import chalk from 'chalk';
 import { Command } from 'commander';
 import ora from 'ora';
 import { type Article, generateArticle, getArticle } from '@/api/articles.js';
 import { requireAuth } from '@/api/client.js';
-import { getActiveBrand } from '@/config/store.js';
-import { formatLabel, print, printJson } from '@/ui/theme.js';
-import { handleError, NoBrandError } from '@/utils/errors.js';
-import { waitForCompletion } from '@/utils/websocket.js';
+import { handleError } from '@/utils/errors.js';
+import {
+  printGeneratedResult,
+  printGenerationStarted,
+  requireGenerationBrand,
+  waitForGenerated,
+} from './helpers.js';
 
 export const articleCommand = new Command('article')
   .description('Generate an AI article')
@@ -20,12 +22,7 @@ export const articleCommand = new Command('article')
     try {
       await requireAuth();
 
-      const activeBrandId = await getActiveBrand();
-      const brandId = options.brand ?? activeBrandId;
-      if (!brandId) {
-        throw new NoBrandError();
-      }
-
+      const brandId = await requireGenerationBrand(options.brand);
       const spinner = ora('Creating article...').start();
 
       const activity = await generateArticle({
@@ -37,42 +34,29 @@ export const articleCommand = new Command('article')
 
       if (!options.wait) {
         spinner.succeed('Article generation started');
-        const articleStatusId = activity.articleId ?? activity.id;
-
-        if (options.json) {
-          printJson({
-            articleId: activity.articleId,
-            id: activity.id,
-            status: activity.status,
-            statusCommand: `gf status ${articleStatusId} --type article`,
-          });
-        } else {
-          print(formatLabel('ID', activity.id));
-          print(formatLabel('Status', activity.status));
-          if (activity.articleId) {
-            print(formatLabel('Article ID', activity.articleId));
-          }
-          print();
-          print(chalk.dim(`Check status with: gf status ${articleStatusId} --type article`));
-        }
+        printGenerationStarted(
+          activity.id,
+          activity.status,
+          options.json,
+          'article',
+          activity.articleId
+        );
         return;
       }
 
-      spinner.text = 'Generating article...';
-
-      const { result, elapsed } = await waitForCompletion<Article>({
-        getResult: () => getArticle(activity.articleId ?? activity.id),
+      const { result, elapsed } = await waitForGenerated<Article>(
         spinner,
-        taskId: activity.id,
-        taskType: 'IMAGE', // reuse existing websocket event type
-        timeout: 300000,
-      });
+        'article',
+        'Article',
+        () => getArticle(activity.articleId ?? activity.id),
+        activity.id,
+        'IMAGE',
+        300000
+      );
 
-      const elapsedSec = (elapsed / 1000).toFixed(1);
-      spinner.succeed(`Article generated (${elapsedSec}s)`);
-
-      if (options.json) {
-        printJson({
+      printGeneratedResult(
+        options.json,
+        {
           category: result.category,
           elapsed,
           id: result.id,
@@ -80,21 +64,14 @@ export const articleCommand = new Command('article')
           summary: result.summary,
           title: result.title,
           wordCount: result.wordCount,
-        });
-      } else {
-        if (result.title) {
-          print(formatLabel('Title', result.title));
-        }
-        if (result.summary) {
-          print(formatLabel('Summary', result.summary));
-        }
-        if (result.wordCount) {
-          print(formatLabel('Words', String(result.wordCount)));
-        }
-        if (result.category) {
-          print(formatLabel('Category', result.category));
-        }
-      }
+        },
+        [
+          result.title ? ['Title', result.title] : false,
+          result.summary ? ['Summary', result.summary] : false,
+          result.wordCount ? ['Words', String(result.wordCount)] : false,
+          result.category ? ['Category', result.category] : false,
+        ]
+      );
     } catch (error) {
       handleError(error);
     }

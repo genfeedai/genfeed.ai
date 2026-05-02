@@ -5,6 +5,7 @@ import { ElementsCamerasService } from '@api/collections/elements/cameras/servic
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import type { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
+import { asMatchStage, asSortStage } from '@api/test/query-stage-assertions';
 import type { User } from '@clerk/backend';
 import { CameraSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -23,12 +24,6 @@ const createBaseQuery = (
     sort: 'createdAt: -1',
     ...partial,
   }) as BaseQueryDto;
-
-const asMatchStage = (stage: Record<string, unknown>) =>
-  stage as Record<string, unknown> & { match: Record<string, unknown> };
-
-const asSortStage = (stage: Record<string, unknown>) =>
-  stage as Record<string, unknown> & { orderBy: Record<string, unknown> };
 
 vi.mock('@genfeedai/helpers', async () => ({
   ...(await vi.importActual('@genfeedai/helpers')),
@@ -124,33 +119,33 @@ describe('ElementsCamerasController', () => {
     expect(controller).toBeDefined();
   });
 
-  describe('buildFindAllQuery', () => {
-    it('should build query with isDeleted filter', () => {
+  describe('buildFindAllPipeline', () => {
+    it('should build pipeline with isDeleted filter', () => {
       const query = createBaseQuery();
 
-      const result = controller.buildFindAllQuery(mockSuperAdminUser, query);
+      const result = controller.buildFindAllPipeline(mockSuperAdminUser, query);
 
       expect(result).toHaveLength(2);
-      expect(asMatchStage(result[0]).match).toHaveProperty('isDeleted', false);
-      expect(asSortStage(result[1]).orderBy).toBeDefined();
+      expect(asMatchStage(result[0]).$match).toHaveProperty('isDeleted', false);
+      expect(asSortStage(result[1]).$sort).toBeDefined();
     });
 
-    it('should build query with custom sort', () => {
+    it('should build pipeline with custom sort', () => {
       const query = createBaseQuery({ sort: '-label' });
 
-      const result = controller.buildFindAllQuery(mockSuperAdminUser, query);
+      const result = controller.buildFindAllPipeline(mockSuperAdminUser, query);
 
       expect(result).toHaveLength(2);
-      expect(asSortStage(result[1]).orderBy).toBeDefined();
+      expect(asSortStage(result[1]).$sort).toBeDefined();
     });
 
-    it('should build query for regular users with OR filter', () => {
+    it('should build pipeline for regular users with $or filter', () => {
       const query = createBaseQuery();
 
-      const result = controller.buildFindAllQuery(mockRegularUser, query);
+      const result = controller.buildFindAllPipeline(mockRegularUser, query);
 
-      expect(asMatchStage(result[0]).match).toHaveProperty('isDeleted', false);
-      expect(asMatchStage(result[0]).match).toHaveProperty('OR');
+      expect(asMatchStage(result[0]).$match).toHaveProperty('isDeleted', false);
+      expect(asMatchStage(result[0]).$match).toHaveProperty('$or');
     });
   });
 
