@@ -1,5 +1,6 @@
 import { CreditsController } from '@api/collections/credits/controllers/credits.controller';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
+import { TopbarBalancesService } from '@api/collections/credits/services/topbar-balances.service';
 import { RATE_LIMIT_KEY } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import type { User } from '@clerk/backend';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -47,6 +48,21 @@ describe('CreditsController', () => {
       log: vi.fn(),
       warn: vi.fn(),
     },
+    topbarBalancesService: {
+      getTopbarBalances: vi.fn().mockResolvedValue({
+        generatedAt: '2026-05-02T12:00:00.000Z',
+        segments: [
+          {
+            balance: 1000,
+            currencyOrUnit: 'credits',
+            label: 'Genfeed',
+            lastSyncedAt: '2026-05-02T12:00:00.000Z',
+            provider: 'genfeed',
+            status: 'available',
+          },
+        ],
+      }),
+    },
   };
 
   beforeEach(async () => {
@@ -56,6 +72,10 @@ describe('CreditsController', () => {
         {
           provide: CreditTransactionsService,
           useValue: mockServices.creditTransactionsService,
+        },
+        {
+          provide: TopbarBalancesService,
+          useValue: mockServices.topbarBalancesService,
         },
         { provide: LoggerService, useValue: mockServices.loggerService },
       ],
@@ -101,6 +121,14 @@ describe('CreditsController', () => {
     expect(metadata).toEqual({ limit: 20, scope: 'user', windowMs: 60000 });
   });
 
+  it('should have rate limit on getTopbarBalances endpoint', () => {
+    const metadata = Reflect.getMetadata(
+      RATE_LIMIT_KEY,
+      CreditsController.prototype.getTopbarBalances,
+    );
+    expect(metadata).toEqual({ limit: 30, scope: 'user', windowMs: 60000 });
+  });
+
   describe('getUsageMetrics', () => {
     it('should return usage metrics', async () => {
       const result = await controller.getUsageMetrics(mockReq, mockUser);
@@ -138,6 +166,17 @@ describe('CreditsController', () => {
 
       expect(
         mockServices.creditTransactionsService.getLastPurchaseBaseline,
+      ).toHaveBeenCalledWith('507f1f77bcf86cd799439012');
+      expect(result).toBeDefined();
+    });
+  });
+
+  describe('getTopbarBalances', () => {
+    it('returns serialized topbar balances for the current organization', async () => {
+      const result = await controller.getTopbarBalances(mockReq, mockUser);
+
+      expect(
+        mockServices.topbarBalancesService.getTopbarBalances,
       ).toHaveBeenCalledWith('507f1f77bcf86cd799439012');
       expect(result).toBeDefined();
     });

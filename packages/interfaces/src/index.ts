@@ -47,6 +47,7 @@ export * from './batch/batch.interface';
 export * from './batch/manual-review-batch-item.interface';
 export * from './billing/credits.interface';
 export * from './billing/subscription.interface';
+export * from './billing/topbar-balance.interface';
 export * from './common/content-scope.interface';
 export * from './components/asset-selection.interface';
 export * from './components/background-task.interface';

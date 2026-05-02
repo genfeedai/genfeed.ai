@@ -43,6 +43,10 @@ vi.mock('@ui/topbars/breadcrumbs/TopbarBreadcrumbs', () => ({
   default: () => <div data-testid="breadcrumbs">Breadcrumbs</div>,
 }));
 
+vi.mock('@ui/topbars/credits-bar/TopbarCreditsBar', () => ({
+  default: () => <div data-testid="topbar-credits-bar">Credits</div>,
+}));
+
 vi.mock('@ui/topbars/end/TopbarEnd', () => ({
   default: () => <div data-testid="topbar-end">Topbar End</div>,
 }));
@@ -105,6 +109,18 @@ describe('AppProtectedTopbar', () => {
 
     expect(
       terminalButton.compareDocumentPosition(cloudSyncIndicator) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it('renders credit balances before the topbar end slot', () => {
+    render(<AppProtectedTopbar currentApp="workspace" orgSlug="acme" />);
+
+    const credits = screen.getByTestId('topbar-credits-bar');
+    const topbarEnd = screen.getByTestId('topbar-end');
+
+    expect(
+      credits.compareDocumentPosition(topbarEnd) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
