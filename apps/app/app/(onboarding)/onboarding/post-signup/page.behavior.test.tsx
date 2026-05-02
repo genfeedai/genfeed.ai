@@ -14,6 +14,7 @@ const {
   isEEEnabledMock,
   isSelfHostedMock,
   resolveClerkTokenMock,
+  searchParamsState,
 } = vi.hoisted(() => ({
   createCheckoutSessionMock: vi.fn(),
   currentUserState: {
@@ -27,6 +28,9 @@ const {
   isEEEnabledMock: vi.fn(),
   isSelfHostedMock: vi.fn(),
   resolveClerkTokenMock: vi.fn(),
+  searchParamsState: {
+    value: new URLSearchParams(),
+  },
 }));
 
 vi.mock('@clerk/nextjs', () => ({
@@ -46,6 +50,10 @@ vi.mock('@contexts/user/user-context/user-context', () => ({
 
 vi.mock('@helpers/auth/clerk.helper', () => ({
   resolveClerkToken: (...args: unknown[]) => resolveClerkTokenMock(...args),
+}));
+
+vi.mock('next/navigation', () => ({
+  useSearchParams: () => searchParamsState.value,
 }));
 
 vi.mock('@services/billing/stripe.service', () => ({
@@ -146,6 +154,7 @@ describe('PostSignupPage behavior', () => {
     createCheckoutSessionMock.mockResolvedValue({
       url: 'https://checkout.stripe.test/session',
     });
+    searchParamsState.value = new URLSearchParams();
 
     Object.defineProperty(globalThis, 'localStorage', {
       configurable: true,
@@ -194,5 +203,32 @@ describe('PostSignupPage behavior', () => {
       localStorage.getItem(ONBOARDING_STORAGE_KEYS.selectedCredits),
     ).toBeNull();
     expect(createCheckoutSessionMock).not.toHaveBeenCalled();
+  });
+
+  it('starts an EE credits checkout from a desktop post-signup credits query', async () => {
+    isEEEnabledMock.mockReturnValue(true);
+    isSelfHostedMock.mockReturnValue(false);
+    searchParamsState.value = new URLSearchParams(
+      'credits=1000&source=desktop',
+    );
+    localStorage.setItem(ONBOARDING_STORAGE_KEYS.selectedPlan, 'price_stale');
+
+    render(<PostSignupPage />);
+
+    await waitFor(() => {
+      expect(createCheckoutSessionMock).toHaveBeenCalledWith({
+        cancelUrl: 'http://localhost/onboarding/providers',
+        quantity: 1000,
+        stripePriceId: 'price_payg',
+        successUrl: 'http://localhost/onboarding/brand',
+      });
+    });
+    expect(locationState.href).toBe('https://checkout.stripe.test/session');
+    expect(
+      localStorage.getItem(ONBOARDING_STORAGE_KEYS.selectedCredits),
+    ).toBeNull();
+    expect(
+      localStorage.getItem(ONBOARDING_STORAGE_KEYS.selectedPlan),
+    ).toBeNull();
   });
 });

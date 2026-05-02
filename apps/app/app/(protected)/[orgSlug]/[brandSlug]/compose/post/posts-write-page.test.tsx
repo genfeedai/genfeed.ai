@@ -283,11 +283,11 @@ describe('PostsWritePage', () => {
       expect(screen.getByLabelText('Draft content')).toHaveValue(
         'Generated local post',
       );
+      expect(queueJob).toHaveBeenCalledWith(
+        'post-draft',
+        expect.stringContaining('Generated local post'),
+      );
     });
-    expect(queueJob).toHaveBeenCalledWith(
-      'post-draft',
-      expect.stringContaining('Generated local post'),
-    );
     expect(pushMock).not.toHaveBeenCalled();
   });
 
@@ -332,11 +332,9 @@ describe('PostsWritePage', () => {
       });
     });
 
-    await waitFor(() => {
-      expect(screen.getByLabelText('Draft content')).toHaveValue(
-        'Desktop fallback post',
-      );
-    });
+    expect(screen.getByLabelText('Draft content')).toHaveValue(
+      'Desktop fallback post',
+    );
     expect(pushMock).not.toHaveBeenCalled();
   });
 

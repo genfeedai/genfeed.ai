@@ -14,6 +14,7 @@ import { logger } from '@services/core/logger.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
 import PageLoadingState from '@ui/loading/page/PageLoadingState';
 import { Button } from '@ui/primitives/button';
+import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { isEEEnabled, isSelfHosted } from '@/lib/config/edition';
 import { ONBOARDING_STORAGE_KEYS } from '@/lib/onboarding/onboarding-access.util';
@@ -22,6 +23,7 @@ export default function PostSignupPage() {
   const { getToken } = useAuth();
   const { user: clerkUser } = useUser();
   const { currentUser, isLoading } = useCurrentUser();
+  const searchParams = useSearchParams();
   const calledRef = useRef(false);
   const [showFallback, setShowFallback] = useState(false);
   const [statusMessage, setStatusMessage] = useState(
@@ -84,6 +86,17 @@ export default function PostSignupPage() {
     }, 12_000);
 
     const route = async () => {
+      const requestedCredits = parseSelectedCredits(
+        searchParams.get('credits'),
+      );
+      if (requestedCredits) {
+        localStorage.removeItem(ONBOARDING_STORAGE_KEYS.selectedPlan);
+        localStorage.setItem(
+          ONBOARDING_STORAGE_KEYS.selectedCredits,
+          requestedCredits.toString(),
+        );
+      }
+
       const selectedPlan = localStorage.getItem(
         ONBOARDING_STORAGE_KEYS.selectedPlan,
       );
@@ -196,7 +209,14 @@ export default function PostSignupPage() {
     return () => {
       window.clearTimeout(fallbackTimeout);
     };
-  }, [clerkUser, currentUser, getToken, isLoading, resolveOnboardingHref]);
+  }, [
+    clerkUser,
+    currentUser,
+    getToken,
+    isLoading,
+    resolveOnboardingHref,
+    searchParams,
+  ]);
 
   return (
     <PageLoadingState
