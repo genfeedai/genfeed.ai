@@ -320,6 +320,140 @@ describe('WorkflowEngineAdapterService', () => {
       );
     });
 
+    it('executes analytics feedback without a performance summary service', async () => {
+      const workflow = service.convertToExecutableWorkflow({
+        _id: { toString: () => 'wf-analytics-feedback' },
+        brands: [{ toString: () => 'brand-1' }],
+        nodes: [
+          {
+            data: { config: { topN: 5, worstN: 3 }, label: 'Analytics' },
+            id: 'analytics',
+            type: 'analytics-feedback',
+          },
+        ],
+        organization: { toString: () => 'org-1' },
+        user: { toString: () => 'user-1' },
+      });
+
+      const result = await service.executeWorkflow(workflow);
+
+      expect(result.status).toBe('completed');
+      expect(result.nodeResults.get('analytics')?.output).toEqual(
+        expect.objectContaining({
+          bestPlatform: null,
+          topTopics: [],
+          weekOverWeekDirection: 'stable',
+        }),
+      );
+    });
+
+    it('executes trend trigger with analytics keywords when no social trend adapter is available', async () => {
+      const workflow = service.convertToExecutableWorkflow({
+        _id: { toString: () => 'wf-trend' },
+        nodes: [
+          {
+            cachedOutput: ['ai tools'],
+            data: { config: {}, label: 'Topics' },
+            id: 'topics',
+            type: 'workflowInput',
+          },
+          {
+            data: {
+              config: {
+                minViralScore: 70,
+                platform: 'tiktok',
+                trendType: 'hashtag',
+              },
+              label: 'Trend',
+            },
+            id: 'trend',
+            type: 'trendTrigger',
+          },
+        ],
+        edges: [
+          {
+            id: 'topics-trend',
+            source: 'topics',
+            target: 'trend',
+            targetHandle: 'keywords',
+          },
+        ],
+        lockedNodeIds: ['topics'],
+        organization: { toString: () => 'org-1' },
+        user: { toString: () => 'user-1' },
+      });
+
+      const result = await service.executeWorkflow(workflow);
+
+      expect(result.status).toBe('completed');
+      expect(result.nodeResults.get('trend')?.output).toEqual(
+        expect.objectContaining({
+          platform: 'tiktok',
+          topic: 'ai tools',
+          viralScore: 70,
+        }),
+      );
+    });
+
+    it('executes text-only publish when brand and caption inputs are present', async () => {
+      const workflow = service.convertToExecutableWorkflow({
+        _id: { toString: () => 'wf-publish' },
+        edges: [
+          {
+            id: 'brand-publish',
+            source: 'brand',
+            target: 'publish',
+            targetHandle: 'brand',
+          },
+          {
+            id: 'caption-publish',
+            source: 'caption',
+            target: 'publish',
+            targetHandle: 'caption',
+          },
+        ],
+        lockedNodeIds: ['brand', 'caption'],
+        nodes: [
+          {
+            cachedOutput: { brandId: 'brand-1' },
+            data: { config: {}, label: 'Brand' },
+            id: 'brand',
+            type: 'workflowInput',
+          },
+          {
+            cachedOutput: 'Ready to publish',
+            data: { config: {}, label: 'Caption' },
+            id: 'caption',
+            type: 'workflowInput',
+          },
+          {
+            data: {
+              config: {
+                platforms: { twitter: true },
+                schedule: { type: 'immediate' },
+              },
+              label: 'Publish',
+            },
+            id: 'publish',
+            type: 'output-publish',
+          },
+        ],
+        organization: { toString: () => 'org-1' },
+        user: { toString: () => 'user-1' },
+      });
+
+      const result = await service.executeWorkflow(workflow);
+
+      expect(result.status).toBe('completed');
+      expect(result.nodeResults.get('publish')?.output).toEqual(
+        expect.objectContaining({
+          platforms: ['twitter'],
+          postIds: [],
+          status: 'queued',
+        }),
+      );
+    });
+
     it('passes brandId from workflow config into avatar generation', async () => {
       const avatarVideoGenerationService = {
         generateAvatarVideo: vi.fn().mockResolvedValue({

@@ -1,6 +1,33 @@
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 import type { Metadata, ResolvingMetadata } from 'next';
 
+function buildMetadata(
+  pageTitle: string,
+  images: NonNullable<Metadata['openGraph']>['images'],
+  description?: string,
+  canonicalPath?: string,
+): Metadata {
+  const title = `${pageTitle} | ${metadata.name}`;
+  const url = canonicalPath ? `${metadata.url}${canonicalPath}` : undefined;
+
+  return {
+    ...(url && { alternates: { canonical: url } }),
+    ...(description && { description }),
+    openGraph: {
+      ...(description && { description }),
+      images,
+      title,
+      ...(url && { url }),
+    },
+    title,
+    twitter: {
+      ...(description && { description }),
+      images,
+      title,
+    },
+  };
+}
+
 export function createPageMetadata(pageTitle: string) {
   return async function generateMetadata(
     _props: unknown,
@@ -8,15 +35,7 @@ export function createPageMetadata(pageTitle: string) {
   ): Promise<Metadata> {
     const previousImages = (await parent).openGraph?.images || [];
 
-    return {
-      openGraph: {
-        images: previousImages,
-      },
-      title: `${pageTitle} | ${metadata.name}`,
-      twitter: {
-        images: previousImages,
-      },
-    };
+    return buildMetadata(pageTitle, previousImages);
   };
 }
 
@@ -39,11 +58,7 @@ export function createDynamicPageMetadata<K extends string>(
     const previousImages = resolvedParent.openGraph?.images || [];
     const value = resolvedParams[paramKey];
 
-    return {
-      openGraph: { images: previousImages },
-      title: `${formatter(value)} | ${metadata.name}`,
-      twitter: { images: previousImages },
-    };
+    return buildMetadata(formatter(value), previousImages);
   };
 }
 
@@ -57,20 +72,7 @@ export function createPageMetadataWithDescription(
   ): Promise<Metadata> {
     const previousImages = (await parent).openGraph?.images || [];
 
-    return {
-      description,
-      openGraph: {
-        description,
-        images: previousImages,
-        title: `${pageTitle} | ${metadata.name}`,
-      },
-      title: `${pageTitle} | ${metadata.name}`,
-      twitter: {
-        description,
-        images: previousImages,
-        title: `${pageTitle} | ${metadata.name}`,
-      },
-    };
+    return buildMetadata(pageTitle, previousImages, description);
   };
 }
 
@@ -85,23 +87,6 @@ export function createPageMetadataWithCanonical(
   ): Promise<Metadata> {
     const previousImages = (await parent).openGraph?.images || [];
 
-    return {
-      alternates: {
-        canonical: `${metadata.url}${canonicalPath}`,
-      },
-      description,
-      openGraph: {
-        description,
-        images: previousImages,
-        title: `${pageTitle} | ${metadata.name}`,
-        url: `${metadata.url}${canonicalPath}`,
-      },
-      title: `${pageTitle} | ${metadata.name}`,
-      twitter: {
-        description,
-        images: previousImages,
-        title: `${pageTitle} | ${metadata.name}`,
-      },
-    };
+    return buildMetadata(pageTitle, previousImages, description, canonicalPath);
   };
 }

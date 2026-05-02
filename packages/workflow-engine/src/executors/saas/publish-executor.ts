@@ -38,7 +38,7 @@ export type PublishResolver = (params: {
   brandId: string;
   organizationId: string;
   userId: string;
-  media: unknown;
+  media?: unknown;
   caption: string;
   platforms: SocialPlatform[];
   scheduledFor: Date | null;
@@ -95,7 +95,11 @@ export class PublishExecutor extends BaseExecutor {
       inputs,
       'brand',
     );
-    const media = this.getRequiredInput<unknown>(inputs, 'media');
+    const media = this.getOptionalInput<unknown | undefined>(
+      inputs,
+      'media',
+      undefined,
+    );
 
     const captionFromInput = this.getOptionalInput<string | undefined>(
       inputs,
@@ -108,6 +112,10 @@ export class PublishExecutor extends BaseExecutor {
       '',
     );
     const caption = captionFromInput ?? captionFromConfig;
+
+    if (media === undefined && !caption) {
+      throw new Error('Missing publish media or caption input');
+    }
 
     const platforms = this.getRequiredConfig<Record<SocialPlatform, boolean>>(
       node.config,

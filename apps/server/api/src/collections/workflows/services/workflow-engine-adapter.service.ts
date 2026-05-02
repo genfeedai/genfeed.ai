@@ -1,6 +1,7 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CaptionEntity } from '@api/collections/captions/entities/caption.entity';
 import { CaptionsService } from '@api/collections/captions/services/captions.service';
+import { PerformanceSummaryService } from '@api/collections/content-performance/services/performance-summary.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
@@ -55,7 +56,10 @@ import type {
   ExecutionRunResult,
 } from '@genfeedai/workflow-engine';
 import {
+  type AnalyticsFeedbackOutput,
+  createAnalyticsFeedbackExecutor,
   createBrandAssetExecutor,
+  createBrandContextExecutor,
   createImageGenExecutor,
   createLipSyncExecutor,
   createMentionTriggerExecutor,
@@ -64,11 +68,17 @@ import {
   createNewRepostTriggerExecutor,
   createPostReplyExecutor,
   createPromptConstructorExecutor,
+  createPublishExecutor,
   createReframeExecutor,
   createSendDmExecutor,
   createTextToSpeechExecutor,
+  createTrendTriggerExecutor,
   createUpscaleExecutor,
+  type KeywordTriggerPlatform,
   type NodeExecutor,
+  type SocialPlatform,
+  type TrendPlatform,
+  type TrendTriggerOutput,
   WorkflowEngine,
 } from '@genfeedai/workflow-engine';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -190,6 +200,7 @@ const NODE_TYPE_TO_EXECUTOR: Record<string, string> = {
   'trigger-new-follower': 'newFollowerTrigger',
   'trigger-new-like': 'newLikeTrigger',
   'trigger-new-repost': 'newRepostTrigger',
+  'analytics-feedback': 'analyticsFeedback',
 };
 
 /**
@@ -227,6 +238,8 @@ export class WorkflowEngineAdapterService {
     @Optional() private readonly replicateService?: ReplicateService,
     @Optional() private readonly promptBuilderService?: PromptBuilderService,
     @Optional() private readonly brandsService?: BrandsService,
+    @Optional()
+    private readonly performanceSummaryService?: PerformanceSummaryService,
   ) {
     this.engine = new WorkflowEngine({
       maxConcurrency: 3,
@@ -249,6 +262,10 @@ export class WorkflowEngineAdapterService {
     this.registerUpscaleExecutor();
     this.registerDirectMediaInputExecutors();
     this.registerBrandAssetExecutor();
+    this.registerBrandContextExecutor();
+    this.registerAnalyticsFeedbackExecutor();
+    this.registerTrendTriggerExecutor();
+    this.registerPublishExecutor();
   }
 
   /**
@@ -490,6 +507,268 @@ export class WorkflowEngineAdapterService {
       executor.nodeType,
       this.wrapEngineExecutor(executor),
     );
+  }
+
+  private registerBrandContextExecutor(): void {
+    if (!this.brandsService) return;
+    const brandsService = this.brandsService;
+    const executor = createBrandContextExecutor(
+      async (brandId, organizationId) => {
+        const brand = await brandsService.findOne(
+          { _id: brandId, isDeleted: false, organization: organizationId },
+          ['detail'],
+        );
+        if (!brand) return null;
+        const brandDoc = brand as unknown as Record<string, unknown>;
+        return {
+          brandId: String(brandDoc._id),
+          colors:
+            (brandDoc.colors as {
+              primary: string;
+              secondary: string;
+              background: string;
+            } | null) ?? null,
+          fonts: (brandDoc.fonts as string | null) ?? null,
+          label: String(brandDoc.name ?? brandDoc.label ?? ''),
+          models: null,
+          slug: String(brandDoc.slug ?? ''),
+          voice: (brandDoc.voice as string | null) ?? null,
+        };
+      },
+    );
+    this.engine.registerExecutor(
+      executor.nodeType,
+      this.wrapEngineExecutor(executor),
+    );
+  }
+
+  private registerAnalyticsFeedbackExecutor(): void {
+    const summaryService = this.performanceSummaryService;
+    const executor = createAnalyticsFeedbackExecutor(
+      async ({ organizationId, brandId, topN, worstN }) => {
+        if (!summaryService) {
+          return this.createEmptyAnalyticsFeedback();
+        }
+
+        const summary = await summaryService.getWeeklySummary(
+          organizationId,
+          brandId,
+          { topN, worstN },
+        );
+        const bestPlatform =
+          summary.avgEngagementByPlatform.length > 0
+            ? summary.avgEngagementByPlatform.reduce((best, current) =>
+                current.avgEngagementRate > best.avgEngagementRate
+                  ? current
+                  : best,
+              ).platform
+            : null;
+        return {
+          avgEngagementRate:
+            summary.avgEngagementByPlatform.length > 0
+              ? summary.avgEngagementByPlatform.reduce(
+                  (sum, p) => sum + p.avgEngagementRate,
+                  0,
+                ) / summary.avgEngagementByPlatform.length
+              : 0,
+          bestPlatform,
+          bestPostingTimes: summary.bestPostingTimes.map((t) => ({
+            avgEngagement: t.avgEngagementRate,
+            dayOfWeek: 0,
+            hour: t.hour,
+          })),
+          topHooks: summary.topHooks,
+          topTopics: summary.topPerformers.map((p) => p.title).filter(Boolean),
+          weekOverWeekChange: summary.weekOverWeekTrend.percentageChange,
+          weekOverWeekDirection: summary.weekOverWeekTrend.direction,
+          worstTopics: summary.worstPerformers
+            .map((p) => p.title)
+            .filter(Boolean),
+        };
+      },
+    );
+    this.engine.registerExecutor(
+      executor.nodeType,
+      this.wrapEngineExecutor(executor),
+    );
+  }
+
+  private registerTrendTriggerExecutor(): void {
+    const executor = createTrendTriggerExecutor(async (params) => {
+      const keywordMatch = await this.findTrendFromSocialKeywordMatch(params);
+      if (keywordMatch) {
+        return keywordMatch;
+      }
+
+      const topic = params.keywords.find(
+        (keyword) => keyword.trim().length > 0,
+      );
+      if (!topic) {
+        return null;
+      }
+
+      return {
+        hashtags: [topic.startsWith('#') ? topic : `#${topic}`],
+        platform: params.platform,
+        soundId: null,
+        topic,
+        trendId: `analytics-${params.platform}-${topic
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-|-$/g, '')}`,
+        videoUrl: null,
+        viralScore: params.minViralScore,
+      };
+    });
+    this.engine.registerExecutor(
+      executor.nodeType,
+      this.wrapEngineExecutor(executor),
+    );
+  }
+
+  private registerPublishExecutor(): void {
+    const postsService = this.postsService;
+    const credentialsService = this.credentialsService;
+    const executor = createPublishExecutor(
+      async ({
+        brandId,
+        caption,
+        media,
+        organizationId,
+        platforms,
+        scheduledFor,
+        userId,
+      }) => {
+        if (!postsService || !credentialsService) {
+          return {
+            platforms,
+            postIds: [],
+            scheduledFor,
+            status: scheduledFor ? 'scheduled' : 'queued',
+          };
+        }
+
+        const postIds: string[] = [];
+        const publishedPlatforms: SocialPlatform[] = [];
+        const ingredients = this.extractPublishIngredientIds(media);
+
+        for (const platform of platforms) {
+          const credential = await credentialsService.findOne({
+            isConnected: true,
+            isDeleted: false,
+            organization: organizationId,
+            platform: platform as CredentialPlatform,
+          });
+
+          if (!credential) {
+            continue;
+          }
+
+          const post = await postsService.create({
+            brand: brandId,
+            category:
+              ingredients.length > 0 ? PostCategory.IMAGE : PostCategory.TEXT,
+            credential: credential._id,
+            description: caption,
+            ingredients,
+            label: this.buildPostLabel(caption),
+            organization: organizationId,
+            platform: credential.platform as CredentialPlatform,
+            scheduledDate: scheduledFor ?? undefined,
+            status: scheduledFor ? PostStatus.SCHEDULED : PostStatus.DRAFT,
+            user: userId,
+          });
+
+          postIds.push(post._id.toString());
+          publishedPlatforms.push(platform);
+        }
+
+        return {
+          platforms: publishedPlatforms,
+          postIds,
+          scheduledFor,
+          status: scheduledFor ? 'scheduled' : 'queued',
+        };
+      },
+    );
+    this.engine.registerExecutor(
+      executor.nodeType,
+      this.wrapEngineExecutor(executor),
+    );
+  }
+
+  private createEmptyAnalyticsFeedback(): AnalyticsFeedbackOutput {
+    return {
+      avgEngagementRate: 0,
+      bestPlatform: null,
+      bestPostingTimes: [],
+      topHooks: [],
+      topTopics: [],
+      weekOverWeekChange: 0,
+      weekOverWeekDirection: 'stable',
+      worstTopics: [],
+    };
+  }
+
+  private async findTrendFromSocialKeywordMatch(params: {
+    organizationId: string;
+    platform: TrendPlatform;
+    minViralScore: number;
+    keywords: string[];
+    excludeKeywords: string[];
+    lastTrendId: string | null;
+  }): Promise<TrendTriggerOutput | null> {
+    const keywordPlatform = this.toKeywordTriggerPlatform(params.platform);
+    if (
+      !keywordPlatform ||
+      !this.socialAdapterFactory?.isSupported(params.platform)
+    ) {
+      return null;
+    }
+
+    const checker = this.socialAdapterFactory
+      .getAdapter(params.platform)
+      .createKeywordChecker?.();
+
+    if (!checker) {
+      return null;
+    }
+
+    const match = await checker({
+      caseSensitive: false,
+      excludeKeywords: params.excludeKeywords,
+      keywords: params.keywords,
+      lastPostId: params.lastTrendId,
+      matchMode: 'contains',
+      organizationId: params.organizationId,
+      platform: keywordPlatform,
+    });
+
+    if (!match) {
+      return null;
+    }
+
+    return {
+      hashtags: [match.matchedKeyword]
+        .filter(Boolean)
+        .map((keyword) => (keyword.startsWith('#') ? keyword : `#${keyword}`)),
+      platform: params.platform,
+      soundId: null,
+      topic: match.matchedKeyword,
+      trendId: match.postId,
+      videoUrl: match.postUrl,
+      viralScore: params.minViralScore,
+    };
+  }
+
+  private toKeywordTriggerPlatform(
+    platform: TrendPlatform,
+  ): KeywordTriggerPlatform | null {
+    if (platform === 'twitter' || platform === 'instagram') {
+      return platform;
+    }
+
+    return null;
   }
 
   private registerPromptConstructorExecutor(): void {
@@ -1338,6 +1617,9 @@ export class WorkflowEngineAdapterService {
       ![
         'ai-avatar-video',
         'ai-generate-image',
+        'analytics-feedback',
+        'analyticsFeedback',
+        'brandContext',
         'imageGen',
         'ai-text-to-speech',
         'effect-captions',
@@ -1854,6 +2136,33 @@ export class WorkflowEngineAdapterService {
     }
 
     return `${normalized.slice(0, 57).trimEnd()}...`;
+  }
+
+  private extractPublishIngredientIds(media: unknown): string[] {
+    if (Array.isArray(media)) {
+      return media
+        .flatMap((item) => this.extractPublishIngredientIds(item))
+        .filter((id, index, ids) => ids.indexOf(id) === index);
+    }
+
+    if (typeof media === 'string') {
+      return this.isEntityId(media) ? [media] : [];
+    }
+
+    if (!media || typeof media !== 'object') {
+      return [];
+    }
+
+    const record = media as Record<string, unknown>;
+    const candidates = [record.id, record._id, record.ingredientId];
+
+    return candidates
+      .filter((candidate): candidate is string => typeof candidate === 'string')
+      .filter((candidate) => this.isEntityId(candidate));
+  }
+
+  private isEntityId(value: string): boolean {
+    return /^[a-f\d]{24}$/i.test(value);
   }
 
   /**

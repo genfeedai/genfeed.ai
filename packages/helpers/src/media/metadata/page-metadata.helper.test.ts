@@ -31,6 +31,8 @@ describe('page-metadata.helper', () => {
       const generate = createPageMetadata('Dashboard');
       const result = await generate({}, createMockParent() as never);
       expect(result.title).toBe('Dashboard | Genfeed AI');
+      expect(result.openGraph?.title).toBe('Dashboard | Genfeed AI');
+      expect(result.twitter?.title).toBe('Dashboard | Genfeed AI');
     });
 
     it('should pass through parent openGraph images', async () => {
@@ -75,6 +77,8 @@ describe('page-metadata.helper', () => {
       const props = { params: Promise.resolve({ slug: 'hello-world' }) };
       const result = await generate(props, createMockParent() as never);
       expect(result.title).toBe('Article: hello-world | Genfeed AI');
+      expect(result.openGraph?.title).toBe('Article: hello-world | Genfeed AI');
+      expect(result.twitter?.title).toBe('Article: hello-world | Genfeed AI');
     });
 
     it('should pass parent openGraph images', async () => {

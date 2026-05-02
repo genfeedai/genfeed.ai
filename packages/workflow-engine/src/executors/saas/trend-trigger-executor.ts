@@ -88,16 +88,18 @@ export class TrendTriggerExecutor extends BaseExecutor {
   }
 
   async execute(input: ExecutorInput): Promise<ExecutorOutput> {
-    const { node, context } = input;
+    const { node, inputs, context } = input;
 
     if (!this.checker) {
       throw new Error('Trend checker not configured');
     }
 
-    const platform = this.getRequiredConfig<TrendPlatform>(
-      node.config,
-      'platform',
-    );
+    const platform =
+      this.getOptionalInput<TrendPlatform | undefined>(
+        inputs,
+        'platform',
+        undefined,
+      ) ?? this.getRequiredConfig<TrendPlatform>(node.config, 'platform');
     const trendType = this.getRequiredConfig<TrendType>(
       node.config,
       'trendType',
@@ -107,11 +109,12 @@ export class TrendTriggerExecutor extends BaseExecutor {
       'minViralScore',
       70,
     );
-    const keywords = this.getOptionalConfig<string[]>(
-      node.config,
-      'keywords',
-      [],
-    );
+    const keywords =
+      this.getOptionalInput<string[] | undefined>(
+        inputs,
+        'keywords',
+        undefined,
+      ) ?? this.getOptionalConfig<string[]>(node.config, 'keywords', []);
     const excludeKeywords = this.getOptionalConfig<string[]>(
       node.config,
       'excludeKeywords',
