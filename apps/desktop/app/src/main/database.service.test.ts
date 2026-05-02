@@ -13,18 +13,10 @@ type RecentItemRow = {
   value: string;
 };
 
-const sortByLastOpenedAtDesc = (items: WorkspaceRow[]): WorkspaceRow[] =>
-  [...items].sort((left, right) =>
-    right.lastOpenedAt.localeCompare(left.lastOpenedAt),
+const sortByStringKeyDesc = <T>(items: Iterable<T>, key: keyof T): T[] =>
+  Array.from(items).sort((left, right) =>
+    String(right[key]).localeCompare(String(left[key])),
   );
-
-const sortByUpdatedAtDesc = (items: SyncJobRow[]): SyncJobRow[] =>
-  [...items].sort((left, right) =>
-    right.updatedAt.localeCompare(left.updatedAt),
-  );
-
-const sortByOpenedAtDesc = (items: RecentItemRow[]): RecentItemRow[] =>
-  [...items].sort((left, right) => right.openedAt.localeCompare(left.openedAt));
 
 const createPrismaServiceMock = () => {
   const kv = new Map<string, string>();
@@ -58,7 +50,7 @@ const createPrismaServiceMock = () => {
     },
     desktopRecentItem: {
       findMany: async () =>
-        sortByOpenedAtDesc(Array.from(recentItems.values())).slice(0, 12),
+        sortByStringKeyDesc(recentItems.values(), 'openedAt').slice(0, 12),
       upsert: async ({
         create,
         update,
@@ -78,11 +70,12 @@ const createPrismaServiceMock = () => {
     },
     desktopSyncJob: {
       findMany: async ({ where }: { where?: { workspaceId: string } }) =>
-        sortByUpdatedAtDesc(
+        sortByStringKeyDesc(
           Array.from(syncJobs.values()).filter(
             (row) =>
               !where?.workspaceId || row.workspaceId === where.workspaceId,
           ),
+          'updatedAt',
         ),
       upsert: async ({
         create,
@@ -103,7 +96,7 @@ const createPrismaServiceMock = () => {
     },
     desktopWorkspace: {
       findMany: async () =>
-        sortByLastOpenedAtDesc(Array.from(workspaces.values())),
+        sortByStringKeyDesc(workspaces.values(), 'lastOpenedAt'),
       findUnique: async ({ where }: { where: { id: string } }) =>
         workspaces.get(where.id) ?? null,
       upsert: async ({
