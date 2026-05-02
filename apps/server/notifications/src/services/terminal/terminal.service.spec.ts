@@ -92,6 +92,23 @@ describe('TerminalService', () => {
     expect(enabled.isAvailable()).toBe(true);
   });
 
+  it('documents the accepted production enablement value in disabled errors', () => {
+    process.env.NODE_ENV = 'production';
+    const service = new TerminalService(
+      createConfigService({
+        GENFEED_LOCAL_TERMINAL: '1',
+        NODE_ENV: 'production',
+      }) as never,
+    );
+
+    expect(() =>
+      service.createSession('socket-1', undefined, {
+        onData: vi.fn(),
+        onExit: vi.fn(),
+      }),
+    ).toThrow('GENFEED_LOCAL_TERMINAL=true');
+  });
+
   it('spawns allowlisted terminal commands in the configured cwd', () => {
     const workspaceDir = fs.mkdtempSync(
       path.join(os.tmpdir(), 'genfeed-terminal-'),

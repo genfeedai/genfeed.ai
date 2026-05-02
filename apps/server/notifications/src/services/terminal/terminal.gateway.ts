@@ -120,7 +120,7 @@ export class TerminalGateway
     const origin = client.handshake.headers.origin;
 
     if (!origin) {
-      return true;
+      return false;
     }
 
     try {

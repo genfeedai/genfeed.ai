@@ -170,7 +170,7 @@ export class TerminalService {
   private assertAvailable(): void {
     if (!this.isAvailable()) {
       throw new Error(
-        'Local terminal is disabled. Set GENFEED_LOCAL_TERMINAL=1 for self-hosted production.',
+        'Local terminal is disabled. Set GENFEED_LOCAL_TERMINAL=true for self-hosted production.',
       );
     }
   }
