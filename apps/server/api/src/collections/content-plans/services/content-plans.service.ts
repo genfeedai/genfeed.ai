@@ -1,6 +1,13 @@
 import { CreateContentPlanDto } from '@api/collections/content-plans/dto/create-content-plan.dto';
 import { UpdateContentPlanDto } from '@api/collections/content-plans/dto/update-content-plan.dto';
 import type { ContentPlanDocument } from '@api/collections/content-plans/schemas/content-plan.schema';
+import {
+  asDate,
+  asNumber,
+  asRecord,
+  asString,
+  serializeDate,
+} from '@api/collections/content-plans/utils/content-plan-data.util';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
@@ -182,8 +189,8 @@ export class ContentPlansService extends BaseService<
       return;
     }
 
-    const currentConfig = this.asRecord(existing.config);
-    const executedCount = this.asNumber(currentConfig.executedCount, 0) + 1;
+    const currentConfig = asRecord(existing.config);
+    const executedCount = asNumber(currentConfig.executedCount, 0) + 1;
 
     await this.delegate.update({
       data: {
@@ -221,8 +228,8 @@ export class ContentPlansService extends BaseService<
   }
 
   private toDocument(doc: PrismaContentPlan): ContentPlanDocument {
-    const config = this.asRecord(doc.config);
-    const name = this.asString(config.name) ?? doc.label ?? null;
+    const config = asRecord(doc.config);
+    const name = asString(config.name) ?? doc.label ?? null;
 
     return this.normalizeDocument({
       ...doc,
@@ -230,14 +237,14 @@ export class ContentPlansService extends BaseService<
       brand: doc.brandId,
       config,
       createdBy: doc.createdById,
-      description: this.asString(config.description) ?? null,
-      executedCount: this.asNumber(config.executedCount, 0),
-      itemCount: this.asNumber(config.itemCount, 0),
+      description: asString(config.description) ?? null,
+      executedCount: asNumber(config.executedCount, 0),
+      itemCount: asNumber(config.itemCount, 0),
       name,
       organization: doc.organizationId,
-      periodEnd: this.asDate(config.periodEnd),
-      periodStart: this.asDate(config.periodStart),
-      status: this.asString(config.status) ?? ContentPlanStatus.DRAFT,
+      periodEnd: asDate(config.periodEnd),
+      periodStart: asDate(config.periodStart),
+      status: asString(config.status) ?? ContentPlanStatus.DRAFT,
     });
   }
 
@@ -245,7 +252,7 @@ export class ContentPlansService extends BaseService<
     data: ContentPlanConfigInput,
     existingConfig?: unknown,
   ): Record<string, unknown> {
-    const payload = this.asRecord(existingConfig);
+    const payload = asRecord(existingConfig);
 
     if (data.name !== undefined) {
       payload.name = data.name;
@@ -260,11 +267,11 @@ export class ContentPlansService extends BaseService<
     }
 
     if (data.periodStart !== undefined) {
-      payload.periodStart = this.serializeDate(data.periodStart);
+      payload.periodStart = serializeDate(data.periodStart);
     }
 
     if (data.periodEnd !== undefined) {
-      payload.periodEnd = this.serializeDate(data.periodEnd);
+      payload.periodEnd = serializeDate(data.periodEnd);
     }
 
     if (data.itemCount !== undefined) {
@@ -276,62 +283,5 @@ export class ContentPlansService extends BaseService<
     }
 
     return payload;
-  }
-
-  private asRecord(value: unknown): Record<string, unknown> {
-    if (!value || typeof value !== 'object' || Array.isArray(value)) {
-      return {};
-    }
-
-    return { ...(value as Record<string, unknown>) };
-  }
-
-  private asNumber(value: unknown, fallback: number): number {
-    if (typeof value === 'number' && Number.isFinite(value)) {
-      return value;
-    }
-
-    if (typeof value === 'string') {
-      const parsed = Number(value);
-      if (Number.isFinite(parsed)) {
-        return parsed;
-      }
-    }
-
-    return fallback;
-  }
-
-  private asString(value: unknown): string | undefined {
-    return typeof value === 'string' ? value : undefined;
-  }
-
-  private asDate(value: unknown): Date | null {
-    if (value instanceof Date) {
-      return value;
-    }
-
-    if (typeof value === 'string') {
-      const parsed = new Date(value);
-      if (!Number.isNaN(parsed.getTime())) {
-        return parsed;
-      }
-    }
-
-    return null;
-  }
-
-  private serializeDate(value: unknown): string | null {
-    if (value instanceof Date) {
-      return value.toISOString();
-    }
-
-    if (typeof value === 'string') {
-      const parsed = new Date(value);
-      if (!Number.isNaN(parsed.getTime())) {
-        return parsed.toISOString();
-      }
-    }
-
-    return null;
   }
 }

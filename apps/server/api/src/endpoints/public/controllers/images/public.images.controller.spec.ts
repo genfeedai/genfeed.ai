@@ -138,18 +138,16 @@ describe('PublicImagesController', () => {
       const result = await controller.findPublicImages(mockRequest, query);
 
       expect(imagesService.findAll).toHaveBeenCalledWith(
-        expect.arrayContaining([
-          expect.objectContaining({
-            match: expect.objectContaining({
-              category: IngredientCategory.IMAGE,
-              isDeleted: false,
-              scope: AssetScope.PUBLIC,
-              status: {
-                in: [IngredientStatus.GENERATED],
-              },
-            }),
+        expect.objectContaining({
+          where: expect.objectContaining({
+            category: IngredientCategory.IMAGE,
+            isDeleted: false,
+            scope: AssetScope.PUBLIC,
+            status: {
+              in: [IngredientStatus.GENERATED],
+            },
           }),
-        ]),
+        }),
         expect.objectContaining({
           limit: 10,
           page: 1,
@@ -179,13 +177,11 @@ describe('PublicImagesController', () => {
       await controller.findPublicImages(mockRequest, query, undefined, brandId);
 
       expect(imagesService.findAll).toHaveBeenCalledWith(
-        expect.arrayContaining([
-          expect.objectContaining({
-            match: expect.objectContaining({
-              brand: brandId,
-            }),
+        expect.objectContaining({
+          where: expect.objectContaining({
+            brand: brandId,
           }),
-        ]),
+        }),
         expect.any(Object),
       );
     });
@@ -207,13 +203,11 @@ describe('PublicImagesController', () => {
       await controller.findPublicImages(mockRequest, query, tag);
 
       expect(imagesService.findAll).toHaveBeenCalledWith(
-        expect.arrayContaining([
-          expect.objectContaining({
-            match: expect.objectContaining({
-              'metadata.tags': { mode: 'insensitive', contains: tag },
-            }),
+        expect.objectContaining({
+          where: expect.objectContaining({
+            'metadata.tags': { mode: 'insensitive', contains: tag },
           }),
-        ]),
+        }),
         expect.any(Object),
       );
     });

@@ -62,7 +62,7 @@ export class PublicArticlesController {
 
     const matchQuery: PrismaWhereQuery = {
       isDeleted: false,
-      publishedAt: { not: true },
+      publishedAt: { not: null },
       status: ArticleStatus.PUBLIC,
     };
 
@@ -144,7 +144,7 @@ export class PublicArticlesController {
     const article = await this.articlesService.findOne({
       _id: articleId,
       isDeleted: false,
-      publishedAt: { not: true },
+      publishedAt: { not: null },
       status: ArticleStatus.PUBLIC,
     });
 
