@@ -92,10 +92,11 @@ export class TasksController extends BaseCRUDController<
     const identifier = `${org.prefix}-${taskNumber}`;
     const extended = createDto as CreateTaskDto & {
       heygenAvatarId?: string;
-      heygenVoiceId?: string;
       outputType?: string;
       platforms?: string[];
       request?: string;
+      voiceId?: string;
+      voiceProvider?: string;
     };
 
     const doc = await this.tasksService.create({
@@ -136,13 +137,14 @@ export class TasksController extends BaseCRUDController<
           .enqueue({
             brandId: publicMetadata.brand,
             heygenAvatarId: extended.heygenAvatarId,
-            heygenVoiceId: extended.heygenVoiceId,
             organizationId,
             outputType: extended.outputType,
             platforms: extended.platforms,
             request: extended.request,
             taskId,
             userId: publicMetadata.user,
+            voiceId: extended.voiceId,
+            voiceProvider: extended.voiceProvider,
           })
           .catch((error: unknown) => {
             this.loggerService.error(
