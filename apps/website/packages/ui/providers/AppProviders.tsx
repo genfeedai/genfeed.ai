@@ -3,7 +3,6 @@
 import { ClerkProvider } from '@clerk/nextjs';
 import { dark } from '@clerk/themes';
 import { THEME_STORAGE_KEY } from '@genfeedai/constants';
-import { GoogleAnalytics } from '@next/third-parties/google';
 import ThemeCookieSync from '@ui/providers/ThemeCookieSync';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
@@ -11,6 +10,7 @@ import dynamic from 'next/dynamic';
 import { ThemeProvider, useTheme } from 'next-themes';
 import type { ComponentProps, ReactNode } from 'react';
 import { Toaster } from 'sonner';
+import MarketingTrackingProvider from '../../marketing/MarketingTrackingProvider';
 
 const LazyModalErrorDebug = dynamic(
   () => import('@ui/modals/system/error-debug/ModalErrorDebug'),
@@ -30,9 +30,15 @@ export interface AppProvidersProps {
   enableSystem?: boolean;
   googleAnalyticsId?: string;
   includeLazyModalErrorDebug?: boolean;
+  includeMarketingTracking?: boolean;
   includeSpeedInsights?: boolean;
   includeToaster?: boolean;
   includeVercelAnalytics?: boolean;
+  marketingConsentDefault?: 'denied' | 'granted';
+  marketingGtmContainerId?: string;
+  marketingLinkedinPartnerId?: string;
+  marketingMetaPixelId?: string;
+  marketingXPixelId?: string;
   storageKey?: string;
 }
 
@@ -73,11 +79,30 @@ export default function AppProviders({
   enableSystem = false,
   googleAnalyticsId,
   includeLazyModalErrorDebug = true,
+  includeMarketingTracking = true,
   includeSpeedInsights = true,
   includeToaster = true,
   includeVercelAnalytics = true,
+  marketingConsentDefault = 'denied',
+  marketingGtmContainerId,
+  marketingLinkedinPartnerId,
+  marketingMetaPixelId,
+  marketingXPixelId,
   storageKey = THEME_STORAGE_KEY,
 }: AppProvidersProps) {
+  const content = (
+    <>
+      <ThemeCookieSync />
+      {children}
+      {includeToaster ? (
+        <Toaster richColors closeButton position="top-right" />
+      ) : null}
+      {includeLazyModalErrorDebug ? <LazyModalErrorDebug /> : null}
+      {includeVercelAnalytics ? <Analytics /> : null}
+      {includeSpeedInsights ? <SpeedInsights /> : null}
+    </>
+  );
+
   return (
     <ThemeProvider
       attribute="data-theme"
@@ -87,17 +112,22 @@ export default function AppProviders({
       disableTransitionOnChange={disableTransitionOnChange}
     >
       <ThemedClerkProvider clerkProps={clerkProps}>
-        <ThemeCookieSync />
-        {children}
-        {includeToaster ? (
-          <Toaster richColors closeButton position="top-right" />
-        ) : null}
-        {includeLazyModalErrorDebug ? <LazyModalErrorDebug /> : null}
-        {googleAnalyticsId ? (
-          <GoogleAnalytics gaId={googleAnalyticsId} />
-        ) : null}
-        {includeVercelAnalytics ? <Analytics /> : null}
-        {includeSpeedInsights ? <SpeedInsights /> : null}
+        {includeMarketingTracking ? (
+          <MarketingTrackingProvider
+            config={{
+              gaId: googleAnalyticsId,
+              gtmContainerId: marketingGtmContainerId,
+              linkedinPartnerId: marketingLinkedinPartnerId,
+              metaPixelId: marketingMetaPixelId,
+              xPixelId: marketingXPixelId,
+            }}
+            consentDefault={marketingConsentDefault}
+          >
+            {content}
+          </MarketingTrackingProvider>
+        ) : (
+          content
+        )}
       </ThemedClerkProvider>
     </ThemeProvider>
   );
