@@ -1,11 +1,8 @@
+import { cn } from '../lib/utils';
 import {
   issueStatusIcon,
   issueStatusIconDefault,
 } from '../tokens/status-colors';
-
-function cn(...classes: (string | false | undefined | null)[]): string {
-  return classes.filter(Boolean).join(' ');
-}
 
 function statusLabel(status: string): string {
   return status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
