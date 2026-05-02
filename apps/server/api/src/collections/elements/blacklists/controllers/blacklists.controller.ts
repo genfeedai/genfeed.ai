@@ -19,8 +19,6 @@ import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import type { MatchConditions } from '@api/shared/utils/pipeline-builder/pipeline-builder.types';
-import { PipelineBuilder } from '@api/shared/utils/pipeline-builder/pipeline-builder.util';
 import type { User } from '@clerk/backend';
 import { MemberRole } from '@genfeedai/enums';
 import type { SortObject } from '@genfeedai/interfaces';
@@ -41,10 +39,9 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 
-const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
-function isValidObjectId(id: unknown): id is string {
-  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
-}
+type MatchConditions = Record<string, unknown>;
+
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 
 @AutoSwagger()
 @Controller('elements/blacklists')
@@ -70,15 +67,12 @@ export class ElementsBlacklistsController extends BaseCRUDController<
   }
 
   /**
-   * Override buildFindAllPipeline to implement blacklist-specific filtering
+   * Override buildFindAllQuery to implement blacklist-specific filtering
    * - Blacklists don't have a user field, they have addedBy and organization
    * - Filter by organization for non-superadmins
    * - Show all for superadmins
    */
-  public buildFindAllPipeline(
-    user: User,
-    query: BlacklistsQueryDto,
-  ): Record<string, unknown>[] {
+  public buildFindAllQuery(user: User, query: BlacklistsQueryDto) {
     const publicMetadata = getPublicMetadata(user);
     const adminFilter = CollectionFilterUtil.buildAdminFilter(
       publicMetadata,
@@ -94,39 +88,37 @@ export class ElementsBlacklistsController extends BaseCRUDController<
       });
     }
 
-    // Build conditions array for $and
+    // Build conditions array for AND
     const conditions: MatchConditions[] = [];
 
     // Filter by value if provided (search functionality)
     if (query.value) {
       conditions.push({
-        $or: [
-          { label: { $options: 'i', $regex: query.value } },
-          { description: { $options: 'i', $regex: query.value } },
+        OR: [
+          { label: { mode: 'insensitive', contains: query.value } },
+          { description: { mode: 'insensitive', contains: query.value } },
         ],
       });
     }
 
-    // Add ownership condition to $and array (skip when admin filter is active)
+    // Add ownership condition to AND array (skip when admin filter is active)
     if (!adminFilter && orConditions.length > 0) {
-      conditions.push({ $or: orConditions });
+      conditions.push({ OR: orConditions });
     }
 
     const match: MatchConditions = {
       isDeleted: query.isDeleted ?? false,
       ...(query.category && { category: query.category }),
       ...((adminFilter as MatchConditions | undefined) ?? {}),
-      ...(conditions.length > 0 && { $and: conditions }),
+      ...(conditions.length > 0 && { AND: conditions }),
     };
 
-    const builder = PipelineBuilder.create().match(match);
-
-    // Add sorting - default to newest first
-    builder.sort(
-      query.sort ? handleQuerySort(query.sort) : ({ label: 1 } as SortObject),
-    );
-
-    return builder.build();
+    return {
+      orderBy: query.sort
+        ? handleQuerySort(query.sort)
+        : ({ label: 1 } as SortObject),
+      where: match,
+    };
   }
 
   /**
@@ -216,7 +208,7 @@ export class ElementsBlacklistsController extends BaseCRUDController<
     @Param('blacklistId') blacklistId: string,
     @Body() updateDto: UpdateElementBlacklistDto,
   ) {
-    if (!isValidObjectId(blacklistId)) {
+    if (!isEntityId(blacklistId)) {
       ErrorResponse.notFound(this.entityName, blacklistId);
     }
 

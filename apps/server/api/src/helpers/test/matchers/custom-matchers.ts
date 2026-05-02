@@ -26,7 +26,7 @@ const hasOwn = <K extends string>(
 ): value is ObjectLike & Record<K, unknown> =>
   isObjectLike(value) && Object.hasOwn(value, key);
 
-// Custom matcher to check if a value is a valid MongoDB ObjectId
+// Custom matcher to check if a value is a valid entity ID
 expect.extend({
   toBeValidHttpResponse(received: unknown) {
     const hasStatusOrSuccess =

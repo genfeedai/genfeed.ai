@@ -1,9 +1,10 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { PromptCategory } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsMongoId, IsOptional, IsString } from 'class-validator';
+import { IsEnum, IsOptional, IsString } from 'class-validator';
 
 export class ParsePromptDto {
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({ required: false })
   readonly brand?: string;

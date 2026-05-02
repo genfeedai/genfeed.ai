@@ -3,9 +3,13 @@ import {
   useFeatureFlagContext,
 } from '@hooks/feature-flags/provider/FeatureFlagProvider';
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 describe('FeatureFlagProvider', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it('marks the provider as unconfigured when no defaults are provided', () => {
     let status: { isConfigured: boolean; isReady: boolean } | null = null;
 
@@ -16,7 +20,7 @@ describe('FeatureFlagProvider', () => {
     }
 
     render(
-      <FeatureFlagProvider>
+      <FeatureFlagProvider defaults={{}}>
         <Probe />
       </FeatureFlagProvider>,
     );
@@ -27,7 +31,7 @@ describe('FeatureFlagProvider', () => {
 
   it('renders children when no config is provided', () => {
     render(
-      <FeatureFlagProvider>
+      <FeatureFlagProvider defaults={{}}>
         <span>child content</span>
       </FeatureFlagProvider>,
     );
@@ -70,5 +74,33 @@ describe('FeatureFlagProvider', () => {
     );
 
     expect(flags).toEqual({ analytics: true, beta: false });
+  });
+
+  it('treats invalid environment defaults as configured but empty', () => {
+    let status: {
+      flags: Record<string, unknown>;
+      isConfigured: boolean;
+      isReady: boolean;
+    } | null = null;
+    vi.stubEnv('NEXT_PUBLIC_FEATURE_FLAG_DEFAULTS', 'not-json');
+
+    function Probe() {
+      const ctx = useFeatureFlagContext();
+      status = {
+        flags: ctx.flags,
+        isConfigured: ctx.isConfigured,
+        isReady: ctx.isReady,
+      };
+      return <span>invalid config content</span>;
+    }
+
+    render(
+      <FeatureFlagProvider>
+        <Probe />
+      </FeatureFlagProvider>,
+    );
+
+    expect(screen.getByText('invalid config content')).toBeDefined();
+    expect(status).toEqual({ flags: {}, isConfigured: true, isReady: true });
   });
 });

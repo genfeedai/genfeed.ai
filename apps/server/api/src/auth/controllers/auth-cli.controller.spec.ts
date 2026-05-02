@@ -78,11 +78,11 @@ describe('AuthCliController', () => {
       await controller.createCliToken(makeUser(), makeRequest());
 
       const pipeline = vi.mocked(mockApiKeysService.findAll).mock.calls[0][0] as
-        | Array<{ $match?: Record<string, unknown> }>
+        | Array<{ match?: Record<string, unknown> }>
         | undefined;
 
-      expect(pipeline?.[0]?.$match?.organization).toBeDefined();
-      expect((pipeline?.[0]?.$match?.organization as string).toString()).toBe(
+      expect(pipeline?.[0]?.match?.organization).toBeDefined();
+      expect((pipeline?.[0]?.match?.organization as string).toString()).toBe(
         orgId,
       );
     });

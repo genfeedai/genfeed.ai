@@ -153,7 +153,7 @@ describe('VotesController', () => {
       expect.objectContaining({
         isDeleted: false,
       }),
-      { $set: { isDeleted: true } },
+      { isDeleted: true },
     );
   });
 

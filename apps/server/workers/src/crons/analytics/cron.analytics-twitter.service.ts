@@ -33,30 +33,16 @@ export class CronAnalyticsTwitterService {
     try {
       // Find all published Twitter posts with external IDs
       const posts: unknown = await this.postsService.findAll(
-        [
-          {
-            $match: {
-              externalId: { $exists: true, $ne: null },
-              isDeleted: false,
-              platform: CredentialPlatform.TWITTER,
-              status: PostStatus.PUBLIC,
-            },
+        {
+          include: { credential: true },
+          orderBy: { publishedAt: 'desc' },
+          where: {
+            externalId: { not: null },
+            isDeleted: false,
+            platform: CredentialPlatform.TWITTER,
+            status: PostStatus.PUBLIC,
           },
-          {
-            $sort: { publishedAt: -1 },
-          },
-          {
-            $lookup: {
-              as: 'credential',
-              foreignField: '_id',
-              from: 'credentials',
-              localField: 'credential',
-            },
-          },
-          {
-            $unwind: '$credential',
-          },
-        ],
+        },
         { customLabels, pagination: false },
       );
 

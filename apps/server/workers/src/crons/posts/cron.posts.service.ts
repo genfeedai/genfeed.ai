@@ -13,10 +13,6 @@ import type {
 import { PublisherFactoryService } from '@api/services/integrations/publishers/publisher-factory.service';
 import { QuotaService } from '@api/services/quota/quota.service';
 import {
-  childrenPostsLookup,
-  ingredientsLookup,
-} from '@api/shared/utils/aggregation-builders/lookup-builders';
-import {
   ActivityEntityModel,
   ActivityKey,
   ActivitySource,
@@ -69,42 +65,41 @@ export class CronPostsService {
         now.getTime() - this.RETRY_BACKOFF_SECONDS * 1000,
       );
 
-      // Find all scheduled parent posts that are due
-      // Build fresh pipeline array each call to avoid race conditions
+      // Find all scheduled parent posts that are due.
       const posts = await this.postsService.findAll(
-        [
-          {
-            $match: {
-              // Backoff: skip posts that were attempted recently (within RETRY_BACKOFF_SECONDS)
-              // This prevents rapid retries and double-posting from overlapping cron runs
-              $and: [
-                {
-                  $or: [
-                    { lastAttemptAt: { $exists: false } },
-                    { lastAttemptAt: null },
-                    { lastAttemptAt: { $lte: backoffThreshold } },
-                  ],
-                },
-              ],
-              $or: [
-                { scheduledDate: { $lte: now } },
-                { nextScheduledDate: { $lte: now } },
-              ],
-              isDeleted: false,
-              parent: { $exists: false }, // Only parent posts (not thread children)
-              status: { $in: [PostStatus.SCHEDULED, PostStatus.PROCESSING] },
+        {
+          include: {
+            children: {
+              include: {
+                credential: true,
+                ingredients: true,
+              },
+              where: {
+                status: PostStatus.SCHEDULED,
+              },
             },
+            ingredients: true,
           },
-          // Populate ingredients for parent
-          ingredientsLookup(),
-          // Populate children posts (thread replies) with ingredients and credentials
-          // Only include SCHEDULED children - DRAFT children should not be published
-          childrenPostsLookup({
-            includeCredential: true,
-            includeIngredients: true,
-            statusFilter: [PostStatus.SCHEDULED],
-          }),
-        ],
+          where: {
+            // Backoff: skip posts that were attempted recently (within RETRY_BACKOFF_SECONDS)
+            // This prevents rapid retries and double-posting from overlapping cron runs
+            OR: [
+              { scheduledDate: { lte: now } },
+              { nextScheduledDate: { lte: now } },
+            ],
+            AND: [
+              {
+                OR: [
+                  { lastAttemptAt: null },
+                  { lastAttemptAt: { lte: backoffThreshold } },
+                ],
+              },
+            ],
+            isDeleted: false,
+            parent: null, // Only parent posts (not thread children)
+            status: { in: [PostStatus.SCHEDULED, PostStatus.PROCESSING] },
+          },
+        },
         options,
       );
 

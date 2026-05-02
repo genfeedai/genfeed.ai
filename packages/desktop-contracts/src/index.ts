@@ -3,6 +3,7 @@
 export const DESKTOP_IPC_CHANNELS = {
   appBootstrap: 'desktop:app:bootstrap',
   appGetDiagnostics: 'desktop:app:getDiagnostics',
+  appOpenExternalPath: 'desktop:app:openExternalPath',
   authChanged: 'desktop:auth:changed',
   authGetSession: 'desktop:auth:getSession',
   authLogin: 'desktop:auth:login',
@@ -419,6 +420,7 @@ export interface IGenfeedDesktopBridge {
       callback: (bootstrap: IDesktopBootstrap) => void,
     ) => () => void;
     onToggleSidebar: (callback: () => void) => () => void;
+    openExternalPath: (pathname: string) => Promise<void>;
   };
   auth: {
     getSession: () => Promise<IDesktopSession | null>;

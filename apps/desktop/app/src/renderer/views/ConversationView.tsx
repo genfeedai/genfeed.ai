@@ -72,6 +72,9 @@ const PUBLISH_INTENT_OPTIONS: Array<{
 ];
 
 const UNLINKED_PROJECT_VALUE = '__not_linked__';
+const CREDIT_CHECKOUT_PATH =
+  '/onboarding/post-signup?selectedCredits=1000&source=desktop';
+const PROVIDER_KEYS_PATH = '/settings/api-keys?source=desktop';
 
 const PROVIDER_PRESETS: Record<
   DesktopGenerationProviderKind,
@@ -97,6 +100,19 @@ const PROVIDER_PRESETS: Record<
     model: 'gpt-4o-mini',
   },
 };
+
+function isGenerationAccessError(message: string | null): boolean {
+  if (!message) {
+    return false;
+  }
+
+  const normalized = message.toLowerCase();
+  return (
+    normalized.includes('credits') ||
+    normalized.includes('api key') ||
+    normalized.includes('provider')
+  );
+}
 
 function createId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
@@ -628,6 +644,20 @@ export const ConversationView = ({
     setProviderStatus('Local provider cleared.');
   }, []);
 
+  const handleOpenCreditsCheckout = useCallback(async () => {
+    await window.genfeedDesktop.app.openExternalPath(CREDIT_CHECKOUT_PATH);
+  }, []);
+
+  const handleOpenProviderKeys = useCallback(async () => {
+    await window.genfeedDesktop.app.openExternalPath(PROVIDER_KEYS_PATH);
+  }, []);
+
+  const handleFocusLocalProvider = useCallback(() => {
+    document
+      .getElementById('desktop-provider-panel')
+      ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, []);
+
   const handlePublishGeneratedContent = useCallback(async () => {
     if (!selectedDraft?.generatedContent) {
       return;
@@ -870,7 +900,39 @@ export const ConversationView = ({
         )}
       </div>
 
-      {error && <div className="error-banner">{error}</div>}
+      {error && (
+        <div className="error-banner">
+          <span>{error}</span>
+          {isGenerationAccessError(error) && (
+            <div className="error-banner-actions">
+              <Button
+                className="small"
+                onClick={() => void handleOpenCreditsCheckout()}
+                type="button"
+                variant={ButtonVariant.GHOST}
+              >
+                Buy credits
+              </Button>
+              <Button
+                className="small"
+                onClick={() => void handleOpenProviderKeys()}
+                type="button"
+                variant={ButtonVariant.GHOST}
+              >
+                Add provider keys
+              </Button>
+              <Button
+                className="small"
+                onClick={handleFocusLocalProvider}
+                type="button"
+                variant={ButtonVariant.GHOST}
+              >
+                Local provider
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="conversation-shell">
         <aside className="conversation-sidepanel panel-card">
@@ -947,7 +1009,7 @@ export const ConversationView = ({
             ))}
           </div>
 
-          <div className="provider-panel">
+          <div className="provider-panel" id="desktop-provider-panel">
             <div className="conversation-panel-header">
               <h3>Local Provider</h3>
               <span
@@ -955,9 +1017,13 @@ export const ConversationView = ({
                   providerConfig ? 'status-active' : 'status-pending'
                 }`}
               >
-                {providerConfig ? 'Ready' : 'Required'}
+                {providerConfig ? 'Ready' : 'Optional'}
               </span>
             </div>
+            <p className="muted-text provider-status">
+              Genfeed server credits are the default when connected. Configure a
+              local provider only for offline or bring-your-own-key generation.
+            </p>
 
             <div className="provider-preset-group">
               {(

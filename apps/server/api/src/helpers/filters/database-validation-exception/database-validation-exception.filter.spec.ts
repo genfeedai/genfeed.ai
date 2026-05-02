@@ -1,12 +1,30 @@
-import { MongoValidationExceptionFilter } from '@api/helpers/filters/mongo-validation-exception/mongo-validation-exception.filter';
 import { type ArgumentsHost, HttpStatus } from '@nestjs/common';
+
+vi.mock('jsonapi-serializer', () => ({
+  Error: class JsonApiError {
+    errors: unknown[];
+
+    constructor(payload: unknown) {
+      this.errors = [payload];
+    }
+  },
+}));
 
 vi.mock('@sentry/nestjs', () => ({
   captureException: vi.fn(),
 }));
 
-describe('MongoValidationExceptionFilter', () => {
-  let filter: MongoValidationExceptionFilter;
+type FilterInstance = {
+  catch(exception: Error, host: ArgumentsHost): void;
+};
+type FilterConstructor = new (
+  loggerService: unknown,
+  configService: unknown,
+) => FilterInstance;
+
+describe('DatabaseValidationExceptionFilter', () => {
+  let DatabaseValidationExceptionFilterClass: FilterConstructor;
+  let filter: FilterInstance;
   let mockLoggerService: {
     debug: ReturnType<typeof vi.fn>;
     error: ReturnType<typeof vi.fn>;
@@ -23,6 +41,14 @@ describe('MongoValidationExceptionFilter', () => {
     json: ReturnType<typeof vi.fn>;
   };
   let mockRequest: { url: string; method: string };
+
+  beforeAll(async () => {
+    const module = await import(
+      '@api/helpers/filters/database-validation-exception/database-validation-exception.filter'
+    );
+    DatabaseValidationExceptionFilterClass =
+      module.DatabaseValidationExceptionFilter as unknown as FilterConstructor;
+  });
 
   beforeEach(() => {
     // Setup mock services
@@ -67,7 +93,7 @@ describe('MongoValidationExceptionFilter', () => {
       }),
     };
 
-    filter = new MongoValidationExceptionFilter(
+    filter = new DatabaseValidationExceptionFilterClass(
       mockLoggerService,
       mockConfigService,
     );

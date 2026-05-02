@@ -216,13 +216,9 @@ export class HeygenWebhookService {
 
     if (hasCompletedClip) {
       await this.clipProjectsService.patch(projectId, {
-        $set: {
-          progress: 100,
-          status: 'completed',
-        },
-        $unset: {
-          error: '',
-        },
+        error: null,
+        progress: 100,
+        status: 'completed',
       });
       return;
     }

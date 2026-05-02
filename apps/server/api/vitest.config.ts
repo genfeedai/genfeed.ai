@@ -139,6 +139,10 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../../../packages/harness/src'),
       },
       {
+        find: '@genfeedai/helpers',
+        replacement: path.resolve(__dirname, '../../../packages/helpers/src'),
+      },
+      {
         find: /^@genfeedai\/harness\/(.*)$/,
         replacement: path.resolve(
           __dirname,

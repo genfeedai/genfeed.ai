@@ -1,9 +1,9 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { BotPlatform } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsBoolean,
   IsEnum,
-  IsMongoId,
   IsOptional,
   IsString,
   MaxLength,
@@ -45,7 +45,7 @@ export class BotTargetDto {
   })
   channelUrl?: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({
     description: 'Credential used to post to this livestream target',

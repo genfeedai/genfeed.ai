@@ -3,6 +3,7 @@ import type { ILabeledItem } from '../index';
 
 export type AppContext =
   | 'workspace'
+  | 'agent'
   | 'library'
   | 'posts'
   | 'studio'

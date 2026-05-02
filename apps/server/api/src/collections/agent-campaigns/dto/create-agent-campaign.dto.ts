@@ -1,3 +1,4 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
@@ -5,7 +6,6 @@ import {
   IsBoolean,
   IsDate,
   IsEnum,
-  IsMongoId,
   IsNumber,
   IsOptional,
   IsString,
@@ -43,13 +43,13 @@ export class CreateAgentCampaignDto {
   @ApiProperty({ description: 'Campaign brief / description', required: false })
   brief?: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({ description: 'Brand ID', required: false })
   brand?: string;
 
   @IsArray()
-  @IsMongoId({ each: true })
+  @IsEntityId({ each: true })
   @IsOptional()
   @ApiProperty({
     description: 'Agent strategy IDs included in this campaign',
@@ -57,7 +57,7 @@ export class CreateAgentCampaignDto {
   })
   agents?: string[];
 
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({
     description: 'Optional presentation-only lead strategy ID',

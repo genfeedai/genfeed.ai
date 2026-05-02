@@ -1,14 +1,9 @@
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { AssetScope } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import {
-  IsArray,
-  IsEnum,
-  IsMongoId,
-  IsOptional,
-  IsString,
-} from 'class-validator';
+import { IsArray, IsEnum, IsOptional, IsString } from 'class-validator';
 
 export class ImagesQueryDto extends BaseQueryDto {
   @ApiProperty({
@@ -16,7 +11,7 @@ export class ImagesQueryDto extends BaseQueryDto {
     required: false,
   })
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   parent?: string;
 
   @ApiProperty({
@@ -56,7 +51,7 @@ export class ImagesQueryDto extends BaseQueryDto {
     required: false,
   })
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   brand?: string;
 
   @ApiProperty({
@@ -64,7 +59,7 @@ export class ImagesQueryDto extends BaseQueryDto {
     required: false,
   })
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   references?: string;
 
   @ApiProperty({
@@ -96,7 +91,7 @@ export class ImagesQueryDto extends BaseQueryDto {
     required: false,
   })
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   folder?: string;
 
   @ApiProperty({
@@ -104,7 +99,7 @@ export class ImagesQueryDto extends BaseQueryDto {
     required: false,
   })
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   training?: string;
 
   @ApiProperty({

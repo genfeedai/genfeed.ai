@@ -14,7 +14,7 @@
  * | `collections/users/controllers/users.controller.ts:141` | `findOne({isDeleted, user})` then `findOne({isDeleted, organization: ObjectId})` | `status` |
  * | `collections/organizations/controllers/organizations-settings.controller.ts:206` | `findOne({organization: ObjectId})` | entire doc, passed to `serializeSingle(req, SubscriptionSerializer, data)` |
  * | `collections/credits/services/credits.utils.service.ts:275,373,569,656` | `findByOrganizationId(orgId)` | `user` (passed to `usersService.findOne({_id: subscription.user})`) |
- * | `endpoints/analytics/analytics.controller.ts:164` | `findAll([{$count:'total'}], options)` | `total` |
+ * | `endpoints/analytics/analytics.controller.ts:164` | `findAll({ where }, options)` | `total` |
  *
  * ## Why a narrow read model
  *

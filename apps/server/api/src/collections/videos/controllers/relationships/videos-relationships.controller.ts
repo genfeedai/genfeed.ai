@@ -117,17 +117,13 @@ export class VideosRelationshipsController {
     };
 
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: {
-          isDeleted,
-          parent: videoId,
-        },
+    const aggregate = {
+      where: {
+        isDeleted,
+        parent: videoId,
       },
-      {
-        $sort: handleQuerySort(query.sort),
-      },
-    ];
+      orderBy: handleQuerySort(query.sort),
+    };
 
     const data: AggregatePaginateResult<IngredientDocument> =
       await this.videosService.findAll(aggregate, options);
@@ -149,18 +145,14 @@ export class VideosRelationshipsController {
 
     const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: {
-          ingredient: videoId,
-          isDeleted,
-          user: publicMetadata.user,
-        },
+    const aggregate = {
+      where: {
+        ingredient: videoId,
+        isDeleted,
+        user: publicMetadata.user,
       },
-      {
-        $sort: handleQuerySort(query.sort),
-      },
-    ];
+      orderBy: handleQuerySort(query.sort),
+    };
 
     const data: AggregatePaginateResult<PostDocument> =
       await this.postsService.findAll(aggregate, options);
@@ -188,23 +180,16 @@ export class VideosRelationshipsController {
     const uniqueIds = [...new Set(createMergedVideoDto.ids)];
     const uniqueObjectIds = uniqueIds.map((id: string) => id);
 
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: {
-          _id: { $in: uniqueObjectIds },
-          category: IngredientCategory.VIDEO,
-          status: {
-            $in: [IngredientStatus.GENERATED, IngredientStatus.VALIDATED],
-          },
-          user: publicMetadata.user,
+    const aggregate = {
+      where: {
+        _id: { in: uniqueObjectIds },
+        category: IngredientCategory.VIDEO,
+        status: {
+          in: [IngredientStatus.GENERATED, IngredientStatus.VALIDATED],
         },
+        user: publicMetadata.user,
       },
-      {
-        $project: {
-          _id: 1,
-        },
-      },
-    ];
+    };
 
     const data: AggregatePaginateResult<IngredientDocument> =
       await this.videosService.findAll(aggregate, options);

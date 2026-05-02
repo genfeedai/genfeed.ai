@@ -1,3 +1,4 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   AssetScope,
   type ContentRating,
@@ -11,7 +12,6 @@ import { ApiProperty } from '@nestjs/swagger';
 import {
   IsBoolean,
   IsEnum,
-  IsMongoId,
   IsNumber,
   IsOptional,
   IsString,
@@ -41,12 +41,12 @@ export class CreateAvatarDto {
 }
 
 export class CreateIngredientDto {
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({ required: false })
   readonly prompt?: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({
     description: 'Parent ingredient ID (for tracking origin/hierarchy)',
@@ -54,7 +54,7 @@ export class CreateIngredientDto {
   })
   readonly parent?: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({
     description: 'Folder ID for organizing ingredients',
@@ -62,7 +62,7 @@ export class CreateIngredientDto {
   })
   readonly folder?: string;
 
-  @IsMongoId({ each: true })
+  @IsEntityId({ each: true })
   @IsOptional()
   @ApiProperty({
     description: 'Source ingredient IDs (for tracking merged content)',
@@ -71,22 +71,22 @@ export class CreateIngredientDto {
   })
   readonly sources?: string[];
 
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({ required: false })
   readonly metadata?: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({ required: false })
   readonly brand?: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({ required: false })
   readonly training?: string;
 
-  @IsMongoId({ each: true })
+  @IsEntityId({ each: true })
   @IsOptional()
   @ApiProperty({
     description: 'References to asset(s) or ingredient image(s) for generation',

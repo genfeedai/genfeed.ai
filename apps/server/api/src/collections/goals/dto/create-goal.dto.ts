@@ -4,14 +4,9 @@ import {
   type GoalLevel,
   type GoalStatus,
 } from '@api/collections/goals/schemas/goal.schema';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  IsEnum,
-  IsMongoId,
-  IsOptional,
-  IsString,
-  MaxLength,
-} from 'class-validator';
+import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class CreateGoalDto {
   @ApiProperty({ description: 'Goal title', maxLength: 500 })
@@ -43,6 +38,6 @@ export class CreateGoalDto {
 
   @ApiPropertyOptional({ description: 'Parent goal ID' })
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   parentId?: string;
 }

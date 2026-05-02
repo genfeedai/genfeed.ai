@@ -1,7 +1,8 @@
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { IngredientCategory } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsMongoId, IsOptional, IsString } from 'class-validator';
+import { IsEnum, IsOptional, IsString } from 'class-validator';
 
 export class IngredientsQueryDto extends BaseQueryDto {
   @ApiProperty({
@@ -9,7 +10,7 @@ export class IngredientsQueryDto extends BaseQueryDto {
     required: false,
   })
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   brand?: string;
 
   @ApiProperty({
@@ -17,7 +18,7 @@ export class IngredientsQueryDto extends BaseQueryDto {
     required: false,
   })
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   folder?: string;
 
   @ApiProperty({
@@ -25,7 +26,7 @@ export class IngredientsQueryDto extends BaseQueryDto {
     required: false,
   })
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   parent?: string;
 
   @ApiProperty({

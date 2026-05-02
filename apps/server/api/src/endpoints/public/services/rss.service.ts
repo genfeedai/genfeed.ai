@@ -42,17 +42,14 @@ export class RssService {
 
     // Get all public published articles
     const result = await this.articlesService.findAll(
-      [
-        {
-          $match: {
-            isDeleted: false,
-            scope: ArticleScope.PUBLIC,
-            status: ArticleStatus.PUBLIC,
-          },
+      {
+        where: {
+          isDeleted: false,
+          scope: ArticleScope.PUBLIC,
+          status: ArticleStatus.PUBLIC,
         },
-        { $sort: { createdAt: -1, publishedAt: -1 } },
-        { $limit: 100 },
-      ],
+        orderBy: { createdAt: -1, publishedAt: -1 },
+      },
       { pagination: false },
     );
     const articles = result.docs as ArticleFeed[];
@@ -88,18 +85,15 @@ export class RssService {
 
     // Get user's public published articles
     const result = await this.articlesService.findAll(
-      [
-        {
-          $match: {
-            isDeleted: false,
-            scope: ArticleScope.PUBLIC,
-            status: ArticleStatus.PUBLIC,
-            user: userId,
-          },
+      {
+        where: {
+          isDeleted: false,
+          scope: ArticleScope.PUBLIC,
+          status: ArticleStatus.PUBLIC,
+          user: userId,
         },
-        { $sort: { createdAt: -1, publishedAt: -1 } },
-        { $limit: 100 },
-      ],
+        orderBy: { createdAt: -1, publishedAt: -1 },
+      },
       { pagination: false },
     );
     const articles = result.docs as ArticleFeed[];
@@ -135,18 +129,15 @@ export class RssService {
 
     // Get brand's public published articles
     const result = await this.articlesService.findAll(
-      [
-        {
-          $match: {
-            brand: brandId,
-            isDeleted: false,
-            scope: ArticleScope.PUBLIC,
-            status: ArticleStatus.PUBLIC,
-          },
+      {
+        where: {
+          brand: brandId,
+          isDeleted: false,
+          scope: ArticleScope.PUBLIC,
+          status: ArticleStatus.PUBLIC,
         },
-        { $sort: { createdAt: -1, publishedAt: -1 } },
-        { $limit: 100 },
-      ],
+        orderBy: { createdAt: -1, publishedAt: -1 },
+      },
       { pagination: false },
     );
     const articles = result.docs as ArticleFeed[];
@@ -182,18 +173,15 @@ export class RssService {
 
     // Get organization's public published articles
     const result = await this.articlesService.findAll(
-      [
-        {
-          $match: {
-            isDeleted: false,
-            organization: organizationId,
-            scope: ArticleScope.PUBLIC,
-            status: ArticleStatus.PUBLIC,
-          },
+      {
+        where: {
+          isDeleted: false,
+          organization: organizationId,
+          scope: ArticleScope.PUBLIC,
+          status: ArticleStatus.PUBLIC,
         },
-        { $sort: { createdAt: -1, publishedAt: -1 } },
-        { $limit: 100 },
-      ],
+        orderBy: { createdAt: -1, publishedAt: -1 },
+      },
       { pagination: false },
     );
     const articles = result.docs as ArticleFeed[];

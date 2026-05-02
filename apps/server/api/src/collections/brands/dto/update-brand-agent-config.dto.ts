@@ -1,3 +1,4 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { DefaultVoiceRefDto } from '@api/shared/default-voice-ref/default-voice-ref.dto';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
@@ -5,7 +6,6 @@ import {
   IsArray,
   IsBoolean,
   IsIn,
-  IsMongoId,
   IsNumber,
   IsOptional,
   IsString,
@@ -250,7 +250,7 @@ export class UpdateBrandAgentConfigDto {
   @ApiProperty({ description: 'Default agent model key', required: false })
   defaultModel?: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({
     description: 'Default cloned voice ingredient ID for identity generation',
@@ -277,7 +277,7 @@ export class UpdateBrandAgentConfigDto {
   })
   defaultAvatarPhotoUrl?: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({
     description: 'Default avatar ingredient ID for identity generation',

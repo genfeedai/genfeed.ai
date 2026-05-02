@@ -477,7 +477,7 @@ describe('MenuShared', () => {
     { group: 'Settings', href: '/settings/models/all', label: 'Models' },
     { group: 'Insights', href: '/insights/overview', label: 'Overview' },
     { group: 'Content', href: '/content/posts', label: 'Posts' },
-  ])('routes to default nested page when clicking $group drill-down row', ({
+  ])('routes to default nested page when clicking group drill-down row', ({
     group,
     href,
     label,

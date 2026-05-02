@@ -35,8 +35,8 @@ import {
   DarkroomGenerationJobSerializer,
   DarkroomLipSyncJobSerializer,
   DarkroomLipSyncStatusSerializer,
-  DarkroomPipelineCampaignSerializer,
-  DarkroomPipelineStatsSerializer,
+  DarkroomqueryCampaignSerializer,
+  DarkroomqueryStatsSerializer,
   DarkroomServiceStatusSerializer,
   DarkroomUploadDatasetResultSerializer,
   DarkroomVoiceSerializer,
@@ -618,7 +618,7 @@ export class DarkroomController {
     }
   }
 
-  // === Pipeline ===
+  // === query ===
 
   @Get('pipeline/campaigns')
   @ApiOperation({ summary: 'List campaigns with stats' })
@@ -634,7 +634,7 @@ export class DarkroomController {
         name: campaign.campaign,
         status: campaign.status,
       }));
-      return serializeCollection(request, DarkroomPipelineCampaignSerializer, {
+      return serializeCollection(request, DarkroomqueryCampaignSerializer, {
         docs: data,
         hasNextPage: false,
         hasPrevPage: false,
@@ -653,10 +653,10 @@ export class DarkroomController {
 
   @Get('pipeline/stats')
   @ApiOperation({ summary: 'Get pipeline statistics' })
-  async getPipelineStats(@Req() request: Request, @CurrentUser() user: User) {
+  async getqueryStats(@Req() request: Request, @CurrentUser() user: User) {
     try {
       const { organization } = getPublicMetadata(user);
-      const stats = await this.darkroomService.getPipelineStats(organization);
+      const stats = await this.darkroomService.getqueryStats(organization);
       const data = {
         _id: `pipeline-stats:${organization}`,
         assetsGenerated: stats.assets.total,
@@ -666,13 +666,9 @@ export class DarkroomController {
           .filter(([stage]) => !['completed', 'failed'].includes(stage))
           .reduce((sum, [, count]) => sum + Number(count), 0),
       };
-      return serializeSingle(request, DarkroomPipelineStatsSerializer, data);
+      return serializeSingle(request, DarkroomqueryStatsSerializer, data);
     } catch (error) {
-      return ErrorResponse.handle(
-        error,
-        this.loggerService,
-        'getPipelineStats',
-      );
+      return ErrorResponse.handle(error, this.loggerService, 'getqueryStats');
     }
   }
 

@@ -1,3 +1,4 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   AvatarProvider,
   PersonaContentFormat,
@@ -9,7 +10,6 @@ import { Type } from 'class-transformer';
 import {
   IsArray,
   IsEnum,
-  IsMongoId,
   IsOptional,
   IsString,
   ValidateNested,
@@ -98,7 +98,7 @@ export class CreatePersonaDto {
   readonly profileImageUrl?: string;
 
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({
     description: 'Avatar ingredient ID',
     required: false,
@@ -124,7 +124,7 @@ export class CreatePersonaDto {
   readonly avatarExternalId?: string;
 
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({
     description: 'Voice ID',
     required: false,
@@ -161,7 +161,7 @@ export class CreatePersonaDto {
 
   @IsOptional()
   @IsArray()
-  @IsMongoId({ each: true })
+  @IsEntityId({ each: true })
   @ApiProperty({
     description: 'Linked credential IDs for social accounts',
     required: false,
@@ -171,7 +171,7 @@ export class CreatePersonaDto {
 
   @IsOptional()
   @IsArray()
-  @IsMongoId({ each: true })
+  @IsEntityId({ each: true })
   @ApiProperty({
     description: 'Assigned team member user IDs',
     required: false,
@@ -192,7 +192,7 @@ export class CreatePersonaDto {
 
   @IsOptional()
   @IsArray()
-  @IsMongoId({ each: true })
+  @IsEntityId({ each: true })
   @ApiProperty({
     description: 'Tag IDs',
     required: false,

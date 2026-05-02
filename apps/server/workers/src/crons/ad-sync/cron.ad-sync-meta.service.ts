@@ -32,18 +32,16 @@ export class CronAdSyncMetaService {
 
     try {
       const credentialsResult = await this.credentialsService.findAll(
-        [
-          {
-            $match: {
-              accessToken: { $exists: true, $ne: null },
-              brand: { $exists: true, $ne: null },
-              isConnected: true,
-              isDeleted: false,
-              organization: { $exists: true, $ne: null },
-              platform: CredentialPlatform.FACEBOOK,
-            },
+        {
+          where: {
+            accessToken: { not: null },
+            brandId: { not: null },
+            isConnected: true,
+            isDeleted: false,
+            organizationId: { not: null },
+            platform: CredentialPlatform.FACEBOOK,
           },
-        ],
+        },
         { limit: 100, pagination: false },
       );
 

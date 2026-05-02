@@ -127,8 +127,10 @@ describe('PublicMusicsController', () => {
 
       await controller.findPublicMusics(mockRequest, query, undefined, brandId);
 
-      const callArgs = musicsService.findAll.mock.calls[0][0];
-      expect(callArgs[0].$match.brand).toBeDefined();
+      const callArgs = musicsService.findAll.mock.calls[0][0] as {
+        where: Record<string, unknown>;
+      };
+      expect(callArgs.where.brand).toBeDefined();
     });
 
     it('should filter by tag when provided', async () => {
@@ -144,9 +146,11 @@ describe('PublicMusicsController', () => {
 
       await controller.findPublicMusics(mockRequest, query, tag);
 
-      const callArgs = musicsService.findAll.mock.calls[0][0];
-      expect(callArgs[0].$match['metadata.tags']).toBeDefined();
-      expect(callArgs[0].$match['metadata.tags'].$regex).toBe(tag);
+      const callArgs = musicsService.findAll.mock.calls[0][0] as {
+        where: Record<string, { contains?: string }>;
+      };
+      expect(callArgs.where['metadata.tags']).toBeDefined();
+      expect(callArgs.where['metadata.tags'].contains).toBe(tag);
     });
   });
 

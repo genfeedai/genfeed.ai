@@ -16,6 +16,7 @@ import {
   fromPromiseEffect,
   runEffectPromise,
 } from '@api/helpers/utils/effect/effect.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { AgentMessageBusService } from '@api/services/agent-campaign/agent-message-bus.service';
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
@@ -82,10 +83,6 @@ import {
   Optional,
 } from '@nestjs/common';
 import { Effect } from 'effect';
-
-const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
-const isValidObjectId = (id: unknown): id is string =>
-  typeof id === 'string' && OBJECT_ID_REGEX.test(id);
 
 const EXPLICIT_WEB_SEARCH_PATTERN =
   /\b(browse|find online|google|internet|look up online|online research|search (?:the )?(?:internet|online|web)|web search)\b/i;
@@ -2203,7 +2200,7 @@ export class AgentOrchestratorService {
       isDeleted: false,
       organization: params.context.organizationId,
       user: {
-        $in: [params.context.userId],
+        in: [params.context.userId],
       },
     })) as { title?: string } | null;
 
@@ -2225,7 +2222,7 @@ export class AgentOrchestratorService {
     organizationId: string,
     userId: string,
   ): Promise<string | null> {
-    if (!isValidObjectId(threadId)) {
+    if (!isEntityId(threadId)) {
       return null;
     }
 
@@ -2233,7 +2230,7 @@ export class AgentOrchestratorService {
       _id: threadId,
       isDeleted: false,
       organization: organizationId,
-      user: { $in: [userId] },
+      user: { in: [userId] },
     });
 
     return thread ? String(thread._id ?? thread.id) : null;
@@ -3518,7 +3515,7 @@ export class AgentOrchestratorService {
       memoryEntryIds?: string[];
     } | null = null;
 
-    if (isValidObjectId(request.threadId)) {
+    if (isEntityId(request.threadId)) {
       thread = (await this.agentThreadsService.findOne({
         _id: request.threadId,
         isDeleted: false,

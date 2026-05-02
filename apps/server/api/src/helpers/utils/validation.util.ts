@@ -25,6 +25,7 @@ export function validateUrl(value: unknown): boolean {
 }
 
 export function validateObjectId(value: unknown): boolean {
-  if (typeof value !== 'string') return false;
-  return /^[0-9a-f]{24}$/i.test(value) && String(value) === value;
+  return isEntityId(value);
 }
+
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';

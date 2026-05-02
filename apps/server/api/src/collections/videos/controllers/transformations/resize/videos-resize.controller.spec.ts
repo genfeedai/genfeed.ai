@@ -153,7 +153,7 @@ describe('VideosResizeController', () => {
     ).rejects.toThrow(HttpException);
   });
 
-  it('should query video with $or for user and organization ownership', async () => {
+  it('should query video with OR for user and organization ownership', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
     const resizeParams: IResizeBodyParams = { height: 1080, width: 1920 };
     await controller.resizeVideo(
@@ -164,7 +164,7 @@ describe('VideosResizeController', () => {
     );
     expect(mockServices.videosService.findOne).toHaveBeenCalledWith(
       expect.objectContaining({
-        $or: expect.arrayContaining([
+        OR: expect.arrayContaining([
           expect.objectContaining({ user: expect.anything() }),
           expect.objectContaining({ organization: expect.anything() }),
         ]),

@@ -16,7 +16,7 @@ bun run dev
 
 Environment variables:
 
-- `GENFEED_DESKTOP_API_URL` (optional): API to use when cloud/self-hosted sync is enabled. Source builds default to `http://localhost:3010/v1`; official cloud builds may set this to `https://api.genfeed.ai/v1`.
+- `GENFEED_DESKTOP_API_URL` (optional): API to use when cloud/self-hosted sync is enabled. Installed and release builds default to `https://api.genfeed.ai/v1`; the dev script explicitly uses `http://localhost:3010/v1` unless this variable is set.
 - `GENFEED_DESKTOP_APP_URL` (optional): external app shell URL for development. When unset, desktop starts/uses its embedded app shell on `http://127.0.0.1:3230`.
 - `GENFEED_DESKTOP_AUTH_URL` (optional): defaults to `https://app.genfeed.ai/oauth/cli`
 - `GENFEED_DESKTOP_WS_URL` (optional): defaults to `https://notifications.genfeed.ai`
@@ -40,18 +40,20 @@ launch screen with an animated Genfeed mark is shown while the embedded app
 shell boots. If the shell cannot start, Electron keeps the same black surface
 and shows a short failure message instead of exposing an unstyled renderer.
 
-Offline generation still needs an AI provider. Electron stores local provider
-settings in its PGlite database and exposes generation actions to `apps/app`
-through `window.genfeedDesktop`. The Electron main process calls an
-OpenAI-compatible `/chat/completions` endpoint directly. Supported first-class
-presets:
+Generation defaults to Genfeed Cloud after desktop sign-in. Users without
+Replicate, fal.ai, or other provider keys should buy/use Genfeed credits; the
+server owns provider credentials and billing. Offline or bring-your-own-key
+generation is optional. Electron stores local provider settings in its PGlite
+database and exposes generation actions to `apps/app` through
+`window.genfeedDesktop`. The Electron main process calls an OpenAI-compatible
+`/chat/completions` endpoint directly. Supported first-class presets:
 
 - Ollama: `http://localhost:11434/v1`
 - LM Studio: `http://localhost:1234/v1`
 - any OpenAI-compatible endpoint
 
 The local provider API key stays in desktop local storage and is not returned to
-the renderer after save. Generation runs are recorded as durable local
+the renderer after save. Local generation runs are recorded as durable
 `generation` jobs in the same sync-job table used by the offline queue.
 
 To test cloud or self-hosted API paths, run the backend separately and point the
@@ -78,7 +80,8 @@ to one of three API modes:
 - no API: local/offline desktop mode
 - self-hosted API: `GENFEED_DESKTOP_API_URL=http://localhost:3010/v1` or a
   self-hosted domain
-- Genfeed Cloud API: `GENFEED_DESKTOP_API_URL=https://api.genfeed.ai/v1`
+- Genfeed Cloud API: default, or
+  `GENFEED_DESKTOP_API_URL=https://api.genfeed.ai/v1`
 
 Do not make a downloaded desktop app require a local clone of the API. If a
 local background API is added later, it should be a packaged desktop-local
@@ -111,5 +114,5 @@ Optional signing and notarization environment variables:
 - Typed preload/IPC bridge for auth, workspace, files, drafts, notifications, diagnostics, sync, local generation provider settings, and workflow generation
 - PGlite-backed local cache for workspaces, recents, session metadata, provider settings, and sync/generation jobs
 - Workspace-backed content run drafts stored in `.genfeed/content-runs.json`
-- Offline generation through user-configured OpenAI-compatible local providers
+- Genfeed Cloud generation by default after sign-in, with optional offline generation through user-configured OpenAI-compatible local providers
 - macOS artifact generation via `electron-builder`, icon generation, and optional notarization hook

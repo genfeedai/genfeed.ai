@@ -119,7 +119,7 @@ export class BrandsRelationshipsController {
 
     const brand = await this.brandsService.findOne({
       _id: brandId,
-      $or: [
+      OR: [
         { user: publicMetadata.user },
         { organization: publicMetadata.organization },
       ],
@@ -168,37 +168,19 @@ export class BrandsRelationshipsController {
     const status =
       Object.keys(statusFilter).length > 0
         ? statusFilter.status
-        : { $ne: 'failed' };
+        : { not: 'failed' };
 
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: {
-          brand: brandId,
-          category: IngredientCategory.VIDEO,
-          isDeleted,
-          scope: AssetScope.PUBLIC,
-          status,
-          user: publicMetadata.user,
-        },
+    const aggregate = {
+      where: {
+        brand: brandId,
+        category: IngredientCategory.VIDEO,
+        isDeleted,
+        scope: AssetScope.PUBLIC,
+        status,
+        user: publicMetadata.user,
       },
-      {
-        $lookup: {
-          as: 'metadata',
-          foreignField: '_id',
-          from: 'metadata',
-          localField: 'metadata',
-        },
-      },
-      {
-        $unwind: {
-          path: '$metadata',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $sort: handleQuerySort(query.sort || '-createdAt'),
-      },
-    ];
+      orderBy: handleQuerySort(query.sort || '-createdAt'),
+    };
 
     const data: AggregatePaginateResult<IngredientDocument> =
       await this.videosService.findAll(aggregate, options);
@@ -224,37 +206,19 @@ export class BrandsRelationshipsController {
     const status =
       Object.keys(statusFilter).length > 0
         ? statusFilter.status
-        : { $ne: 'failed' };
+        : { not: 'failed' };
 
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: {
-          brand: brandId,
-          category: IngredientCategory.IMAGE,
-          isDeleted,
-          scope: AssetScope.PUBLIC,
-          status,
-          user: publicMetadata.user,
-        },
+    const aggregate = {
+      where: {
+        brand: brandId,
+        category: IngredientCategory.IMAGE,
+        isDeleted,
+        scope: AssetScope.PUBLIC,
+        status,
+        user: publicMetadata.user,
       },
-      {
-        $lookup: {
-          as: 'metadata',
-          foreignField: '_id',
-          from: 'metadata',
-          localField: 'metadata',
-        },
-      },
-      {
-        $unwind: {
-          path: '$metadata',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $sort: handleQuerySort(query.sort || '-createdAt'),
-      },
-    ];
+      orderBy: handleQuerySort(query.sort || '-createdAt'),
+    };
 
     const data: AggregatePaginateResult<IngredientDocument> =
       await this.imagesService.findAll(aggregate, options);
@@ -280,37 +244,19 @@ export class BrandsRelationshipsController {
     const status =
       Object.keys(statusFilter).length > 0
         ? statusFilter.status
-        : { $ne: 'failed' };
+        : { not: 'failed' };
 
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: {
-          brand: brandId,
-          category: ArticleCategory.POST,
-          isDeleted,
-          scope: AssetScope.PUBLIC,
-          status,
-          user: publicMetadata.user,
-        },
+    const aggregate = {
+      where: {
+        brand: brandId,
+        category: ArticleCategory.POST,
+        isDeleted,
+        scope: AssetScope.PUBLIC,
+        status,
+        user: publicMetadata.user,
       },
-      {
-        $lookup: {
-          as: 'metadata',
-          foreignField: '_id',
-          from: 'metadata',
-          localField: 'metadata',
-        },
-      },
-      {
-        $unwind: {
-          path: '$metadata',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $sort: handleQuerySort(query.sort || '-publishedAt'),
-      },
-    ];
+      orderBy: handleQuerySort(query.sort || '-publishedAt'),
+    };
 
     const data: AggregatePaginateResult<ArticleDocument> =
       await this.articlesService.findAll(aggregate, options);
@@ -333,33 +279,15 @@ export class BrandsRelationshipsController {
     const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
 
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: {
-          brand: brandId,
-          category: IngredientCategory.MUSIC,
-          isDeleted,
-          user: publicMetadata.user,
-        },
+    const aggregate = {
+      where: {
+        brand: brandId,
+        category: IngredientCategory.MUSIC,
+        isDeleted,
+        user: publicMetadata.user,
       },
-      {
-        $lookup: {
-          as: 'metadata',
-          foreignField: '_id',
-          from: 'metadata',
-          localField: 'metadata',
-        },
-      },
-      {
-        $unwind: {
-          path: '$metadata',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $sort: handleQuerySort(query.sort),
-      },
-    ];
+      orderBy: handleQuerySort(query.sort),
+    };
 
     const data = (await this.musicsService.findAll(
       aggregate,
@@ -383,14 +311,12 @@ export class BrandsRelationshipsController {
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: {
-          brand: brandId,
-          user: publicMetadata.user,
-        },
+    const aggregate = {
+      where: {
+        brand: brandId,
+        user: publicMetadata.user,
       },
-    ];
+    };
 
     const data: AggregatePaginateResult<CredentialDocument> =
       await this.credentialsService.findAll(aggregate, options);
@@ -415,14 +341,12 @@ export class BrandsRelationshipsController {
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: {
-          brand: brandId,
-          isDeleted: false,
-        },
+    const aggregate = {
+      where: {
+        brand: brandId,
+        isDeleted: false,
       },
-    ];
+    };
 
     const data: AggregatePaginateResult<LinkDocument> =
       await this.linksService.findAll(aggregate, options);
@@ -451,7 +375,7 @@ export class BrandsRelationshipsController {
     const matchFilter: Record<string, unknown> = {
       // Only show parent posts (not children/replies)
       // Handle both null and undefined (undefined fields aren't stored in MongoDB)
-      $or: [{ parent: null }, { parent: { $exists: false } }],
+      OR: [{ parent: null }, { parent: { not: false } }],
       brand: brandId,
       isDeleted,
     };
@@ -466,105 +390,10 @@ export class BrandsRelationshipsController {
       matchFilter.status = query.status;
     }
 
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: matchFilter,
-      },
-      {
-        $lookup: {
-          as: 'ingredients',
-          foreignField: '_id',
-          from: 'ingredients',
-          localField: 'ingredients',
-        },
-      },
-      {
-        $addFields: {
-          ingredients: {
-            $map: {
-              as: 'ing',
-              in: {
-                _id: '$$ing._id',
-                category: '$$ing.category',
-                status: '$$ing.status',
-              },
-              input: '$ingredients',
-            },
-          },
-        },
-      },
-      {
-        $lookup: {
-          as: 'credential',
-          foreignField: '_id',
-          from: 'credentials',
-          localField: 'credential',
-        },
-      },
-      {
-        $unwind: {
-          path: '$credential',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      // Lookup post-analytics to get KPIs (views, likes, comments, etc.)
-      {
-        $lookup: {
-          as: 'analyticsData',
-          foreignField: 'post',
-          from: 'post-analytics',
-          localField: '_id',
-          pipeline: [
-            {
-              $group: {
-                _id: null,
-                avgEngagementRate: { $avg: '$engagementRate' },
-                totalComments: { $sum: '$totalComments' },
-                totalLikes: { $sum: '$totalLikes' },
-                totalSaves: { $sum: '$totalSaves' },
-                totalShares: { $sum: '$totalShares' },
-                totalViews: { $sum: '$totalViews' },
-              },
-            },
-          ],
-        },
-      },
-      // Flatten analytics data to top level
-      {
-        $addFields: {
-          avgEngagementRate: {
-            $ifNull: [
-              { $arrayElemAt: ['$analyticsData.avgEngagementRate', 0] },
-              0,
-            ],
-          },
-          totalComments: {
-            $ifNull: [{ $arrayElemAt: ['$analyticsData.totalComments', 0] }, 0],
-          },
-          totalLikes: {
-            $ifNull: [{ $arrayElemAt: ['$analyticsData.totalLikes', 0] }, 0],
-          },
-          totalSaves: {
-            $ifNull: [{ $arrayElemAt: ['$analyticsData.totalSaves', 0] }, 0],
-          },
-          totalShares: {
-            $ifNull: [{ $arrayElemAt: ['$analyticsData.totalShares', 0] }, 0],
-          },
-          totalViews: {
-            $ifNull: [{ $arrayElemAt: ['$analyticsData.totalViews', 0] }, 0],
-          },
-        },
-      },
-      // Remove the temporary analyticsData array
-      {
-        $project: {
-          analyticsData: 0,
-        },
-      },
-      {
-        $sort: handleQuerySort(query.sort),
-      },
-    ];
+    const aggregate = {
+      where: matchFilter,
+      orderBy: handleQuerySort(query.sort),
+    };
 
     const data: AggregatePaginateResult<PostDocument> =
       await this.postsService.findAll(aggregate, options);
@@ -589,20 +418,15 @@ export class BrandsRelationshipsController {
     };
 
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: {
-          brand: brandId,
-          isDeleted,
-        },
+    const aggregate = {
+      where: {
+        brand: brandId,
+        isDeleted,
       },
-      ...ActivitiesService.buildEntityLookup(),
-      {
-        $sort: query.sort
-          ? handleQuerySort(query.sort)
-          : ({ createdAt: -1, key: 1, label: 1 } as SortObject),
-      },
-    ];
+      orderBy: query.sort
+        ? handleQuerySort(query.sort)
+        : ({ createdAt: -1, key: 1, label: 1 } as SortObject),
+    };
 
     const data: AggregatePaginateResult<ActivityDocument> =
       await this.activitiesService.findAll(aggregate, options);
@@ -624,17 +448,14 @@ export class BrandsRelationshipsController {
 
     // Count connected brands (credentials for this brand)
     const countResult = await this.credentialsService.findAll(
-      [
-        {
-          $match: {
-            brand: brandId,
-            isConnected: true,
-            isDeleted: false,
-            organization: publicMetadata.organization,
-          },
+      {
+        where: {
+          brand: brandId,
+          isConnected: true,
+          isDeleted: false,
+          organization: publicMetadata.organization,
         },
-        { $count: 'total' },
-      ],
+      },
       { pagination: false },
     );
     const totalCredentialsConnected =

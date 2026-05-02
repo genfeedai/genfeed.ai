@@ -51,4 +51,35 @@ describe('ContentHarnessService', () => {
     ]);
     expect(logger.warn).not.toHaveBeenCalled();
   });
+
+  it('does not fall back to workspace source when a resolved pack fails while loading', async () => {
+    vi.stubEnv('GENFEED_LICENSE_KEY', '');
+
+    const { logger, service } = createService('@genfeedai/ee-harness');
+    const moduleLoadError = Object.assign(
+      new Error("Cannot find module 'transitive-package'"),
+      { code: 'MODULE_NOT_FOUND' },
+    );
+    const runtimeRequire = vi.fn(() => {
+      throw moduleLoadError;
+    }) as unknown as NodeJS.Require;
+    runtimeRequire.resolve = vi.fn(() => '/virtual/ee-harness/dist/index.js');
+
+    (
+      service as unknown as {
+        runtimeRequireContext: { require: NodeJS.Require };
+      }
+    ).runtimeRequireContext.require = runtimeRequire;
+
+    await expect(service.listLoadedPackIds()).resolves.toEqual([
+      'core-baseline',
+    ]);
+    expect(logger.warn).toHaveBeenCalledWith(
+      'ContentHarnessService failed to load content harness pack',
+      {
+        error: "Cannot find module 'transitive-package'",
+        specifier: '@genfeedai/ee-harness',
+      },
+    );
+  });
 });

@@ -10,10 +10,10 @@ import { describe, expect, it } from 'vitest';
 
 describe('Aggregation Lookup Builders', () => {
   describe('ingredientsLookup()', () => {
-    it('returns a pipeline stage with $lookup', () => {
+    it('returns a pipeline stage with relationInclude', () => {
       const result = ingredientsLookup();
       expect(result).toBeDefined();
-      // Check it's a pipeline stage (has $lookup or is an array)
+      // Check it's a pipeline stage (has relationInclude or is an array)
       expect(typeof result).toBe('object');
     });
 
@@ -41,10 +41,10 @@ describe('Aggregation Lookup Builders', () => {
       expect(Array.isArray(result)).toBe(true);
     });
 
-    it('result contains $lookup stage', () => {
+    it('result contains relationInclude stage', () => {
       const result = credentialLookup();
       const hasLookup = (result as unknown[]).some(
-        (s) => typeof s === 'object' && s !== null && '$lookup' in s,
+        (s) => typeof s === 'object' && s !== null && 'relationInclude' in s,
       );
       expect(hasLookup).toBe(true);
     });

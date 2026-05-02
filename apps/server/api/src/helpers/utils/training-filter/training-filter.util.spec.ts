@@ -17,19 +17,19 @@ describe('TrainingFilterUtil', () => {
         userIdVar: '$$userId',
       });
 
-      expect(lookup.$lookup.from).toBe('ingredients');
-      expect(lookup.$lookup.let).toEqual({
+      expect(lookup.relationInclude.from).toBe('ingredients');
+      expect(lookup.relationInclude.let).toEqual({
         sourceIds: '$sources',
         userId: '$$userId',
       });
-      expect(lookup.$lookup.as).toBe('sourceImagesOut');
+      expect(lookup.relationInclude.as).toBe('sourceImagesOut');
 
-      const matchExpr = lookup.$lookup.pipeline[0].$match.$expr.$and;
+      const matchExpr = lookup.relationInclude.pipeline[0].match.$expr.AND;
       expect(matchExpr).toEqual(
         expect.arrayContaining([
           { $eq: ['$user', '$$userId'] },
           { $eq: ['$category', IngredientCategory.IMAGE] },
-          { $in: ['$_id', '$$sourceIds'] },
+          { in: ['$_id', '$$sourceIds'] },
           { $eq: ['$isDeleted', false] },
         ]),
       );
@@ -41,8 +41,8 @@ describe('TrainingFilterUtil', () => {
         userIdVar: 'user',
       });
 
-      expect(lookup.$lookup.as).toBe('sourceImages');
-      const matchExpr = lookup.$lookup.pipeline[0].$match.$expr.$and;
+      expect(lookup.relationInclude.as).toBe('sourceImages');
+      const matchExpr = lookup.relationInclude.pipeline[0].match.$expr.AND;
       expect(matchExpr).toEqual(
         expect.arrayContaining([
           { $eq: ['$category', IngredientCategory.IMAGE] },
@@ -59,17 +59,17 @@ describe('TrainingFilterUtil', () => {
         metadataIdsVar: 'metadataIds',
       });
 
-      expect(lookup.$lookup.from).toBe('ingredients');
-      expect(lookup.$lookup.let).toEqual({
+      expect(lookup.relationInclude.from).toBe('ingredients');
+      expect(lookup.relationInclude.let).toEqual({
         metadataIds: '$metadataIds',
       });
-      expect(lookup.$lookup.as).toBe('generated');
+      expect(lookup.relationInclude.as).toBe('generated');
 
-      const matchExpr = lookup.$lookup.pipeline[0].$match.$expr.$and;
+      const matchExpr = lookup.relationInclude.pipeline[0].match.$expr.AND;
       expect(matchExpr).toEqual(
         expect.arrayContaining([
           { $eq: ['$category', IngredientCategory.VIDEO] },
-          { $in: ['$metadata', '$$metadataIds'] },
+          { in: ['$metadata', '$$metadataIds'] },
           { $eq: ['$isDeleted', false] },
         ]),
       );
@@ -80,8 +80,8 @@ describe('TrainingFilterUtil', () => {
         metadataIdsVar: '$$metadataIds',
       });
 
-      expect(lookup.$lookup.as).toBe('generatedImages');
-      const matchExpr = lookup.$lookup.pipeline[0].$match.$expr.$and;
+      expect(lookup.relationInclude.as).toBe('generatedImages');
+      const matchExpr = lookup.relationInclude.pipeline[0].match.$expr.AND;
       expect(matchExpr).toEqual(
         expect.arrayContaining([
           { $eq: ['$category', IngredientCategory.IMAGE] },

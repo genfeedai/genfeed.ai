@@ -1,6 +1,7 @@
 import { CreateTrainingDto } from '@api/collections/trainings/dto/create-training.dto';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty, PartialType } from '@nestjs/swagger';
-import { IsBoolean, IsMongoId, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsOptional, IsString } from 'class-validator';
 
 export class UpdateTrainingDto extends PartialType(CreateTrainingDto) {
   @IsOptional()
@@ -8,7 +9,7 @@ export class UpdateTrainingDto extends PartialType(CreateTrainingDto) {
   readonly externalId?: string;
 
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({
     description: 'Brand ID to associate with the training',
     required: false,

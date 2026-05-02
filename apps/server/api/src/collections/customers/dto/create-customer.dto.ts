@@ -1,8 +1,9 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsMongoId, IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsString } from 'class-validator';
 
 export class CreateCustomerDto {
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({
     description: 'The organization ID that the customer belongs to',
     required: true,

@@ -88,14 +88,14 @@ describe('WorkflowExecutionsController', () => {
 
       expect(aggregate).toHaveLength(2);
       expect(aggregate[0]).toEqual({
-        $match: {
+        match: {
           isDeleted: false,
           organization: expect.any(String),
           status: 'completed',
         },
       });
       expect(aggregate[1]).toEqual({
-        $sort: { createdAt: -1 },
+        orderBy: { createdAt: -1 },
       });
       expect(options).toEqual(
         expect.objectContaining({ limit: 10, offset: 0 }),

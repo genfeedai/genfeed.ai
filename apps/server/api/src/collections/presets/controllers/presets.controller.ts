@@ -15,6 +15,7 @@ import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.
 import { PresetFilterUtil } from '@api/helpers/utils/preset-filter/preset-filter.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import type { User } from '@clerk/backend';
 import type { SortObject } from '@genfeedai/interfaces';
@@ -33,11 +34,6 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
-
-const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
-function isValidObjectId(id: unknown): id is string {
-  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
-}
 
 @AutoSwagger()
 @ApiTags('presets')
@@ -58,14 +54,11 @@ export class PresetsController extends BaseCRUDController<
   }
 
   /**
-   * Override buildFindAllPipeline to implement preset-specific filtering
+   * Override buildFindAllQuery to implement preset-specific filtering
    * Load items with: (no org AND no user) OR (user's org) OR (user's user)
    * Uses PresetFilterUtil for consistent three-tier scope filtering
    */
-  public buildFindAllPipeline(
-    user: User,
-    query: PresetsQueryDto,
-  ): Record<string, unknown>[] {
+  public buildFindAllQuery(user: User, query: PresetsQueryDto) {
     const publicMetadata = getPublicMetadata(user);
 
     // Use PresetFilterUtil to build base match stage
@@ -79,14 +72,12 @@ export class PresetsController extends BaseCRUDController<
       query.isDeleted ?? false,
     );
 
-    return [
-      { $match: matchStage },
-      {
-        $sort: query.sort
-          ? handleQuerySort(query.sort)
-          : ({ createdAt: -1, key: 1, label: 1, type: 1 } as SortObject),
-      },
-    ];
+    return {
+      where: matchStage,
+      orderBy: query.sort
+        ? handleQuerySort(query.sort)
+        : ({ createdAt: -1, key: 1, label: 1, type: 1 } as SortObject),
+    };
   }
 
   /**
@@ -139,7 +130,7 @@ export class PresetsController extends BaseCRUDController<
     @Param('presetId') presetId: string,
     @Body() updateDto: UpdatePresetDto,
   ) {
-    if (!isValidObjectId(presetId)) {
+    if (!isEntityId(presetId)) {
       ErrorResponse.notFound(this.entityName, presetId);
     }
 
@@ -151,8 +142,6 @@ export class PresetsController extends BaseCRUDController<
     if (!existing) {
       ErrorResponse.notFound(this.entityName, presetId);
     }
-
-    const publicMetadata = getPublicMetadata(user);
 
     // Return 404 instead of 403 for security
     if (

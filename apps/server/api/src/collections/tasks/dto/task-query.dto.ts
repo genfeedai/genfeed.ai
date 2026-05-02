@@ -3,8 +3,9 @@ import {
   TASK_STATUSES,
 } from '@api/collections/tasks/schemas/task.schema';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsMongoId, IsOptional, IsString } from 'class-validator';
+import { IsEnum, IsOptional, IsString } from 'class-validator';
 
 export class TaskQueryDto extends BaseQueryDto {
   @IsOptional()
@@ -44,7 +45,7 @@ export class TaskQueryDto extends BaseQueryDto {
   assigneeAgentId?: string;
 
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({
     description: 'Filter by parent task ID',
     required: false,

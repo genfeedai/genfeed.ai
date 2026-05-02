@@ -92,13 +92,13 @@ describe('ElementsStylesController', () => {
     expect(controller).toBeDefined();
   });
 
-  describe('buildFindAllPipeline', () => {
-    it('should build pipeline with organization filter', () => {
+  describe('buildFindAllQuery', () => {
+    it('should build query with organization filter', () => {
       const query = {};
-      const pipeline = controller.buildFindAllPipeline(mockUser, query);
+      const query = controller.buildFindAllQuery(mockUser, query);
 
-      expect(pipeline).toBeDefined();
-      expect(Array.isArray(pipeline)).toBe(true);
+      expect(query).toBeDefined();
+      expect(Array.isArray(query)).toBe(true);
     });
 
     it('should load defaults when no organization', () => {
@@ -109,9 +109,9 @@ describe('ElementsStylesController', () => {
       } as unknown as User;
 
       const query = {};
-      const pipeline = controller.buildFindAllPipeline(userWithoutOrg, query);
+      const query = controller.buildFindAllQuery(userWithoutOrg, query);
 
-      expect(pipeline).toBeDefined();
+      expect(query).toBeDefined();
     });
   });
 

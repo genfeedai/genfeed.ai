@@ -1,3 +1,4 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   ContentIntelligencePlatform,
   ContentPatternType,
@@ -7,7 +8,6 @@ import { ApiProperty } from '@nestjs/swagger';
 import {
   IsArray,
   IsEnum,
-  IsMongoId,
   IsNumber,
   IsOptional,
   IsString,
@@ -54,7 +54,7 @@ export class GenerateContentDto {
   templateCategory?: TemplateCategory;
 
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({
     description: 'Specific pattern ID to use for generation',
     required: false,
@@ -62,7 +62,7 @@ export class GenerateContentDto {
   patternId?: string;
 
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({
     description: 'Playbook ID to use for generation guidelines',
     required: false,
@@ -70,7 +70,7 @@ export class GenerateContentDto {
   playbookId?: string;
 
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({
     description: 'Brand ID to apply brand voice',
     required: false,

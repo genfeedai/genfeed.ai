@@ -13,7 +13,6 @@ import {
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import { PipelineBuilder } from '@api/shared/utils/pipeline-builder/pipeline-builder.util';
 import type { User } from '@clerk/backend';
 import { MemberRole } from '@genfeedai/enums';
 import type { PopulateOption } from '@genfeedai/interfaces';
@@ -105,10 +104,7 @@ export class ElementsSoundsController extends BaseCRUDController<
    * Override the base pipeline to load sounds
    * Load items with: (no org AND no user) OR (user's org) OR (user's user)
    */
-  public buildFindAllPipeline(
-    user: User,
-    query: BaseQueryDto,
-  ): Record<string, unknown>[] {
+  public buildFindAllQuery(user: User, query: BaseQueryDto) {
     const publicMetadata = getPublicMetadata(user);
     const adminFilter = CollectionFilterUtil.buildAdminFilter(
       publicMetadata,
@@ -124,19 +120,19 @@ export class ElementsSoundsController extends BaseCRUDController<
       });
     }
 
-    return PipelineBuilder.create()
-      .match({
+    return {
+      where: {
         isDeleted: query.isDeleted ?? false,
         ...(typeof query.isFavorite === 'boolean' && {
           isFavorite: query.isFavorite,
         }),
         ...(adminFilter ??
-          (orConditions.length > 0 ? { $or: orConditions } : {})),
-      })
-      .sort(
-        query.sort ? handleQuerySort(query.sort) : { createdAt: -1, label: 1 },
-      )
-      .build();
+          (orConditions.length > 0 ? { OR: orConditions } : {})),
+      },
+      orderBy: query.sort
+        ? handleQuerySort(query.sort)
+        : { createdAt: -1, label: 1 },
+    };
   }
 
   /**

@@ -9,6 +9,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import {
   AssetScope,
@@ -23,7 +24,7 @@ import type {
 } from '@genfeedai/interfaces';
 import { VideoSerializer } from '@genfeedai/serializers';
 import { Public } from '@libs/decorators/public.decorator';
-import { MongoMatchQuery } from '@libs/interfaces/query.interface';
+import { PrismaWhereQuery } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Controller, Get, Param, Query, Req, Res } from '@nestjs/common';
@@ -31,11 +32,6 @@ import type {
   Request as ExpressRequest,
   Response as ExpressResponse,
 } from 'express';
-
-const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
-function isValidObjectId(id: unknown): id is string {
-  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
-}
 
 @AutoSwagger()
 @Public()
@@ -60,7 +56,7 @@ export class PublicVideosController {
     @Query() query: BaseQueryDto,
     @Query('tag') tag?: string,
     @Query('brand') brand?: string,
-    @Query('format') format?: string,
+    @Query('format') _format?: string,
   ): Promise<JsonApiCollectionResponse> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.logger.log(url, { query });
@@ -70,53 +66,26 @@ export class PublicVideosController {
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
-    const match: MongoMatchQuery = {
+    const match: PrismaWhereQuery = {
       category: IngredientCategory.VIDEO,
       isDeleted: false,
       scope: AssetScope.PUBLIC,
       status: {
-        $in: [IngredientStatus.GENERATED],
+        in: [IngredientStatus.GENERATED],
       },
     };
 
     // Filter by brand if provided
-    if (brand && isValidObjectId(brand)) {
+    if (brand && isEntityId(brand)) {
       match.brand = brand;
     }
 
     // Filter by tag if provided (assuming tags are stored in metadata)
     if (tag) {
-      match['metadata.tags'] = { $options: 'i', $regex: tag };
+      match['metadata.tags'] = { mode: 'insensitive', contains: tag };
     }
 
-    const aggregate: Record<string, unknown>[] = [
-      { $match: match },
-      {
-        $lookup: {
-          as: 'metadata',
-          foreignField: '_id',
-          from: 'metadata',
-          localField: 'metadata',
-        },
-      },
-      {
-        $unwind: {
-          path: '$metadata',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      // Filter by format (portrait/landscape/square) based on metadata dimensions
-      ...(format
-        ? [
-            {
-              $match: {
-                $expr: this.getFormatExpression(format),
-              },
-            } as Record<string, unknown>,
-          ]
-        : []),
-      { $sort: { createdAt: -1 } },
-    ];
+    const aggregate = { where: match, orderBy: { createdAt: -1 } };
 
     const data = await this.videosService.findAll(aggregate, options);
     return serializeCollection(request, VideoSerializer, data);
@@ -134,7 +103,7 @@ export class PublicVideosController {
   ): Promise<JsonApiSingleResponse> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    if (!isValidObjectId(videoId)) {
+    if (!isEntityId(videoId)) {
       return returnNotFound(this.constructorName, videoId);
     }
 
@@ -151,36 +120,6 @@ export class PublicVideosController {
     }
 
     return serializeSingle(request, VideoSerializer, video);
-  }
-
-  /**
-   * Get MongoDB expression for format filtering based on width/height
-   * @param format - The format filter (portrait, landscape, square)
-   * @returns MongoDB expression object
-   */
-  private getFormatExpression(format: string): unknown {
-    const normalizedFormat = format.toLowerCase();
-
-    switch (normalizedFormat) {
-      case IngredientFormat.PORTRAIT:
-        // Portrait: height > width
-        return {
-          $gt: ['$metadata.height', '$metadata.width'],
-        };
-      case IngredientFormat.LANDSCAPE:
-        // Landscape: width > height
-        return {
-          $gt: ['$metadata.width', '$metadata.height'],
-        };
-      case IngredientFormat.SQUARE:
-        // Square: width === height
-        return {
-          $eq: ['$metadata.width', '$metadata.height'],
-        };
-      default:
-        // Invalid format, return true to include all
-        return true;
-    }
   }
 
   // REQUIRED FOR TOPAZ VIDEO UPSCALE MODEL AND DISCORD NOTIFICATIONS

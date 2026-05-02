@@ -1,9 +1,9 @@
 import { MonitoredAccountFiltersDto } from '@api/collections/monitored-accounts/dto/monitored-account-filters.dto';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsBoolean,
-  IsMongoId,
   IsOptional,
   IsString,
   MaxLength,
@@ -11,7 +11,7 @@ import {
 } from 'class-validator';
 
 export class CreateMonitoredAccountDto {
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({
     description: 'Organization that owns this monitored account',
@@ -19,7 +19,7 @@ export class CreateMonitoredAccountDto {
   })
   organization?: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({
     description: 'Brand this monitored account is scoped to',
@@ -27,7 +27,7 @@ export class CreateMonitoredAccountDto {
   })
   brand?: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({
     description: 'User that created this monitored account',
@@ -35,7 +35,7 @@ export class CreateMonitoredAccountDto {
   })
   user?: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({
     description: 'Credential used for Twitter API access',

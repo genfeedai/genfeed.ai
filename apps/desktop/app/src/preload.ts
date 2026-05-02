@@ -8,6 +8,8 @@ const desktopBridge: IGenfeedDesktopBridge = {
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.appBootstrap),
     getDiagnostics: async () =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.appGetDiagnostics),
+    openExternalPath: async (pathname) =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.appOpenExternalPath, pathname),
     onDidBootstrapChange: (callback) => {
       const listener = (_event: unknown, bootstrap: unknown) => {
         callback(bootstrap as Parameters<typeof callback>[0]);

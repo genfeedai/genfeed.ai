@@ -1,8 +1,8 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsEnum,
-  IsMongoId,
   IsNumber,
   IsOptional,
   IsString,
@@ -16,7 +16,7 @@ export class ImportManualDto {
     required: false,
   })
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   postId?: string;
 
   @ApiProperty({

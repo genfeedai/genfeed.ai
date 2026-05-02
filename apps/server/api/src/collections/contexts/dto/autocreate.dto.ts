@@ -1,8 +1,8 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsBoolean,
   IsEnum,
-  IsMongoId,
   IsObject,
   IsOptional,
   IsString,
@@ -31,7 +31,7 @@ export class AutoCreateContextDto {
   @ApiProperty({
     description: 'Brand ID to auto-create context from',
   })
-  @IsMongoId()
+  @IsEntityId()
   brandId!: string;
 
   @ApiProperty({

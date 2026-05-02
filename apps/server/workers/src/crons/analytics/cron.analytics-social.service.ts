@@ -34,34 +34,22 @@ export class CronAnalyticsSocialService {
     try {
       // Find all published social media posts with external IDs and analytics enabled
       const posts: unknown = await this.postsService.findAll(
-        [
-          {
-            $match: {
-              externalId: { $exists: true, $ne: null },
-              isAnalyticsEnabled: { $ne: false }, // Track unless explicitly disabled
-              isDeleted: false,
-              platform: {
-                $in: [
-                  CredentialPlatform.INSTAGRAM,
-                  CredentialPlatform.TIKTOK,
-                  CredentialPlatform.PINTEREST,
-                ],
-              },
-              status: PostStatus.PUBLIC,
+        {
+          include: { credential: true },
+          where: {
+            externalId: { not: null },
+            isAnalyticsEnabled: { not: false }, // Track unless explicitly disabled
+            isDeleted: false,
+            platform: {
+              in: [
+                CredentialPlatform.INSTAGRAM,
+                CredentialPlatform.TIKTOK,
+                CredentialPlatform.PINTEREST,
+              ],
             },
+            status: PostStatus.PUBLIC,
           },
-          {
-            $lookup: {
-              as: 'credential',
-              foreignField: '_id',
-              from: 'credentials',
-              localField: 'credential',
-            },
-          },
-          {
-            $unwind: '$credential',
-          },
-        ],
+        },
         { customLabels, pagination: false },
       );
 

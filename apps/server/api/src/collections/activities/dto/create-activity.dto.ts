@@ -1,9 +1,9 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { OrganizationalCreateDto } from '@api/shared/dto/base/base.dto';
 import { ActivityEntityModel } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsEnum,
-  IsMongoId,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -11,7 +11,7 @@ import {
 } from 'class-validator';
 
 export class CreateActivityDto extends OrganizationalCreateDto {
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({ required: true })
   readonly brand!: string;
 
@@ -40,7 +40,7 @@ export class CreateActivityDto extends OrganizationalCreateDto {
   })
   readonly entityModel?: ActivityEntityModel;
 
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ValidateIf((o) => o.entityModel !== undefined)
   @IsNotEmpty()

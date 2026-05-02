@@ -211,8 +211,10 @@ describe('SkillDownloadService', () => {
       expect(skillReceiptModel.updateOne).toHaveBeenCalledWith(
         { _id: 'receipt-object-id' },
         {
-          $inc: { downloadCount: 1 },
-          $set: { lastDownloadedAt: expect.any(Date) },
+          data: expect.objectContaining({
+            downloadCount: 1,
+            lastDownloadedAt: expect.any(String),
+          }),
         },
       );
     });

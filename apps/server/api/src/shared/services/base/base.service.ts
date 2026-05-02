@@ -35,6 +35,28 @@ type PrismaUpdate = Record<string, unknown>;
 
 type PopulateInput = (string | PopulateOption)[] | 'none';
 
+type PrismaOrderDirection = 'asc' | 'desc' | 1 | -1;
+type PrismaOrderByInput = Record<string, PrismaOrderDirection>;
+type PrismaOrderBy = Record<string, 'asc' | 'desc'>;
+
+export interface PrismaFindAllInput {
+  where?: PrismaFilter;
+  orderBy?: PrismaOrderByInput;
+  include?: Record<string, unknown>;
+}
+
+const PAGINATION_OPTION_KEYS = new Set([
+  'allowDiskUse',
+  'countQuery',
+  'customLabels',
+  'limit',
+  'offset',
+  'page',
+  'pagination',
+  'sort',
+  'useFacet',
+]);
+
 /**
  * Dynamic Prisma delegate type.
  * Covers the subset of Prisma client methods used by BaseService.
@@ -95,7 +117,7 @@ function populateToInclude(
  * - `patchAll(filter, update)` — Bulk update. Returns `{ modifiedCount }`.
  *
  * ## findAll / aggregation
- * The `findAll` method previously accepted MongoDB aggregation pipelines. In the Prisma
+ * The `findAll` method previously accepted MongoDB findAll queries. In the Prisma
  * migration it accepts `AggregationOptions` (page, limit, sort) and builds a simple
  * `findMany` + `count` query. Services that require complex aggregations should call
  * `this.prisma[this.modelName].findMany(...)` directly.
@@ -266,6 +288,144 @@ export abstract class BaseService<
     };
   }
 
+  private normalizeSort(
+    sort: AggregationOptions['sort'] | PrismaOrderByInput | undefined,
+  ): PrismaOrderBy {
+    if (!sort || typeof sort !== 'object') {
+      return { createdAt: 'desc' };
+    }
+
+    return Object.entries(sort).reduce<PrismaOrderBy>((acc, [key, dir]) => {
+      acc[key] = dir === 1 || dir === 'asc' ? 'asc' : 'desc';
+      return acc;
+    }, {});
+  }
+
+  private normalizeOperatorValue(value: unknown): unknown {
+    if (!this.isPlainObject(value)) {
+      return value;
+    }
+
+    const operators = value as Record<string, unknown>;
+    const normalized: Record<string, unknown> = {};
+
+    if ('in' in operators) {
+      normalized.in = operators.in;
+    }
+    if ('notIn' in operators) {
+      normalized.notIn = operators.notIn;
+    }
+    if ('not' in operators) {
+      normalized.not = operators.not;
+    }
+    if ('gte' in operators) {
+      normalized.gte = operators.gte;
+    }
+    if ('gt' in operators) {
+      normalized.gt = operators.gt;
+    }
+    if ('lte' in operators) {
+      normalized.lte = operators.lte;
+    }
+    if ('lt' in operators) {
+      normalized.lt = operators.lt;
+    }
+    if ('not' in operators) {
+      normalized.not = operators.not;
+    }
+    if ('contains' in operators) {
+      normalized.contains = operators.contains;
+    }
+    if ('mode' in operators) {
+      normalized.mode = operators.mode === 'i' ? 'insensitive' : operators.mode;
+    }
+
+    return Object.keys(normalized).length ? normalized : value;
+  }
+
+  private normalizeWhere(where: PrismaFilter = {}): PrismaFilter {
+    const normalized = this.processSearchParams(where);
+    const result: PrismaFilter = {};
+
+    for (const [key, value] of Object.entries(normalized)) {
+      if (key === 'OR') {
+        result.OR = Array.isArray(value)
+          ? value.map((entry) =>
+              this.normalizeWhere(
+                this.isPlainObject(entry) ? entry : ({} as PrismaFilter),
+              ),
+            )
+          : value;
+        continue;
+      }
+
+      if (key === 'AND') {
+        result.AND = Array.isArray(value)
+          ? value.map((entry) =>
+              this.normalizeWhere(
+                this.isPlainObject(entry) ? entry : ({} as PrismaFilter),
+              ),
+            )
+          : value;
+        continue;
+      }
+
+      result[key] = this.normalizeOperatorValue(value);
+    }
+
+    return result;
+  }
+
+  private extractOptionsWhere(options: AggregationOptions): PrismaFilter {
+    return Object.fromEntries(
+      Object.entries(options).filter(([key, value]) => {
+        return !PAGINATION_OPTION_KEYS.has(key) && value !== undefined;
+      }),
+    );
+  }
+
+  private resolveFindAllInput(
+    input: unknown,
+    options: AggregationOptions,
+  ): PrismaFindAllInput {
+    const optionsWhere = this.extractOptionsWhere(options);
+
+    if (Array.isArray(input)) {
+      throw new ValidationException(
+        'findAll expects a Prisma query object, not an aggregation array',
+      );
+    }
+
+    if (!this.isPlainObject(input)) {
+      return { where: optionsWhere };
+    }
+
+    const explicitInput = input as PrismaFindAllInput;
+    if (
+      'where' in explicitInput ||
+      'orderBy' in explicitInput ||
+      'include' in explicitInput
+    ) {
+      return {
+        include: explicitInput.include,
+        orderBy: explicitInput.orderBy
+          ? this.normalizeSort(explicitInput.orderBy)
+          : undefined,
+        where: {
+          ...(explicitInput.where ?? {}),
+          ...optionsWhere,
+        },
+      };
+    }
+
+    return {
+      where: {
+        ...(input as PrismaFilter),
+        ...optionsWhere,
+      },
+    };
+  }
+
   public logOperation(
     operation: string,
     stage: 'started' | 'completed' | 'failed',
@@ -318,7 +478,7 @@ export abstract class BaseService<
   /**
    * Find documents with pagination.
    *
-   * Previously accepted MongoDB aggregation pipelines. Now accepts an options object.
+   * Previously accepted MongoDB findAll queries. Now accepts an options object.
    * Services that require raw aggregation should override this method or call
    * `this.prisma.$queryRaw` / `this.delegate.findMany(...)` directly.
    *
@@ -327,7 +487,7 @@ export abstract class BaseService<
    * migrated code.
    */
   async findAll(
-    _pipeline: unknown,
+    input: unknown,
     options: AggregationOptions,
     enableCache: boolean = false,
   ): Promise<AggregatePaginateResult<T>> {
@@ -335,17 +495,12 @@ export abstract class BaseService<
       const page = options.page ?? 1;
       const limit = options.limit ?? 20;
       const skip = (page - 1) * limit;
-      const orderBy = options.sort
-        ? Object.entries(options.sort).reduce<Record<string, string>>(
-            (acc, [key, dir]) => {
-              acc[key] = dir === 1 ? 'asc' : 'desc';
-              return acc;
-            },
-            {},
-          )
-        : { createdAt: 'desc' };
-
-      const where = this.withSoftDeleteFilter();
+      const findAllInput = this.resolveFindAllInput(input, options);
+      const orderBy = findAllInput.orderBy ?? this.normalizeSort(options.sort);
+      const where = this.withSoftDeleteFilter(
+        this.normalizeWhere(findAllInput.where ?? {}),
+      );
+      const include = findAllInput.include;
 
       const cacheKey =
         enableCache && this.cacheService
@@ -366,7 +521,11 @@ export abstract class BaseService<
 
       if (!isPaginated) {
         const docs = this.normalizeDocuments(
-          await this.delegate.findMany({ where, orderBy }),
+          await this.delegate.findMany({
+            where,
+            orderBy,
+            ...(include ? { include } : {}),
+          }),
         );
         const result: AggregatePaginateResult<T> = {
           docs,
@@ -384,7 +543,13 @@ export abstract class BaseService<
       }
 
       const [docs, totalDocs] = await Promise.all([
-        this.delegate.findMany({ where, orderBy, skip, take: limit }),
+        this.delegate.findMany({
+          where,
+          orderBy,
+          skip,
+          take: limit,
+          ...(include ? { include } : {}),
+        }),
         this.delegate.count({ where }),
       ]);
 
@@ -488,22 +653,7 @@ export abstract class BaseService<
       }
 
       this.logger?.debug('Updating document', { id, populate, updateDto });
-
-      // Flatten legacy $set/$unset operators into plain Prisma data.
-      // Prisma does not use MongoDB operators — field values are set directly.
-      let data: PrismaUpdate;
-      if ('$set' in updateDto || '$unset' in updateDto) {
-        const setFields = (updateDto as { $set?: PrismaUpdate }).$set ?? {};
-        // $unset fields are nulled out in Prisma (no equivalent of MongoDB $unset)
-        const unsetFields = Object.fromEntries(
-          Object.keys(
-            (updateDto as { $unset?: Record<string, string> }).$unset ?? {},
-          ).map((k) => [k, null]),
-        );
-        data = { ...setFields, ...unsetFields };
-      } else {
-        data = updateDto as PrismaUpdate;
-      }
+      const data = updateDto as PrismaUpdate;
 
       const include = populateToInclude(populate);
       const result = await this.delegate.update({
@@ -554,12 +704,9 @@ export abstract class BaseService<
 
       this.logger?.debug('Bulk updating documents', { filter, update });
 
-      // Flatten $set operator if present (legacy MongoDB update syntax)
-      const data = '$set' in update ? (update.$set as PrismaUpdate) : update;
-
       const result = await this.delegate.updateMany({
         where: filter,
-        data,
+        data: update,
       });
 
       this.logger?.debug('Bulk update completed', {
@@ -655,6 +802,18 @@ export abstract class BaseService<
         continue;
       }
 
+      const shouldMapRelationObject =
+        this.isPlainObject(value) &&
+        Object.keys(value).some((operator) => operator.startsWith('$'));
+
+      if (typeof value === 'string' || shouldMapRelationObject) {
+        const scalarRelationKey = `${key}Id`;
+        if (this.modelHasField(scalarRelationKey)) {
+          processed[scalarRelationKey] = value;
+          continue;
+        }
+      }
+
       if (key === '_id') {
         if (this.modelHasField('mongoId')) {
           const existingOr = Array.isArray(processed.OR)
@@ -708,21 +867,21 @@ export abstract class BaseService<
     sort: Record<string, 1 | -1> = { createdAt: -1 },
     populate: PopulateOption[] = [],
   ): Promise<T[]> {
-    const queryBuilder = new QueryBuilder(organizationId);
+    const filterBuilder = new QueryBuilder(organizationId);
 
     if (filters) {
       Object.entries(filters).forEach(([key, value]) => {
         if (Array.isArray(value)) {
-          queryBuilder.addInFilter(key, value);
+          filterBuilder.addInFilter(key, value);
         } else if (typeof value === 'boolean') {
-          queryBuilder.addBooleanFilter(key, value);
+          filterBuilder.addBooleanFilter(key, value);
         } else if (value !== undefined && value !== null) {
-          queryBuilder.addFilter(key, value);
+          filterBuilder.addFilter(key, value);
         }
       });
     }
 
-    const query = this.processSearchParams(queryBuilder.build());
+    const query = this.processSearchParams(filterBuilder.build());
     const include = populateToInclude(populate);
 
     const orderBy = Object.entries(sort).reduce<Record<string, string>>(

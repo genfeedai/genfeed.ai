@@ -138,8 +138,9 @@ export default function DesktopLocalProviderSettings({
         </div>
         {isCard ? (
           <p className="mt-1 text-sm text-muted-foreground">
-            Configure the local OpenAI-compatible provider used by Genfeed
-            Desktop when cloud access is unavailable.
+            Genfeed server credits are the default when connected. Configure a
+            local OpenAI-compatible provider only for offline or
+            bring-your-own-key generation.
           </p>
         ) : null}
       </div>

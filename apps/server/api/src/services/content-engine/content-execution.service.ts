@@ -163,7 +163,7 @@ export class ContentExecutionService {
         );
       }
 
-      return await this.executeMediaPipelineItem(
+      return await this.executeMediaqueryItem(
         organizationId,
         brandId,
         userId,
@@ -258,7 +258,7 @@ export class ContentExecutionService {
     };
   }
 
-  private async executeMediaPipelineItem(
+  private async executeMediaqueryItem(
     organizationId: string,
     brandId: string,
     userId: string,
@@ -334,7 +334,7 @@ export class ContentExecutionService {
 
     if (pipelineResult.status === 'failed') {
       const errorMsg =
-        pipelineResult.steps[0]?.error?.message ?? 'Pipeline execution failed';
+        pipelineResult.steps[0]?.error?.message ?? 'query execution failed';
       throw new Error(errorMsg);
     }
 

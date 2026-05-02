@@ -136,14 +136,14 @@ describe('IngredientsRelationshipsController', () => {
       expect(postsService.findAll).toHaveBeenCalledWith(
         [
           {
-            $match: {
+            match: {
               ingredients: '507f1f77bcf86cd799439014',
               isDeleted: false,
               organization: mockIngredient.organization,
             },
           },
           {
-            $sort: { createdAt: -1 },
+            orderBy: { createdAt: -1 },
           },
         ],
         expect.objectContaining({

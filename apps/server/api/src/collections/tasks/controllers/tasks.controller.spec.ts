@@ -160,10 +160,10 @@ describe('TasksController', () => {
     });
   });
 
-  describe('buildFindAllPipeline', () => {
+  describe('buildFindAllQuery', () => {
     it('adds organization scope and optional filters to the match stage', () => {
       const parentId = '507f191e810c19729de860ee'.toString();
-      const pipeline = controller.buildFindAllPipeline(mockUser, {
+      const query = controller.buildFindAllQuery(mockUser, {
         assigneeAgentId: 'agent-1',
         assigneeUserId: 'user-2',
         goalId: 'goal-1',
@@ -173,9 +173,9 @@ describe('TasksController', () => {
         status: 'todo',
       } as never);
 
-      const matchStage = pipeline[0] as { $match: Record<string, unknown> };
+      const matchStage = query[0] as { match: Record<string, unknown> };
 
-      expect(matchStage.$match).toMatchObject({
+      expect(matchStage.match).toMatchObject({
         assigneeAgentId: 'agent-1',
         assigneeUserId: 'user-2',
         goalId: 'goal-1',
@@ -184,12 +184,12 @@ describe('TasksController', () => {
         projectId: 'project-1',
         status: 'todo',
       });
-      expect(matchStage.$match.organization).toEqual(expect.any(String));
-      expect((matchStage.$match.organization as string).toString()).toBe(
+      expect(matchStage.match.organization).toEqual(expect.any(String));
+      expect((matchStage.match.organization as string).toString()).toBe(
         organizationId,
       );
-      expect(matchStage.$match.parentId).toEqual(expect.any(String));
-      expect((matchStage.$match.parentId as string).toString()).toBe(parentId);
+      expect(matchStage.match.parentId).toEqual(expect.any(String));
+      expect((matchStage.match.parentId as string).toString()).toBe(parentId);
     });
   });
 

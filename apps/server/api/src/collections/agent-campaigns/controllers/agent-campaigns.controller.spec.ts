@@ -136,17 +136,14 @@ describe('AgentCampaignsController', () => {
     });
   });
 
-  describe('buildFindAllPipeline', () => {
-    it('should build pipeline with organization and brand filters', () => {
+  describe('buildFindAllQuery', () => {
+    it('should build query with organization and brand filters', () => {
       const query = {};
-      const pipeline = controller.buildFindAllPipeline(
-        mockUser as any,
-        query as any,
-      );
+      const query = controller.buildFindAllQuery(mockUser as any, query as any);
 
-      expect(pipeline).toHaveLength(2);
-      expect(pipeline[0]).toEqual({
-        $match: {
+      expect(query).toHaveLength(2);
+      expect(query[0]).toEqual({
+        match: {
           brand: '507f1f77bcf86cd799439013',
           isDeleted: false,
           organization: '507f1f77bcf86cd799439012',
@@ -156,13 +153,10 @@ describe('AgentCampaignsController', () => {
 
     it('should include status filter when provided', () => {
       const query = { status: 'active' };
-      const pipeline = controller.buildFindAllPipeline(
-        mockUser as any,
-        query as any,
-      );
+      const query = controller.buildFindAllQuery(mockUser as any, query as any);
 
-      expect(pipeline[0]).toEqual({
-        $match: {
+      expect(query[0]).toEqual({
+        match: {
           brand: '507f1f77bcf86cd799439013',
           isDeleted: false,
           organization: '507f1f77bcf86cd799439012',
@@ -179,13 +173,13 @@ describe('AgentCampaignsController', () => {
           brand: undefined,
         },
       };
-      const pipeline = controller.buildFindAllPipeline(
+      const query = controller.buildFindAllQuery(
         userWithoutBrand as any,
         {} as any,
       );
 
-      expect(pipeline[0]).toEqual({
-        $match: {
+      expect(query[0]).toEqual({
+        match: {
           isDeleted: false,
           organization: '507f1f77bcf86cd799439012',
         },
@@ -194,12 +188,9 @@ describe('AgentCampaignsController', () => {
 
     it('should respect isDeleted query param', () => {
       const query = { isDeleted: true };
-      const pipeline = controller.buildFindAllPipeline(
-        mockUser as any,
-        query as any,
-      );
+      const query = controller.buildFindAllQuery(mockUser as any, query as any);
 
-      expect((pipeline[0] as any).$match.isDeleted).toBe(true);
+      expect((query[0] as any).match.isDeleted).toBe(true);
     });
   });
 

@@ -70,17 +70,17 @@ describe('QueryProcessor', () => {
         'description',
       ]);
 
-      expect(result).toHaveProperty('$or');
-      expect(result?.$or).toHaveLength(2);
-      expect(result?.$or?.[0]).toHaveProperty('name');
-      expect(result?.$or?.[1]).toHaveProperty('description');
+      expect(result).toHaveProperty('OR');
+      expect(result?.OR).toHaveLength(2);
+      expect(result?.OR?.[0]).toHaveProperty('name');
+      expect(result?.OR?.[1]).toHaveProperty('description');
     });
 
     it('should create simple regex search for single field', () => {
       const result = QueryProcessor.processSearchQuery('test', ['name']);
 
       expect(result).toHaveProperty('name');
-      expect(result).not.toHaveProperty('$or');
+      expect(result).not.toHaveProperty('OR');
     });
 
     it('should create text search when $text field is specified', () => {
@@ -104,8 +104,8 @@ describe('QueryProcessor', () => {
       const result = QueryProcessor.processDateRangeQuery(startDate);
 
       expect(result).toHaveProperty('createdAt');
-      expect(result?.createdAt).toHaveProperty('$gte');
-      expect(result?.createdAt?.$gte).toBeInstanceOf(Date);
+      expect(result?.createdAt).toHaveProperty('gte');
+      expect(result?.createdAt?.gte).toBeInstanceOf(Date);
     });
 
     it('should create date range query with end date', () => {
@@ -113,8 +113,8 @@ describe('QueryProcessor', () => {
       const result = QueryProcessor.processDateRangeQuery(undefined, endDate);
 
       expect(result).toHaveProperty('createdAt');
-      expect(result?.createdAt).toHaveProperty('$lte');
-      expect(result?.createdAt?.$lte).toBeInstanceOf(Date);
+      expect(result?.createdAt).toHaveProperty('lte');
+      expect(result?.createdAt?.lte).toBeInstanceOf(Date);
     });
 
     it('should create date range query with both dates', () => {
@@ -123,8 +123,8 @@ describe('QueryProcessor', () => {
       const result = QueryProcessor.processDateRangeQuery(startDate, endDate);
 
       expect(result).toHaveProperty('createdAt');
-      expect(result?.createdAt).toHaveProperty('$gte');
-      expect(result?.createdAt).toHaveProperty('$lte');
+      expect(result?.createdAt).toHaveProperty('gte');
+      expect(result?.createdAt).toHaveProperty('lte');
     });
 
     it('should use custom field name', () => {
@@ -155,13 +155,13 @@ describe('QueryProcessor', () => {
       expect(QueryProcessor.combineFilters(filter)).toEqual(filter);
     });
 
-    it('should combine multiple filters with $and', () => {
+    it('should combine multiple filters with AND', () => {
       const filter1 = { name: 'test' };
       const filter2 = { status: 'active' };
       const result = QueryProcessor.combineFilters(filter1, filter2);
 
       expect(result).toEqual({
-        $and: [filter1, filter2],
+        AND: [filter1, filter2],
       });
     });
 

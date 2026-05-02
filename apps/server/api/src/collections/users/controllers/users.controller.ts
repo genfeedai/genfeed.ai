@@ -1,7 +1,5 @@
-import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { MembersService } from '@api/collections/members/services/members.service';
-import { type OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { UpdateSettingDto } from '@api/collections/settings/dto/update-setting.dto';
 import { SettingEntity } from '@api/collections/settings/entities/setting.entity';
@@ -10,7 +8,6 @@ import { SubscriptionsService } from '@api/collections/subscriptions/services/su
 import { UpdateUserDto } from '@api/collections/users/dto/update-user.dto';
 import { UpdateUserOnboardingDto } from '@api/collections/users/dto/update-user-onboarding.dto';
 import { UserEntity } from '@api/collections/users/entities/user.entity';
-import { type UserDocument } from '@api/collections/users/schemas/user.schema';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
@@ -20,7 +17,6 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { BrandFilterUtil } from '@api/helpers/utils/brand-filter/brand-filter.util';
 import {
   getIsSuperAdmin,
   getPublicMetadata,
@@ -37,7 +33,6 @@ import {
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
-import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { User } from '@clerk/backend';
 import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/enums';
 import {
@@ -163,33 +158,14 @@ export class UsersController {
     };
 
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const aggregate: Record<string, unknown>[] = [
+    const data = await this.usersService.findAll(
       {
-        $match: {
-          isDeleted,
-        },
+        include: { settings: true },
+        orderBy: handleQuerySort(query.sort),
+        where: { isDeleted },
       },
-      {
-        $lookup: {
-          as: 'settings',
-          foreignField: 'user',
-          from: 'settings',
-          localField: '_id',
-        },
-      },
-      {
-        $unwind: {
-          path: '$settings',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $sort: handleQuerySort(query.sort),
-      },
-    ];
-
-    const data: AggregatePaginateResult<UserDocument> =
-      await this.usersService.findAll(aggregate, options);
+      options,
+    );
     return serializeCollection(request, UserSerializer, data);
   }
 
@@ -305,27 +281,17 @@ export class UsersController {
       member.brands.length > 0 &&
       !getIsSuperAdmin(user, request)
     ) {
-      brandFilter._id = { $in: member.brands };
+      brandFilter._id = { in: member.brands };
     }
 
-    const aggregate: Record<string, unknown>[] = [
+    const data = await this.brandsService.findAll(
       {
-        $match: brandFilter,
+        include: { credentials: true },
+        orderBy: handleQuerySort(query.sort),
+        where: brandFilter,
       },
-      // Lookup brand assets (logo, credentials) using BrandFilterUtil
-      ...BrandFilterUtil.buildBrandAssetLookups({
-        includeBanner: false,
-        includeCredentials: true,
-        includeLogo: true,
-        includeReferences: false,
-      }),
-      {
-        $sort: handleQuerySort(query.sort),
-      },
-    ];
-
-    const data: AggregatePaginateResult<BrandDocument> =
-      await this.brandsService.findAll(aggregate, options);
+      options,
+    );
     return serializeCollection(request, BrandSerializer, data);
   }
 
@@ -398,20 +364,16 @@ export class UsersController {
     };
 
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const aggregate: Record<string, unknown>[] = [
+    const data = await this.organizationsService.findAll(
       {
-        $match: {
+        orderBy: handleQuerySort(query.sort),
+        where: {
           isDeleted,
           user: publicMetadata.user,
         },
       },
-      {
-        $sort: handleQuerySort(query.sort),
-      },
-    ];
-
-    const data: AggregatePaginateResult<OrganizationDocument> =
-      await this.organizationsService.findAll(aggregate, options);
+      options,
+    );
     return serializeCollection(request, OrganizationSerializer, data);
   }
 

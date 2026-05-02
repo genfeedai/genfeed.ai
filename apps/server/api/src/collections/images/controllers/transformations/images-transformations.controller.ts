@@ -34,6 +34,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
@@ -80,11 +81,6 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import type { Request } from 'express';
-
-const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
-function isValidObjectId(id: unknown): id is string {
-  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
-}
 
 /**
  * ImagesTransformationsController
@@ -260,9 +256,7 @@ export class ImagesTransformationsController {
       `Reframe image to ${format} format`;
     const promptData = await this.promptsService.create(
       new PromptEntity({
-        brand: isValidObjectId(parent.brand)
-          ? parent.brand
-          : publicMetadata.brand,
+        brand: isEntityId(parent.brand) ? parent.brand : publicMetadata.brand,
         category: PromptCategory.MODELS_PROMPT_IMAGE,
         model: MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE,
         organization: publicMetadata.organization,
@@ -279,14 +273,12 @@ export class ImagesTransformationsController {
     const { metadataData, ingredientData } =
       await this.sharedService.saveDocuments(user, {
         ...createImageDto,
-        brand: isValidObjectId(parent.brand)
-          ? parent.brand
-          : publicMetadata.brand,
+        brand: isEntityId(parent.brand) ? parent.brand : publicMetadata.brand,
         category: IngredientCategory.IMAGE,
         extension: MetadataExtension.JPEG,
         height: targetHeight,
         model: MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE,
-        organization: isValidObjectId(parent.organization)
+        organization: isEntityId(parent.organization)
           ? parent.organization
           : publicMetadata.organization,
         parent: parent._id,
@@ -305,9 +297,7 @@ export class ImagesTransformationsController {
     // Create activity for image reframe start
     const activity = await this.activitiesService.create(
       new ActivityEntity({
-        brand: isValidObjectId(parent.brand)
-          ? parent.brand
-          : publicMetadata.brand,
+        brand: isEntityId(parent.brand) ? parent.brand : publicMetadata.brand,
         entityId: ingredientData._id,
         entityModel: ActivityEntityModel.INGREDIENT,
         key: ActivityKey.IMAGE_REFRAME_PROCESSING,
@@ -433,7 +423,7 @@ export class ImagesTransformationsController {
     const parent = await this.imagesService.findOne(
       {
         _id: imageId,
-        $or: [
+        OR: [
           { user: publicMetadata.user },
           { organization: publicMetadata.organization },
         ],
@@ -465,11 +455,11 @@ export class ImagesTransformationsController {
     const { metadataData, ingredientData } =
       await this.sharedService.saveDocuments(user, {
         ...imageEditDto,
-        brand: isValidObjectId(parent.brand) ? parent.brand : null,
+        brand: isEntityId(parent.brand) ? parent.brand : null,
         category: IngredientCategory.IMAGE,
         extension: imageEditDto.outputFormat || 'jpg',
         model,
-        organization: isValidObjectId(parent.organization)
+        organization: isEntityId(parent.organization)
           ? parent.organization
           : null,
         parent: parent._id,
@@ -482,9 +472,7 @@ export class ImagesTransformationsController {
     // Create activity for image upscale start
     const activity = await this.activitiesService.create(
       new ActivityEntity({
-        brand: isValidObjectId(parent.brand)
-          ? parent.brand
-          : publicMetadata.brand,
+        brand: isEntityId(parent.brand) ? parent.brand : publicMetadata.brand,
         entityId: ingredientData._id,
         entityModel: ActivityEntityModel.INGREDIENT,
         key: ActivityKey.IMAGE_UPSCALE_PROCESSING,

@@ -14,31 +14,31 @@ describe('BrandFilterUtil', () => {
     const bannerLookup = stages[2];
     const bannerUnwind = stages[3];
 
-    expect(logoLookup.$lookup.from).toBe('assets');
-    expect(logoLookup.$lookup.pipeline[0].$match.$expr.$and).toEqual(
+    expect(logoLookup.relationInclude.from).toBe('assets');
+    expect(logoLookup.relationInclude.pipeline[0].match.$expr.AND).toEqual(
       expect.arrayContaining([
         { $eq: ['$category', 'logo'] },
         { $eq: ['$parentModel', 'Brand'] },
         { $eq: ['$isDeleted', false] },
       ]),
     );
-    expect(logoUnwind.$unwind.path).toBe('$logo');
-    expect(logoUnwind.$unwind.preserveNullAndEmptyArrays).toBe(true);
+    expect(logoUnwind.relationFlatten.path).toBe('$logo');
+    expect(logoUnwind.relationFlatten.preserveNullAndEmptyArrays).toBe(true);
 
-    expect(bannerLookup.$lookup.pipeline[0].$match.$expr.$and).toEqual(
+    expect(bannerLookup.relationInclude.pipeline[0].match.$expr.AND).toEqual(
       expect.arrayContaining([{ $eq: ['$category', 'banner'] }]),
     );
-    expect(bannerUnwind.$unwind.path).toBe('$banner');
+    expect(bannerUnwind.relationFlatten.path).toBe('$banner');
   });
 
   it('includes references and credentials lookups', () => {
     const stages = BrandFilterUtil.buildBrandAssetLookups();
     const referencesLookup = stages.find(
       (stage) =>
-        '$lookup' in stage &&
-        stage.$lookup?.from === 'assets' &&
-        stage.$lookup?.let?.brandId &&
-        stage.$lookup.pipeline[0].$match.$expr.$and?.some(
+        'relationInclude' in stage &&
+        stage.relationInclude?.from === 'assets' &&
+        stage.relationInclude?.let?.brandId &&
+        stage.relationInclude.pipeline[0].match.$expr.AND?.some(
           (expr: Record<string, unknown>) =>
             expr?.$eq &&
             expr.$eq[0] === '$category' &&
@@ -46,12 +46,16 @@ describe('BrandFilterUtil', () => {
         ),
     );
     const credentialsLookup = stages.find(
-      (stage) => '$lookup' in stage && stage.$lookup?.from === 'credentials',
+      (stage) =>
+        'relationInclude' in stage &&
+        stage.relationInclude?.from === 'credentials',
     );
 
     expect(referencesLookup).toBeDefined();
     expect(credentialsLookup).toBeDefined();
-    expect(credentialsLookup?.$lookup.pipeline[0].$match.$expr.$and).toEqual(
+    expect(
+      credentialsLookup?.relationInclude.pipeline[0].match.$expr.AND,
+    ).toEqual(
       expect.arrayContaining([
         { $eq: ['$isDeleted', false] },
         { $eq: ['$isConnected', true] },

@@ -42,8 +42,10 @@ export default function OnboardingWizard({
                 Welcome to Genfeed
               </h1>
               <p className="text-sm text-gray-400">
-                Your data lives locally on this machine. No cloud account needed
-                to get started.
+                Genfeed Desktop keeps your workspace local while generation
+                defaults to the Genfeed server. Your account uses Genfeed
+                credits, so you do not need Replicate, fal.ai, or other provider
+                keys on this machine.
               </p>
             </div>
             <Button
@@ -61,11 +63,12 @@ export default function OnboardingWizard({
           <div className="flex flex-col gap-6">
             <div className="flex flex-col gap-2">
               <h1 className="text-2xl font-bold text-white">
-                Sync across all your devices
+                Choose generation access
               </h1>
               <p className="text-sm text-gray-400">
-                Connect your Genfeed Cloud account to sync your conversations
-                across devices and access premium features.
+                Connect Genfeed to use server-side generation and paid credits
+                by default. You can still add a local or OpenAI-compatible API
+                key later if you want to bring your own provider.
               </p>
             </div>
             <div className="flex flex-col gap-3">
@@ -76,7 +79,7 @@ export default function OnboardingWizard({
                 type="button"
                 variant={ButtonVariant.DEFAULT}
               >
-                {isConnecting ? 'Connecting…' : 'Connect to Cloud'}
+                {isConnecting ? 'Connecting...' : 'Use Genfeed credits'}
               </Button>
               <Button
                 className="w-full text-gray-400 hover:text-white"
@@ -84,7 +87,7 @@ export default function OnboardingWizard({
                 type="button"
                 variant={ButtonVariant.UNSTYLED}
               >
-                Skip for now
+                Set up my own local provider instead
               </Button>
             </div>
           </div>

@@ -83,6 +83,24 @@ const isSmokeTest =
   process.argv.includes('--smoke-test') ||
   process.env.GENFEED_DESKTOP_SMOKE_TEST === '1';
 
+const LOCAL_PROVIDER_REQUIRED_ERROR =
+  'Configure a local generation provider before generating content.';
+
+const CLOUD_CREDITS_OR_LOCAL_PROVIDER_ERROR =
+  'Connect your Genfeed account to use Genfeed server credits, or configure a local provider/API key for offline generation.';
+
+const isLocalProviderRequiredError = (error: unknown): boolean =>
+  error instanceof Error &&
+  error.message.includes(LOCAL_PROVIDER_REQUIRED_ERROR);
+
+const buildExternalAppUrl = (pathname: string): string => {
+  if (!pathname.startsWith('/')) {
+    throw new Error('Desktop external app paths must start with /.');
+  }
+
+  return new URL(pathname, new URL(environment.authEndpoint).origin).toString();
+};
+
 const emitQuickGenerate = (): void => {
   mainWindow?.webContents.send(DESKTOP_IPC_CHANNELS.quickGenerate);
 };
@@ -126,7 +144,15 @@ const runDataService = async <T>(
   callback: (service: IDesktopDataService) => Promise<T>,
 ): Promise<T> => {
   if (!sessionService.getSession()) {
-    return callback(localService);
+    try {
+      return await callback(localService);
+    } catch (localError) {
+      if (isLocalProviderRequiredError(localError)) {
+        throw new Error(CLOUD_CREDITS_OR_LOCAL_PROVIDER_ERROR);
+      }
+
+      throw localError;
+    }
   }
 
   try {
@@ -140,12 +166,9 @@ const runDataService = async <T>(
     try {
       return await callback(localService);
     } catch (localError) {
-      const localMessage =
-        localError instanceof Error ? localError.message : String(localError);
-
-      if (localMessage.includes('Configure a local generation provider')) {
+      if (isLocalProviderRequiredError(localError)) {
         throw new Error(
-          'Cloud request failed and local generation is not configured. Add a local provider in Settings > API Keys, then try again.',
+          'Genfeed server request failed and local generation is not configured. Check your Genfeed credits or configure a local provider/API key, then try again.',
         );
       }
 
@@ -326,6 +349,12 @@ const registerIpcHandlers = (): void => {
     releaseChannel: app.isPackaged ? 'production' : 'development',
     version: app.getVersion(),
   }));
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.appOpenExternalPath,
+    async (_event: unknown, pathname: string) => {
+      await shell.openExternal(buildExternalAppUrl(pathname));
+    },
+  );
   ipcMain.handle(DESKTOP_IPC_CHANNELS.authGetSession, async () =>
     sessionService.getSession(),
   );

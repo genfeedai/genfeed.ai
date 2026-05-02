@@ -3,7 +3,7 @@ import {
   ContentOrchestrationService,
   type PipelineConfig,
 } from '@api/services/content-orchestration/content-orchestration.service';
-import { ContentPipelineJobData } from '@api/services/content-orchestration/content-pipeline-queue.service';
+import { ContentqueryJobData } from '@api/services/content-orchestration/content-pipeline-queue.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
@@ -12,8 +12,8 @@ import { Job } from 'bullmq';
   concurrency: 3,
   limiter: { duration: 60000, max: 5 },
 })
-export class ContentPipelineProcessor extends WorkerHost {
-  private readonly logContext = 'ContentPipelineProcessor';
+export class ContentqueryProcessor extends WorkerHost {
+  private readonly logContext = 'ContentqueryProcessor';
 
   constructor(
     private readonly logger: LoggerService,
@@ -22,7 +22,7 @@ export class ContentPipelineProcessor extends WorkerHost {
     super();
   }
 
-  async process(job: Job<ContentPipelineJobData>): Promise<unknown> {
+  async process(job: Job<ContentqueryJobData>): Promise<unknown> {
     const { data } = job;
     const caller = `${this.logContext} process`;
 

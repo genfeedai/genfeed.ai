@@ -54,14 +54,12 @@ export class BrandCreditsGuard extends CreditsGuard implements CanActivate {
     }
 
     const existingBrands = await this.brandsService.findAll(
-      [
-        {
-          $match: {
-            isDeleted: false,
-            organization: publicMetadata.organization,
-          },
+      {
+        where: {
+          isDeleted: false,
+          organization: publicMetadata.organization,
         },
-      ],
+      },
       { pagination: false },
     );
 

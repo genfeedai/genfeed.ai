@@ -79,30 +79,15 @@ export class CronTiktokStatusService {
 
       // Find TikTok posts with PENDING status
       const posts: unknown = await this.postsService.findAll(
-        [
-          {
-            $match: {
-              externalId: { $exists: true, $ne: null }, // Has publish_id
-              isDeleted: false,
-              platform: CredentialPlatform.TIKTOK,
-              status: PostStatus.PENDING,
-            },
+        {
+          include: { credential: true },
+          where: {
+            externalId: { not: null }, // Has publish_id
+            isDeleted: false,
+            platform: CredentialPlatform.TIKTOK,
+            status: PostStatus.PENDING,
           },
-          {
-            $lookup: {
-              as: 'credentialDoc',
-              foreignField: '_id',
-              from: 'credentials',
-              localField: 'credential',
-            },
-          },
-          {
-            $unwind: {
-              path: '$credentialDoc',
-              preserveNullAndEmptyArrays: true,
-            },
-          },
-        ],
+        },
         options,
       );
 
@@ -158,13 +143,14 @@ export class CronTiktokStatusService {
       // Get credential for API call
       const credential = (
         post as unknown as {
-          credentialDoc?: {
+          credential?: {
             _id?: string;
             accessToken?: string;
+            externalHandle?: string;
             isConnected?: boolean;
           };
         }
-      ).credentialDoc;
+      ).credential;
       if (!credential?.accessToken) {
         this.logger.warn(`${url} post ${post._id} has no valid credential`);
         await this.markPostFailed(
@@ -276,25 +262,25 @@ export class CronTiktokStatusService {
         if (
           (
             post as unknown as {
-              credentialDoc?: {
+              credential?: {
                 _id?: string;
                 accessToken?: string;
                 isConnected?: boolean;
               };
             }
-          ).credentialDoc?._id
+          ).credential?._id
         ) {
           try {
             await this.credentialsService.patch(
               (
                 post as unknown as {
-                  credentialDoc?: {
+                  credential?: {
                     _id?: string;
                     accessToken?: string;
                     isConnected?: boolean;
                   };
                 }
-              ).credentialDoc._id,
+              ).credential._id,
               {
                 isConnected: false,
               },

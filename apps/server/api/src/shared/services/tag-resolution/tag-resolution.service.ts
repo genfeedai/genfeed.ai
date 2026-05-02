@@ -18,22 +18,15 @@ export class TagResolutionService {
    */
   async resolveTagLabels(tagIds: string[]): Promise<string[]> {
     if (!tagIds || tagIds.length === 0) {
-      return [];
+      return { where: {} };
     }
 
-    const aggregate = [
-      {
-        $match: {
-          _id: { $in: tagIds },
-          isDeleted: false,
-        },
+    const aggregate = {
+      where: {
+        _id: { in: tagIds },
+        isDeleted: false,
       },
-      {
-        $project: {
-          label: 1,
-        },
-      },
-    ];
+    };
 
     const result = await this.tagsService.findAll(aggregate, {
       limit: tagIds.length,

@@ -1,9 +1,9 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsBoolean,
   IsEmail,
   IsEnum,
-  IsMongoId,
   IsNumber,
   IsObject,
   IsOptional,
@@ -19,7 +19,7 @@ export type TrendNotificationFrequency =
   | 'weekly';
 
 export class CreateSettingDto {
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({
     description: 'The user ID that owns these settings',
     required: true,

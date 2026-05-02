@@ -2,9 +2,13 @@ import { FeatureFlagProvider } from '@hooks/feature-flags/provider/FeatureFlagPr
 import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag/use-feature-flag';
 import { renderHook } from '@testing-library/react';
 import { createElement, type ReactNode } from 'react';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 describe('useFeatureFlag', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   function createWrapper(
     defaults?: Record<string, unknown>,
   ): ({ children }: { children: ReactNode }) => ReactNode {
@@ -38,10 +42,18 @@ describe('useFeatureFlag', () => {
   });
 
   it('returns true when no provider is configured (OSS default)', () => {
+    const { result } = renderHook(() => useFeatureFlag('enabled_flag'));
+
+    expect(result.current).toBe(true);
+  });
+
+  it('returns false when environment defaults are invalid', () => {
+    vi.stubEnv('NEXT_PUBLIC_FEATURE_FLAG_DEFAULTS', 'not-json');
+
     const { result } = renderHook(() => useFeatureFlag('enabled_flag'), {
       wrapper: createWrapper(),
     });
 
-    expect(result.current).toBe(true);
+    expect(result.current).toBe(false);
   });
 });

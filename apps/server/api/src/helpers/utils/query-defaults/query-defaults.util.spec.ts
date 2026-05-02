@@ -127,17 +127,17 @@ describe('QueryDefaultsUtil', () => {
     describe('default behavior', () => {
       it('should return draft/uploaded/completed when status is undefined', () => {
         const result = QueryDefaultsUtil.parseStatusFilter();
-        expect(result).toEqual({ $in: ['draft', 'uploaded', 'completed'] });
+        expect(result).toEqual({ in: ['draft', 'uploaded', 'completed'] });
       });
 
       it('should return draft/uploaded/completed when status is empty string', () => {
         const result = QueryDefaultsUtil.parseStatusFilter('');
-        expect(result).toEqual({ $in: ['draft', 'uploaded', 'completed'] });
+        expect(result).toEqual({ in: ['draft', 'uploaded', 'completed'] });
       });
 
       it('should return draft/uploaded/completed when status is only whitespace', () => {
         const result = QueryDefaultsUtil.parseStatusFilter('   ');
-        expect(result).toEqual({ $in: ['draft', 'uploaded', 'completed'] });
+        expect(result).toEqual({ in: ['draft', 'uploaded', 'completed'] });
       });
 
       it('should keep comma-only string values as-is', () => {
@@ -245,19 +245,19 @@ describe('QueryDefaultsUtil', () => {
 
   describe('parseMusicStatusFilter', () => {
     describe('default behavior', () => {
-      it('should return { $ne: "failed" } when status is undefined', () => {
+      it('should return { not: "failed" } when status is undefined', () => {
         const result = QueryDefaultsUtil.parseMusicStatusFilter();
-        expect(result).toEqual({ $ne: 'failed' });
+        expect(result).toEqual({ not: 'failed' });
       });
 
-      it('should return { $ne: "failed" } when status is empty string', () => {
+      it('should return { not: "failed" } when status is empty string', () => {
         const result = QueryDefaultsUtil.parseMusicStatusFilter('');
-        expect(result).toEqual({ $ne: 'failed' });
+        expect(result).toEqual({ not: 'failed' });
       });
 
-      it('should return { $ne: "failed" } when status is only whitespace', () => {
+      it('should return { not: "failed" } when status is only whitespace', () => {
         const result = QueryDefaultsUtil.parseMusicStatusFilter('   ');
-        expect(result).toEqual({ $ne: 'failed' });
+        expect(result).toEqual({ not: 'failed' });
       });
 
       it('should keep comma-only string values as-is', () => {
@@ -316,14 +316,14 @@ describe('QueryDefaultsUtil', () => {
     describe('undefined values', () => {
       it('should return default value when value is undefined', () => {
         const result = QueryDefaultsUtil.parseBooleanFilter(undefined, {
-          $ne: null,
+          not: null,
         });
-        expect(result).toEqual({ $ne: null });
+        expect(result).toEqual({ not: null });
       });
 
-      it('should return default { $ne: null } when value is undefined and no default provided', () => {
+      it('should return default { not: null } when value is undefined and no default provided', () => {
         const result = QueryDefaultsUtil.parseBooleanFilter(undefined);
-        expect(result).toEqual({ $ne: null });
+        expect(result).toEqual({ not: null });
       });
 
       it('should support custom default values', () => {

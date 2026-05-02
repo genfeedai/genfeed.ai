@@ -10,6 +10,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import type { User } from '@clerk/backend';
 import { ContentPatternType } from '@genfeedai/enums';
 import type {
@@ -19,11 +20,6 @@ import type {
 import { LoggerService } from '@libs/logger/logger.service';
 import { Controller, Delete, Get, Param, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
-
-const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
-function isValidObjectId(id: unknown): id is string {
-  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
-}
 
 type SerializableDocument = Record<string, unknown> & {
   _id?: string | { toString(): string };
@@ -118,22 +114,22 @@ export class PatternsController {
       match.sourceCreator = query.sourceCreator.toString();
     }
     if (query.tags && query.tags.length > 0) {
-      match.tags = { $in: query.tags };
+      match.tags = { in: query.tags };
     }
     if (query.minRelevanceWeight !== undefined) {
-      match.relevanceWeight = { $gte: query.minRelevanceWeight };
+      match.relevanceWeight = { gte: query.minRelevanceWeight };
     }
     if (query.minEngagementRate !== undefined) {
-      match['sourceMetrics.engagementRate'] = { $gte: query.minEngagementRate };
+      match['sourceMetrics.engagementRate'] = { gte: query.minEngagementRate };
     }
 
     const sortField = query.sortBy || 'sourceMetrics.engagementRate';
     const sortOrder = query.sortOrder === 'asc' ? 1 : -1;
 
-    const pipeline: Record<string, unknown>[] = [
-      { $match: match },
-      { $sort: { [sortField]: sortOrder, createdAt: -1 } },
-    ];
+    const pipeline = {
+      where: match,
+      orderBy: { [sortField]: sortOrder, createdAt: -1 },
+    };
 
     const data = await this.patternStoreService.findAll(pipeline, options);
     return serializeCollection(request, ContentPatternSerializer, data);
@@ -195,10 +191,10 @@ export class PatternsController {
       match.templateCategory = query.templateCategory;
     }
 
-    const pipeline: Record<string, unknown>[] = [
-      { $match: match },
-      { $sort: { createdAt: -1, 'sourceMetrics.engagementRate': -1 } },
-    ];
+    const pipeline = {
+      where: match,
+      orderBy: { createdAt: -1, 'sourceMetrics.engagementRate': -1 },
+    };
 
     const data = await this.patternStoreService.findAll(pipeline, options);
     return serializeCollection(request, ContentPatternSerializer, data);
@@ -210,7 +206,7 @@ export class PatternsController {
     @CurrentUser() user: User,
     @Param('id') id: string,
   ): Promise<JsonApiSingleResponse> {
-    if (!isValidObjectId(id)) {
+    if (!isEntityId(id)) {
       ErrorResponse.notFound('ContentPattern', id);
     }
 
@@ -234,7 +230,7 @@ export class PatternsController {
     @CurrentUser() user: User,
     @Param('id') id: string,
   ): Promise<JsonApiSingleResponse> {
-    if (!isValidObjectId(id)) {
+    if (!isEntityId(id)) {
       ErrorResponse.notFound('ContentPattern', id);
     }
 

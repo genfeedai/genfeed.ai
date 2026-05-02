@@ -1,8 +1,9 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsMongoId, IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsString } from 'class-validator';
 
 export class CreateLipSyncDto {
-  @IsMongoId()
+  @IsEntityId()
   @IsNotEmpty()
   @IsString()
   @ApiProperty({
@@ -11,7 +12,7 @@ export class CreateLipSyncDto {
   })
   readonly parent!: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @IsNotEmpty()
   @IsString()
   @ApiProperty({

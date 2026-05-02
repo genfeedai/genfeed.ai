@@ -178,7 +178,7 @@ describe('BookmarksController', () => {
       expect(bookmarksService.findAll).toHaveBeenCalledWith(
         expect.arrayContaining([
           expect.objectContaining({
-            $match: expect.objectContaining({
+            match: expect.objectContaining({
               category: 'tweet',
             }),
           }),

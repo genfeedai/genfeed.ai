@@ -1799,15 +1799,13 @@ export class StripeWebhookService {
     url: string,
   ) {
     try {
-      const aggregate: Record<string, unknown>[] = [
-        {
-          $match: {
-            isDeleted: { $ne: true },
-            organization: organizationId,
-            status: { $in: ['active', 'trialing', 'past_due'] },
-          },
+      const aggregate = {
+        where: {
+          isDeleted: { not: true },
+          organization: organizationId,
+          status: { in: ['active', 'trialing', 'past_due'] },
         },
-      ];
+      };
 
       const options = {
         customLabels,

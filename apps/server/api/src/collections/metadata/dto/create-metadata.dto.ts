@@ -1,3 +1,4 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { IsModelKeyOrTraining } from '@api/helpers/validators/model-key-or-training.validator';
 import { MetadataExtension, MetadataStyle } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
@@ -5,7 +6,6 @@ import { Transform } from 'class-transformer';
 import {
   IsBoolean,
   IsEnum,
-  IsMongoId,
   IsNumber,
   IsOptional,
   IsString,
@@ -13,7 +13,7 @@ import {
 } from 'class-validator';
 
 export class CreateMetadataDto {
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({ required: false })
   readonly prompt?: string;

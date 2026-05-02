@@ -1,9 +1,10 @@
 import { CreatePromptDto } from '@api/collections/prompts/dto/create-prompt.dto';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty, PartialType } from '@nestjs/swagger';
-import { IsBoolean, IsMongoId, IsOptional } from 'class-validator';
+import { IsBoolean, IsOptional } from 'class-validator';
 
 export class UpdatePromptDto extends PartialType(CreatePromptDto) {
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({ required: false })
   readonly ingredient?: string;

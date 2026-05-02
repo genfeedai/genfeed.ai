@@ -149,6 +149,10 @@ export class DarkroomTrainingService {
    * Execute the full training pipeline (fire-and-forget).
    * Calls NestJS images service HTTP endpoints.
    */
+  async executeTrainingquery(params: TrainingPipelineParams): Promise<void> {
+    return this.executeTrainingPipeline(params);
+  }
+
   async executeTrainingPipeline(params: TrainingPipelineParams): Promise<void> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(caller, {

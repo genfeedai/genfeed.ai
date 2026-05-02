@@ -126,51 +126,28 @@ export class TemplateFilterUtil {
   }
 
   /**
-   * Build array $in filter for pipeline
+   * Build array membership filter.
    *
-   * Creates $in filter for array fields (industries, platforms, categories, etc.).
-   * Returns pipeline stage or empty array.
-   *
+   * Creates in filter for array fields (industries, platforms, categories, etc.).
    * @param field - Field name to filter
    * @param values - Single value or array of values
-   * @returns Array of pipeline stages (empty if no values)
-   *
-   * @example
-   * // Single value
-   * TemplateFilterUtil.buildArrayInFilter('industries', 'technology')
-   * // Returns: [{ $match: { industries: { $in: ['technology'] } } }]
-   *
-   * @example
-   * // Multiple values
-   * TemplateFilterUtil.buildArrayInFilter('platforms', ['instagram', 'tiktok'])
-   * // Returns: [{ $match: { platforms: { $in: ['instagram', 'tiktok'] } } }]
-   *
-   * @example
-   * // No values
-   * TemplateFilterUtil.buildArrayInFilter('industries', undefined)
-   * // Returns: []
+   * @returns Prisma where fragment.
    */
   static buildArrayInFilter(
     field: string,
     values?: string | string[],
-  ): Record<string, unknown>[] {
+  ): Record<string, unknown> {
     if (!values) {
-      return [];
+      return {};
     }
 
     const arrayValues = Array.isArray(values) ? values : [values];
 
     if (arrayValues.length === 0) {
-      return [];
+      return {};
     }
 
-    return [
-      {
-        $match: {
-          [field]: { $in: arrayValues },
-        },
-      },
-    ];
+    return { [field]: { in: arrayValues } };
   }
 
   /**
@@ -272,109 +249,5 @@ export class TemplateFilterUtil {
     }
 
     return { key };
-  }
-
-  /**
-   * Build complete template filter pipeline
-   *
-   * Combines all template-specific filters into a complete pipeline.
-   * Useful for template listing endpoints.
-   *
-   * @param query - Query params containing filter values
-   * @param baseMatch - Base match conditions (organization, isDeleted, etc.)
-   * @returns Complete array of pipeline stages
-   *
-   * @example
-   * const pipeline = TemplateFilterUtil.buildTemplatePipeline(query, {
-   *   organization: ObjectId(...),
-   *   isDeleted: false
-   * });
-   */
-  static buildTemplatePipeline(
-    query: {
-      purpose?: 'content' | 'prompt';
-      key?: string;
-      category?: string;
-      categories?: string[];
-      industries?: string[];
-      platforms?: string[];
-      scope?: string;
-      isFeatured?: boolean;
-      search?: string;
-    },
-    baseMatch: Record<string, unknown>,
-  ): Record<string, unknown>[] {
-    const pipeline: Record<string, unknown>[] = [
-      {
-        $match: {
-          ...baseMatch,
-          ...TemplateFilterUtil.buildPurposeFilter(query.purpose),
-          ...TemplateFilterUtil.buildKeyFilter(query.key),
-        },
-      },
-    ];
-
-    // Category filter
-    if (query.category) {
-      pipeline.push({
-        $match: { category: query.category },
-      });
-    }
-
-    // Categories filter (array)
-    if (query.categories && query.categories.length > 0) {
-      pipeline.push(
-        ...TemplateFilterUtil.buildArrayInFilter(
-          'categories',
-          query.categories,
-        ),
-      );
-    }
-
-    // Industries filter (array)
-    if (query.industries && query.industries.length > 0) {
-      pipeline.push(
-        ...TemplateFilterUtil.buildArrayInFilter(
-          'industries',
-          query.industries,
-        ),
-      );
-    }
-
-    // Platforms filter (array)
-    if (query.platforms && query.platforms.length > 0) {
-      pipeline.push(
-        ...TemplateFilterUtil.buildArrayInFilter('platforms', query.platforms),
-      );
-    }
-
-    // Scope filter
-    if (query.scope) {
-      pipeline.push({
-        $match: { scope: query.scope },
-      });
-    }
-
-    // isFeatured filter
-    if (typeof query.isFeatured === 'boolean') {
-      pipeline.push({
-        $match: { isFeatured: query.isFeatured },
-      });
-    }
-
-    // Search filter
-    if (query.search) {
-      pipeline.push({
-        $match: {
-          $or: [
-            { label: { $options: 'i', $regex: query.search } },
-            { description: { $options: 'i', $regex: query.search } },
-            { key: { $options: 'i', $regex: query.search } },
-          ],
-        },
-      });
-    }
-
-    return pipeline;
   }
 }

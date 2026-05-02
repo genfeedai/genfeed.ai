@@ -80,33 +80,31 @@ describe('PublicVideosController', () => {
       undefined,
       brandId,
     );
-    const aggregateArg = mockVideosService.findAll.mock.calls[0][0] as Array<{
-      $match?: {
+    const aggregateArg = mockVideosService.findAll.mock.calls[0][0] as {
+      where?: {
         brand?: string;
       };
-    }>;
-    const matchStage = aggregateArg[0];
-    expect(matchStage.$match?.brand).toEqual(brandId);
+    };
+    expect(aggregateArg.where?.brand).toEqual(brandId);
   });
 
   it('should pass tag filter as regex when provided', async () => {
     await controller.findPublicVideos(mockRequest, {} as never, 'funny');
-    const aggregateArg = mockVideosService.findAll.mock.calls[0][0] as Array<{
-      $match?: {
+    const aggregateArg = mockVideosService.findAll.mock.calls[0][0] as {
+      where?: {
         'metadata.tags'?: {
-          $options: string;
-          $regex: string;
+          mode: string;
+          contains: string;
         };
       };
-    }>;
-    const matchStage = aggregateArg[0];
-    expect(matchStage.$match?.['metadata.tags']).toEqual({
-      $options: 'i',
-      $regex: 'funny',
+    };
+    expect(aggregateArg.where?.['metadata.tags']).toEqual({
+      mode: 'insensitive',
+      contains: 'funny',
     });
   });
 
-  it('should include format expression pipeline stage when format provided', async () => {
+  it('should keep query-object shape when format is provided', async () => {
     await controller.findPublicVideos(
       mockRequest,
       {} as never,
@@ -114,14 +112,16 @@ describe('PublicVideosController', () => {
       undefined,
       'portrait',
     );
-    const aggregateArg = mockVideosService.findAll.mock.calls[0][0] as Array<{
-      $match?: {
-        $expr?: unknown;
-      };
-    }>;
-    // Should have extra $match stage for format
-    const formatStage = aggregateArg.find((stage) => stage.$match?.$expr);
-    expect(formatStage).toBeDefined();
+    const aggregateArg = mockVideosService.findAll.mock.calls[0][0] as {
+      orderBy?: Record<string, unknown>;
+      where?: Record<string, unknown>;
+    };
+    expect(aggregateArg.where).toMatchObject({
+      category: 'video',
+      isDeleted: false,
+      scope: 'public',
+    });
+    expect(aggregateArg.orderBy).toEqual({ createdAt: -1 });
   });
 
   // --- getVideoMetadata ---

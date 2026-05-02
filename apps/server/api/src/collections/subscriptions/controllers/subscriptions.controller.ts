@@ -84,16 +84,12 @@ export class SubscriptionsController {
 
       const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
 
-      const aggregate: Record<string, unknown>[] = [
-        {
-          $match: {
-            isDeleted,
-          },
+      const aggregate = {
+        where: {
+          isDeleted,
         },
-        {
-          $sort: { createdAt: -1 },
-        },
-      ];
+        orderBy: { createdAt: -1 },
+      };
 
       const data = await this.subscriptionsService.findAll(aggregate, options);
 

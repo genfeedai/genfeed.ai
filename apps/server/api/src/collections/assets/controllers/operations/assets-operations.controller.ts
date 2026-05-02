@@ -33,6 +33,7 @@ import {
   returnNotFound,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
@@ -63,11 +64,6 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Request } from 'express';
-
-const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
-function isValidObjectId(id: unknown): id is string {
-  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
-}
 
 interface UploadedBinaryFile {
   buffer: Buffer;
@@ -328,7 +324,7 @@ export class AssetsOperationsController {
       const entityData = {
         category: uploadDto.category,
         parent:
-          uploadDto.parent && isValidObjectId(uploadDto.parent)
+          uploadDto.parent && isEntityId(uploadDto.parent)
             ? uploadDto.parent
             : undefined,
         parentModel: uploadDto.parentModel,

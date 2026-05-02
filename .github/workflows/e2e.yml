@@ -20,17 +20,21 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     services:
-      mongodb:
-        image: mongo:7
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: test
+          POSTGRES_USER: genfeed
+          POSTGRES_PASSWORD: genfeed_local
         ports:
-          - 27017:27017
+          - 5432:5432
       redis:
         image: redis:7
         ports:
           - 6379:6379
     env:
       NODE_ENV: test
-      MONGODB_URI: mongodb://localhost:27017/test
+      DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
       REDIS_URL: redis://localhost:6379
       # Mock all external service keys
       REPLICATE_API_TOKEN: test-mock-key

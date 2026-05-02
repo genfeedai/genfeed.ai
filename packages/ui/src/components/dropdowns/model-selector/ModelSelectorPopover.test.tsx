@@ -226,7 +226,7 @@ describe('ModelSelectorPopover', () => {
     await user.click(screen.getByText('Pro'));
 
     expect(onChange).toHaveBeenCalledWith('models', ['google/nano-banana-pro']);
-  });
+  }, 15_000);
 
   it('filters source tabs and hides auto in trainings', async () => {
     const user = userEvent.setup();

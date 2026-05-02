@@ -279,7 +279,7 @@ describe('VideosUpscaleController', () => {
     expect(mockServices.routerService.getDefaultModel).toHaveBeenCalled();
   });
 
-  it('should query video with $or for user and organization', async () => {
+  it('should query video with OR for user and organization', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
     const dto: VideoEditDto = {};
     await controller.upscaleVideo(
@@ -290,7 +290,7 @@ describe('VideosUpscaleController', () => {
     );
     expect(mockServices.videosService.findOne).toHaveBeenCalledWith(
       expect.objectContaining({
-        $or: expect.arrayContaining([
+        OR: expect.arrayContaining([
           expect.objectContaining({ user: expect.anything() }),
         ]),
       }),

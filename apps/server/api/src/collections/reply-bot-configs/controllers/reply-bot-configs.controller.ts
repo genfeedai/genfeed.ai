@@ -54,10 +54,7 @@ export class ReplyBotConfigsController extends BaseCRUDController<
     );
   }
 
-  public buildFindAllPipeline(
-    user: User,
-    query: ReplyBotConfigsQueryDto,
-  ): Record<string, unknown>[] {
+  public buildFindAllQuery(user: User, query: ReplyBotConfigsQueryDto) {
     const publicMetadata = getPublicMetadata(user);
     const match: Record<string, unknown> = {
       isDeleted: query.isDeleted ?? false,
@@ -91,12 +88,10 @@ export class ReplyBotConfigsController extends BaseCRUDController<
       match.isActive = query.isActive;
     }
 
-    const pipeline: Record<string, unknown>[] = [
-      { $match: match },
-      { $sort: handleQuerySort(query.sort) },
-    ];
-
-    return pipeline;
+    return {
+      orderBy: handleQuerySort(query.sort),
+      where: match,
+    };
   }
 
   public canUserModifyEntity(user: User, entity: unknown): boolean {

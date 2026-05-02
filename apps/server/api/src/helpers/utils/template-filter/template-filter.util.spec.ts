@@ -53,7 +53,7 @@ describe('TemplateFilterUtil', () => {
       ]);
       expect(stages).toHaveLength(1);
       expect(stages[0]).toEqual({
-        $match: { industries: { $in: ['tech', 'finance'] } },
+        match: { industries: { in: ['tech', 'finance'] } },
       });
     });
 
@@ -109,7 +109,7 @@ describe('TemplateFilterUtil', () => {
       );
 
       expect(pipeline[0]).toEqual({
-        $match: {
+        match: {
           ...baseMatch,
           ...TemplateFilterUtil.buildPurposeFilter(query.purpose),
           ...TemplateFilterUtil.buildKeyFilter(query.key),
@@ -118,38 +118,38 @@ describe('TemplateFilterUtil', () => {
 
       const categoriesStage = pipeline.find(
         (stage) =>
-          '$match' in stage &&
+          'match' in stage &&
           (
             stage as Record<string, unknown> & {
-              $match: Record<string, unknown>;
+              match: Record<string, unknown>;
             }
-          ).$match?.categories,
-      ) as Record<string, unknown> & { $match: Record<string, unknown> };
-      expect(categoriesStage.$match?.categories).toEqual({
-        $in: ['ads'],
+          ).match?.categories,
+      ) as Record<string, unknown> & { match: Record<string, unknown> };
+      expect(categoriesStage.match?.categories).toEqual({
+        in: ['ads'],
       });
 
       const scopeStage = pipeline.find(
         (stage) =>
-          '$match' in stage &&
+          'match' in stage &&
           (
             stage as Record<string, unknown> & {
-              $match: Record<string, unknown>;
+              match: Record<string, unknown>;
             }
-          ).$match?.scope,
-      ) as Record<string, unknown> & { $match: Record<string, unknown> };
-      expect(scopeStage.$match?.scope).toBe('brand');
+          ).match?.scope,
+      ) as Record<string, unknown> & { match: Record<string, unknown> };
+      expect(scopeStage.match?.scope).toBe('brand');
 
       const searchStage = pipeline.find(
         (stage) =>
-          '$match' in stage &&
+          'match' in stage &&
           (
             stage as Record<string, unknown> & {
-              $match: Record<string, unknown>;
+              match: Record<string, unknown>;
             }
-          ).$match?.$or?.length === 3,
-      ) as Record<string, unknown> & { $match: Record<string, unknown> };
-      expect(searchStage.$match?.$or?.[0]?.label?.$regex).toBe('hook');
+          ).match?.OR?.length === 3,
+      ) as Record<string, unknown> & { match: Record<string, unknown> };
+      expect(searchStage.match?.OR?.[0]?.label?.contains).toBe('hook');
     });
 
     it('adds featured filter when boolean provided', () => {
@@ -160,14 +160,14 @@ describe('TemplateFilterUtil', () => {
 
       const featuredStage = pipeline.find(
         (stage) =>
-          '$match' in stage &&
+          'match' in stage &&
           (
             stage as Record<string, unknown> & {
-              $match: Record<string, unknown>;
+              match: Record<string, unknown>;
             }
-          ).$match?.isFeatured !== undefined,
-      ) as Record<string, unknown> & { $match: Record<string, unknown> };
-      expect(featuredStage.$match?.isFeatured).toBe(false);
+          ).match?.isFeatured !== undefined,
+      ) as Record<string, unknown> & { match: Record<string, unknown> };
+      expect(featuredStage.match?.isFeatured).toBe(false);
     });
   });
 });

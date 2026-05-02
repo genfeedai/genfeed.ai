@@ -6,7 +6,7 @@ import { ConfigModule } from '@api/config/config.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { ContentOrchestrationController } from '@api/services/content-orchestration/content-orchestration.controller';
 import { ContentOrchestrationService } from '@api/services/content-orchestration/content-orchestration.service';
-import { ContentPipelineQueueService } from '@api/services/content-orchestration/content-pipeline-queue.service';
+import { ContentqueryQueueService } from '@api/services/content-orchestration/content-pipeline-queue.service';
 import { StepExecutorService } from '@api/services/content-orchestration/step-executor.service';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { ElevenLabsModule } from '@api/services/integrations/elevenlabs/elevenlabs.module';
@@ -22,7 +22,7 @@ import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   controllers: [ContentOrchestrationController],
-  exports: [ContentOrchestrationService, ContentPipelineQueueService],
+  exports: [ContentOrchestrationService, ContentqueryQueueService],
   imports: [
     ConfigModule,
     LoggerModule,
@@ -49,10 +49,10 @@ import { forwardRef, Module } from '@nestjs/common';
       name: 'content-pipeline',
     }),
   ],
-  // ContentPipelineProcessor moved to workers ProcessorsModule (issue #84)
+  // ContentqueryProcessor moved to workers ProcessorsModule (issue #84)
   providers: [
     ContentOrchestrationService,
-    ContentPipelineQueueService,
+    ContentqueryQueueService,
     StepExecutorService,
   ],
 })

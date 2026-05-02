@@ -90,14 +90,14 @@ export class QuotaService {
 
     const currentCount = await this.getPostsService().count({
       createdAt: {
-        $gte: startOfDay,
-        $lte: endOfDay,
+        gte: startOfDay,
+        lte: endOfDay,
       },
       credential: credential._id.toString(),
       isDeleted: false,
       platform: credential.platform,
       status: {
-        $in: [PostStatus.PUBLIC, PostStatus.PRIVATE, PostStatus.UNLISTED],
+        in: [PostStatus.PUBLIC, PostStatus.PRIVATE, PostStatus.UNLISTED],
       },
     });
 

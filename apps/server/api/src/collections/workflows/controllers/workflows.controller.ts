@@ -1,3 +1,4 @@
+import process from 'node:process';
 import { CreateWorkflowDto } from '@api/collections/workflows/dto/create-workflow.dto';
 import {
   CreditEstimateQueryDto,
@@ -311,18 +312,14 @@ export class WorkflowsController {
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: {
-          isDeleted: false,
-          isPublic: true,
-          isTemplate: true,
-        },
+    const aggregate = {
+      where: {
+        isDeleted: false,
+        isPublic: true,
+        isTemplate: true,
       },
-      {
-        $sort: handleQuerySort(query.sort || '-executionCount'),
-      },
-    ];
+      orderBy: handleQuerySort(query.sort || '-executionCount'),
+    };
 
     const data: AggregatePaginateResult<WorkflowDocument> =
       await this.workflowsService.findAll(aggregate, options);
@@ -336,25 +333,12 @@ export class WorkflowsController {
     @CurrentUser() user: User,
   ): Promise<JsonApiCollectionResponse> {
     const publicMetadata = getPublicMetadata(user);
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: {
-          isDeleted: false,
-          organization: publicMetadata.organization,
-        },
+    const aggregate = {
+      where: {
+        isDeleted: false,
+        organization: publicMetadata.organization,
       },
-      {
-        $project: {
-          _id: 1,
-          createdAt: 1,
-          description: 1,
-          name: 1,
-          nodes: 1,
-          organization: 1,
-          updatedAt: 1,
-        },
-      },
-    ];
+    };
     const options = {
       customLabels,
       ...QueryDefaultsUtil.getPaginationDefaults({}),
@@ -1012,29 +996,14 @@ export class WorkflowsController {
     const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
 
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: {
-          isDeleted,
-          organization: publicMetadata.organization,
-          user: publicMetadata.user,
-        },
+    const aggregate = {
+      where: {
+        isDeleted,
+        organization: publicMetadata.organization,
+        user: publicMetadata.user,
       },
-      {
-        $sort: handleQuerySort(query.sort),
-      },
-      {
-        $project: {
-          comfyuiTemplate: 0,
-          edges: 0,
-          inputVariables: 0,
-          metadata: 0,
-          nodes: 0,
-          steps: 0,
-          webhookSecret: 0,
-        },
-      },
-    ];
+      orderBy: handleQuerySort(query.sort),
+    };
 
     const data: AggregatePaginateResult<WorkflowDocument> =
       await this.workflowsService.findAll(aggregate, options);

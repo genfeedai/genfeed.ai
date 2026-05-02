@@ -1,6 +1,7 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { EvaluationType, IngredientCategory } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsMongoId, IsOptional } from 'class-validator';
+import { IsEnum, IsOptional } from 'class-validator';
 
 export class EvaluateContentDto {
   @ApiProperty({
@@ -13,7 +14,7 @@ export class EvaluateContentDto {
   @ApiProperty({
     description: 'Content ID to evaluate',
   })
-  @IsMongoId()
+  @IsEntityId()
   contentId!: string;
 
   @ApiProperty({

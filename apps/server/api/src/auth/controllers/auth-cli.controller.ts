@@ -7,7 +7,6 @@ import {
   getPublicMetadata,
 } from '@api/helpers/utils/clerk/clerk.util';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import { PipelineBuilder } from '@api/shared/utils/pipeline-builder/pipeline-builder.util';
 import type { User } from '@clerk/backend';
 import { ApiKeyCategory, ApiKeyScope } from '@genfeedai/enums';
 import { Controller, HttpStatus, Post, Req, UseGuards } from '@nestjs/common';
@@ -82,19 +81,19 @@ export class AuthCliController {
     const organizationId = publicMetadata.organization;
 
     // Revoke any existing CLI key for this user
-    const existingKeysPipeline = PipelineBuilder.create()
-      .match({
+    const existingKeysQuery = {
+      where: {
         isRevoked: false,
-        label: { $options: 'i', $regex: 'CLI' },
+        label: { mode: 'insensitive', contains: 'CLI' },
         organizationId,
         userId,
-      })
-      .build();
+      },
+    };
 
-    const existingKeys = await this.apiKeysService.findAll(
-      existingKeysPipeline,
-      { limit: 100, page: 1 },
-    );
+    const existingKeys = await this.apiKeysService.findAll(existingKeysQuery, {
+      limit: 100,
+      page: 1,
+    });
 
     for (const existingKey of existingKeys.docs) {
       await this.apiKeysService.revoke(existingKey.id.toString());

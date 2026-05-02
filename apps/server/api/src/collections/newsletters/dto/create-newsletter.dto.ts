@@ -3,13 +3,13 @@ import {
   NEWSLETTER_STATUSES,
   type NewsletterStatus,
 } from '@api/collections/newsletters/newsletter.constants';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsArray,
   IsDateString,
   IsIn,
-  IsMongoId,
   IsOptional,
   IsString,
   MaxLength,
@@ -66,7 +66,7 @@ export class CreateNewsletterDto {
 
   @IsOptional()
   @IsArray()
-  @IsMongoId({ each: true })
+  @IsEntityId({ each: true })
   @ApiProperty({
     description: 'Prior newsletters used as context',
     required: false,

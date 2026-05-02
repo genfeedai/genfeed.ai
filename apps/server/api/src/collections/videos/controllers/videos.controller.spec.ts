@@ -486,14 +486,9 @@ describe('VideosController', () => {
       await controller.findLatest(mockRequest, mockUser, 100);
 
       const callArgs = videosService.findAll.mock.calls[0];
-      const aggregate = callArgs[0] as unknown as Array<
-        Record<string, unknown>
-      >;
-      const limitStage = aggregate.find(
-        (stage: Record<string, unknown>) => stage.$limit,
-      ) as { $limit: number } | undefined;
+      const options = callArgs[1];
 
-      expect(limitStage?.$limit).toBe(50);
+      expect(options.limit).toBe(50);
     });
 
     it('should use default limit of 10 if not provided', async () => {
@@ -565,22 +560,33 @@ describe('VideosController', () => {
       await controller.findAll(mockRequest, mockUser, query);
 
       const callArgs = videosService.findAll.mock.calls[0];
-      const aggregate = callArgs[0] as unknown as Array<{
-        $match?: {
-          $or?: Array<{
-            'metadata.label'?: {
-              $regex?: unknown;
-            };
+      const aggregate = callArgs[0] as unknown as {
+        where?: {
+          AND?: Array<{
+            OR?: Array<{
+              'metadata.label'?: {
+                contains?: unknown;
+              };
+            }>;
           }>;
         };
-      }>;
-      const searchStage = aggregate.find((stage) =>
-        stage.$match?.$or?.some(
-          (condition) => condition['metadata.label']?.$regex,
+      };
+      const searchStage = aggregate.where?.AND?.find((condition) =>
+        condition.OR?.some(
+          (orCondition) => orCondition['metadata.label']?.contains,
         ),
-      );
+      ) as
+        | {
+            OR?: Array<{
+              'metadata.label'?: {
+                contains?: unknown;
+              };
+            }>;
+          }
+        | undefined;
 
       expect(searchStage).toBeDefined();
+      expect(searchStage?.OR?.[0]?.['metadata.label']?.contains).toBe('sunset');
     });
 
     it('should filter by status', async () => {

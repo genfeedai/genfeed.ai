@@ -1,9 +1,5 @@
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { AssetScope } from '@genfeedai/enums';
-
-const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
-function isValidObjectId(id: unknown): id is string {
-  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
-}
 
 /**
  * CollectionFilterUtil - Utility for building consistent collection query filters
@@ -19,13 +15,13 @@ function isValidObjectId(id: unknown): id is string {
  * const scope = CollectionFilterUtil.buildScopeFilter(query.scope);
  *
  * // Build search filter
- * const searchStages = CollectionFilterUtil.buildSearchFilter(query.search, ['metadata.label', 'metadata.description']);
+ * const searchFilter = CollectionFilterUtil.buildSearchFilter(query.search, ['metadata.label', 'metadata.description']);
  *
- * // Use in aggregation pipeline
+ * // Use in findAll query
  * const aggregate: Record<string, unknown>[] = [
- *   { $match: { brand, scope, status, ...ownershipFilter } },
+ *   { match: { brand, scope, status, ...ownershipFilter } },
  *   ...searchStages,
- *   { $sort: { ... } }
+ *   { orderBy: { ... } }
  * ];
  */
 export class CollectionFilterUtil {
@@ -58,8 +54,8 @@ export class CollectionFilterUtil {
       return null;
     }
 
-    const hasOrg = query.organization && isValidObjectId(query.organization);
-    const hasBrand = query.brand && isValidObjectId(query.brand);
+    const hasOrg = query.organization && isEntityId(query.organization);
+    const hasBrand = query.brand && isEntityId(query.brand);
 
     if (!hasOrg && !hasBrand) {
       return null;
@@ -104,30 +100,30 @@ export class CollectionFilterUtil {
    * @example
    * // Any brand exists
    * CollectionFilterUtil.buildBrandFilter(undefined, publicMetadata, 'exists')
-   * // Returns: { $exists: true }
+   * // Returns: { not: null }
    */
   static buildBrandFilter(
     brand: unknown,
     publicMetadata?: { brand?: string },
     defaultTo: 'user' | 'exists' | 'none' = 'user',
   ): string | Record<string, unknown> {
-    if (isValidObjectId(brand)) {
+    if (isEntityId(brand)) {
       return String(brand);
     }
 
     // Handle default behavior based on defaultTo parameter
     switch (defaultTo) {
       case 'user':
-        return publicMetadata?.brand ? publicMetadata.brand : { $exists: true };
+        return publicMetadata?.brand ? publicMetadata.brand : { not: null };
 
       case 'exists':
-        return { $exists: true };
+        return { not: null };
 
       case 'none':
-        return { $ne: null };
+        return { not: null };
 
       default:
-        return { $exists: true };
+        return { not: null };
     }
   }
 
@@ -149,52 +145,50 @@ export class CollectionFilterUtil {
    * @example
    * // Default - any scope
    * CollectionFilterUtil.buildScopeFilter(undefined)
-   * // Returns: { $ne: null }
+   * // Returns: { not: null }
    */
   static buildScopeFilter(
     scope?: AssetScope,
   ): AssetScope | Record<string, unknown> {
-    return scope ? scope : { $ne: null };
+    return scope ? scope : { not: null };
   }
 
   /**
    * Build search filter across multiple fields
    *
    * Creates case-insensitive regex search across specified fields.
-   * Returns pipeline stages with $match using $or for multiple fields.
+   * Returns a Prisma where fragment with OR across multiple fields.
    *
    * @param search - Search query string
    * @param fields - Array of field paths to search
-   * @returns Array of pipeline stages (empty if no search)
+   * @returns Query fragment (empty where object if no search)
    *
    * @example
    * // Search across metadata fields
    * CollectionFilterUtil.buildSearchFilter('hello', ['metadata.label', 'metadata.description'])
-   * // Returns: [{ $match: { $or: [{ 'metadata.label': { $regex: 'hello', $options: 'i' } }, ...] } }]
+   * // Returns: { where: { OR: [{ 'metadata.label': { contains: 'hello', mode: 'insensitive' } }, ...] } }
    *
    * @example
    * // No search
    * CollectionFilterUtil.buildSearchFilter(undefined, ['label'])
-   * // Returns: []
+   * // Returns: { where: {} }
    */
   static buildSearchFilter(
     search?: string,
     fields: string[] = ['metadata.label', 'metadata.description'],
-  ): Record<string, unknown>[] {
+  ): Record<string, unknown> {
     if (!search || search.trim() === '') {
-      return [];
+      return { where: {} };
     }
 
-    const searchRegex = { $options: 'i', $regex: search.trim() };
+    const searchRegex = { mode: 'insensitive', contains: search.trim() };
     const orConditions = fields.map((field) => ({ [field]: searchRegex }));
 
-    return [
-      {
-        $match: {
-          $or: orConditions,
-        },
+    return {
+      where: {
+        OR: orConditions,
       },
-    ];
+    };
   }
 
   /**
@@ -210,7 +204,7 @@ export class CollectionFilterUtil {
    * @example
    * // User or organization ownership
    * CollectionFilterUtil.buildOwnershipFilter(publicMetadata)
-   * // Returns: { $or: [{ user: ObjectId(...) }, { organization: ObjectId(...) }] }
+   * // Returns: { OR: [{ user: ObjectId(...) }, { organization: ObjectId(...) }] }
    *
    * @example
    * // User only
@@ -250,9 +244,9 @@ export class CollectionFilterUtil {
       return conditions[0];
     }
 
-    // If multiple conditions, use $or
+    // If multiple conditions, use OR
     if (conditions.length > 1) {
-      return { $or: conditions };
+      return { OR: conditions };
     }
 
     // Fallback if no conditions
@@ -273,12 +267,12 @@ export class CollectionFilterUtil {
    * @example
    * // Date range filter
    * CollectionFilterUtil.buildDateRangeFilter('2024-01-01', '2024-12-31')
-   * // Returns: { createdAt: { $gte: Date(...), $lte: Date(...) } }
+   * // Returns: { createdAt: { gte: Date(...), lte: Date(...) } }
    *
    * @example
    * // Custom field
    * CollectionFilterUtil.buildDateRangeFilter('2024-01-01', '2024-12-31', 'publishedAt')
-   * // Returns: { publishedAt: { $gte: Date(...), $lte: Date(...) } }
+   * // Returns: { publishedAt: { gte: Date(...), lte: Date(...) } }
    *
    * @example
    * // No dates
@@ -297,11 +291,11 @@ export class CollectionFilterUtil {
     const filter: Record<string, Date> = {};
 
     if (startDate) {
-      filter.$gte = new Date(startDate);
+      filter.gte = new Date(startDate);
     }
 
     if (endDate) {
-      filter.$lte = new Date(endDate);
+      filter.lte = new Date(endDate);
     }
 
     return { [field]: filter };
@@ -315,23 +309,23 @@ export class CollectionFilterUtil {
    *
    * @param values - Single value or array of values
    * @param field - Field name to filter
-   * @param matchAll - If true, uses $all (match all values); if false, uses $in (match any)
+   * @param matchAll - If true, match every value; if false, match any value.
    * @returns Filter object for array field, or empty object
    *
    * @example
    * // Single value
    * CollectionFilterUtil.buildArrayFilter('technology', 'industries')
-   * // Returns: { industries: { $in: ['technology'] } }
+   * // Returns: { industries: { in: ['technology'] } }
    *
    * @example
    * // Multiple values (match any)
    * CollectionFilterUtil.buildArrayFilter(['tech', 'finance'], 'industries')
-   * // Returns: { industries: { $in: ['tech', 'finance'] } }
+   * // Returns: { industries: { in: ['tech', 'finance'] } }
    *
    * @example
    * // Multiple values (match all)
    * CollectionFilterUtil.buildArrayFilter(['tag1', 'tag2'], 'tags', true)
-   * // Returns: { tags: { $all: ['tag1', 'tag2'] } }
+   * // Returns: { tags: { hasEvery: ['tag1', 'tag2'] } }
    */
   static buildArrayFilter(
     values?: string | string[],
@@ -348,7 +342,7 @@ export class CollectionFilterUtil {
       return {};
     }
 
-    const operator = matchAll ? '$all' : '$in';
+    const operator = matchAll ? 'hasEvery' : 'in';
     return { [field]: { [operator]: arrayValues } };
   }
 
@@ -356,7 +350,7 @@ export class CollectionFilterUtil {
    * Build status filter condition
    *
    * Handles filtering by status:
-   * - array of statuses → use $in operator
+   * - array of statuses → use in operator
    * - single value → simple equality
    * - undefined → no filter (all statuses)
    *
@@ -371,7 +365,7 @@ export class CollectionFilterUtil {
    * @example
    * // Array of statuses
    * CollectionFilterUtil.buildStatusFilter(['completed', 'processing', 'validated'])
-   * // Returns: { status: { $in: ['completed', 'processing', 'validated'] } }
+   * // Returns: { status: { in: ['completed', 'processing', 'validated'] } }
    *
    * @example
    * // No filter
@@ -390,7 +384,7 @@ export class CollectionFilterUtil {
       const statusArray = status.map((s) => String(s).trim()).filter(Boolean);
       return statusArray.length === 1
         ? { status: statusArray[0] }
-        : { status: { $in: statusArray } };
+        : { status: { in: statusArray } };
     }
 
     return { status: String(status).trim() };
@@ -413,7 +407,7 @@ export class CollectionFilterUtil {
    * @example
    * // Multiple categories
    * CollectionFilterUtil.buildCategoryFilter(['image', 'video'])
-   * // Returns: { category: { $in: ['image', 'video'] } }
+   * // Returns: { category: { in: ['image', 'video'] } }
    */
   static buildCategoryFilter(
     category?: string | string[],
@@ -423,27 +417,27 @@ export class CollectionFilterUtil {
     }
 
     if (Array.isArray(category)) {
-      return category.length > 0 ? { category: { $in: category } } : {};
+      return category.length > 0 ? { category: { in: category } } : {};
     }
 
     return { category };
   }
 
   /**
-   * Conditional pipeline stages
+   * Conditional query fragments
    *
-   * Returns pipeline stages conditionally based on a boolean flag.
+   * Returns query fragments conditionally based on a boolean flag.
    * Useful for lightweight queries that skip expensive lookups.
    *
    * @param condition - Whether to include stages
-   * @param stages - Pipeline stages to conditionally include
+   * @param stages - query stages to conditionally include
    * @returns Array of stages (or empty array if condition is false)
    *
    * @example
    * // Skip expensive lookups in lightweight mode
    * ...CollectionFilterUtil.conditionalStages(!query.lightweight, [
-   *   { $lookup: { from: 'votes', ... } },
-   *   { $lookup: { from: 'children', ... } }
+   *   { relationInclude: { from: 'votes', ... } },
+   *   { relationInclude: { from: 'children', ... } }
    * ])
    */
   static conditionalStages(
@@ -460,8 +454,8 @@ export class CollectionFilterUtil {
    * Delegates to QueryDefaultsUtil.parseBooleanFilter.
    *
    * @param value - Boolean value from query params (can be string or boolean)
-   * @param defaultValue - Default MongoDB query object when undefined
-   * @returns Boolean value or MongoDB query object
+   * @param defaultValue - Default query object when undefined
+   * @returns Boolean value or query object
    *
    * @example
    * // Explicit true
@@ -475,12 +469,12 @@ export class CollectionFilterUtil {
    *
    * @example
    * // Undefined with default
-   * CollectionFilterUtil.buildBooleanFilter(undefined, { $ne: null })
-   * // Returns: { $ne: null }
+   * CollectionFilterUtil.buildBooleanFilter(undefined, { not: null })
+   * // Returns: { not: null }
    */
   static buildBooleanFilter(
     value?: string | boolean,
-    defaultValue: Record<string, unknown> = { $ne: null },
+    defaultValue: Record<string, unknown> = { not: null },
   ): boolean | Record<string, unknown> {
     if (value === undefined) {
       return defaultValue;
@@ -498,12 +492,12 @@ export class CollectionFilterUtil {
   /**
    * Build sort object from query string
    *
-   * Converts sort query param to MongoDB sort object.
+   * Converts sort query param to sort object.
    * Supports multiple sort fields and directions.
    *
    * @param sort - Sort string from query params (e.g., '-createdAt', 'label,createdAt')
    * @param defaultSort - Default sort object
-   * @returns MongoDB sort object
+   * @returns sort object
    *
    * @example
    * // Descending sort

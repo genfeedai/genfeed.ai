@@ -65,13 +65,11 @@ export class RolesController {
   async findAll(@Req() request: Request, @Query() _query: BaseQueryDto) {
     try {
       const data = await this.rolesService.findAll(
-        [
-          {
-            $match: {
-              isDeleted: false,
-            },
+        {
+          where: {
+            isDeleted: false,
           },
-        ],
+        },
         {
           pagination: false,
         },

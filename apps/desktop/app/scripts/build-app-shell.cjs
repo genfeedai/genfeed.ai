@@ -6,7 +6,7 @@ const path = require('node:path');
 const desktopRoot = path.resolve(__dirname, '..');
 const appRoot = path.resolve(desktopRoot, '../../app');
 const apiEndpoint =
-  process.env.GENFEED_DESKTOP_API_URL || 'http://localhost:3010/v1';
+  process.env.GENFEED_DESKTOP_API_URL || 'https://api.genfeed.ai/v1';
 const apiBaseUrl = apiEndpoint.replace(/\/v1\/?$/, '');
 
 const child = spawn('bunx', ['next', 'build'], {

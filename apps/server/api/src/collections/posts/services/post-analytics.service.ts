@@ -197,7 +197,7 @@ export class PostAnalyticsService extends BaseService<
       totalViews: number;
     }>;
 
-    // Group in-memory (replaces MongoDB $group aggregation)
+    // Group in memory
     const platformMap = new Map<
       string,
       {

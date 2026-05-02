@@ -8,6 +8,11 @@ interface FeatureFlagContextValue {
   isReady: boolean;
 }
 
+interface ParsedFeatureFlagDefaults {
+  flags: Record<string, unknown>;
+  isConfigured: boolean;
+}
+
 const FeatureFlagContext = createContext<FeatureFlagContextValue>({
   flags: {},
   isConfigured: false,
@@ -21,19 +26,28 @@ export interface FeatureFlagProviderProps {
 
 export function FeatureFlagProvider({
   children,
-  defaults = parseFeatureFlagDefaults(
-    process.env.NEXT_PUBLIC_FEATURE_FLAG_DEFAULTS,
-  ),
+  defaults,
 }: FeatureFlagProviderProps) {
-  const isConfigured = Object.keys(defaults).length > 0;
+  const resolvedDefaults = useMemo<ParsedFeatureFlagDefaults>(
+    () =>
+      defaults === undefined
+        ? parseFeatureFlagDefaults(
+            process.env.NEXT_PUBLIC_FEATURE_FLAG_DEFAULTS,
+          )
+        : {
+            flags: defaults,
+            isConfigured: Object.keys(defaults).length > 0,
+          },
+    [defaults],
+  );
 
   const value = useMemo<FeatureFlagContextValue>(
     () => ({
-      flags: defaults,
-      isConfigured,
+      flags: resolvedDefaults.flags,
+      isConfigured: resolvedDefaults.isConfigured,
       isReady: true,
     }),
-    [defaults, isConfigured],
+    [resolvedDefaults],
   );
 
   return (
@@ -49,9 +63,9 @@ export function useFeatureFlagContext(): FeatureFlagContextValue {
 
 function parseFeatureFlagDefaults(
   rawDefaults: string | undefined,
-): Record<string, unknown> {
+): ParsedFeatureFlagDefaults {
   if (!rawDefaults) {
-    return {};
+    return { flags: {}, isConfigured: false };
   }
 
   try {
@@ -63,8 +77,11 @@ function parseFeatureFlagDefaults(
       );
     }
 
-    return parsed as Record<string, unknown>;
+    return {
+      flags: parsed as Record<string, unknown>,
+      isConfigured: true,
+    };
   } catch {
-    return {};
+    return { flags: {}, isConfigured: true };
   }
 }

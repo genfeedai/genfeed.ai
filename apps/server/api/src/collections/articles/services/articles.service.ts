@@ -348,7 +348,7 @@ export class ArticlesService extends BaseService<
   protected getPopulationForContext(
     _context: 'list' | 'detail' | 'minimal' | 'create' = 'minimal',
   ): PopulateOption[] {
-    return [];
+    return { where: {} };
   }
 
   @HandleErrors('create article', 'articles')
@@ -1002,10 +1002,13 @@ export class ArticlesService extends BaseService<
         };
       }
 
-      // Get all prompts for this article - TODO: migrate findAll pipeline to Prisma
-      const promptsResult = await this.promptsService.findAll([], {
-        pagination: false,
-      });
+      // Get all prompts for this article - TODO: migrate findAll query to Prisma
+      const promptsResult = await this.promptsService.findAll(
+        { where: {} },
+        {
+          pagination: false,
+        },
+      );
       const prompts = promptsResult.docs.filter(
         (p: Record<string, unknown>) =>
           p.articleId === articleId &&
@@ -1498,7 +1501,7 @@ export class ArticlesService extends BaseService<
     const [users, orgs] = await Promise.all([
       this.usersService && userIds.length > 0
         ? this.usersService
-            .findAll([], { pagination: false })
+            .findAll({ where: {} }, { pagination: false })
             .then((result) =>
               result.docs.filter((u: Record<string, unknown>) =>
                 userIds.includes(String(u.id ?? u._id)),
@@ -1507,7 +1510,7 @@ export class ArticlesService extends BaseService<
         : Promise.resolve([]),
       this.organizationsService && orgIds.length > 0
         ? this.organizationsService
-            .findAll([], { pagination: false })
+            .findAll({ where: {} }, { pagination: false })
             .then((result) =>
               result.docs.filter((o: Record<string, unknown>) =>
                 orgIds.includes(String(o.id ?? o._id)),

@@ -1,7 +1,7 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsArray,
-  IsMongoId,
   IsOptional,
   IsString,
   IsUrl,
@@ -21,7 +21,7 @@ export class GenerateBrandVoiceDto {
   })
   url?: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiPropertyOptional({
     description: 'Existing brand ID to use stored data for voice generation',

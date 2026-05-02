@@ -314,6 +314,34 @@ describe('AgentThreadList', () => {
     expect(threadLink?.parentElement).toHaveClass('h-9');
   });
 
+  it('uses the provided route base path for full-page agent routes', async () => {
+    const thread = createThread('conv-1', 'Agent thread');
+    const onNavigate = vi.fn();
+    const apiService = createApiService({
+      getThreads: vi.fn().mockResolvedValue([thread]),
+      unarchiveThread: vi.fn(),
+    });
+
+    render(
+      <AgentThreadList
+        apiService={apiService as never}
+        onNavigate={onNavigate}
+        routeBasePath="/agent"
+      />,
+    );
+
+    await screen.findByText('Agent thread');
+
+    const threadLink = screen.getByText('Agent thread').closest('a');
+    expect(threadLink).toHaveAttribute('href', '/agent/conv-1');
+
+    fireEvent.click(screen.getByText('Agent thread'));
+
+    await waitFor(() => {
+      expect(onNavigate).toHaveBeenCalledWith('/agent/conv-1');
+    });
+  });
+
   it('clears the active thread and navigates away when archived', async () => {
     const thread = createThread('conv-1', 'Current chat');
     storeState.activeThreadId = 'conv-1';

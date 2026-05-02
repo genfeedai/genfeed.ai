@@ -73,9 +73,14 @@ describe('CronByokBillingService', () => {
     await service.processMonthlyByokBilling();
 
     expect(organizationSettingsService.findAll).toHaveBeenCalledWith(
-      expect.arrayContaining([
-        expect.objectContaining({ $match: expect.any(Object) }),
-      ]),
+      expect.objectContaining({
+        where: expect.objectContaining({
+          byokBillingStatus: expect.objectContaining({
+            not: ByokBillingStatus.SUSPENDED,
+          }),
+          subscriptionTier: SubscriptionTier.BYOK,
+        }),
+      }),
       { pagination: false },
     );
     expect(byokBillingService.createByokInvoice).toHaveBeenCalledTimes(2);

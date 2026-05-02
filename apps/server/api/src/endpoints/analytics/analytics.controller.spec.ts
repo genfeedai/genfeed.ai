@@ -239,14 +239,14 @@ describe('AnalyticsController', () => {
       expect(ingredientsService.findAll.mock.calls[0][0]).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            $match: { category: IngredientCategory.VIDEO },
+            match: { category: IngredientCategory.VIDEO },
           }),
         ]),
       );
       expect(ingredientsService.findAll.mock.calls[1][0]).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            $match: { category: IngredientCategory.IMAGE },
+            match: { category: IngredientCategory.IMAGE },
           }),
         ]),
       );

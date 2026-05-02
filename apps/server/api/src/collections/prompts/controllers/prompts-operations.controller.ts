@@ -35,6 +35,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
@@ -72,11 +73,6 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Request } from 'express';
-
-const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
-function isValidObjectId(id: unknown): id is string {
-  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
-}
 
 interface UploadedBinaryFile {
   buffer: Buffer;
@@ -132,10 +128,10 @@ export class PromptsOperationsController {
     const publicMetadata = getPublicMetadata(user);
 
     let selectedBrand: BrandDocument | undefined;
-    if (isValidObjectId(createParsePromptDto.brand)) {
+    if (isEntityId(createParsePromptDto.brand)) {
       const brand = await this.brandsService.findOne({
         _id: createParsePromptDto.brand,
-        $or: [
+        OR: [
           { user: publicMetadata.user },
           { organization: publicMetadata.organization },
         ],
@@ -186,7 +182,7 @@ export class PromptsOperationsController {
     }
 
     let selectedBrand: BrandDocument | undefined;
-    if (isValidObjectId(prompt.brand)) {
+    if (isEntityId(prompt.brand)) {
       const brand = await this.brandsService.findOne({
         _id: prompt.brand,
         isDeleted: false,
@@ -262,9 +258,7 @@ export class PromptsOperationsController {
     // Create activity for prompt remix start
     const activity = await this.activitiesService.create(
       new ActivityEntity({
-        brand: isValidObjectId(prompt.brand)
-          ? prompt.brand
-          : publicMetadata.brand,
+        brand: isEntityId(prompt.brand) ? prompt.brand : publicMetadata.brand,
         key: ActivityKey.PROMPT_REMIX_PROCESSING,
         organization: publicMetadata.organization,
         source: ActivitySource.PROMPT_REMIX,
@@ -410,7 +404,7 @@ export class PromptsOperationsController {
     }
 
     let selectedBrand: BrandDocument | undefined;
-    if (isValidObjectId(prompt.brand)) {
+    if (isEntityId(prompt.brand)) {
       const brand = await this.brandsService.findOne({
         _id: prompt.brand,
         isDeleted: false,
@@ -430,9 +424,7 @@ export class PromptsOperationsController {
     // Create activity for prompt enhance start
     const activity = await this.activitiesService.create(
       new ActivityEntity({
-        brand: isValidObjectId(prompt.brand)
-          ? prompt.brand
-          : publicMetadata.brand,
+        brand: isEntityId(prompt.brand) ? prompt.brand : publicMetadata.brand,
         key: ActivityKey.PROMPT_ENHANCE_PROCESSING,
         organization: publicMetadata.organization,
         source: ActivitySource.PROMPT_ENHANCEMENT,

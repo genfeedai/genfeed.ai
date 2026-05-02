@@ -2004,7 +2004,7 @@ export class AgentToolExecutorService {
         .filter(Boolean);
     }
 
-    return [];
+    return { where: {} };
   }
 
   private async resolveTargetBrand(
@@ -2242,26 +2242,12 @@ export class AgentToolExecutorService {
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
     const brands = await this.brandsService.findAll(
-      [
-        {
-          $match: {
-            isDeleted: false,
-            organization: ctx.organizationId,
-          },
+      {
+        where: {
+          isDeleted: false,
+          organization: ctx.organizationId,
         },
-        { $limit: 50 },
-        {
-          $project: {
-            _id: 1,
-            description: 1,
-            handle: 1,
-            isActive: 1,
-            label: 1,
-            name: 1,
-            text: 1,
-          },
-        },
-      ],
+      },
       {},
     );
 
@@ -2736,22 +2722,7 @@ export class AgentToolExecutorService {
     }
 
     const posts = await this.postsService.findAll(
-      [
-        { $match: matchStage },
-        { $sort: { createdAt: -1 } },
-        { $limit: limit },
-        {
-          $project: {
-            _id: 1,
-            createdAt: 1,
-            description: { $substr: ['$description', 0, 200] },
-            label: 1,
-            platform: 1,
-            scheduledDate: 1,
-            status: 1,
-          },
-        },
-      ],
+      { where: matchStage, orderBy: { createdAt: -1 } },
       {},
     );
 
@@ -2784,26 +2755,13 @@ export class AgentToolExecutorService {
     const limit = (params.limit as number) || 10;
 
     const workflows = await this.workflowsService.findAll(
-      [
-        {
-          $match: {
-            isDeleted: false,
-            organization: ctx.organizationId,
-          },
+      {
+        where: {
+          isDeleted: false,
+          organization: ctx.organizationId,
         },
-        { $sort: { updatedAt: -1 } },
-        { $limit: limit },
-        {
-          $project: {
-            _id: 1,
-            createdAt: 1,
-            description: 1,
-            name: 1,
-            status: 1,
-            updatedAt: 1,
-          },
-        },
-      ],
+        orderBy: { updatedAt: -1 },
+      },
       {},
     );
 
@@ -2855,7 +2813,7 @@ export class AgentToolExecutorService {
 
   private normalizePlatforms(value: unknown): string[] {
     if (!Array.isArray(value)) {
-      return [];
+      return { where: {} };
     }
 
     return Array.from(
@@ -2891,7 +2849,7 @@ export class AgentToolExecutorService {
     platforms?: string[];
   }): Promise<Array<Record<string, unknown>>> {
     if (!this.credentialsService || !params.brandId) {
-      return [];
+      return { where: {} };
     }
 
     const filter: Record<string, unknown> = {
@@ -2902,7 +2860,7 @@ export class AgentToolExecutorService {
     };
 
     if (params.platforms && params.platforms.length > 0) {
-      filter.platform = { $in: params.platforms };
+      filter.platform = { in: params.platforms };
     }
 
     return (await this.credentialsService.find(filter)) as unknown as Array<
@@ -3033,25 +2991,20 @@ export class AgentToolExecutorService {
     organizationId: string,
   ): Promise<Record<string, unknown> | null> {
     const results = await this.postsService.findAll(
-      [
-        {
-          $match: {
-            ingredients: ingredientId,
-            isDeleted: false,
-            organization: organizationId,
-            status: {
-              $in: [PostStatus.PUBLIC, PostStatus.PRIVATE, PostStatus.UNLISTED],
-            },
+      {
+        where: {
+          ingredients: ingredientId,
+          isDeleted: false,
+          organization: organizationId,
+          status: {
+            in: [PostStatus.PUBLIC, PostStatus.PRIVATE, PostStatus.UNLISTED],
           },
         },
-        {
-          $sort: {
-            createdAt: -1,
-            publicationDate: -1,
-          },
+        orderBy: {
+          createdAt: -1,
+          publicationDate: -1,
         },
-        { $limit: 1 },
-      ],
+      },
       { pagination: false },
     );
 
@@ -6992,29 +6945,15 @@ export class AgentToolExecutorService {
 
     // Get published posts from the period
     const posts = await this.postsService.findAll(
-      [
-        {
-          $match: {
-            createdAt: { $gte: startDate, $lte: endDate },
-            isDeleted: false,
-            organization: ctx.organizationId,
-            status: PostStatus.PUBLIC,
-          },
+      {
+        where: {
+          createdAt: { gte: startDate, lte: endDate },
+          isDeleted: false,
+          organization: ctx.organizationId,
+          status: PostStatus.PUBLIC,
         },
-        { $sort: { createdAt: -1 } },
-        { $limit: 100 },
-        {
-          $project: {
-            _id: 1,
-            createdAt: 1,
-            description: { $substr: ['$description', 0, 100] },
-            engagement: 1,
-            impressions: 1,
-            likes: 1,
-            platform: 1,
-          },
-        },
-      ],
+        orderBy: { createdAt: -1 },
+      },
       {},
     );
 
@@ -7066,29 +7005,17 @@ export class AgentToolExecutorService {
 
     // Get scheduled and draft posts for the coming week
     const posts = await this.postsService.findAll(
-      [
-        {
-          $match: {
-            $or: [
-              { scheduledDate: { $gte: now, $lte: endDate } },
-              { status: PostStatus.DRAFT },
-            ],
-            isDeleted: false,
-            organization: ctx.organizationId,
-          },
+      {
+        where: {
+          OR: [
+            { scheduledDate: { gte: now, lte: endDate } },
+            { status: PostStatus.DRAFT },
+          ],
+          isDeleted: false,
+          organization: ctx.organizationId,
         },
-        { $sort: { createdAt: -1, scheduledDate: 1 } },
-        { $limit: 50 },
-        {
-          $project: {
-            _id: 1,
-            description: { $substr: ['$description', 0, 100] },
-            platform: 1,
-            scheduledDate: 1,
-            status: 1,
-          },
-        },
-      ],
+        orderBy: { createdAt: -1, scheduledDate: 1 },
+      },
       {},
     );
 
@@ -7504,7 +7431,7 @@ export class AgentToolExecutorService {
     }
 
     const baseFilters: Record<string, unknown> = {
-      category: { $in: categoryFilter },
+      category: { in: categoryFilter },
       status: IngredientStatus.GENERATED,
     };
 
@@ -7626,17 +7553,13 @@ export class AgentToolExecutorService {
     const limit = Math.min((params.limit as number) || 5, 5);
 
     const workflows = await this.workflowsService.findAll(
-      [
-        {
-          $match: {
-            isDeleted: false,
-            organization: ctx.organizationId,
-          },
+      {
+        where: {
+          isDeleted: false,
+          organization: ctx.organizationId,
         },
-        { $sort: { updatedAt: -1 } },
-        { $limit: limit },
-        { $project: { _id: 1, description: 1, name: 1, status: 1 } },
-      ],
+        orderBy: { updatedAt: -1 },
+      },
       {},
     );
 
@@ -7694,26 +7617,15 @@ export class AgentToolExecutorService {
 
     const clonedVoices = this.voicesService
       ? await this.voicesService.findAll(
-          [
-            {
-              $match: {
-                isCloned: true,
-                isDeleted: false,
-                organization: ctx.organizationId,
-                type: 'voice',
-              },
+          {
+            where: {
+              isCloned: true,
+              isDeleted: false,
+              organization: ctx.organizationId,
+              type: 'voice',
             },
-            { $sort: { createdAt: -1 } },
-            {
-              $project: {
-                _id: 1,
-                cloneStatus: 1,
-                metadataLabel: 1,
-                provider: 1,
-              },
-            },
-            { $limit: 20 },
-          ],
+            orderBy: { createdAt: -1 },
+          },
           {},
         )
       : { docs: [] };
@@ -7813,17 +7725,13 @@ export class AgentToolExecutorService {
     const mergeGeneratedVideos = Boolean(params.mergeGeneratedVideos ?? true);
 
     const workflows = await this.workflowsService.findAll(
-      [
-        {
-          $match: {
-            isDeleted: false,
-            organization: ctx.organizationId,
-          },
+      {
+        where: {
+          isDeleted: false,
+          organization: ctx.organizationId,
         },
-        { $sort: { updatedAt: -1 } },
-        { $limit: 5 },
-        { $project: { _id: 1, description: 1, name: 1, status: 1 } },
-      ],
+        orderBy: { updatedAt: -1 },
+      },
       {},
     );
 
@@ -8290,9 +8198,9 @@ export class AgentToolExecutorService {
         );
         await this.votesService.patchAll(
           {
-            _id: existingVoteId,
+            OR: [{ id: existingVoteId }, { mongoId: existingVoteId }],
           },
-          { $set: { isDeleted: true } },
+          { isDeleted: true },
         );
 
         return {

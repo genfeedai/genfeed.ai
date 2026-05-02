@@ -345,13 +345,10 @@ export class PostsController extends BaseCRUDController<
   }
 
   /**
-   * Override buildFindAllPipeline for custom Posts aggregation
+   * Override buildFindAllQuery for custom Posts aggregation
    * Includes ingredients array with metadata and credential lookups
    */
-  public buildFindAllPipeline(
-    user: User,
-    query: PostsQueryDto,
-  ): Record<string, unknown>[] {
+  public buildFindAllQuery(user: User, query: PostsQueryDto) {
     const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
 
@@ -366,14 +363,14 @@ export class PostsController extends BaseCRUDController<
 
       if (query.startDate) {
         // @ts-expect-error TS2571
-        (dateFilter as Record<string, unknown>).scheduledDate.$gte = new Date(
+        (dateFilter as Record<string, unknown>).scheduledDate.gte = new Date(
           query.startDate,
         );
       }
 
       if (query.endDate) {
         // @ts-expect-error TS2571
-        (dateFilter as Record<string, unknown>).scheduledDate.$lte = new Date(
+        (dateFilter as Record<string, unknown>).scheduledDate.lte = new Date(
           query.endDate,
         );
       }
@@ -386,7 +383,7 @@ export class PostsController extends BaseCRUDController<
       ...dateFilter,
       // Only show parent posts (not children/replies)
       // Handle both null and undefined (undefined fields aren't stored in MongoDB)
-      $or: [{ parent: null }, { parent: { $exists: false } }],
+      OR: [{ parent: null }, { parent: { not: false } }],
     };
 
     if (query.platform) {
@@ -401,145 +398,7 @@ export class PostsController extends BaseCRUDController<
       matchFilter.credential = query.credential;
     }
 
-    return [
-      {
-        $match: matchFilter,
-      },
-      // lookup ingredients array with metadata
-      {
-        $lookup: {
-          as: 'ingredients',
-          foreignField: '_id',
-          from: 'ingredients',
-          localField: 'ingredients',
-          pipeline: [
-            {
-              $lookup: {
-                as: 'metadata',
-                foreignField: '_id',
-                from: 'metadata',
-                localField: 'metadata',
-              },
-            },
-            {
-              $unwind: {
-                path: '$metadata',
-                preserveNullAndEmptyArrays: true,
-              },
-            },
-          ],
-        },
-      },
-      {
-        $lookup: {
-          as: 'credential',
-          foreignField: '_id',
-          from: 'credentials',
-          localField: 'credential',
-        },
-      },
-      {
-        $unwind: {
-          path: '$credential',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      // Lookup post-analytics to get KPIs (views, likes, comments, etc.)
-      {
-        $lookup: {
-          as: 'analyticsData',
-          foreignField: 'post',
-          from: 'post-analytics',
-          localField: '_id',
-          pipeline: [
-            {
-              $group: {
-                _id: null,
-                avgEngagementRate: { $avg: '$avgEngagementRate' },
-                totalComments: { $sum: '$totalComments' },
-                totalLikes: { $sum: '$totalLikes' },
-                totalSaves: { $sum: '$totalSaves' },
-                totalShares: { $sum: '$totalShares' },
-                totalViews: { $sum: '$totalViews' },
-              },
-            },
-          ] as Record<string, unknown>[],
-        },
-      },
-      // Flatten analytics data to top level
-      {
-        $addFields: {
-          avgEngagementRate: {
-            $ifNull: [
-              { $arrayElemAt: ['$analyticsData.avgEngagementRate', 0] },
-              0,
-            ],
-          },
-          totalComments: {
-            $ifNull: [{ $arrayElemAt: ['$analyticsData.totalComments', 0] }, 0],
-          },
-          totalLikes: {
-            $ifNull: [{ $arrayElemAt: ['$analyticsData.totalLikes', 0] }, 0],
-          },
-          totalSaves: {
-            $ifNull: [{ $arrayElemAt: ['$analyticsData.totalSaves', 0] }, 0],
-          },
-          totalShares: {
-            $ifNull: [{ $arrayElemAt: ['$analyticsData.totalShares', 0] }, 0],
-          },
-          totalViews: {
-            $ifNull: [{ $arrayElemAt: ['$analyticsData.totalViews', 0] }, 0],
-          },
-        },
-      },
-      // Remove the temporary analyticsData array
-      {
-        $project: {
-          analyticsData: 0,
-        },
-      },
-      // Lookup latest COMPLETED evaluation for each post
-      {
-        $lookup: {
-          as: 'evaluationData',
-          from: 'evaluations',
-          let: { postId: '$_id' },
-          pipeline: [
-            {
-              $match: {
-                $expr: { $eq: ['$content', '$$postId'] },
-                contentType: 'post',
-                isDeleted: false,
-                status: 'COMPLETED',
-              },
-            },
-            { $sort: { updatedAt: -1 } },
-            { $limit: 1 },
-            { $project: { overallScore: 1 } },
-          ],
-        },
-      },
-      // Flatten evaluation score to top level
-      {
-        $addFields: {
-          evalScore: {
-            $ifNull: [
-              { $arrayElemAt: ['$evaluationData.overallScore', 0] },
-              null,
-            ],
-          },
-        },
-      },
-      // Remove the temporary evaluationData array
-      {
-        $project: {
-          evaluationData: 0,
-        },
-      },
-      {
-        $sort: handleQuerySort(query.sort),
-      },
-    ];
+    return { where: matchFilter, orderBy: handleQuerySort(query.sort) };
   }
 
   @Get()
@@ -554,7 +413,7 @@ export class PostsController extends BaseCRUDController<
       customLabels,
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
-    const aggregate = this.buildFindAllPipeline(user, query);
+    const aggregate = this.buildFindAllQuery(user, query);
     const data = await this.postsService.findAll(aggregate, options);
     return serializeCollection(request, PostListSerializer, data);
   }
@@ -568,84 +427,13 @@ export class PostsController extends BaseCRUDController<
   ): Promise<JsonApiSingleResponse> {
     const publicMetadata = getPublicMetadata(user);
 
-    // Build aggregation pipeline to fetch post with ingredients, credential, and evaluation
-    const pipeline: Record<string, unknown>[] = [
-      {
-        $match: {
-          _id: postId,
-          isDeleted: false,
-        },
+    // Build findAll query to fetch post with ingredients, credential, and evaluation
+    const pipeline = {
+      where: {
+        _id: postId,
+        isDeleted: false,
       },
-      // Lookup ingredients array with metadata
-      {
-        $lookup: {
-          as: 'ingredients',
-          foreignField: '_id',
-          from: 'ingredients',
-          localField: 'ingredients',
-          pipeline: [
-            {
-              $lookup: {
-                as: 'metadata',
-                foreignField: '_id',
-                from: 'metadata',
-                localField: 'metadata',
-              },
-            },
-            {
-              $unwind: {
-                path: '$metadata',
-                preserveNullAndEmptyArrays: true,
-              },
-            },
-          ],
-        },
-      },
-      // Lookup credential
-      {
-        $lookup: {
-          as: 'credential',
-          foreignField: '_id',
-          from: 'credentials',
-          localField: 'credential',
-        },
-      },
-      {
-        $unwind: {
-          path: '$credential',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      // Lookup latest COMPLETED evaluation for this post (full document)
-      {
-        $lookup: {
-          as: 'evaluation',
-          from: 'evaluations',
-          let: { postId: '$_id' },
-          pipeline: [
-            {
-              $match: {
-                $expr: { $eq: ['$content', '$$postId'] },
-                contentType: 'post',
-                isDeleted: false,
-                status: 'COMPLETED',
-              },
-            },
-            { $sort: { updatedAt: -1 } },
-            { $limit: 1 },
-            // NO $project - include full evaluation document
-          ],
-        },
-      },
-      // Flatten evaluation to single object (or null)
-      {
-        $addFields: {
-          evaluation: {
-            $ifNull: [{ $arrayElemAt: ['$evaluation', 0] }, null],
-          },
-        },
-      },
-    ];
+    };
 
     // Execute aggregation using service method
     const result = await this.postsService.findAll(pipeline, {

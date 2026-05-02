@@ -118,6 +118,7 @@ type AgentPanelProps = {
 type AgentThreadListProps = {
   apiService: AgentApiService;
   isActive?: boolean;
+  routeBasePath?: '/agent' | '/chat';
   onActionsChange?: (actions: ReactNode) => void;
   onNavigate?: (path: string) => void;
 };
@@ -166,9 +167,11 @@ function AgentThreadCommandsBridge({
 }
 
 function ChatSidebarContent({
+  conversationBasePath,
   conversationActions,
   renderConversations,
 }: {
+  conversationBasePath: '/agent' | '/chat';
   conversationActions: ReactNode;
   renderConversations: () => ReactNode;
 }) {
@@ -188,7 +191,7 @@ function ChatSidebarContent({
 
         <div className="pb-1">
           <Link
-            href={orgHref('/chat/new')}
+            href={orgHref(`${conversationBasePath}/new`)}
             className="flex h-9 w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-white/80 transition-colors duration-200 group cursor-pointer hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
           >
             <HiPlus className="h-4 w-4 text-white/80 group-hover:text-white" />
@@ -226,6 +229,8 @@ function AppLayoutWithDynamicMenu({
     [rawPathname],
   );
   const isChatRoute = /^\/chat(?:\/|$)/.test(pathname);
+  const isAgentRoute = /^\/agent(?:\/|$)/.test(pathname);
+  const isConversationRoute = isChatRoute || isAgentRoute;
   const isAdminRoute = pathname === '/admin' || pathname.startsWith('/admin/');
   const isFocusedOnboardingRoute = pathname.startsWith('/chat/onboarding');
   const isComposeRoute = pathname.startsWith(COMPOSE_ROUTES.ROOT);
@@ -246,7 +251,9 @@ function AppLayoutWithDynamicMenu({
   const isOrgRoute = (() => {
     const parts = rawPathname.split('/').filter(Boolean);
     return (
-      parts[1] === '~' && !pathname.startsWith('/settings') && !isChatRoute
+      parts[1] === '~' &&
+      !pathname.startsWith('/settings') &&
+      !isConversationRoute
     );
   })();
   const isSettingsRoute = pathname.startsWith('/settings');
@@ -276,10 +283,13 @@ function AppLayoutWithDynamicMenu({
               ? 'editor'
               : isAnalyticsRoute
                 ? 'analytics'
-                : 'workspace';
+                : isAgentRoute
+                  ? 'agent'
+                  : 'workspace';
 
-  const shouldMountAgentPanel = !isEditorCanvasRoute && !isChatRoute;
-  const shouldInitAgentApiService = shouldMountAgentPanel || isChatRoute;
+  const shouldMountAgentPanel = !isEditorCanvasRoute && !isConversationRoute;
+  const shouldInitAgentApiService =
+    shouldMountAgentPanel || isConversationRoute;
 
   const router = useRouter();
   const { getToken, isSignedIn } = useOptionalAuth();
@@ -560,11 +570,12 @@ function AppLayoutWithDynamicMenu({
       agentApiService ? (
         <LazyAgentThreadList
           apiService={agentApiService}
+          routeBasePath={isAgentRoute ? '/agent' : '/chat'}
           onNavigate={handleNavigate}
           onActionsChange={setConversationActions}
         />
       ) : null,
-    [agentApiService, handleNavigate],
+    [agentApiService, handleNavigate, isAgentRoute],
   );
 
   const menuComponent = useMemo(() => {
@@ -693,16 +704,16 @@ function AppLayoutWithDynamicMenu({
 
     return (
       <AppSidebar
-        items={isChatRoute ? [] : menuItems}
+        items={isConversationRoute ? [] : menuItems}
         logoHref={withTaskContextHref(
           buildHref(APP_LOGO_HREF),
           taskContextSearchParams,
         )}
         sectionLabel={undefined}
-        collapsedSidebarWidth={isChatRoute ? undefined : 64}
-        mobileSidebarWidth={isChatRoute ? undefined : 304}
+        collapsedSidebarWidth={isConversationRoute ? undefined : 64}
+        mobileSidebarWidth={isConversationRoute ? undefined : 304}
         renderTopSlot={
-          isChatRoute
+          isConversationRoute
             ? undefined
             : () => (
                 <>
@@ -717,20 +728,21 @@ function AppLayoutWithDynamicMenu({
                 </>
               )
         }
-        secondaryItems={isChatRoute ? undefined : secondaryMenuItems}
+        secondaryItems={isConversationRoute ? undefined : secondaryMenuItems}
         renderBody={
-          isChatRoute
+          isConversationRoute
             ? () => (
                 <ChatSidebarContent
+                  conversationBasePath={isAgentRoute ? '/agent' : '/chat'}
                   conversationActions={conversationActions}
                   renderConversations={renderConversations}
                 />
               )
             : undefined
         }
-        shellMode={isChatRoute ? 'default' : 'workspace'}
-        showPrimaryItems={!isChatRoute}
-        sidebarWidth={isChatRoute ? undefined : 304}
+        shellMode={isConversationRoute ? 'default' : 'workspace'}
+        showPrimaryItems={!isConversationRoute}
+        sidebarWidth={isConversationRoute ? undefined : 304}
         shellChromeVariant={shellChromeVariant}
       />
     );
@@ -753,7 +765,8 @@ function AppLayoutWithDynamicMenu({
     isWorkflowsRoute,
     renderConversations,
     isFocusedOnboardingRoute,
-    isChatRoute,
+    isAgentRoute,
+    isConversationRoute,
     orgMenuItems,
     shellChromeVariant,
     secondaryMenuItems,
@@ -814,7 +827,9 @@ function AppLayoutWithDynamicMenu({
         <StreakNotificationsBridge initialStreak={initialBootstrap?.streak} />
       ) : null}
       <CommandPaletteProvider>
-        {!isFocusedOnboardingRoute && !isEditorCanvasRoute && isChatRoute ? (
+        {!isFocusedOnboardingRoute &&
+        !isEditorCanvasRoute &&
+        isConversationRoute ? (
           <AgentThreadCommandsBridge
             threads={threads}
             enabled

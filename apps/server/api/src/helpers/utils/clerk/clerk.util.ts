@@ -112,7 +112,7 @@ export function extractRequestContext(
  *
  * @param ctx - Request context
  * @param options - Optional flags to include user/brand filters
- * @returns MongoDB filter object
+ * @returns filter object
  * @throws Error if organizationObjectId is undefined
  *
  * @example

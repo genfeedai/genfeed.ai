@@ -53,8 +53,6 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import type { MatchConditions } from '@api/shared/utils/pipeline-builder/pipeline-builder.types';
-import { PipelineBuilder } from '@api/shared/utils/pipeline-builder/pipeline-builder.util';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { User } from '@clerk/backend';
 import { MemberRole } from '@genfeedai/enums';
@@ -89,10 +87,9 @@ import {
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 
-const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
-function isValidObjectId(id: unknown): id is string {
-  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
-}
+type MatchConditions = Record<string, unknown>;
+
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 
 @AutoSwagger()
 @ApiTags('organizations')
@@ -130,22 +127,13 @@ export class OrganizationsRelationshipsController {
     };
 
     const publicMetadata = getPublicMetadata(user);
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: {
-          $or: [
-            { user: publicMetadata.user },
-            { organization: organizationId },
-          ],
-          isDeleted,
-        },
+    const aggregate = {
+      where: {
+        OR: [{ user: publicMetadata.user }, { organization: organizationId }],
+        isDeleted,
       },
-      // Lookup brand assets (logo, banner, references, credentials)
-      ...BrandFilterUtil.buildBrandAssetLookups(),
-      {
-        $sort: handleQuerySort(query.sort),
-      },
-    ];
+      orderBy: handleQuerySort(query.sort),
+    };
 
     const data: AggregatePaginateResult<BrandDocument> =
       await this.brandsService.findAll(aggregate, options);
@@ -178,16 +166,13 @@ export class OrganizationsRelationshipsController {
       endDate,
     );
 
-    const pipeline: Record<string, unknown>[] = [
-      {
-        $match: {
-          isConnected: true,
-          isDeleted: false,
-          organization: organizationId,
-        },
+    const pipeline = {
+      where: {
+        isConnected: true,
+        isDeleted: false,
+        organization: organizationId,
       },
-      { $count: 'total' },
-    ];
+    };
 
     // Get total accounts connected (credentials) using pipeline count
     const credentials = await this.credentialsService.findAll(pipeline, {
@@ -381,28 +366,26 @@ export class OrganizationsRelationshipsController {
       ...(statusFilter as MatchConditions),
       ...(query.search
         ? {
-            $or: [
-              { label: { $options: 'i', $regex: query.search } },
-              { description: { $options: 'i', $regex: query.search } },
+            OR: [
+              { label: { mode: 'insensitive', contains: query.search } },
+              { description: { mode: 'insensitive', contains: query.search } },
             ] as MatchConditions[],
           }
         : {}),
       ...(query.category && { category: query.category }),
       ...(query.brand &&
-        isValidObjectId(query.brand) && {
+        isEntityId(query.brand) && {
           brand: query.brand,
         }),
       ...(Object.keys(parentConditions).length > 0 && {
-        $and: [parentConditions as MatchConditions],
+        AND: [parentConditions as MatchConditions],
       }),
     };
 
-    const aggregate = PipelineBuilder.create()
-      .match(matchConditions)
-      .add(...IngredientFilterUtil.buildMetadataLookup())
-      .add(...IngredientFilterUtil.buildFormatFilterStage(query.format))
-      .sort(handleQuerySort(query.sort))
-      .build();
+    const aggregate = {
+      orderBy: handleQuerySort(query.sort),
+      where: matchConditions,
+    };
 
     const data: AggregatePaginateResult<IngredientDocument> =
       await this.ingredientsService.findAll(aggregate, options);
@@ -425,18 +408,14 @@ export class OrganizationsRelationshipsController {
 
     const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: {
-          isDeleted,
-          organization: organizationId,
-          user: publicMetadata.user,
-        },
+    const aggregate = {
+      where: {
+        isDeleted,
+        organization: organizationId,
+        user: publicMetadata.user,
       },
-      {
-        $sort: handleQuerySort(query.sort),
-      },
-    ];
+      orderBy: handleQuerySort(query.sort),
+    };
 
     const data: AggregatePaginateResult<IngredientDocument> =
       await this.videosService.findAll(aggregate, options);
@@ -463,20 +442,17 @@ export class OrganizationsRelationshipsController {
     // 1. Global tags (no organization and no user)
     // 2. Tags for this specific organization
     // 3. Tags for the current user
-    const aggregate = PipelineBuilder.create()
-      .match({
-        $or: [
-          // Global tags (default/system tags)
-          { organization: { $exists: false }, user: { $exists: false } },
-          // Tags for this organization
+    const aggregate = {
+      orderBy: handleQuerySort(query.sort),
+      where: {
+        OR: [
+          { organization: null, user: null },
           { organization: organizationId },
-          // Tags for the current user
           { user: publicMetadata.user },
         ],
         isDeleted,
-      })
-      .sort(handleQuerySort(query.sort))
-      .build();
+      },
+    };
 
     const data: AggregatePaginateResult<TagDocument> =
       await this.tagsService.findAll(aggregate, options);
@@ -529,7 +505,7 @@ export class OrganizationsRelationshipsController {
     const matchFilter: MatchConditions = {
       // Only show parent posts (not children/replies)
       // Handle both null and undefined (undefined fields aren't stored in MongoDB)
-      $or: [{ parent: null }, { parent: { $exists: false } }],
+      OR: [{ parent: null }, { parent: { not: false } }],
       isDeleted,
       organization: organizationId,
     };
@@ -544,105 +520,10 @@ export class OrganizationsRelationshipsController {
       matchFilter.status = query.status;
     }
 
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: matchFilter,
-      },
-      {
-        $lookup: {
-          as: 'ingredients',
-          foreignField: '_id',
-          from: 'ingredients',
-          localField: 'ingredients',
-        },
-      },
-      {
-        $addFields: {
-          ingredients: {
-            $map: {
-              as: 'ing',
-              in: {
-                _id: '$$ing._id',
-                category: '$$ing.category',
-                status: '$$ing.status',
-              },
-              input: '$ingredients',
-            },
-          },
-        },
-      },
-      {
-        $lookup: {
-          as: 'credential',
-          foreignField: '_id',
-          from: 'credentials',
-          localField: 'credential',
-        },
-      },
-      {
-        $unwind: {
-          path: '$credential',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      // Lookup post-analytics to get KPIs (views, likes, comments, etc.)
-      {
-        $lookup: {
-          as: 'analyticsData',
-          foreignField: 'post',
-          from: 'post-analytics',
-          localField: '_id',
-          pipeline: [
-            {
-              $group: {
-                _id: null,
-                avgEngagementRate: { $avg: '$engagementRate' },
-                totalComments: { $sum: '$totalComments' },
-                totalLikes: { $sum: '$totalLikes' },
-                totalSaves: { $sum: '$totalSaves' },
-                totalShares: { $sum: '$totalShares' },
-                totalViews: { $sum: '$totalViews' },
-              },
-            },
-          ],
-        },
-      },
-      // Flatten analytics data to top level
-      {
-        $addFields: {
-          avgEngagementRate: {
-            $ifNull: [
-              { $arrayElemAt: ['$analyticsData.avgEngagementRate', 0] },
-              0,
-            ],
-          },
-          totalComments: {
-            $ifNull: [{ $arrayElemAt: ['$analyticsData.totalComments', 0] }, 0],
-          },
-          totalLikes: {
-            $ifNull: [{ $arrayElemAt: ['$analyticsData.totalLikes', 0] }, 0],
-          },
-          totalSaves: {
-            $ifNull: [{ $arrayElemAt: ['$analyticsData.totalSaves', 0] }, 0],
-          },
-          totalShares: {
-            $ifNull: [{ $arrayElemAt: ['$analyticsData.totalShares', 0] }, 0],
-          },
-          totalViews: {
-            $ifNull: [{ $arrayElemAt: ['$analyticsData.totalViews', 0] }, 0],
-          },
-        },
-      },
-      // Remove the temporary analyticsData array
-      {
-        $project: {
-          analyticsData: 0,
-        },
-      },
-      {
-        $sort: handleQuerySort(query.sort),
-      },
-    ];
+    const aggregate = {
+      where: matchFilter,
+      orderBy: handleQuerySort(query.sort),
+    };
 
     const data: AggregatePaginateResult<PostDocument> =
       await this.postsService.findAll(aggregate, options);
@@ -689,20 +570,15 @@ export class OrganizationsRelationshipsController {
     };
 
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: {
-          isDeleted,
-          organization: organizationId,
-        },
+    const aggregate = {
+      where: {
+        isDeleted,
+        organization: organizationId,
       },
-      ...ActivitiesService.buildEntityLookup(),
-      {
-        $sort: query.sort
-          ? handleQuerySort(query.sort)
-          : ({ createdAt: -1, key: 1, label: 1 } as SortObject),
-      },
-    ];
+      orderBy: query.sort
+        ? handleQuerySort(query.sort)
+        : ({ createdAt: -1, key: 1, label: 1 } as SortObject),
+    };
 
     const data: AggregatePaginateResult<ActivityDocument> =
       await this.activitiesService.findAll(aggregate, options);

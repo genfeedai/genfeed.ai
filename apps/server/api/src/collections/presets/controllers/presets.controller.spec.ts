@@ -75,27 +75,27 @@ describe('PresetsController', () => {
     expect(controller).toBeDefined();
   });
 
-  describe('buildFindAllPipeline', () => {
-    it('should build pipeline with organization filter', () => {
+  describe('buildFindAllQuery', () => {
+    it('should build query with organization filter', () => {
       const query = { category: 'video' };
-      const pipeline = controller.buildFindAllPipeline(mockUser, query, false);
+      const query = controller.buildFindAllQuery(mockUser, query, false);
 
-      expect(pipeline).toBeDefined();
-      expect(Array.isArray(pipeline)).toBe(true);
+      expect(query).toBeDefined();
+      expect(Array.isArray(query)).toBe(true);
     });
 
     it('should filter by category', () => {
       const query = { category: 'image' };
-      const pipeline = controller.buildFindAllPipeline(mockUser, query, false);
+      const query = controller.buildFindAllQuery(mockUser, query, false);
 
-      expect(pipeline).toBeDefined();
+      expect(query).toBeDefined();
     });
 
     it('should filter by active status', () => {
       const query = { isActive: true };
-      const pipeline = controller.buildFindAllPipeline(mockUser, query, false);
+      const query = controller.buildFindAllQuery(mockUser, query, false);
 
-      expect(pipeline).toBeDefined();
+      expect(query).toBeDefined();
     });
   });
 

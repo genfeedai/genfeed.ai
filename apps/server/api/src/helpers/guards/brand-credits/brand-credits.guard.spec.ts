@@ -127,7 +127,7 @@ describe('BrandCreditsGuard', () => {
     expect(brandsService.findAll).toHaveBeenCalledWith(
       [
         {
-          $match: {
+          match: {
             isDeleted: false,
             organization: expect.any(String),
           },

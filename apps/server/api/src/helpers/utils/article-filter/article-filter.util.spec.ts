@@ -15,8 +15,8 @@ describe('ArticleFilterUtil', () => {
       );
       expect(stages).toHaveLength(1);
       expect(stages[0]).toEqual({
-        $match: {
-          status: { $in: [ArticleStatus.DRAFT, ArticleStatus.PROCESSING] },
+        match: {
+          status: { in: [ArticleStatus.DRAFT, ArticleStatus.PROCESSING] },
         },
       });
     });
@@ -26,7 +26,7 @@ describe('ArticleFilterUtil', () => {
         ArticleStatus.PUBLIC,
         ArticleStatus.DRAFT,
       ]);
-      expect(stages[0].$match.status.$in).toEqual(
+      expect(stages[0].match.status.in).toEqual(
         expect.arrayContaining([
           ArticleStatus.DRAFT,
           ArticleStatus.PROCESSING,
@@ -52,15 +52,15 @@ describe('ArticleFilterUtil', () => {
     it('creates regex search across fields', () => {
       const stages = ArticleFilterUtil.buildContentSearchFilter(' marketing ');
       expect(stages).toHaveLength(1);
-      expect(stages[0].$match.$or).toHaveLength(3);
-      expect(stages[0].$match.$or[0].label.$regex).toBe('marketing');
+      expect(stages[0].match.OR).toHaveLength(3);
+      expect(stages[0].match.OR[0].label.contains).toBe('marketing');
     });
   });
 
   describe('buildTagPopulation', () => {
     it('projects default and custom fields', () => {
       const stages = ArticleFilterUtil.buildTagPopulation(['slug']);
-      const projectStage = stages[0].$lookup.pipeline[0].$project;
+      const projectStage = stages[0].relationInclude.pipeline[0].select;
       expect(projectStage).toMatchObject({
         _id: 1,
         backgroundColor: 1,
@@ -90,20 +90,19 @@ describe('ArticleFilterUtil', () => {
         },
       );
 
-      expect(pipeline[0].$match.tags).toBe(tag);
+      expect(pipeline[0].match.tags).toBe(tag);
       expect(
         pipeline.some(
-          (stage) => '$match' in stage && stage.$match?.category === 'blog',
+          (stage) => 'match' in stage && stage.match?.category === 'blog',
         ),
       ).toBe(true);
       expect(
         pipeline.some(
-          (stage) =>
-            '$match' in stage && stage.$match?.scope === 'organization',
+          (stage) => 'match' in stage && stage.match?.scope === 'organization',
         ),
       ).toBe(true);
       const sortStage = pipeline[pipeline.length - 1];
-      expect(sortStage.$sort).toEqual({ label: 1 });
+      expect(sortStage.orderBy).toEqual({ label: 1 });
     });
   });
 });

@@ -169,11 +169,8 @@ describe('TrainingsOperationsController', () => {
       );
 
       const pipelineArg = mockServices.ingredientsService.findAll.mock
-        .calls[0][0] as Array<{ $match?: Record<string, unknown> }>;
-      const matchStage = pipelineArg.find(
-        (s): s is { $match: Record<string, unknown> } => '$match' in s,
-      );
-      expect(matchStage?.$match.category).toBe('source');
+        .calls[0][0] as { where: Record<string, unknown> };
+      expect(pipelineArg.where.category).toBe('source');
     });
   });
 });

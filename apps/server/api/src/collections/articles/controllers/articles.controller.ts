@@ -108,16 +108,13 @@ export class ArticlesController extends BaseCRUDController<
   }
 
   /**
-   * Override buildFindAllPipeline to include organization and brand filtering
+   * Override buildFindAllQuery to include organization and brand filtering
    * Uses ArticleFilterUtil for consistent filtering patterns
    */
-  public buildFindAllPipeline(
-    user: User,
-    query: ArticlesQueryDto,
-  ): Record<string, unknown>[] {
+  public buildFindAllQuery(user: User, query: ArticlesQueryDto) {
     const publicMetadata = getPublicMetadata(user);
 
-    return ArticleFilterUtil.buildArticlePipeline(
+    return ArticleFilterUtil.buildArticlequery(
       {
         category: query.category,
         scope: query.scope,
@@ -150,44 +147,13 @@ export class ArticlesController extends BaseCRUDController<
   ): Promise<JsonApiSingleResponse> {
     const publicMetadata = getPublicMetadata(user);
 
-    // Build aggregation pipeline to fetch article with evaluation
-    const pipeline: Record<string, unknown>[] = [
-      {
-        $match: {
-          _id: articleId,
-          isDeleted: false,
-        },
+    // Build findAll query to fetch article with evaluation
+    const pipeline = {
+      where: {
+        _id: articleId,
+        isDeleted: false,
       },
-      // Lookup latest COMPLETED evaluation for this article (full document)
-      {
-        $lookup: {
-          as: 'evaluation',
-          from: 'evaluations',
-          let: { articleId: '$_id' },
-          pipeline: [
-            {
-              $match: {
-                $expr: { $eq: ['$content', '$$articleId'] },
-                contentType: 'article',
-                isDeleted: false,
-                status: 'COMPLETED',
-              },
-            },
-            { $sort: { updatedAt: -1 } },
-            { $limit: 1 },
-            // NO $project - include full evaluation document
-          ],
-        },
-      },
-      // Flatten evaluation to single object (or null)
-      {
-        $addFields: {
-          evaluation: {
-            $ifNull: [{ $arrayElemAt: ['$evaluation', 0] }, null],
-          },
-        },
-      },
-    ];
+    };
 
     // Execute aggregation using service's findAll method
     const results = await this.articlesService.findAll(pipeline, {
@@ -707,7 +673,7 @@ export class ArticlesController extends BaseCRUDController<
     // Get the article
     const article = await this.articlesService.findOne({
       _id: articleId,
-      $or: [
+      OR: [
         { user: publicMetadata.user },
         { organization: publicMetadata.organization },
       ],
@@ -765,7 +731,7 @@ export class ArticlesController extends BaseCRUDController<
     // Get the article
     const article = await this.articlesService.findOne({
       _id: articleId,
-      $or: [
+      OR: [
         { user: publicMetadata.user },
         { organization: publicMetadata.organization },
       ],

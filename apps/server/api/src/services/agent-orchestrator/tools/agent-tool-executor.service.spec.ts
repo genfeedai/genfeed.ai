@@ -1407,7 +1407,7 @@ describe('AgentToolExecutorService', () => {
     expect(imagesService.findAllByOrganization).toHaveBeenCalledWith(
       '67a123456789012345678901',
       expect.objectContaining({
-        category: expect.objectContaining({ $in: ['image'] }),
+        category: expect.objectContaining({ in: ['image'] }),
       }),
       { createdAt: -1 },
       expect.any(Array),

@@ -15,6 +15,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import type { User } from '@clerk/backend';
 import type {
   JsonApiCollectionResponse,
@@ -32,11 +33,6 @@ import {
   Req,
 } from '@nestjs/common';
 import type { Request } from 'express';
-
-const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
-function isValidObjectId(id: unknown): id is string {
-  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
-}
 
 type SerializableDocument = Record<string, unknown> & {
   _id?: string | { toString(): string };
@@ -130,13 +126,10 @@ export class CreatorsController {
       match.niche = query.niche;
     }
     if (query.tags && query.tags.length > 0) {
-      match.tags = { $in: query.tags };
+      match.tags = { in: query.tags };
     }
 
-    const pipeline: Record<string, unknown>[] = [
-      { $match: match },
-      { $sort: { createdAt: -1 } },
-    ];
+    const pipeline = { where: match, orderBy: { createdAt: -1 } };
 
     const data = await this.contentIntelligenceService.findAll(
       pipeline,
@@ -151,7 +144,7 @@ export class CreatorsController {
     @CurrentUser() user: User,
     @Param('id') id: string,
   ): Promise<JsonApiSingleResponse> {
-    if (!isValidObjectId(id)) {
+    if (!isEntityId(id)) {
       ErrorResponse.notFound('CreatorAnalysis', id);
     }
 
@@ -250,7 +243,7 @@ export class CreatorsController {
     @CurrentUser() user: User,
     @Param('id') id: string,
   ): Promise<JsonApiSingleResponse> {
-    if (!isValidObjectId(id)) {
+    if (!isEntityId(id)) {
       ErrorResponse.notFound('CreatorAnalysis', id);
     }
 
@@ -292,7 +285,7 @@ export class CreatorsController {
     @CurrentUser() user: User,
     @Param('id') id: string,
   ): Promise<JsonApiSingleResponse> {
-    if (!isValidObjectId(id)) {
+    if (!isEntityId(id)) {
       ErrorResponse.notFound('CreatorAnalysis', id);
     }
 

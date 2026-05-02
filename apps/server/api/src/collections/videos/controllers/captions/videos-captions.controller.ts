@@ -20,6 +20,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
@@ -54,11 +55,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
-
-const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
-function isValidObjectId(id: unknown): id is string {
-  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
-}
 
 /**
  * VideosCaption Controller
@@ -114,7 +110,7 @@ export class VideosCaptionsController {
     // Verify video exists and user has access
     const video = await this.videosService.findOne({
       _id: videoId,
-      $or: [
+      OR: [
         { user: publicMetadata.user },
         { organization: publicMetadata.organization },
       ],
@@ -131,43 +127,13 @@ export class VideosCaptionsController {
     };
 
     // Build aggregation pipeline to get captions for this video (ingredient)
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: {
-          ingredient: videoId,
-          isDeleted: false,
-        },
+    const aggregate = {
+      where: {
+        ingredient: videoId,
+        isDeleted: false,
       },
-      {
-        $lookup: {
-          as: 'ingredient',
-          foreignField: '_id',
-          from: 'ingredients',
-          localField: 'ingredient',
-        },
-      },
-      {
-        $unwind: {
-          path: '$ingredient',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $lookup: {
-          as: 'ingredient.metadata',
-          foreignField: '_id',
-          from: 'metadata',
-          localField: 'ingredient.metadata',
-        },
-      },
-      {
-        $unwind: {
-          path: '$ingredient.metadata',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      { $sort: { createdAt: -1 } },
-    ];
+      orderBy: { createdAt: -1 },
+    };
 
     const data = await this.captionsService.findAll(aggregate, options);
     return serializeCollection(request, CaptionSerializer, data);
@@ -191,7 +157,7 @@ export class VideosCaptionsController {
     }
 
     let caption;
-    if (isValidObjectId(createVideoWithCaptionsDto.caption)) {
+    if (isEntityId(createVideoWithCaptionsDto.caption)) {
       caption = await this.captionsService.findOne({
         _id: createVideoWithCaptionsDto.caption,
       });

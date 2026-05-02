@@ -69,7 +69,7 @@ export class IngredientsRelationshipsController {
     const matchStage: Record<string, unknown> = {
       isDeleted,
       parent: ingredientId,
-      training: { $exists: false },
+      training: { not: false },
     };
 
     // Filter by favorite status if provided
@@ -77,14 +77,10 @@ export class IngredientsRelationshipsController {
       matchStage.isFavorite = query.isFavorite;
     }
 
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: matchStage,
-      },
-      {
-        $sort: handleQuerySort(query.sort),
-      },
-    ];
+    const aggregate = {
+      where: matchStage,
+      orderBy: handleQuerySort(query.sort),
+    };
 
     const data: AggregatePaginateResult<IngredientDocument> =
       await this.ingredientsService.findAll(aggregate, options);
@@ -132,18 +128,14 @@ export class IngredientsRelationshipsController {
     };
 
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: {
-          ingredients: ingredientId,
-          isDeleted,
-          organization: ingredient.organization,
-        },
+    const aggregate = {
+      where: {
+        ingredients: ingredientId,
+        isDeleted,
+        organization: ingredient.organization,
       },
-      {
-        $sort: handleQuerySort(query.sort),
-      },
-    ];
+      orderBy: handleQuerySort(query.sort),
+    };
 
     const data: AggregatePaginateResult<unknown> =
       await this.getPostsService().findAll(aggregate, options);

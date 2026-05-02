@@ -75,7 +75,7 @@ export class VotesController {
         isDeleted: false,
         user: publicMetadata.user,
       },
-      { $set: { isDeleted: true } },
+      { isDeleted: true },
     );
   }
 }

@@ -13,7 +13,7 @@ function stubReadyEnv(overrides: Record<string, string> = {}) {
   const env = {
     AWS_ACCESS_KEY_ID: 'test-key',
     AWS_S3_BUCKET: 'test-bucket',
-    DATABASE_URL: 'mongodb://localhost',
+    DATABASE_URL: 'postgresql://localhost/genfeed_test',
     INSTAGRAM_CLIENT_ID: 'ig-id',
     INSTAGRAM_CLIENT_SECRET: 'ig-secret',
     OPENAI_API_KEY: 'sk-test',
@@ -48,7 +48,7 @@ describe('PreflightService', () => {
     service = await buildModule({
       AWS_ACCESS_KEY_ID: 'test-key',
       AWS_S3_BUCKET: 'test-bucket',
-      DATABASE_URL: 'mongodb://localhost',
+      DATABASE_URL: 'postgresql://localhost/genfeed_test',
       INSTAGRAM_CLIENT_ID: 'ig-id',
       INSTAGRAM_CLIENT_SECRET: 'ig-secret',
       OPENAI_API_KEY: 'sk-test',

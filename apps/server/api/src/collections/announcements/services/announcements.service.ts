@@ -31,7 +31,7 @@ export class AnnouncementsService extends BaseService<
    * Get all announcements ordered by newest first (no org filter — global/admin data)
    */
   async getAll(): Promise<AnnouncementDocument[]> {
-    const result = await this.findAll([], { limit: 200, page: 1 });
+    const result = await this.findAll({ where: {} }, { limit: 200, page: 1 });
     return result.docs;
   }
 }

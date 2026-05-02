@@ -1,3 +1,4 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   ContentIntelligencePlatform,
   ContentPatternType,
@@ -7,7 +8,6 @@ import { ApiProperty } from '@nestjs/swagger';
 import {
   IsArray,
   IsEnum,
-  IsMongoId,
   IsNumber,
   IsOptional,
   IsString,
@@ -47,7 +47,7 @@ export class PatternsQueryDto {
   templateCategory?: TemplateCategory;
 
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({
     description: 'Filter by source creator',
     required: false,

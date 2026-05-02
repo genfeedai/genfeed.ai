@@ -1,8 +1,8 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { AgentExecutionTrigger } from '@genfeedai/enums';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsEnum,
-  IsMongoId,
   IsNumber,
   IsObject,
   IsOptional,
@@ -12,11 +12,11 @@ import {
 
 export class CreateAgentRunDto {
   @ApiProperty()
-  @IsMongoId()
+  @IsEntityId()
   organization!: string;
 
   @ApiProperty()
-  @IsMongoId()
+  @IsEntityId()
   user!: string;
 
   @ApiProperty()
@@ -34,7 +34,7 @@ export class CreateAgentRunDto {
 
   @ApiPropertyOptional()
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   strategy?: string;
 
   @ApiPropertyOptional()

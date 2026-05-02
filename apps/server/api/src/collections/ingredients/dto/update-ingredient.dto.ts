@@ -1,12 +1,7 @@
 import { CreateIngredientDto } from '@api/collections/ingredients/dto/create-ingredient.dto';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty, PartialType } from '@nestjs/swagger';
-import {
-  IsBoolean,
-  IsMongoId,
-  IsNumber,
-  IsOptional,
-  IsString,
-} from 'class-validator';
+import { IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class UpdateIngredientDto extends PartialType(CreateIngredientDto) {
   @IsBoolean()
@@ -26,7 +21,7 @@ export class UpdateIngredientDto extends PartialType(CreateIngredientDto) {
   })
   readonly isFavorite?: boolean;
 
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({
     description: 'Reference to the training that uses this ingredient',

@@ -7,7 +7,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import { Queue } from 'bullmq';
 
-export interface ContentPipelineJobData {
+export interface ContentqueryJobData {
   type: 'generate-and-publish' | 'batch-generate';
   config: PipelineConfig | BatchPipelineConfig;
   personaId: string;
@@ -15,10 +15,10 @@ export interface ContentPipelineJobData {
 }
 
 @Injectable()
-export class ContentPipelineQueueService {
+export class ContentqueryQueueService {
   constructor(
     @InjectQueue('content-pipeline')
-    private readonly contentPipelineQueue: Queue,
+    private readonly contentqueryQueue: Queue,
     private readonly logger: LoggerService,
   ) {}
 
@@ -30,14 +30,14 @@ export class ContentPipelineQueueService {
       jobOptions['jobId'] = config.idempotencyKey;
     }
 
-    const job = await this.contentPipelineQueue.add(
+    const job = await this.contentqueryQueue.add(
       'generate-and-publish',
       {
         config,
         organizationId: config.organizationId,
         personaId: config.personaId,
         type: 'generate-and-publish',
-      } satisfies ContentPipelineJobData,
+      } satisfies ContentqueryJobData,
       jobOptions,
     );
 
@@ -52,12 +52,12 @@ export class ContentPipelineQueueService {
   }
 
   async queueBatchGenerate(config: BatchPipelineConfig): Promise<string> {
-    const job = await this.contentPipelineQueue.add('batch-generate', {
+    const job = await this.contentqueryQueue.add('batch-generate', {
       config,
       organizationId: config.organizationId,
       personaId: config.personaId,
       type: 'batch-generate',
-    } satisfies ContentPipelineJobData);
+    } satisfies ContentqueryJobData);
 
     this.logger.log('Queued batch-generate job', {
       count: config.count,
@@ -79,7 +79,7 @@ export class ContentPipelineQueueService {
       createdAt: string;
     }>
   > {
-    const jobs = await this.contentPipelineQueue.getJobs([
+    const jobs = await this.contentqueryQueue.getJobs([
       'active',
       'waiting',
       'delayed',
@@ -89,7 +89,7 @@ export class ContentPipelineQueueService {
 
     return jobs
       .filter((job) => {
-        const data = job.data as ContentPipelineJobData;
+        const data = job.data as ContentqueryJobData;
         return (
           data.personaId === personaId && data.organizationId === organizationId
         );
@@ -100,7 +100,7 @@ export class ContentPipelineQueueService {
         id: job.id!,
         status:
           job.returnvalue?.status ?? (job.failedReason ? 'failed' : 'pending'),
-        type: (job.data as ContentPipelineJobData).type,
+        type: (job.data as ContentqueryJobData).type,
       }));
   }
 }

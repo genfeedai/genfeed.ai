@@ -57,14 +57,12 @@ export class MemberCreditsGuard extends CreditsGuard implements CanActivate {
     }
 
     const activeMembers = await this.membersService.findAll(
-      [
-        {
-          $match: {
-            isDeleted: false,
-            organization: organizationId,
-          },
+      {
+        where: {
+          isDeleted: false,
+          organization: organizationId,
         },
-      ],
+      },
       { pagination: false },
     );
 

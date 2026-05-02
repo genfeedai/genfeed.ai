@@ -106,7 +106,7 @@ export class BotUserResolverService {
       // Find brand by name within the user's organization
       const brand = await this.brandsService.findOne({
         isDeleted: false,
-        label: { $regex: new RegExp(`^${brandName}$`, 'i') },
+        label: { contains: new RegExp(`^${brandName}$`, 'i') },
         organization: resolvedUser.organizationId,
       });
 

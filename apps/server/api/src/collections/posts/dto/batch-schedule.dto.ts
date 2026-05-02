@@ -1,16 +1,16 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsArray,
   IsDateString,
-  IsMongoId,
   IsOptional,
   IsString,
   ValidateNested,
 } from 'class-validator';
 
 export class TweetScheduleItemDto {
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({
     description: 'Post ID to schedule',
     required: true,
@@ -33,7 +33,7 @@ export class TweetScheduleItemDto {
   })
   readonly scheduledDate!: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({
     description: 'Ingredient ID for attached image (optional)',
@@ -63,7 +63,7 @@ export class BatchScheduleDto {
   })
   readonly tweets!: TweetScheduleItemDto[];
 
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({
     description: 'Credential ID (Twitter account) to use for publishing',
     required: true,

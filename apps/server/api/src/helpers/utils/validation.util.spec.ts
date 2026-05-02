@@ -88,13 +88,17 @@ describe('Validation Utils', () => {
   });
 
   describe('validateObjectId', () => {
-    it('should return true for valid MongoDB ObjectIds', () => {
+    it('should return true for valid entity IDs', () => {
       expect(validateObjectId('507f1f77bcf86cd799439011')).toBe(true);
       expect(validateObjectId('507f191e810c19729de860ea')).toBe(true);
       expect(validateObjectId('000000000000000000000000')).toBe(true);
+      expect(validateObjectId('clv2f9w8d000008l4h9a1b2c3')).toBe(true);
+      expect(validateObjectId('550e8400-e29b-41d4-a716-446655440000')).toBe(
+        true,
+      );
     });
 
-    it('should return false for invalid ObjectIds', () => {
+    it('should return false for invalid entity IDs', () => {
       expect(validateObjectId('invalid-id')).toBe(false);
       expect(validateObjectId('507f1f77bcf86cd79943901')).toBe(false); // Too short
       expect(validateObjectId('507f1f77bcf86cd7994390111')).toBe(false); // Too long

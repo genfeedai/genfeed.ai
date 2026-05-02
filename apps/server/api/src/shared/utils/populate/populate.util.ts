@@ -151,11 +151,11 @@ export function getPopulationLevel(
 }
 
 /**
- * Creates a $lookup pipeline to resolve user data from the 'users' collection.
+ * Creates a relationInclude pipeline to resolve user data from the 'users' collection.
  * Use this instead of relation loading when the document lives in a different
  * database than the User record (e.g., CLOUD vs AUTH).
  *
- * All DB connections use the same MongoDB URL, so $lookup works across
+ * All DB connections use the same Prisma datasource, so relationInclude works across
  * collection boundaries even though the models are split by database.
  */
 export function createUserLookupPipeline(
@@ -166,27 +166,11 @@ export function createUserLookupPipeline(
       ? { _id: 1, clerkId: 1, email: 1, firstName: 1, handle: 1, lastName: 1 }
       : {};
 
-  return [
-    {
-      $lookup: {
-        as: '_userDoc',
-        foreignField: '_id',
-        from: 'users',
-        localField: 'user',
-        ...(mode === 'minimal' ? { pipeline: [{ $project: projection }] } : {}),
-      },
-    },
-    {
-      $addFields: {
-        user: { $ifNull: [{ $arrayElemAt: ['$_userDoc', 0] }, '$user'] },
-      },
-    },
-    { $unset: ['_userDoc'] },
-  ];
+  return { where: {} };
 }
 
 /**
- * Creates MongoDB aggregation pipeline stages to lookup model labels
+ * Creates MongoDB findAll query stages to lookup model labels
  * Supports both regular models (from models collection) and training models (from trainings collection)
  *
  * IMPORTANT: This pipeline must first lookup/populate metadata before accessing its fields.
@@ -198,129 +182,8 @@ export function createUserLookupPipeline(
  * 3. Replaces metadata ObjectId with the full document INCLUDING modelLabel
  * 4. Adds modelLabel at root level for serializer/UI consumption
  *
- * @returns Array of pipeline stages that enrich metadata with modelLabel
+ * @returns Array of query fragments that enrich metadata with modelLabel
  */
 export function createModelLookupPipeline() {
-  return [
-    // First, lookup the metadata document to access its fields
-    {
-      $lookup: {
-        as: '_metadataDoc',
-        foreignField: '_id',
-        from: 'metadata',
-        localField: 'metadata',
-      },
-    },
-
-    // Extract the model key from the looked-up metadata document
-    {
-      $addFields: {
-        _modelKey: { $arrayElemAt: ['$_metadataDoc.model', 0] },
-      },
-    },
-
-    // Lookup regular models from models collection by key
-    {
-      $lookup: {
-        as: '_modelData',
-        foreignField: 'key',
-        from: 'models',
-        localField: '_modelKey',
-        pipeline: [
-          {
-            $project: {
-              _id: 1,
-              key: 1,
-              label: 1,
-            },
-          },
-        ],
-      },
-    },
-
-    // Lookup training models from trainings collection by model field
-    // Training models have model keys like "GENFEEDAI/68B5E9F5BEDB217937B843AB:VERSION_HASH"
-    // The training.model field stores the Replicate trained model URL/version
-    {
-      $lookup: {
-        as: '_trainingData',
-        from: 'trainings',
-        let: { modelKey: '$_modelKey' },
-        pipeline: [
-          {
-            $match: {
-              $expr: {
-                $and: [
-                  { $eq: ['$model', '$$modelKey'] },
-                  { $eq: ['$isDeleted', false] },
-                ],
-              },
-            },
-          },
-          {
-            $project: {
-              _id: 1,
-              label: 1,
-              model: 1,
-            },
-          },
-        ],
-      },
-    },
-
-    // Compute the resolved model label
-    {
-      $addFields: {
-        _resolvedModelLabel: {
-          $cond: {
-            else: {
-              $cond: {
-                // Fallback to null if not found (keep original model key via metadata.model)
-                else: null,
-                if: { $gt: [{ $size: '$_trainingData' }, 0] },
-                // If found in trainings collection, use its label
-                then: { $arrayElemAt: ['$_trainingData.label', 0] },
-              },
-            },
-            if: { $gt: [{ $size: '$_modelData' }, 0] },
-            // If found in models collection, use its label
-            then: { $arrayElemAt: ['$_modelData.label', 0] },
-          },
-        },
-      },
-    },
-
-    // Replace metadata ObjectId with populated document INCLUDING modelLabel
-    // This ensures serializers can access metadata.modelLabel
-    {
-      $addFields: {
-        metadata: {
-          $cond: {
-            // If no metadata doc found, keep original (ObjectId or null)
-            else: '$metadata',
-            if: { $gt: [{ $size: '$_metadataDoc' }, 0] },
-            then: {
-              $mergeObjects: [
-                { $arrayElemAt: ['$_metadataDoc', 0] },
-                { modelLabel: '$_resolvedModelLabel' },
-              ],
-            },
-          },
-        },
-        // Also add at root level for serializer/UI consumption
-        modelLabel: '$_resolvedModelLabel',
-      },
-    },
-
-    // Clean up temporary lookup fields
-    {
-      $unset: [
-        '_modelData',
-        '_trainingData',
-        '_metadataDoc',
-        '_modelKey',
-        '_resolvedModelLabel',
-      ],
-    },
-  ];
+  return { where: {} };
 }
