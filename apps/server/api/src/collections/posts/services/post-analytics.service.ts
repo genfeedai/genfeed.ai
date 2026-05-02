@@ -5,6 +5,8 @@ import { type PostDocument } from '@api/collections/posts/schemas/post.schema';
 import type { PostAnalyticsDocument } from '@api/collections/posts/schemas/post-analytics.schema';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
+import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
+import { MastodonService } from '@api/services/integrations/mastodon/services/mastodon.service';
 import { PinterestService } from '@api/services/integrations/pinterest/services/pinterest.service';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
@@ -16,8 +18,12 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 
 const CREDENTIAL_PLATFORM = {
+  FACEBOOK: 'FACEBOOK' as CredentialPlatform,
   INSTAGRAM: 'INSTAGRAM' as CredentialPlatform,
+  LINKEDIN: 'LINKEDIN' as CredentialPlatform,
+  MASTODON: 'MASTODON' as CredentialPlatform,
   PINTEREST: 'PINTEREST' as CredentialPlatform,
+  THREADS: 'THREADS' as CredentialPlatform,
   TIKTOK: 'TIKTOK' as CredentialPlatform,
   TWITTER: 'TWITTER' as CredentialPlatform,
   YOUTUBE: 'YOUTUBE' as CredentialPlatform,
@@ -35,6 +41,8 @@ export class PostAnalyticsService extends BaseService<
 
     private readonly postsService: PostsService,
     @Optional() private readonly instagramService?: InstagramService,
+    @Optional() private readonly linkedInService?: LinkedInService,
+    @Optional() private readonly mastodonService?: MastodonService,
     @Optional() private readonly pinterestService?: PinterestService,
     @Optional() private readonly tiktokService?: TiktokService,
     @Optional() private readonly youtubeService?: YoutubeService,
@@ -752,6 +760,136 @@ export class PostAnalyticsService extends BaseService<
     } catch (error: unknown) {
       this.logger.error(
         `Failed to process Pinterest analytics for post ${postId}`,
+        error,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Process LinkedIn analytics and update post analytics
+   */
+  async processLinkedInAnalytics(
+    postId: string,
+    analytics: {
+      views: number;
+      likes: number;
+      comments: number;
+      shares?: number;
+      impressions?: number;
+      clicks?: number;
+      engagementRate?: number;
+      reach?: number;
+      mediaType?: 'text' | 'image' | 'video' | 'article' | 'document' | 'mixed';
+    },
+  ): Promise<void> {
+    try {
+      await this.updateTodayAnalytics(postId, CREDENTIAL_PLATFORM.LINKEDIN, {
+        totalComments: analytics.comments,
+        totalLikes: analytics.likes,
+        totalShares: analytics.shares || 0,
+        totalViews: analytics.impressions || analytics.views,
+      });
+
+      this.logger.log(`Updated LinkedIn analytics for post ${postId}`);
+    } catch (error: unknown) {
+      this.logger.error(
+        `Failed to process LinkedIn analytics for post ${postId}`,
+        error,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Process Mastodon analytics and update post analytics
+   * Note: Mastodon API does not expose view counts — views default to 0
+   */
+  async processMastodonAnalytics(
+    postId: string,
+    analytics: {
+      views: number;
+      likes: number;
+      comments: number;
+      boosts: number;
+    },
+  ): Promise<void> {
+    try {
+      await this.updateTodayAnalytics(postId, CREDENTIAL_PLATFORM.MASTODON, {
+        totalComments: analytics.comments,
+        totalLikes: analytics.likes,
+        totalShares: analytics.boosts,
+        totalViews: 0, // Mastodon does not expose view counts
+      });
+
+      this.logger.log(`Updated Mastodon analytics for post ${postId}`);
+    } catch (error: unknown) {
+      this.logger.error(
+        `Failed to process Mastodon analytics for post ${postId}`,
+        error,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Process Facebook analytics and update post analytics
+   */
+  async processFacebookAnalytics(
+    postId: string,
+    analytics: {
+      views: number;
+      likes: number;
+      comments: number;
+      shares: number;
+      reach?: number;
+      impressions?: number;
+      engagementRate?: number;
+    },
+  ): Promise<void> {
+    try {
+      await this.updateTodayAnalytics(postId, CREDENTIAL_PLATFORM.FACEBOOK, {
+        totalComments: analytics.comments,
+        totalLikes: analytics.likes,
+        totalShares: analytics.shares,
+        totalViews: analytics.impressions || analytics.views,
+      });
+
+      this.logger.log(`Updated Facebook analytics for post ${postId}`);
+    } catch (error: unknown) {
+      this.logger.error(
+        `Failed to process Facebook analytics for post ${postId}`,
+        error,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Process Threads analytics and update post analytics
+   */
+  async processThreadsAnalytics(
+    postId: string,
+    analytics: {
+      views: number;
+      likes: number;
+      replies: number;
+      reposts: number;
+      quotes: number;
+    },
+  ): Promise<void> {
+    try {
+      await this.updateTodayAnalytics(postId, CREDENTIAL_PLATFORM.THREADS, {
+        totalComments: analytics.replies,
+        totalLikes: analytics.likes,
+        totalShares: analytics.reposts,
+        totalViews: analytics.views,
+      });
+
+      this.logger.log(`Updated Threads analytics for post ${postId}`);
+    } catch (error: unknown) {
+      this.logger.error(
+        `Failed to process Threads analytics for post ${postId}`,
         error,
       );
       throw error;

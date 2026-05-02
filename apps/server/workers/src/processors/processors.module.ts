@@ -43,8 +43,10 @@ import { AdSyncGoogleProcessor } from '@api/queues/ad-sync-google/ad-sync-google
 import { AdSyncMetaProcessor } from '@api/queues/ad-sync-meta/ad-sync-meta.processor';
 import { AdSyncTikTokProcessor } from '@api/queues/ad-sync-tiktok/ad-sync-tiktok.processor';
 import { AgentRunProcessor } from '@api/queues/agent-run/agent-run.processor';
+import { AnalyticsFacebookProcessor } from '@api/queues/analytics-facebook/analytics-facebook.processor';
 import { AnalyticsSocialProcessor } from '@api/queues/analytics-social/analytics-social.processor';
 import { AnalyticsSyncProcessor } from '@api/queues/analytics-sync/analytics-sync.processor';
+import { AnalyticsThreadsProcessor } from '@api/queues/analytics-threads/analytics-threads.processor';
 import { AnalyticsTwitterProcessor } from '@api/queues/analytics-twitter/analytics-twitter.processor';
 import { AnalyticsYouTubeProcessor } from '@api/queues/analytics-youtube/analytics-youtube.processor';
 import { CampaignProcessor } from '@api/queues/campaign/campaign.processor';
@@ -76,9 +78,11 @@ import { ContentOptimizationProcessor } from '@api/services/content-optimization
 import { ContentOrchestrationModule } from '@api/services/content-orchestration/content-orchestration.module';
 import { ContentPipelineProcessor } from '@api/services/content-orchestration/content-pipeline.processor';
 import { TelegramDistributionModule } from '@api/services/distribution/telegram/telegram-distribution.module';
+import { FacebookModule } from '@api/services/integrations/facebook/facebook.module';
 import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';
 import { MetaAdsModule } from '@api/services/integrations/meta-ads/meta-ads.module';
 import { PinterestModule } from '@api/services/integrations/pinterest/pinterest.module';
+import { ThreadsModule } from '@api/services/integrations/threads/threads.module';
 import { TiktokModule } from '@api/services/integrations/tiktok/tiktok.module';
 import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
 import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module';
@@ -135,6 +139,7 @@ import { WorkersQueuesModule } from '@workers/queues/queues.module';
     forwardRef(() => CampaignModule),
     forwardRef(() => ContentOptimizationModule),
     forwardRef(() => ContentOrchestrationModule),
+    forwardRef(() => FacebookModule),
     forwardRef(() => InstagramModule),
     forwardRef(() => MetaAdsModule),
     forwardRef(() => NotificationsModule),
@@ -144,6 +149,7 @@ import { WorkersQueuesModule } from '@workers/queues/queues.module';
     forwardRef(() => TaskOrchestrationModule),
     forwardRef(() => HeygenPollModule),
     forwardRef(() => TelegramDistributionModule),
+    forwardRef(() => ThreadsModule),
     forwardRef(() => TiktokModule),
     forwardRef(() => TwitterModule),
     forwardRef(() => WebhookClientModule),
@@ -151,7 +157,7 @@ import { WorkersQueuesModule } from '@workers/queues/queues.module';
     forwardRef(() => YoutubeModule),
   ],
   providers: [
-    // --- queues/ processors (20) ---
+    // --- queues/ processors (22) ---
     AdBulkUploadProcessor,
     AdInsightsAggregationProcessor,
     AdOptimizationProcessor,
@@ -159,7 +165,9 @@ import { WorkersQueuesModule } from '@workers/queues/queues.module';
     AdSyncMetaProcessor,
     AdSyncTikTokProcessor,
     AgentRunProcessor,
+    AnalyticsFacebookProcessor,
     AnalyticsSocialProcessor,
+    AnalyticsThreadsProcessor,
     AnalyticsSyncProcessor,
     AnalyticsTwitterProcessor,
     AnalyticsYouTubeProcessor,
