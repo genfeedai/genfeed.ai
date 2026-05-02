@@ -1,8 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
+import type { IDesktopEnvironment } from '@genfeedai/desktop-contracts';
 import type { DesktopDatabaseService } from './database.service';
 import './test-support/electron.mock';
 
 const { DesktopSessionService } = await import('./session.service');
+
+const TEST_ENVIRONMENT: IDesktopEnvironment = {
+  apiEndpoint: 'https://api.genfeed.ai/v1',
+  appEndpoint: 'https://app.genfeed.ai',
+  appName: 'desktop',
+  appPort: 3230,
+  authEndpoint: 'https://app.genfeed.ai/oauth/cli',
+  cdnUrl: 'https://cdn.genfeed.ai',
+  wsEndpoint: 'https://notifications.genfeed.ai',
+};
 
 const createDatabaseMock = () => {
   const values = new Map<string, string>();
@@ -19,6 +30,11 @@ const createDatabaseMock = () => {
   } as unknown as DesktopDatabaseService & { values: Map<string, string> };
 };
 
+const createSessionService = (
+  database: DesktopDatabaseService,
+): InstanceType<typeof DesktopSessionService> =>
+  new DesktopSessionService(database, TEST_ENVIRONMENT);
+
 describe('DesktopSessionService', () => {
   const originalFetch = globalThis.fetch;
   let database: ReturnType<typeof createDatabaseMock>;
@@ -33,15 +49,7 @@ describe('DesktopSessionService', () => {
   });
 
   it('builds a desktop-specific OAuth URL', () => {
-    const service = new DesktopSessionService(database, {
-      apiEndpoint: 'https://api.genfeed.ai/v1',
-      appEndpoint: 'https://app.genfeed.ai',
-      appName: 'desktop',
-      appPort: 3230,
-      authEndpoint: 'https://app.genfeed.ai/oauth/cli',
-      cdnUrl: 'https://cdn.genfeed.ai',
-      wsEndpoint: 'https://notifications.genfeed.ai',
-    });
+    const service = createSessionService(database);
 
     const loginUrl = new URL(service.getLoginUrl());
 
@@ -54,15 +62,7 @@ describe('DesktopSessionService', () => {
   });
 
   it('hydrates a session from the server-minted key', async () => {
-    const service = new DesktopSessionService(database, {
-      apiEndpoint: 'https://api.genfeed.ai/v1',
-      appEndpoint: 'https://app.genfeed.ai',
-      appName: 'desktop',
-      appPort: 3230,
-      authEndpoint: 'https://app.genfeed.ai/oauth/cli',
-      cdnUrl: 'https://cdn.genfeed.ai',
-      wsEndpoint: 'https://notifications.genfeed.ai',
-    });
+    const service = createSessionService(database);
 
     globalThis.fetch = (async (
       input: RequestInfo | URL,
@@ -107,15 +107,7 @@ describe('DesktopSessionService', () => {
   });
 
   it('validates and refreshes an existing desktop session on startup', async () => {
-    const service = new DesktopSessionService(database, {
-      apiEndpoint: 'https://api.genfeed.ai/v1',
-      appEndpoint: 'https://app.genfeed.ai',
-      appName: 'desktop',
-      appPort: 3230,
-      authEndpoint: 'https://app.genfeed.ai/oauth/cli',
-      cdnUrl: 'https://cdn.genfeed.ai',
-      wsEndpoint: 'https://notifications.genfeed.ai',
-    });
+    const service = createSessionService(database);
 
     await service.setSession({
       issuedAt: '2026-04-01T09:00:00.000Z',
@@ -170,15 +162,7 @@ describe('DesktopSessionService', () => {
   });
 
   it('rejects callbacks without a key', async () => {
-    const service = new DesktopSessionService(database, {
-      apiEndpoint: 'https://api.genfeed.ai/v1',
-      appEndpoint: 'https://app.genfeed.ai',
-      appName: 'desktop',
-      appPort: 3230,
-      authEndpoint: 'https://app.genfeed.ai/oauth/cli',
-      cdnUrl: 'https://cdn.genfeed.ai',
-      wsEndpoint: 'https://notifications.genfeed.ai',
-    });
+    const service = createSessionService(database);
 
     await expect(
       service.handleCallback('genfeedai-desktop://auth?token=missing'),
@@ -186,15 +170,7 @@ describe('DesktopSessionService', () => {
   });
 
   it('clears a stale desktop session when a callback key is rejected', async () => {
-    const service = new DesktopSessionService(database, {
-      apiEndpoint: 'https://api.genfeed.ai/v1',
-      appEndpoint: 'https://app.genfeed.ai',
-      appName: 'desktop',
-      appPort: 3230,
-      authEndpoint: 'https://app.genfeed.ai/oauth/cli',
-      cdnUrl: 'https://cdn.genfeed.ai',
-      wsEndpoint: 'https://notifications.genfeed.ai',
-    });
+    const service = createSessionService(database);
 
     await service.setSession({
       issuedAt: '2026-04-01T09:00:00.000Z',
@@ -215,15 +191,7 @@ describe('DesktopSessionService', () => {
   });
 
   it('clears a stale stored desktop session during startup validation', async () => {
-    const service = new DesktopSessionService(database, {
-      apiEndpoint: 'https://api.genfeed.ai/v1',
-      appEndpoint: 'https://app.genfeed.ai',
-      appName: 'desktop',
-      appPort: 3230,
-      authEndpoint: 'https://app.genfeed.ai/oauth/cli',
-      cdnUrl: 'https://cdn.genfeed.ai',
-      wsEndpoint: 'https://notifications.genfeed.ai',
-    });
+    const service = createSessionService(database);
 
     await service.setSession({
       issuedAt: '2026-04-01T09:00:00.000Z',

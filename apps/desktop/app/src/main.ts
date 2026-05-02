@@ -27,7 +27,6 @@ import { DesktopCloudService } from './main/cloud.service';
 import { DesktopConfigService } from './main/config.service';
 import { DesktopDatabaseService } from './main/database.service';
 import { DesktopDraftsService } from './main/drafts.service';
-import { buildExternalAppUrl } from './main/external-url.util';
 import { DesktopFilesService } from './main/files.service';
 import { DesktopGenerationService } from './main/generation.service';
 import { DesktopLocalService } from './main/local.service';
@@ -93,6 +92,14 @@ const CLOUD_CREDITS_OR_LOCAL_PROVIDER_ERROR =
 const isLocalProviderRequiredError = (error: unknown): boolean =>
   error instanceof Error &&
   error.message.includes(LOCAL_PROVIDER_REQUIRED_ERROR);
+
+const buildExternalAppUrl = (pathname: string): string => {
+  if (!pathname.startsWith('/')) {
+    throw new Error('Desktop external app paths must start with /.');
+  }
+
+  return new URL(pathname, new URL(environment.authEndpoint).origin).toString();
+};
 
 const emitQuickGenerate = (): void => {
   mainWindow?.webContents.send(DESKTOP_IPC_CHANNELS.quickGenerate);
@@ -345,9 +352,7 @@ const registerIpcHandlers = (): void => {
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.appOpenExternalPath,
     async (_event: unknown, pathname: string) => {
-      await shell.openExternal(
-        buildExternalAppUrl(pathname, environment.authEndpoint),
-      );
+      await shell.openExternal(buildExternalAppUrl(pathname));
     },
   );
   ipcMain.handle(DESKTOP_IPC_CHANNELS.authGetSession, async () =>

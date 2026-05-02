@@ -560,22 +560,33 @@ describe('VideosController', () => {
       await controller.findAll(mockRequest, mockUser, query);
 
       const callArgs = videosService.findAll.mock.calls[0];
-      const aggregate = callArgs[0] as unknown as Array<{
-        match?: {
-          OR?: Array<{
-            'metadata.label'?: {
-              contains?: unknown;
-            };
+      const aggregate = callArgs[0] as unknown as {
+        where?: {
+          AND?: Array<{
+            OR?: Array<{
+              'metadata.label'?: {
+                contains?: unknown;
+              };
+            }>;
           }>;
         };
-      }>;
-      const searchStage = aggregate.find((stage) =>
-        stage.match?.OR?.some(
-          (condition) => condition['metadata.label']?.contains,
+      };
+      const searchStage = aggregate.where?.AND?.find((condition) =>
+        condition.OR?.some(
+          (orCondition) => orCondition['metadata.label']?.contains,
         ),
-      );
+      ) as
+        | {
+            OR?: Array<{
+              'metadata.label'?: {
+                contains?: unknown;
+              };
+            }>;
+          }
+        | undefined;
 
       expect(searchStage).toBeDefined();
+      expect(searchStage?.OR?.[0]?.['metadata.label']?.contains).toBe('sunset');
     });
 
     it('should filter by status', async () => {

@@ -139,8 +139,8 @@ describe('PublicArticlesController', () => {
 
       expect(articlesService.findAll).toHaveBeenCalled();
       const call = mockArticlesService.findAll.mock.calls[0];
-      const pipeline = call[0];
-      expect(pipeline[0].match.OR).toBeDefined();
+      const queryArg = call[0] as { where: Record<string, unknown> };
+      expect(queryArg.where.OR).toBeDefined();
     });
 
     it('should filter by category', async () => {
@@ -163,8 +163,8 @@ describe('PublicArticlesController', () => {
 
       expect(articlesService.findAll).toHaveBeenCalled();
       const call = mockArticlesService.findAll.mock.calls[0];
-      const pipeline = call[0];
-      expect(pipeline[0].match.category).toBe(ArticleCategory.POST);
+      const queryArg = call[0] as { where: Record<string, unknown> };
+      expect(queryArg.where.category).toBe(ArticleCategory.POST);
     });
 
     it('should filter by tag', async () => {

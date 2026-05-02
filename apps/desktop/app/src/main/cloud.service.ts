@@ -1,5 +1,4 @@
 import type {
-  DesktopContentType,
   IDesktopAgent,
   IDesktopAgentRunResult,
   IDesktopAnalytics,
@@ -15,43 +14,6 @@ import type {
   IDesktopWorkflow,
   IDesktopWorkflowRunResult,
 } from '@genfeedai/desktop-contracts';
-
-type GeneratedContentResponse = {
-  data?: Array<{
-    attributes?: {
-      body?: string;
-      content?: string;
-      cta?: string;
-      hashtags?: string[];
-      hook?: string;
-    };
-    id?: string;
-  }>;
-};
-
-const CONTENT_INTELLIGENCE_PLATFORM_MAP: Record<string, string> = {
-  instagram: 'instagram',
-  linkedin: 'linkedin',
-  tiktok: 'tiktok',
-  twitter: 'twitter',
-  youtube: 'tiktok',
-};
-
-const TEMPLATE_CATEGORY_BY_CONTENT_TYPE: Record<DesktopContentType, string> = {
-  article: 'article',
-  caption: 'caption',
-  hook: 'social-media',
-  reply: 'social-media',
-  script: 'script',
-  thread: 'social-media',
-};
-
-function joinGeneratedContent(parts: Array<string | undefined>): string {
-  return parts
-    .map((part) => part?.trim())
-    .filter((part): part is string => Boolean(part))
-    .join('\n\n');
-}
 
 export class DesktopCloudService implements IDesktopDataService {
   constructor(
@@ -122,10 +84,6 @@ export class DesktopCloudService implements IDesktopDataService {
   async generateContent(
     params: IDesktopGenerationOptions,
   ): Promise<IDesktopGeneratedContent> {
-    if (params.type !== 'hook') {
-      return this.generateStructuredContent(params);
-    }
-
     const response = await this.fetchJson<{ hooks?: string[] }>(
       '/posts/hook-generations',
       {
@@ -147,51 +105,6 @@ export class DesktopCloudService implements IDesktopDataService {
       content: generatedContent,
       hooks: response.hooks,
       id: params.sourceDraftId ?? '',
-      platform: params.platform,
-      type: params.type,
-    };
-  }
-
-  private async generateStructuredContent(
-    params: IDesktopGenerationOptions,
-  ): Promise<IDesktopGeneratedContent> {
-    const response = await this.fetchJson<GeneratedContentResponse>(
-      '/content-intelligence/generate',
-      {
-        body: JSON.stringify({
-          additionalContext: [
-            `Desktop content type: ${params.type}`,
-            `Publish intent: ${params.publishIntent}`,
-            params.sourceTrendTopic
-              ? `Source trend: ${params.sourceTrendTopic}`
-              : undefined,
-          ].filter((item): item is string => Boolean(item)),
-          platform:
-            CONTENT_INTELLIGENCE_PLATFORM_MAP[params.platform] ?? 'twitter',
-          templateCategory: TEMPLATE_CATEGORY_BY_CONTENT_TYPE[params.type],
-          topic: params.sourceTrendTopic ?? params.prompt,
-          variationsCount: 1,
-        }),
-        method: 'POST',
-      },
-    );
-    const generated = response.data?.[0];
-    const attributes = generated?.attributes;
-    const generatedContent =
-      attributes?.content ??
-      joinGeneratedContent([
-        attributes?.hook,
-        attributes?.body,
-        attributes?.cta,
-      ]);
-
-    if (!generatedContent) {
-      throw new Error('Genfeed server returned no generated content.');
-    }
-
-    return {
-      content: generatedContent,
-      id: generated?.id ?? params.sourceDraftId ?? '',
       platform: params.platform,
       type: params.type,
     };
