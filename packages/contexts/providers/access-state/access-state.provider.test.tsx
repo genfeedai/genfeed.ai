@@ -108,6 +108,8 @@ describe('AccessStateProvider', () => {
       expect.any(Function),
       expect.objectContaining({
         enabled: true,
+        cacheKey: 'access-state:org_123:brand_123:clerk_123',
+        cacheTimeMs: 60_000,
         initialData: initialAccessState,
         revalidateOnMount: false,
       }),

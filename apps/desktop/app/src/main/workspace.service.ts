@@ -15,6 +15,19 @@ import { dialog, shell } from 'electron';
 import type { DesktopDatabaseService, WorkspaceRow } from './database.service';
 
 const toIso = (): string => new Date().toISOString();
+const SKIPPED_INDEX_DIRECTORIES = new Set([
+  '.cache',
+  '.git',
+  '.genfeed',
+  '.next',
+  '.turbo',
+  'build',
+  'coverage',
+  'dist',
+  'node_modules',
+  'out',
+  'release',
+]);
 
 export class DesktopWorkspaceService {
   constructor(private readonly database: DesktopDatabaseService) {}
@@ -40,7 +53,7 @@ export class DesktopWorkspaceService {
           return;
         }
 
-        if (entry.name.startsWith('.git')) {
+        if (entry.isDirectory() && SKIPPED_INDEX_DIRECTORIES.has(entry.name)) {
           continue;
         }
 
@@ -90,6 +103,7 @@ export class DesktopWorkspaceService {
     linkedProjectId?: string;
     name: string;
     path: string;
+    reindex?: boolean;
   }): Promise<IDesktopWorkspace> {
     this.ensureWorkspaceMetadataFolder(input.path);
     const now = toIso();
@@ -97,7 +111,11 @@ export class DesktopWorkspaceService {
     const existing = workspaces.find(
       (workspace) => workspace.path === input.path,
     );
-    const fileIndex = this.indexWorkspaceFiles(input.path);
+    const shouldReindex = input.reindex ?? true;
+    const fileIndex =
+      !shouldReindex && existing
+        ? (JSON.parse(existing.fileIndex) as IDesktopWorkspaceFile[])
+        : this.indexWorkspaceFiles(input.path);
 
     const row: WorkspaceRow = {
       createdAt: existing?.createdAt ?? now,
@@ -141,6 +159,7 @@ export class DesktopWorkspaceService {
     return this.persistWorkspace({
       name: path.basename(workspacePath),
       path: workspacePath,
+      reindex: true,
     });
   }
 
@@ -170,6 +189,7 @@ export class DesktopWorkspaceService {
       linkedProjectId: projectId,
       name: workspace.name,
       path: workspace.path,
+      reindex: false,
     });
   }
 

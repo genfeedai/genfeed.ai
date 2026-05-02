@@ -21,10 +21,10 @@
   "name": "@genfeedai/hooks",
   "private": true,
   "scripts": {
-    "test": "vitest run --config vitest.config.mts",
-    "test:cov": "vitest run --coverage --config vitest.config.mts",
-    "test:coverage": "vitest run --coverage --config vitest.config.mts",
-    "test:watch": "vitest --watch --config vitest.config.mts"
+    "test": "bun vitest run --config vitest.config.mts",
+    "test:cov": "bun vitest run --coverage --config vitest.config.mts",
+    "test:coverage": "bun vitest run --coverage --config vitest.config.mts",
+    "test:watch": "bun vitest --watch --config vitest.config.mts"
   },
   "sideEffects": false,
   "version": "1.0.0"

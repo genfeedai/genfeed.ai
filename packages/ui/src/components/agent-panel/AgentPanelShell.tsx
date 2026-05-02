@@ -114,9 +114,7 @@ function AgentPanelShell({
             onClick={onToggle}
             className="gen-shell-control h-7 w-7 rounded-md"
             data-active={isOpen ? 'true' : 'false'}
-            ariaLabel={
-              isOpen ? 'Collapse quick ask panel' : 'Expand quick ask panel'
-            }
+            ariaLabel={isOpen ? 'Collapse terminal' : 'Expand terminal'}
           >
             {isOpen ? (
               <HiSparkles className="h-3.5 w-3.5" />

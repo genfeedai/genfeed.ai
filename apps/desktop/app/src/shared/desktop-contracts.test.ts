@@ -15,6 +15,8 @@ describe('desktop shared packages', () => {
     );
     expect(DESKTOP_IPC_CHANNELS.workspaceOpen).toBe('desktop:workspace:open');
     expect(DESKTOP_IPC_CHANNELS.draftsSave).toBe('desktop:drafts:save');
+    expect(DESKTOP_IPC_CHANNELS.terminalCreate).toBe('desktop:terminal:create');
+    expect(DESKTOP_IPC_CHANNELS.terminalData).toBe('desktop:terminal:data');
   });
 
   it('resolves paths inside a workspace root', () => {

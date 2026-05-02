@@ -63,7 +63,6 @@ const ORG_SCOPED_PREFIXES = ['agent', 'chat', 'settings'] as const;
 
 const FLAT_PATH_REDIRECTS = new Map<string, string>([
   ['/analytics', '/analytics/overview'],
-  ['/chat', '/chat/new'],
   ['/compose', '/compose/article'],
   ['/library', '/library/ingredients'],
   ['/research', '/research/discovery'],

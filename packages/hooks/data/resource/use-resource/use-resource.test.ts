@@ -12,6 +12,17 @@ vi.mock('@genfeedai/services/core/logger.service', () => ({
   },
 }));
 
+function createDeferred<T>() {
+  let reject!: (reason?: unknown) => void;
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+
+  return { promise, reject, resolve };
+}
+
 describe('useResource', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -404,6 +415,60 @@ describe('useResource', () => {
       await waitFor(() => {
         expect(secondHook.result.current.data).toEqual({ value: 'resolved' });
       });
+    });
+
+    it('normalizes a shared promise into cached data even when the starter unmounts', async () => {
+      const deferred = createDeferred<{ value: string }>();
+      const fetcher = vi.fn(() => deferred.promise);
+      const cacheKey = `shared-cache-key:${crypto.randomUUID()}`;
+      const firstHook = renderHook(() => useResource(fetcher, { cacheKey }));
+
+      firstHook.unmount();
+
+      await act(async () => {
+        deferred.resolve({ value: 'resolved-after-unmount' });
+        await deferred.promise;
+      });
+
+      const secondHook = renderHook(() =>
+        useResource(fetcher, {
+          cacheKey,
+          cacheTimeMs: 60_000,
+        }),
+      );
+
+      expect(secondHook.result.current.data).toEqual({
+        value: 'resolved-after-unmount',
+      });
+      expect(secondHook.result.current.isLoading).toBe(false);
+      expect(fetcher).toHaveBeenCalledTimes(1);
+
+      secondHook.unmount();
+    });
+
+    it('refetches after an in-flight cached request rejects', async () => {
+      const cacheKey = `shared-cache-key:reject:${crypto.randomUUID()}`;
+      const fetcher = vi
+        .fn()
+        .mockRejectedValueOnce(new Error('first failure'))
+        .mockResolvedValueOnce({ value: 'recovered' });
+
+      const firstHook = renderHook(() => useResource(fetcher, { cacheKey }));
+
+      await waitFor(() => {
+        expect(firstHook.result.current.error?.message).toBe('first failure');
+      });
+
+      const secondHook = renderHook(() => useResource(fetcher, { cacheKey }));
+
+      await waitFor(() => {
+        expect(secondHook.result.current.data).toEqual({ value: 'recovered' });
+      });
+
+      expect(fetcher).toHaveBeenCalledTimes(2);
+
+      firstHook.unmount();
+      secondHook.unmount();
     });
   });
 

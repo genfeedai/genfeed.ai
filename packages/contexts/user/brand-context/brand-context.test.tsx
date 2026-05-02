@@ -50,6 +50,12 @@ vi.mock('@genfeedai/services/organization/users.service', () => ({
   },
 }));
 
+vi.mock('@genfeedai/services/auth/auth.service', () => ({
+  AuthService: {
+    getInstance: vi.fn(),
+  },
+}));
+
 vi.mock('@genfeedai/services/core/interceptor.service', () => ({
   clearAllServiceInstances: vi.fn(),
 }));

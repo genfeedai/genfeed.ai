@@ -87,7 +87,7 @@ vi.mock('@genfeedai/agent/components/AgentCliTerminal', () => ({
 }));
 
 describe('AgentPanel', () => {
-  it('fetches credits on mount and renders chat container', async () => {
+  it('fetches credits on mount and renders the terminal', async () => {
     const apiService = {
       getCreditsInfoEffect: vi.fn().mockResolvedValue({
         balance: 123,
@@ -110,7 +110,7 @@ describe('AgentPanel', () => {
     expect(screen.getByTestId('agent-outputs-panel')).toBeInTheDocument();
   });
 
-  it('renders toggle button that calls toggleOpen from store', async () => {
+  it('renders terminal toggle button that calls toggleOpen from store', async () => {
     const apiService = {
       getCreditsInfoEffect: vi.fn().mockResolvedValue({
         balance: 123,
@@ -125,7 +125,7 @@ describe('AgentPanel', () => {
       expect(apiService.getCreditsInfoEffect).toHaveBeenCalledTimes(1);
     });
 
-    fireEvent.click(screen.getByLabelText('Collapse quick ask panel'));
+    fireEvent.click(screen.getByLabelText('Collapse terminal'));
     expect(mockToggleOpen).toHaveBeenCalledTimes(1);
   });
 });

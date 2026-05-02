@@ -2,7 +2,14 @@ import type {
   IDesktopBootstrap,
   IDesktopSession,
 } from '@genfeedai/desktop-contracts';
-import { startTransition, useCallback, useEffect, useState } from 'react';
+import {
+  lazy,
+  Suspense,
+  startTransition,
+  useCallback,
+  useEffect,
+  useState,
+} from 'react';
 import OnboardingWizard from './components/OnboardingWizard';
 import ReconnectBanner from './components/ReconnectBanner';
 import { Sidebar } from './components/Sidebar';
@@ -11,14 +18,42 @@ import { useThreads } from './hooks/useThreads';
 import type { NavView } from './nav-view';
 import { useSyncEngine } from './sync/useSyncEngine';
 import { initializeRendererTelemetry } from './telemetry';
-import { AgentsView } from './views/AgentsView';
-import { AnalyticsView } from './views/AnalyticsView';
 
-import { LibraryView } from './views/LibraryView';
-import { MissionControlView } from './views/MissionControlView';
-import { TerminalView } from './views/TerminalView';
-import { TrendsView } from './views/TrendsView';
-import { WorkflowsView } from './views/WorkflowsView';
+const AgentsView = lazy(() =>
+  import('./views/AgentsView').then((module) => ({
+    default: module.AgentsView,
+  })),
+);
+const AnalyticsView = lazy(() =>
+  import('./views/AnalyticsView').then((module) => ({
+    default: module.AnalyticsView,
+  })),
+);
+const LibraryView = lazy(() =>
+  import('./views/LibraryView').then((module) => ({
+    default: module.LibraryView,
+  })),
+);
+const MissionControlView = lazy(() =>
+  import('./views/MissionControlView').then((module) => ({
+    default: module.MissionControlView,
+  })),
+);
+const TerminalView = lazy(() =>
+  import('./views/TerminalView').then((module) => ({
+    default: module.TerminalView,
+  })),
+);
+const TrendsView = lazy(() =>
+  import('./views/TrendsView').then((module) => ({
+    default: module.TrendsView,
+  })),
+);
+const WorkflowsView = lazy(() =>
+  import('./views/WorkflowsView').then((module) => ({
+    default: module.WorkflowsView,
+  })),
+);
 
 const emptyBootstrap: IDesktopBootstrap = {
   clerkId: null,
@@ -106,20 +141,19 @@ export const App = () => {
 
   useEffect(() => {
     const run = async () => {
-      await loadBootstrap();
+      const onboardingStatePromise = window.genfeedDesktop.onboarding
+        .getState()
+        .catch(() => ({ completed: true }));
 
-      // Load onboarding state after bootstrap
-      try {
-        const onboardingData =
-          await window.genfeedDesktop.onboarding.getState();
-        setOnboardingState({
-          completed: onboardingData.completed,
-          loaded: true,
-        });
-      } catch {
-        // If IPC fails, treat as completed to avoid blocking the user
-        setOnboardingState({ completed: true, loaded: true });
-      }
+      const [, onboardingData] = await Promise.all([
+        loadBootstrap(),
+        onboardingStatePromise,
+      ]);
+
+      setOnboardingState({
+        completed: onboardingData.completed,
+        loaded: true,
+      });
     };
 
     void run();
@@ -199,8 +233,7 @@ export const App = () => {
 
   const handleOpenWorkspace = useCallback(async () => {
     await window.genfeedDesktop.workspace.openWorkspace();
-    await loadBootstrap();
-  }, [loadBootstrap]);
+  }, []);
 
   const handleSelectThread = useCallback(
     (threadId: string) => {
@@ -327,7 +360,11 @@ export const App = () => {
           onOpenSettings={handleOpenSettings}
           onOpenTerminal={handleOpenTerminal}
         />
-        <main className="main-area">{renderMainView()}</main>
+        <main className="main-area">
+          <Suspense fallback={<div className="desktop-loading" />}>
+            {renderMainView()}
+          </Suspense>
+        </main>
       </div>
     </div>
   );

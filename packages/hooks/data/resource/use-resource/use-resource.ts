@@ -50,6 +50,25 @@ interface ResourceCacheEntry<T> {
 
 const resourceCache = new Map<string, ResourceCacheEntry<unknown>>();
 
+function setResourceCacheData<T>(cacheKey: string | undefined, data: T): void {
+  if (!cacheKey) {
+    return;
+  }
+
+  resourceCache.set(cacheKey, {
+    data,
+    updatedAt: Date.now(),
+  });
+}
+
+function clearResourceCache(cacheKey: string | undefined): void {
+  if (!cacheKey) {
+    return;
+  }
+
+  resourceCache.delete(cacheKey);
+}
+
 function normalizeResourceError(error: unknown): {
   context?: { error: unknown; reportToSentry: false };
   message: string;
@@ -210,6 +229,8 @@ export function useResource<T>(
 
         try {
           const result = (await cacheEntry.promise) as T;
+          setResourceCacheData(cacheKey, result);
+
           if (isMountedRef.current) {
             setData(result);
             setError(null);
@@ -217,6 +238,8 @@ export function useResource<T>(
           }
         } catch (err) {
           const error = err as Error;
+          clearResourceCache(cacheKey);
+
           if (error.name !== 'AbortError' && isMountedRef.current) {
             setError(error);
             setIsLoading(false);
@@ -227,7 +250,7 @@ export function useResource<T>(
       }
 
       // Abort previous request
-      if (abortControllerRef.current) {
+      if (!cacheKey && abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
 
@@ -257,21 +280,16 @@ export function useResource<T>(
         }
 
         const result = await requestPromise;
+        setResourceCacheData(cacheKey, result);
 
         if (isMountedRef.current && !controller.signal.aborted) {
           setData(result);
           setError(null);
           onSuccessRef.current?.(result);
         }
-
-        if (cacheKey) {
-          resourceCache.set(cacheKey, {
-            data: result,
-            updatedAt: Date.now(),
-          });
-        }
       } catch (err) {
         const error = err as Error;
+        clearResourceCache(cacheKey);
 
         // Ignore abort errors
         if (error.name === 'AbortError') {
@@ -290,10 +308,6 @@ export function useResource<T>(
           logger.error(normalizedError.message, normalizedError.context);
 
           onErrorRef.current?.(error);
-        }
-
-        if (cacheKey) {
-          resourceCache.delete(cacheKey);
         }
       } finally {
         if (isMountedRef.current && !controller.signal.aborted) {
@@ -316,12 +330,7 @@ export function useResource<T>(
   const mutate = useCallback(
     (newData: T) => {
       setData(newData);
-      if (cacheKey) {
-        resourceCache.set(cacheKey, {
-          data: newData,
-          updatedAt: Date.now(),
-        });
-      }
+      setResourceCacheData(cacheKey, newData);
     },
     [cacheKey],
   );
@@ -366,13 +375,12 @@ export function useResource<T>(
   const prevDepsRef = useRef<DependencyList>(dependencies);
   const [_depsTrigger, setDepsTrigger] = useState(0);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: this hook accepts a caller-provided dependency list and compares its values manually.
   useEffect(() => {
     if (!shallowEqual(prevDepsRef.current, dependencies)) {
       prevDepsRef.current = dependencies;
       setDepsTrigger((prev) => prev + 1);
     }
-  }, dependencies);
+  });
 
   // Initial fetch - triggers when dependency values change, not array reference
   useEffect(() => {
@@ -398,7 +406,7 @@ export function useResource<T>(
 
     return () => {
       isMountedRef.current = false;
-      if (abortControllerRef.current) {
+      if (!cacheKey && abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
     };
@@ -408,6 +416,7 @@ export function useResource<T>(
     revalidateOnMount,
     resolvedInitialData,
     _depsTrigger,
+    cacheKey,
   ]);
 
   return {

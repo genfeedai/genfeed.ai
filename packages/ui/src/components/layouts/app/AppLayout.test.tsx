@@ -195,6 +195,23 @@ describe('AppLayout', () => {
     expect(capturedProps?.onAgentToggle).toBe(toggle);
   });
 
+  it('does not pass the terminal toggle to topbar without an agent rail', () => {
+    let capturedProps: TopbarProps | undefined;
+    const TopbarMock = (props: TopbarProps) => {
+      capturedProps = props;
+      return <div data-testid="topbar-mock" />;
+    };
+
+    render(
+      <AppLayout topbarComponent={TopbarMock} onAgentToggle={vi.fn()}>
+        <div>Content</div>
+      </AppLayout>,
+    );
+
+    expect(screen.getByTestId('topbar-mock')).toBeInTheDocument();
+    expect(capturedProps?.onAgentToggle).toBeUndefined();
+  });
+
   it('keeps default topbar chrome styling', () => {
     const TopbarMock = () => <div data-testid="topbar-mock" />;
 

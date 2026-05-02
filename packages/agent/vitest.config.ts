@@ -1,9 +1,26 @@
 import path from 'node:path';
 import { defineConfig } from 'vitest/config';
 
+const CLIENT_MODELS_MOCK = path.resolve(
+  __dirname,
+  '../hooks/tests/__mocks__/client-models.mock.ts',
+);
+const CLIENT_SERIALIZERS_MOCK = path.resolve(
+  __dirname,
+  '../services/__mocks__/serializers.mock.ts',
+);
+
 export default defineConfig({
   resolve: {
     alias: [
+      {
+        find: /^@genfeedai\/client\/models$/,
+        replacement: CLIENT_MODELS_MOCK,
+      },
+      {
+        find: /^@genfeedai\/client\/serializers$/,
+        replacement: CLIENT_SERIALIZERS_MOCK,
+      },
       {
         find: '@agent-tests',
         replacement: path.resolve(__dirname, './tests'),

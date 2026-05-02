@@ -9,6 +9,7 @@ import { Brand } from '@genfeedai/models/organization/brand.model';
 import { OrganizationSetting } from '@genfeedai/models/organization/organization-setting.model';
 import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
 import type { ProtectedBootstrapData } from '@genfeedai/props/layout/protected-bootstrap.props';
+import { AuthService } from '@genfeedai/services/auth/auth.service';
 import { clearAllServiceInstances } from '@genfeedai/services/core/interceptor.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
@@ -27,7 +28,7 @@ import {
   useMemo,
   useState,
 } from 'react';
-
+import { loadClientProtectedBootstrap } from '../../providers/protected-bootstrap/client-protected-bootstrap';
 import {
   clearContextTokenCache,
   useContextAuthedService,
@@ -57,6 +58,7 @@ export interface BrandContextType {
 }
 
 const BrandContext = createContext<BrandContextType | undefined>(undefined);
+const BRAND_CONTEXT_CACHE_TTL_MS = 60_000;
 
 interface BrandProviderProps extends PropsWithChildren<LayoutProps> {
   initialBootstrap?: ProtectedBootstrapData | null;
@@ -140,6 +142,9 @@ export function BrandProvider({
   const getOrganizationsService = useContextAuthedService((token: string) =>
     OrganizationsService.getInstance(token),
   );
+  const getAuthService = useContextAuthedService((token: string) =>
+    AuthService.getInstance(token),
+  );
 
   const sessionKey = useMemo(
     () => `${effectiveUserId ?? 'none'}:${effectiveOrgId ?? 'none'}`,
@@ -175,6 +180,12 @@ export function BrandProvider({
     initialOrganizationId || clerkData.organization || effectiveOrgId || '',
   );
   const shouldFetchBrands = effectiveIsAuthLoaded && effectiveIsSignedIn;
+  const brandsCacheKey = shouldFetchBrands
+    ? `brand-context:brands:${sessionKey}`
+    : undefined;
+  const clientBootstrapCacheKey = shouldFetchBrands
+    ? `protected-bootstrap:${sessionKey}`
+    : undefined;
 
   useEffect(() => {
     const resolvedOrganizationId =
@@ -213,6 +224,22 @@ export function BrandProvider({
         return [];
       }
 
+      try {
+        const bootstrap = await loadClientProtectedBootstrap(
+          clientBootstrapCacheKey,
+          getAuthService,
+        );
+
+        if (bootstrap) {
+          return bootstrap.brands.map((brand) => new Brand(brand));
+        }
+      } catch (error) {
+        logger.warn('Failed to load client protected bootstrap for brands', {
+          error,
+          reportToSentry: false,
+        });
+      }
+
       const service = await getUsersService();
       const data = await service.findMeBrands({
         pagination: false,
@@ -222,6 +249,8 @@ export function BrandProvider({
       return data.map((brand: Partial<IBrand>) => new Brand(brand));
     },
     {
+      cacheKey: brandsCacheKey,
+      cacheTimeMs: BRAND_CONTEXT_CACHE_TTL_MS,
       dependencies: [effectiveIsAuthLoaded, effectiveIsSignedIn, sessionKey],
       enabled: shouldFetchBrands,
       initialData: initialBrands,
@@ -329,6 +358,13 @@ export function BrandProvider({
     effectiveIsSignedIn &&
     !!scopedOrganizationId &&
     !!scopedBrandId;
+  const settingsCacheKey = scopedOrganizationId
+    ? `brand-context:settings:${scopedOrganizationId}`
+    : undefined;
+  const darkroomCapabilitiesCacheKey =
+    scopedOrganizationId && scopedBrandId
+      ? `brand-context:darkroom:${scopedOrganizationId}:${scopedBrandId}`
+      : undefined;
 
   const {
     data: settings,
@@ -341,6 +377,24 @@ export function BrandProvider({
       }
 
       try {
+        const bootstrap = await loadClientProtectedBootstrap(
+          clientBootstrapCacheKey,
+          getAuthService,
+        );
+
+        if (bootstrap?.organizationId === scopedOrganizationId) {
+          return bootstrap.settings
+            ? new OrganizationSetting(bootstrap.settings)
+            : null;
+        }
+      } catch (error) {
+        logger.warn('Failed to load client protected bootstrap for settings', {
+          error,
+          reportToSentry: false,
+        });
+      }
+
+      try {
         const service = await getOrganizationsService();
         return await service.getSettings(scopedOrganizationId);
       } catch (error) {
@@ -349,6 +403,8 @@ export function BrandProvider({
       }
     },
     {
+      cacheKey: settingsCacheKey,
+      cacheTimeMs: BRAND_CONTEXT_CACHE_TTL_MS,
       dependencies: [scopedOrganizationId],
       enabled: shouldFetchSettings && !!scopedOrganizationId,
       initialData: initialSettings,
@@ -364,6 +420,28 @@ export function BrandProvider({
         }
 
         try {
+          const bootstrap = await loadClientProtectedBootstrap(
+            clientBootstrapCacheKey,
+            getAuthService,
+          );
+
+          if (
+            bootstrap?.organizationId === scopedOrganizationId &&
+            bootstrap.brandId === scopedBrandId
+          ) {
+            return bootstrap.darkroomCapabilities;
+          }
+        } catch (error) {
+          logger.warn(
+            'Failed to load client protected bootstrap for darkroom capabilities',
+            {
+              error,
+              reportToSentry: false,
+            },
+          );
+        }
+
+        try {
           const service = await getOrganizationsService();
           return await service.getDarkroomCapabilities(
             scopedOrganizationId,
@@ -375,6 +453,8 @@ export function BrandProvider({
         }
       },
       {
+        cacheKey: darkroomCapabilitiesCacheKey,
+        cacheTimeMs: BRAND_CONTEXT_CACHE_TTL_MS,
         dependencies: [scopedOrganizationId, scopedBrandId],
         enabled:
           shouldFetchDarkroom && !!scopedOrganizationId && !!scopedBrandId,

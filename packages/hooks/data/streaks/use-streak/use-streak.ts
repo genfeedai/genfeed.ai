@@ -7,6 +7,8 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import { useMemo } from 'react';
 
+const STREAK_CACHE_TTL_MS = 60_000;
+
 interface UseStreakOptions {
   includeCalendar?: boolean;
   initialStreak?: IStreakSummary | null;
@@ -23,6 +25,9 @@ export interface UseStreakReturn {
 export function useStreak(options: UseStreakOptions = {}): UseStreakReturn {
   const { includeCalendar = true, initialStreak = null } = options;
   const { organizationId } = useBrand();
+  const cacheKey = organizationId
+    ? `streak:${organizationId}:${includeCalendar ? 'calendar' : 'summary'}`
+    : undefined;
 
   const getStreaksService = useAuthedService((token: string) =>
     StreaksService.getInstance(token, organizationId),
@@ -43,6 +48,8 @@ export function useStreak(options: UseStreakOptions = {}): UseStreakReturn {
       return { calendar: calendar.days, streak };
     },
     {
+      cacheKey,
+      cacheTimeMs: STREAK_CACHE_TTL_MS,
       dependencies: [includeCalendar, organizationId],
       enabled: Boolean(organizationId),
       initialData: initialStreak

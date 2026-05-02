@@ -226,6 +226,24 @@ describe('proxy', () => {
     );
   });
 
+  it('redirects signed-in flat chat to the canonical org-scoped chat path', async () => {
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      {
+        cookies: { get: vi.fn() },
+        nextUrl: { pathname: '/chat', search: '' },
+        url: 'http://localhost:3000/chat',
+      } as never,
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/acme/~/chat',
+    );
+  });
+
   it('keeps signed-in personal settings on the canonical personal route', async () => {
     const { default: proxy } = await import('./proxy');
 
