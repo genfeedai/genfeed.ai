@@ -62,7 +62,7 @@ export class ImagesController {
   async findLatest(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Query('limit') _limit: number = 10,
+    @Query('limit') limit: number = 10,
   ): Promise<JsonApiCollectionResponse> {
     const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(false);
@@ -107,6 +107,7 @@ export class ImagesController {
     };
 
     const data = await this.imagesService.findAll(aggregate, {
+      limit: Math.min(Number(limit) || 10, 50),
       pagination: false,
     });
 
@@ -144,7 +145,7 @@ export class ImagesController {
 
     // const references = isEntityId(query.references)
     //   ? query.references
-    //   : { not: true };
+    //   : { not: null };
 
     // Use IngredientFilterUtil to build ingredient-specific filters
     const parentConditions = IngredientFilterUtil.buildParentFilter(

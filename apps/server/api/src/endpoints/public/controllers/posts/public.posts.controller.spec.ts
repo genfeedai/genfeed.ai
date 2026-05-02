@@ -4,7 +4,6 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import { PublicPostsController } from '@api/endpoints/public/controllers/posts/public.posts.controller';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { asMatchStage } from '@api/test/query-stage-assertions';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { AssetScope, PostStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -129,10 +128,11 @@ describe('PublicPostsController', () => {
 
       await controller.findPublicPosts(mockRequest, query, undefined, brandId);
 
-      const callArgs = postsService.findAll.mock.calls[0][0];
-      const matchStage = asMatchStage(callArgs[0]);
-      expect(matchStage.$match.brand).toBeDefined();
-      expect((matchStage.$match.brand as string).toString()).toBe(brandId);
+      const callArgs = postsService.findAll.mock.calls[0][0] as {
+        where: Record<string, unknown>;
+      };
+      expect(callArgs.where.brand).toBeDefined();
+      expect((callArgs.where.brand as string).toString()).toBe(brandId);
     });
 
     it('should filter by tag when provided', async () => {
@@ -150,15 +150,16 @@ describe('PublicPostsController', () => {
 
       await controller.findPublicPosts(mockRequest, query, tag);
 
-      const callArgs = postsService.findAll.mock.calls[0][0];
-      const matchStage = asMatchStage(callArgs[0]);
-      expect(matchStage.$match['metadata.tags']).toBeDefined();
+      const callArgs = postsService.findAll.mock.calls[0][0] as {
+        where: Record<string, unknown>;
+      };
+      expect(callArgs.where['metadata.tags']).toBeDefined();
       expect(
-        (matchStage.$match['metadata.tags'] as { $regex: string }).$regex,
+        (callArgs.where['metadata.tags'] as { contains: string }).contains,
       ).toBe(tag);
-      expect(
-        (matchStage.$match['metadata.tags'] as { $options: string }).$options,
-      ).toBe('i');
+      expect((callArgs.where['metadata.tags'] as { mode: string }).mode).toBe(
+        'insensitive',
+      );
     });
 
     it('should apply correct match query for public posts', async () => {
@@ -175,8 +176,10 @@ describe('PublicPostsController', () => {
 
       await controller.findPublicPosts(mockRequest, query);
 
-      const callArgs = postsService.findAll.mock.calls[0][0];
-      expect(asMatchStage(callArgs[0]).$match).toEqual({
+      const callArgs = postsService.findAll.mock.calls[0][0] as {
+        where: Record<string, unknown>;
+      };
+      expect(callArgs.where).toEqual({
         isDeleted: false,
         scope: AssetScope.PUBLIC,
         status: PostStatus.PUBLIC,
@@ -203,8 +206,10 @@ describe('PublicPostsController', () => {
         invalidAccountId,
       );
 
-      const callArgs = postsService.findAll.mock.calls[0][0];
-      expect(asMatchStage(callArgs[0]).$match.brand).toBeUndefined();
+      const callArgs = postsService.findAll.mock.calls[0][0] as {
+        where: Record<string, unknown>;
+      };
+      expect(callArgs.where.brand).toBeUndefined();
     });
   });
 

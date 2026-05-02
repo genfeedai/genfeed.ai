@@ -1,48 +1,20 @@
+import {
+  mockError,
+  mockFetch,
+  mockJsonApiCollection,
+  mockJsonApiResource,
+  mockOk,
+} from '@agent-tests/json-api-fetch.mock';
 import type { AgentApiDecodeError } from '@genfeedai/agent/services/agent-api-error';
 import { AgentStrategyApiService } from '@genfeedai/agent/services/agent-strategy-api.service';
 import { Effect } from 'effect';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-const mockFetch = vi.fn();
-global.fetch = mockFetch;
 
 function makeService() {
   return new AgentStrategyApiService({
     baseUrl: 'http://api.test',
     getToken: vi.fn().mockResolvedValue('token'),
   });
-}
-
-function mockOk(data: unknown) {
-  mockFetch.mockResolvedValueOnce({
-    json: () => Promise.resolve(data),
-    ok: true,
-  });
-}
-
-function mockJsonApiResource(
-  id: string,
-  attrs: Record<string, unknown>,
-  type = 'strategy',
-) {
-  mockOk({ data: { attributes: attrs, id, type } });
-}
-
-function mockJsonApiCollection(
-  items: Array<Record<string, unknown>>,
-  type = 'strategy',
-) {
-  mockOk({
-    data: items.map((item) => ({
-      attributes: item,
-      id: String(item.id ?? '1'),
-      type,
-    })),
-  });
-}
-
-function mockError(status: number) {
-  mockFetch.mockResolvedValueOnce({ ok: false, status });
 }
 
 describe('AgentStrategyApiService', () => {
@@ -78,7 +50,7 @@ describe('AgentStrategyApiService', () => {
 
   describe('getStrategy', () => {
     it('fetches single strategy', async () => {
-      mockJsonApiResource('s-1', { id: 's-1' });
+      mockJsonApiResource({ id: 's-1' });
       const service = makeService();
       const result = await Effect.runPromise(service.getStrategyEffect('s-1'));
       expect(result).toBeDefined();
@@ -95,7 +67,7 @@ describe('AgentStrategyApiService', () => {
 
   describe('createStrategy', () => {
     it('creates strategy', async () => {
-      mockJsonApiResource('s-1', { id: 's-1', label: 'Test' });
+      mockJsonApiResource({ id: 's-1', label: 'Test' });
       const service = makeService();
       const result = await Effect.runPromise(
         service.createStrategyEffect({ label: 'Test' }),
@@ -134,7 +106,7 @@ describe('AgentStrategyApiService', () => {
 
   describe('updateStrategy', () => {
     it('updates strategy', async () => {
-      mockJsonApiResource('s-1', { id: 's-1', label: 'Updated' });
+      mockJsonApiResource({ id: 's-1', label: 'Updated' });
       const service = makeService();
       const result = await Effect.runPromise(
         service.updateStrategyEffect('s-1', { label: 'Updated' }),
@@ -157,7 +129,7 @@ describe('AgentStrategyApiService', () => {
 
   describe('deleteStrategy', () => {
     it('deletes strategy', async () => {
-      mockJsonApiResource('s-1', { id: 's-1' });
+      mockJsonApiResource({ id: 's-1' });
       const service = makeService();
       await Effect.runPromise(service.deleteStrategyEffect('s-1'));
       expect(mockFetch).toHaveBeenCalledWith(
@@ -177,7 +149,7 @@ describe('AgentStrategyApiService', () => {
 
   describe('toggleStrategy', () => {
     it('toggles strategy', async () => {
-      mockJsonApiResource('s-1', { id: 's-1', isActive: true });
+      mockJsonApiResource({ id: 's-1', isActive: true });
       const service = makeService();
       const result = await Effect.runPromise(
         service.toggleStrategyEffect('s-1'),
