@@ -16,7 +16,7 @@ interface TrainingHyperparams {
   batchSize: number;
 }
 
-interface TrainingqueryParams {
+interface TrainingPipelineParams {
   trainingId: string;
   organizationId: string;
   personaSlug: string;
@@ -149,7 +149,11 @@ export class DarkroomTrainingService {
    * Execute the full training pipeline (fire-and-forget).
    * Calls NestJS images service HTTP endpoints.
    */
-  async executeTrainingquery(params: TrainingqueryParams): Promise<void> {
+  async executeTrainingquery(params: TrainingPipelineParams): Promise<void> {
+    return this.executeTrainingPipeline(params);
+  }
+
+  async executeTrainingPipeline(params: TrainingPipelineParams): Promise<void> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(caller, {
       loraName: params.loraName,

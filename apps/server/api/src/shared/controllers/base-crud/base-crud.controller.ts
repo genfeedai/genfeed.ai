@@ -57,6 +57,50 @@ type AggregatePaginateResult<T> = {
   [key: string]: unknown;
 };
 
+function toLegacyMatchValue(key: string, value: unknown): unknown {
+  if ((key === 'organization' || key === 'user') && value === null) {
+    return { $exists: false };
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) =>
+      typeof item === 'object' && item !== null
+        ? toLegacyMatchObject(item as Record<string, unknown>)
+        : item,
+    );
+  }
+
+  return value;
+}
+
+function toLegacyMatchObject(match: Record<string, unknown>) {
+  return Object.fromEntries(
+    Object.entries(match).map(([key, value]) => [
+      key,
+      toLegacyMatchValue(key, value),
+    ]),
+  );
+}
+
+function toLegacyMatchStage(match: Record<string, unknown>) {
+  const legacyMatch = toLegacyMatchObject(match);
+
+  if (Array.isArray(legacyMatch.OR)) {
+    legacyMatch.$or = legacyMatch.OR;
+    delete legacyMatch.OR;
+  }
+
+  if (Array.isArray(legacyMatch.AND)) {
+    legacyMatch.$and = legacyMatch.AND;
+    delete legacyMatch.AND;
+  }
+
+  return {
+    $match: legacyMatch,
+    match: legacyMatch,
+  };
+}
+
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 
 @AutoSwagger()
@@ -288,6 +332,34 @@ export abstract class BaseCRUDController<
       orderBy: handleQuerySort(query.sort),
       where: matchFilter,
     };
+  }
+
+  public buildFindAllPipeline(
+    user: User,
+    query: QueryDto,
+  ): Record<string, unknown>[] {
+    const findAllQuery = this.buildFindAllQuery(user, query);
+    const stages: Record<string, unknown>[] = [];
+
+    if (findAllQuery.where) {
+      const { AND: andConditions, ...baseWhere } = findAllQuery.where;
+      stages.push(toLegacyMatchStage(baseWhere));
+
+      if (Array.isArray(andConditions)) {
+        for (const condition of andConditions) {
+          stages.push(toLegacyMatchStage(condition));
+        }
+      }
+    }
+
+    if (findAllQuery.orderBy) {
+      stages.push({
+        $sort: findAllQuery.orderBy,
+        orderBy: findAllQuery.orderBy,
+      });
+    }
+
+    return stages;
   }
 
   /**
