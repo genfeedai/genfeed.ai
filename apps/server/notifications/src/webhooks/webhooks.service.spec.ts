@@ -40,10 +40,6 @@ describe('WebhooksService (Notifications)', () => {
     eventsService = module.get<EventsService>(EventsService);
   });
 
-  afterEach(() => {
-    vi.clearAllMocks();
-  });
-
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
