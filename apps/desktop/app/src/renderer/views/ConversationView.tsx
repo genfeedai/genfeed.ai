@@ -73,7 +73,7 @@ const PUBLISH_INTENT_OPTIONS: Array<{
 
 const UNLINKED_PROJECT_VALUE = '__not_linked__';
 const CREDIT_CHECKOUT_PATH =
-  '/onboarding/post-signup?selectedCredits=1000&source=desktop';
+  '/onboarding/post-signup?credits=1000&source=desktop';
 const PROVIDER_KEYS_PATH = '/settings/api-keys?source=desktop';
 
 const PROVIDER_PRESETS: Record<
