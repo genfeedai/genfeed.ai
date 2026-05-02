@@ -279,13 +279,15 @@ describe('PostsWritePage', () => {
       });
     });
 
-    expect(screen.getByLabelText('Draft content')).toHaveValue(
-      'Generated local post',
-    );
-    expect(queueJob).toHaveBeenCalledWith(
-      'post-draft',
-      expect.stringContaining('Generated local post'),
-    );
+    await waitFor(() => {
+      expect(screen.getByLabelText('Draft content')).toHaveValue(
+        'Generated local post',
+      );
+      expect(queueJob).toHaveBeenCalledWith(
+        'post-draft',
+        expect.stringContaining('Generated local post'),
+      );
+    });
     expect(pushMock).not.toHaveBeenCalled();
   });
 
