@@ -2,6 +2,14 @@ import type {
   ContentPlanItemDocument,
   ContentPlanPipelineStep,
 } from '@api/collections/content-plan-items/schemas/content-plan-item.schema';
+import {
+  asDate,
+  asNumber,
+  asRecord,
+  asString,
+  dateToTime,
+  serializeDate,
+} from '@api/collections/content-plans/utils/content-plan-data.util';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ContentPlanItemStatus } from '@genfeedai/enums';
@@ -163,28 +171,28 @@ export class ContentPlanItemsService {
   }
 
   private toDocument(doc: PrismaContentPlanItem): ContentPlanItemDocument {
-    const data = this.asRecord(doc.data);
+    const data = asRecord(doc.data);
 
     return {
       ...doc,
       _id: doc.mongoId ?? doc.id,
       brand: doc.brandId,
-      confidence: this.asNumber(data.confidence),
-      contentDraftId: this.asString(data.contentDraftId) ?? null,
+      confidence: asNumber(data.confidence),
+      contentDraftId: asString(data.contentDraftId) ?? null,
       data,
-      error: this.asString(data.error) ?? null,
+      error: asString(data.error) ?? null,
       organization: doc.organizationId,
       pipelineSteps: this.asPipelineSteps(data.pipelineSteps),
       plan: doc.planId,
       platforms: this.asStringArray(data.platforms),
-      prompt: this.asString(data.prompt) ?? null,
-      scheduledAt: this.asDate(data.scheduledAt),
-      skillSlug: this.asString(data.skillSlug) ?? null,
+      prompt: asString(data.prompt) ?? null,
+      scheduledAt: asDate(data.scheduledAt),
+      skillSlug: asString(data.skillSlug) ?? null,
       status:
         this.asContentPlanItemStatus(data.status) ??
         ContentPlanItemStatus.PENDING,
-      topic: this.asString(data.topic) ?? null,
-      type: this.asString(data.type),
+      topic: asString(data.topic) ?? null,
+      type: asString(data.type),
     };
   }
 
@@ -198,7 +206,7 @@ export class ContentPlanItemsService {
     >,
     existingData?: unknown,
   ): Record<string, unknown> {
-    const payload = this.asRecord(existingData);
+    const payload = asRecord(existingData);
 
     if (data.type !== undefined) {
       payload.type = data.type;
@@ -217,7 +225,7 @@ export class ContentPlanItemsService {
     }
 
     if (data.scheduledAt !== undefined) {
-      payload.scheduledAt = this.serializeDate(data.scheduledAt);
+      payload.scheduledAt = serializeDate(data.scheduledAt);
     }
 
     if (data.skillSlug !== undefined) {
@@ -251,39 +259,11 @@ export class ContentPlanItemsService {
     items: ContentPlanItemDocument[],
   ): ContentPlanItemDocument[] {
     return [...items].sort((left, right) => {
-      const leftTime =
-        this.dateToTime(left.scheduledAt) ?? Number.MAX_SAFE_INTEGER;
+      const leftTime = dateToTime(left.scheduledAt) ?? Number.MAX_SAFE_INTEGER;
       const rightTime =
-        this.dateToTime(right.scheduledAt) ?? Number.MAX_SAFE_INTEGER;
+        dateToTime(right.scheduledAt) ?? Number.MAX_SAFE_INTEGER;
       return leftTime - rightTime;
     });
-  }
-
-  private asRecord(value: unknown): Record<string, unknown> {
-    if (!value || typeof value !== 'object' || Array.isArray(value)) {
-      return {};
-    }
-
-    return { ...(value as Record<string, unknown>) };
-  }
-
-  private asNumber(value: unknown): number | undefined {
-    if (typeof value === 'number' && Number.isFinite(value)) {
-      return value;
-    }
-
-    if (typeof value === 'string') {
-      const parsed = Number(value);
-      if (Number.isFinite(parsed)) {
-        return parsed;
-      }
-    }
-
-    return undefined;
-  }
-
-  private asString(value: unknown): string | undefined {
-    return typeof value === 'string' ? value : undefined;
   }
 
   private asStringArray(value: unknown): string[] {
@@ -292,36 +272,6 @@ export class ContentPlanItemsService {
     }
 
     return value.filter((entry): entry is string => typeof entry === 'string');
-  }
-
-  private asDate(value: unknown): Date | null {
-    if (value instanceof Date) {
-      return value;
-    }
-
-    if (typeof value === 'string') {
-      const parsed = new Date(value);
-      if (!Number.isNaN(parsed.getTime())) {
-        return parsed;
-      }
-    }
-
-    return null;
-  }
-
-  private dateToTime(value: Date | string | null | undefined): number | null {
-    if (value instanceof Date) {
-      return value.getTime();
-    }
-
-    if (typeof value === 'string') {
-      const parsed = new Date(value);
-      if (!Number.isNaN(parsed.getTime())) {
-        return parsed.getTime();
-      }
-    }
-
-    return null;
   }
 
   private asPipelineSteps(value: unknown): ContentPlanPipelineStep[] {
@@ -335,14 +285,14 @@ export class ContentPlanItemsService {
           Boolean(step) && typeof step === 'object' && !Array.isArray(step),
       )
       .map((step) => ({
-        aspectRatio: this.asString(step.aspectRatio),
-        duration: this.asNumber(step.duration),
-        imageUrl: this.asString(step.imageUrl),
-        model: this.asString(step.model) ?? '',
-        prompt: this.asString(step.prompt),
-        text: this.asString(step.text),
-        type: this.asString(step.type) ?? 'text-to-image',
-        voiceId: this.asString(step.voiceId),
+        aspectRatio: asString(step.aspectRatio),
+        duration: asNumber(step.duration),
+        imageUrl: asString(step.imageUrl),
+        model: asString(step.model) ?? '',
+        prompt: asString(step.prompt),
+        text: asString(step.text),
+        type: asString(step.type) ?? 'text-to-image',
+        voiceId: asString(step.voiceId),
       }));
   }
 
@@ -352,20 +302,5 @@ export class ContentPlanItemsService {
     return Object.values(ContentPlanItemStatus).find(
       (status) => status === value,
     );
-  }
-
-  private serializeDate(value: unknown): string | null {
-    if (value instanceof Date) {
-      return value.toISOString();
-    }
-
-    if (typeof value === 'string') {
-      const parsed = new Date(value);
-      if (!Number.isNaN(parsed.getTime())) {
-        return parsed.toISOString();
-      }
-    }
-
-    return null;
   }
 }

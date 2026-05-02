@@ -250,6 +250,11 @@ export class VideosController {
     const trainingFilter = IngredientFilterUtil.buildTrainingFilter(
       query.training?.toString(),
     );
+    const searchFilter = CollectionFilterUtil.buildSearchFilter(query.search, [
+      'metadata.label',
+      'metadata.description',
+      'prompt.prompt',
+    ]);
 
     // Handle format filter based on metadata dimensions
     // Format is now filtered after metadata lookup
@@ -278,6 +283,7 @@ export class VideosController {
           folderConditions,
           parentConditions,
           trainingFilter,
+          searchFilter.where,
         ],
       },
       orderBy: handleQuerySort(query.sort),

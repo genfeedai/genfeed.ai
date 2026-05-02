@@ -142,6 +142,56 @@ describe('ChatWorkspaceLayoutClient', () => {
     });
   });
 
+  it('navigates to the newly created thread under /agent when using the agent surface', async () => {
+    navigationState.pathname = '/agent';
+    const view = render(
+      <ChatWorkspaceLayoutClient>
+        <div>child</div>
+      </ChatWorkspaceLayoutClient>,
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    storeState.activeThreadId = 'thread-new';
+
+    view.rerender(
+      <ChatWorkspaceLayoutClient>
+        <div>child</div>
+      </ChatWorkspaceLayoutClient>,
+    );
+
+    await waitFor(() => {
+      expect(routerReplace).toHaveBeenCalledWith('/agent/thread-new');
+    });
+  });
+
+  it('recognizes org-scoped /agent routes when deriving the conversation base path', async () => {
+    navigationState.pathname = '/org-123/~/agent';
+    const view = render(
+      <ChatWorkspaceLayoutClient>
+        <div>child</div>
+      </ChatWorkspaceLayoutClient>,
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    storeState.activeThreadId = 'thread-new';
+
+    view.rerender(
+      <ChatWorkspaceLayoutClient>
+        <div>child</div>
+      </ChatWorkspaceLayoutClient>,
+    );
+
+    await waitFor(() => {
+      expect(routerReplace).toHaveBeenCalledWith('/agent/thread-new');
+    });
+  });
+
   it('recognizes org-scoped /chat/new routes when bootstrapping prefills', async () => {
     navigationState.pathname = '/org-123/~/chat/new';
     navigationState.searchParams = new URLSearchParams('prompt=hello');
@@ -154,6 +204,25 @@ describe('ChatWorkspaceLayoutClient', () => {
 
     await waitFor(() => {
       expect(sendMessage).toHaveBeenCalledWith('hello', {
+        forceNewThread: true,
+        signal: expect.any(AbortSignal),
+        source: 'agent',
+      });
+    });
+  });
+
+  it('boots a prefilled prompt from /agent/new as an agent message', async () => {
+    navigationState.pathname = '/agent/new';
+    navigationState.searchParams = new URLSearchParams('prompt=make%20content');
+
+    render(
+      <ChatWorkspaceLayoutClient>
+        <div>child</div>
+      </ChatWorkspaceLayoutClient>,
+    );
+
+    await waitFor(() => {
+      expect(sendMessage).toHaveBeenCalledWith('make content', {
         forceNewThread: true,
         signal: expect.any(AbortSignal),
         source: 'agent',

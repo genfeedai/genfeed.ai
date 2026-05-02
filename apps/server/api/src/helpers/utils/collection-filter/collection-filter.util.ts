@@ -15,7 +15,7 @@ import { AssetScope } from '@genfeedai/enums';
  * const scope = CollectionFilterUtil.buildScopeFilter(query.scope);
  *
  * // Build search filter
- * const searchStages = CollectionFilterUtil.buildSearchFilter(query.search, ['metadata.label', 'metadata.description']);
+ * const searchFilter = CollectionFilterUtil.buildSearchFilter(query.search, ['metadata.label', 'metadata.description']);
  *
  * // Use in findAll query
  * const aggregate: Record<string, unknown>[] = [
@@ -100,7 +100,7 @@ export class CollectionFilterUtil {
    * @example
    * // Any brand exists
    * CollectionFilterUtil.buildBrandFilter(undefined, publicMetadata, 'exists')
-   * // Returns: { not: true }
+   * // Returns: { not: null }
    */
   static buildBrandFilter(
     brand: unknown,
@@ -114,16 +114,16 @@ export class CollectionFilterUtil {
     // Handle default behavior based on defaultTo parameter
     switch (defaultTo) {
       case 'user':
-        return publicMetadata?.brand ? publicMetadata.brand : { not: true };
+        return publicMetadata?.brand ? publicMetadata.brand : { not: null };
 
       case 'exists':
-        return { not: true };
+        return { not: null };
 
       case 'none':
         return { not: null };
 
       default:
-        return { not: true };
+        return { not: null };
     }
   }
 
@@ -157,26 +157,26 @@ export class CollectionFilterUtil {
    * Build search filter across multiple fields
    *
    * Creates case-insensitive regex search across specified fields.
-   * Returns query fragments with match using OR for multiple fields.
+   * Returns a Prisma where fragment with OR across multiple fields.
    *
    * @param search - Search query string
    * @param fields - Array of field paths to search
-   * @returns Array of query fragments (empty if no search)
+   * @returns Query fragment (empty where object if no search)
    *
    * @example
    * // Search across metadata fields
    * CollectionFilterUtil.buildSearchFilter('hello', ['metadata.label', 'metadata.description'])
-   * // Returns: [{ match: { OR: [{ 'metadata.label': { contains: 'hello', mode: 'insensitive' } }, ...] } }]
+   * // Returns: { where: { OR: [{ 'metadata.label': { contains: 'hello', mode: 'insensitive' } }, ...] } }
    *
    * @example
    * // No search
    * CollectionFilterUtil.buildSearchFilter(undefined, ['label'])
-   * // Returns: []
+   * // Returns: { where: {} }
    */
   static buildSearchFilter(
     search?: string,
     fields: string[] = ['metadata.label', 'metadata.description'],
-  ): Record<string, unknown>[] {
+  ): Record<string, unknown> {
     if (!search || search.trim() === '') {
       return { where: {} };
     }
