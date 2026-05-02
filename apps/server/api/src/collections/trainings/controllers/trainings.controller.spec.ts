@@ -13,6 +13,7 @@ import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import type { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
+import { asMatchStage, asSortStage } from '@api/test/query-stage-assertions';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { User } from '@clerk/backend';
 import { MODEL_KEYS } from '@genfeedai/constants';
@@ -32,12 +33,6 @@ const createTrainingsQuery = (
     pagination: true,
     ...partial,
   }) as TrainingsQueryDto;
-
-const asMatchStage = (stage: Record<string, unknown>) =>
-  stage as Record<string, unknown> & { $match: Record<string, unknown> };
-
-const asSortStage = (stage: Record<string, unknown>) =>
-  stage as Record<string, unknown> & { $sort: Record<string, unknown> };
 
 vi.mock('@genfeedai/helpers', async () => ({
   ...(await vi.importActual('@genfeedai/helpers')),
