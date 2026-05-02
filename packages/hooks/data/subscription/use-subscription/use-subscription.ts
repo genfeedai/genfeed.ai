@@ -16,6 +16,9 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import { useMemo } from 'react';
 
+const SUBSCRIPTION_CACHE_TTL_MS = 60_000;
+const CREDITS_CACHE_TTL_MS = 30_000;
+
 export function useSubscription(): UseSubscriptionReturn {
   const { user } = useUser();
 
@@ -41,6 +44,12 @@ export function useSubscription(): UseSubscriptionReturn {
     const publicData = getClerkPublicData(user as unknown as UserResource);
     return publicData.organization;
   }, [user]);
+  const subscriptionCacheKey = organizationId
+    ? `subscription:${organizationId}`
+    : undefined;
+  const creditsCacheKey = user?.id
+    ? `credits-breakdown:${organizationId ?? 'no-org'}:${user.id}`
+    : undefined;
 
   // Fetch subscription using useResource
   const {
@@ -59,6 +68,8 @@ export function useSubscription(): UseSubscriptionReturn {
       return data || null;
     },
     {
+      cacheKey: subscriptionCacheKey,
+      cacheTimeMs: SUBSCRIPTION_CACHE_TTL_MS,
       dependencies: [organizationId],
     },
   );
@@ -81,6 +92,8 @@ export function useSubscription(): UseSubscriptionReturn {
       return data as ICreditsBreakdown;
     },
     {
+      cacheKey: creditsCacheKey,
+      cacheTimeMs: CREDITS_CACHE_TTL_MS,
       dependencies: [user],
     },
   );

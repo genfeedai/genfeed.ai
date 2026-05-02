@@ -68,7 +68,6 @@ import {
 } from '@services/core/agent-overlay-coordination.service';
 import LowCreditsBanner from '@ui/banners/low-credits/LowCreditsBanner';
 import ProductionDataBanner from '@ui/banners/production-data/ProductionDataBanner';
-import { CommandPalette } from '@ui/command-palette/command-palette/CommandPalette';
 import { CommandPaletteInitializer } from '@ui/command-palette/command-palette-initializer/CommandPaletteInitializer';
 import OnboardingGuard from '@ui/guards/onboarding/OnboardingGuard';
 import AppLayout from '@ui/layouts/app/AppLayout';
@@ -118,10 +117,16 @@ type AgentPanelProps = {
 type AgentThreadListProps = {
   apiService: AgentApiService;
   isActive?: boolean;
-  routeBasePath?: '/agent' | '/chat';
   onActionsChange?: (actions: ReactNode) => void;
   onNavigate?: (path: string) => void;
 };
+
+function isTerminalDockAvailable(): boolean {
+  return (
+    process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1' ||
+    process.env.NEXT_PUBLIC_GENFEED_CLOUD !== 'true'
+  );
+}
 
 const LazyAgentPanel = dynamic<AgentPanelProps>(
   () => import('@genfeedai/agent').then((mod) => mod.AgentPanel),
@@ -139,6 +144,14 @@ const LazyAgentThreadList = dynamic<AgentThreadListProps>(
     loading: () => null,
     ssr: false,
   },
+);
+
+const LazyCommandPalette = dynamic(
+  () =>
+    import('@ui/command-palette/command-palette/CommandPalette').then(
+      (mod) => mod.CommandPalette,
+    ),
+  { ssr: false },
 );
 
 const WORKFLOWS_NAMED_ROUTES = new Set([
@@ -167,11 +180,9 @@ function AgentThreadCommandsBridge({
 }
 
 function ChatSidebarContent({
-  conversationBasePath,
   conversationActions,
   renderConversations,
 }: {
-  conversationBasePath: '/agent' | '/chat';
   conversationActions: ReactNode;
   renderConversations: () => ReactNode;
 }) {
@@ -191,7 +202,7 @@ function ChatSidebarContent({
 
         <div className="pb-1">
           <Link
-            href={orgHref(`${conversationBasePath}/new`)}
+            href={orgHref('/chat/new')}
             className="flex h-9 w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-white/80 transition-colors duration-200 group cursor-pointer hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
           >
             <HiPlus className="h-4 w-4 text-white/80 group-hover:text-white" />
@@ -229,8 +240,7 @@ function AppLayoutWithDynamicMenu({
     [rawPathname],
   );
   const isChatRoute = /^\/chat(?:\/|$)/.test(pathname);
-  const isAgentRoute = /^\/agent(?:\/|$)/.test(pathname);
-  const isConversationRoute = isChatRoute || isAgentRoute;
+  const isConversationRoute = isChatRoute;
   const isAdminRoute = pathname === '/admin' || pathname.startsWith('/admin/');
   const isFocusedOnboardingRoute = pathname.startsWith('/chat/onboarding');
   const isComposeRoute = pathname.startsWith(COMPOSE_ROUTES.ROOT);
@@ -283,11 +293,12 @@ function AppLayoutWithDynamicMenu({
               ? 'editor'
               : isAnalyticsRoute
                 ? 'analytics'
-                : isAgentRoute
+                : isChatRoute
                   ? 'agent'
                   : 'workspace';
 
-  const shouldMountAgentPanel = !isEditorCanvasRoute && !isConversationRoute;
+  const shouldMountAgentPanel =
+    isTerminalDockAvailable() && !isEditorCanvasRoute && !isConversationRoute;
   const shouldInitAgentApiService =
     shouldMountAgentPanel || isConversationRoute;
 
@@ -570,12 +581,11 @@ function AppLayoutWithDynamicMenu({
       agentApiService ? (
         <LazyAgentThreadList
           apiService={agentApiService}
-          routeBasePath={isAgentRoute ? '/agent' : '/chat'}
           onNavigate={handleNavigate}
           onActionsChange={setConversationActions}
         />
       ) : null,
-    [agentApiService, handleNavigate, isAgentRoute],
+    [agentApiService, handleNavigate],
   );
 
   const menuComponent = useMemo(() => {
@@ -733,7 +743,6 @@ function AppLayoutWithDynamicMenu({
           isConversationRoute
             ? () => (
                 <ChatSidebarContent
-                  conversationBasePath={isAgentRoute ? '/agent' : '/chat'}
                   conversationActions={conversationActions}
                   renderConversations={renderConversations}
                 />
@@ -765,7 +774,6 @@ function AppLayoutWithDynamicMenu({
     isWorkflowsRoute,
     renderConversations,
     isFocusedOnboardingRoute,
-    isAgentRoute,
     isConversationRoute,
     orgMenuItems,
     shellChromeVariant,
@@ -793,6 +801,7 @@ function AppLayoutWithDynamicMenu({
       />
     );
   const isLowCreditsBannerEnabled = useFeatureFlag('low_credits_banner');
+  const isDesktopShell = process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1';
   const lowCreditsBanner =
     isEEEnabled() &&
     isLowCreditsBannerEnabled &&
@@ -803,7 +812,7 @@ function AppLayoutWithDynamicMenu({
     ) : null;
   const shellBanner = (
     <>
-      <ProductionDataBanner />
+      {isDesktopShell ? null : <ProductionDataBanner />}
       {lowCreditsBanner}
     </>
   );
@@ -816,7 +825,7 @@ function AppLayoutWithDynamicMenu({
           {shellBanner}
           {children}
         </div>
-        <CommandPalette />
+        <LazyCommandPalette />
       </CommandPaletteProvider>
     );
   }
@@ -849,12 +858,12 @@ function AppLayoutWithDynamicMenu({
           menuItems={isAdminRoute ? adminMenuItems : menuItems}
           agentPanel={agentPanel}
           isAgentCollapsed={!isAgentOpen}
-          onAgentToggle={toggleAgent}
+          onAgentToggle={shouldMountAgentPanel ? toggleAgent : undefined}
           orgSlug={orgSlug}
         >
           {children}
         </AppLayout>
-        <CommandPalette />
+        <LazyCommandPalette />
       </CommandPaletteProvider>
     </>
   );

@@ -1,4 +1,3 @@
-import { AgentChatContainer } from '@genfeedai/agent/components/AgentChatContainer';
 import { AgentCliTerminal } from '@genfeedai/agent/components/AgentCliTerminal';
 import { AgentOutputsPanel } from '@genfeedai/agent/components/AgentOutputsPanel';
 import { AgentTerminalHeader } from '@genfeedai/agent/components/AgentTerminalHeader';
@@ -59,8 +58,6 @@ function readPersistedPanelTab(): AgentRailTab {
 export function AgentPanel({
   apiService,
   isActive = true,
-  onOAuthConnect,
-  onSelectCreditPack,
 }: AgentPanelProps): ReactElement {
   const router = useRouter();
   const { href } = useOrgUrl();
@@ -76,8 +73,6 @@ export function AgentPanel({
 
   const setCreditsRemaining = useAgentChatStore((s) => s.setCreditsRemaining);
   const setModelCosts = useAgentChatStore((s) => s.setModelCosts);
-  const messages = useAgentChatStore((s) => s.messages);
-  const pageContext = useAgentChatStore((s) => s.pageContext);
   const [hostname, setHostname] = useState<string | null>(null);
   const [installReadiness, setInstallReadiness] =
     useState<AgentInstallReadiness | null>(null);
@@ -246,52 +241,7 @@ export function AgentPanel({
     [activeThreadId, apiService, updateThread],
   );
 
-  // Resolve suggested actions from page context or use defaults
-  const suggestedActions = useMemo(() => {
-    const latestMessage = messages.at(-1);
-
-    if (
-      latestMessage?.role === 'assistant' &&
-      latestMessage.metadata?.suggestedActions?.length
-    ) {
-      return latestMessage.metadata.suggestedActions;
-    }
-
-    return pageContext?.suggestedActions;
-  }, [messages, pageContext]);
-
-  const showRuntimeSuggestedActions = useMemo(() => {
-    const latestMessage = messages.at(-1);
-
-    return Boolean(
-      latestMessage?.role === 'assistant' &&
-        latestMessage.metadata?.suggestedActions?.length,
-    );
-  }, [messages]);
-
-  const [isCliMode, setIsCliMode] = useState(true);
-
-  const placeholder =
-    pageContext?.placeholder ??
-    'Ask for help with content, review, or planning...';
-
-  const chatContent = isCliMode ? (
-    <AgentCliTerminal apiService={apiService} />
-  ) : (
-    <AgentChatContainer
-      apiService={apiService}
-      isStreaming
-      model={selectedRuntime.requestedModel}
-      emptyStateTitle="Quick ask"
-      emptyStateDescription="Ask for help with the page you are on, then open the full chat workspace when you need the complete thread."
-      placeholder={placeholder}
-      suggestedActions={suggestedActions}
-      showSuggestedActionsWhenNotEmpty={showRuntimeSuggestedActions}
-      onOAuthConnect={onOAuthConnect}
-      onSelectCreditPack={onSelectCreditPack}
-      promptBarLayoutMode="surface-fixed"
-    />
-  );
+  const terminalContent = <AgentCliTerminal apiService={apiService} />;
 
   const outputsContent = (
     <AgentOutputsPanel
@@ -309,19 +259,17 @@ export function AgentPanel({
       onExpand={handleExpand}
       onTabChange={handleTabChange}
       defaultTab={defaultTab}
-      title={isCliMode ? 'genfeed' : 'Console'}
+      title="genfeed"
       headerContent={
         <AgentTerminalHeader
           catalog={runtimeCatalog}
           selectedRuntime={selectedRuntime}
           threadLabel={threadLabel}
           onRuntimeChange={handleRuntimeChange}
-          isCliMode={isCliMode}
-          onToggleCliMode={() => setIsCliMode((prev) => !prev)}
         />
       }
-      subtitle="Thread transcript, runtime routing, and generated outputs"
-      chatContent={chatContent}
+      subtitle="Terminal, runtime routing, and generated outputs"
+      chatContent={terminalContent}
       outputsContent={outputsContent}
     />
   );

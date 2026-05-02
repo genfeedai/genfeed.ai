@@ -5,6 +5,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ContextAuthenticationTokenUnavailableError } from './context-authed-service';
 
 interface UseContextResourceOptions<T> {
+  cacheKey?: string;
+  cacheTimeMs?: number;
   dependencies?: DependencyList;
   enabled?: boolean;
   initialData?: T | null;
@@ -18,6 +20,17 @@ interface UseContextResourceResult<T> {
   mutate: (nextData: T) => void;
   refresh: () => Promise<void>;
 }
+
+interface ContextResourceCacheEntry<T> {
+  data?: T;
+  promise?: Promise<T>;
+  updatedAt: number;
+}
+
+const contextResourceCache = new Map<
+  string,
+  ContextResourceCacheEntry<unknown>
+>();
 
 function shallowEqualDependencies(
   a: DependencyList,
@@ -62,27 +75,75 @@ function shallowEqualDependencies(
   return true;
 }
 
+function getFreshContextCacheData<T>(
+  cacheKey: string | undefined,
+  cacheTimeMs: number | undefined,
+): T | null {
+  if (!cacheKey) {
+    return null;
+  }
+
+  const entry = contextResourceCache.get(cacheKey);
+  if (entry?.data === undefined) {
+    return null;
+  }
+
+  if (cacheTimeMs !== undefined && Date.now() - entry.updatedAt > cacheTimeMs) {
+    contextResourceCache.delete(cacheKey);
+    return null;
+  }
+
+  return entry.data as T;
+}
+
+function setContextCacheData<T>(cacheKey: string | undefined, data: T): void {
+  if (!cacheKey) {
+    return;
+  }
+
+  contextResourceCache.set(cacheKey, {
+    data,
+    updatedAt: Date.now(),
+  });
+}
+
+function clearContextCache(cacheKey: string | undefined): void {
+  if (!cacheKey) {
+    return;
+  }
+
+  contextResourceCache.delete(cacheKey);
+}
+
 export function useContextResource<T>(
   fetcher: () => Promise<T>,
   options: UseContextResourceOptions<T> = {},
 ): UseContextResourceResult<T> {
   const {
+    cacheKey,
+    cacheTimeMs,
     dependencies = [],
     enabled = true,
     initialData = null,
-    revalidateOnMount = initialData == null,
   } = options;
 
-  const initialDataRef = useRef(initialData);
+  const initialResolvedDataRef = useRef<T | null>(
+    initialData ?? getFreshContextCacheData<T>(cacheKey, cacheTimeMs),
+  );
+  const revalidateOnMountRef = useRef(
+    options.revalidateOnMount ??
+      (initialData == null && initialResolvedDataRef.current === null),
+  );
   const fetcherRef = useRef(fetcher);
   const isMountedRef = useRef(true);
   const isFirstLoadRef = useRef(true);
   const previousDependenciesRef = useRef<DependencyList>(dependencies);
   const [dependencyVersion, setDependencyVersion] = useState(0);
-  const [data, setData] = useState<T | null>(initialDataRef.current);
+  const [data, setData] = useState<T | null>(initialResolvedDataRef.current);
   const [error, setError] = useState<Error | null>(null);
   const [isLoading, setIsLoading] = useState(
-    enabled && (initialDataRef.current === null || revalidateOnMount),
+    enabled &&
+      (initialResolvedDataRef.current === null || revalidateOnMountRef.current),
   );
 
   useEffect(() => {
@@ -98,51 +159,146 @@ export function useContextResource<T>(
     }
   });
 
-  const runFetch = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const result = await fetcherRef.current();
-
-      if (!isMountedRef.current) {
-        return;
-      }
-
-      setData(result);
-    } catch (unknownError) {
-      if (!isMountedRef.current) {
-        return;
-      }
-
-      if (unknownError instanceof ContextAuthenticationTokenUnavailableError) {
-        return;
-      }
-
-      const resolvedError =
-        unknownError instanceof Error
-          ? unknownError
-          : new Error('useContextResource: fetch failed');
-
-      setError(resolvedError);
-      logger.error('useContextResource: fetch failed', {
-        error: unknownError,
-        reportToSentry: false,
-      });
-    } finally {
-      if (isMountedRef.current) {
-        setIsLoading(false);
-      }
+  useEffect(() => {
+    if (!cacheKey || initialResolvedDataRef.current === null) {
+      return;
     }
-  }, []);
+
+    contextResourceCache.set(cacheKey, {
+      data: initialResolvedDataRef.current,
+      updatedAt: Date.now(),
+    });
+  }, [cacheKey]);
+
+  const runFetch = useCallback(
+    async (isRefresh = false) => {
+      const now = Date.now();
+      const cacheEntry = cacheKey
+        ? contextResourceCache.get(cacheKey)
+        : undefined;
+      const isCacheFresh =
+        cacheEntry?.data !== undefined &&
+        (cacheTimeMs === undefined ||
+          now - cacheEntry.updatedAt <= cacheTimeMs);
+
+      if (!isRefresh && isCacheFresh) {
+        setData(cacheEntry.data as T);
+        setError(null);
+        setIsLoading(false);
+        return;
+      }
+
+      if (!isRefresh && cacheEntry?.promise) {
+        setIsLoading(initialResolvedDataRef.current === null);
+        setError(null);
+
+        try {
+          const result = (await cacheEntry.promise) as T;
+          setContextCacheData(cacheKey, result);
+
+          if (!isMountedRef.current) {
+            return;
+          }
+
+          setData(result);
+        } catch (unknownError) {
+          if (
+            unknownError instanceof ContextAuthenticationTokenUnavailableError
+          ) {
+            clearContextCache(cacheKey);
+            return;
+          }
+
+          clearContextCache(cacheKey);
+
+          if (isMountedRef.current) {
+            const resolvedError =
+              unknownError instanceof Error
+                ? unknownError
+                : new Error('useContextResource: fetch failed');
+
+            setError(resolvedError);
+            logger.error('useContextResource: fetch failed', {
+              error: unknownError,
+              reportToSentry: false,
+            });
+          }
+        } finally {
+          if (isMountedRef.current) {
+            setIsLoading(false);
+          }
+        }
+
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const requestPromise = fetcherRef.current();
+        if (cacheKey) {
+          contextResourceCache.set(cacheKey, {
+            ...cacheEntry,
+            promise: requestPromise,
+            updatedAt: now,
+          });
+        }
+
+        const result = await requestPromise;
+        setContextCacheData(cacheKey, result);
+
+        if (!isMountedRef.current) {
+          return;
+        }
+
+        setData(result);
+      } catch (unknownError) {
+        clearContextCache(cacheKey);
+
+        if (!isMountedRef.current) {
+          return;
+        }
+
+        if (
+          unknownError instanceof ContextAuthenticationTokenUnavailableError
+        ) {
+          return;
+        }
+
+        const resolvedError =
+          unknownError instanceof Error
+            ? unknownError
+            : new Error('useContextResource: fetch failed');
+
+        setError(resolvedError);
+        logger.error('useContextResource: fetch failed', {
+          error: unknownError,
+          reportToSentry: false,
+        });
+      } finally {
+        if (isMountedRef.current) {
+          setIsLoading(false);
+        }
+      }
+    },
+    [cacheKey, cacheTimeMs],
+  );
 
   const refresh = useCallback(async () => {
-    await runFetch();
+    await runFetch(true);
   }, [runFetch]);
 
-  const mutate = useCallback((nextData: T) => {
-    setData(nextData);
-  }, []);
+  const mutate = useCallback(
+    (nextData: T) => {
+      setData(nextData);
+
+      if (cacheKey) {
+        setContextCacheData(cacheKey, nextData);
+      }
+    },
+    [cacheKey],
+  );
 
   useEffect(() => {
     void dependencyVersion;
@@ -158,7 +314,10 @@ export function useContextResource<T>(
     if (isFirstLoadRef.current) {
       isFirstLoadRef.current = false;
 
-      if (revalidateOnMount || initialDataRef.current === null) {
+      if (
+        revalidateOnMountRef.current ||
+        initialResolvedDataRef.current === null
+      ) {
         void runFetch();
       } else {
         setIsLoading(false);
@@ -170,7 +329,7 @@ export function useContextResource<T>(
     return () => {
       isMountedRef.current = false;
     };
-  }, [dependencyVersion, enabled, revalidateOnMount, runFetch]);
+  }, [dependencyVersion, enabled, runFetch]);
 
   return {
     data,

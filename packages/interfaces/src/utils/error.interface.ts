@@ -3,6 +3,7 @@ import type { ComponentType, ReactNode } from 'react';
 
 export interface IServiceSerializer<T> {
   serialize: (data: Partial<T>) => unknown;
+  type?: string;
 }
 
 export interface IServiceConstructor<T> {

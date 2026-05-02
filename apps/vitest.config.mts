@@ -120,11 +120,11 @@ export default defineConfig({
       },
       {
         find: /^@genfeedai\/enums$/,
-        replacement: path.resolve(repoRoot, './packages/enums/dist/index'),
+        replacement: path.resolve(repoRoot, './packages/enums/src/index.ts'),
       },
       {
         find: /^@genfeedai\/enums\/(.*)$/,
-        replacement: path.resolve(repoRoot, './packages/enums/dist/$1'),
+        replacement: path.resolve(repoRoot, './packages/enums/src/$1'),
       },
       {
         find: /^@genfeedai\/fonts$/,
@@ -159,22 +159,19 @@ export default defineConfig({
       },
       {
         find: /^@genfeedai\/client$/,
-        replacement: path.resolve(repoRoot, './packages/client/dist/index'),
+        replacement: path.resolve(repoRoot, './packages/client/src/index.ts'),
       },
       {
         find: /^@genfeedai\/client\/schemas$/,
-        replacement: path.resolve(repoRoot, './packages/client/dist/schemas'),
+        replacement: path.resolve(repoRoot, './packages/client/src/schemas'),
       },
       {
         find: /^@genfeedai\/client\/schemas\/(.*)$/,
-        replacement: path.resolve(
-          repoRoot,
-          './packages/client/dist/schemas/$1',
-        ),
+        replacement: path.resolve(repoRoot, './packages/client/src/schemas/$1'),
       },
       {
         find: /^@genfeedai\/client\/(.*)$/,
-        replacement: path.resolve(repoRoot, './packages/client/dist/$1'),
+        replacement: path.resolve(repoRoot, './packages/client/src/$1'),
       },
       {
         find: /^@genfeedai\/models$/,

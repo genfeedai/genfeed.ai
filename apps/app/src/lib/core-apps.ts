@@ -12,7 +12,7 @@ export const CORE_APPS: CoreAppDefinition[] = [
   {
     description:
       'Control content creation from a full-page agent conversation.',
-    href: '/agent',
+    href: '/chat',
     id: 'agent',
     label: 'Agent',
     shortLabel: 'Agent',

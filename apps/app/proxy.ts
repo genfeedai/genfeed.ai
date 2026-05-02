@@ -59,11 +59,10 @@ const BRAND_SCOPED_PREFIXES = [
   'workspace',
 ] as const;
 
-const ORG_SCOPED_PREFIXES = ['agent', 'chat', 'settings'] as const;
+const ORG_SCOPED_PREFIXES = ['chat', 'settings'] as const;
 
 const FLAT_PATH_REDIRECTS = new Map<string, string>([
   ['/analytics', '/analytics/overview'],
-  ['/chat', '/chat/new'],
   ['/compose', '/compose/article'],
   ['/library', '/library/ingredients'],
   ['/research', '/research/discovery'],

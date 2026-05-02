@@ -24,8 +24,8 @@
   "name": "@genfeedai/contexts",
   "private": true,
   "scripts": {
-    "test": "vitest run --config vitest.config.ts",
-    "test:watch": "vitest --config vitest.config.ts"
+    "test": "bun vitest run --config vitest.config.ts",
+    "test:watch": "bun vitest --config vitest.config.ts"
   },
   "sideEffects": false,
   "version": "0.1.0"

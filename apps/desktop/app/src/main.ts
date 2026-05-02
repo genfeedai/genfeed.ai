@@ -6,6 +6,7 @@ import type {
   IDesktopDataService,
   IDesktopGenerationOptions,
   IDesktopGenerationProviderConfig,
+  IDesktopTerminalCreateOptions,
   IDesktopWorkflowGenerationOptions,
 } from '@genfeedai/desktop-contracts';
 import { DESKTOP_IPC_CHANNELS } from '@genfeedai/desktop-contracts';
@@ -37,6 +38,7 @@ import { DesktopSessionService } from './main/session.service';
 import { DesktopShortcutsService } from './main/shortcuts.service';
 import { DesktopSyncService } from './main/sync.service';
 import { DesktopTelemetryService } from './main/telemetry.service';
+import { DesktopTerminalService } from './main/terminal.service';
 import { DesktopTrayService } from './main/tray.service';
 import { DesktopWorkspaceService } from './main/workspace.service';
 
@@ -44,6 +46,8 @@ const configService = new DesktopConfigService();
 const environment = configService.getEnvironment();
 
 let mainWindow: BrowserWindow | null = null;
+let bootstrapCache: IDesktopBootstrap | null = null;
+let bootstrapPromise: Promise<IDesktopBootstrap> | null = null;
 
 const prismaService = new DesktopPrismaService();
 const database = new DesktopDatabaseService(prismaService);
@@ -52,6 +56,7 @@ const sessionService = new DesktopSessionService(database, environment);
 const workspaceService = new DesktopWorkspaceService(database);
 const filesService = new DesktopFilesService(workspaceService);
 const syncService = new DesktopSyncService(database);
+const terminalService = new DesktopTerminalService(workspaceService);
 const generationService = new DesktopGenerationService(database);
 const cloudService = new DesktopCloudService(environment, () =>
   sessionService.getSession(),
@@ -114,29 +119,52 @@ const emitSession = (): void => {
 const emitBootstrap = async (): Promise<void> => {
   mainWindow?.webContents.send(
     DESKTOP_IPC_CHANNELS.bootstrapChanged,
-    await getBootstrap(),
+    await getBootstrap({ force: true }),
   );
 };
 
-const getBootstrap = async (): Promise<IDesktopBootstrap> => {
-  const [recents, syncState, workspaces] = await Promise.all([
-    workspaceService.listRecents(),
-    syncService.getState(),
-    workspaceService.listRecentWorkspaces(),
-  ]);
+const getBootstrap = async ({
+  force = false,
+}: {
+  force?: boolean;
+} = {}): Promise<IDesktopBootstrap> => {
+  if (!force && bootstrapCache) {
+    return bootstrapCache;
+  }
 
-  return {
-    clerkId: localIdentityService.getClerkId(),
-    environment: sessionService.getEnvironment(),
-    localUserId: localIdentityService.getLocalUserId(),
-    preferences: {
-      nativeNotificationsEnabled: Notification.isSupported(),
-    },
-    recents,
-    session: sessionService.getSession(),
-    syncState,
-    workspaces,
-  };
+  if (!force && bootstrapPromise) {
+    return bootstrapPromise;
+  }
+
+  bootstrapPromise = (async () => {
+    const [recents, syncState, workspaces] = await Promise.all([
+      workspaceService.listRecents(),
+      syncService.getState(),
+      workspaceService.listRecentWorkspaces(),
+    ]);
+
+    const bootstrap: IDesktopBootstrap = {
+      clerkId: localIdentityService.getClerkId(),
+      environment: sessionService.getEnvironment(),
+      localUserId: localIdentityService.getLocalUserId(),
+      preferences: {
+        nativeNotificationsEnabled: Notification.isSupported(),
+      },
+      recents,
+      session: sessionService.getSession(),
+      syncState,
+      workspaces,
+    };
+
+    bootstrapCache = bootstrap;
+    return bootstrap;
+  })();
+
+  try {
+    return await bootstrapPromise;
+  } finally {
+    bootstrapPromise = null;
+  }
 };
 
 const runDataService = async <T>(
@@ -618,6 +646,38 @@ const registerIpcHandlers = (): void => {
     mainWindow?.webContents.send(DESKTOP_IPC_CHANNELS.syncThreadsRequested);
     return { ok: true };
   });
+
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.terminalCreate,
+    async (event, options?: IDesktopTerminalCreateOptions) =>
+      terminalService.createSession(
+        options,
+        (payload) => {
+          event.sender.send(DESKTOP_IPC_CHANNELS.terminalData, payload);
+        },
+        (payload) => {
+          event.sender.send(DESKTOP_IPC_CHANNELS.terminalExit, payload);
+        },
+      ),
+  );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.terminalWrite,
+    async (_event: unknown, sessionId: string, data: string) => {
+      terminalService.writeSession(sessionId, data);
+    },
+  );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.terminalResize,
+    async (_event: unknown, sessionId: string, cols: number, rows: number) => {
+      terminalService.resizeSession(sessionId, cols, rows);
+    },
+  );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.terminalKill,
+    async (_event: unknown, sessionId: string) => {
+      terminalService.killSession(sessionId);
+    },
+  );
 };
 
 app.on('before-quit', (event) => {
@@ -630,6 +690,7 @@ app.on('before-quit', (event) => {
 
   void (async () => {
     try {
+      terminalService.killAll();
       await appShellService.stop();
     } finally {
       shortcutsService.unregister();

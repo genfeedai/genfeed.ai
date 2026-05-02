@@ -175,6 +175,41 @@ const desktopBridge: IGenfeedDesktopBridge = {
     triggerThreads: async () =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncTriggerThreads),
   },
+  terminal: {
+    create: async (options) =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.terminalCreate, options),
+    kill: async (sessionId) =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.terminalKill, sessionId),
+    onData: (callback) => {
+      const listener = (_event: unknown, payload: unknown) => {
+        callback(payload as Parameters<typeof callback>[0]);
+      };
+      ipcRenderer.on(DESKTOP_IPC_CHANNELS.terminalData, listener);
+
+      return () => {
+        ipcRenderer.off(DESKTOP_IPC_CHANNELS.terminalData, listener);
+      };
+    },
+    onExit: (callback) => {
+      const listener = (_event: unknown, payload: unknown) => {
+        callback(payload as Parameters<typeof callback>[0]);
+      };
+      ipcRenderer.on(DESKTOP_IPC_CHANNELS.terminalExit, listener);
+
+      return () => {
+        ipcRenderer.off(DESKTOP_IPC_CHANNELS.terminalExit, listener);
+      };
+    },
+    resize: async (sessionId, cols, rows) =>
+      ipcRenderer.invoke(
+        DESKTOP_IPC_CHANNELS.terminalResize,
+        sessionId,
+        cols,
+        rows,
+      ),
+    write: async (sessionId, data) =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.terminalWrite, sessionId, data),
+  },
   workspace: {
     getRecentWorkspaces: async () =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.workspaceRecent),

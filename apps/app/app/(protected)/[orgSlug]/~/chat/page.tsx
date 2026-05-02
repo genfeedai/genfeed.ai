@@ -2,9 +2,9 @@
 
 import { useAgentChatStore } from '@genfeedai/agent';
 import { useLayoutEffect } from 'react';
-import { ChatWorkspacePageShell } from '../../chat/ChatWorkspacePageShell';
+import { ChatWorkspacePageShell } from './ChatWorkspacePageShell';
 
-export default function AgentNewPage() {
+export default function ChatPage() {
   useLayoutEffect(() => {
     const { resetActiveConversationState, setActiveThread } =
       useAgentChatStore.getState();

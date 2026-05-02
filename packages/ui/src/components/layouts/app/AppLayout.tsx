@@ -317,13 +317,15 @@ export default function AppLayout({
       return undefined;
     }
 
+    const effectiveAgentToggle = agentPanel ? onAgentToggle : undefined;
+
     return {
       brandSlug,
       currentApp,
       isAgentCollapsed,
       isMenuOpen: isSidebarOpen,
       isSidebarCollapsed: isDesktopCollapsed,
-      onAgentToggle,
+      onAgentToggle: effectiveAgentToggle,
       onMenuToggle: handleToggleSidebar,
       onSidebarToggle: handleToggleDesktopSidebar,
       orgSlug,
@@ -336,6 +338,7 @@ export default function AppLayout({
     isDesktopCollapsed,
     isSidebarOpen,
     isAgentCollapsed,
+    agentPanel,
     onAgentToggle,
     orgSlug,
     topbarComponent,

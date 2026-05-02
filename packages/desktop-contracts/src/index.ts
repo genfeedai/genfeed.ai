@@ -47,6 +47,12 @@ export const DESKTOP_IPC_CHANNELS = {
   syncSetCursor: 'desktop:sync:setCursor',
   syncThreadsRequested: 'desktop:sync:threadsRequested',
   syncTriggerThreads: 'desktop:sync:triggerThreads',
+  terminalCreate: 'desktop:terminal:create',
+  terminalData: 'desktop:terminal:data',
+  terminalExit: 'desktop:terminal:exit',
+  terminalKill: 'desktop:terminal:kill',
+  terminalResize: 'desktop:terminal:resize',
+  terminalWrite: 'desktop:terminal:write',
   toggleSidebar: 'desktop:view:toggleSidebar',
   workspaceLinkProject: 'desktop:workspace:linkProject',
   workspaceOpen: 'desktop:workspace:open',
@@ -355,6 +361,37 @@ export interface IDesktopThread {
   workspaceId?: string;
 }
 
+/* ─── Terminal ─── */
+
+export type DesktopTerminalKind = 'claude' | 'codex' | 'genfeed' | 'shell';
+
+export interface IDesktopTerminalCreateOptions {
+  cols?: number;
+  kind?: DesktopTerminalKind;
+  rows?: number;
+  workspaceId?: string | null;
+}
+
+export interface IDesktopTerminalSession {
+  command: string;
+  createdAt: string;
+  cwd: string;
+  id: string;
+  kind: DesktopTerminalKind;
+  pid: number;
+}
+
+export interface IDesktopTerminalDataEvent {
+  data: string;
+  sessionId: string;
+}
+
+export interface IDesktopTerminalExitEvent {
+  exitCode?: number;
+  sessionId: string;
+  signal?: number;
+}
+
 /* ─── Agents ─── */
 
 export interface IDesktopAgentRun {
@@ -517,6 +554,20 @@ export interface IGenfeedDesktopBridge {
     ) => Promise<IDesktopSyncJob>;
     setCursor: (cursor: string) => Promise<void>;
     triggerThreads: () => Promise<{ ok: boolean; error?: string }>;
+  };
+  terminal: {
+    create: (
+      options?: IDesktopTerminalCreateOptions,
+    ) => Promise<IDesktopTerminalSession>;
+    kill: (sessionId: string) => Promise<void>;
+    onData: (
+      callback: (event: IDesktopTerminalDataEvent) => void,
+    ) => () => void;
+    onExit: (
+      callback: (event: IDesktopTerminalExitEvent) => void,
+    ) => () => void;
+    resize: (sessionId: string, cols: number, rows: number) => Promise<void>;
+    write: (sessionId: string, data: string) => Promise<void>;
   };
   workspace: {
     getRecentWorkspaces: () => Promise<IDesktopWorkspace[]>;

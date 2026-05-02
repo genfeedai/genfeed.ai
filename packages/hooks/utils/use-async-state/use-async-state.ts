@@ -31,7 +31,7 @@ export function useAsyncState<T = unknown>(
         onSuccess?: (data: R) => void;
         onError?: (error: Error) => void;
       },
-    ): Promise<R | null> => {
+    ): Promise<R | undefined> => {
       // Cancel any pending request
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
@@ -52,7 +52,7 @@ export function useAsyncState<T = unknown>(
         const result = await asyncFunction(abortController.signal);
 
         if (abortController.signal.aborted) {
-          return null;
+          return undefined;
         }
 
         if (result !== undefined) {
@@ -64,7 +64,7 @@ export function useAsyncState<T = unknown>(
         return result;
       } catch (err) {
         if (err instanceof Error && err.name === 'AbortError') {
-          return null;
+          return undefined;
         }
 
         const error = err instanceof Error ? err : new Error(String(err));
@@ -73,7 +73,7 @@ export function useAsyncState<T = unknown>(
         executeOptions?.onError?.(error);
         options.onError?.(error);
 
-        return null;
+        return undefined;
       } finally {
         // Clear loading states
         setIsLoading(false);

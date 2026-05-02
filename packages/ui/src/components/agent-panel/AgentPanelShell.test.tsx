@@ -68,13 +68,13 @@ describe('AgentPanelShell', () => {
   it('calls onToggle when toggle button clicked', () => {
     const onToggle = vi.fn();
     render(<AgentPanelShell {...defaultProps} onToggle={onToggle} />);
-    fireEvent.click(screen.getByLabelText('Collapse quick ask panel'));
+    fireEvent.click(screen.getByLabelText('Collapse terminal'));
     expect(onToggle).toHaveBeenCalledTimes(1);
   });
 
-  it('shows "Expand quick ask panel" aria-label when isOpen=false', () => {
+  it('shows "Expand terminal" aria-label when isOpen=false', () => {
     render(<AgentPanelShell {...defaultProps} isOpen={false} />);
-    expect(screen.getByLabelText('Expand quick ask panel')).toBeInTheDocument();
+    expect(screen.getByLabelText('Expand terminal')).toBeInTheDocument();
   });
 
   it('body has opacity-0 class when isOpen=false', () => {

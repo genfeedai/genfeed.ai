@@ -4,11 +4,12 @@ import { useAuth, useUser } from '@clerk/nextjs';
 import type { IUser } from '@genfeedai/interfaces';
 import { User } from '@genfeedai/models/auth/user.model';
 import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
+import { AuthService } from '@genfeedai/services/auth/auth.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { UsersService } from '@genfeedai/services/organization/users.service';
 import { getPlaywrightAuthState } from '@helpers/auth/clerk.helper';
 import { createContext, useCallback, useContext } from 'react';
-
+import { loadClientProtectedBootstrap } from '../../providers/protected-bootstrap/client-protected-bootstrap';
 import { useContextAuthedService } from '../internal/context-authed-service';
 import { useContextResource } from '../internal/context-resource';
 
@@ -22,6 +23,7 @@ export interface UserContextValue {
 }
 
 const UserContext = createContext<UserContextValue | undefined>(undefined);
+const USER_CONTEXT_CACHE_TTL_MS = 60_000;
 
 interface UserProviderProps extends LayoutProps {
   initialCurrentUser?: IUser | null;
@@ -31,7 +33,7 @@ export function UserProvider({
   children,
   initialCurrentUser = null,
 }: UserProviderProps) {
-  const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
+  const { isLoaded: isAuthLoaded, isSignedIn, orgId } = useAuth();
   const { user } = useUser();
   const playwrightAuth = getPlaywrightAuthState();
   const effectiveIsAuthLoaded =
@@ -43,9 +45,19 @@ export function UserProvider({
   const getUsersService = useContextAuthedService((token: string) =>
     UsersService.getInstance(token),
   );
+  const getAuthService = useContextAuthedService((token: string) =>
+    AuthService.getInstance(token),
+  );
 
   const shouldFetch =
     effectiveIsAuthLoaded && effectiveIsSignedIn && !!clerkUserId;
+  const effectiveOrgId = orgId ?? playwrightAuth?.orgId ?? null;
+  const clientBootstrapCacheKey = shouldFetch
+    ? `protected-bootstrap:${clerkUserId}:${effectiveOrgId ?? 'no-org'}`
+    : undefined;
+  const userCacheKey = clerkUserId
+    ? `user-context:current-user:${clerkUserId}`
+    : undefined;
 
   const {
     data: currentUser = null,
@@ -58,6 +70,22 @@ export function UserProvider({
         return null;
       }
 
+      try {
+        const bootstrap = await loadClientProtectedBootstrap(
+          clientBootstrapCacheKey,
+          getAuthService,
+        );
+
+        if (bootstrap?.currentUser) {
+          return new User(bootstrap.currentUser);
+        }
+      } catch (error) {
+        logger.warn('Failed to load client protected bootstrap for user', {
+          error,
+          reportToSentry: false,
+        });
+      }
+
       const service = await getUsersService();
       const userData = await service.findMe();
 
@@ -68,7 +96,9 @@ export function UserProvider({
       return null;
     },
     {
-      dependencies: [clerkUserId, clerkUserUpdatedAt],
+      cacheKey: userCacheKey,
+      cacheTimeMs: USER_CONTEXT_CACHE_TTL_MS,
+      dependencies: [clerkUserId, clerkUserUpdatedAt, effectiveOrgId],
       enabled: shouldFetch,
       initialData: initialCurrentUser ? new User(initialCurrentUser) : null,
       revalidateOnMount: initialCurrentUser == null,

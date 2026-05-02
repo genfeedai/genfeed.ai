@@ -28,6 +28,9 @@ export default async function RootLayout({ children }: LayoutProps) {
   const initialTheme = await resolveRequestTheme();
   const isDesktopShell = process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1';
   const bodyClassName = isDesktopShell ? 'gf-app gf-desktop-shell' : 'gf-app';
+  const googleAnalyticsId = isDesktopShell
+    ? undefined
+    : EnvironmentService.GA_ID;
 
   return (
     <AppHtmlDocument
@@ -44,7 +47,9 @@ export default async function RootLayout({ children }: LayoutProps) {
           signInUrl: '/login',
           signUpUrl: '/sign-up',
         }}
-        googleAnalyticsId={EnvironmentService.GA_ID}
+        googleAnalyticsId={googleAnalyticsId}
+        includeSpeedInsights={!isDesktopShell}
+        includeVercelAnalytics={!isDesktopShell}
       >
         <DesktopDragStrip />
         {children}

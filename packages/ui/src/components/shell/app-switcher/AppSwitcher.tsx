@@ -54,7 +54,7 @@ const PLATFORM_APPS: AppSwitcherItemConfig[] = [
     icon: HiOutlineChatBubbleLeftRight,
     id: 'agent',
     label: 'Agent',
-    route: (org) => `/${org}/~/agent`,
+    route: (org) => `/${org}/~/chat`,
   },
   {
     icon: HiOutlineSparkles,

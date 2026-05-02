@@ -13,6 +13,7 @@ import { NotificationHandlerService } from '@notifications/services/notification
 import { ResendModule } from '@notifications/services/resend/resend.module';
 import { SlackNotificationModule } from '@notifications/services/slack/slack.module';
 import { TelegramModule } from '@notifications/services/telegram/telegram.module';
+import { TerminalModule } from '@notifications/services/terminal/terminal.module';
 import { SharedModule } from '@notifications/shared/shared.module';
 import { WebhooksModule } from '@notifications/webhooks/webhooks.module';
 
@@ -32,6 +33,7 @@ import { WebhooksModule } from '@notifications/webhooks/webhooks.module';
     WebhooksModule,
     GenFeedModule,
     ChatBotModule,
+    TerminalModule,
 
     // Services
     DiscordModule,

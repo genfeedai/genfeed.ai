@@ -11,6 +11,7 @@ import {
   type AccessBootstrapState,
   AuthService,
 } from '@genfeedai/services/auth/auth.service';
+import { loadClientProtectedBootstrap } from '@providers/protected-bootstrap/client-protected-bootstrap';
 import { createContext, useContext, useMemo } from 'react';
 
 export interface AccessStateContextValue {
@@ -29,6 +30,8 @@ const AccessStateContext = createContext<AccessStateContextValue | undefined>(
   undefined,
 );
 
+const ACCESS_STATE_CACHE_TTL_MS = 60_000;
+
 interface AccessStateProviderProps extends LayoutProps {
   initialAccessState?: AccessBootstrapState | null;
 }
@@ -37,7 +40,7 @@ export function AccessStateProvider({
   children,
   initialAccessState = null,
 }: AccessStateProviderProps) {
-  const { isLoaded: isAuthLoaded, isSignedIn, userId } = useAuth();
+  const { isLoaded: isAuthLoaded, isSignedIn, orgId, userId } = useAuth();
   const { brandId, organizationId } = useBrand();
   const playwrightAuth = getPlaywrightAuthState();
   const effectiveIsAuthLoaded =
@@ -54,6 +57,15 @@ export function AccessStateProvider({
     effectiveIsSignedIn &&
     !!effectiveUserId &&
     !!organizationId;
+  const accessStateCacheKey =
+    shouldFetch && effectiveUserId
+      ? `access-state:${organizationId}:${brandId || 'no-brand'}:${effectiveUserId}`
+      : undefined;
+  const effectiveOrgId = orgId ?? playwrightAuth?.orgId ?? organizationId;
+  const clientBootstrapCacheKey =
+    shouldFetch && effectiveUserId
+      ? `protected-bootstrap:${effectiveUserId}:${effectiveOrgId || 'no-org'}`
+      : undefined;
 
   const {
     data: accessState = null,
@@ -65,12 +77,17 @@ export function AccessStateProvider({
         return null;
       }
 
-      const service = await getAuthService();
-      const bootstrap = await service.getBootstrap();
-      return bootstrap.access;
+      const bootstrap = await loadClientProtectedBootstrap(
+        clientBootstrapCacheKey,
+        getAuthService,
+      );
+
+      return bootstrap?.accessState ?? null;
     },
     {
-      dependencies: [brandId, organizationId, effectiveUserId],
+      cacheKey: accessStateCacheKey,
+      cacheTimeMs: ACCESS_STATE_CACHE_TTL_MS,
+      dependencies: [brandId, organizationId, effectiveUserId, effectiveOrgId],
       enabled: shouldFetch,
       initialData: initialAccessState,
       revalidateOnMount: initialAccessState == null,
