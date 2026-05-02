@@ -56,6 +56,7 @@ import type {
   ExecutionRunResult,
 } from '@genfeedai/workflow-engine';
 import {
+  type AnalyticsFeedbackOutput,
   createAnalyticsFeedbackExecutor,
   createBrandAssetExecutor,
   createBrandContextExecutor,
@@ -73,7 +74,11 @@ import {
   createTextToSpeechExecutor,
   createTrendTriggerExecutor,
   createUpscaleExecutor,
+  type KeywordTriggerPlatform,
   type NodeExecutor,
+  type SocialPlatform,
+  type TrendPlatform,
+  type TrendTriggerOutput,
   WorkflowEngine,
 } from '@genfeedai/workflow-engine';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -538,10 +543,13 @@ export class WorkflowEngineAdapterService {
   }
 
   private registerAnalyticsFeedbackExecutor(): void {
-    if (!this.performanceSummaryService) return;
     const summaryService = this.performanceSummaryService;
     const executor = createAnalyticsFeedbackExecutor(
       async ({ organizationId, brandId, topN, worstN }) => {
+        if (!summaryService) {
+          return this.createEmptyAnalyticsFeedback();
+        }
+
         const summary = await summaryService.getWeeklySummary(
           organizationId,
           brandId,
@@ -586,7 +594,32 @@ export class WorkflowEngineAdapterService {
   }
 
   private registerTrendTriggerExecutor(): void {
-    const executor = createTrendTriggerExecutor();
+    const executor = createTrendTriggerExecutor(async (params) => {
+      const keywordMatch = await this.findTrendFromSocialKeywordMatch(params);
+      if (keywordMatch) {
+        return keywordMatch;
+      }
+
+      const topic = params.keywords.find(
+        (keyword) => keyword.trim().length > 0,
+      );
+      if (!topic) {
+        return null;
+      }
+
+      return {
+        hashtags: [topic.startsWith('#') ? topic : `#${topic}`],
+        platform: params.platform,
+        soundId: null,
+        topic,
+        trendId: `analytics-${params.platform}-${topic
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-|-$/g, '')}`,
+        videoUrl: null,
+        viralScore: params.minViralScore,
+      };
+    });
     this.engine.registerExecutor(
       executor.nodeType,
       this.wrapEngineExecutor(executor),
@@ -594,11 +627,148 @@ export class WorkflowEngineAdapterService {
   }
 
   private registerPublishExecutor(): void {
-    const executor = createPublishExecutor();
+    const postsService = this.postsService;
+    const credentialsService = this.credentialsService;
+    const executor = createPublishExecutor(
+      async ({
+        brandId,
+        caption,
+        media,
+        organizationId,
+        platforms,
+        scheduledFor,
+        userId,
+      }) => {
+        if (!postsService || !credentialsService) {
+          return {
+            platforms,
+            postIds: [],
+            scheduledFor,
+            status: scheduledFor ? 'scheduled' : 'queued',
+          };
+        }
+
+        const postIds: string[] = [];
+        const publishedPlatforms: SocialPlatform[] = [];
+        const ingredients = this.extractPublishIngredientIds(media);
+
+        for (const platform of platforms) {
+          const credential = await credentialsService.findOne({
+            isConnected: true,
+            isDeleted: false,
+            organization: organizationId,
+            platform: platform as CredentialPlatform,
+          });
+
+          if (!credential) {
+            continue;
+          }
+
+          const post = await postsService.create({
+            brand: brandId,
+            category:
+              ingredients.length > 0 ? PostCategory.IMAGE : PostCategory.TEXT,
+            credential: credential._id,
+            description: caption,
+            ingredients,
+            label: this.buildPostLabel(caption),
+            organization: organizationId,
+            platform: credential.platform as CredentialPlatform,
+            scheduledDate: scheduledFor ?? undefined,
+            status: scheduledFor ? PostStatus.SCHEDULED : PostStatus.DRAFT,
+            user: userId,
+          });
+
+          postIds.push(post._id.toString());
+          publishedPlatforms.push(platform);
+        }
+
+        return {
+          platforms: publishedPlatforms,
+          postIds,
+          scheduledFor,
+          status: scheduledFor ? 'scheduled' : 'queued',
+        };
+      },
+    );
     this.engine.registerExecutor(
       executor.nodeType,
       this.wrapEngineExecutor(executor),
     );
+  }
+
+  private createEmptyAnalyticsFeedback(): AnalyticsFeedbackOutput {
+    return {
+      avgEngagementRate: 0,
+      bestPlatform: null,
+      bestPostingTimes: [],
+      topHooks: [],
+      topTopics: [],
+      weekOverWeekChange: 0,
+      weekOverWeekDirection: 'stable',
+      worstTopics: [],
+    };
+  }
+
+  private async findTrendFromSocialKeywordMatch(params: {
+    organizationId: string;
+    platform: TrendPlatform;
+    minViralScore: number;
+    keywords: string[];
+    excludeKeywords: string[];
+    lastTrendId: string | null;
+  }): Promise<TrendTriggerOutput | null> {
+    const keywordPlatform = this.toKeywordTriggerPlatform(params.platform);
+    if (
+      !keywordPlatform ||
+      !this.socialAdapterFactory?.isSupported(params.platform)
+    ) {
+      return null;
+    }
+
+    const checker = this.socialAdapterFactory
+      .getAdapter(params.platform)
+      .createKeywordChecker?.();
+
+    if (!checker) {
+      return null;
+    }
+
+    const match = await checker({
+      caseSensitive: false,
+      excludeKeywords: params.excludeKeywords,
+      keywords: params.keywords,
+      lastPostId: params.lastTrendId,
+      matchMode: 'contains',
+      organizationId: params.organizationId,
+      platform: keywordPlatform,
+    });
+
+    if (!match) {
+      return null;
+    }
+
+    return {
+      hashtags: [match.matchedKeyword]
+        .filter(Boolean)
+        .map((keyword) => (keyword.startsWith('#') ? keyword : `#${keyword}`)),
+      platform: params.platform,
+      soundId: null,
+      topic: match.matchedKeyword,
+      trendId: match.postId,
+      videoUrl: match.postUrl,
+      viralScore: params.minViralScore,
+    };
+  }
+
+  private toKeywordTriggerPlatform(
+    platform: TrendPlatform,
+  ): KeywordTriggerPlatform | null {
+    if (platform === 'twitter' || platform === 'instagram') {
+      return platform;
+    }
+
+    return null;
   }
 
   private registerPromptConstructorExecutor(): void {
@@ -1966,6 +2136,33 @@ export class WorkflowEngineAdapterService {
     }
 
     return `${normalized.slice(0, 57).trimEnd()}...`;
+  }
+
+  private extractPublishIngredientIds(media: unknown): string[] {
+    if (Array.isArray(media)) {
+      return media
+        .flatMap((item) => this.extractPublishIngredientIds(item))
+        .filter((id, index, ids) => ids.indexOf(id) === index);
+    }
+
+    if (typeof media === 'string') {
+      return this.isEntityId(media) ? [media] : [];
+    }
+
+    if (!media || typeof media !== 'object') {
+      return [];
+    }
+
+    const record = media as Record<string, unknown>;
+    const candidates = [record.id, record._id, record.ingredientId];
+
+    return candidates
+      .filter((candidate): candidate is string => typeof candidate === 'string')
+      .filter((candidate) => this.isEntityId(candidate));
+  }
+
+  private isEntityId(value: string): boolean {
+    return /^[a-f\d]{24}$/i.test(value);
   }
 
   /**

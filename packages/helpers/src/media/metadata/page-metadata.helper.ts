@@ -16,13 +16,14 @@ function buildMetadata(
     openGraph: {
       ...(description && { description }),
       images,
-      ...(description && { title }),
+      title,
       ...(url && { url }),
     },
     title,
     twitter: {
-      ...(description && { description, title }),
+      ...(description && { description }),
       images,
+      title,
     },
   };
 }

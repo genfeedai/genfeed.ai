@@ -131,6 +131,27 @@ describe('PublishExecutor', () => {
       );
     });
 
+    it('supports text-only publishing when caption input is present', async () => {
+      const input = makeInput(
+        { platforms: { twitter: true } },
+        { brand: { brandId: 'b-1' }, caption: 'text post' },
+      );
+      await executor.execute(input);
+      expect(resolver).toHaveBeenCalledWith(
+        expect.objectContaining({ caption: 'text post', media: undefined }),
+      );
+    });
+
+    it('requires media or caption', async () => {
+      const input = makeInput(
+        { platforms: { twitter: true } },
+        { brand: { brandId: 'b-1' } },
+      );
+      await expect(executor.execute(input)).rejects.toThrow(
+        'Missing publish media or caption input',
+      );
+    });
+
     it('handles scheduled publish', async () => {
       const input = makeInput(
         {

@@ -2,6 +2,7 @@ import { InstagramSocialAdapter } from '@api/collections/workflows/services/adap
 import { TwitterSocialAdapter } from '@api/collections/workflows/services/adapters/twitter-social.adapter';
 import type {
   DmSender,
+  KeywordChecker,
   MentionChecker,
   NewFollowerChecker,
   NewLikeChecker,
@@ -22,6 +23,7 @@ export interface SocialAdapterInterface {
   createMentionChecker(): MentionChecker;
   createLikeChecker(): NewLikeChecker;
   createRepostChecker(): NewRepostChecker;
+  createKeywordChecker?(): KeywordChecker;
 }
 
 /**
