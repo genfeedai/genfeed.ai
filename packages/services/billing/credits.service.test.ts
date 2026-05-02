@@ -103,4 +103,60 @@ describe('CreditsService', () => {
       },
     });
   });
+
+  it('deserializes JSON:API topbar balances', async () => {
+    mockGet.mockResolvedValue({
+      data: {
+        data: {
+          attributes: {
+            generatedAt: '2026-05-02T12:00:00.000Z',
+            segments: [
+              {
+                balance: 420,
+                currencyOrUnit: 'credits',
+                label: 'Genfeed',
+                lastSyncedAt: '2026-05-02T12:00:00.000Z',
+                provider: 'genfeed',
+                status: 'available',
+              },
+            ],
+          },
+          id: 'topbar-balances',
+          type: 'topbar-balances',
+        },
+      },
+    });
+
+    mockDeserializeResource.mockReturnValue({
+      generatedAt: '2026-05-02T12:00:00.000Z',
+      segments: [
+        {
+          balance: 420,
+          currencyOrUnit: 'credits',
+          label: 'Genfeed',
+          lastSyncedAt: '2026-05-02T12:00:00.000Z',
+          provider: 'genfeed',
+          status: 'available',
+        },
+      ],
+    });
+
+    const service = new CreditsService('test-token');
+
+    await expect(service.getTopbarBalances()).resolves.toEqual({
+      generatedAt: '2026-05-02T12:00:00.000Z',
+      segments: [
+        {
+          balance: 420,
+          currencyOrUnit: 'credits',
+          label: 'Genfeed',
+          lastSyncedAt: '2026-05-02T12:00:00.000Z',
+          provider: 'genfeed',
+          status: 'available',
+        },
+      ],
+    });
+
+    expect(mockGet).toHaveBeenCalledWith('/topbar-balances');
+  });
 });

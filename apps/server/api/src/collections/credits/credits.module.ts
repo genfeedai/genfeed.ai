@@ -9,6 +9,7 @@ import { CreditsController } from '@api/collections/credits/controllers/credits.
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { TopbarBalancesService } from '@api/collections/credits/services/topbar-balances.service';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
 import { SettingsModule } from '@api/collections/settings/settings.module';
@@ -22,6 +23,7 @@ import { ByokBillingModule } from '@api/services/byok-billing/byok-billing.modul
 import { ClerkModule } from '@api/services/integrations/clerk/clerk.module';
 import { StripeModule } from '@api/services/integrations/stripe/stripe.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
+import { HttpModule } from '@nestjs/axios';
 import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
@@ -47,6 +49,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => StripeModule),
     forwardRef(() => SubscriptionsModule),
     forwardRef(() => UsersModule),
+    HttpModule,
 
     TransactionModule,
   ],
@@ -54,6 +57,7 @@ import { forwardRef, Module } from '@nestjs/common';
     CreditBalanceService,
     CreditTransactionsService,
     CreditsUtilsService,
+    TopbarBalancesService,
   ],
 })
 export class CreditsModule {}
