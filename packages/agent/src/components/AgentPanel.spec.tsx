@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { Effect } from 'effect';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
@@ -138,18 +138,11 @@ function createCreditsInfoApiService() {
 }
 
 describe('AgentPanel', () => {
-  it('renders quick ask chrome and passes the rail-scoped prompt bar mode into the embedded chat container', () => {
+  it('renders terminal chrome with the full workspace action', () => {
     render(<AgentPanel apiService={createCreditsInfoApiService() as never} />);
 
     expect(screen.getByTestId('agent-cli-terminal')).toBeInTheDocument();
-
-    fireEvent.click(screen.getByLabelText('Switch to chat mode'));
-
-    expect(screen.getByTestId('agent-chat-container')).toHaveAttribute(
-      'data-prompt-layout-mode',
-      'surface-fixed',
-    );
-    expect(screen.getByText('Console')).toBeInTheDocument();
+    expect(screen.getByText('genfeed')).toBeInTheDocument();
     expect(
       screen.getByLabelText('Open full chat workspace'),
     ).toBeInTheDocument();
