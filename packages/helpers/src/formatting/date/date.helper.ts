@@ -51,11 +51,21 @@ export function toApiFormat(date: Date | string | number): string {
 }
 
 export function getRelativeTime(date: Date | string | number): string {
-  return formatDistance(parseDate(date), new Date(), { addSuffix: true });
+  const parsedDate = parseDate(date);
+  if (Number.isNaN(parsedDate.getTime())) {
+    return '';
+  }
+
+  return formatDistance(parsedDate, new Date(), { addSuffix: true });
 }
 
 export function getRelativeDate(date: Date | string | number): string {
-  return formatRelative(parseDate(date), new Date());
+  const parsedDate = parseDate(date);
+  if (Number.isNaN(parsedDate.getTime())) {
+    return '';
+  }
+
+  return formatRelative(parsedDate, new Date());
 }
 
 export function isValidDate(date: string | number | Date): boolean {
