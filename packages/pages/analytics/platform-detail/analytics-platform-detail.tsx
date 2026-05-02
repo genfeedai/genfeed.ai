@@ -1,8 +1,11 @@
 'use client';
 
-import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant, PageScope } from '@genfeedai/enums';
+import {
+  formatCompactNumberIntl,
+  formatPercentageSimple,
+} from '@helpers/formatting/format/format.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Post } from '@models/content/post.model';
 import PostDetailOverlay from '@pages/posts/detail/PostDetailOverlay';
@@ -37,7 +40,6 @@ export default function AnalyticsPlatformDetail({
   basePath = '/analytics',
 }: AnalyticsPlatformDetailProps) {
   const router = useRouter();
-  const { refreshTrigger } = useAnalyticsContext();
 
   const getBrandsService = useAuthedService((token: string) =>
     BrandsService.getInstance(token),
@@ -110,14 +112,6 @@ export default function AnalyticsPlatformDetail({
     posts[0],
   );
 
-  const formatNumber = (num: number) => {
-    return new Intl.NumberFormat('en-US', { notation: 'compact' }).format(num);
-  };
-
-  const formatPercentage = (num: number) => {
-    return `${num.toFixed(2)}%`;
-  };
-
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     return new Intl.DateTimeFormat('en-US', {
@@ -164,35 +158,37 @@ export default function AnalyticsPlatformDetail({
             icon: HiEye,
             iconClassName: 'bg-white/10 text-foreground',
             label: 'Total Views',
-            value: formatNumber(totalViews),
+            value: formatCompactNumberIntl(totalViews),
           },
           {
             description: 'Per content piece',
             icon: HiChartBar,
             iconClassName: 'bg-white/10 text-foreground',
             label: 'Avg Views/Post',
-            value: formatNumber(avgViewsPerPost),
+            value: formatCompactNumberIntl(avgViewsPerPost),
           },
           {
-            description: `${formatNumber(totalLikes)} likes, ${formatNumber(totalComments)} comments`,
+            description: `${formatCompactNumberIntl(totalLikes)} likes, ${formatCompactNumberIntl(totalComments)} comments`,
             icon: HiHeart,
             iconClassName: 'bg-white/10 text-foreground',
             label: 'Total Engagement',
-            value: formatNumber(totalEngagement),
+            value: formatCompactNumberIntl(totalEngagement),
           },
           {
             description: 'Average across posts',
             icon: HiFire,
             iconClassName: 'bg-white/10 text-foreground',
             label: 'Engagement Rate',
-            value: formatPercentage(avgEngagementRate),
+            value: formatPercentageSimple(avgEngagementRate, 2),
           },
           {
             description: bestPost ? 'views on top post' : 'No posts yet',
             icon: HiTrophy,
             iconClassName: 'bg-white/10 text-foreground',
             label: 'Best Performing',
-            value: bestPost ? formatNumber(bestPost.totalViews || 0) : 0,
+            value: bestPost
+              ? formatCompactNumberIntl(bestPost.totalViews || 0)
+              : 0,
           },
         ]}
       />
@@ -252,7 +248,7 @@ export default function AnalyticsPlatformDetail({
                 key: 'totalViews',
                 render: (post) => (
                   <span className="font-mono font-semibold">
-                    {formatNumber(post.totalViews || 0)}
+                    {formatCompactNumberIntl(post.totalViews || 0)}
                   </span>
                 ),
               },
@@ -261,7 +257,7 @@ export default function AnalyticsPlatformDetail({
                 key: 'totalLikes',
                 render: (post) => (
                   <span className="font-mono">
-                    {formatNumber(post.totalLikes || 0)}
+                    {formatCompactNumberIntl(post.totalLikes || 0)}
                   </span>
                 ),
               },
@@ -270,7 +266,7 @@ export default function AnalyticsPlatformDetail({
                 key: 'totalComments',
                 render: (post) => (
                   <span className="font-mono">
-                    {formatNumber(post.totalComments || 0)}
+                    {formatCompactNumberIntl(post.totalComments || 0)}
                   </span>
                 ),
               },
@@ -279,7 +275,7 @@ export default function AnalyticsPlatformDetail({
                 key: 'totalShares',
                 render: (post) => (
                   <span className="font-mono">
-                    {formatNumber(post.totalShares || 0)}
+                    {formatCompactNumberIntl(post.totalShares || 0)}
                   </span>
                 ),
               },
@@ -288,7 +284,7 @@ export default function AnalyticsPlatformDetail({
                 key: 'engagementRate',
                 render: (post) => (
                   <span className="font-mono">
-                    {formatPercentage(post.avgEngagementRate || 0)}
+                    {formatPercentageSimple(post.avgEngagementRate || 0, 2)}
                   </span>
                 ),
               },

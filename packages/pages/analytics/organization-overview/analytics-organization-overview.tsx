@@ -4,6 +4,10 @@ import { useAuth } from '@clerk/nextjs';
 import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
 import { AnalyticsMetric, PageScope } from '@genfeedai/enums';
+import {
+  formatCompactNumberIntl,
+  formatPercentageSimple,
+} from '@helpers/formatting/format/format.helper';
 import { getDateRangeWithDefaults } from '@helpers/utils/date-range.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAnalytics } from '@hooks/data/analytics/use-analytics/use-analytics';
@@ -61,7 +65,7 @@ export default function AnalyticsOrganizationOverview({
 }: AnalyticsOrganizationOverviewProps) {
   const { isSignedIn } = useAuth();
   const router = useRouter();
-  const { dateRange, refreshTrigger, brandId } = useAnalyticsContext();
+  const { dateRange, brandId } = useAnalyticsContext();
   const { startDate, endDate } = getDateRangeWithDefaults(
     dateRange?.startDate ?? undefined,
     dateRange?.endDate ?? undefined,
@@ -155,14 +159,6 @@ export default function AnalyticsOrganizationOverview({
     posts: brand.totalPosts,
     views: brand.totalViews,
   }));
-
-  const formatNumber = (num: number) => {
-    return new Intl.NumberFormat('en-US', { notation: 'compact' }).format(num);
-  };
-
-  const formatPercentage = (num: number) => {
-    return `${num.toFixed(2)}%`;
-  };
 
   function getGrowthClass(growth: number): string {
     if (growth > 0) {
@@ -295,7 +291,7 @@ export default function AnalyticsOrganizationOverview({
                 key: 'totalPosts',
                 render: (brand) => (
                   <span className="font-mono">
-                    {formatNumber(brand.totalPosts)}
+                    {formatCompactNumberIntl(brand.totalPosts)}
                   </span>
                 ),
               },
@@ -304,7 +300,7 @@ export default function AnalyticsOrganizationOverview({
                 key: 'totalViews',
                 render: (brand) => (
                   <span className="font-mono">
-                    {formatNumber(brand.totalViews)}
+                    {formatCompactNumberIntl(brand.totalViews)}
                   </span>
                 ),
               },
@@ -313,7 +309,7 @@ export default function AnalyticsOrganizationOverview({
                 key: 'totalEngagement',
                 render: (brand) => (
                   <span className="font-mono">
-                    {formatNumber(brand.totalEngagement)}
+                    {formatCompactNumberIntl(brand.totalEngagement)}
                   </span>
                 ),
               },
@@ -322,7 +318,7 @@ export default function AnalyticsOrganizationOverview({
                 key: 'avgEngagementRate',
                 render: (brand) => (
                   <span className="font-mono">
-                    {formatPercentage(brand.avgEngagementRate)}
+                    {formatPercentageSimple(brand.avgEngagementRate, 2)}
                   </span>
                 ),
               },
@@ -332,7 +328,7 @@ export default function AnalyticsOrganizationOverview({
                 render: (brand) => (
                   <span className={`font-mono ${getGrowthClass(brand.growth)}`}>
                     {brand.growth > 0 ? '+' : ''}
-                    {formatPercentage(brand.growth)}
+                    {formatPercentageSimple(brand.growth, 2)}
                   </span>
                 ),
               },

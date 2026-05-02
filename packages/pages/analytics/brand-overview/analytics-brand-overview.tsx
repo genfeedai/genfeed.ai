@@ -5,6 +5,10 @@ import { ITEMS_PER_PAGE } from '@genfeedai/constants';
 import { PageScope, PostStatus } from '@genfeedai/enums';
 import type { IAnalytics } from '@genfeedai/interfaces';
 import { getPublisherPostsHref } from '@helpers/content/posts.helper';
+import {
+  formatCompactNumberIntl,
+  formatPercentageSimple,
+} from '@helpers/formatting/format/format.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Post } from '@models/content/post.model';
@@ -73,7 +77,7 @@ export default function AnalyticsBrandOverview({
   brandId,
 }: AnalyticsBrandOverviewProps) {
   const _router = useRouter();
-  const { dateRange, refreshTrigger } = useAnalyticsContext();
+  const { dateRange } = useAnalyticsContext();
 
   const getBrandsService = useAuthedService((token: string) =>
     BrandsService.getInstance(token),
@@ -181,14 +185,6 @@ export default function AnalyticsBrandOverview({
 
     fetchTimeSeries();
   }, [brandId, dateRange, getBrandsService]);
-
-  const formatNumber = (num: number) => {
-    return new Intl.NumberFormat('en-US', { notation: 'compact' }).format(num);
-  };
-
-  const formatPercentage = (num: number) => {
-    return `${num.toFixed(2)}%`;
-  };
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -320,7 +316,9 @@ export default function AnalyticsBrandOverview({
               label: 'Avg Views/Post',
               value:
                 analytics?.totalPosts && analytics?.totalViews
-                  ? formatNumber(analytics.totalViews / analytics.totalPosts)
+                  ? formatCompactNumberIntl(
+                      analytics.totalViews / analytics.totalPosts,
+                    )
                   : 0,
             },
           ]}
@@ -454,7 +452,9 @@ export default function AnalyticsBrandOverview({
                     const postWithAnalytics = post as PostWithAnalytics;
                     return (
                       <span className="font-mono font-semibold">
-                        {formatNumber(postWithAnalytics.totalViews || 0)}
+                        {formatCompactNumberIntl(
+                          postWithAnalytics.totalViews || 0,
+                        )}
                       </span>
                     );
                   },
@@ -466,7 +466,9 @@ export default function AnalyticsBrandOverview({
                     const postWithAnalytics = post as PostWithAnalytics;
                     return (
                       <span className="font-mono">
-                        {formatNumber(postWithAnalytics.totalLikes || 0)}
+                        {formatCompactNumberIntl(
+                          postWithAnalytics.totalLikes || 0,
+                        )}
                       </span>
                     );
                   },
@@ -478,7 +480,9 @@ export default function AnalyticsBrandOverview({
                     const postWithAnalytics = post as PostWithAnalytics;
                     return (
                       <span className="font-mono">
-                        {formatNumber(postWithAnalytics.totalComments || 0)}
+                        {formatCompactNumberIntl(
+                          postWithAnalytics.totalComments || 0,
+                        )}
                       </span>
                     );
                   },
@@ -490,8 +494,9 @@ export default function AnalyticsBrandOverview({
                     const postWithAnalytics = post as PostWithAnalytics;
                     return (
                       <span className="font-mono">
-                        {formatPercentage(
+                        {formatPercentageSimple(
                           postWithAnalytics.engagementRate || 0,
+                          2,
                         )}
                       </span>
                     );
