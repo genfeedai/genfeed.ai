@@ -11,6 +11,9 @@ const replicate = new Replicate({
 // Model identifiers
 export const MODELS = {
   // Lip-sync models
+  gen45: 'runwayml/gen-4.5',
+  grokVideo: 'xai/grok-imagine-video',
+  klingV26: 'kwaivgi/kling-v2.6',
   lipsync2: 'sync/lipsync-2',
   lipsync2Pro: 'sync/lipsync-2-pro',
   llama: 'meta/meta-llama-3.1-405b-instruct',
@@ -18,12 +21,24 @@ export const MODELS = {
   nanoBanana2: 'google/nano-banana-2',
   nanoBananaPro: 'google/nano-banana-pro',
   pixverseLipsync: 'pixverse/lipsync',
+  pixverseV6: 'pixverse/pixverse-v6',
+  seedance: 'bytedance/seedance-2.0',
+  seedanceFast: 'bytedance/seedance-2.0-fast',
   veo: 'google/veo-3.1',
   veoFast: 'google/veo-3.1-fast',
+  veoLite: 'google/veo-3.1-lite',
+  hailuo23: 'minimax/hailuo-2.3',
+  hailuo23Fast: 'minimax/hailuo-2.3-fast',
+  viduQ3Pro: 'vidu/q3-pro',
+  viduQ3Turbo: 'vidu/q3-turbo',
+  wan27T2V: 'wan-video/wan-2.7-t2v',
 } as const;
 
 // Pricing per unit
 export const PRICING = {
+  'gen-4.5': 0.25, // per video
+  'grok-imagine-video': 0.15, // per video
+  'kling-v2.6': 0.15, // per video
   llama: 0.0001, // per 1K tokens
   'nano-banana': 0.039, // per image
   'nano-banana-2': 0.039, // per image
@@ -32,6 +47,7 @@ export const PRICING = {
     '2K': 0.2,
     '4K': 0.3,
   },
+  'pixverse-v6': 0.15, // per video
   'pixverse/lipsync': 0.04,
   // Lip-sync pricing (per second of output)
   'sync/lipsync-2': 0.05,
@@ -44,6 +60,14 @@ export const PRICING = {
     withAudio: 0.15, // per second
     withoutAudio: 0.1,
   },
+  'seedance-2.0': 0.25, // per video
+  'seedance-2.0-fast': 0.15, // per video
+  'hailuo-2.3': 0.2, // per video
+  'hailuo-2.3-fast': 0.1, // per video
+  'q3-pro': 0.2, // per video
+  'q3-turbo': 0.1, // per video
+  'wan-2.7-t2v': 0.15, // per video
+  'veo-3.1-lite': 0.1, // per video
 } as const;
 
 // Type definitions

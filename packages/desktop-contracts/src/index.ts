@@ -154,9 +154,11 @@ export interface IDesktopSyncState {
 /* ─── Local Generation ─── */
 
 export type DesktopGenerationProviderKind =
+  | 'fal'
   | 'lm-studio'
   | 'ollama'
-  | 'openai-compatible';
+  | 'openai-compatible'
+  | 'replicate';
 
 export interface IDesktopGenerationProviderConfig {
   apiKey?: string;

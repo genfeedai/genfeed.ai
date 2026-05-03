@@ -14,6 +14,7 @@ import type {
   ImagenInput,
   LumaReframeImageInput,
   LumaReframeVideoInput,
+  NanoBanana2Input,
   NanoBananaInput,
   NanoBananaProInput,
   QwenImageInput,
@@ -56,6 +57,7 @@ export class ReplicateImageBuilder extends BaseReplicateBuilder {
     // Google Nano Banana
     MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA,
     MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_PRO,
+    MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2,
     // Ideogram
     MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_CHARACTER,
     MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_BALANCED,
@@ -136,6 +138,9 @@ export class ReplicateImageBuilder extends BaseReplicateBuilder {
 
       case MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_PRO:
         return this.buildNanoBananaProPrompt(model, params, promptText);
+
+      case MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2:
+        return this.buildNanoBanana2Prompt(model, params, promptText);
 
       // Ideogram
       case MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_CHARACTER:
@@ -348,6 +353,37 @@ export class ReplicateImageBuilder extends BaseReplicateBuilder {
       output_format: params.outputFormat ?? 'jpg',
       prompt: promptText,
       safety_filter_level: 'block_only_high',
+    };
+
+    if (params.resolution) {
+      input.resolution = params.resolution;
+    }
+
+    if (hasImageInput) {
+      input.image_input = params.references?.slice(0, 14);
+    }
+
+    return input;
+  }
+
+  private buildNanoBanana2Prompt(
+    model: string,
+    params: PromptBuilderParams,
+    promptText: string,
+  ): NanoBanana2Input {
+    const calculatedAspectRatio = calculateAspectRatio(
+      params.width,
+      params.height,
+    );
+    const hasImageInput = params.references && params.references.length > 0;
+    const aspectRatio =
+      calculatedAspectRatio ||
+      (hasImageInput ? 'match_input_image' : getDefaultAspectRatio(model));
+
+    const input: NanoBanana2Input = {
+      aspect_ratio: aspectRatio,
+      output_format: params.outputFormat ?? 'jpg',
+      prompt: promptText,
     };
 
     if (params.resolution) {

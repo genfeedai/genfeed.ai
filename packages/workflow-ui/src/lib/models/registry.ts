@@ -22,6 +22,11 @@ export const IMAGE_MODELS: ImageModelConfig[] = [
     label: 'Nano Banana Pro',
     value: 'nano-banana-pro',
   },
+  {
+    apiId: 'google/nano-banana-2',
+    label: 'Nano Banana 2',
+    value: 'nano-banana-2',
+  },
 ];
 
 export const IMAGE_MODEL_MAP: Record<string, ImageModel> = Object.fromEntries(
@@ -59,6 +64,18 @@ export const VIDEO_MODELS: VideoModelConfig[] = [
     description: 'High quality',
     label: 'Veo 3.1',
     value: 'veo-3.1',
+  },
+  {
+    apiId: 'bytedance/seedance-2.0',
+    description: 'High quality with native audio',
+    label: 'Seedance 2.0',
+    value: 'seedance-2.0',
+  },
+  {
+    apiId: 'bytedance/seedance-2.0-fast',
+    description: 'Fast with native audio',
+    label: 'Seedance 2.0 Fast',
+    value: 'seedance-2.0-fast',
   },
 ];
 

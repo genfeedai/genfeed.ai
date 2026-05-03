@@ -18,6 +18,11 @@ const PROVIDER_PRESETS: Record<
     label: 'LM Studio',
     model: 'local-model',
   },
+  fal: {
+    baseUrl: 'https://queue.fal.run',
+    label: 'fal.ai',
+    model: 'fal-ai/any-llm',
+  },
   ollama: {
     baseUrl: 'http://localhost:11434/v1',
     label: 'Ollama',
@@ -27,6 +32,11 @@ const PROVIDER_PRESETS: Record<
     baseUrl: 'http://localhost:8000/v1',
     label: 'OpenAI-compatible',
     model: 'gpt-4o-mini',
+  },
+  replicate: {
+    baseUrl: 'https://api.replicate.com/v1',
+    label: 'Replicate',
+    model: 'meta/llama-2-70b-chat',
   },
 };
 
