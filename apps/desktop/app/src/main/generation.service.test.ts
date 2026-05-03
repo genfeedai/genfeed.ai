@@ -198,6 +198,117 @@ describe('DesktopGenerationService', () => {
     });
   });
 
+  it('runs generation through Replicate model predictions with a provider API key', async () => {
+    const database = createDatabaseMock();
+    const service = new DesktopGenerationService(
+      database as unknown as DesktopDatabaseService,
+    );
+
+    await service.saveProviderConfig({
+      apiKey: 'replicate-secret',
+      baseUrl: 'https://api.replicate.com/v1',
+      model: 'meta/llama-2-70b-chat',
+      provider: 'replicate',
+    });
+
+    globalThis.fetch = (async (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ) => {
+      expect(String(input)).toBe(
+        'https://api.replicate.com/v1/models/meta/llama-2-70b-chat/predictions',
+      );
+      expect(init?.headers).toMatchObject({
+        Authorization: 'Bearer replicate-secret',
+        Prefer: 'wait=60',
+      });
+
+      const body = JSON.parse(String(init?.body)) as {
+        input: { prompt: string };
+      };
+      expect(body.input.prompt).toContain('Platform: twitter');
+
+      return new Response(
+        JSON.stringify({
+          output: ['Replicate generated content.'],
+          status: 'succeeded',
+        }),
+        {
+          headers: { 'content-type': 'application/json' },
+          status: 200,
+        },
+      );
+    }) as typeof fetch;
+
+    await expect(service.generateContent(generationParams)).resolves.toBe(
+      'Replicate generated content.',
+    );
+  });
+
+  it('runs generation through the fal queue API with a provider API key', async () => {
+    const database = createDatabaseMock();
+    const service = new DesktopGenerationService(
+      database as unknown as DesktopDatabaseService,
+    );
+    const calls: string[] = [];
+
+    await service.saveProviderConfig({
+      apiKey: 'fal-secret',
+      baseUrl: 'https://queue.fal.run',
+      model: 'fal-ai/any-llm',
+      provider: 'fal',
+    });
+
+    globalThis.fetch = (async (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ) => {
+      calls.push(String(input));
+      expect(init?.headers).toMatchObject({
+        Authorization: 'Key fal-secret',
+      });
+
+      if (calls.length === 1) {
+        const body = JSON.parse(String(init?.body)) as { prompt: string };
+        expect(body.prompt).toContain('Platform: twitter');
+        return new Response(
+          JSON.stringify({
+            request_id: 'fal-request-1',
+            status_url:
+              'https://queue.fal.run/fal-ai/any-llm/requests/fal-request-1/status',
+            response_url:
+              'https://queue.fal.run/fal-ai/any-llm/requests/fal-request-1',
+          }),
+          { status: 200 },
+        );
+      }
+
+      if (calls.length === 2) {
+        return new Response(JSON.stringify({ status: 'COMPLETED' }), {
+          status: 200,
+        });
+      }
+
+      return new Response(
+        JSON.stringify({
+          output: {
+            text: 'fal generated content.',
+          },
+        }),
+        { status: 200 },
+      );
+    }) as typeof fetch;
+
+    await expect(service.generateContent(generationParams)).resolves.toBe(
+      'fal generated content.',
+    );
+    expect(calls).toEqual([
+      'https://queue.fal.run/fal-ai/any-llm',
+      'https://queue.fal.run/fal-ai/any-llm/requests/fal-request-1/status',
+      'https://queue.fal.run/fal-ai/any-llm/requests/fal-request-1',
+    ]);
+  });
+
   it('normalizes completion URLs for OpenAI-compatible providers', () => {
     expect(
       __desktopGenerationServiceTestUtils.buildCompletionUrl(

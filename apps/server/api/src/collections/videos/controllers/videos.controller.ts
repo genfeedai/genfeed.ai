@@ -830,6 +830,9 @@ export class VideosController {
 
         case MODEL_KEYS.FAL_SEEDANCE_2_0:
         case MODEL_KEYS.FAL_KLING_VIDEO:
+        case MODEL_KEYS.FAL_KLING_VIDEO_V3_PRO:
+        case MODEL_KEYS.FAL_VEO_3_1:
+        case MODEL_KEYS.FAL_PIXVERSE_V6:
         case MODEL_KEYS.FAL_LUMA_DREAM_MACHINE:
         case MODEL_KEYS.FAL_RUNWAY_GEN3:
         case MODEL_KEYS.FAL_STABLE_VIDEO: {

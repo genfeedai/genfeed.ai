@@ -30,6 +30,23 @@ type ChatCompletionResponse = {
   choices?: ChatCompletionChoice[];
 };
 
+type ProviderOutputPayload = {
+  completed_at?: unknown;
+  detail?: unknown;
+  error?: unknown;
+  id?: unknown;
+  logs?: unknown;
+  output?: unknown;
+  request_id?: unknown;
+  response_url?: unknown;
+  status?: unknown;
+  status_url?: unknown;
+  urls?: {
+    get?: unknown;
+    stream?: unknown;
+  };
+};
+
 const toIso = (): string => new Date().toISOString();
 
 const providerDisplayName = (
@@ -45,6 +62,14 @@ const providerDisplayName = (
 
   if (config.provider === 'lm-studio') {
     return 'LM Studio';
+  }
+
+  if (config.provider === 'replicate') {
+    return 'Replicate';
+  }
+
+  if (config.provider === 'fal') {
+    return 'fal.ai';
   }
 
   return 'OpenAI-compatible';
@@ -188,6 +213,51 @@ const extractCompletionText = (payload: ChatCompletionResponse): string => {
   }
 
   throw new Error('Local provider returned an empty completion.');
+};
+
+const extractProviderOutputText = (payload: ProviderOutputPayload): string => {
+  const output = payload.output;
+
+  if (typeof output === 'string' && output.trim()) {
+    return output.trim();
+  }
+
+  if (Array.isArray(output)) {
+    const text = output
+      .map((entry) => {
+        if (typeof entry === 'string') {
+          return entry;
+        }
+
+        if (
+          entry &&
+          typeof entry === 'object' &&
+          'text' in entry &&
+          typeof entry.text === 'string'
+        ) {
+          return entry.text;
+        }
+
+        return '';
+      })
+      .join('')
+      .trim();
+
+    if (text) {
+      return text;
+    }
+  }
+
+  if (output && typeof output === 'object') {
+    const outputRecord = output as Record<string, unknown>;
+    for (const key of ['text', 'content', 'message']) {
+      if (typeof outputRecord[key] === 'string' && outputRecord[key].trim()) {
+        return outputRecord[key].trim();
+      }
+    }
+  }
+
+  throw new Error('Provider returned an empty generation output.');
 };
 
 const buildGenerationPayload = (params: IDesktopGenerationOptions): string =>
@@ -344,6 +414,14 @@ export class DesktopGenerationService {
     config: IDesktopGenerationProviderConfig,
     messages: Array<{ content: string; role: 'system' | 'user' }>,
   ): Promise<string> {
+    if (config.provider === 'replicate') {
+      return this.requestReplicateCompletion(config, messages);
+    }
+
+    if (config.provider === 'fal') {
+      return this.requestFalCompletion(config, messages);
+    }
+
     const response = await fetch(buildCompletionUrl(config.baseUrl), {
       body: JSON.stringify({
         messages,
@@ -376,6 +454,162 @@ export class DesktopGenerationService {
     }
   }
 
+  private buildProviderPrompt(
+    messages: Array<{ content: string; role: 'system' | 'user' }>,
+  ): string {
+    return messages
+      .map((message) => `${message.role}: ${message.content}`)
+      .join('\n\n');
+  }
+
+  private async requestReplicateCompletion(
+    config: IDesktopGenerationProviderConfig,
+    messages: Array<{ content: string; role: 'system' | 'user' }>,
+  ): Promise<string> {
+    if (!config.apiKey) {
+      throw new Error('Replicate provider requires an API key.');
+    }
+
+    const [owner, modelName] = config.model.split('/');
+    if (!owner || !modelName) {
+      throw new Error('Replicate model must use owner/model format.');
+    }
+
+    const response = await fetch(
+      `${config.baseUrl}/models/${encodeURIComponent(owner)}/${encodeURIComponent(modelName)}/predictions`,
+      {
+        body: JSON.stringify({
+          input: {
+            prompt: this.buildProviderPrompt(messages),
+          },
+        }),
+        headers: {
+          Authorization: `Bearer ${config.apiKey}`,
+          'Content-Type': 'application/json',
+          Prefer: 'wait=60',
+        },
+        method: 'POST',
+      },
+    );
+
+    const responseText = await response.text();
+    if (!response.ok) {
+      throw new Error(
+        `Replicate request failed (${String(response.status)}): ${
+          responseText || response.statusText
+        }`,
+      );
+    }
+
+    const payload = JSON.parse(responseText) as ProviderOutputPayload;
+    const status = typeof payload.status === 'string' ? payload.status : '';
+    if (status === 'failed' || payload.error) {
+      throw new Error(
+        `Replicate generation failed: ${String(payload.error ?? 'unknown error')}`,
+      );
+    }
+
+    return extractProviderOutputText(payload);
+  }
+
+  private async requestFalCompletion(
+    config: IDesktopGenerationProviderConfig,
+    messages: Array<{ content: string; role: 'system' | 'user' }>,
+  ): Promise<string> {
+    if (!config.apiKey) {
+      throw new Error('fal provider requires an API key.');
+    }
+
+    const createResponse = await fetch(`${config.baseUrl}/${config.model}`, {
+      body: JSON.stringify({
+        prompt: this.buildProviderPrompt(messages),
+      }),
+      headers: {
+        Authorization: `Key ${config.apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      method: 'POST',
+    });
+
+    const createText = await createResponse.text();
+    if (!createResponse.ok) {
+      throw new Error(
+        `fal request failed (${String(createResponse.status)}): ${
+          createText || createResponse.statusText
+        }`,
+      );
+    }
+
+    const created = JSON.parse(createText) as ProviderOutputPayload;
+    const requestId =
+      typeof created.request_id === 'string' ? created.request_id : undefined;
+
+    if (!requestId) {
+      return extractProviderOutputText(created);
+    }
+
+    const statusUrl =
+      typeof created.status_url === 'string'
+        ? created.status_url
+        : `${config.baseUrl}/${config.model}/requests/${requestId}/status`;
+    const resultUrl =
+      typeof created.response_url === 'string'
+        ? created.response_url
+        : `${config.baseUrl}/${config.model}/requests/${requestId}`;
+
+    for (let attempt = 0; attempt < 30; attempt += 1) {
+      const statusResponse = await fetch(statusUrl, {
+        headers: {
+          Authorization: `Key ${config.apiKey}`,
+        },
+      });
+      const statusText = await statusResponse.text();
+      if (!statusResponse.ok) {
+        throw new Error(
+          `fal status request failed (${String(statusResponse.status)}): ${
+            statusText || statusResponse.statusText
+          }`,
+        );
+      }
+
+      const statusPayload = JSON.parse(statusText) as ProviderOutputPayload;
+      const status =
+        typeof statusPayload.status === 'string'
+          ? statusPayload.status.toUpperCase()
+          : '';
+
+      if (status === 'COMPLETED') {
+        const resultResponse = await fetch(resultUrl, {
+          headers: {
+            Authorization: `Key ${config.apiKey}`,
+          },
+        });
+        const resultText = await resultResponse.text();
+        if (!resultResponse.ok) {
+          throw new Error(
+            `fal result request failed (${String(resultResponse.status)}): ${
+              resultText || resultResponse.statusText
+            }`,
+          );
+        }
+
+        return extractProviderOutputText(
+          JSON.parse(resultText) as ProviderOutputPayload,
+        );
+      }
+
+      if (status === 'FAILED' || statusPayload.error) {
+        throw new Error(
+          `fal generation failed: ${String(statusPayload.error ?? statusPayload.detail ?? 'unknown error')}`,
+        );
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+
+    throw new Error('fal generation timed out waiting for the queued result.');
+  }
+
   private async requireProviderConfig(): Promise<IDesktopGenerationProviderConfig> {
     const config = await this.getProviderConfig();
     if (!config) {
@@ -403,6 +637,7 @@ export class DesktopGenerationService {
 
 export const __desktopGenerationServiceTestUtils = {
   buildCompletionUrl,
+  extractProviderOutputText,
   buildUserPrompt,
   extractCompletionText,
   normalizeProviderConfig,

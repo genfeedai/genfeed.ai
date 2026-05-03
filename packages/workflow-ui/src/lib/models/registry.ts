@@ -65,6 +65,18 @@ export const VIDEO_MODELS: VideoModelConfig[] = [
     label: 'Veo 3.1',
     value: 'veo-3.1',
   },
+  {
+    apiId: 'bytedance/seedance-2.0',
+    description: 'High quality with native audio',
+    label: 'Seedance 2.0',
+    value: 'seedance-2.0',
+  },
+  {
+    apiId: 'bytedance/seedance-2.0-fast',
+    description: 'Fast with native audio',
+    label: 'Seedance 2.0 Fast',
+    value: 'seedance-2.0-fast',
+  },
 ];
 
 export const VIDEO_MODEL_MAP: Record<string, VideoModel> = Object.fromEntries(

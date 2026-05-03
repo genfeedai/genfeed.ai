@@ -30,10 +30,16 @@ const VERIFIED_OWNERS: ReadonlySet<string> = new Set([
   'kwaivgi',
   'luma',
   'meta',
+  'minimax',
   'openai',
+  'pixverse',
   'prunaai',
   'qwen',
+  'recraft-ai',
   'runwayml',
+  'vidu',
+  'wan-video',
+  'xai',
 ]);
 
 /** Maximum number of API pages to iterate to prevent runaway polling */

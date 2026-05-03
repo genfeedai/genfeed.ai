@@ -40,6 +40,7 @@ export const ASPECT_RATIOS = {
     '3:4',
     '4:3',
   ] as const,
+  HAILUO: ['16:9', '9:16', '1:1'] as const,
   HEYGEN: ['16:9', '9:16', '1:1'] as const,
   IDEOGRAM: [
     '1:3',
@@ -92,6 +93,11 @@ export const ASPECT_RATIOS = {
     '21:9',
   ] as const,
   RUNWAY_GEN4: ['16:9', '9:16', '4:3', '3:4', '1:1', '21:9'] as const,
+  SEEDANCE: ['16:9', '9:16', '4:3', '3:4', '1:1', '21:9'] as const,
+  GPT_IMAGE: ['1:1', '3:2', '2:3'] as const,
+  GROK_IMAGE: ['1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3'] as const,
+  PIXVERSE: ['16:9', '9:16', '4:3', '3:4', '1:1'] as const,
+  RECRAFT: ['1:1', '4:3', '3:4', '16:9', '9:16', '3:2', '2:3', '21:9'] as const,
   SEEDREAM: [
     'match_input_image',
     '1:1',
@@ -105,4 +111,6 @@ export const ASPECT_RATIOS = {
   ] as const,
   SORA: ['9:16', '16:9'] as const,
   VEO: ['16:9', '9:16'] as const,
+  VIDU: ['16:9', '9:16', '4:3', '3:4', '1:1'] as const,
+  WAN_27: ['16:9', '9:16', '1:1', '4:3', '3:4'] as const,
 } as const;

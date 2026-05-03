@@ -380,6 +380,114 @@ export interface KlingAvatarV2Input extends Record<string, unknown> {
 }
 
 // Union of all video model inputs
+/** ByteDance Seedance 2.0 / 2.0 Fast */
+export interface Seedance2Input extends BaseVideoInput {
+  aspect_ratio: string;
+  duration: number;
+  generate_audio?: boolean;
+  resolution?: string;
+  seed?: number;
+  image?: string;
+  video?: string;
+  audio?: string;
+}
+
+/** PixVerse V6 */
+export interface PixVerseV6Input extends BaseVideoInput {
+  aspect_ratio: string;
+  duration?: number;
+  generate_audio_switch?: boolean;
+  generate_multi_clip_switch?: boolean;
+  image?: string;
+  last_frame_image?: string;
+  negative_prompt?: string;
+  seed?: number;
+}
+
+/** xAI Grok Imagine Video */
+export interface GrokImagineVideoInput extends BaseVideoInput {
+  aspect_ratio: string;
+  duration: number;
+  generate_audio?: boolean;
+  mode?: string;
+  resolution?: string;
+  image?: string;
+}
+
+/** RunwayML Gen 4.5 */
+export interface Gen45Input extends BaseVideoInput {
+  aspect_ratio: string;
+  duration: number;
+  image?: string;
+  seed?: number;
+}
+
+/** Kwaivgi Kling V2.6 */
+export interface KlingV26Input extends BaseVideoInput {
+  aspect_ratio: string;
+  duration: number;
+  generate_audio?: boolean;
+  negative_prompt?: string;
+  start_image?: string;
+  seed?: number;
+}
+
+/** Kwaivgi Kling O1 (video editing) */
+export interface KlingO1Input extends BaseVideoInput {
+  duration: number;
+  reference_images?: string[];
+  keep_audio?: boolean;
+  seed?: number;
+}
+
+/** Minimax Hailuo 2.3 */
+export interface Hailuo23Input extends BaseVideoInput {
+  aspect_ratio: string;
+  duration: number;
+  resolution?: string;
+  image?: string;
+  seed?: number;
+}
+
+/** Minimax Hailuo 2.3 Fast (image-to-video only, no text prompt) */
+export interface Hailuo23FastInput extends Record<string, unknown> {
+  prompt: string;
+  aspect_ratio: string;
+  duration: number;
+  resolution?: string;
+  image: string;
+  seed?: number;
+}
+
+/** Vidu Q3 Pro / Turbo */
+export interface ViduQ3Input extends BaseVideoInput {
+  aspect_ratio: string;
+  duration: number;
+  resolution?: string;
+  generate_audio?: boolean;
+  start_image?: string;
+  end_image?: string;
+  seed?: number;
+}
+
+/** WAN Video 2.7 T2V */
+export interface Wan27T2VInput extends BaseVideoInput {
+  aspect_ratio: string;
+  duration: number;
+  resolution?: string;
+  negative_prompt?: string;
+  seed?: number;
+}
+
+/** Google Veo 3.1 Lite */
+export interface Veo31LiteInput extends BaseVideoInput {
+  aspect_ratio: string;
+  duration: number;
+  resolution: string;
+  image?: string;
+  seed?: number;
+}
+
 export type ReplicateVideoInput =
   | Sora2Input
   | Sora2ProInput
@@ -394,7 +502,18 @@ export type ReplicateVideoInput =
   | PVideoInput
   | KlingV3VideoInput
   | KlingV3OmniVideoInput
-  | KlingAvatarV2Input;
+  | KlingAvatarV2Input
+  | Seedance2Input
+  | PixVerseV6Input
+  | GrokImagineVideoInput
+  | Gen45Input
+  | KlingV26Input
+  | KlingO1Input
+  | Hailuo23Input
+  | Hailuo23FastInput
+  | ViduQ3Input
+  | Wan27T2VInput
+  | Veo31LiteInput;
 
 // ---------------------------------------------------------------------------
 // TEXT / LLM model inputs
