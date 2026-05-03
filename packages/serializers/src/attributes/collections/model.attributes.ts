@@ -24,6 +24,8 @@ export const modelAttributes = createEntityAttributes([
   'inputCostPerMillionTokens',
   'outputCostPerMillionTokens',
   'providerCostUsd',
+  'providerConfig',
+  'margin',
   // Output capability fields
   'aspectRatios',
   'defaultAspectRatio',
@@ -46,4 +48,13 @@ export const modelAttributes = createEntityAttributes([
   'predecessorOf',
   'isDeprecated',
   'deprecatedAt',
+  // Dynamic registry ownership fields
+  'organization',
+  'parentModel',
+  'training',
+  'isPublic',
+  'isLegacy',
+  'isDiscovered',
+  'discoveredAt',
+  'lastSyncedAt',
 ]);
