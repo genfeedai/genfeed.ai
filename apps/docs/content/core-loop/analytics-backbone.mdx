@@ -39,7 +39,7 @@ flowchart LR
 
 ## Representative V1 Smoke Path
 
-The narrow verification path for v1 is in:
+The narrow business-analytics verification path for v1 is in:
 
 - [`apps/server/api/src/endpoints/analytics/business-analytics.service.spec.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/endpoints/analytics/business-analytics.service.spec.ts)
 
@@ -53,6 +53,30 @@ The smoke test proves that representative aggregate inputs are converted into a 
 - comparisons
 
 That is enough to show the ingestion-to-dashboard contract is still wired without adding a large end-to-end analytics harness.
+
+The provider-ingestion smoke path for v1 is in:
+
+- [`apps/server/api/src/collections/content-performance/services/analytics-ingestion-dashboard-smoke.spec.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/collections/content-performance/services/analytics-ingestion-dashboard-smoke.spec.ts)
+
+It verifies the representative media analytics path:
+
+```mermaid
+flowchart LR
+  A["Provider media metrics"] --> B["PostAnalyticsService.trackPostAnalytics"]
+  B --> C["postAnalytics upsert"]
+  C --> D["Post analytics summary"]
+  C --> E["PerformanceSummaryService weekly summary"]
+  D --> F["Publication analytics dashboard"]
+  E --> G["Content performance dashboard"]
+```
+
+Run it with:
+
+```bash
+TZ=UTC bunx vitest run --config vitest.config.ts src/collections/content-performance/services/analytics-ingestion-dashboard-smoke.spec.ts
+```
+
+The content-performance dashboard intentionally excludes current-day metrics because today's provider data is incomplete. The smoke path records a provider ingestion row, verifies the publication analytics summary immediately, then advances the date window and verifies the same row appears in the weekly content-performance summary.
 
 ## V1 Boundary
 
