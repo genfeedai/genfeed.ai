@@ -45,19 +45,35 @@ flowchart LR
   F --> G["Generation-ready output contract"]
 ```
 
-## Representative V1 Smoke Path
+## Representative V1 End-to-End Path
 
-The narrow verification path for v1 is in:
+The representative media verification path for v1 is in:
 
-- [`packages/services/ai/enhanced-models.service.test.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/packages/services/ai/enhanced-models.service.test.ts)
+- [`apps/server/api/src/services/skill-executor/stable-provider-path.spec.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/services/skill-executor/stable-provider-path.spec.ts)
 
-The smoke test proves:
+The test uses mocked provider services so it can run in CI without live credentials, but it keeps the production service wiring:
 
-- the enhanced model service initializes cleanly
-- predefined provider models are merged into the generation-facing catalog
-- the resulting model records retain stable `key`, `provider`, and category data expected by callers
+- `SkillExecutorService` loads and validates the `image-generation` skill
+- a Content Run is created, marked running, and completed
+- the representative image path routes through `ImageGenerationHandler`
+- organization BYOK resolution selects fal.ai for the active organization
+- the fal.ai provider call receives the resolved server-side key and normalized image parameters
+- the completed run records `source: byok`, output metadata, and a generated variant
 
-This keeps the v1 proof at the provider-registry boundary instead of requiring a full external generation run.
+Run it with:
+
+```bash
+cd apps/server/api
+TZ=UTC bunx vitest run --config vitest.config.ts src/services/skill-executor/stable-provider-path.spec.ts
+```
+
+This keeps the v1 proof end-to-end at the application boundary without making CI depend on external provider availability.
+
+## Explicit V1 Gaps
+
+- The CI smoke path does not make a live fal.ai or Replicate request.
+- It verifies one representative image path, not every media type or provider.
+- Full provider billing, rate-limit, and callback behavior should stay covered by provider-specific tests and manual release checks.
 
 ## V1 Boundary
 
