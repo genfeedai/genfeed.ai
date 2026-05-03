@@ -2,9 +2,10 @@
 
 import dynamic from 'next/dynamic';
 import 'swagger-ui-react/swagger-ui.css';
+import type { SwaggerUIProps } from 'swagger-ui-react';
 
-const SwaggerUIReact = dynamic<{ url: string }>(
-  () => import('swagger-ui-react') as any,
+const SwaggerUIReact = dynamic<SwaggerUIProps>(
+  () => import('swagger-ui-react').then((module) => module.default),
   {
     loading: () => (
       <div style={{ padding: '2rem', textAlign: 'center' }}>

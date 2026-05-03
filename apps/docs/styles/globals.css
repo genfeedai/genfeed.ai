@@ -45,7 +45,7 @@
 
 /* Code block improvements */
 pre {
-  border-radius: 8px !important;
+  border-radius: 8px;
 }
 
 /* Table improvements */

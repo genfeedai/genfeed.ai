@@ -1,12 +1,19 @@
 declare module 'swagger-ui-react' {
   import { ComponentType } from 'react';
 
-  interface SwaggerUIProps {
+  type SwaggerUiRequest = Record<string, unknown>;
+  type SwaggerUiResponse = Record<string, unknown>;
+
+  export interface SwaggerUIProps {
     url?: string;
     spec?: object;
-    onComplete?: (system: any) => void;
-    requestInterceptor?: (req: any) => any;
-    responseInterceptor?: (res: any) => any;
+    onComplete?: (system: unknown) => void;
+    requestInterceptor?: (
+      req: SwaggerUiRequest,
+    ) => Promise<SwaggerUiRequest> | SwaggerUiRequest;
+    responseInterceptor?: (
+      res: SwaggerUiResponse,
+    ) => Promise<SwaggerUiResponse> | SwaggerUiResponse;
     docExpansion?: 'list' | 'full' | 'none';
     defaultModelsExpandDepth?: number;
     displayOperationId?: boolean;
