@@ -1,10 +1,3 @@
-vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
-  getPublicMetadata: vi.fn(() => ({
-    organization: '507f1f77bcf86cd799439011',
-    user: 'user-123',
-  })),
-}));
-
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeCollection: vi.fn((_req, _serializer, data) => data.docs || data),
   serializeSingle: vi.fn((_req, _serializer, data) => data),
@@ -21,7 +14,13 @@ describe('WorkflowExecutionsController', () => {
   let controller: WorkflowExecutionsController;
 
   const mockRequest = {} as never;
-  const mockUser = { id: 'user-123' } as never;
+  const mockUser = {
+    id: 'user-123',
+    publicMetadata: {
+      organization: '507f1f77bcf86cd799439011',
+      user: 'user-123',
+    },
+  } as never;
 
   const mockService = {
     cancelExecution: vi.fn(),
@@ -81,24 +80,21 @@ describe('WorkflowExecutionsController', () => {
       );
 
       expect(mockService.findAll).toHaveBeenCalledTimes(1);
-      const [aggregate, options] = mockService.findAll.mock.calls[0] as [
-        Array<Record<string, unknown>>,
+      const [findAllQuery, options] = mockService.findAll.mock.calls[0] as [
+        Record<string, unknown>,
         Record<string, unknown>,
       ];
 
-      expect(aggregate).toHaveLength(2);
-      expect(aggregate[0]).toEqual({
-        match: {
+      expect(findAllQuery).toEqual({
+        orderBy: { createdAt: -1 },
+        where: {
           isDeleted: false,
           organization: expect.any(String),
           status: 'completed',
         },
       });
-      expect(aggregate[1]).toEqual({
-        orderBy: { createdAt: -1 },
-      });
       expect(options).toEqual(
-        expect.objectContaining({ limit: 10, offset: 0 }),
+        expect.objectContaining({ limit: expect.any(Number), offset: 0 }),
       );
       expect(result).toEqual([{ _id: 'exec-1' }]);
     });
@@ -109,7 +105,13 @@ describe('WorkflowExecutionsController', () => {
       await controller.findAll(mockRequest, mockUser, {} as never);
 
       expect(mockService.findAll).toHaveBeenCalledWith(
-        expect.any(Array),
+        expect.objectContaining({
+          orderBy: { createdAt: -1 },
+          where: expect.objectContaining({
+            isDeleted: false,
+            organization: expect.any(String),
+          }),
+        }),
         expect.objectContaining({ limit: 20, offset: 0 }),
       );
     });

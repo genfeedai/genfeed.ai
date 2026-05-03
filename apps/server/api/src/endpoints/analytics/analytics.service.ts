@@ -353,7 +353,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       (orgsResult as AggregatePaginateResult<OrganizationDoc>).docs || [];
 
     if (allOrgs.length === 0) {
-      return { where: {} };
+      return [];
     }
 
     const orgIds = allOrgs.map((o: OrganizationDoc) => o.id);
@@ -444,7 +444,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       (brandsResult as AggregatePaginateResult<BrandDoc>).docs || [];
 
     if (allBrands.length === 0) {
-      return { where: {} };
+      return [];
     }
 
     const brandIds = allBrands.map((b: BrandDoc) => b.id);

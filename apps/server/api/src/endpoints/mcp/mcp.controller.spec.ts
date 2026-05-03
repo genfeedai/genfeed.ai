@@ -136,7 +136,7 @@ describe('MCPController', () => {
       await controller.getAnalytics(mockRequest, mockBaseQueryDto);
 
       expect(analyticsService.findAll).toHaveBeenCalledWith(
-        [],
+        { where: {} },
         expect.objectContaining({
           limit: mockBaseQueryDto.limit,
           page: mockBaseQueryDto.page,

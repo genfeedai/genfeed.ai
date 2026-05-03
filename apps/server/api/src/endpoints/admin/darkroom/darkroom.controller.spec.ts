@@ -14,12 +14,6 @@ vi.mock('@api/helpers/utils/error-response/error-response.util', () => ({
   },
 }));
 
-vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
-  getPublicMetadata: vi.fn(
-    (user: { publicMetadata?: unknown }) => user?.publicMetadata ?? {},
-  ),
-}));
-
 vi.mock('@api/helpers/utils/objectid/objectid.util', () => ({
   ObjectIdUtil: {
     toObjectId: vi.fn((s: unknown) => s),

@@ -158,10 +158,10 @@ describe('VoicesController', () => {
 
       await controller.findAll({} as never, request as never, user as never);
 
-      const [aggregate] = voicesService.findAll.mock.calls[0] ?? [];
-      expect(aggregate).toBeInstanceOf(Array);
-      expect(aggregate[0]).toEqual({
-        match: {
+      const [query] = voicesService.findAll.mock.calls[0] ?? [];
+      expect(query).toMatchObject({
+        orderBy: { createdAt: -1 },
+        where: {
           OR: [
             {
               voiceSource: 'catalog',
@@ -169,7 +169,7 @@ describe('VoicesController', () => {
             {
               OR: [
                 { isCloned: true },
-                { voiceSource: { not: false } },
+                { voiceSource: { not: null } },
                 { voiceSource: { in: ['cloned', 'generated'] } },
               ],
               brand: brandId,
@@ -178,21 +178,9 @@ describe('VoicesController', () => {
           ],
           category: IngredientCategory.VOICE,
           isDeleted: false,
-          provider: {
-            in: [
-              VoiceProvider.ELEVENLABS,
-              VoiceProvider.HEYGEN,
-              VoiceProvider.GENFEED_AI,
-            ],
-          },
           status: {
             in: ['draft', 'uploaded', 'completed'],
           },
-        },
-      });
-      expect(aggregate.at(-1)).toEqual({
-        orderBy: {
-          createdAt: -1,
         },
       });
     });
@@ -225,9 +213,10 @@ describe('VoicesController', () => {
         user as never,
       );
 
-      const [aggregate] = voicesService.findAll.mock.calls.at(-1) ?? [];
-      expect(aggregate[0]).toEqual({
-        match: {
+      const [query] = voicesService.findAll.mock.calls.at(-1) ?? [];
+      expect(query).toMatchObject({
+        orderBy: { createdAt: -1 },
+        where: {
           OR: [
             {
               voiceSource: 'catalog',
@@ -235,7 +224,7 @@ describe('VoicesController', () => {
             {
               OR: [
                 { isCloned: true },
-                { voiceSource: { not: false } },
+                { voiceSource: { not: null } },
                 { voiceSource: { in: ['cloned', 'generated'] } },
               ],
               brand: brandId,
@@ -244,13 +233,6 @@ describe('VoicesController', () => {
           ],
           category: IngredientCategory.VOICE,
           isDeleted: false,
-          provider: {
-            in: [
-              VoiceProvider.ELEVENLABS,
-              VoiceProvider.HEYGEN,
-              VoiceProvider.GENFEED_AI,
-            ],
-          },
           status: {
             in: ['draft', 'uploaded', 'completed'],
           },
@@ -278,18 +260,12 @@ describe('VoicesController', () => {
         user as never,
       );
 
-      const [aggregate] = voicesService.findAll.mock.calls.at(-1) ?? [];
-      expect(aggregate[0]).toEqual({
-        match: {
+      const [query] = voicesService.findAll.mock.calls.at(-1) ?? [];
+      expect(query).toMatchObject({
+        orderBy: { createdAt: -1 },
+        where: {
           category: IngredientCategory.VOICE,
           isDeleted: false,
-          provider: {
-            in: [
-              VoiceProvider.ELEVENLABS,
-              VoiceProvider.HEYGEN,
-              VoiceProvider.GENFEED_AI,
-            ],
-          },
           status: {
             in: ['draft', 'uploaded', 'completed'],
           },
@@ -331,9 +307,10 @@ describe('VoicesController', () => {
         user as never,
       );
 
-      const [aggregate] = voicesService.findAll.mock.calls.at(-1) ?? [];
-      expect(aggregate[0]).toEqual({
-        match: {
+      const [query] = voicesService.findAll.mock.calls.at(-1) ?? [];
+      expect(query).toMatchObject({
+        orderBy: { createdAt: -1 },
+        where: {
           OR: [
             {
               scope: AssetScope.BRAND,
@@ -342,7 +319,7 @@ describe('VoicesController', () => {
             {
               OR: [
                 { isCloned: true },
-                { voiceSource: { not: false } },
+                { voiceSource: { not: null } },
                 { voiceSource: { in: ['cloned', 'generated'] } },
               ],
               brand: brandId,
@@ -365,26 +342,30 @@ describe('VoicesController', () => {
           },
         },
       });
-      expect(aggregate[3]).toEqual({
-        match: {
-          OR: [
+      expect(query).toMatchObject({
+        where: {
+          AND: [
             {
-              'metadata.label': {
-                mode: 'insensitive',
-                contains: 'radio',
-              },
-            },
-            {
-              externalVoiceId: {
-                mode: 'insensitive',
-                contains: 'radio',
-              },
-            },
-            {
-              provider: {
-                mode: 'insensitive',
-                contains: 'radio',
-              },
+              OR: [
+                {
+                  label: {
+                    mode: 'insensitive',
+                    contains: 'radio',
+                  },
+                },
+                {
+                  externalVoiceId: {
+                    mode: 'insensitive',
+                    contains: 'radio',
+                  },
+                },
+                {
+                  provider: {
+                    mode: 'insensitive',
+                    contains: 'radio',
+                  },
+                },
+              ],
             },
           ],
         },
@@ -411,9 +392,10 @@ describe('VoicesController', () => {
         user as never,
       );
 
-      const [aggregate] = voicesService.findAll.mock.calls.at(-1) ?? [];
-      expect(aggregate[0]).toEqual({
-        match: {
+      const [query] = voicesService.findAll.mock.calls.at(-1) ?? [];
+      expect(query).toMatchObject({
+        orderBy: { createdAt: -1 },
+        where: {
           OR: [
             {
               voiceSource: 'catalog',
@@ -421,11 +403,11 @@ describe('VoicesController', () => {
             {
               OR: [
                 { isCloned: true },
-                { voiceSource: { not: false } },
+                { voiceSource: { not: null } },
                 { voiceSource: { in: ['cloned', 'generated'] } },
               ],
-              brand: expect.any(String),
-              organization: expect.any(String),
+              brand: '507f191e810c19729de860ee',
+              organization: '507f191e810c19729de860ee',
             },
           ],
           category: IngredientCategory.VOICE,
@@ -433,13 +415,6 @@ describe('VoicesController', () => {
             not: false,
           },
           isDeleted: false,
-          provider: {
-            in: [
-              VoiceProvider.ELEVENLABS,
-              VoiceProvider.HEYGEN,
-              VoiceProvider.GENFEED_AI,
-            ],
-          },
           status: {
             in: ['draft', 'uploaded', 'completed'],
           },

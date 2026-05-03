@@ -1,11 +1,3 @@
-vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
-  getPublicMetadata: vi.fn(() => ({
-    brand: '507f1f77bcf86cd799439012',
-    organization: '507f1f77bcf86cd799439011',
-    user: '507f1f77bcf86cd799439013',
-  })),
-}));
-
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnNotFound: vi.fn((name: string, id: string) => {
     throw new HttpException(
@@ -46,16 +38,6 @@ vi.mock('@api/helpers/utils/collection-filter/collection-filter.util', () => ({
   },
 }));
 
-vi.mock('@api/helpers/utils/ingredient-filter/ingredient-filter.util', () => ({
-  IngredientFilterUtil: {
-    buildFolderFilter: vi.fn(() => ({})),
-    buildFormatFilterStage: vi.fn(() => []),
-    buildMetadataLookup: vi.fn(() => []),
-    buildParentFilter: vi.fn(() => ({})),
-    buildPromptLookup: vi.fn(() => []),
-  },
-}));
-
 import { GifsController } from '@api/collections/gifs/controllers/gifs.controller';
 import { GifsService } from '@api/collections/gifs/services/gifs.service';
 import { VotesService } from '@api/collections/votes/services/votes.service';
@@ -78,7 +60,14 @@ describe('GifsController', () => {
   let votesService: { findOne: ReturnType<typeof vi.fn> };
 
   const mockRequest = {} as unknown as Request;
-  const mockUser = { id: 'clerk_user_1' } as unknown as User;
+  const mockUser = {
+    id: 'clerk_user_1',
+    publicMetadata: {
+      brand: '507f1f77bcf86cd799439012',
+      organization: '507f1f77bcf86cd799439011',
+      user: '507f1f77bcf86cd799439013',
+    },
+  } as unknown as User;
   const gifId = '507f191e810c19729de860ee'.toString();
 
   const mockGif = {
@@ -141,8 +130,11 @@ describe('GifsController', () => {
     it('should return latest gifs', async () => {
       const result = await controller.findLatest(mockRequest, mockUser, 10);
       expect(gifsService.findAll).toHaveBeenCalledWith(
-        expect.any(Array),
-        expect.objectContaining({ pagination: false }),
+        expect.objectContaining({
+          orderBy: { createdAt: -1 },
+          where: expect.any(Object),
+        }),
+        expect.objectContaining({ limit: 10, pagination: false }),
       );
       expect(result).toBeDefined();
     });
@@ -173,26 +165,23 @@ describe('GifsController', () => {
         typeof controller.findAll
       >[2];
       await controller.findAll(mockRequest, mockUser, query);
-      const pipeline = gifsService.findAll.mock.calls[0][0] as Array<
-        Record<string, unknown>
-      >;
-      const matchStages = pipeline.filter((s) => 'match' in s);
-      // Should have at least 2 match stages (main filter + search)
-      expect(matchStages.length).toBeGreaterThanOrEqual(2);
+      const findAllQuery = gifsService.findAll.mock.calls[0][0] as {
+        where: Record<string, unknown>;
+      };
+      expect(findAllQuery.where.AND).toBeDefined();
     });
 
-    it('should include tags lookup in pipeline', async () => {
+    it('should build a Prisma query for gif listing', async () => {
       const query = {} as Parameters<typeof controller.findAll>[2];
       await controller.findAll(mockRequest, mockUser, query);
-      const pipeline = gifsService.findAll.mock.calls[0][0] as Array<
-        Record<string, unknown>
-      >;
-      const lookupStages = pipeline.filter(
-        (s) =>
-          'relationInclude' in s &&
-          (s.relationInclude as Record<string, string>).from === 'tags',
-      );
-      expect(lookupStages.length).toBe(1);
+      const findAllQuery = gifsService.findAll.mock.calls[0][0] as {
+        orderBy?: Record<string, unknown>;
+        where?: Record<string, unknown>;
+      };
+      expect(findAllQuery).toMatchObject({
+        orderBy: { createdAt: -1 },
+        where: expect.any(Object),
+      });
     });
   });
 

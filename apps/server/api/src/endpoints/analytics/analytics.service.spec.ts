@@ -1,21 +1,3 @@
-vi.mock('@api/services/integrations/youtube/services/youtube.service', () => ({
-  YoutubeService: class {},
-}));
-vi.mock('@api/collections/brands/services/brands.service', () => ({
-  BrandsService: class {},
-}));
-vi.mock(
-  '@api/collections/organizations/services/organizations.service',
-  () => ({
-    OrganizationsService: class {},
-  }),
-);
-vi.mock('@api/collections/posts/services/posts.service', () => ({
-  PostsService: class {},
-}));
-vi.mock('@api/shared/modules/prisma/prisma.service', () => ({
-  PrismaService: class {},
-}));
 vi.mock('@genfeedai/prisma', () => ({
   Prisma: {
     raw: (sql: string) => sql,

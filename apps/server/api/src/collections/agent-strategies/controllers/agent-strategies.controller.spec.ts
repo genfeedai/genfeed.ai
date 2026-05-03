@@ -69,9 +69,15 @@ describe('AgentStrategiesController', () => {
         id: 'user-123',
         publicMetadata: { organization: '507f191e810c19729de860ee'.toString() },
       } as never;
-      const query = { isDeleted: false } as never;
-      const query = controller.buildFindAllQuery(user, query);
-      expect(query).toBeInstanceOf(Array);
+      const inputQuery = { isDeleted: false } as never;
+      const query = controller.buildFindAllQuery(user, inputQuery);
+      expect(query).toMatchObject({
+        orderBy: expect.any(Object),
+        where: expect.objectContaining({
+          isDeleted: false,
+          organization: expect.any(String),
+        }),
+      });
     });
 
     it('should include match with organization from user metadata', () => {
@@ -80,10 +86,9 @@ describe('AgentStrategiesController', () => {
         id: 'user-123',
         publicMetadata: { organization: orgId },
       } as never;
-      const query = { isDeleted: false } as never;
-      const query = controller.buildFindAllQuery(user, query);
-      const matchStage = query[0] as { match: Record<string, unknown> };
-      expect(matchStage.match.organization).toEqual(orgId);
+      const inputQuery = { isDeleted: false } as never;
+      const query = controller.buildFindAllQuery(user, inputQuery);
+      expect(query.where.organization).toEqual(orgId);
     });
 
     it('should filter by platform when provided', () => {
@@ -91,10 +96,9 @@ describe('AgentStrategiesController', () => {
         id: 'user-123',
         publicMetadata: { organization: '507f191e810c19729de860ee'.toString() },
       } as never;
-      const query = { isDeleted: false, platform: 'instagram' } as never;
-      const query = controller.buildFindAllQuery(user, query);
-      const matchStage = query[0] as { match: Record<string, unknown> };
-      expect(matchStage.match.platforms).toBe('instagram');
+      const inputQuery = { isDeleted: false, platform: 'instagram' } as never;
+      const query = controller.buildFindAllQuery(user, inputQuery);
+      expect(query.where.platforms).toBe('instagram');
     });
 
     it('should include orderBy stage', () => {
@@ -102,10 +106,9 @@ describe('AgentStrategiesController', () => {
         id: 'user-123',
         publicMetadata: { organization: '507f191e810c19729de860ee'.toString() },
       } as never;
-      const query = { isDeleted: false } as never;
-      const query = controller.buildFindAllQuery(user, query);
-      expect(query.length).toBeGreaterThanOrEqual(2);
-      expect(query[1]).toHaveProperty('orderBy');
+      const inputQuery = { isDeleted: false } as never;
+      const query = controller.buildFindAllQuery(user, inputQuery);
+      expect(query).toHaveProperty('orderBy');
     });
   });
 
@@ -126,7 +129,7 @@ describe('AgentStrategiesController', () => {
         publicMetadata: { organization: '507f191e810c19729de860ee'.toString() },
       } as never;
       const entity = {
-        organization: '507f191e810c19729de860ee',
+        organization: '607f191e810c19729de860ff',
       } as never;
       expect(controller.canUserModifyEntity(user, entity)).toBe(false);
     });

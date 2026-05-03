@@ -72,3 +72,5 @@ export class ContentqueryProcessor extends WorkerHost {
     }
   }
 }
+
+export { ContentqueryProcessor as ContentPipelineProcessor };

@@ -8,11 +8,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
-vi.mock('@genfeedai/helpers', async () => ({
-  ...(await vi.importActual('@genfeedai/helpers')),
-  getDeserializer: vi.fn((dto) => Promise.resolve(dto)),
-}));
-
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnNotFound: vi.fn((type, id) => ({
     errors: [
@@ -94,11 +89,20 @@ describe('ElementsStylesController', () => {
 
   describe('buildFindAllQuery', () => {
     it('should build query with organization filter', () => {
-      const query = {};
-      const query = controller.buildFindAllQuery(mockUser, query);
+      const inputQuery = {};
+      const query = controller.buildFindAllQuery(mockUser, inputQuery);
 
       expect(query).toBeDefined();
-      expect(Array.isArray(query)).toBe(true);
+      expect(query).toMatchObject({
+        where: expect.objectContaining({
+          isDeleted: false,
+          OR: expect.arrayContaining([
+            expect.objectContaining({
+              organization: expect.any(String),
+            }),
+          ]),
+        }),
+      });
     });
 
     it('should load defaults when no organization', () => {
@@ -108,8 +112,8 @@ describe('ElementsStylesController', () => {
         },
       } as unknown as User;
 
-      const query = {};
-      const query = controller.buildFindAllQuery(userWithoutOrg, query);
+      const inputQuery = {};
+      const query = controller.buildFindAllQuery(userWithoutOrg, inputQuery);
 
       expect(query).toBeDefined();
     });

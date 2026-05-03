@@ -149,7 +149,7 @@ export class ContentOrchestrationController {
    * Check pipeline job status.
    */
   @Get('status')
-  async getqueryStatus(
+  async getPipelineStatus(
     @Param('personaId') personaId: string,
     @Req() req: { organization: { id: string } },
   ) {
@@ -159,5 +159,12 @@ export class ContentOrchestrationController {
     );
 
     return { jobs, personaId };
+  }
+
+  async getqueryStatus(
+    personaId: string,
+    req: { organization: { id: string } },
+  ) {
+    return this.getPipelineStatus(personaId, req);
   }
 }

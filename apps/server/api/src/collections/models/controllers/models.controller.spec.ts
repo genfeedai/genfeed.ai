@@ -3,7 +3,7 @@ import type { CreateModelDto } from '@api/collections/models/dto/create-model.dt
 import type { ModelsQueryDto } from '@api/collections/models/dto/models-query.dto';
 import type { UpdateModelDto } from '@api/collections/models/dto/update-model.dto';
 import { ModelsService } from '@api/collections/models/services/models.service';
-import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
+import type { IRequestContext } from '@api/common/interfaces/request-context.interface';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import type { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
 import type { User } from '@clerk/backend';
@@ -13,10 +13,25 @@ import { HttpException } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { Test, type TestingModule } from '@nestjs/testing';
 
-vi.mock('@genfeedai/helpers', async () => ({
-  ...(await vi.importActual('@genfeedai/helpers')),
-  getDeserializer: vi.fn((dto) => Promise.resolve(dto)),
+vi.mock('@api/helpers/utils/error-response/error-response.util', () => ({
+  ErrorResponse: {
+    handle: vi.fn((error: unknown) => {
+      throw error;
+    }),
+    notFound: vi.fn((type: string, id: string) => {
+      throw new HttpException(`${type} ${id} not found`, 404);
+    }),
+    validationFailed: vi.fn((errors: unknown[]) => {
+      throw new HttpException({ errors }, 400);
+    }),
+  },
 }));
+
+type RequestWithContext = {
+  context?: IRequestContext;
+  originalUrl: string;
+  query: Record<string, unknown>;
+};
 
 vi.mock('@helpers/utils/response/response.util', () => ({
   returnNotFound: vi.fn((type, id) => ({
@@ -192,16 +207,12 @@ describe('ModelsController', () => {
 
       const result = controller.buildFindAllQuery(mockRegularUser, query);
 
-      expect(result).toEqual([
-        {
-          match: {
-            isDeleted: false,
-          },
+      expect(result).toEqual({
+        orderBy: { createdAt: -1, key: 1, label: 1, type: 1 },
+        where: {
+          isDeleted: false,
         },
-        {
-          orderBy: { createdAt: -1, key: 1, label: 1, type: 1 },
-        },
-      ]);
+      });
     });
 
     it('should build query with custom sort', () => {
@@ -212,13 +223,12 @@ describe('ModelsController', () => {
 
       const result = controller.buildFindAllQuery(mockRegularUser, query);
 
-      expect(result).toHaveLength(2);
-      expect(result[0]).toEqual({
-        match: {
+      expect(result).toMatchObject({
+        orderBy: expect.any(Object),
+        where: {
           isDeleted: true,
         },
       });
-      expect(result[1].orderBy).toBeDefined();
     });
   });
 
@@ -288,15 +298,9 @@ describe('ModelsController', () => {
 
       const queryArg = modelsService.findAll.mock.calls[0][0];
 
-      // Last stage must be the org filter match
-      const lastStage = queryArg[queryArg.length - 1];
-      expect(lastStage).toEqual({
-        match: {
-          OR: [
-            { organization: null },
-            { organization: { not: false } },
-            { organization: mockOrgId },
-          ],
+      expect(queryArg).toMatchObject({
+        where: {
+          OR: [{ organization: null }, { organization: mockOrgId }],
         },
       });
     });
@@ -323,13 +327,9 @@ describe('ModelsController', () => {
 
       const queryArg = modelsService.findAll.mock.calls[0][0];
 
-      // No stage should contain OR with organization filter
-      const hasOrgMatchStage = queryArg.some(
-        (stage: Record<string, unknown>) =>
-          stage.match &&
-          (stage.match as Record<string, unknown>).OR !== undefined,
-      );
-      expect(hasOrgMatchStage).toBe(false);
+      expect(
+        (queryArg as { where: Record<string, unknown> }).where.OR,
+      ).toBeUndefined();
     });
 
     it('should filter foreign org models even when enabledModels is present', async () => {
@@ -364,22 +364,14 @@ describe('ModelsController', () => {
 
       const queryArg = modelsService.findAll.mock.calls[0][0];
 
-      // Verify the org-scoped match is appended as the final stage
-      const lastStage = queryArg[queryArg.length - 1];
-      expect(lastStage).toEqual({
-        match: {
-          OR: [
-            { organization: null },
-            { organization: { not: false } },
-            { organization: mockOrgObjectId },
-          ],
+      expect(queryArg).toMatchObject({
+        where: {
+          OR: [{ organization: null }, { organization: mockOrgObjectId }],
         },
       });
 
-      // Verify the enabledModels match is also present (first stage)
-      const firstStage = queryArg[0];
-      expect(firstStage).toEqual({
-        match: {
+      expect(queryArg).toMatchObject({
+        where: {
           _id: { in: [enabledModelId] },
         },
       });

@@ -10,20 +10,21 @@ import { describe, expect, it } from 'vitest';
 
 describe('Aggregation Lookup Builders', () => {
   describe('ingredientLookup()', () => {
-    it('returns a pipeline stage with include', () => {
+    it('returns an include stage for ingredients by default', () => {
       const result = ingredientLookup();
-      expect(result).toBeDefined();
-      expect(Array.isArray(result)).toBe(true);
+      expect(result).toEqual([{ include: { ingredients: true } }]);
     });
 
-    it('uses default fields when no options provided', () => {
-      const result = ingredientLookup();
-      expect(result).toBeTruthy();
+    it('uses custom alias', () => {
+      const result = ingredientLookup({ as: 'assets' });
+      expect(result).toEqual([{ include: { assets: true } }]);
     });
 
-    it('accepts custom localField option', () => {
-      const result = ingredientLookup({ localField: 'customField' });
-      expect(result).toBeDefined();
+    it('marks include as required when preserveNull is false', () => {
+      const result = ingredientLookup({ preserveNull: false });
+      expect(result).toEqual([
+        { include: { ingredients: true }, required: true },
+      ]);
     });
 
     it('returns fresh object each call (no shared references)', () => {
@@ -62,9 +63,9 @@ describe('Aggregation Lookup Builders', () => {
       expect(Array.isArray(result)).toBe(true);
     });
 
-    it('accepts custom as option', () => {
+    it('accepts custom alias', () => {
       const result = userLookup({ as: 'createdBy' });
-      expect(Array.isArray(result)).toBe(true);
+      expect(result).toEqual([{ include: { createdBy: true } }]);
     });
   });
 

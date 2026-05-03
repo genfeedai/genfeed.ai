@@ -77,23 +77,23 @@ describe('PresetsController', () => {
 
   describe('buildFindAllQuery', () => {
     it('should build query with organization filter', () => {
-      const query = { category: 'video' };
-      const query = controller.buildFindAllQuery(mockUser, query, false);
+      const inputQuery = { category: 'video' };
+      const query = controller.buildFindAllQuery(mockUser, inputQuery, false);
 
       expect(query).toBeDefined();
-      expect(Array.isArray(query)).toBe(true);
+      expect(Array.isArray(query)).toBe(false);
     });
 
     it('should filter by category', () => {
-      const query = { category: 'image' };
-      const query = controller.buildFindAllQuery(mockUser, query, false);
+      const inputQuery = { category: 'image' };
+      const query = controller.buildFindAllQuery(mockUser, inputQuery, false);
 
       expect(query).toBeDefined();
     });
 
     it('should filter by active status', () => {
-      const query = { isActive: true };
-      const query = controller.buildFindAllQuery(mockUser, query, false);
+      const inputQuery = { isActive: true };
+      const query = controller.buildFindAllQuery(mockUser, inputQuery, false);
 
       expect(query).toBeDefined();
     });

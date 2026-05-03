@@ -66,13 +66,17 @@ describe('BaseFilterUtil', () => {
       expect(result).toEqual({});
     });
 
-    it('builds OR query for search term', () => {
+    it('builds OR filter for search term', () => {
       const result = BaseFilterUtil.buildSearchFilter('test', [
         'label',
         'description',
       ]);
-      expect(result).toHaveProperty('OR');
-      expect((result as { OR: unknown[] }).OR).toHaveLength(2);
+      expect(result).toEqual({
+        OR: [
+          { label: { contains: 'test', mode: 'insensitive' } },
+          { description: { contains: 'test', mode: 'insensitive' } },
+        ],
+      });
     });
   });
 });
