@@ -28,6 +28,27 @@ The important v1 fact is that analytics is not a single file or a dead stub. The
 
 That split is primarily why `#160` remains open: the v1 story needs the surface documented before deeper OSS/EE extraction work.
 
+## OSS vs EE Ownership Boundary
+
+For v1, analytics is owned by Core when it is required to complete the self-hosted content loop. Enterprise owns analytics when the feature depends on multi-tenant governance, agency/team operations, or commercial billing controls.
+
+| Analytics surface                             | V1 owner                  | Stabilization decision                                                                                                                                              |
+| --------------------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Provider metric ingestion for published posts | Core (OSS)                | Keep in `apps/server/api/src/collections/posts`. Self-hosted users need a working publish -> analytics feedback path with their own provider credentials.           |
+| Publication-level analytics summary           | Core (OSS)                | Keep `PostAnalyticsService.getPostAnalyticsSummary` and the posts analytics controller in Core because they verify whether published content performed.             |
+| Content-performance weekly summaries          | Core (OSS)                | Keep `PerformanceSummaryService` in Core for top/worst content, platform summaries, posting-time analysis, top hooks, and week-over-week feedback.                  |
+| Closed-loop performance sync                  | Core (OSS), EE-extendable | Keep `AnalyticsSyncService` in Core so analytics can feed optimization and brand memory. EE may add tenant-aware scheduling, retention policy, or governance hooks. |
+| Business/operator revenue analytics           | Core for current v1       | Keep the existing business analytics response stable for v1. Revisit extraction only after Cloud/EE billing ownership is clearer.                                   |
+| Multi-tenant analytics governance             | Enterprise (`ee/`)        | Tenant isolation, cross-client agency reporting, audit controls, SSO/team-scoped permissions, and commercial reporting belong under `ee/`.                          |
+| Billing, quota, and contract reporting        | Enterprise / Cloud        | Commercial billing analytics can consume Core events, but the reporting and entitlement logic should not move into the OSS content loop.                            |
+
+## Extraction Decisions
+
+- Do not extract `postAnalytics`, post analytics controllers, `PerformanceSummaryService`, or `AnalyticsSyncService` out of Core for v1.
+- Do not block OSS v1 on a perfect analytics package split; stabilize the existing Core services with smoke paths and docs first.
+- Do not move tenant-isolation policy into Core analytics as a hidden requirement. Core remains self-hosted single-tenant by default; EE can wrap or extend the same data flow with organization-level controls.
+- Treat the current business analytics module as a compatibility surface for v1. If Cloud billing analytics diverges later, extract commercial reporting behind an EE/Cloud boundary instead of weakening Core analytics.
+
 ## Stable Analytics Ingestion Pipeline
 
 The v1 ingestion path starts from published content that has a provider `externalId` and a connected credential:

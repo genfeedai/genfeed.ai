@@ -41,4 +41,5 @@ Provider calls should persist the execution source so users can distinguish BYOK
 - Auth bootstrap: keep local identity and the implicit single organization authoritative for Core.
 - OSS onboarding: represent `server`, `byok`, and `cloud` access modes truthfully.
 - Managed inference: require an explicit Cloud API key and Cloud-credit authorization.
-- Analytics, scheduling, publishing, and collaboration: keep Cloud/enterprise boundaries explicit.
+- Analytics: Core v1 owns the self-hosted publish -> post analytics -> content-performance loop documented in `apps/docs/content/core-loop/analytics-backbone.mdx`; multi-tenant reporting, billing analytics, and governance remain Cloud/enterprise boundaries.
+- Scheduling, publishing governance, and collaboration: keep Cloud/enterprise boundaries explicit.

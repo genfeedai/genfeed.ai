@@ -87,4 +87,4 @@ Implementation work that touches this boundary should align to these contracts:
 - Auth bootstrap should preserve a local single-tenant source of truth for Core.
 - OSS onboarding should surface `server`, `byok`, and `cloud` access modes truthfully.
 - Managed inference should require an explicit Cloud API key and charge Cloud credits before provider execution.
-- Analytics, scheduling, publishing, and team features should remain Cloud/enterprise surfaces unless a Core implementation is documented separately.
+- Analytics surfaces documented under [Analytics Backbone](/core-loop/analytics-backbone) are Core v1 surfaces; multi-tenant reporting, billing analytics, scheduling governance, publishing governance, and team features remain Cloud/enterprise surfaces unless documented separately.
