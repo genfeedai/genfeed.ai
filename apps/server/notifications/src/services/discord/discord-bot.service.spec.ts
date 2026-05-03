@@ -410,6 +410,9 @@ describe('DiscordBotService', () => {
       });
 
       mockClient.channels.fetch.mockResolvedValue(mockChannel);
+      await service.onModuleInit();
+      const readyCallback = mockClient.once.mock.calls[0][1];
+      readyCallback();
 
       await service.getPostsWebhook();
 
