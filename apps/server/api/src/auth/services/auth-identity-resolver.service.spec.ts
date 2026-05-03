@@ -124,6 +124,51 @@ describe('AuthIdentityResolverService', () => {
     );
   });
 
+  it('repairs stale organization metadata when the user cannot access that organization', async () => {
+    usersService.findOne.mockResolvedValueOnce({
+      _id: 'user_current',
+    });
+    membersService.find.mockResolvedValue([]);
+    organizationsService.findOne
+      .mockResolvedValueOnce({
+        _id: 'org_stale',
+        userId: 'different_user',
+      })
+      .mockResolvedValueOnce({
+        _id: 'org_owner',
+        user: 'user_current',
+      });
+    brandsService.findOne.mockResolvedValueOnce({
+      _id: 'brand_owner',
+    });
+    clerkService.updateUserPublicMetadata.mockResolvedValue(undefined);
+
+    const result = await service.resolve({
+      id: 'user_clerk_3',
+      publicMetadata: {
+        brand: 'brand_stale',
+        organization: 'org_stale',
+        user: 'user_current',
+      },
+    } as never);
+
+    expect(result).toEqual({
+      brandId: 'brand_owner',
+      clerkUserId: 'user_clerk_3',
+      organizationId: 'org_owner',
+      resolvedBy: 'metadata',
+      userId: 'user_current',
+    });
+    expect(clerkService.updateUserPublicMetadata).toHaveBeenCalledWith(
+      'user_clerk_3',
+      {
+        brand: 'brand_owner',
+        organization: 'org_owner',
+        user: 'user_current',
+      },
+    );
+  });
+
   it('throws when lookup cannot resolve current user id', async () => {
     usersService.findOne.mockResolvedValue(null);
 
