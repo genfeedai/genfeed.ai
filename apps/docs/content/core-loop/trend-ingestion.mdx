@@ -31,6 +31,36 @@ The stable v1 shape is:
 5. The fetched trend set is enriched with source previews and then synced into the reference corpus.
 6. The trend-content cache is invalidated so downstream readers see the new ingestion result.
 
+## Write Contract
+
+The expected Core v1 write contract into `collections/trends` is:
+
+| Write class            | Owner                                                                         | Expected write                                                                                                                   |
+| ---------------------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Provider ingestion     | `TrendFetchService.fetchAndCacheTrends`                                       | `prisma.trend.create` writes one current trend document per provider trend payload.                                              |
+| Source-preview hydrate | `TrendsService.persistTrendSourcePreview`                                     | `prisma.trend.update` only updates `data.metadata.sourcePreviewCache`, `data.metadata.sourcePreviewCachedAt`, and preview state. |
+| Historical transition  | `TrendAnalysisService.markExpiredTrendsAsHistorical`                          | `prisma.trend.updateMany` marks expired current trend documents historical without deleting them.                                |
+| Manual refresh         | `TrendsService.refreshTrends` -> `TrendAnalysisService` + `TrendFetchService` | Existing current rows are marked historical before fresh provider payloads are created.                                          |
+
+Provider-ingested trend documents must include:
+
+- `organizationId` and `brandId`, or `null`/`null` for global cacheable trend documents
+- `platform`, `topic`, `mentions`, `growthRate`, and `metadata`
+- calculated `viralityScore`
+- `requiresAuth` derived from whether the request is tenant-scoped
+- `isCurrent: true`
+- `expiresAt` using the shorter personalized TTL for tenant-scoped trends and the longer global TTL for global trends
+
+## Audit Result
+
+Representative write paths are consistent with that contract:
+
+- `TrendFetchService.fetchAndCacheTrends` is the only provider-ingestion path that creates `Trend` records during Step 1.
+- `TrendsService.fetchAndHydrateTrends` does not create its own trend rows; it delegates creation to `TrendFetchService`, then enriches the saved rows.
+- `TrendAnalysisService` owns state-transition writes that mark current/expired trends historical.
+- `TrendVideoService` historical writes apply to the `TrendingVideo`, `TrendingHashtag`, and `TrendingSound` collections, not the primary `Trend` documents.
+- `TwitterPipelineService` participates in trend-driven workflow behavior, but it does not own `collections/trends` writes.
+
 ## Dataflow
 
 ```mermaid
