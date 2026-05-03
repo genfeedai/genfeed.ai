@@ -87,6 +87,27 @@ By default, generated assets are stored locally. For production, configure S3-co
 
 ---
 
+## Discord Notifications
+
+Discord is optional in Core. Configure it only when the notifications service should publish to your own Discord server.
+
+| Variable                      | Required | Default | Description                                                                    |
+| ----------------------------- | -------- | ------- | ------------------------------------------------------------------------------ |
+| `DISCORD_BOT_TOKEN`           | Yes      | --      | Bot token for the Discord application installed in your server                 |
+| `DISCORD_CLIENT_ID`           | Yes      | --      | Discord application client ID                                                  |
+| `DISCORD_GUILD_ID`            | Yes      | --      | Discord server ID where the bot manages notification webhooks                  |
+| `DISCORD_CHANNEL_ID_POSTS`    | No       | --      | Channel ID for published post/article notifications                            |
+| `DISCORD_CHANNEL_ID_STUDIO`   | No       | --      | Channel ID for studio/ingredient notifications                                 |
+| `DISCORD_CHANNEL_ID_USERS`    | No       | --      | Channel ID for user/account notifications                                      |
+| `DISCORD_CHANNEL_ID_MODELS`   | No       | --      | Channel ID for model discovery notifications; falls back to the studio channel |
+| `DISCORD_BOT_AVATAR_URL`      | No       | --      | Optional avatar URL for Discord webhook messages                               |
+| `DISCORD_WEBHOOK_NAME_PREFIX` | No       | --      | Optional prefix for bot-managed webhook names, such as a workspace name        |
+| `DISCORD_WEBHOOK_REASON`      | No       | --      | Optional audit-log reason used when the bot creates Discord webhooks           |
+
+The integration does not require a Genfeed-managed Discord server. Channel IDs, webhook naming, avatar branding, and webhook audit reasons are self-hosted configuration.
+
+---
+
 ## Payments (Cloud only)
 
 | Variable                | Required   | Default | Description                                                  |
