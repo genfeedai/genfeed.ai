@@ -20,6 +20,52 @@ The current repo has a real Step 1 ingestion path, not a placeholder:
 - [`apps/server/api/src/services/twitter-pipeline/twitter-pipeline.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/services/twitter-pipeline/twitter-pipeline.service.ts)
   - provides a focused Twitter-specific search -> draft -> publish path used by the broader trend workflow
 
+## Module Wiring
+
+`TrendsModule` is the Step 1 ownership boundary. Its imports make the hidden runtime coupling explicit:
+
+| Module dependency                                  | Why it is wired into Step 1                                                                                   |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `ApifyModule`                                      | Cross-platform public trend fetchers for TikTok, Instagram, Twitter fallback, YouTube, Reddit, and Pinterest. |
+| `XaiModule`                                        | Grok-backed Twitter trend discovery before Apify fallback.                                                    |
+| `LinkedInModule`                                   | LinkedIn trend discovery.                                                                                     |
+| `CacheModule`                                      | Global trend fetch caching and trend-content cache invalidation.                                              |
+| `CredentialsModule`                                | Connected-platform checks and access-control metadata.                                                        |
+| `BrandsModule`                                     | Brand-aware trend filtering when tenant/brand context is present.                                             |
+| `ModelsModule`                                     | Model metadata used by trend content-idea generation paths.                                                   |
+| `ReplicateModule`                                  | Media/model support for trend content-idea workflows.                                                         |
+| `ByokModule`                                       | Provider access resolution for generation-adjacent trend workflows.                                           |
+| `CreditsModule`                                    | Credit guard/interceptor support around trend-powered AI operations.                                          |
+| `InstagramModule`, `TiktokModule`, `TwitterModule` | Platform service access for trend and source-preview paths.                                                   |
+
+`TrendsModule` exports only:
+
+- `TrendsService`
+- `TrendPreferencesService`
+- `TrendReferenceCorpusService`
+
+Downstream modules should consume those exports instead of reaching into `TrendFetchService`, `TrendFilteringService`, or `TrendAnalysisService` directly. Those module-internal services are the implementation of Step 1, not public cross-module APIs.
+
+The app-level v1 wiring is:
+
+```mermaid
+flowchart LR
+  A["AppModule"] --> B["TrendsModule"]
+  A --> C["TwitterPipelineModule"]
+  B --> D["TrendsController"]
+  B --> E["TrendsService"]
+  E --> F["TrendFetchService"]
+  E --> G["TrendFilteringService"]
+  E --> H["TrendReferenceCorpusService"]
+  F --> I["Provider modules\nApify / Xai / LinkedIn"]
+  E --> J["WorkflowExecutorModule\ntrend inspiration"]
+  E --> K["AgentCampaignOrchestratorModule\ntrend triggers"]
+  E --> L["SkillExecutorModule\ntrend discovery tool"]
+  C --> M["Twitter-specific search -> draft -> publish path"]
+```
+
+`TwitterPipelineModule` is adjacent to the Step 1 ingestion module, not the owner of `collections/trends` persistence. It can use trend signals for a Twitter workflow, but primary trend document writes remain inside `TrendsModule`.
+
 ## Write Path Into `collections/trends`
 
 The stable v1 shape is:
