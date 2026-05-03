@@ -6,6 +6,7 @@ import type { TopbarProps } from '@props/navigation/topbar.props';
 import { Button } from '@ui/primitives/button';
 import { AppSwitcher } from '@ui/shell/app-switcher/AppSwitcher';
 import TopbarBreadcrumbs from '@ui/topbars/breadcrumbs/TopbarBreadcrumbs';
+import TopbarCreditsBar from '@ui/topbars/credits-bar/TopbarCreditsBar';
 import TopbarEnd from '@ui/topbars/end/TopbarEnd';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -112,6 +113,8 @@ export default function AppProtectedTopbar({
           ) : null}
 
           <CloudSyncIndicator />
+
+          <TopbarCreditsBar />
 
           <TopbarEnd />
         </div>

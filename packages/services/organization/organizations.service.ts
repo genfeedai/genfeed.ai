@@ -440,6 +440,7 @@ export class OrganizationsService extends BaseService<Organization> {
       apiKey,
       apiSecret,
     });
+    this.dispatchTopbarBalanceRefresh();
   }
 
   public async removeByokProviderKey(
@@ -447,6 +448,15 @@ export class OrganizationsService extends BaseService<Organization> {
     provider: string,
   ): Promise<void> {
     await this.instance.delete(`/${orgId}/settings/byok/${provider}`);
+    this.dispatchTopbarBalanceRefresh();
+  }
+
+  private dispatchTopbarBalanceRefresh(): void {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    window.dispatchEvent(new CustomEvent('genfeed:topbar-balances:refresh'));
   }
 
   public async toggleModel(
