@@ -161,7 +161,7 @@ function buildLlmsIndex(): string {
   lines.push('# Genfeed.ai');
   lines.push('');
   lines.push(
-    '> AI-first content creation platform. Generate videos, images, voice, and articles at scale with 50+ AI models including Google Veo 3, Imagen 4, and OpenAI Sora 2. BYOK free tier or subscriptions from $499/month.',
+    '> AI-first content creation platform. Generate videos, images, voice, and articles at scale with 50+ AI models including Google Veo 3, Imagen 4, and OpenAI Sora 2. Self-host Core for free, or start Hosted from $8/month plus PAYG output.',
   );
   lines.push('');
 
@@ -197,13 +197,13 @@ function buildLlmsIndex(): string {
   lines.push('## Resources');
   lines.push('');
   lines.push(
-    `- [Pricing](${BASE_URL}/pricing): Output-based pricing — BYOK (free), Pro ($499/mo), Scale ($1,499/mo), Enterprise ($4,999/mo)`,
+    `- [Pricing](${BASE_URL}/pricing): Core (free self-hosted), Hosted ($8/mo + PAYG output), Cloud Teams (from $499/mo), Enterprise (custom)`,
   );
   lines.push(
     `- [FAQ](${BASE_URL}/faq): Frequently asked questions about the platform`,
   );
   lines.push(
-    '- [Open Source Core](https://github.com/genfeedai/core): Self-host Genfeed with your own AI keys',
+    '- [Open Source Core](https://github.com/genfeedai/genfeed.ai): Self-host Genfeed with your own AI keys',
   );
   lines.push(
     '- [Documentation](https://docs.genfeed.ai): API references, integration guides, and tutorials',
@@ -237,7 +237,7 @@ function buildLlmsFull(): string {
   s.push('# Genfeed.ai');
   s.push('');
   s.push(
-    '> AI-first content creation platform. Generate videos, images, voice, and articles at scale with 50+ AI models including Google Veo 3, Imagen 4, and OpenAI Sora 2. BYOK free tier or subscriptions from $499/month.',
+    '> AI-first content creation platform. Generate videos, images, voice, and articles at scale with 50+ AI models including Google Veo 3, Imagen 4, and OpenAI Sora 2. Self-host Core for free, or start Hosted from $8/month plus PAYG output.',
   );
   s.push('');
 
@@ -305,7 +305,7 @@ function buildLlmsFull(): string {
   s.push('## Pricing');
   s.push('');
   s.push(
-    'Genfeed uses output-based pricing. You pay for what you create — videos, images, and voice minutes. No confusing credits.',
+    'Genfeed separates platform access from output usage. Core is free to self-host with your own AI keys. Hosted starts at $8/month plus pay-as-you-go output. Cloud Teams is higher-entry B2B for collaboration, multi-org, and multi-brand use cases.',
   );
   s.push('');
 
@@ -315,7 +315,9 @@ function buildLlmsFull(): string {
         ? 'Free'
         : plan.price === null
           ? 'Contact Sales'
-          : `$${plan.price.toLocaleString()}/month`;
+          : plan.type === 'payg'
+            ? `$${plan.price.toLocaleString()}/month + PAYG output`
+            : `$${plan.price.toLocaleString()}/month`;
 
     s.push(`### ${plan.label} — ${priceStr}`);
     s.push('');
@@ -340,7 +342,7 @@ function buildLlmsFull(): string {
       s.push(`Monthly outputs: ${parts.join(', ')}`);
       s.push('');
     } else if (plan.type === 'enterprise') {
-      s.push('Monthly outputs: Unlimited');
+      s.push('Monthly outputs: Custom terms');
       s.push('');
     }
 
@@ -357,7 +359,7 @@ function buildLlmsFull(): string {
   s.push('## AI Models');
   s.push('');
   s.push(
-    'Genfeed integrates 50+ AI models across multiple categories. Models are auto-selected for best quality on Pro tier, or manually selectable on Scale and Enterprise.',
+    'Genfeed integrates 50+ AI models across multiple categories. Models are auto-selected for best quality on Hosted, with production model controls available through Cloud Teams and Enterprise scopes.',
   );
   s.push('');
 

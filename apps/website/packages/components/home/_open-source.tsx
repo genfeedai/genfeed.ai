@@ -14,10 +14,10 @@ import { HiCheckCircle, HiCodeBracket } from 'react-icons/hi2';
 const TERMINAL_COMMANDS = [
   { command: '# Clone the repo', isComment: true },
   {
-    command: 'git clone https://github.com/genfeedai/core.git',
+    command: 'git clone https://github.com/genfeedai/genfeed.ai.git',
     isComment: false,
   },
-  { command: 'cd core', isComment: false },
+  { command: 'cd genfeed.ai', isComment: false },
   { command: '# Install dependencies', isComment: true },
   { command: 'bun install', isComment: false },
   { command: '# Start development servers', isComment: true },

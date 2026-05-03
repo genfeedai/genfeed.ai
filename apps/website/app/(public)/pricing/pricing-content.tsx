@@ -31,12 +31,12 @@ const CALENDLY_URL =
 // Tier numbering and short labels for the Neural Noir aesthetic
 const tierMeta: Record<string, { number: string; shortLabel: string }> = {
   Enterprise: { number: '03', shortLabel: 'Studio' },
-  Pro: { number: '01', shortLabel: 'Agency' },
-  Scale: { number: '02', shortLabel: 'Scale' },
+  'Cloud Teams': { number: '02', shortLabel: 'B2B Cloud' },
+  Hosted: { number: '01', shortLabel: 'Managed' },
   'Self-Hosted': { number: '00', shortLabel: 'Deploy' },
 };
 
-const FEATURED_TIER = 'Scale';
+const FEATURED_TIER = 'Cloud Teams';
 
 export default function PricingContent() {
   const containerRef = useMarketingEntrance();
@@ -56,7 +56,7 @@ export default function PricingContent() {
         description={
           isPreLaunch
             ? 'Private beta — work directly with our team or get managed access.'
-            : 'Self-host for free or choose a managed cloud plan. No hidden fees.'
+            : 'Self-host for free, start hosted for $8/mo plus PAYG output, or use Cloud for B2B collaboration.'
         }
       >
         {/* ── Plans Grid ── */}
@@ -108,23 +108,23 @@ export default function PricingContent() {
                 : [
                     {
                       answer:
-                        'Genfeed uses output-based pricing. You pay for what you create — videos, images, and voice minutes. Quotas reset monthly on your billing date.',
+                        'Genfeed separates platform access from output usage. Self-host Core for free with your own keys, use Hosted for $8/mo plus pay-as-you-go output, or use Cloud when you need team, organization, and brand collaboration.',
                       question: 'How does pricing work?',
                     },
                     {
                       answer:
-                        'Yes — self-host the platform on your own infrastructure for free. You bring your own AI keys and manage the deployment. Cloud plans start at $499/mo with everything managed for you.',
+                        'Yes — self-host Core on your own infrastructure for free. You bring your own AI keys and manage the deployment. Hosted starts at $8/mo plus PAYG output when you want Genfeed managed for you.',
                       question: 'Is there a free option?',
                     },
                     {
                       answer:
-                        'Cloud plans include premium AI models that are auto-selected for best quality — GPT-4, Claude, Runway, ElevenLabs, and more. You never have to choose or configure models.',
+                        'Hosted and Cloud use premium AI models that are auto-selected for best quality. You do not need to choose or configure models to start generating.',
                       question: 'What AI models are included?',
                     },
                     {
                       answer:
-                        'When you reach your monthly quota, generation pauses until your next billing cycle. You can upgrade to a higher plan anytime for more capacity.',
-                      question: 'What happens when I hit my limit?',
+                        'There are no bundled output quotas on the entry hosted plan. You pay for the videos, images, and voice output you create.',
+                      question: 'What happens when I create more?',
                     },
                     {
                       answer:
@@ -133,8 +133,8 @@ export default function PricingContent() {
                     },
                     {
                       answer:
-                        'Unlimited video, images, and voice generation. Plus SSO, dedicated account manager, SLA, full API access, white-label branding, and custom domains.',
-                      question: "What's included in Enterprise?",
+                        'Cloud is the B2B layer for collaboration: teams, roles, multi-org accounts, multi-brand workflows, shared approvals, managed billing, and priority support.',
+                      question: "What's included in Cloud?",
                     },
                   ]
             }
@@ -174,7 +174,7 @@ export default function PricingContent() {
           <CtaSection
             bg="subtle"
             title="Ready to Get Started?"
-            description="Start creating content in minutes with a managed cloud plan, or deploy on your own infrastructure."
+            description="Deploy Core yourself, start Hosted with PAYG output, or use Cloud when collaboration becomes the product requirement."
           >
             <Button size={ButtonSize.PUBLIC} asChild>
               <a
@@ -333,7 +333,7 @@ function SaaSPlans() {
     <WebSection maxWidth="full">
       <SectionHeader
         title="Plans"
-        description="Output-based pricing. Pay for what you create — videos, images, and voice minutes."
+        description="Core is free to self-host. Hosted starts at $8/mo plus PAYG output. Cloud is for B2B collaboration."
         className="[&_h2]:text-5xl mb-4"
       />
       <NeuralGrid columns={4}>
@@ -342,6 +342,18 @@ function SaaSPlans() {
           const isPopular = plan.label === FEATURED_TIER;
           const isSelfHosted = plan.type === 'byok';
           const isEnterprise = plan.type === 'enterprise';
+          const billingDisplay =
+            plan.type === 'payg'
+              ? {
+                  subtitle: 'Videos, images, and voice',
+                  title: 'PAYG output',
+                }
+              : plan.label === 'Cloud Teams'
+                ? {
+                    subtitle: 'Multi-org and multi-brand',
+                    title: 'B2B cloud',
+                  }
+                : null;
           const priceDisplay = isEnterprise
             ? 'Custom'
             : formatPrice(plan.price);
@@ -401,7 +413,7 @@ function SaaSPlans() {
                       isPopular ? 'text-inv-fg/40' : 'text-surface/40',
                     )}
                   >
-                    /mo
+                    {plan.type === 'payg' ? '/mo + PAYG' : '/mo'}
                   </span>
                 ) : null}
               </div>
@@ -415,7 +427,31 @@ function SaaSPlans() {
                 {plan.description}
               </div>
 
-              {outputDisplay ? (
+              {billingDisplay ? (
+                <div
+                  className={cn(
+                    'py-6 border-y mb-8',
+                    isPopular ? 'border-inv-fg/10' : 'border-edge/5',
+                  )}
+                >
+                  <div
+                    className={cn(
+                      'text-2xl font-bold',
+                      isPopular && 'text-inv-fg',
+                    )}
+                  >
+                    {billingDisplay.title}
+                  </div>
+                  <div
+                    className={cn(
+                      'text-sm mt-1',
+                      isPopular ? 'text-inv-fg/40' : 'text-surface/40',
+                    )}
+                  >
+                    {billingDisplay.subtitle}
+                  </div>
+                </div>
+              ) : outputDisplay ? (
                 <div
                   className={cn(
                     'py-6 border-y mb-8',
@@ -466,7 +502,7 @@ function SaaSPlans() {
                       isPopular && 'text-inv-fg',
                     )}
                   >
-                    Unlimited
+                    Custom terms
                   </div>
                   <div
                     className={cn(
@@ -474,7 +510,7 @@ function SaaSPlans() {
                       isPopular ? 'text-inv-fg/40' : 'text-surface/40',
                     )}
                   >
-                    Videos, images, and voice
+                    Output, governance, and support
                   </div>
                 </div>
               ) : (
