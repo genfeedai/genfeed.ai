@@ -13,8 +13,11 @@ export interface ContentRunBrief {
 }
 
 export interface ContentRunVariant {
+  angle?: string;
   assetIds?: string[];
   content?: string;
+  format?: string;
+  hypothesis?: string;
   id: string;
   metadata: Record<string, unknown>;
   platform: string;

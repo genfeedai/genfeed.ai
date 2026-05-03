@@ -16,6 +16,15 @@ const PLATFORM_CHAR_LIMITS: Record<string, number> = {
   youtube: 5000,
 };
 
+type RemixPackVariantDefinition = {
+  angle: string;
+  content: string;
+  format: string;
+  hypothesis: string;
+  platform: string;
+  type: string;
+};
+
 @Injectable()
 export class TrendRemixHandler implements SkillHandler {
   constructor(
@@ -101,6 +110,12 @@ export class TrendRemixHandler implements SkillHandler {
           confidence: 0.78,
           content,
           metadata: {
+            remixPackVariants: this.buildRemixPackVariants(
+              trend.topic,
+              platform,
+              content,
+              params,
+            ),
             trendId: trend.id,
             trendTopic: trend.topic,
           },
@@ -129,6 +144,12 @@ export class TrendRemixHandler implements SkillHandler {
       confidence: 0.4,
       content: fallbackContent,
       metadata: {
+        remixPackVariants: this.buildRemixPackVariants(
+          trend.topic,
+          platform,
+          fallbackContent,
+          params,
+        ),
         trendId: trend.id,
         trendTopic: trend.topic,
       },
@@ -157,5 +178,70 @@ export class TrendRemixHandler implements SkillHandler {
     );
 
     return response.trends[0] ?? null;
+  }
+
+  private buildRemixPackVariants(
+    trendTopic: string,
+    platform: string | undefined,
+    primaryContent: string,
+    params: Record<string, unknown>,
+  ): RemixPackVariantDefinition[] {
+    const targetPlatform = platform ?? 'social';
+    const angle =
+      typeof params.angle === 'string' && params.angle.trim().length > 0
+        ? params.angle.trim()
+        : `Brand-fit take on ${trendTopic}`;
+    const hypothesis =
+      typeof params.hypothesis === 'string' &&
+      params.hypothesis.trim().length > 0
+        ? params.hypothesis.trim()
+        : `${trendTopic} can convert when reframed as a concrete operator takeaway.`;
+
+    return [
+      {
+        angle,
+        content: primaryContent,
+        format: 'post-thread',
+        hypothesis,
+        platform: targetPlatform,
+        type: 'text',
+      },
+      {
+        angle: `Visual proof point for ${trendTopic}`,
+        content: `Create a social image creative that visualizes: ${angle}`,
+        format: 'social-image-creative',
+        hypothesis:
+          'A visual proof point will make the trend easier to understand and share.',
+        platform: targetPlatform,
+        type: 'image',
+      },
+      {
+        angle: `Short-form hook for ${trendTopic}`,
+        content: `Script a 20-30 second short-form video opening with the strongest hook from: ${primaryContent}`,
+        format: 'short-form-video-script',
+        hypothesis:
+          'A fast hook plus one concrete example will outperform a generic trend recap.',
+        platform: targetPlatform,
+        type: 'video-script',
+      },
+      {
+        angle: `Long-form analysis of ${trendTopic}`,
+        content: `Outline an article or newsletter angle that expands this trend into a practical playbook: ${angle}`,
+        format: 'article-newsletter-angle',
+        hypothesis:
+          'A deeper breakdown will capture users who want implementation detail.',
+        platform: 'newsletter',
+        type: 'article',
+      },
+      {
+        angle: `Follow-up reply for ${trendTopic}`,
+        content: `Draft a reply or follow-up derivative that invites discussion around: ${primaryContent}`,
+        format: 'follow-up-reply',
+        hypothesis:
+          'A reply derivative will extend the original idea into a conversation loop.',
+        platform: targetPlatform,
+        type: 'reply',
+      },
+    ];
   }
 }
