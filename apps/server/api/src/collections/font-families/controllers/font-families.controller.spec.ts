@@ -146,11 +146,11 @@ describe('FontFamiliesController', () => {
 
   describe('buildFindAllQuery', () => {
     it('should build query with organization filter', () => {
-      const query = {};
-      const query = controller.buildFindAllQuery(mockUser, query, false);
+      const inputQuery = {};
+      const query = controller.buildFindAllQuery(mockUser, inputQuery, false);
 
       expect(query).toBeDefined();
-      expect(Array.isArray(query)).toBe(true);
+      expect(Array.isArray(query)).toBe(false);
     });
 
     it('should load defaults when no organization', () => {
@@ -160,8 +160,12 @@ describe('FontFamiliesController', () => {
         },
       } as unknown as User;
 
-      const query = {};
-      const query = controller.buildFindAllQuery(userWithoutOrg, query, false);
+      const inputQuery = {};
+      const query = controller.buildFindAllQuery(
+        userWithoutOrg,
+        inputQuery,
+        false,
+      );
 
       expect(query).toBeDefined();
     });

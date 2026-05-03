@@ -399,8 +399,8 @@ describe('BaseCRUDController', () => {
 
   describe('protected methods', () => {
     it('should build aggregation query correctly', () => {
-      const query = { search: 'test' } as unknown as BaseQueryDto;
-      const query = controller.buildFindAllQuery(mockUser, query);
+      const inputQuery = { search: 'test' } as unknown as BaseQueryDto;
+      const query = controller.buildFindAllQuery(mockUser, inputQuery);
 
       expect(query).toEqual([
         {
