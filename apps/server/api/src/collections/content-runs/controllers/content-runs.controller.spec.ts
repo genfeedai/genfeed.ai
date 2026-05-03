@@ -1,4 +1,5 @@
 import { ContentRunsController } from '@api/collections/content-runs/controllers/content-runs.controller';
+import { ContentRunRecommendationsService } from '@api/collections/content-runs/services/content-run-recommendations.service';
 import { ContentRunsService } from '@api/collections/content-runs/services/content-runs.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
@@ -25,6 +26,9 @@ describe('ContentRunsController', () => {
     getRunById: vi.fn(),
     listByBrand: vi.fn(),
   };
+  const mockRecommendationsService = {
+    analyzeRun: vi.fn(),
+  };
 
   const mockReq = { headers: {}, url: '/' } as unknown as Request;
   const mockUser = {} as User;
@@ -43,6 +47,10 @@ describe('ContentRunsController', () => {
         {
           provide: ContentRunsService,
           useValue: mockService,
+        },
+        {
+          provide: ContentRunRecommendationsService,
+          useValue: mockRecommendationsService,
         },
       ],
     })
@@ -205,6 +213,25 @@ describe('ContentRunsController', () => {
         'org-1',
         'brand-1',
         body,
+      );
+    });
+  });
+
+  describe('analyzeRunRecommendations', () => {
+    it('computes recommendations and returns the updated run', async () => {
+      mockRecommendationsService.analyzeRun.mockResolvedValue({
+        updatedRun: {
+          _id: 'run-1',
+          analyticsSummary: { winningVariantId: 'variant-a' },
+          recommendations: [{ metadata: {}, type: 'extend_winner_format' }],
+        },
+      });
+
+      await controller.analyzeRunRecommendations(mockReq, 'run-1', mockUser);
+
+      expect(mockRecommendationsService.analyzeRun).toHaveBeenCalledWith(
+        'org-1',
+        'run-1',
       );
     });
   });

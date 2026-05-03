@@ -1,4 +1,5 @@
 import { CreateContentRunBriefDto } from '@api/collections/content-runs/dto/create-content-run-brief.dto';
+import { ContentRunRecommendationsService } from '@api/collections/content-runs/services/content-run-recommendations.service';
 import { ContentRunsService } from '@api/collections/content-runs/services/content-runs.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
@@ -15,7 +16,10 @@ import type { Request } from 'express';
 
 @Controller()
 export class ContentRunsController {
-  constructor(private readonly contentRunsService: ContentRunsService) {}
+  constructor(
+    private readonly contentRunsService: ContentRunsService,
+    private readonly recommendationsService: ContentRunRecommendationsService,
+  ) {}
 
   @Get('brands/:brandId/content-runs')
   @ApiQuery({
@@ -72,5 +76,21 @@ export class ContentRunsController {
     const data = await this.contentRunsService.getRunById(organization, id);
 
     return serializeSingle(req, ContentRunSerializer, data);
+  }
+
+  @Post('content-runs/:id/recommendations')
+  async analyzeRunRecommendations(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+  ) {
+    const { organization } = getPublicMetadata(user);
+
+    const result = await this.recommendationsService.analyzeRun(
+      organization,
+      id,
+    );
+
+    return serializeSingle(req, ContentRunSerializer, result.updatedRun);
   }
 }
