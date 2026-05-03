@@ -19,6 +19,7 @@ if (!MONGODB_URI) {
   console.error('Error: MONGODB_URI environment variable is required');
   process.exit(1);
 }
+const mongodbUri = MONGODB_URI;
 
 const isDryRun = !process.argv.includes('--apply');
 
@@ -60,7 +61,7 @@ const SUCCESSION_MAP: Record<string, string> = {
 };
 
 async function main(): Promise<void> {
-  const client = new MongoClient(MONGODB_URI!);
+  const client = new MongoClient(mongodbUri);
 
   try {
     await client.connect();
