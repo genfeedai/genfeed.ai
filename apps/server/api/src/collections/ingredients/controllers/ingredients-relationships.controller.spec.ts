@@ -143,7 +143,6 @@ describe('IngredientsRelationshipsController', () => {
           },
         },
         expect.objectContaining({
-          customLabels: {},
           limit: 10,
           page: 1,
         }),

@@ -334,7 +334,7 @@ export class ContentExecutionService {
 
     if (pipelineResult.status === 'failed') {
       const errorMsg =
-        pipelineResult.steps[0]?.error?.message ?? 'query execution failed';
+        pipelineResult.steps[0]?.error?.message ?? 'Pipeline execution failed';
       throw new Error(errorMsg);
     }
 
