@@ -89,7 +89,12 @@ describe('SkillExecutorService', () => {
 
     const result = await service.execute('content-writing', baseContext, {
       audience: 'founders',
+      channelFit: 'X thread',
+      confidence: 0.72,
       hypothesis: 'founder pain wins',
+      risk: 'Avoid hype claims',
+      sourceReferenceId: 'source-ref-1',
+      sourceUrl: 'https://x.com/builderx/status/1',
       topic: 'AI strategy',
     });
 
@@ -99,7 +104,12 @@ describe('SkillExecutorService', () => {
       expect.objectContaining({
         brief: expect.objectContaining({
           audience: 'founders',
+          channelFit: 'X thread',
+          confidence: 0.72,
           hypothesis: 'founder pain wins',
+          risk: 'Avoid hype claims',
+          sourceId: 'source-ref-1',
+          sourceUrl: 'https://x.com/builderx/status/1',
         }),
         input: expect.objectContaining({
           audience: 'founders',

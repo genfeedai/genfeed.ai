@@ -1,3 +1,4 @@
+import { CreateContentRunBriefDto } from '@api/collections/content-runs/dto/create-content-run-brief.dto';
 import { ContentRunsService } from '@api/collections/content-runs/services/content-runs.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
@@ -8,7 +9,7 @@ import {
 import type { User } from '@clerk/backend';
 import { ContentRunStatus } from '@genfeedai/enums';
 import { ContentRunSerializer } from '@genfeedai/serializers';
-import { Controller, Get, Param, Query, Req } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Req } from '@nestjs/common';
 import { ApiQuery } from '@nestjs/swagger';
 import type { Request } from 'express';
 
@@ -40,6 +41,24 @@ export class ContentRunsController {
     );
 
     return serializeCollection(req, ContentRunSerializer, { docs });
+  }
+
+  @Post('brands/:brandId/content-runs/briefs')
+  async createBriefRun(
+    @Req() req: Request,
+    @Param('brandId') brandId: string,
+    @CurrentUser() user: User,
+    @Body() body: CreateContentRunBriefDto,
+  ) {
+    const { organization } = getPublicMetadata(user);
+
+    const data = await this.contentRunsService.createBriefRun(
+      organization,
+      brandId,
+      body,
+    );
+
+    return serializeSingle(req, ContentRunSerializer, data);
   }
 
   @Get('content-runs/:id')
