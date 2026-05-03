@@ -23,10 +23,44 @@ The important v1 fact is that analytics is not a single file or a dead stub. The
 
 - **Collection surface**: superadmin/business-style rollups backed by credit and ingredient data
 - **Endpoint surface**: dashboard-oriented aggregation and time-series work on the analytics connection
+- **Post analytics surface**: provider media metrics stored in `postAnalytics` and exposed to publication-level dashboards
+- **Content performance surface**: closed-loop sync from `postAnalytics` into `contentPerformance` for optimization and memory workflows
 
 That split is primarily why `#160` remains open: the v1 story needs the surface documented before deeper OSS/EE extraction work.
 
+## Stable Analytics Ingestion Pipeline
+
+The v1 ingestion path starts from published content that has a provider `externalId` and a connected credential:
+
+1. `PostsAnalyticsController.refreshAnalytics` refreshes one post through `POST /posts/:postId/refresh-analytics`.
+2. `PostsAnalyticsController.refreshAllAnalytics` refreshes all published posts for an organization through `POST /posts/analytics`.
+3. Both paths call `PostAnalyticsService.trackPostAnalytics`.
+4. `PostAnalyticsService` dispatches to the platform integration service for YouTube, TikTok, Instagram, Twitter, or Pinterest metrics.
+5. The returned provider metrics are upserted into `postAnalytics` by `(postId, platform, date)`.
+6. `PostAnalyticsService.getPostAnalyticsSummary` exposes the latest per-post dashboard summary.
+7. `PerformanceSummaryService` reads `postAnalytics` for weekly top/worst content, platform performance, posting times, top hooks, and week-over-week trend.
+8. `AnalyticsSyncService.syncAnalytics` copies `postAnalytics` rows into `contentPerformance` for the closed-loop optimization and brand-memory path.
+
+Current-day provider metrics are available immediately in the publication analytics summary. Content-performance summaries intentionally use complete historical windows, so current-day rows become eligible once they are no longer today's incomplete provider data.
+
 ## Dataflow
+
+```mermaid
+flowchart LR
+  A["Published post + credential"] --> B["PostsAnalyticsController\nsingle post or org refresh"]
+  B --> C["PostAnalyticsService.trackPostAnalytics"]
+  C --> D["Platform integration metrics\nYouTube / TikTok / Instagram / Twitter / Pinterest"]
+  D --> E["postAnalytics upsert\npostId + platform + date"]
+  E --> F["PostAnalyticsService.getPostAnalyticsSummary"]
+  E --> G["PerformanceSummaryService"]
+  E --> H["AnalyticsSyncService.syncAnalytics"]
+  H --> I["contentPerformance"]
+  F --> J["Publication analytics dashboard"]
+  G --> K["Content performance dashboard"]
+  I --> L["Optimization cycle + brand memory"]
+```
+
+The separate business analytics path aggregates monetization and usage data for operator-facing dashboards:
 
 ```mermaid
 flowchart LR
@@ -34,7 +68,7 @@ flowchart LR
   B --> C["Aggregate pipelines + daily series"]
   C --> D["Revenue / credits / ingredients / leaders"]
   D --> E["Controller serialization"]
-  E --> F["Dashboard-visible analytics response"]
+  E --> F["Business analytics dashboard response"]
 ```
 
 ## Representative V1 Smoke Path
