@@ -88,4 +88,12 @@ export class ContentRunsService extends HTTPBaseService {
 
     return deserializeResource<ContentRunRecord>(response.data);
   }
+
+  async analyzeRecommendations(runId: string): Promise<ContentRunRecord> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `/content-runs/${runId}/recommendations`,
+    );
+
+    return deserializeResource<ContentRunRecord>(response.data);
+  }
 }

@@ -1,8 +1,9 @@
 import { ContentRunsService } from '@services/content/content-runs.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { mockDeserializeResource, mockPost } = vi.hoisted(() => ({
+const { mockDeserializeResource, mockGet, mockPost } = vi.hoisted(() => ({
   mockDeserializeResource: vi.fn(),
+  mockGet: vi.fn(),
   mockPost: vi.fn(),
 }));
 
@@ -19,6 +20,7 @@ vi.mock('@services/core/environment.service', () => ({
 vi.mock('@services/core/interceptor.service', () => {
   class MockHTTPBaseService {
     protected instance = {
+      get: mockGet,
       post: mockPost,
     };
 
@@ -95,6 +97,57 @@ describe('ContentRunsService', () => {
         evidence: ['Source text'],
         sourceUrl: 'https://x.com/builderx/status/1',
       },
+    });
+  });
+
+  it('fetches a single content run by id', async () => {
+    mockGet.mockResolvedValue({
+      data: {
+        data: {
+          attributes: { status: 'completed' },
+          id: 'run-1',
+          type: 'content-runs',
+        },
+      },
+    });
+    mockDeserializeResource.mockReturnValue({
+      _id: 'run-1',
+      status: 'completed',
+    });
+
+    const service = new ContentRunsService('token');
+    const result = await service.findOne('run-1');
+
+    expect(mockGet).toHaveBeenCalledWith('/content-runs/run-1');
+    expect(result).toMatchObject({ _id: 'run-1', status: 'completed' });
+  });
+
+  it('requests run-level recommendation analysis', async () => {
+    mockPost.mockResolvedValue({
+      data: {
+        data: {
+          attributes: {
+            analyticsSummary: { winningVariantId: 'variant-a' },
+          },
+          id: 'run-1',
+          type: 'content-runs',
+        },
+      },
+    });
+    mockDeserializeResource.mockReturnValue({
+      _id: 'run-1',
+      analyticsSummary: { winningVariantId: 'variant-a' },
+    });
+
+    const service = new ContentRunsService('token');
+    const result = await service.analyzeRecommendations('run-1');
+
+    expect(mockPost).toHaveBeenCalledWith(
+      '/content-runs/run-1/recommendations',
+    );
+    expect(result).toMatchObject({
+      _id: 'run-1',
+      analyticsSummary: { winningVariantId: 'variant-a' },
     });
   });
 });
