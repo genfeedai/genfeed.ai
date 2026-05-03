@@ -23,15 +23,14 @@ export class ModelRegistrationService {
     modelKey: string,
     organizationId: string,
   ): Promise<ModelDocument> {
-    // key is stored in config JSON — fetch all and filter
-    const models = await this.prisma.model.findMany({
-      where: { isDeleted: false },
-    });
-
-    const model = models.find((m) => {
-      const config = m.config as Record<string, unknown>;
-      return config?.key === modelKey;
-    });
+    const model = await this.prisma.model
+      .findMany({ where: { isDeleted: false } })
+      .then((models) =>
+        models.find((candidate) => {
+          const config = candidate.config as Record<string, unknown>;
+          return config?.key === modelKey;
+        }),
+      );
 
     if (!model) {
       throw new BadRequestException(`Unknown model: ${modelKey}`);
@@ -69,7 +68,7 @@ export class ModelRegistrationService {
     });
     if (existing) return existing as unknown as ModelDocument;
 
-    // Resolve parent model by key stored in config
+    // Resolve parent model by dynamic key stored in config.
     const parentModelKey = (training.baseModel || training.model) as
       | string
       | undefined;
@@ -78,14 +77,15 @@ export class ModelRegistrationService {
       | undefined;
 
     if (parentModelKey) {
-      const candidates = await this.prisma.model.findMany({
-        where: { isDeleted: false },
-      });
       parentModel =
-        candidates.find((m) => {
-          const config = m.config as Record<string, unknown>;
-          return config?.key === parentModelKey;
-        }) ?? undefined;
+        (await this.prisma.model
+          .findMany({ where: { isDeleted: false } })
+          .then((models) =>
+            models.find((candidate) => {
+              const config = candidate.config as Record<string, unknown>;
+              return config?.key === parentModelKey;
+            }),
+          )) ?? undefined;
     }
 
     if (!parentModel) {
@@ -107,13 +107,13 @@ export class ModelRegistrationService {
           label: training.label as string,
           isActive: true,
           config: {
-            key,
             category: parentConfig?.category ?? 'IMAGE',
-            provider: 'genfeed-ai',
             cost: parentConfig?.cost ?? 1,
-            isDefault: false,
             triggerWord: training.trigger as string | undefined,
             capabilities: parentConfig?.capabilities ?? [],
+            isDefault: false,
+            key,
+            provider: 'genfeed-ai',
             supportsFeatures: [
               ...((parentConfig?.supportsFeatures as string[]) ?? []),
               'lora-weights',

@@ -33,6 +33,7 @@ export interface IModel extends IBaseEntity {
   costPerUnit?: number;
   minCost?: number;
   providerCostUsd?: number;
+  providerConfig?: Record<string, unknown>;
 
   // Output capability fields (from DB)
   aspectRatios?: string[];
@@ -57,6 +58,9 @@ export interface IModel extends IBaseEntity {
   predecessorOf?: string;
 
   // Provider auto-discovery fields (issue #93)
+  organization?: string;
+  parentModel?: string;
+  training?: string;
   isPublic?: boolean;
   isLegacy?: boolean;
   isDiscovered?: boolean;
