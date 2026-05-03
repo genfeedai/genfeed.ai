@@ -4,29 +4,116 @@ This page documents the OSS v1 analytics surface tracked by `#160`.
 
 ## Live Module Inventory
 
-The repo currently has two real analytics-facing surfaces that matter for v1:
+The repo currently has these active OSS analytics-facing surfaces that matter for v1:
 
 - [`apps/server/api/src/app.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/app.module.ts)
+  - imports `PostsModule`
+  - imports `ContentPerformanceModule`
   - imports `BusinessAnalyticsModule`
   - imports `AnalyticsModule`
-- Collection-facing business analytics surface:
+- Provider metric ingestion and publication analytics:
+  - [`apps/server/api/src/collections/posts/posts.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/collections/posts/posts.module.ts)
+  - [`apps/server/api/src/collections/posts/controllers/analytics/posts-analytics.controller.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/collections/posts/controllers/analytics/posts-analytics.controller.ts)
+  - [`apps/server/api/src/collections/posts/services/post-analytics.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/collections/posts/services/post-analytics.service.ts)
+  - [`apps/server/api/src/collections/posts/services/analytics-aggregation.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/collections/posts/services/analytics-aggregation.service.ts)
+- Brand-facing analytics rollups:
+  - [`apps/server/api/src/collections/brands/controllers/relationships/brands-relationships.controller.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/collections/brands/controllers/relationships/brands-relationships.controller.ts)
+  - [`apps/server/api/src/collections/posts/services/analytics-aggregation.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/collections/posts/services/analytics-aggregation.service.ts)
+- Content-performance feedback loop:
+  - [`apps/server/api/src/collections/content-performance/content-performance.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/collections/content-performance/content-performance.module.ts)
+  - [`apps/server/api/src/collections/content-performance/controllers/performance-summary.controller.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/collections/content-performance/controllers/performance-summary.controller.ts)
+  - [`apps/server/api/src/collections/content-performance/services/performance-summary.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/collections/content-performance/services/performance-summary.service.ts)
+  - [`apps/server/api/src/collections/content-performance/services/analytics-sync.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/collections/content-performance/services/analytics-sync.service.ts)
+- Collection-facing business analytics:
   - [`apps/server/api/src/collections/business-analytics/business-analytics.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/collections/business-analytics/business-analytics.module.ts)
   - [`apps/server/api/src/collections/business-analytics/services/business-analytics.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/collections/business-analytics/services/business-analytics.service.ts)
   - [`apps/server/api/src/collections/business-analytics/controllers/business-analytics.controller.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/collections/business-analytics/controllers/business-analytics.controller.ts)
-- Endpoint-level analytics surface:
+- Endpoint-level organization and brand analytics:
   - [`apps/server/api/src/endpoints/analytics/analytics.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/endpoints/analytics/analytics.module.ts)
+  - [`apps/server/api/src/endpoints/analytics/analytics.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/endpoints/analytics/analytics.service.ts)
+  - [`apps/server/api/src/endpoints/analytics/analytics.controller.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/endpoints/analytics/analytics.controller.ts)
   - [`apps/server/api/src/endpoints/analytics/business-analytics.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/endpoints/analytics/business-analytics.service.ts)
+- Thin consumers of the same analytics services:
+  - [`apps/server/api/src/endpoints/mcp/mcp.controller.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/endpoints/mcp/mcp.controller.ts)
+  - [`apps/server/api/src/collections/agent-goals/services/agent-goals.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/collections/agent-goals/services/agent-goals.service.ts)
 
 ## Ownership Notes For V1
 
 The important v1 fact is that analytics is not a single file or a dead stub. There is a real split:
 
-- **Collection surface**: superadmin/business-style rollups backed by credit and ingredient data
-- **Endpoint surface**: dashboard-oriented aggregation and time-series work on the analytics connection
+- **Post analytics ingestion** owns provider fetches and daily `postAnalytics` writes.
+- **Publication analytics** owns immediate per-post summaries and optional date-range rows.
+- **Brand analytics** owns brand-scoped overview, platform, and time-series rollups backed by `AnalyticsAggregationService`.
+- **Content performance** owns top/worst content, platform feedback, posting-time analysis, top hooks, and the `postAnalytics` -> `contentPerformance` sync.
+- **Endpoint analytics** owns organization/brand leaderboards, overview, platform breakdowns, and raw SQL aggregation over `post_analytics`.
+- **Business analytics** owns revenue, credit, ingredient, leader, projection, and comparison dashboards.
+- **Thin consumers** such as MCP and agent goals may read analytics, but they should not own the aggregation rules.
 
 That split is primarily why `#160` remains open: the v1 story needs the surface documented before deeper OSS/EE extraction work.
 
+## Intentional Overlap
+
+Some surfaces read the same `postAnalytics` data for different users and time horizons:
+
+- `PostAnalyticsService` and `PerformanceSummaryService` overlap on post metrics. The first answers "how did this post do now?"; the second answers "what should the content loop learn from recent complete windows?"
+- `AnalyticsAggregationService` and endpoint `AnalyticsService` both aggregate `postAnalytics`. The collection service powers brand relationship endpoints; the endpoint service powers broader organization/brand leaderboards and overview APIs.
+- Collection and endpoint `BusinessAnalyticsService` implementations overlap on business-dashboard shape. Keep both stable for v1, then consolidate or extract after the Cloud/EE billing boundary is clearer.
+- `AnalyticsSyncService` duplicates selected `postAnalytics` metrics into `contentPerformance` by design. That copy is the optimization/memory substrate, not a replacement for the source analytics rows.
+
+## OSS vs EE Ownership Boundary
+
+For v1, analytics is owned by Core when it is required to complete the self-hosted content loop. Enterprise owns analytics when the feature depends on multi-tenant governance, agency/team operations, or commercial billing controls.
+
+| Analytics surface                             | V1 owner                  | Stabilization decision                                                                                                                                              |
+| --------------------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Provider metric ingestion for published posts | Core (OSS)                | Keep in `apps/server/api/src/collections/posts`. Self-hosted users need a working publish -> analytics feedback path with their own provider credentials.           |
+| Publication-level analytics summary           | Core (OSS)                | Keep `PostAnalyticsService.getPostAnalyticsSummary` and the posts analytics controller in Core because they verify whether published content performed.             |
+| Content-performance weekly summaries          | Core (OSS)                | Keep `PerformanceSummaryService` in Core for top/worst content, platform summaries, posting-time analysis, top hooks, and week-over-week feedback.                  |
+| Closed-loop performance sync                  | Core (OSS), EE-extendable | Keep `AnalyticsSyncService` in Core so analytics can feed optimization and brand memory. EE may add tenant-aware scheduling, retention policy, or governance hooks. |
+| Business/operator revenue analytics           | Core for current v1       | Keep the existing business analytics response stable for v1. Revisit extraction only after Cloud/EE billing ownership is clearer.                                   |
+| Multi-tenant analytics governance             | Enterprise (`ee/`)        | Tenant isolation, cross-client agency reporting, audit controls, SSO/team-scoped permissions, and commercial reporting belong under `ee/`.                          |
+| Billing, quota, and contract reporting        | Enterprise / Cloud        | Commercial billing analytics can consume Core events, but the reporting and entitlement logic should not move into the OSS content loop.                            |
+
+## Extraction Decisions
+
+- Do not extract `postAnalytics`, post analytics controllers, `PerformanceSummaryService`, or `AnalyticsSyncService` out of Core for v1.
+- Do not block OSS v1 on a perfect analytics package split; stabilize the existing Core services with smoke paths and docs first.
+- Do not move tenant-isolation policy into Core analytics as a hidden requirement. Core remains self-hosted single-tenant by default; EE can wrap or extend the same data flow with organization-level controls.
+- Treat the current business analytics module as a compatibility surface for v1. If Cloud billing analytics diverges later, extract commercial reporting behind an EE/Cloud boundary instead of weakening Core analytics.
+
+## Stable Analytics Ingestion Pipeline
+
+The v1 ingestion path starts from published content that has a provider `externalId` and a connected credential:
+
+1. `PostsAnalyticsController.refreshAnalytics` refreshes one post through `POST /posts/:postId/refresh-analytics`.
+2. `PostsAnalyticsController.refreshAllAnalytics` refreshes all published posts for an organization through `POST /posts/analytics`.
+3. Both paths call `PostAnalyticsService.trackPostAnalytics`.
+4. `PostAnalyticsService` dispatches to the platform integration service for YouTube, TikTok, Instagram, Twitter, or Pinterest metrics.
+5. The returned provider metrics are upserted into `postAnalytics` by `(postId, platform, date)`.
+6. `PostAnalyticsService.getPostAnalyticsSummary` exposes the latest per-post dashboard summary.
+7. `PerformanceSummaryService` reads `postAnalytics` for weekly top/worst content, platform performance, posting times, top hooks, and week-over-week trend.
+8. `AnalyticsSyncService.syncAnalytics` copies `postAnalytics` rows into `contentPerformance` for the closed-loop optimization and brand-memory path.
+
+Current-day provider metrics are available immediately in the publication analytics summary. Content-performance summaries intentionally use complete historical windows, so current-day rows become eligible once they are no longer today's incomplete provider data.
+
 ## Dataflow
+
+```mermaid
+flowchart LR
+  A["Published post + credential"] --> B["PostsAnalyticsController\nsingle post or org refresh"]
+  B --> C["PostAnalyticsService.trackPostAnalytics"]
+  C --> D["Platform integration metrics\nYouTube / TikTok / Instagram / Twitter / Pinterest"]
+  D --> E["postAnalytics upsert\npostId + platform + date"]
+  E --> F["PostAnalyticsService.getPostAnalyticsSummary"]
+  E --> G["PerformanceSummaryService"]
+  E --> H["AnalyticsSyncService.syncAnalytics"]
+  H --> I["contentPerformance"]
+  F --> J["Publication analytics dashboard"]
+  G --> K["Content performance dashboard"]
+  I --> L["Optimization cycle + brand memory"]
+```
+
+The separate business analytics path aggregates monetization and usage data for operator-facing dashboards:
 
 ```mermaid
 flowchart LR
@@ -34,12 +121,12 @@ flowchart LR
   B --> C["Aggregate pipelines + daily series"]
   C --> D["Revenue / credits / ingredients / leaders"]
   D --> E["Controller serialization"]
-  E --> F["Dashboard-visible analytics response"]
+  E --> F["Business analytics dashboard response"]
 ```
 
 ## Representative V1 Smoke Path
 
-The narrow verification path for v1 is in:
+The narrow business-analytics verification path for v1 is in:
 
 - [`apps/server/api/src/endpoints/analytics/business-analytics.service.spec.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/endpoints/analytics/business-analytics.service.spec.ts)
 
@@ -53,6 +140,30 @@ The smoke test proves that representative aggregate inputs are converted into a 
 - comparisons
 
 That is enough to show the ingestion-to-dashboard contract is still wired without adding a large end-to-end analytics harness.
+
+The provider-ingestion smoke path for v1 is in:
+
+- [`apps/server/api/src/collections/content-performance/services/analytics-ingestion-dashboard-smoke.spec.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/collections/content-performance/services/analytics-ingestion-dashboard-smoke.spec.ts)
+
+It verifies the representative media analytics path:
+
+```mermaid
+flowchart LR
+  A["Provider media metrics"] --> B["PostAnalyticsService.trackPostAnalytics"]
+  B --> C["postAnalytics upsert"]
+  C --> D["Post analytics summary"]
+  C --> E["PerformanceSummaryService weekly summary"]
+  D --> F["Publication analytics dashboard"]
+  E --> G["Content performance dashboard"]
+```
+
+Run it with:
+
+```bash
+TZ=UTC bunx vitest run --config vitest.config.ts src/collections/content-performance/services/analytics-ingestion-dashboard-smoke.spec.ts
+```
+
+The content-performance dashboard intentionally excludes current-day metrics because today's provider data is incomplete. The smoke path records a provider ingestion row, verifies the publication analytics summary immediately, then advances the date window and verifies the same row appears in the weekly content-performance summary.
 
 ## V1 Boundary
 

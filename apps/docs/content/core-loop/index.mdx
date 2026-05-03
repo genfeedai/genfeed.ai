@@ -39,8 +39,12 @@ flowchart LR
   C --> D["Remix / prompt assembly\nexisting content surfaces"]
   D --> E["Generation service\nBatchGenerationModule + provider services"]
   E --> F["Generated assets / posts / batches"]
-  F --> G["Analytics ingestion + aggregation\nAnalyticsModule + BusinessAnalyticsModule"]
-  G --> H["Dashboard-visible summaries\nleaders / series / usage views"]
+  F --> G["Analytics ingestion\nPostsAnalyticsController + PostAnalyticsService"]
+  G --> H["Stored post analytics\npostAnalytics"]
+  H --> I["Analytics aggregation\nPerformanceSummaryService + BusinessAnalyticsService"]
+  H --> J["Closed-loop sync\nAnalyticsSyncService -> contentPerformance"]
+  I --> K["Dashboard-visible summaries\npost analytics / performance / business views"]
+  J --> K
 ```
 
 ## Representative Smoke Paths
@@ -49,7 +53,7 @@ Each v1 area now has one narrow verification path:
 
 - **Trend ingestion**: verify `TrendsService` falls through the cached path into the live-fetch path when cache is empty
 - **Generation service**: verify dynamic provider-backed model discovery merges into the stable generation-facing model surface
-- **Analytics backbone**: verify `BusinessAnalyticsService` maps aggregate inputs into a complete dashboard response shape
+- **Analytics backbone**: verify provider metrics are stored in `postAnalytics`, visible in publication analytics, and included in content-performance summaries once the data is no longer current-day incomplete
 
 ## Related V1 Issues
 
