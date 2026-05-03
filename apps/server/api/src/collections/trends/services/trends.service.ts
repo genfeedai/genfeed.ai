@@ -283,10 +283,10 @@ export class TrendsService {
       if (credentials?.docs) {
         return credentials.docs.map((cred) => cred.platform.toLowerCase());
       }
-      return { where: {} };
+      return [];
     } catch (error: unknown) {
       this.loggerService.error('Failed to get connected platforms', error);
-      return { where: {} };
+      return [];
     }
   }
 
