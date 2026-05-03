@@ -4,6 +4,7 @@ import {
   CACHE_PATTERNS,
   CACHE_TAGS,
 } from '@api/common/constants/cache-patterns.constants';
+import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -96,9 +97,13 @@ export class CreditsController {
   @Get('topbar-balances')
   @RateLimit({ limit: 30, scope: 'user', windowMs: 60000 })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async getTopbarBalances(@Req() req: Request, @CurrentUser() user: User) {
+  async getTopbarBalances(
+    @Req() req: RequestWithContext,
+    @CurrentUser() user: User,
+  ) {
     const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization.toString();
+    const organizationId =
+      req.context?.organizationId ?? publicMetadata.organization.toString();
 
     const data =
       await this.topbarBalancesService.getTopbarBalances(organizationId);

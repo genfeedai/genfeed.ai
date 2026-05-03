@@ -103,6 +103,8 @@ export interface CreateTaskInput {
   request?: string;
   status?: TaskStatus;
   title: string;
+  voiceId?: string;
+  voiceProvider?: string;
 }
 
 export interface ListTasksParams {

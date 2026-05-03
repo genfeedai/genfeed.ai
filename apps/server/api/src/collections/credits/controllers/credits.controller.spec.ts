@@ -180,5 +180,27 @@ describe('CreditsController', () => {
       ).toHaveBeenCalledWith('507f1f77bcf86cd799439012');
       expect(result).toBeDefined();
     });
+
+    it('prefers the request context organization for topbar balances', async () => {
+      const result = await controller.getTopbarBalances(
+        {
+          ...mockReq,
+          context: {
+            hydratedAt: Date.now(),
+            isSuperAdmin: false,
+            organizationId: 'active-org-id',
+            stripeSubscriptionStatus: 'active',
+            subscriptionTier: 'pro',
+            userId: 'user-db-id',
+          },
+        },
+        mockUser,
+      );
+
+      expect(
+        mockServices.topbarBalancesService.getTopbarBalances,
+      ).toHaveBeenCalledWith('active-org-id');
+      expect(result).toBeDefined();
+    });
   });
 });

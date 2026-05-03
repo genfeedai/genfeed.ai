@@ -211,6 +211,8 @@ describe('analytics ingestion to dashboard smoke path', () => {
       undefined,
       undefined,
       undefined,
+      undefined,
+      undefined,
       youtubeService as never,
     );
     const performanceSummaryService = new PerformanceSummaryService(

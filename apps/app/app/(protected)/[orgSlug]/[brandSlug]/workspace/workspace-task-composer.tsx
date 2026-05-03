@@ -638,7 +638,8 @@ export function WorkspaceTaskComposer({
         ...base,
         heygenAvatarId: facecamAvatarId || undefined,
         voiceId: facecamVoiceId || undefined,
-        voiceProvider: facecamVoiceProvider || undefined,
+        voiceProvider:
+          facecamVoiceProvider || (facecamVoiceId ? 'heygen' : undefined),
       };
     }
 

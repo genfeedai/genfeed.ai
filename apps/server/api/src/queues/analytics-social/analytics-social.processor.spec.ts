@@ -5,6 +5,8 @@ import {
   type SocialAnalyticsJobData,
 } from '@api/queues/analytics-social/analytics-social.processor';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
+import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
+import { MastodonService } from '@api/services/integrations/mastodon/services/mastodon.service';
 import { PinterestService } from '@api/services/integrations/pinterest/services/pinterest.service';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { CredentialPlatform } from '@genfeedai/enums';
@@ -15,6 +17,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 describe('AnalyticsSocialProcessor', () => {
   let processor: AnalyticsSocialProcessor;
   let instagramService: InstagramService;
+  let linkedInService: LinkedInService;
+  let mastodonService: MastodonService;
   let tiktokService: TiktokService;
   let pinterestService: PinterestService;
   let postAnalyticsService: PostAnalyticsService;
@@ -23,6 +27,14 @@ describe('AnalyticsSocialProcessor', () => {
 
   beforeEach(() => {
     instagramService = {
+      getMediaAnalytics: vi.fn(),
+    } as any;
+
+    linkedInService = {
+      getMediaAnalytics: vi.fn(),
+    } as any;
+
+    mastodonService = {
       getMediaAnalytics: vi.fn(),
     } as any;
 
@@ -52,6 +64,8 @@ describe('AnalyticsSocialProcessor', () => {
 
     processor = new AnalyticsSocialProcessor(
       instagramService,
+      linkedInService,
+      mastodonService,
       tiktokService,
       pinterestService,
       postAnalyticsService,

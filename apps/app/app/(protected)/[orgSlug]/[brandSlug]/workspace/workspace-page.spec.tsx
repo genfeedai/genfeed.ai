@@ -24,6 +24,7 @@ const getBatchMock = vi.fn();
 const findIngredientsByIdsMock = vi.fn();
 const findIssueMock = vi.fn();
 const routerPushMock = vi.fn();
+const getClonedVoicesMock = vi.hoisted(() => vi.fn());
 
 vi.mock('@clerk/nextjs', () => ({
   useAuth: () => ({
@@ -36,7 +37,15 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
     brandId: 'brand-1',
     brands: [{ id: 'brand-1', label: 'Moonrise Studio', name: null }],
     organizationId: 'org-1',
-    selectedBrand: { id: 'brand-1', label: 'Moonrise Studio', name: null },
+    selectedBrand: {
+      agentConfig: {
+        heygenAvatarId: 'avatar-42',
+        heygenVoiceId: 'voice-99',
+      },
+      id: 'brand-1',
+      label: 'Moonrise Studio',
+      name: null,
+    },
   }),
 }));
 
@@ -83,6 +92,14 @@ vi.mock('@services/content/ingredients.service', async () => {
     },
   };
 });
+
+vi.mock('@services/ingredients/voice-clone.service', () => ({
+  VoiceCloneService: {
+    getInstance: vi.fn(() => ({
+      getClonedVoices: getClonedVoicesMock,
+    })),
+  },
+}));
 
 vi.mock('@services/management/tasks.service', async () => {
   const actual = await vi.importActual<
@@ -189,6 +206,7 @@ describe('WorkspacePageContent', () => {
         threadId: 'thread-report-123',
       },
     ]);
+    getClonedVoicesMock.mockResolvedValue([]);
     findIngredientsByIdsMock.mockResolvedValue([
       {
         category: 'ingredient',
@@ -357,8 +375,11 @@ describe('WorkspacePageContent', () => {
       expect(createTaskMock).toHaveBeenCalledWith(
         expect.objectContaining({
           brand: 'brand-1',
+          heygenAvatarId: 'avatar-42',
           outputType: 'facecam',
           request: 'Hello from Genfeed, this is a facecam test.',
+          voiceId: 'voice-99',
+          voiceProvider: 'heygen',
         }),
       );
     });

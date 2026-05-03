@@ -1,5 +1,6 @@
 import { ContentRunsService } from '@api/collections/content-runs/services/content-runs.service';
 import { SkillsService } from '@api/collections/skills/services/skills.service';
+import { ManagedInferenceClientService } from '@api/endpoints/v1/managed-inference/managed-inference-client.service';
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
 import { FalService } from '@api/services/integrations/fal/fal.service';
 import { LeonardoAIService } from '@api/services/integrations/leonardoai/leonardoai.service';
@@ -7,6 +8,7 @@ import { ReplicateService } from '@api/services/integrations/replicate/replicate
 import { ContentWritingHandler } from '@api/services/skill-executor/handlers/content-writing.handler';
 import { ImageGenerationHandler } from '@api/services/skill-executor/handlers/image-generation.handler';
 import { TrendDiscoveryHandler } from '@api/services/skill-executor/handlers/trend-discovery.handler';
+import { TrendRemixHandler } from '@api/services/skill-executor/handlers/trend-remix.handler';
 import { SkillExecutorService } from '@api/services/skill-executor/skill-executor.service';
 import {
   ByokProvider,
@@ -46,6 +48,10 @@ describe('stable provider path smoke', () => {
 
   const replicateService = {
     runModel: vi.fn(),
+  };
+
+  const managedInferenceClientService = {
+    generateImage: vi.fn(),
   };
 
   let skillExecutorService: SkillExecutorService;
@@ -98,11 +104,19 @@ describe('stable provider path smoke', () => {
           useValue: replicateService,
         },
         {
+          provide: ManagedInferenceClientService,
+          useValue: managedInferenceClientService,
+        },
+        {
           provide: ContentWritingHandler,
           useValue: { execute: vi.fn() },
         },
         {
           provide: TrendDiscoveryHandler,
+          useValue: { execute: vi.fn() },
+        },
+        {
+          provide: TrendRemixHandler,
           useValue: { execute: vi.fn() },
         },
       ],
