@@ -1,0 +1,43 @@
+# Production Readiness
+
+The V1 production-readiness tracker is GitHub issue [`#184`](https://github.com/genfeedai/genfeed.ai/issues/184).
+
+This page defines the release gates for the open-source monorepo. Live status stays in GitHub Projects so the docs do not become a second backlog.
+
+## V1 Release Gates
+
+| Gate                     | Required Outcome                                                                                                                       | Tracker                                                      |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| Execution boundaries     | Core, BYOK, managed inference, and Cloud execution paths have one documented ownership model.                                          | [`#186`](https://github.com/genfeedai/genfeed.ai/issues/186) |
+| CLI location             | The CLI has one canonical monorepo home, package boundary, and release path.                                                           | [`#190`](https://github.com/genfeedai/genfeed.ai/issues/190) |
+| Docs app location        | The Nextra docs app is inside the monorepo workspace and can be built through the same package manager flow as the rest of the repo.   | [`#192`](https://github.com/genfeedai/genfeed.ai/issues/192) |
+| Backlog consolidation    | Cloud/core backlog ownership is consolidated into this repository and public V1 issues.                                                | [`#189`](https://github.com/genfeedai/genfeed.ai/issues/189) |
+| Agent orchestration      | Agent runtime ownership is compact enough that campaigns, spawning, skills, and content pipelines do not each look like peer runtimes. | [`#187`](https://github.com/genfeedai/genfeed.ai/issues/187) |
+| OSS integration defaults | Self-hosted notification and integration defaults do not leak Genfeed Cloud-specific branding or infrastructure assumptions.           | [`#188`](https://github.com/genfeedai/genfeed.ai/issues/188) |
+| Positioning              | Website and docs explain OSS/core, managed inference, BYOK, and Cloud without contradicting the runtime boundaries.                    | [`#191`](https://github.com/genfeedai/genfeed.ai/issues/191) |
+
+## Production Deploy Checklist
+
+Before the V1 production deploy, the release branch should pass these checks:
+
+- Project v2 has `Status` and `Priority` fields set for every V1 issue.
+- The V1 milestone contains only issues that are required for the first stable OSS release.
+- All P0 issues are implemented or explicitly moved out of V1.
+- The deployment docs can be built from a clean checkout.
+- The self-hosted quickstart documents required services, environment variables, and provider keys.
+- The execution-boundary docs match the shipped API behavior.
+- No production path depends on an untracked local task file or external private repo.
+
+## Ownership Rules
+
+- GitHub issues and GitHub Projects are the canonical release tracker.
+- Status and priority live in Project v2 fields, not labels.
+- Local markdown files are documentation only; they must not be treated as backlog.
+- Parent tracker issues describe gates. Implementation work belongs in child issues with testable done criteria.
+
+## Related Docs
+
+- [Deployment Options](/deployment/overview)
+- [Self-Hosted vs Cloud](/core/self-hosted-vs-cloud)
+- [Execution Boundaries](/core/execution-boundaries)
+- [Self-Host Quickstart](/guides/self-host-quickstart)
