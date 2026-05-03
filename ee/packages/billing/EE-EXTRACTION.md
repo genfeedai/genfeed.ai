@@ -98,7 +98,7 @@ Move the following directories from `apps/server/api/src/` into `ee/packages/bil
 
 **Do NOT do this in one PR.** Recommended sequencing:
 
-1. **PR 1 — Move `credits/` collection + related guards/interceptors/decorators.** Create OSS-core no-op stubs in `apps/server/api/src/common/credits/` that implement `ICreditsUtilsService`. Wire DI override in `app.module.ts:563` to bind `CreditsUtilsService` to the EE implementation when `isEEEnabled()`.
+1. **PR 1 — Split `credits/` into OSS billing core plus EE billing extensions.** Keep managed inference PAYG checkout/top-up, API-key flow, and ledger semantics in OSS; move only multi-tenant org billing policy, pooled enterprise controls, invoicing, and enterprise admin/reporting to `ee/packages/billing/`. Create OSS-core no-op stubs in `apps/server/api/src/common/credits/` that implement `ICreditsUtilsService`. Wire DI override in `app.module.ts:563` to bind `CreditsUtilsService` to the EE implementation when `isEEEnabled()`.
 2. **PR 2 — Move `subscriptions/`, `user-subscriptions/`, `subscription-attributions/`.** Same pattern: OSS no-op `SubscriptionsService` that `findOne()` returns `null`. EE implementation is the real one.
 3. **PR 3 — Move `services/byok-billing/` and `services/integrations/stripe/`.** No OSS replacement needed — these have no OSS consumers (webhooks are enterprise-only).
 4. **PR 4 — Move `endpoints/webhooks/stripe/`.** This endpoint is only mounted when EE is enabled.
