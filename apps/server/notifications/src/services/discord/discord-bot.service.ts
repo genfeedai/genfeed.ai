@@ -72,6 +72,17 @@ export class DiscordBotService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  private getWebhookName(name: string): string {
+    const prefix = this.configService.get('DISCORD_WEBHOOK_NAME_PREFIX');
+    return prefix ? `${prefix} ${name}` : name;
+  }
+
+  private getWebhookReason(): string {
+    return (
+      this.configService.get('DISCORD_WEBHOOK_REASON') || 'Notification webhook'
+    );
+  }
+
   /**
    * Get or create a bot-owned webhook for a channel
    */
@@ -116,7 +127,7 @@ export class DiscordBotService implements OnModuleInit, OnModuleDestroy {
       if (!webhook) {
         webhook = await channel.createWebhook({
           name: webhookName,
-          reason: 'Genfeed.ai notification webhook',
+          reason: this.getWebhookReason(),
         });
       }
 
@@ -149,21 +160,21 @@ export class DiscordBotService implements OnModuleInit, OnModuleDestroy {
   getPostsWebhook(): Promise<WebhookClient | null> {
     return this.getOrCreateWebhook(
       this.configService.get('DISCORD_CHANNEL_ID_POSTS'),
-      'Posts',
+      this.getWebhookName('Posts'),
     );
   }
 
   getIngredientsWebhook(): Promise<WebhookClient | null> {
     return this.getOrCreateWebhook(
       this.configService.get('DISCORD_CHANNEL_ID_STUDIO'),
-      'Studio',
+      this.getWebhookName('Studio'),
     );
   }
 
   getUsersWebhook(): Promise<WebhookClient | null> {
     return this.getOrCreateWebhook(
       this.configService.get('DISCORD_CHANNEL_ID_USERS'),
-      'Users',
+      this.getWebhookName('Users'),
     );
   }
 
@@ -171,7 +182,7 @@ export class DiscordBotService implements OnModuleInit, OnModuleDestroy {
     const channelId =
       this.configService.get('DISCORD_CHANNEL_ID_MODELS') ||
       this.configService.get('DISCORD_CHANNEL_ID_STUDIO');
-    return this.getOrCreateWebhook(channelId, 'Models');
+    return this.getOrCreateWebhook(channelId, this.getWebhookName('Models'));
   }
 
   get botReady(): boolean {

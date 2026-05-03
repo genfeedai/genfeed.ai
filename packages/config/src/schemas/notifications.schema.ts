@@ -4,15 +4,16 @@ import Joi from 'joi';
  * Discord bot configuration (for notifications service)
  */
 export const discordBotSchema = {
-  DISCORD_BOT_AVATAR_URL: Joi.string()
-    .uri()
-    .default('https://cdn.genfeed.ai/assets/branding/logo.jpg'),
+  DISCORD_BOT_AVATAR_URL: Joi.string().uri().optional().allow(''),
   DISCORD_BOT_TOKEN: Joi.string().optional().allow(''),
   DISCORD_CHANNEL_ID_POSTS: Joi.string().optional().allow(''),
   DISCORD_CHANNEL_ID_STUDIO: Joi.string().optional().allow(''),
   DISCORD_CHANNEL_ID_USERS: Joi.string().optional().allow(''),
+  DISCORD_CHANNEL_ID_MODELS: Joi.string().optional().allow(''),
   DISCORD_CLIENT_ID: Joi.string().optional().allow(''),
   DISCORD_GUILD_ID: Joi.string().optional().allow(''),
+  DISCORD_WEBHOOK_NAME_PREFIX: Joi.string().optional().allow(''),
+  DISCORD_WEBHOOK_REASON: Joi.string().optional().allow(''),
 };
 
 /**
