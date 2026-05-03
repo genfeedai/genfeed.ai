@@ -1,6 +1,7 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CaptionEntity } from '@api/collections/captions/entities/caption.entity';
 import { CaptionsService } from '@api/collections/captions/services/captions.service';
+import { PerformanceSummaryService } from '@api/collections/content-performance/services/performance-summary.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
@@ -55,7 +56,9 @@ import type {
   ExecutionRunResult,
 } from '@genfeedai/workflow-engine';
 import {
+  createAnalyticsFeedbackExecutor,
   createBrandAssetExecutor,
+  createBrandContextExecutor,
   createImageGenExecutor,
   createLipSyncExecutor,
   createMentionTriggerExecutor,
@@ -64,9 +67,11 @@ import {
   createNewRepostTriggerExecutor,
   createPostReplyExecutor,
   createPromptConstructorExecutor,
+  createPublishExecutor,
   createReframeExecutor,
   createSendDmExecutor,
   createTextToSpeechExecutor,
+  createTrendTriggerExecutor,
   createUpscaleExecutor,
   type NodeExecutor,
   WorkflowEngine,
@@ -190,6 +195,7 @@ const NODE_TYPE_TO_EXECUTOR: Record<string, string> = {
   'trigger-new-follower': 'newFollowerTrigger',
   'trigger-new-like': 'newLikeTrigger',
   'trigger-new-repost': 'newRepostTrigger',
+  'analytics-feedback': 'analyticsFeedback',
 };
 
 /**
@@ -227,6 +233,8 @@ export class WorkflowEngineAdapterService {
     @Optional() private readonly replicateService?: ReplicateService,
     @Optional() private readonly promptBuilderService?: PromptBuilderService,
     @Optional() private readonly brandsService?: BrandsService,
+    @Optional()
+    private readonly performanceSummaryService?: PerformanceSummaryService,
   ) {
     this.engine = new WorkflowEngine({
       maxConcurrency: 3,
@@ -249,6 +257,10 @@ export class WorkflowEngineAdapterService {
     this.registerUpscaleExecutor();
     this.registerDirectMediaInputExecutors();
     this.registerBrandAssetExecutor();
+    this.registerBrandContextExecutor();
+    this.registerAnalyticsFeedbackExecutor();
+    this.registerTrendTriggerExecutor();
+    this.registerPublishExecutor();
   }
 
   /**
@@ -486,6 +498,103 @@ export class WorkflowEngineAdapterService {
       },
     );
 
+    this.engine.registerExecutor(
+      executor.nodeType,
+      this.wrapEngineExecutor(executor),
+    );
+  }
+
+  private registerBrandContextExecutor(): void {
+    if (!this.brandsService) return;
+    const brandsService = this.brandsService;
+    const executor = createBrandContextExecutor(
+      async (brandId, organizationId) => {
+        const brand = await brandsService.findOne(
+          { _id: brandId, isDeleted: false, organization: organizationId },
+          ['detail'],
+        );
+        if (!brand) return null;
+        const brandDoc = brand as unknown as Record<string, unknown>;
+        return {
+          brandId: String(brandDoc._id),
+          colors:
+            (brandDoc.colors as {
+              primary: string;
+              secondary: string;
+              background: string;
+            } | null) ?? null,
+          fonts: (brandDoc.fonts as string | null) ?? null,
+          label: String(brandDoc.name ?? brandDoc.label ?? ''),
+          models: null,
+          slug: String(brandDoc.slug ?? ''),
+          voice: (brandDoc.voice as string | null) ?? null,
+        };
+      },
+    );
+    this.engine.registerExecutor(
+      executor.nodeType,
+      this.wrapEngineExecutor(executor),
+    );
+  }
+
+  private registerAnalyticsFeedbackExecutor(): void {
+    if (!this.performanceSummaryService) return;
+    const summaryService = this.performanceSummaryService;
+    const executor = createAnalyticsFeedbackExecutor(
+      async ({ organizationId, brandId, topN, worstN }) => {
+        const summary = await summaryService.getWeeklySummary(
+          organizationId,
+          brandId,
+          { topN, worstN },
+        );
+        const bestPlatform =
+          summary.avgEngagementByPlatform.length > 0
+            ? summary.avgEngagementByPlatform.reduce((best, current) =>
+                current.avgEngagementRate > best.avgEngagementRate
+                  ? current
+                  : best,
+              ).platform
+            : null;
+        return {
+          avgEngagementRate:
+            summary.avgEngagementByPlatform.length > 0
+              ? summary.avgEngagementByPlatform.reduce(
+                  (sum, p) => sum + p.avgEngagementRate,
+                  0,
+                ) / summary.avgEngagementByPlatform.length
+              : 0,
+          bestPlatform,
+          bestPostingTimes: summary.bestPostingTimes.map((t) => ({
+            avgEngagement: t.avgEngagementRate,
+            dayOfWeek: 0,
+            hour: t.hour,
+          })),
+          topHooks: summary.topHooks,
+          topTopics: summary.topPerformers.map((p) => p.title).filter(Boolean),
+          weekOverWeekChange: summary.weekOverWeekTrend.percentageChange,
+          weekOverWeekDirection: summary.weekOverWeekTrend.direction,
+          worstTopics: summary.worstPerformers
+            .map((p) => p.title)
+            .filter(Boolean),
+        };
+      },
+    );
+    this.engine.registerExecutor(
+      executor.nodeType,
+      this.wrapEngineExecutor(executor),
+    );
+  }
+
+  private registerTrendTriggerExecutor(): void {
+    const executor = createTrendTriggerExecutor();
+    this.engine.registerExecutor(
+      executor.nodeType,
+      this.wrapEngineExecutor(executor),
+    );
+  }
+
+  private registerPublishExecutor(): void {
+    const executor = createPublishExecutor();
     this.engine.registerExecutor(
       executor.nodeType,
       this.wrapEngineExecutor(executor),
@@ -1338,6 +1447,9 @@ export class WorkflowEngineAdapterService {
       ![
         'ai-avatar-video',
         'ai-generate-image',
+        'analytics-feedback',
+        'analyticsFeedback',
+        'brandContext',
         'imageGen',
         'ai-text-to-speech',
         'effect-captions',

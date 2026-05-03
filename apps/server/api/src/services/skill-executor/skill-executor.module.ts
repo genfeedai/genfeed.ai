@@ -10,6 +10,7 @@ import { ReplicateModule } from '@api/services/integrations/replicate/replicate.
 import { ContentWritingHandler } from '@api/services/skill-executor/handlers/content-writing.handler';
 import { ImageGenerationHandler } from '@api/services/skill-executor/handlers/image-generation.handler';
 import { TrendDiscoveryHandler } from '@api/services/skill-executor/handlers/trend-discovery.handler';
+import { TrendRemixHandler } from '@api/services/skill-executor/handlers/trend-remix.handler';
 import { SkillExecutorService } from '@api/services/skill-executor/skill-executor.service';
 import { Module } from '@nestjs/common';
 
@@ -30,6 +31,7 @@ import { Module } from '@nestjs/common';
     ContentWritingHandler,
     ImageGenerationHandler,
     TrendDiscoveryHandler,
+    TrendRemixHandler,
     SkillExecutorService,
   ],
 })
