@@ -1,9 +1,11 @@
 import { CreateModelDto } from '@api/collections/models/dto/create-model.dto';
 import { UpdateModelDto } from '@api/collections/models/dto/update-model.dto';
 import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
+import type { TrainingDocument } from '@api/collections/trainings/schemas/training.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
+import { ModelCategory, ModelProvider } from '@genfeedai/enums';
 import type { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -46,6 +48,7 @@ const MODEL_CONFIG_FIELDS = new Set([
   'minCost',
   'minDimensions',
   'outputCostPerMillionTokens',
+  'parentModel',
   'predecessorOf',
   'pricingType',
   'provider',
@@ -56,7 +59,9 @@ const MODEL_CONFIG_FIELDS = new Set([
   'speedTier',
   'succeededBy',
   'supportsFeatures',
+  'training',
   'trigger',
+  'triggerWord',
   'usesOrientation',
 ]);
 
@@ -139,7 +144,87 @@ export class ModelsService extends BaseService<
   }
 
   private normalizeModelDocument(document: unknown): ModelDocument {
-    return this.normalizeDocument(document) as ModelDocument;
+    const normalized = this.normalizeDocument(document) as Record<
+      string,
+      unknown
+    >;
+
+    if (
+      normalized.training === undefined &&
+      typeof normalized.trainingId === 'string'
+    ) {
+      normalized.training = normalized.trainingId;
+    }
+
+    if (
+      normalized.parentModel === undefined &&
+      typeof normalized.parentModelId === 'string'
+    ) {
+      normalized.parentModel = normalized.parentModelId;
+    }
+
+    return normalized as ModelDocument;
+  }
+
+  private readString(value: unknown): string | undefined {
+    return typeof value === 'string' && value.trim().length > 0
+      ? value.trim()
+      : undefined;
+  }
+
+  private readStringArray(value: unknown): string[] {
+    return Array.isArray(value)
+      ? value.filter((item): item is string => typeof item === 'string')
+      : [];
+  }
+
+  private slugify(value: string): string {
+    return value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/-{2,}/g, '-')
+      .replace(/^-|-$/g, '');
+  }
+
+  private async resolveOrganizationSlug(
+    organizationId: string,
+  ): Promise<string> {
+    const organization = await this.prisma.organization.findUnique({
+      select: { label: true, slug: true },
+      where: { id: organizationId },
+    });
+
+    return (
+      this.readString(organization?.slug) ??
+      this.slugify(this.readString(organization?.label) ?? organizationId) ??
+      organizationId
+    );
+  }
+
+  private getTrainingId(training: TrainingDocument): string {
+    const trainingId =
+      this.readString(training._id) ?? this.readString(training.id);
+    if (!trainingId) {
+      throw new Error('Training id is required to create a model');
+    }
+
+    return trainingId;
+  }
+
+  private getTrainingConfig(
+    training: TrainingDocument,
+  ): Record<string, unknown> {
+    return this.isPlainObject(training.config) ? training.config : {};
+  }
+
+  private getTrainingModelKey(training: TrainingDocument): string | undefined {
+    const config = this.getTrainingConfig(training);
+    return (
+      this.readString(config.baseModel) ??
+      this.readString(training.baseModel) ??
+      this.readString(config.model) ??
+      this.readString(training.model)
+    );
   }
 
   private splitModelData(
@@ -156,6 +241,18 @@ export class ModelsService extends BaseService<
 
       if (key === 'organization' && typeof value === 'string') {
         nextData.organizationId = value;
+        continue;
+      }
+
+      if (key === 'parentModel' && typeof value === 'string') {
+        nextData.parentModelId = value;
+        nextConfig.parentModel = value;
+        continue;
+      }
+
+      if (key === 'training' && typeof value === 'string') {
+        nextData.trainingId = value;
+        nextConfig.training = value;
         continue;
       }
 
@@ -206,6 +303,16 @@ export class ModelsService extends BaseService<
 
       if (key === 'organization' && typeof value === 'string') {
         dbWhere.organizationId = value;
+        continue;
+      }
+
+      if (key === 'parentModel' && typeof value === 'string') {
+        dbWhere.parentModelId = value;
+        continue;
+      }
+
+      if (key === 'training' && typeof value === 'string') {
+        dbWhere.trainingId = value;
         continue;
       }
 
@@ -429,6 +536,66 @@ export class ModelsService extends BaseService<
 
     return models.filter((model) => this.matchesConfigWhere(model, configWhere))
       .length;
+  }
+
+  async createFromTraining(training: TrainingDocument): Promise<ModelDocument> {
+    const trainingId = this.getTrainingId(training);
+    const existing = await this.prisma.model.findFirst({
+      where: { trainingId },
+    });
+
+    if (existing) {
+      return this.normalizeModelDocument(existing);
+    }
+
+    const organizationId =
+      this.readString(training.organizationId) ??
+      this.readString(training.organization);
+    if (!organizationId) {
+      throw new Error(`Training ${trainingId} is missing an organization`);
+    }
+
+    const config = this.getTrainingConfig(training);
+    const trainingLabel = this.readString(training.label) ?? trainingId;
+    const organizationSlug = await this.resolveOrganizationSlug(organizationId);
+    const trainingSlug = this.slugify(trainingLabel) || trainingId;
+    const parentModelKey = this.getTrainingModelKey(training);
+    const parentModel = parentModelKey
+      ? await this.findOne({ key: parentModelKey })
+      : null;
+    const parentConfig = this.getConfig(parentModel);
+    const parentFeatures = this.readStringArray(parentConfig.supportsFeatures);
+    const supportsFeatures = Array.from(
+      new Set([...parentFeatures, 'lora-weights', 'trigger-word']),
+    );
+    const trainedModelVersion =
+      this.readString(config.trainedModelVersion) ??
+      this.readString(config.model) ??
+      this.readString(training.model) ??
+      this.readString(training.externalId);
+    const triggerWord =
+      this.readString(config.trigger) ?? this.readString(training.trigger);
+
+    return this.create({
+      category:
+        this.readString(parentConfig.category) ??
+        this.readString(config.category) ??
+        ModelCategory.IMAGE,
+      cost: typeof parentConfig.cost === 'number' ? parentConfig.cost : 1,
+      externalId: trainedModelVersion,
+      isActive: true,
+      isDefault: false,
+      isPublic: false,
+      key: `genfeedai/${organizationSlug}/${trainingSlug}`,
+      label: trainingLabel,
+      organization: organizationId,
+      parentModel: parentModel?._id ?? parentModel?.id,
+      provider: ModelProvider.GENFEED_AI,
+      supportsFeatures,
+      training: trainingId,
+      trigger: triggerWord,
+      triggerWord,
+    } as CreateModelDto);
   }
 
   /**

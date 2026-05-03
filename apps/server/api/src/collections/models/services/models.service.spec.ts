@@ -5,6 +5,7 @@ import type { LoggerService } from '@libs/logger/logger.service';
 
 type MockModelDelegate = {
   create: ReturnType<typeof vi.fn>;
+  findFirst: ReturnType<typeof vi.fn>;
   findMany: ReturnType<typeof vi.fn>;
   update: ReturnType<typeof vi.fn>;
 };
@@ -36,12 +37,21 @@ describe('ModelsService', () => {
   beforeEach(() => {
     modelDelegate = {
       create: vi.fn(),
+      findFirst: vi.fn(),
       findMany: vi.fn(),
       update: vi.fn(),
     };
 
     service = new ModelsService(
-      { model: modelDelegate } as unknown as PrismaService,
+      {
+        model: modelDelegate,
+        organization: {
+          findUnique: vi.fn().mockResolvedValue({
+            label: 'Acme Corp',
+            slug: 'acme-corp',
+          }),
+        },
+      } as unknown as PrismaService,
       {
         debug: vi.fn(),
         error: vi.fn(),
@@ -179,5 +189,84 @@ describe('ModelsService', () => {
       },
     });
     expect(result.map((model) => model._id)).toEqual(['private-model']);
+  });
+
+  it('creates a private LoRA model from a completed training', async () => {
+    modelDelegate.findFirst.mockResolvedValue(null);
+    modelDelegate.findMany.mockResolvedValue([
+      makeModel({
+        config: {
+          category: ModelCategory.IMAGE,
+          key: 'black-forest-labs/flux-kontext-pro',
+          supportsFeatures: ['reference-image'],
+        },
+        id: 'base-model',
+      }),
+    ]);
+    modelDelegate.create.mockResolvedValue(
+      makeModel({
+        config: {
+          key: 'genfeedai/acme-corp/portrait-lora-v2',
+          parentModel: 'base-model',
+          provider: ModelProvider.GENFEED_AI,
+          supportsFeatures: ['reference-image', 'lora-weights', 'trigger-word'],
+          training: 'training-1',
+          triggerWord: 'TOK',
+        },
+        id: 'trained-model',
+        organizationId: 'org-1',
+        parentModelId: 'base-model',
+        trainingId: 'training-1',
+      }),
+    );
+
+    await service.createFromTraining({
+      _id: 'training-1',
+      config: {
+        baseModel: 'black-forest-labs/flux-kontext-pro',
+        model: 'replicate/trained-lora:abc123',
+        trigger: 'TOK',
+      },
+      id: 'training-1',
+      label: 'Portrait LoRA V2',
+      organizationId: 'org-1',
+    } as never);
+
+    expect(modelDelegate.create).toHaveBeenCalledWith({
+      data: {
+        config: expect.objectContaining({
+          isPublic: false,
+          key: 'genfeedai/acme-corp/portrait-lora-v2',
+          provider: ModelProvider.GENFEED_AI,
+          supportsFeatures: ['reference-image', 'lora-weights', 'trigger-word'],
+          training: 'training-1',
+          triggerWord: 'TOK',
+        }),
+        externalId: 'replicate/trained-lora:abc123',
+        isActive: true,
+        label: 'Portrait LoRA V2',
+        organizationId: 'org-1',
+        parentModelId: 'base-model',
+        trainingId: 'training-1',
+      },
+    });
+  });
+
+  it('does not create a duplicate model for the same training', async () => {
+    const existing = makeModel({
+      id: 'trained-model',
+      trainingId: 'training-1',
+    });
+    modelDelegate.findFirst.mockResolvedValue(existing);
+
+    const result = await service.createFromTraining({
+      _id: 'training-1',
+      config: {},
+      id: 'training-1',
+      organizationId: 'org-1',
+    } as never);
+
+    expect(result._id).toBe('trained-model');
+    expect(modelDelegate.create).not.toHaveBeenCalled();
   });
 });
