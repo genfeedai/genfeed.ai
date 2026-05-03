@@ -247,9 +247,14 @@ export class SkillExecutorService {
       angle: this.getString(params.angle),
       audience: this.getString(params.audience),
       callToAction: this.getString(params.callToAction),
+      channelFit: this.getString(params.channelFit),
+      confidence: this.getNumber(params.confidence),
       evidence: this.getStringArray(params.evidence),
       hypothesis: this.getString(params.hypothesis),
       notes: this.getString(params.notes),
+      risk: this.getString(params.risk),
+      sourceId: this.getString(params.sourceId ?? params.sourceReferenceId),
+      sourceUrl: this.getString(params.sourceUrl),
     };
 
     return Object.values(brief).some((value) =>
@@ -361,6 +366,19 @@ export class SkillExecutorService {
     return value && typeof value === 'object' && !Array.isArray(value)
       ? (value as Record<string, unknown>)
       : undefined;
+  }
+
+  private getNumber(value: unknown): number | undefined {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value;
+    }
+
+    if (typeof value === 'string' && value.trim().length > 0) {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : undefined;
+    }
+
+    return undefined;
   }
 
   private getDate(value: unknown): Date | undefined {

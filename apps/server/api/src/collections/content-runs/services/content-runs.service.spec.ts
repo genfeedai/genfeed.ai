@@ -147,6 +147,128 @@ describe('ContentRunsService', () => {
     });
   });
 
+  it('creates a research brief run with source evidence preserved', async () => {
+    contentRun.create.mockResolvedValue(
+      makeRun({
+        config: {
+          brief: {
+            angle: 'AI agents are getting embedded directly into workflows',
+            audience: 'founders',
+            callToAction: 'Try the workflow template',
+            channelFit: 'Works as a concise X thread',
+            confidence: 0.84,
+            evidence: [
+              'AI agents are getting embedded directly into content workflows.',
+              'Creator: @builderx',
+              'Source: https://x.com/builderx/status/1',
+              'Matched trends: #AIAgents',
+            ],
+            hypothesis:
+              'Operational AI agent examples will outperform generic AI claims',
+            risk: 'Avoid implying autonomous publishing without review',
+            sourceId: 'source-ref-1',
+            sourceUrl: 'https://x.com/builderx/status/1',
+          },
+          creditsUsed: 0,
+          handoffType: 'research-to-brief',
+          input: {
+            handoffType: 'research-to-brief',
+            platform: 'twitter',
+            trendId: 'trend-1',
+            trendTopic: '#AIAgents',
+          },
+          publish: {
+            metadata: {
+              sourceReferenceId: 'source-ref-1',
+              sourceUrl: 'https://x.com/builderx/status/1',
+              trendId: 'trend-1',
+              trendTopic: '#AIAgents',
+            },
+            platform: 'twitter',
+          },
+          skillSlug: 'trend-remix',
+          source: ContentRunSource.HOSTED,
+        },
+      }),
+    );
+
+    const result = await service.createBriefRun('org-1', 'brand-1', {
+      authorHandle: 'builderx',
+      audience: 'founders',
+      callToAction: 'Try the workflow template',
+      channelFit: 'Works as a concise X thread',
+      confidence: 0.84,
+      evidence: [
+        'AI agents are getting embedded directly into content workflows.',
+      ],
+      hypothesis:
+        'Operational AI agent examples will outperform generic AI claims',
+      matchedTrends: ['#AIAgents'],
+      platform: 'twitter',
+      risk: 'Avoid implying autonomous publishing without review',
+      sourceReferenceId: 'source-ref-1',
+      sourceUrl: 'https://x.com/builderx/status/1',
+      text: 'AI agents are getting embedded directly into content workflows.',
+      title: 'AI agents are getting embedded directly into workflows',
+      trendId: 'trend-1',
+      trendTopic: '#AIAgents',
+    });
+
+    expect(contentRun.create).toHaveBeenCalledWith({
+      data: {
+        brandId: 'brand-1',
+        config: expect.objectContaining({
+          brief: expect.objectContaining({
+            audience: 'founders',
+            callToAction: 'Try the workflow template',
+            channelFit: 'Works as a concise X thread',
+            confidence: 0.84,
+            evidence: expect.arrayContaining([
+              'AI agents are getting embedded directly into content workflows.',
+              'Creator: @builderx',
+              'Source: https://x.com/builderx/status/1',
+              'Matched trends: #AIAgents',
+            ]),
+            hypothesis:
+              'Operational AI agent examples will outperform generic AI claims',
+            risk: 'Avoid implying autonomous publishing without review',
+            sourceId: 'source-ref-1',
+            sourceUrl: 'https://x.com/builderx/status/1',
+          }),
+          input: expect.objectContaining({
+            handoffType: 'research-to-brief',
+            platform: 'twitter',
+            trendId: 'trend-1',
+          }),
+          publish: expect.objectContaining({
+            metadata: expect.objectContaining({
+              sourceReferenceId: 'source-ref-1',
+              sourceUrl: 'https://x.com/builderx/status/1',
+              trendId: 'trend-1',
+            }),
+            platform: 'twitter',
+          }),
+          skillSlug: 'trend-remix',
+        }),
+        isDeleted: false,
+        organizationId: 'org-1',
+        status: ContentRunStatus.PENDING,
+      },
+    });
+    expect(result).toMatchObject({
+      _id: 'run-1',
+      brief: expect.objectContaining({
+        evidence: expect.arrayContaining([
+          'AI agents are getting embedded directly into content workflows.',
+        ]),
+        sourceUrl: 'https://x.com/builderx/status/1',
+      }),
+      organization: 'org-1',
+      skillSlug: 'trend-remix',
+      status: ContentRunStatus.PENDING,
+    });
+  });
+
   it('patches a run by merging lifecycle fields into existing config', async () => {
     const patch: UpdateContentRunInput = {
       analyticsSummary: {

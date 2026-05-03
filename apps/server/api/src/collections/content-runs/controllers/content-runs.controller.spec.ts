@@ -21,6 +21,7 @@ describe('ContentRunsController', () => {
   let controller: ContentRunsController;
 
   const mockService = {
+    createBriefRun: vi.fn(),
     getRunById: vi.fn(),
     listByBrand: vi.fn(),
   };
@@ -179,6 +180,32 @@ describe('ContentRunsController', () => {
       await expect(
         controller.getRun(mockReq, 'run-1', mockUser),
       ).rejects.toThrow('DB error');
+    });
+  });
+
+  describe('createBriefRun', () => {
+    it('creates a research brief run scoped to org and brand', async () => {
+      const body = {
+        evidence: ['Source text'],
+        platform: 'twitter',
+        sourceUrl: 'https://x.com/builderx/status/1',
+        title: 'AI agents in workflows',
+        trendId: 'trend-1',
+        trendTopic: '#AIAgents',
+      };
+      mockService.createBriefRun.mockResolvedValue({
+        _id: 'run-1',
+        brief: { evidence: ['Source text'] },
+        status: ContentRunStatus.PENDING,
+      });
+
+      await controller.createBriefRun(mockReq, 'brand-1', mockUser, body);
+
+      expect(mockService.createBriefRun).toHaveBeenCalledWith(
+        'org-1',
+        'brand-1',
+        body,
+      );
     });
   });
 });

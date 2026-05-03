@@ -1,14 +1,17 @@
 'use client';
 
+import { useBrandId } from '@contexts/user/brand-context/brand-context';
 import { ButtonVariant } from '@genfeedai/enums';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
+import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type {
   TrendContentItem,
   TrendItem,
   TrendSourceItem,
 } from '@props/trends/trends-page.props';
+import { ContentRunsService } from '@services/content/content-runs.service';
 import { ClipboardService } from '@services/core/clipboard.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -21,10 +24,11 @@ import {
   buildTrendSourceTwitterDraftHref,
 } from '@utils/url/desktop-loop-url.util';
 import { useRouter } from 'next/navigation';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   HiArrowTopRightOnSquare,
   HiBolt,
+  HiOutlineClipboardDocumentList,
   HiOutlineDocumentDuplicate,
   HiOutlineFilm,
   HiOutlineSparkles,
@@ -82,11 +86,16 @@ function toSourceItem(item: TrendContentItem): TrendSourceItem {
 }
 
 export default function TrendContentCard({ item }: { item: TrendContentItem }) {
+  const brandId = useBrandId();
   const router = useRouter();
+  const [isSavingBrief, setIsSavingBrief] = useState(false);
   const clipboardService = useMemo(() => ClipboardService.getInstance(), []);
   const notificationsService = useMemo(
     () => NotificationsService.getInstance(),
     [],
+  );
+  const getContentRunsService = useAuthedService((token: string) =>
+    ContentRunsService.getInstance(token),
   );
 
   const trend = useMemo(() => toTrendItem(item), [item]);
@@ -124,6 +133,53 @@ export default function TrendContentCard({ item }: { item: TrendContentItem }) {
 
     router.push(buildTrendSourceStudioHref(trend, sourceItem));
   }, [item.platform, router, sourceItem, trend]);
+
+  const handleSaveBrief = useCallback(async () => {
+    if (!brandId) {
+      notificationsService.error('Select a brand before saving a brief');
+      return;
+    }
+
+    try {
+      setIsSavingBrief(true);
+      const service = await getContentRunsService();
+      await service.createResearchBriefRun(brandId, {
+        angle: previewTitle,
+        channelFit: `${item.platform} ${item.contentType} with ${item.trendViralityScore} virality score`,
+        contentType: item.contentType,
+        evidence: [
+          previewTitle,
+          previewText,
+          item.authorHandle ? `Creator: @${item.authorHandle}` : undefined,
+          item.sourceUrl ? `Source: ${item.sourceUrl}` : undefined,
+        ].filter((value): value is string => Boolean(value)),
+        hypothesis: `Remix ${item.trendTopic} into a brand-fit ${item.platform} execution.`,
+        matchedTrends: item.matchedTrends,
+        metrics: item.metrics,
+        platform: item.platform,
+        sourceContentId: item.id,
+        sourceReferenceId: item.sourceReferenceId,
+        sourceUrl: item.sourceUrl,
+        text: item.text,
+        title: item.title,
+        trendId: item.trendId,
+        trendTopic: item.trendTopic,
+      });
+      notificationsService.success('Brief saved to Content Runs');
+    } catch (error) {
+      logger.error('Failed to save research brief', error);
+      notificationsService.error('Failed to save brief');
+    } finally {
+      setIsSavingBrief(false);
+    }
+  }, [
+    brandId,
+    getContentRunsService,
+    item,
+    notificationsService,
+    previewText,
+    previewTitle,
+  ]);
 
   return (
     <article className="overflow-hidden rounded-xl border border-white/[0.08] bg-background/80 transition-colors hover:border-white/[0.16]">
@@ -200,6 +256,17 @@ export default function TrendContentCard({ item }: { item: TrendContentItem }) {
             label="Remix"
             onClick={handleRemix}
             variant={ButtonVariant.SECONDARY}
+          />
+          <Button
+            icon={<HiOutlineClipboardDocumentList className="h-3.5 w-3.5" />}
+            isLoading={isSavingBrief}
+            label="Save Brief"
+            onClick={() => {
+              handleSaveBrief().catch(() => {
+                /* handled in callback */
+              });
+            }}
+            variant={ButtonVariant.GHOST}
           />
           <Button
             icon={<HiArrowTopRightOnSquare className="h-3.5 w-3.5" />}

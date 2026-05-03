@@ -2,9 +2,14 @@ export interface ContentRunBrief {
   angle?: string;
   audience?: string;
   callToAction?: string;
+  channelFit?: string;
+  confidence?: number;
   evidence?: string[];
   hypothesis?: string;
   notes?: string;
+  risk?: string;
+  sourceId?: string;
+  sourceUrl?: string;
 }
 
 export interface ContentRunVariant {
