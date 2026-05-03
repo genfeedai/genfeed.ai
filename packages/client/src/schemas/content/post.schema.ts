@@ -21,6 +21,16 @@ const platformItemSchema = z.object({
   status: z.string(),
 });
 
+const publishAttributionSchema = {
+  contentRunId: z.string().optional(),
+  creativeVersion: z.string().optional(),
+  hookVersion: z.string().optional(),
+  personaId: z.string().optional(),
+  publishIntent: z.string().optional(),
+  scheduleSlot: z.string().optional(),
+  variantId: z.string().optional(),
+};
+
 export const postSchema = z.object({
   credential: z.string().optional(),
   description: z.string().min(1, 'Description is required'),
@@ -28,6 +38,7 @@ export const postSchema = z.object({
   label: z.string().min(1, 'Label is required'),
   scheduledDate: z.string().min(1, 'Schedule date is required'),
   status: postStatusEnum.optional(),
+  ...publishAttributionSchema,
 });
 
 export type PostSchema = z.infer<typeof postSchema>;
@@ -51,6 +62,7 @@ export const postModalSchema = z.object({
   parent: z.string().optional(),
   scheduledDate: z.string().optional(),
   status: z.string().optional(),
+  ...publishAttributionSchema,
 });
 
 export type PostModalSchema = z.infer<typeof postModalSchema>;
@@ -60,6 +72,7 @@ export const postMetadataSchema = z.object({
   label: z.string().min(1, 'Title is required'),
   scheduledDate: z.string().min(1, 'Scheduled date is required'),
   status: z.string().optional(),
+  ...publishAttributionSchema,
 });
 
 export type PostMetadataSchema = z.infer<typeof postMetadataSchema>;
