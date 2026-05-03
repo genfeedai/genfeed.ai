@@ -63,7 +63,8 @@ export class PublicService extends HTTPBaseService {
       .get<JsonApiResponseDocument>(path, { params: query })
       .then((res) =>
         deserializeCollection<Partial<T>>(res.data).map((d) => new Model(d)),
-      );
+      )
+      .catch(() => []);
   }
 
   public async findPublicProfileBySlug(slug: string): Promise<Brand | null> {

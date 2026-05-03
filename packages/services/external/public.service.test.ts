@@ -49,6 +49,17 @@ describe('PublicService', () => {
     expect(typeof service.findPublicPosts).toBe('function');
   });
 
+  it('returns an empty public article list when the public API is unavailable', async () => {
+    const serviceWithMockedInstance = service as unknown as {
+      instance: { get: ReturnType<typeof vi.fn> };
+    };
+    serviceWithMockedInstance.instance.get.mockRejectedValueOnce(
+      new Error('API unavailable'),
+    );
+
+    await expect(service.findPublicArticles()).resolves.toEqual([]);
+  });
+
   it('has static getInstance method', () => {
     expect(typeof PublicService.getInstance).toBe('function');
   });
