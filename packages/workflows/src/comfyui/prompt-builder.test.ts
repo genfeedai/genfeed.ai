@@ -49,6 +49,13 @@ describe('buildZImageTurboPrompt', () => {
     expect(prompt['6'].inputs.sampler_name).toBe('euler_ancestral');
   });
 
+  it('wires KSampler to the split loader outputs', () => {
+    const ksampler = prompt['6'];
+    expect(ksampler.inputs.model).toEqual(['1', 0]);
+    expect(ksampler.inputs.positive).toEqual(['3', 0]);
+    expect(ksampler.inputs.negative).toEqual(['4', 0]);
+  });
+
   it('does not contain CheckpointLoaderSimple anywhere', () => {
     const classTypes = Object.values(prompt).map((n) => n.class_type);
     expect(classTypes).not.toContain('CheckpointLoaderSimple');
