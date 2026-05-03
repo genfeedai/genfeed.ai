@@ -1,37 +1,39 @@
-import { Callout } from 'nextra/components'
+import { Callout } from 'nextra/components';
 
 # Self-Hosted vs. Cloud
 
-Genfeed is available as an open-source core (self-hosted) and a fully managed cloud platform. This is the canonical comparison page -- other docs link here for the full breakdown.
+Genfeed is available as an open-source core (self-hosted) and a fully managed cloud platform. This page compares product capabilities. For the runtime and account-sync contract, see [Execution Boundaries](/core/execution-boundaries).
 
 ## Comparison
 
-| | Self-Hosted (Core) | Genfeed Cloud |
-|---|---|---|
-| **Setup** | You manage infrastructure | Instant -- sign up and start |
-| **Cost** | Your compute + API costs | Subscription (free tier available) |
-| **Image generation** | Yes | Yes |
-| **Video generation** | Yes | Yes |
-| **Text generation** | Yes | Yes |
-| **Audio / voice generation** | Yes | Yes |
-| **Brand kits** | Yes | Yes |
-| **Model selection** | Full control (any model) | Curated best models |
-| **Multi-tenancy** | No | Yes -- manage multiple brands |
-| **Publisher** | No | Yes -- auto-post to X, LinkedIn, Instagram, YouTube |
-| **Analytics** | No | Yes -- engagement, revenue per post |
-| **Team collaboration** | No | Yes -- roles, approvals, workspaces |
-| **Manager (templates, ingredients)** | No | Yes |
-| **Studio (full editor)** | No | Yes |
-| **Marketplace** | No | Yes -- workflows, prompts, presets, brand kits |
-| **API** | Yes (REST) | Yes (REST + SDK) |
-| **Webhooks** | Yes | Yes |
-| **NSFW content** | Yes (your models) | SFW only |
-| **Support** | Community (GitHub) | Priority support + SLA |
-| **Updates** | Manual (git pull) | Automatic |
-| **License** | AGPL-3.0 (enterprise features under commercial license in `ee/`) | Commercial |
+|                                      | Self-Hosted (Core)                                               | Genfeed Cloud                                       |
+| ------------------------------------ | ---------------------------------------------------------------- | --------------------------------------------------- |
+| **Setup**                            | You manage infrastructure                                        | Instant -- sign up and start                        |
+| **Cost**                             | Your compute + API costs                                         | Subscription (free tier available)                  |
+| **Managed inference credits**        | Optional, through explicit Cloud API key                         | Yes                                                 |
+| **Image generation**                 | Yes                                                              | Yes                                                 |
+| **Video generation**                 | Yes                                                              | Yes                                                 |
+| **Text generation**                  | Yes                                                              | Yes                                                 |
+| **Audio / voice generation**         | Yes                                                              | Yes                                                 |
+| **Brand kits**                       | Yes                                                              | Yes                                                 |
+| **Model selection**                  | Full control (any model)                                         | Curated best models                                 |
+| **Multi-tenancy**                    | No                                                               | Yes -- manage multiple brands                       |
+| **Publisher**                        | No                                                               | Yes -- auto-post to X, LinkedIn, Instagram, YouTube |
+| **Analytics**                        | No                                                               | Yes -- engagement, revenue per post                 |
+| **Team collaboration**               | No                                                               | Yes -- roles, approvals, workspaces                 |
+| **Manager (templates, ingredients)** | No                                                               | Yes                                                 |
+| **Studio (full editor)**             | No                                                               | Yes                                                 |
+| **Marketplace**                      | No                                                               | Yes -- workflows, prompts, presets, brand kits      |
+| **API**                              | Yes (REST)                                                       | Yes (REST + SDK)                                    |
+| **Webhooks**                         | Yes                                                              | Yes                                                 |
+| **NSFW content**                     | Yes (your models)                                                | SFW only                                            |
+| **Support**                          | Community (GitHub)                                               | Priority support + SLA                              |
+| **Updates**                          | Manual (git pull)                                                | Automatic                                           |
+| **License**                          | AGPL-3.0 (enterprise features under commercial license in `ee/`) | Commercial                                          |
 
 <Callout type="info">
-**Marketplace** -- [marketplace.genfeed.ai](https://marketplace.genfeed.ai) is a separate cloud product where creators buy and sell workflows, prompts, presets, and brand kits. It is not available in the self-hosted edition.
+  **Marketplace** -- [marketplace.genfeed.ai](https://marketplace.genfeed.ai) is a separate cloud product where creators
+  buy and sell workflows, prompts, presets, and brand kits. It is not available in the self-hosted edition.
 </Callout>
 
 ## When to Self-Host
@@ -58,26 +60,32 @@ Genfeed Cloud is right for you if:
 ## Cost Comparison
 
 ### Self-Hosted
+
 - **Infrastructure:** $20-100/month (VPS or cloud server)
 - **AI API costs:** Variable (Replicate ~$0.003-0.05/image, fal.ai similar)
 - **Your time:** Setup, maintenance, updates, monitoring
 
 ### Cloud
+
 - **Subscription:** Free tier available, paid plans from $29/month
 - **Per-use pricing:** Images and video billed per asset
 - **Your time:** Zero infrastructure management
 
 <Callout type="info">
-**The math:** If you generate fewer than 500 images/month, Cloud is more cost-effective when you factor in infrastructure and maintenance time. Above 500/month, self-hosting saves money -- but you lose Publisher, Analytics, and multi-tenancy.
+  **The math:** If you generate fewer than 500 images/month, Cloud is more cost-effective when you factor in
+  infrastructure and maintenance time. Above 500/month, self-hosting saves money -- but you lose Publisher, Analytics,
+  and multi-tenancy.
 </Callout>
 
 ## Migration Path
 
 Start with either option -- migration is straightforward:
 
-**Core to Cloud:** Export your brand kits and templates, import into Cloud. Your content and settings transfer.
+**Core to Cloud:** Export your brand kits and templates, import into Cloud. Until a dedicated sync feature exists, this is an explicit migration step rather than automatic replication.
 
 **Cloud to Core:** Export your configuration. Self-host with the same brand kits and generation settings.
+
+Cloud signup handoff from Core may preserve onboarding intent, such as brand name and domain, but it does not sync local records into Cloud automatically.
 
 ## Get Started
 
