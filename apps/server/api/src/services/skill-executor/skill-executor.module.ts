@@ -2,6 +2,7 @@ import { ContentIntelligenceModule } from '@api/collections/content-intelligence
 import { ContentRunsModule } from '@api/collections/content-runs/content-runs.module';
 import { SkillsModule } from '@api/collections/skills/skills.module';
 import { TrendsModule } from '@api/collections/trends/trends.module';
+import { ManagedInferenceModule } from '@api/endpoints/v1/managed-inference/managed-inference.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { FalModule } from '@api/services/integrations/fal/fal.module';
 import { LeonardoAIModule } from '@api/services/integrations/leonardoai/leonardoai.module';
@@ -19,6 +20,7 @@ import { Module } from '@nestjs/common';
     ByokModule,
     ContentIntelligenceModule,
     ContentRunsModule,
+    ManagedInferenceModule,
     SkillsModule,
     FalModule,
     LeonardoAIModule,

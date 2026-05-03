@@ -26,6 +26,8 @@ export interface IEnvConfig {
 
   // === Internal Auth ===
   GENFEEDAI_API_KEY?: string;
+  GENFEED_API_KEY?: string;
+  GENFEED_MANAGED_INFERENCE_URL?: string;
   TOKEN_ENCRYPTION_KEY?: string;
   BULL_BOARD_AUTH_TOKEN?: string;
 

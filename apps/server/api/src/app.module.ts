@@ -120,6 +120,7 @@ import { OnboardingModule } from '@api/endpoints/onboarding/onboarding.module';
 import { PublicModule } from '@api/endpoints/public/public.module';
 import { SystemModule } from '@api/endpoints/system/system.module';
 import { HookRemixModule } from '@api/endpoints/v1/hook-remix/hook-remix.module';
+import { ManagedInferenceModule } from '@api/endpoints/v1/managed-inference/managed-inference.module';
 import { WebhooksModule } from '@api/endpoints/webhooks/webhooks.module';
 import { FeatureFlagModule } from '@api/feature-flag/feature-flag.module';
 import { ApiKeyAuthGuard } from '@api/helpers/guards/api-key/api-key.guard';
@@ -349,6 +350,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
     // Onboarding
     OnboardingModule,
     MediumModule,
+    ManagedInferenceModule,
     MicroservicesModule,
     ModelRouterModule,
     NotificationsModule,

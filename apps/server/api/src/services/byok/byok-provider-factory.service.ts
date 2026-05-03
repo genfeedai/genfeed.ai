@@ -1,11 +1,15 @@
+import { ConfigService } from '@api/config/config.service';
 import { ByokService } from '@api/services/byok/byok.service';
 import { ByokProvider } from '@genfeedai/enums';
 import type { ByokResolutionResult } from '@genfeedai/interfaces';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 
 @Injectable()
 export class ByokProviderFactoryService {
-  constructor(private readonly byokService: ByokService) {}
+  constructor(
+    private readonly byokService: ByokService,
+    @Optional() private readonly configService?: ConfigService,
+  ) {}
 
   async resolveProvider(
     organizationId: string,
@@ -30,6 +34,18 @@ export class ByokProviderFactoryService {
       };
     }
 
+    const managedApiKey = this.configService?.get('GENFEED_API_KEY');
+
+    if (managedApiKey) {
+      return {
+        apiKey: managedApiKey,
+        managedInferenceUrl:
+          this.configService?.get('GENFEED_MANAGED_INFERENCE_URL') ||
+          this.buildDefaultManagedInferenceUrl(),
+        source: 'managed',
+      };
+    }
+
     return { source: 'hosted' };
   }
 
@@ -40,5 +56,14 @@ export class ByokProviderFactoryService {
     const result = await this.resolveProvider(organizationId, provider, false);
 
     return result.source === 'hosted' || Boolean(result.apiKey);
+  }
+
+  private buildDefaultManagedInferenceUrl(): string | undefined {
+    const apiUrl = this.configService?.get('GENFEEDAI_API_URL');
+    if (!apiUrl) {
+      return undefined;
+    }
+
+    return `${apiUrl.replace(/\/+$/, '')}/v1/managed-inference`;
   }
 }

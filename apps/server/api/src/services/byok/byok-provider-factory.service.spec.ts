@@ -1,3 +1,4 @@
+import { ConfigService } from '@api/config/config.service';
 import { ByokService } from '@api/services/byok/byok.service';
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
 import { ByokProvider } from '@genfeedai/enums';
@@ -10,10 +11,17 @@ describe('ByokProviderFactoryService', () => {
     resolveApiKey: vi.fn(),
   } as unknown as ByokService;
 
+  const mockConfigService = {
+    get: vi.fn(),
+  } as unknown as ConfigService;
+
   beforeEach(() => {
     vi.clearAllMocks();
 
-    service = new ByokProviderFactoryService(mockByokService);
+    service = new ByokProviderFactoryService(
+      mockByokService,
+      mockConfigService,
+    );
   });
 
   it('returns BYOK source and apiKey when key is configured', async () => {
@@ -35,11 +43,46 @@ describe('ByokProviderFactoryService', () => {
 
   it('falls back to hosted source when BYOK key is missing', async () => {
     vi.mocked(mockByokService.resolveApiKey).mockResolvedValue(undefined);
+    vi.mocked(mockConfigService.get).mockReturnValue(undefined);
 
     const result = await service.resolveProvider('org-1', ByokProvider.OPENAI);
 
     expect(result.source).toBe('hosted');
     expect(result.apiKey).toBeUndefined();
+  });
+
+  it('falls back to managed source when BYOK is missing and GENFEED_API_KEY is configured', async () => {
+    vi.mocked(mockByokService.resolveApiKey).mockResolvedValue(undefined);
+    vi.mocked(mockConfigService.get).mockImplementation((key: string) => {
+      if (key === 'GENFEED_API_KEY') return 'gf_live_managed';
+      if (key === 'GENFEED_MANAGED_INFERENCE_URL') return '';
+      if (key === 'GENFEEDAI_API_URL') return 'https://api.genfeed.ai';
+      return undefined;
+    });
+
+    const result = await service.resolveProvider('org-1', ByokProvider.FAL);
+
+    expect(result).toEqual({
+      apiKey: 'gf_live_managed',
+      managedInferenceUrl: 'https://api.genfeed.ai/v1/managed-inference',
+      source: 'managed',
+    });
+    expect(mockByokService.incrementUsage).not.toHaveBeenCalled();
+  });
+
+  it('uses explicit managed inference URL when configured', async () => {
+    vi.mocked(mockByokService.resolveApiKey).mockResolvedValue(undefined);
+    vi.mocked(mockConfigService.get).mockImplementation((key: string) => {
+      if (key === 'GENFEED_API_KEY') return 'gf_live_managed';
+      if (key === 'GENFEED_MANAGED_INFERENCE_URL') {
+        return 'https://edge.test/managed';
+      }
+      return undefined;
+    });
+
+    const result = await service.resolveProvider('org-1', ByokProvider.FAL);
+
+    expect(result.managedInferenceUrl).toBe('https://edge.test/managed');
   });
 
   it('tracks usage when BYOK key is found and trackUsage is true', async () => {

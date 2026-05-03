@@ -28,6 +28,10 @@ describe('ContentSkill enums', () => {
   });
 
   it('defines content run sources', () => {
-    expect(Object.values(ContentRunSource)).toEqual(['byok', 'hosted']);
+    expect(Object.values(ContentRunSource)).toEqual([
+      'byok',
+      'hosted',
+      'managed',
+    ]);
   });
 });

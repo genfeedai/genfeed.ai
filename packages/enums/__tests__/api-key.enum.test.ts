@@ -17,8 +17,8 @@ describe('api-key.enum', () => {
   });
 
   describe('ApiKeyScope', () => {
-    it('should have 20 members', () => {
-      expect(Object.values(ApiKeyScope)).toHaveLength(20);
+    it('should have 21 members', () => {
+      expect(Object.values(ApiKeyScope)).toHaveLength(21);
     });
 
     it('should have correct values', () => {
@@ -39,6 +39,9 @@ describe('api-key.enum', () => {
       expect(ApiKeyScope.BRANDS_READ).toBe('brands:read');
       expect(ApiKeyScope.CREDITS_READ).toBe('credits:read');
       expect(ApiKeyScope.CREDITS_PROVISION).toBe('credits:provision');
+      expect(ApiKeyScope.MANAGED_INFERENCE_EXECUTE).toBe(
+        'managed-inference:execute',
+      );
       expect(ApiKeyScope.POSTS_CREATE).toBe('posts:create');
       expect(ApiKeyScope.ANALYTICS_READ).toBe('analytics:read');
       expect(ApiKeyScope.ADMIN).toBe('admin');

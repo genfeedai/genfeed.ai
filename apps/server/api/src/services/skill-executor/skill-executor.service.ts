@@ -102,7 +102,7 @@ export class SkillExecutorService {
       );
     }
 
-    let source: 'byok' | 'hosted' = 'hosted';
+    let source: 'byok' | 'hosted' | 'managed' = 'hosted';
 
     const requiredProviders = (skill.requiredProviders ?? []).filter(
       (provider): provider is ByokProvider =>
@@ -128,8 +128,7 @@ export class SkillExecutorService {
           duration,
           output: draft as unknown as Record<string, unknown>,
           variants: this.buildRunVariants(draft, String(run._id)),
-          source:
-            source === 'byok' ? ContentRunSource.BYOK : ContentRunSource.HOSTED,
+          source: this.toContentRunSource(source),
           status: ContentRunStatus.COMPLETED,
         },
       );
@@ -152,8 +151,7 @@ export class SkillExecutorService {
             error instanceof Error
               ? error.message
               : 'Unknown skill execution error',
-          source:
-            source === 'byok' ? ContentRunSource.BYOK : ContentRunSource.HOSTED,
+          source: this.toContentRunSource(source),
           status: ContentRunStatus.FAILED,
         },
       );
@@ -256,6 +254,20 @@ export class SkillExecutorService {
     )
       ? brief
       : undefined;
+  }
+
+  private toContentRunSource(
+    source: 'byok' | 'hosted' | 'managed',
+  ): ContentRunSource {
+    if (source === 'byok') {
+      return ContentRunSource.BYOK;
+    }
+
+    if (source === 'managed') {
+      return ContentRunSource.MANAGED;
+    }
+
+    return ContentRunSource.HOSTED;
   }
 
   private buildRunPublishContext(
