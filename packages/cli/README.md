@@ -1,7 +1,7 @@
 # @genfeedai/cli
 
 [![npm version](https://img.shields.io/npm/v/@genfeedai/cli.svg)](https://www.npmjs.com/package/@genfeedai/cli)
-[![CI](https://github.com/genfeedai/cli/actions/workflows/ci.yml/badge.svg)](https://github.com/genfeedai/cli/actions/workflows/ci.yml)
+[![CI](https://github.com/genfeedai/genfeed.ai/actions/workflows/ci.yml/badge.svg)](https://github.com/genfeedai/genfeed.ai/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ```
@@ -17,14 +17,35 @@ CLI tool for [Genfeed.ai](https://genfeed.ai) - Generate, schedule, analyze, and
 
 ## Last Verified
 
-- **Date:** 2026-03-04
-- **Implemented state source:** local `cli/` commands and package metadata
+- **Date:** 2026-05-03
+- **Implemented state source:** local `packages/cli/` commands and package metadata
 - **Delivery state source:** GitHub issues/project metadata
 
 ## Dual-State Note
 
 - **Implemented state:** command behavior documented here should match `src/commands/*`.
 - **Delivery state:** roadmap/priority comes from GitHub Issues/Projects, not this README.
+
+## Monorepo Location
+
+The CLI lives in `packages/cli` inside the `genfeedai/genfeed.ai` monorepo. It is part of the root `packages/*` workspace and uses the same Turbo build, lint, test, and type-check flow as the other shared packages.
+
+Root-level commands:
+
+```bash
+bun run build:cli
+bun run test:cli
+bun run type-check:cli
+bun run dev:cli -- --help
+```
+
+Package-level commands:
+
+```bash
+bun run --cwd packages/cli build
+bun run --cwd packages/cli test
+bun run --cwd packages/cli type-check
+```
 
 ## Requirements
 
