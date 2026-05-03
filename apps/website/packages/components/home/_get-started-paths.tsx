@@ -29,14 +29,15 @@ const paths = [
     features: [
       'No infrastructure to manage',
       'Automatic updates & scaling',
-      'Premium AI models (auto-selected)',
-      '30 videos + 500 images/month',
-      'Priority support & API access',
+      '$8/month platform access',
+      'Pay-as-you-go output',
+      'Premium AI models',
+      'Upgrade to Cloud for teams and brands',
     ],
     highlight: true,
     icon: HiCloud,
-    subtitle: 'Starting at $499/month',
-    title: 'Managed Cloud',
+    subtitle: '$8/mo + PAYG output',
+    title: 'Hosted',
   },
 ];
 
@@ -60,8 +61,8 @@ export default function HomeGetStartedPaths() {
               as="p"
               className="text-lg text-foreground/70 max-w-2xl mx-auto"
             >
-              Self-host for complete control or use our managed cloud for
-              hassle-free content generation.
+              Self-host for complete control or use our managed cloud for hosted
+              access and team collaboration.
             </Text>
           </VStack>
 

@@ -7,7 +7,7 @@ export const generateMetadata = createPageMetadataWithCanonical(
   'Pricing',
   isPreLaunch
     ? 'AI content services — managed Studio access or Done-For-You content creation.'
-    : 'Simple pricing that scales with you. Free self-hosted or managed cloud plans from $499/mo.',
+    : 'Free self-hosted Core, hosted access from $8/mo plus PAYG output, and B2B Cloud for teams.',
   '/pricing',
 );
 
@@ -53,7 +53,7 @@ const saasJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'WebPage',
   description:
-    'AI content generation pricing. Self-host free or subscribe to managed cloud plans.',
+    'AI content generation pricing. Self-host Core free, use Hosted from $8/month plus PAYG output, or choose Cloud for B2B collaboration.',
   mainEntity: {
     '@type': 'Product',
     brand: { '@type': 'Organization', name: 'Genfeed' },
@@ -73,9 +73,9 @@ const saasJsonLd = {
       {
         '@type': 'Offer',
         description:
-          'Managed cloud plan for creators and small agencies. 500 images, 5 min video, 60 min voice per month.',
-        name: 'Pro',
-        price: '499',
+          'Managed hosted access for creators and founders. Platform access is billed monthly, with output billed as pay-as-you-go usage.',
+        name: 'Hosted',
+        price: '8',
         priceCurrency: 'USD',
         priceSpecification: {
           '@type': 'UnitPriceSpecification',
@@ -86,9 +86,9 @@ const saasJsonLd = {
       {
         '@type': 'Offer',
         description:
-          'Managed cloud plan for agencies managing multiple brands. 2,000 images, 15 min video, 200 min voice per month.',
-        name: 'Scale',
-        price: '1499',
+          'B2B cloud for agencies and teams managing multiple organizations and brands.',
+        name: 'Cloud Teams',
+        price: '499',
         priceCurrency: 'USD',
         priceSpecification: {
           '@type': 'UnitPriceSpecification',

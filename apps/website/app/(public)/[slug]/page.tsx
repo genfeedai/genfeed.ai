@@ -83,7 +83,7 @@ export default async function ProductPageRoute({
     offers: {
       '@type': 'AggregateOffer',
       description: product.pricing.why,
-      highPrice: '4999',
+      highPrice: '499',
       lowPrice: '0',
       offerCount: 4,
       priceCurrency: 'USD',

@@ -71,7 +71,7 @@ export default async function IntegrationPage({
     name: `Genfeed for ${integration.name}`,
     offers: {
       '@type': 'AggregateOffer',
-      highPrice: '4999',
+      highPrice: '499',
       lowPrice: '0',
       offerCount: 4,
       priceCurrency: 'USD',

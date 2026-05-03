@@ -163,14 +163,14 @@ export const EnvironmentService = {
   github: {
     core:
       process.env.NEXT_PUBLIC_GITHUB_CORE ||
-      'https://github.com/genfeedai/core',
+      'https://github.com/genfeedai/genfeed.ai',
     issues:
       process.env.NEXT_PUBLIC_GITHUB_ISSUES ||
-      'https://github.com/genfeedai/core/issues',
+      'https://github.com/genfeedai/genfeed.ai/issues',
     org: process.env.NEXT_PUBLIC_GITHUB_ORG || 'https://github.com/genfeedai',
     prs:
       process.env.NEXT_PUBLIC_GITHUB_PRS ||
-      'https://github.com/genfeedai/core/pulls',
+      'https://github.com/genfeedai/genfeed.ai/pulls',
   },
 
   get ingredientsEndpoint(): string {
@@ -210,16 +210,16 @@ export const EnvironmentService = {
 
   /**
    * Stripe price IDs for subscription tiers
-   * See: https://github.com/genfeedai/cloud/issues?q=is%3Aissue+pricing
+   * See: https://github.com/genfeedai/genfeed.ai/issues?q=is%3Aissue+pricing
    */
   plans: {
     enterprise:
-      process.env.NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY, // Enterprise $4,999/mo
+      process.env.NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY, // Enterprise custom
     // New output-based tiers (2026)
-    monthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY, // Pro $499/mo
+    monthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY, // Hosted $8/mo
     // PAYG one-time credits
     payg: process.env.NEXT_PUBLIC_STRIPE_PRICE_PAYG,
-    scale: process.env.NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY, // Scale $1,499/mo
+    scale: process.env.NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY, // Cloud Teams from $499/mo
     yearly: process.env.NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_PRO_YEARLY,
   },
 

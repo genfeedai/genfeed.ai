@@ -21,9 +21,9 @@ const CALENDLY_URL =
   process.env.NEXT_PUBLIC_CALENDLY_URL ||
   'https://calendly.com/vincent-genfeed/30min';
 
-const FEATURED_TIER = 'Scale';
+const FEATURED_TIER = 'Cloud Teams';
 
-// Show only cloud plans on homepage (Pro, Scale, Enterprise — skip Self-Hosted)
+// Show only managed offers on homepage — skip Self-Hosted.
 const homePlans = websitePlans.filter((p) => p.type !== 'byok');
 
 function formatPrice(price: number | null): string {
@@ -195,6 +195,27 @@ function SaaSPricingStrip() {
       {homePlans.map((plan) => {
         const featured = plan.label === FEATURED_TIER;
         const isEnterprise = plan.type === 'enterprise';
+        const priceQualifier =
+          plan.type === 'payg'
+            ? '/month + PAYG'
+            : isEnterprise
+              ? 'Custom pricing'
+              : '/month';
+        const summary =
+          plan.type === 'payg'
+            ? {
+                detail: 'Videos, images, and voice',
+                title: 'PAYG output',
+              }
+            : plan.label === 'Cloud Teams'
+              ? {
+                  detail: 'Multi-org and multi-brand',
+                  title: 'B2B collaboration',
+                }
+              : {
+                  detail: '',
+                  title: 'Custom terms',
+                };
 
         return (
           <Card
@@ -233,7 +254,7 @@ function SaaSPricingStrip() {
                     featured ? 'text-inv-fg/70' : 'text-surface/50',
                   )}
                 >
-                  {isEnterprise ? 'Custom pricing' : '/month'}
+                  {priceQualifier}
                 </Text>
               </VStack>
 
@@ -258,14 +279,26 @@ function SaaSPricingStrip() {
                   </Text>
                 </div>
               ) : (
-                <Text
-                  className={cn(
-                    'text-sm font-semibold',
-                    featured ? 'text-inv-fg/80' : 'text-surface/70',
-                  )}
-                >
-                  Unlimited everything
-                </Text>
+                <div className="space-y-1">
+                  <Text
+                    className={cn(
+                      'text-sm font-semibold',
+                      featured ? 'text-inv-fg/80' : 'text-surface/70',
+                    )}
+                  >
+                    {summary.title}
+                  </Text>
+                  {summary.detail ? (
+                    <Text
+                      className={cn(
+                        'text-xs',
+                        featured ? 'text-inv-fg/50' : 'text-surface/40',
+                      )}
+                    >
+                      {summary.detail}
+                    </Text>
+                  ) : null}
+                </div>
               )}
 
               <div

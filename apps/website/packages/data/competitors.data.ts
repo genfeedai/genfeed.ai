@@ -34,8 +34,8 @@ export const competitors: Competitor[] = [
       { competitor: false, feature: 'Automation Workflows', genfeed: true },
       {
         competitor: '$144-912',
-        feature: 'Price (per year)',
-        genfeed: '$499/mo',
+        feature: 'Entry price',
+        genfeed: '$8/mo + PAYG',
       },
     ],
     genfeedAdvantages: [
@@ -81,7 +81,11 @@ export const competitors: Competitor[] = [
       { competitor: false, feature: 'ROI Tracking', genfeed: true },
       { competitor: true, feature: 'Team Collaboration', genfeed: true },
       { competitor: false, feature: 'Automation Workflows', genfeed: true },
-      { competitor: '$120', feature: 'Price (per year)', genfeed: '$499/mo' },
+      {
+        competitor: '$120',
+        feature: 'Entry price',
+        genfeed: '$8/mo + PAYG',
+      },
     ],
     genfeedAdvantages: [
       'Advanced AI generation (video, voice, avatars)',
@@ -127,8 +131,8 @@ export const competitors: Competitor[] = [
       { competitor: false, feature: 'Automation Workflows', genfeed: true },
       {
         competitor: '$348-1548',
-        feature: 'Price (per year)',
-        genfeed: '$499/mo',
+        feature: 'Entry price',
+        genfeed: '$8/mo + PAYG',
       },
     ],
     genfeedAdvantages: [
@@ -176,8 +180,8 @@ export const competitors: Competitor[] = [
       { competitor: false, feature: 'Automation Workflows', genfeed: true },
       {
         competitor: '$588-1500',
-        feature: 'Price (per year)',
-        genfeed: '$499/mo',
+        feature: 'Entry price',
+        genfeed: '$8/mo + PAYG',
       },
     ],
     genfeedAdvantages: [
@@ -220,8 +224,8 @@ export const competitors: Competitor[] = [
       { competitor: false, feature: 'Automation Workflows', genfeed: true },
       {
         competitor: '$72-1440',
-        feature: 'Price (per year)',
-        genfeed: '$499/mo',
+        feature: 'Entry price',
+        genfeed: '$8/mo + PAYG',
       },
     ],
     genfeedAdvantages: [
@@ -273,8 +277,8 @@ export const competitors: Competitor[] = [
       { competitor: false, feature: 'Automation Workflows', genfeed: true },
       {
         competitor: '$144-288',
-        feature: 'Price (per year)',
-        genfeed: '$499/mo',
+        feature: 'Entry price',
+        genfeed: '$8/mo + PAYG',
       },
     ],
     genfeedAdvantages: [
@@ -321,8 +325,8 @@ export const competitors: Competitor[] = [
       { competitor: false, feature: 'Automation Workflows', genfeed: true },
       {
         competitor: '$264-708',
-        feature: 'Price (per year)',
-        genfeed: '$499/mo',
+        feature: 'Entry price',
+        genfeed: '$8/mo + PAYG',
       },
     ],
     genfeedAdvantages: [
@@ -371,8 +375,8 @@ export const competitors: Competitor[] = [
       { competitor: false, feature: 'Automation Workflows', genfeed: true },
       {
         competitor: '$288-576',
-        feature: 'Price (per year)',
-        genfeed: '$499/mo',
+        feature: 'Entry price',
+        genfeed: '$8/mo + PAYG',
       },
     ],
     genfeedAdvantages: [
@@ -425,8 +429,8 @@ export const competitors: Competitor[] = [
       { competitor: false, feature: 'Automation Workflows', genfeed: true },
       {
         competitor: '$228-468',
-        feature: 'Price (per year)',
-        genfeed: '$499/mo',
+        feature: 'Entry price',
+        genfeed: '$8/mo + PAYG',
       },
     ],
     genfeedAdvantages: [
@@ -474,8 +478,8 @@ export const competitors: Competitor[] = [
       { competitor: false, feature: 'Automation Workflows', genfeed: true },
       {
         competitor: '$180-360',
-        feature: 'Price (per year)',
-        genfeed: '$499/mo',
+        feature: 'Entry price',
+        genfeed: '$8/mo + PAYG',
       },
     ],
     genfeedAdvantages: [
@@ -528,8 +532,8 @@ export const competitors: Competitor[] = [
       { competitor: false, feature: 'Automation Workflows', genfeed: true },
       {
         competitor: '$348-1788',
-        feature: 'Price (per year)',
-        genfeed: '$499/mo',
+        feature: 'Entry price',
+        genfeed: '$8/mo + PAYG',
       },
     ],
     genfeedAdvantages: [
@@ -578,8 +582,8 @@ export const competitors: Competitor[] = [
       { competitor: false, feature: 'Automation Workflows', genfeed: true },
       {
         competitor: 'Free-$96',
-        feature: 'Price (per year)',
-        genfeed: '$499/mo',
+        feature: 'Entry price',
+        genfeed: '$8/mo + PAYG',
       },
     ],
     genfeedAdvantages: [

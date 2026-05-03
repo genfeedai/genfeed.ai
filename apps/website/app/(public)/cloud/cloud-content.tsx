@@ -36,28 +36,28 @@ import { LuArrowRight } from 'react-icons/lu';
 const BENEFITS = [
   {
     description:
-      'We handle servers, databases, updates, and security. You focus on creating content.',
+      'We handle servers, databases, updates, and security for teams that need shared workspaces.',
     icon: HiServerStack,
     shortLabel: 'Infra',
     title: 'Zero DevOps',
   },
   {
     description:
-      'SSO, audit logs, team management, and role-based access control included.',
+      'Teams, roles, organization boundaries, brand workspaces, and approval flows.',
     icon: HiShieldCheck,
-    shortLabel: 'Security',
-    title: 'Enterprise Features',
+    shortLabel: 'Teams',
+    title: 'Collaboration Layer',
   },
   {
     description:
-      'GPT-4, Claude, Gemini, and 10+ premium AI models ready to use out of the box.',
+      'Separate brands, clients, and organizations without turning every workspace into a one-off setup.',
     icon: HiSparkles,
-    shortLabel: 'Models',
-    title: 'Premium AI Models',
+    shortLabel: 'Brands',
+    title: 'Multi-Brand Ops',
   },
   {
     description:
-      'Dedicated support team, 99.9% uptime SLA, and priority issue resolution.',
+      'Priority support, managed billing, and uptime expectations for production teams.',
     icon: HiLifebuoy,
     shortLabel: 'Support',
     title: 'Priority Support',
@@ -71,29 +71,33 @@ interface ComparisonRow {
 }
 
 const COMPARISON_DATA: ComparisonRow[] = [
-  { cloud: '10+ included', core: 'Bring your own', feature: 'AI Models' },
+  { cloud: 'Managed PAYG', core: 'Bring your own', feature: 'AI Models' },
   { cloud: 'Fully managed', core: 'Self-managed', feature: 'Infrastructure' },
-  { cloud: 'Dedicated team', core: 'Community', feature: 'Support' },
-  { cloud: true, core: false, feature: 'SSO / SAML' },
-  { cloud: true, core: false, feature: 'Audit Logs' },
+  { cloud: 'Priority support', core: 'Community', feature: 'Support' },
+  { cloud: true, core: false, feature: 'Team roles' },
+  { cloud: true, core: false, feature: 'Multi-org accounts' },
+  { cloud: true, core: false, feature: 'Multi-brand workspaces' },
+  { cloud: true, core: false, feature: 'Shared approvals' },
   { cloud: 'Automatic', core: 'Manual', feature: 'Updates' },
-  { cloud: '99.9% SLA', core: 'Self-managed', feature: 'Uptime' },
+  { cloud: 'Managed', core: 'Self-managed', feature: 'Uptime' },
   { cloud: true, core: true, feature: 'API Access' },
-  { cloud: true, core: true, feature: 'White-Label' },
 ];
 
 const TEAMS = [
   {
-    description: 'Create and publish content without technical overhead.',
+    description:
+      'Create, review, and publish content across shared workspaces.',
     title: 'Marketing Teams',
   },
   {
-    description: 'Manage multiple clients with team workspaces.',
+    description:
+      'Manage clients, organizations, brands, and approvals in one managed environment.',
     title: 'Content Agencies',
   },
   {
-    description: 'Scale content production as you grow.',
-    title: 'Startups',
+    description:
+      'Keep multiple brand systems separate while centralizing billing and operations.',
+    title: 'Multi-Brand Operators',
   },
 ];
 
@@ -202,7 +206,8 @@ export default function CloudContent() {
               </span>
             </div>
             <p className="text-surface/50 max-w-xl mx-auto">
-              Perfect for SMBs, agencies, and startups
+              Built for agencies, marketing teams, and operators managing
+              multiple brands or organizations
             </p>
           </div>
 
@@ -270,7 +275,7 @@ export default function CloudContent() {
         {/* Pricing CTA */}
         <CtaSection
           title="Ready to Get Started?"
-          description="Start with Core for free or choose a managed plan. Upgrade when you need more power."
+          description="Start with Core for free, use Hosted for individual managed access, and move to Cloud when collaboration is the bottleneck."
         >
           <Button size={ButtonSize.PUBLIC} asChild>
             <Link href="/pricing">

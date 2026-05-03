@@ -36,8 +36,8 @@ export const useCases: UseCase[] = [
       'No control over messaging or personality',
     ],
     pricing: {
-      recommended: 'Pro',
-      why: '$499/month = AI avatar generation, voice cloning, automated content pipeline, and multi-platform publishing.',
+      recommended: 'Hosted',
+      why: '$8/month platform access plus PAYG output covers managed avatar generation, voice, automation, and publishing.',
     },
     results: [
       'Cost per influencer drops from $10K/mo to $99/mo',
@@ -99,8 +99,8 @@ export const useCases: UseCase[] = [
       "Expensive tools that don't talk to each other",
     ],
     pricing: {
-      recommended: 'Pro',
-      why: '$499/month = 30 AI videos + 500 images. Perfect for creators posting daily.',
+      recommended: 'Hosted',
+      why: '$8/month platform access plus PAYG output is the entry managed path for creators posting daily.',
     },
     results: [
       '10x content output (3 posts/week → 30 posts/week)',
@@ -165,8 +165,8 @@ export const useCases: UseCase[] = [
       'High tool costs eating into margins',
     ],
     pricing: {
-      recommended: 'Scale',
-      why: '$1,499/month includes 100 videos, 10 team seats, 5 brand kits. Perfect for agencies managing 5-15 clients.',
+      recommended: 'Cloud Teams',
+      why: 'Cloud Teams adds collaboration, team roles, and multi-brand workspaces for agencies managing 5-15 clients.',
     },
     results: [
       'Manage 3x more clients with same team',
@@ -231,8 +231,8 @@ export const useCases: UseCase[] = [
       'Seasonal content takes weeks to produce',
     ],
     pricing: {
-      recommended: 'Scale',
-      why: '$1,499/month includes 100 product videos, bulk generation, and purchase attribution tracking.',
+      recommended: 'Cloud Teams',
+      why: 'Cloud Teams adds managed billing, brand workspaces, bulk generation workflows, and purchase attribution tracking.',
     },
     results: [
       'Cut product content costs by 80%',
@@ -297,8 +297,8 @@ export const useCases: UseCase[] = [
       'Marketing attribution is a black box',
     ],
     pricing: {
-      recommended: 'Scale',
-      why: '$1,499/month includes 100 videos, advanced analytics, and API access. Perfect for marketing teams running multi-channel campaigns.',
+      recommended: 'Cloud Teams',
+      why: 'Cloud Teams adds shared workspaces, advanced analytics, and production support for marketing teams running multi-channel campaigns.',
     },
     results: [
       'Cut content production costs by 70%',
@@ -363,8 +363,8 @@ export const useCases: UseCase[] = [
       'Overwhelmed by too many tools',
     ],
     pricing: {
-      recommended: 'Pro',
-      why: '$499/month = 30 AI videos + 500 images. Perfect for solo founders building in public.',
+      recommended: 'Hosted',
+      why: '$8/month platform access plus PAYG output is the entry managed path for solo founders building in public.',
     },
     results: [
       'Post 5x more without extra time',
@@ -378,7 +378,7 @@ export const useCases: UseCase[] = [
       'Automate posting schedule (set it and forget it)',
       'Track which content drives signups/revenue',
       'All-in-one platform (no tool switching)',
-      'Self-host free or use managed cloud ($499/month)',
+      'Self-host free or use Hosted ($8/month + PAYG output)',
     ],
     subtitle: 'Solopreneurs & Startup Founders',
     title: 'Genfeed for Founders',

@@ -37,7 +37,7 @@ const SAAS_FEATURES = [
   },
   {
     description:
-      'Built for agencies and teams. Roles, permissions, and shared workflows.',
+      'Built for agencies and teams. Organizations, brands, roles, and shared workflows.',
     icon: HiUserGroup,
     title: 'Team Collaboration',
   },
@@ -46,14 +46,15 @@ const SAAS_FEATURES = [
 const CORE_FEATURES = [
   'Full control, your infrastructure',
   'Bring your own API keys',
-  'MIT licensed, forever free',
+  'AGPL licensed, forever free',
   'Community support',
 ];
 
 const CLOUD_FEATURES = [
   'Everything in Core, plus:',
-  'Managed infrastructure',
-  'Team collaboration tools',
+  'Hosted access from $8/mo + PAYG',
+  'Cloud teams for multi-org collaboration',
+  'Multi-brand workflows',
   'Priority support & SLA',
 ];
 
@@ -154,7 +155,7 @@ export default function HomeSaaS() {
                 Cloud for <span className="font-light">Teams.</span>
               </>
             }
-            description="Full AI content creation platform, without the DevOps. Perfect for agencies, brands, and content teams."
+            description="Managed Genfeed for agencies, brands, and teams that need shared workspaces instead of a single-user hosted account."
           />
 
           {/* Features grid */}

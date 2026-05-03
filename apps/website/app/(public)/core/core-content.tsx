@@ -28,10 +28,10 @@ import {
 } from 'react-icons/lu';
 
 const TERMINAL_COMMANDS = [
-  { command: 'git clone https://github.com/genfeedai/core', prompt: '~' },
-  { command: 'cd core', prompt: '~' },
-  { command: 'docker compose up -d', prompt: '~/core' },
-  { command: '# Running on http://localhost:3000', prompt: '~/core' },
+  { command: 'git clone https://github.com/genfeedai/genfeed.ai', prompt: '~' },
+  { command: 'cd genfeed.ai', prompt: '~' },
+  { command: 'docker compose up -d', prompt: '~/genfeed.ai' },
+  { command: '# Running on http://localhost:3000', prompt: '~/genfeed.ai' },
 ] as const;
 
 function TerminalWindow(): React.ReactElement {

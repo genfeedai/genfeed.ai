@@ -109,7 +109,7 @@ export const products: Product[] = [
     ],
     name: 'Publisher',
     pricing: {
-      recommended: 'Scale',
+      recommended: 'Cloud Teams',
       why: 'Includes unlimited scheduling, multi-platform publishing, and team collaboration for agencies and brands.',
     },
     relatedProducts: ['studio', 'workflows', 'agents'],
@@ -289,7 +289,7 @@ export const products: Product[] = [
     ],
     name: 'Agents',
     pricing: {
-      recommended: 'Scale',
+      recommended: 'Cloud Teams',
       why: 'Includes the full agent library, autonomous scheduled execution, and the workflow capacity needed to run deterministic agentic systems in production.',
     },
     relatedProducts: ['workflows', 'publisher', 'studio'],
@@ -383,7 +383,7 @@ export const products: Product[] = [
     integrations: ['ChatGPT', 'OpenAI API'],
     name: 'ChatGPT Integration',
     pricing: {
-      recommended: 'Scale',
+      recommended: 'Cloud Teams',
       why: 'Includes ChatGPT integration, unlimited commands, and advanced workflow automation.',
     },
     relatedProducts: ['mcp', 'studio', 'publisher'],
@@ -477,7 +477,7 @@ export const products: Product[] = [
     ],
     name: 'MCP Server',
     pricing: {
-      recommended: 'Scale',
+      recommended: 'Cloud Teams',
       why: 'Includes MCP server access, unlimited API calls, and priority support for developers.',
     },
     relatedProducts: ['chatgpt', 'agents', 'studio'],
@@ -576,8 +576,8 @@ export const products: Product[] = [
     ],
     name: 'Studio',
     pricing: {
-      recommended: 'Pro',
-      why: '$499/month includes 30 AI videos + 500 images. Perfect for creators posting daily.',
+      recommended: 'Hosted',
+      why: '$8/month platform access plus PAYG output is the entry managed path for creators posting daily.',
     },
     relatedProducts: ['publisher', 'workflows', 'intelligence'],
     slug: 'studio',
@@ -679,7 +679,7 @@ export const products: Product[] = [
     ],
     name: 'Workflows',
     pricing: {
-      recommended: 'Scale',
+      recommended: 'Cloud Teams',
       why: 'Includes the workflow capacity, trigger volume, and execution controls needed to run deterministic agent-driven systems in production.',
     },
     relatedProducts: ['agents', 'studio', 'publisher'],
@@ -780,7 +780,7 @@ export const products: Product[] = [
     ],
     name: 'Analytics',
     pricing: {
-      recommended: 'Scale',
+      recommended: 'Cloud Teams',
       why: 'Includes trend monitoring, performance analytics, and insights across all platforms.',
     },
     relatedProducts: ['studio', 'publisher', 'agents'],
