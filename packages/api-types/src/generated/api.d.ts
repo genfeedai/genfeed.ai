@@ -17,6 +17,13 @@ export interface components {
       maxRepeats?: number;
       order?: number;
       parent?: string;
+      contentRunId?: string;
+      personaId?: string;
+      variantId?: string;
+      hookVersion?: string;
+      creativeVersion?: string;
+      scheduleSlot?: string;
+      publishIntent?: string;
       publicationDate?: string;
       quoteTweetId?: string;
       repeatDaysOfWeek?: number[];
@@ -43,6 +50,13 @@ export interface components {
       maxRepeats?: number;
       order?: number;
       parent?: string;
+      contentRunId?: string;
+      personaId?: string;
+      variantId?: string;
+      hookVersion?: string;
+      creativeVersion?: string;
+      scheduleSlot?: string;
+      publishIntent?: string;
       publicationDate?: string;
       quoteTweetId?: string;
       repeatDaysOfWeek?: number[];

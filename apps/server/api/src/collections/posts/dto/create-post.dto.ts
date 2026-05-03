@@ -253,6 +253,14 @@ export class CreatePostDto {
   readonly contentRunId?: string;
 
   @ApiProperty({
+    description: 'Persona ID used to shape the published output',
+    required: false,
+  })
+  @IsOptional()
+  @IsEntityId()
+  readonly personaId?: string;
+
+  @ApiProperty({
     description: 'Originating variant ID inside the content run',
     required: false,
   })

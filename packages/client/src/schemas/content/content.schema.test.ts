@@ -110,9 +110,16 @@ describe('content schemas', () => {
     it('accepts valid post', () => {
       expect(
         postSchema.safeParse({
+          contentRunId: 'run-1',
+          creativeVersion: 'creative-v2',
           description: 'D',
+          hookVersion: 'hook-v1',
           label: 'L',
+          personaId: 'persona-1',
+          publishIntent: 'experiment',
           scheduledDate: '2024-01-01',
+          scheduleSlot: 'morning',
+          variantId: 'variant-1',
         }).success,
       ).toBe(true);
     });
@@ -143,8 +150,15 @@ describe('content schemas', () => {
     it('accepts valid data', () => {
       expect(
         postModalSchema.safeParse({
+          contentRunId: 'run-1',
           credential: 'c',
+          creativeVersion: 'creative-v2',
           description: 'D',
+          hookVersion: 'hook-v1',
+          personaId: 'persona-1',
+          publishIntent: 'experiment',
+          scheduleSlot: 'morning',
+          variantId: 'variant-1',
         }).success,
       ).toBe(true);
     });
@@ -163,9 +177,16 @@ describe('content schemas', () => {
     it('accepts valid metadata', () => {
       expect(
         postMetadataSchema.safeParse({
+          contentRunId: 'run-1',
+          creativeVersion: 'creative-v2',
           description: 'D',
+          hookVersion: 'hook-v1',
           label: 'L',
+          personaId: 'persona-1',
+          publishIntent: 'experiment',
           scheduledDate: '2024-01-01',
+          scheduleSlot: 'morning',
+          variantId: 'variant-1',
         }).success,
       ).toBe(true);
     });

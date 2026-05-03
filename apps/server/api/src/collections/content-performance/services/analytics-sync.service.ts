@@ -27,6 +27,7 @@ export interface AnalyticsSyncOptions {
 type ContentPerformanceData = {
   clicks: number;
   comments: number;
+  contentRunId?: string;
   contentType: ContentType;
   creativeVersion?: string;
   engagementRate: number;
@@ -36,12 +37,16 @@ type ContentPerformanceData = {
   likes: number;
   measuredAt: string;
   performanceScore: number;
+  personaId?: string;
   platform?: string;
+  publishIntent?: string;
   revenue: number;
   saves: number;
+  scheduleSlot?: string;
   shares: number;
   source: PerformanceSource;
   userId?: string;
+  variantId?: string;
   views: number;
 };
 
@@ -132,10 +137,15 @@ export class AnalyticsSyncService {
     };
     post?: {
       category: string | null;
+      contentRunId: string | null;
       creativeVersion: string | null;
       externalId: string | null;
       generationId: string | null;
       hookVersion: string | null;
+      personaId: string | null;
+      publishIntent: string | null;
+      scheduleSlot: string | null;
+      variantId: string | null;
     } | null;
   }): ContentPerformanceData {
     const { analytics, measuredAt, metrics, post } = params;
@@ -143,6 +153,7 @@ export class AnalyticsSyncService {
     return {
       clicks: metrics.clicks,
       comments: metrics.comments,
+      contentRunId: post?.contentRunId ?? undefined,
       contentType: this.mapCategoryToContentType(post?.category ?? undefined),
       creativeVersion: post?.creativeVersion ?? undefined,
       engagementRate: this.computeEngagementRate(metrics),
@@ -152,12 +163,16 @@ export class AnalyticsSyncService {
       likes: metrics.likes,
       measuredAt: measuredAt.toISOString(),
       performanceScore: this.computePerformanceScore(metrics),
+      personaId: post?.personaId ?? undefined,
       platform: analytics.platform ?? undefined,
+      publishIntent: post?.publishIntent ?? undefined,
       revenue: 0,
       saves: metrics.saves,
+      scheduleSlot: post?.scheduleSlot ?? undefined,
       shares: metrics.shares,
       source: PerformanceSource.API,
       userId: analytics.userId ?? undefined,
+      variantId: post?.variantId ?? undefined,
       views: metrics.views,
     };
   }
@@ -287,6 +302,7 @@ export class AnalyticsSyncService {
               platform: analytics.platform ?? undefined,
               postId: String(analytics.postId),
               userId: analytics.userId ?? undefined,
+              variantId: post?.variantId ?? undefined,
             },
           });
 

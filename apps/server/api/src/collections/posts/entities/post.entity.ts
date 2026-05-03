@@ -60,6 +60,13 @@ export class PostEntity extends BaseEntity {
   declare readonly lastAttemptAt?: Date;
   declare readonly promptUsed?: string;
   declare readonly generationId?: string;
+  declare readonly contentRunId?: string;
+  declare readonly personaId?: string;
+  declare readonly variantId?: string;
+  declare readonly hookVersion?: string;
+  declare readonly creativeVersion?: string;
+  declare readonly scheduleSlot?: string;
+  declare readonly publishIntent?: string;
   declare readonly reviewBatchId?: string;
   declare readonly reviewItemId?: string;
   declare readonly reviewDecision?: 'approved' | 'rejected' | 'request_changes';
