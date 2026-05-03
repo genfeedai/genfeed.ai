@@ -794,6 +794,17 @@ export class StripeWebhookService {
       });
 
       plainKey = createdApiKey.plainKey;
+    } else {
+      const scopes = new Set(existingApiKey.scopes);
+      for (const scope of MANAGED_API_KEY_SCOPES) {
+        scopes.add(scope);
+      }
+
+      if (scopes.size !== existingApiKey.scopes.length) {
+        await this.apiKeysService.patch(String(existingApiKey.id), {
+          scopes: Array.from(scopes),
+        });
+      }
     }
 
     const userPatch: Record<string, unknown> = {

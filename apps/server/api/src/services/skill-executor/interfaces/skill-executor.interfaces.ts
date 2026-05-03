@@ -29,7 +29,7 @@ export interface SkillExecutionResult {
   draft: ContentDraft;
   duration: number;
   creditsUsed: number;
-  source: 'byok' | 'hosted';
+  source: 'byok' | 'hosted' | 'managed';
 }
 
 export interface GatewayExecutionContext {

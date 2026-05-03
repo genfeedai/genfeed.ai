@@ -1,3 +1,4 @@
+import { ManagedInferenceClientService } from '@api/endpoints/v1/managed-inference/managed-inference-client.service';
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
 import { FalService } from '@api/services/integrations/fal/fal.service';
 import { LeonardoAIService } from '@api/services/integrations/leonardoai/leonardoai.service';
@@ -26,6 +27,10 @@ describe('ImageGenerationHandler', () => {
     runModel: vi.fn(),
   };
 
+  const mockManagedInferenceClientService = {
+    generateImage: vi.fn(),
+  };
+
   const baseContext = {
     brandId: 'test-object-id',
     brandVoice: 'voice',
@@ -46,6 +51,10 @@ describe('ImageGenerationHandler', () => {
         { provide: FalService, useValue: mockFalService },
         { provide: LeonardoAIService, useValue: mockLeonardoService },
         { provide: ReplicateService, useValue: mockReplicateService },
+        {
+          provide: ManagedInferenceClientService,
+          useValue: mockManagedInferenceClientService,
+        },
       ],
     }).compile();
 
@@ -214,5 +223,36 @@ describe('ImageGenerationHandler', () => {
     expect(mockFalService.generateImage).toHaveBeenCalled();
     expect(mockLeonardoService.generateImage).not.toHaveBeenCalled();
     expect(mockReplicateService.runModel).not.toHaveBeenCalled();
+  });
+
+  it('routes generation through managed inference when a managed key is configured', async () => {
+    mockByokProviderFactoryService.resolveProvider.mockResolvedValue({
+      apiKey: 'gf_live_managed',
+      managedInferenceUrl: 'https://api.genfeed.ai/v1/managed-inference',
+      source: 'managed',
+    });
+    mockManagedInferenceClientService.generateImage.mockResolvedValue(
+      'https://img.test/managed.jpg',
+    );
+
+    const result = await handler.execute(baseContext, {
+      model: ImageTaskModel.FAL,
+      prompt: 'managed prompt',
+    });
+
+    expect(result.mediaUrls).toEqual(['https://img.test/managed.jpg']);
+    expect(
+      mockManagedInferenceClientService.generateImage,
+    ).toHaveBeenCalledWith({
+      apiKey: 'gf_live_managed',
+      endpointUrl: 'https://api.genfeed.ai/v1/managed-inference',
+      input: {
+        image_size: { height: 1024, width: 1024 },
+        prompt: 'managed prompt',
+      },
+      model: 'fal-ai/flux/dev',
+      provider: 'fal',
+    });
+    expect(mockFalService.generateImage).not.toHaveBeenCalled();
   });
 });

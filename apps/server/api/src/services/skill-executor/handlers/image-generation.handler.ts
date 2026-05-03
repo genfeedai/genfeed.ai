@@ -1,3 +1,5 @@
+import { ManagedInferenceProvider } from '@api/endpoints/v1/managed-inference/dto/managed-inference-request.dto';
+import { ManagedInferenceClientService } from '@api/endpoints/v1/managed-inference/managed-inference-client.service';
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
 import { FalService } from '@api/services/integrations/fal/fal.service';
 import { LeonardoAIService } from '@api/services/integrations/leonardoai/leonardoai.service';
@@ -8,6 +10,7 @@ import type {
   SkillHandler,
 } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
 import { ByokProvider, ImageTaskModel } from '@genfeedai/enums';
+import type { ByokResolutionResult } from '@genfeedai/interfaces';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -38,6 +41,7 @@ export class ImageGenerationHandler implements SkillHandler {
     private readonly replicateService: ReplicateService,
     private readonly falService: FalService,
     private readonly byokProviderFactoryService: ByokProviderFactoryService,
+    private readonly managedInferenceClientService: ManagedInferenceClientService,
   ) {}
 
   async execute(
@@ -67,12 +71,20 @@ export class ImageGenerationHandler implements SkillHandler {
         ByokProvider.LEONARDOAI,
       );
 
-      const result = await this.leonardoAIService.generateImage(
-        prompt,
-        { height, style: 'photorealistic', width },
-        provider.apiKey,
-      );
-      imageUrl = result.url;
+      if (provider.source === 'managed') {
+        imageUrl = await this.generateManagedImage(provider, {
+          input: { height, prompt, style: 'photorealistic', width },
+          model: 'leonardo-image',
+          provider: ManagedInferenceProvider.LEONARDO,
+        });
+      } else {
+        const result = await this.leonardoAIService.generateImage(
+          prompt,
+          { height, style: 'photorealistic', width },
+          provider.apiKey,
+        );
+        imageUrl = result.url;
+      }
     } else if (
       model === ImageTaskModel.SDXL ||
       model === ImageTaskModel.REPLICATE ||
@@ -84,16 +96,27 @@ export class ImageGenerationHandler implements SkillHandler {
           ByokProvider.REPLICATE,
         );
 
-        imageUrl = await this.replicateService.runModel(
+        const modelId =
           model === ImageTaskModel.IMAGEN4
             ? 'google/imagen-4'
-            : 'stability-ai/sdxl:latest',
-          {
-            prompt,
-            resolution: `${width}:${height}`,
-          },
-          provider.apiKey,
-        );
+            : 'stability-ai/sdxl:latest';
+        const input = {
+          prompt,
+          resolution: `${width}:${height}`,
+        };
+
+        imageUrl =
+          provider.source === 'managed'
+            ? await this.generateManagedImage(provider, {
+                input,
+                model: modelId,
+                provider: ManagedInferenceProvider.REPLICATE,
+              })
+            : await this.replicateService.runModel(
+                modelId,
+                input,
+                provider.apiKey,
+              );
       } catch (error: unknown) {
         if (!isProviderCapacityError(error)) throw error;
 
@@ -108,12 +131,22 @@ export class ImageGenerationHandler implements SkillHandler {
             ? 'fal-ai/flux-pro'
             : 'fal-ai/flux/dev';
 
-        const result = await this.falService.generateImage(
-          falModelId,
-          { image_size: { height, width }, prompt },
-          falProvider.apiKey,
-        );
-        imageUrl = result.url;
+        const input = { image_size: { height, width }, prompt };
+
+        if (falProvider.source === 'managed') {
+          imageUrl = await this.generateManagedImage(falProvider, {
+            input,
+            model: falModelId,
+            provider: ManagedInferenceProvider.FAL,
+          });
+        } else {
+          const result = await this.falService.generateImage(
+            falModelId,
+            input,
+            falProvider.apiKey,
+          );
+          imageUrl = result.url;
+        }
         fallbackUsed = true;
         resolvedProvider = ImageTaskModel.FAL;
       }
@@ -124,12 +157,22 @@ export class ImageGenerationHandler implements SkillHandler {
           ByokProvider.FAL,
         );
 
-        const result = await this.falService.generateImage(
-          'fal-ai/flux/dev',
-          { image_size: { height, width }, prompt },
-          provider.apiKey,
-        );
-        imageUrl = result.url;
+        const input = { image_size: { height, width }, prompt };
+
+        if (provider.source === 'managed') {
+          imageUrl = await this.generateManagedImage(provider, {
+            input,
+            model: 'fal-ai/flux/dev',
+            provider: ManagedInferenceProvider.FAL,
+          });
+        } else {
+          const result = await this.falService.generateImage(
+            'fal-ai/flux/dev',
+            input,
+            provider.apiKey,
+          );
+          imageUrl = result.url;
+        }
       } catch (error: unknown) {
         if (!isProviderCapacityError(error)) throw error;
 
@@ -139,11 +182,20 @@ export class ImageGenerationHandler implements SkillHandler {
             ByokProvider.REPLICATE,
           );
 
-        imageUrl = await this.replicateService.runModel(
-          'black-forest-labs/flux-schnell',
-          { prompt, resolution: `${width}:${height}` },
-          repProvider.apiKey,
-        );
+        const input = { prompt, resolution: `${width}:${height}` };
+
+        imageUrl =
+          repProvider.source === 'managed'
+            ? await this.generateManagedImage(repProvider, {
+                input,
+                model: 'black-forest-labs/flux-schnell',
+                provider: ManagedInferenceProvider.REPLICATE,
+              })
+            : await this.replicateService.runModel(
+                'black-forest-labs/flux-schnell',
+                input,
+                repProvider.apiKey,
+              );
         fallbackUsed = true;
         resolvedProvider = ImageTaskModel.REPLICATE;
       }
@@ -165,5 +217,26 @@ export class ImageGenerationHandler implements SkillHandler {
       skillSlug: 'image-generation',
       type: 'image',
     };
+  }
+
+  private async generateManagedImage(
+    resolution: ByokResolutionResult,
+    params: {
+      input: Record<string, unknown>;
+      model: string;
+      provider: ManagedInferenceProvider;
+    },
+  ): Promise<string> {
+    if (!resolution.apiKey) {
+      throw new Error('Managed inference API key is not configured');
+    }
+
+    return await this.managedInferenceClientService.generateImage({
+      apiKey: resolution.apiKey,
+      endpointUrl: resolution.managedInferenceUrl,
+      input: params.input,
+      model: params.model,
+      provider: params.provider,
+    });
   }
 }
