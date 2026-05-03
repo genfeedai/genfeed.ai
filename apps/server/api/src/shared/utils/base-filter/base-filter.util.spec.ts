@@ -3,20 +3,19 @@ import { describe, expect, it } from 'vitest';
 
 describe('BaseFilterUtil', () => {
   describe('buildArrayInFilter', () => {
-    it('returns empty array for undefined values', () => {
+    it('returns empty object for undefined values', () => {
       const result = BaseFilterUtil.buildArrayInFilter('field', undefined);
-      expect(result).toEqual([]);
+      expect(result).toEqual({});
     });
 
-    it('returns empty array for empty string', () => {
+    it('returns empty object for empty string', () => {
       const result = BaseFilterUtil.buildArrayInFilter('field', '');
-      expect(result).toEqual([]);
+      expect(result).toEqual({});
     });
 
     it('builds in filter for single value', () => {
       const result = BaseFilterUtil.buildArrayInFilter('industries', 'tech');
-      expect(result).toHaveLength(1);
-      expect(result[0]).toEqual({ match: { industries: { in: ['tech'] } } });
+      expect(result).toEqual({ industries: { in: ['tech'] } });
     });
 
     it('builds in filter for array of values', () => {
@@ -24,15 +23,14 @@ describe('BaseFilterUtil', () => {
         'twitter',
         'instagram',
       ]);
-      expect(result).toHaveLength(1);
-      expect(result[0]).toEqual({
-        match: { platforms: { in: ['twitter', 'instagram'] } },
+      expect(result).toEqual({
+        platforms: { in: ['twitter', 'instagram'] },
       });
     });
 
-    it('returns empty array for empty array', () => {
+    it('returns empty object for empty array', () => {
       const result = BaseFilterUtil.buildArrayInFilter('field', []);
-      expect(result).toEqual([]);
+      expect(result).toEqual({});
     });
   });
 
@@ -56,26 +54,29 @@ describe('BaseFilterUtil', () => {
   });
 
   describe('buildSearchFilter', () => {
-    it('returns empty array for empty search string', () => {
+    it('returns empty object for empty search string', () => {
       const result = BaseFilterUtil.buildSearchFilter('', ['label']);
-      expect(result).toEqual([]);
+      expect(result).toEqual({});
     });
 
-    it('returns empty array for undefined search', () => {
+    it('returns empty object for undefined search', () => {
       const result = BaseFilterUtil.buildSearchFilter(undefined as never, [
         'label',
       ]);
-      expect(result).toEqual([]);
+      expect(result).toEqual({});
     });
 
-    it('builds OR match stage for search term', () => {
+    it('builds OR filter for search term', () => {
       const result = BaseFilterUtil.buildSearchFilter('test', [
         'label',
         'description',
       ]);
-      expect(result).toHaveLength(1);
-      const matchStage = result[0] as { match: { OR: unknown[] } };
-      expect(matchStage.match.OR).toHaveLength(2);
+      expect(result).toEqual({
+        OR: [
+          { label: { contains: 'test', mode: 'insensitive' } },
+          { description: { contains: 'test', mode: 'insensitive' } },
+        ],
+      });
     });
   });
 });

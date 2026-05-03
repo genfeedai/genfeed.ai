@@ -135,8 +135,7 @@ export class SharedService {
     // TEST ALL CASES BEFORE MAKING IT MANDATORY
     promptId?: string,
   ) {
-    const validPromptId =
-      promptId && OBJECT_ID_REGEX.test(promptId) ? promptId : undefined;
+    const validPromptId = isEntityId(promptId) ? promptId : undefined;
 
     await this.metadataService.patch(metadataData._id, {
       prompt: validPromptId,
