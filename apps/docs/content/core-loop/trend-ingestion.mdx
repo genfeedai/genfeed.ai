@@ -20,6 +20,23 @@ The current repo has a real Step 1 ingestion path, not a placeholder:
 - [`apps/server/api/src/services/twitter-pipeline/twitter-pipeline.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/services/twitter-pipeline/twitter-pipeline.service.ts)
   - provides a focused Twitter-specific search -> draft -> publish path used by the broader trend workflow
 
+## Stable OSS Surface
+
+For v1, the stable OSS trend-ingestion surface is:
+
+- `TrendsController` for HTTP access to trend discovery, trend content, preferences, related trends, and source-reference views.
+- `TrendsService` for cross-module consumers that need current trends, trend content, trend ideas, historical analysis, related trends, and source previews.
+- `TrendPreferencesService` for saved tenant/brand trend preferences.
+- `TrendReferenceCorpusService` for the source-reference corpus generated from persisted trends.
+- `TrendFetchService` as the internal provider ingestion implementation behind `TrendsService.fetchAndCacheTrends`.
+
+The stable surface is not:
+
+- direct cross-module access to provider clients
+- direct writes to `prisma.trend` outside the trend services
+- a guarantee that every platform has native API access in OSS
+- a replacement for lower-level platform-specific ingestion issues
+
 ## Module Wiring
 
 `TrendsModule` is the Step 1 ownership boundary. Its imports make the hidden runtime coupling explicit:
