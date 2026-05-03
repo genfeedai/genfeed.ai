@@ -1,7 +1,7 @@
 import {
   brandLookup,
   credentialLookup,
-  ingredientsLookup,
+  ingredientLookup,
   metadataLookup,
   organizationLookup,
   userLookup,
@@ -9,27 +9,26 @@ import {
 import { describe, expect, it } from 'vitest';
 
 describe('Aggregation Lookup Builders', () => {
-  describe('ingredientsLookup()', () => {
-    it('returns a pipeline stage with relationInclude', () => {
-      const result = ingredientsLookup();
+  describe('ingredientLookup()', () => {
+    it('returns a pipeline stage with include', () => {
+      const result = ingredientLookup();
       expect(result).toBeDefined();
-      // Check it's a pipeline stage (has relationInclude or is an array)
-      expect(typeof result).toBe('object');
+      expect(Array.isArray(result)).toBe(true);
     });
 
     it('uses default fields when no options provided', () => {
-      const result = ingredientsLookup();
+      const result = ingredientLookup();
       expect(result).toBeTruthy();
     });
 
     it('accepts custom localField option', () => {
-      const result = ingredientsLookup({ localField: 'customField' });
+      const result = ingredientLookup({ localField: 'customField' });
       expect(result).toBeDefined();
     });
 
     it('returns fresh object each call (no shared references)', () => {
-      const r1 = ingredientsLookup();
-      const r2 = ingredientsLookup();
+      const r1 = ingredientLookup();
+      const r2 = ingredientLookup();
       expect(r1).not.toBe(r2);
     });
   });
@@ -41,10 +40,10 @@ describe('Aggregation Lookup Builders', () => {
       expect(Array.isArray(result)).toBe(true);
     });
 
-    it('result contains relationInclude stage', () => {
+    it('result contains include stage', () => {
       const result = credentialLookup();
       const hasLookup = (result as unknown[]).some(
-        (s) => typeof s === 'object' && s !== null && 'relationInclude' in s,
+        (s) => typeof s === 'object' && s !== null && 'include' in s,
       );
       expect(hasLookup).toBe(true);
     });
@@ -63,8 +62,8 @@ describe('Aggregation Lookup Builders', () => {
       expect(Array.isArray(result)).toBe(true);
     });
 
-    it('accepts custom asField', () => {
-      const result = userLookup({ asField: 'createdBy' });
+    it('accepts custom as option', () => {
+      const result = userLookup({ as: 'createdBy' });
       expect(Array.isArray(result)).toBe(true);
     });
   });
