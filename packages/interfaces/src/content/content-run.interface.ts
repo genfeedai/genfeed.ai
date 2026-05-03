@@ -31,8 +31,8 @@ export interface ContentRunPublishContext {
   metadata: Record<string, unknown>;
   platform?: string;
   postIds?: string[];
-  publishedAt?: Date;
-  scheduledFor?: Date;
+  publishedAt?: Date | string;
+  scheduledFor?: Date | string;
   variantId?: string;
 }
 

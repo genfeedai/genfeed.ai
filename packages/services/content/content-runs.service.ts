@@ -3,6 +3,12 @@ import {
   type JsonApiResponseDocument,
 } from '@genfeedai/helpers/data/json-api/json-api.helper';
 import type { ContentRunBrief } from '@genfeedai/interfaces';
+import type {
+  ContentRunAnalyticsSummary,
+  ContentRunPublishContext,
+  ContentRunRecommendation,
+  ContentRunVariant,
+} from '@genfeedai/interfaces/content/content-run.interface';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 
@@ -31,12 +37,24 @@ export interface CreateResearchBriefRunInput {
 
 export interface ContentRunRecord {
   _id?: string;
+  analyticsSummary?: ContentRunAnalyticsSummary;
   brand?: string;
   brief?: ContentRunBrief;
+  createdAt?: string;
+  creditsUsed?: number;
+  duration?: number;
+  error?: string;
   id?: string;
+  input?: Record<string, unknown>;
   organization?: string;
+  output?: unknown;
+  publish?: ContentRunPublishContext | ContentRunPublishContext[];
+  recommendations?: ContentRunRecommendation[];
   skillSlug?: string;
+  source?: string;
   status?: string;
+  updatedAt?: string;
+  variants?: ContentRunVariant[];
 }
 
 export class ContentRunsService extends HTTPBaseService {
@@ -58,6 +76,14 @@ export class ContentRunsService extends HTTPBaseService {
     const response = await this.instance.post<JsonApiResponseDocument>(
       `/brands/${brandId}/content-runs/briefs`,
       input,
+    );
+
+    return deserializeResource<ContentRunRecord>(response.data);
+  }
+
+  async findOne(runId: string): Promise<ContentRunRecord> {
+    const response = await this.instance.get<JsonApiResponseDocument>(
+      `/content-runs/${runId}`,
     );
 
     return deserializeResource<ContentRunRecord>(response.data);
