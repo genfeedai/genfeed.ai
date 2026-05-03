@@ -263,6 +263,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
     ContextsModule,
     CreativePatternsModule,
     CredentialsModule,
+    CreditsModule,
     DistributionsModule,
     CustomersModule,
     ElementsBlacklistsModule,
@@ -335,7 +336,6 @@ import { SentryModule } from '@sentry/nestjs/setup';
 
     // Services (alphabetical)
     BeehiivModule,
-    // CreditsModule — EE (gated below)
     DiscordModule,
     GhostModule,
     HedraModule,
@@ -450,7 +450,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
 
     // EE-only modules (require GENFEED_LICENSE_KEY)
     ...(isEEEnabled()
-      ? [CreditsModule, UserSubscriptionsModule, BusinessAnalyticsModule]
+      ? [UserSubscriptionsModule, BusinessAnalyticsModule]
       : []),
   ],
   providers: [
