@@ -78,7 +78,7 @@ function MaybeClerkProvider({
   children: ReactNode;
   clerkProps?: ClerkProviderProps;
 }) {
-  if (!cloudConnected) {
+  if (!cloudConnected || !clerkProps) {
     return <>{children}</>;
   }
 
