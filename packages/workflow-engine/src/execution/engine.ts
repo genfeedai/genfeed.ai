@@ -431,15 +431,16 @@ export class WorkflowEngine {
         const sourceOutput = cache.get(edge.source);
         if (sourceOutput !== undefined) {
           const handleKey = edge.targetHandle ?? edge.source;
+          const sourceKey = edge.sourceHandle ?? edge.targetHandle;
           if (
-            edge.targetHandle &&
+            sourceKey &&
             sourceOutput &&
             typeof sourceOutput === 'object' &&
-            edge.targetHandle in (sourceOutput as Record<string, unknown>)
+            sourceKey in (sourceOutput as Record<string, unknown>)
           ) {
             inputs.set(
               handleKey,
-              (sourceOutput as Record<string, unknown>)[edge.targetHandle],
+              (sourceOutput as Record<string, unknown>)[sourceKey],
             );
           } else {
             inputs.set(handleKey, sourceOutput);

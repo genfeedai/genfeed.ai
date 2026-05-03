@@ -1,5 +1,8 @@
 import type { ExecutionContext } from '@workflow-engine/execution/engine';
-import { createTrendTriggerExecutor } from '@workflow-engine/executors/saas/trend-trigger-executor';
+import {
+  createTrendTriggerExecutor,
+  type TrendTriggerOutput,
+} from '@workflow-engine/executors/saas/trend-trigger-executor';
 import { describe, expect, it, vi } from 'vitest';
 
 const ctx: ExecutionContext = {
@@ -100,7 +103,34 @@ describe('TrendTriggerExecutor', () => {
           type: 'trendTrigger',
         },
       });
-      expect((result.data as any).trendId).toBe('t-1');
+      expect((result.data as TrendTriggerOutput).trendId).toBe('t-1');
+    });
+
+    it('passes keywords and platform from inputs when provided', async () => {
+      const checker = vi.fn().mockResolvedValue(null);
+      const exec = createTrendTriggerExecutor(checker);
+
+      await exec.execute({
+        context: ctx,
+        inputs: new Map<string, unknown>([
+          ['keywords', ['ai tools']],
+          ['platform', 'twitter'],
+        ]),
+        node: {
+          config: { platform: 'tiktok', trendType: 'hashtag' },
+          id: '1',
+          inputs: [],
+          label: 'T',
+          type: 'trendTrigger',
+        },
+      });
+
+      expect(checker).toHaveBeenCalledWith(
+        expect.objectContaining({
+          keywords: ['ai tools'],
+          platform: 'twitter',
+        }),
+      );
     });
 
     it('returns null when no trend', async () => {

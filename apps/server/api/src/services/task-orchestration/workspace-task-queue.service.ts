@@ -22,8 +22,10 @@ export interface WorkspaceTaskJobData {
   brandName?: string;
   /** HeyGen avatar ID (facecam tasks only) */
   heygenAvatarId?: string;
-  /** HeyGen voice ID (facecam tasks only) */
-  heygenVoiceId?: string;
+  /** Provider-agnostic voice ID (facecam tasks) — can be a HeyGen catalog ID, ElevenLabs ID, or Voice document _id */
+  voiceId?: string;
+  /** Voice provider hint — determines how voiceId is resolved (heygen | elevenlabs | genfeed-ai | hedra) */
+  voiceProvider?: string;
 }
 
 @Injectable()

@@ -77,9 +77,12 @@ export class BrandContextExecutor extends BaseExecutor {
 
     return {
       data: {
+        brandId: brandContext.brandId,
         colors: brandContext.colors,
         fonts: brandContext.fonts,
+        label: brandContext.label,
         models: brandContext.models,
+        slug: brandContext.slug,
         voice: brandContext.voice,
       },
       metadata: {

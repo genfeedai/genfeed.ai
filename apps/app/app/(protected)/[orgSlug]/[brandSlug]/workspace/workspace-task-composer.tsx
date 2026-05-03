@@ -15,6 +15,7 @@ import { Prompt } from '@models/content/prompt.model';
 import { PromptsService } from '@services/content/prompts.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
+import { VoiceCloneService } from '@services/ingredients/voice-clone.service';
 import { type Task, TasksService } from '@services/management/tasks.service';
 import { BrandsService } from '@services/social/brands.service';
 import type { Editor, JSONContent } from '@tiptap/core';
@@ -62,10 +63,11 @@ interface WorkspaceBrandMentionMatch {
   label: string;
 }
 
-interface HeygenOption {
+interface FacecamOption {
   id: string;
   label: string;
   preview?: string;
+  provider?: string;
 }
 
 interface WorkspaceTaskComposerProps {
@@ -234,10 +236,11 @@ export function WorkspaceTaskComposer({
   const [taskRequest, setTaskRequest] = useState('');
   const [taskOutputType, setTaskOutputType] =
     useState<(typeof TASK_PRESETS)[number]['outputType']>('ingredient');
-  const [facecamAvatars, setFacecamAvatars] = useState<HeygenOption[]>([]);
-  const [facecamVoices, setFacecamVoices] = useState<HeygenOption[]>([]);
+  const [facecamAvatars, setFacecamAvatars] = useState<FacecamOption[]>([]);
+  const [facecamVoices, setFacecamVoices] = useState<FacecamOption[]>([]);
   const [facecamAvatarId, setFacecamAvatarId] = useState<string>('');
   const [facecamVoiceId, setFacecamVoiceId] = useState<string>('');
+  const [facecamVoiceProvider, setFacecamVoiceProvider] = useState<string>('');
   const [facecamLoading, setFacecamLoading] = useState(false);
   const [facecamError, setFacecamError] = useState<string | null>(null);
   const [facecamSaveAsDefault, setFacecamSaveAsDefault] = useState(false);
@@ -294,16 +297,20 @@ export function WorkspaceTaskComposer({
         const apiEndpoint = EnvironmentService.apiEndpoint;
         const headers = { Authorization: `Bearer ${token}` };
 
-        const [avatarsResponse, voicesResponse] = await Promise.all([
-          fetch(`${apiEndpoint}/heygen/avatars`, {
-            headers,
-            signal: controller.signal,
-          }),
-          fetch(`${apiEndpoint}/heygen/voices`, {
-            headers,
-            signal: controller.signal,
-          }),
-        ]);
+        const [avatarsResponse, voicesResponse, clonedVoices] =
+          await Promise.all([
+            fetch(`${apiEndpoint}/heygen/avatars`, {
+              headers,
+              signal: controller.signal,
+            }),
+            fetch(`${apiEndpoint}/heygen/voices`, {
+              headers,
+              signal: controller.signal,
+            }),
+            VoiceCloneService.getInstance(token)
+              .getClonedVoices()
+              .catch(() => []),
+          ]);
 
         if (controller.signal.aborted) return;
 
@@ -336,15 +343,39 @@ export function WorkspaceTaskComposer({
         };
 
         const avatars = (avatarsJson.data?.attributes?.avatars ?? []).map(
-          (avatar): HeygenOption => ({
+          (avatar): FacecamOption => ({
             id: avatar.avatarId,
             label: avatar.name,
             preview: avatar.preview ?? undefined,
+            provider: 'heygen',
           }),
         );
-        const voices = (voicesJson.data?.attributes?.voices ?? []).map(
-          (voice): HeygenOption => ({ id: voice.voiceId, label: voice.name }),
+
+        // Merge HeyGen catalog voices + org's cloned voices into one list
+        const heygenVoices = (voicesJson.data?.attributes?.voices ?? []).map(
+          (voice): FacecamOption => ({
+            id: voice.voiceId,
+            label: `[HeyGen] ${voice.name}`,
+            provider: 'heygen',
+          }),
         );
+        const clonedOptions = (clonedVoices ?? []).map(
+          (voice): FacecamOption => {
+            const providerLabel =
+              (voice as { provider?: string }).provider === 'genfeed-ai'
+                ? 'Genfeed AI'
+                : (voice as { provider?: string }).provider === 'elevenlabs'
+                  ? 'ElevenLabs'
+                  : ((voice as { provider?: string }).provider ?? 'Cloned');
+            return {
+              id: voice.id,
+              label: `[${providerLabel}] ${voice.metadataLabel ?? 'Cloned Voice'}`,
+              provider:
+                (voice as { provider?: string }).provider ?? 'elevenlabs',
+            };
+          },
+        );
+        const voices = [...clonedOptions, ...heygenVoices];
 
         if (controller.signal.aborted) return;
         setFacecamAvatars(avatars);
@@ -606,7 +637,8 @@ export function WorkspaceTaskComposer({
       return {
         ...base,
         heygenAvatarId: facecamAvatarId || undefined,
-        heygenVoiceId: facecamVoiceId || undefined,
+        voiceId: facecamVoiceId || undefined,
+        voiceProvider: facecamVoiceProvider || undefined,
       };
     }
 
@@ -615,6 +647,7 @@ export function WorkspaceTaskComposer({
     effectiveTaskBrandId,
     facecamAvatarId,
     facecamVoiceId,
+    facecamVoiceProvider,
     selectedTargetBrandLabel,
     taskMode,
     taskOutputType,
@@ -624,6 +657,13 @@ export function WorkspaceTaskComposer({
   const handleCreateTask = async () => {
     if (!taskRequest.trim()) {
       setTaskError('Describe what you want Genfeed to create.');
+      return;
+    }
+
+    if (taskOutputType === 'facecam' && !facecamAvatarId && !facecamVoiceId) {
+      setTaskError(
+        'Select an avatar and voice, or configure brand identity defaults in Settings.',
+      );
       return;
     }
 
@@ -654,7 +694,7 @@ export function WorkspaceTaskComposer({
             heygenVoiceId: facecamVoiceId || null,
           });
         } catch (brandError) {
-          logger.error('Failed to persist HeyGen brand defaults', brandError);
+          logger.error('Failed to persist brand voice defaults', brandError);
         }
       }
 
@@ -825,7 +865,7 @@ export function WorkspaceTaskComposer({
                 </p>
                 {facecamLoading ? (
                   <span className="text-[11px] text-foreground/40">
-                    Loading HeyGen...
+                    Loading avatars & voices...
                   </span>
                 ) : null}
               </div>
@@ -865,7 +905,11 @@ export function WorkspaceTaskComposer({
                   </label>
                   <Select
                     value={facecamVoiceId}
-                    onValueChange={(value) => setFacecamVoiceId(value)}
+                    onValueChange={(value) => {
+                      setFacecamVoiceId(value);
+                      const match = facecamVoices.find((v) => v.id === value);
+                      setFacecamVoiceProvider(match?.provider ?? 'heygen');
+                    }}
                     disabled={facecamLoading || facecamVoices.length === 0}
                   >
                     <SelectTrigger id="facecam-voice">

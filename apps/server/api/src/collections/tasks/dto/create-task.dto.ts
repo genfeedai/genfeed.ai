@@ -170,9 +170,20 @@ export class CreateTaskDto {
   @IsOptional()
   @IsString()
   @ApiProperty({
-    description: 'HeyGen voice ID for facecam tasks',
+    description:
+      'Provider-agnostic voice ID for facecam tasks (HeyGen catalog ID, ElevenLabs ID, or Voice document _id)',
     required: false,
     type: String,
   })
-  heygenVoiceId?: string;
+  voiceId?: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiProperty({
+    description:
+      'Voice provider hint — determines how voiceId is resolved (heygen | elevenlabs | genfeed-ai | hedra)',
+    required: false,
+    type: String,
+  })
+  voiceProvider?: string;
 }

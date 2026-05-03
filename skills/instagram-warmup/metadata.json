@@ -1,0 +1,41 @@
+{
+  "name": "instagram-warmup",
+  "version": "1.0.0",
+  "description": "Guide Instagram account warmup with engagement plans, warmup content briefs, Stories strategy, Reel guidance, and post-warmup assessment frameworks for new and purchased accounts",
+  "author": "genfeedai",
+  "license": "MIT",
+  "triggers": [
+    "instagram warmup",
+    "warm up instagram account",
+    "new instagram account",
+    "instagram account warmup plan",
+    "instagram engagement plan",
+    "warmup content instagram",
+    "start an instagram account",
+    "instagram from scratch",
+    "instagram warmup strategy",
+    "how to warm up instagram",
+    "instagram trust score",
+    "first post on instagram",
+    "instagram reel warmup",
+    "instagram carousel warmup",
+    "purchased instagram account warmup",
+    "instagram reach is low",
+    "instagram suppression"
+  ],
+  "references": {},
+  "outputs": ["text"],
+  "tags": [
+    "instagram",
+    "social-media",
+    "warmup",
+    "engagement",
+    "account-growth",
+    "content-strategy",
+    "reels",
+    "carousel",
+    "stories",
+    "new-account",
+    "meta"
+  ]
+}

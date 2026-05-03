@@ -59,7 +59,15 @@ describe('WorkflowEngine', () => {
   let mockExecutor: NodeExecutor;
 
   beforeEach(() => {
-    engine = new WorkflowEngine({ maxConcurrency: 3 });
+    engine = new WorkflowEngine({
+      maxConcurrency: 3,
+      retryConfig: {
+        backoffMultiplier: 1,
+        baseDelayMs: 0,
+        maxDelayMs: 0,
+        maxRetries: 0,
+      },
+    });
     mockExecutor = vi.fn().mockResolvedValue({ result: 'ok' });
     engine.registerExecutor('generate', mockExecutor);
     engine.registerExecutor('upscale', mockExecutor);
@@ -213,6 +221,34 @@ describe('WorkflowEngine', () => {
       await engine.execute(workflow);
 
       expect(capturedInputs[1].get('n1')).toBe('output-n1');
+    });
+
+    it('should read sourceHandle field and write it to targetHandle', async () => {
+      const capturedInputs: Map<string, unknown>[] = [];
+      const sourceExecutor: NodeExecutor = vi.fn(async () => ({
+        topTopics: ['ai tools'],
+      }));
+      const targetExecutor: NodeExecutor = vi.fn(async (_node, inputs) => {
+        capturedInputs.push(new Map(inputs));
+        return null;
+      });
+
+      engine.registerExecutor('generate', sourceExecutor);
+      engine.registerExecutor('upscale', targetExecutor);
+
+      const workflow = makeWorkflow(
+        [makeNode('n1', 'generate'), makeNode('n2', 'upscale')],
+        [
+          makeEdge('n1', 'n2', {
+            sourceHandle: 'topTopics',
+            targetHandle: 'keywords',
+          }),
+        ],
+      );
+
+      await engine.execute(workflow);
+
+      expect(capturedInputs[0].get('keywords')).toEqual(['ai tools']);
     });
   });
 

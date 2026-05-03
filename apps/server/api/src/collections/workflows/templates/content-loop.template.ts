@@ -42,11 +42,18 @@ export const CONTENT_LOOP_TEMPLATE: WorkflowTemplate = {
       targetHandle: 'prompt',
     },
     {
+      id: 'e-brand-publish',
+      source: 'brand-context',
+      sourceHandle: 'brand',
+      target: 'publish',
+      targetHandle: 'brand',
+    },
+    {
       id: 'e-gen-publish',
       source: 'text-gen',
       sourceHandle: 'content',
       target: 'publish',
-      targetHandle: 'content',
+      targetHandle: 'caption',
     },
   ],
   icon: 'repeat',
@@ -132,7 +139,18 @@ export const CONTENT_LOOP_TEMPLATE: WorkflowTemplate = {
     },
     {
       data: {
-        config: { autoPost: false, schedulingMode: 'queue' },
+        config: {
+          platforms: {
+            facebook: false,
+            instagram: false,
+            linkedin: false,
+            threads: false,
+            tiktok: true,
+            twitter: false,
+            youtube: false,
+          },
+          schedule: { type: 'immediate' },
+        },
         label: 'Publish',
       },
       id: 'publish',
@@ -174,7 +192,18 @@ export const CONTENT_LOOP_TEMPLATE: WorkflowTemplate = {
     },
     {
       category: WorkflowStepCategory.OUTPUT,
-      config: { autoPost: false, schedulingMode: 'queue' },
+      config: {
+        platforms: {
+          facebook: false,
+          instagram: false,
+          linkedin: false,
+          threads: false,
+          tiktok: true,
+          twitter: false,
+          youtube: false,
+        },
+        schedule: { type: 'immediate' },
+      },
       dependsOn: ['step-generate'],
       id: 'step-publish',
       name: 'Publish',
