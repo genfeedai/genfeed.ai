@@ -73,9 +73,9 @@ describe('AgentRunsController', () => {
     it('should build query with organization filter', () => {
       const query = controller.buildFindAllQuery(mockUser as any, {} as any);
 
-      expect(query).toHaveLength(2);
-      expect(query[0]).toEqual({
-        match: {
+      expect(query).toEqual({
+        orderBy: { createdAt: -1 },
+        where: {
           isDeleted: false,
           organization: '507f1f77bcf86cd799439012',
         },

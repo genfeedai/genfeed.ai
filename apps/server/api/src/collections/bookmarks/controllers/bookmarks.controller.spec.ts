@@ -176,14 +176,12 @@ describe('BookmarksController', () => {
       const result = await controller.findAll(mockRequest, mockUser, query);
 
       expect(bookmarksService.findAll).toHaveBeenCalledWith(
-        expect.arrayContaining([
-          expect.objectContaining({
-            match: expect.objectContaining({
-              category: 'tweet',
-            }),
+        expect.objectContaining({
+          where: expect.objectContaining({
+            category: 'tweet',
           }),
-        ]),
-        expect.any(Object),
+        }),
+        expect.objectContaining({ limit: 10, page: 1 }),
       );
       expect(result).toBeDefined();
     });

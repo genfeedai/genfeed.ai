@@ -1541,7 +1541,7 @@ export class DarkroomService {
   /**
    * Get pipeline statistics aggregating assets and trainings.
    */
-  async getqueryStats(organizationId: string): Promise<{
+  async getPipelineStats(organizationId: string): Promise<{
     assets: {
       total: number;
       byStatus: Record<string, number>;
@@ -1618,6 +1618,20 @@ export class DarkroomService {
         total: trainingTotal,
       },
     };
+  }
+
+  async getqueryStats(organizationId: string): Promise<{
+    assets: {
+      total: number;
+      byStatus: Record<string, number>;
+      byReviewStatus: Record<string, number>;
+    };
+    trainings: {
+      total: number;
+      byStage: Record<string, number>;
+    };
+  }> {
+    return this.getPipelineStats(organizationId);
   }
 
   // === Lip Sync ===

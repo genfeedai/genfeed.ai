@@ -764,15 +764,13 @@ describe('AiInfluencerService', () => {
 
       expect(results).toHaveLength(2);
       expect(personasService.findAll).toHaveBeenCalledWith(
-        [
-          {
-            match: {
-              isAutopilotEnabled: true,
-              isDarkroomCharacter: true,
-              isDeleted: false,
-            },
+        {
+          where: {
+            isAutopilotEnabled: true,
+            isDarkroomCharacter: true,
+            isDeleted: false,
           },
-        ],
+        },
         { limit: 100, page: 1 },
       );
     });
@@ -885,14 +883,13 @@ describe('AiInfluencerService', () => {
       const result = await service.listPosts({});
 
       expect(ingredientsService.findAll).toHaveBeenCalledWith(
-        expect.arrayContaining([
-          expect.objectContaining({
-            match: expect.objectContaining({
-              generationSource: { contains: /^ai-influencer/ },
-              isDeleted: false,
-            }),
+        {
+          orderBy: { createdAt: -1 },
+          where: expect.objectContaining({
+            generationSource: { contains: /^ai-influencer/ },
+            isDeleted: false,
           }),
-        ]),
+        },
         { limit: 20, page: 1 },
       );
 
@@ -911,14 +908,13 @@ describe('AiInfluencerService', () => {
       await service.listPosts({ personaSlug: 'luna-ai' });
 
       expect(ingredientsService.findAll).toHaveBeenCalledWith(
-        expect.arrayContaining([
-          expect.objectContaining({
-            match: expect.objectContaining({
-              personaSlug: 'luna-ai',
-            }),
+        {
+          orderBy: { createdAt: -1 },
+          where: expect.objectContaining({
+            personaSlug: 'luna-ai',
           }),
-        ]),
-        expect.anything(),
+        },
+        { limit: 20, page: 1 },
       );
     });
 

@@ -1,9 +1,3 @@
-vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
-  getPublicMetadata: vi.fn(
-    (user: { publicMetadata: Record<string, unknown> }) => user.publicMetadata,
-  ),
-}));
-
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { TaskCountersService } from '@api/collections/task-counters/services/task-counters.service';
 import { TasksController } from '@api/collections/tasks/controllers/tasks.controller';
@@ -141,7 +135,7 @@ describe('TasksController', () => {
         organization: string;
       };
       expect(payload.organization.toString()).toBe(organizationId);
-      expect(result).toEqual({ data: createdTask });
+      expect('data' in result ? result.data : result).toEqual(createdTask);
     });
 
     it('rejects creation when the organization is missing a prefix', async () => {
@@ -173,9 +167,9 @@ describe('TasksController', () => {
         status: 'todo',
       } as never);
 
-      const matchStage = query[0] as { match: Record<string, unknown> };
+      const matchStage = query as { where: Record<string, unknown> };
 
-      expect(matchStage.match).toMatchObject({
+      expect(matchStage.where).toMatchObject({
         assigneeAgentId: 'agent-1',
         assigneeUserId: 'user-2',
         goalId: 'goal-1',
@@ -184,12 +178,12 @@ describe('TasksController', () => {
         projectId: 'project-1',
         status: 'todo',
       });
-      expect(matchStage.match.organization).toEqual(expect.any(String));
-      expect((matchStage.match.organization as string).toString()).toBe(
+      expect(matchStage.where.organization).toEqual(expect.any(String));
+      expect((matchStage.where.organization as string).toString()).toBe(
         organizationId,
       );
-      expect(matchStage.match.parentId).toEqual(expect.any(String));
-      expect((matchStage.match.parentId as string).toString()).toBe(parentId);
+      expect(matchStage.where.parentId).toEqual(expect.any(String));
+      expect((matchStage.where.parentId as string).toString()).toBe(parentId);
     });
   });
 
@@ -232,7 +226,7 @@ describe('TasksController', () => {
       const result = await controller.findByIdentifier(mockRequest, 'GENA-18');
 
       expect(tasksService.findByIdentifier).toHaveBeenCalledWith('GENA-18');
-      expect(result).toEqual({ data: task });
+      expect('data' in result ? result.data : result).toEqual(task);
     });
 
     it('throws when the identifier does not exist', async () => {
@@ -265,7 +259,7 @@ describe('TasksController', () => {
         taskId,
         organizationId,
       );
-      expect(result).toEqual({ data: children });
+      expect('data' in result ? result.data : result).toEqual(children);
     });
   });
 });

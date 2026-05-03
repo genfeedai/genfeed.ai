@@ -134,26 +134,18 @@ describe('IngredientsRelationshipsController', () => {
         isDeleted: false,
       });
       expect(postsService.findAll).toHaveBeenCalledWith(
-        [
-          {
-            match: {
-              ingredients: '507f1f77bcf86cd799439014',
-              isDeleted: false,
-              organization: mockIngredient.organization,
-            },
+        {
+          orderBy: { createdAt: -1 },
+          where: {
+            ingredients: '507f1f77bcf86cd799439014',
+            isDeleted: false,
+            organization: mockIngredient.organization,
           },
-          {
-            orderBy: { createdAt: -1 },
-          },
-        ],
+        },
         expect.objectContaining({
-          customLabels: expect.objectContaining({
-            totalDocs: 'total',
-            totalPages: 'pages',
-          }),
-          limit: expect.any(Number),
+          customLabels: {},
+          limit: 10,
           page: 1,
-          pagination: true,
         }),
       );
       expect(result).toBeDefined();

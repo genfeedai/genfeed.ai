@@ -217,7 +217,7 @@ export class TrendsService {
       this.loggerService.log(
         'No cached trends found, returning empty result without live fetch',
       );
-      return { where: {} };
+      return [];
     }
 
     // No cached trends, fetch fresh

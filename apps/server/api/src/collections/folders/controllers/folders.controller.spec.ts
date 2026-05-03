@@ -12,11 +12,6 @@ import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
-vi.mock('@genfeedai/helpers', async () => ({
-  ...(await vi.importActual('@genfeedai/helpers')),
-  getDeserializer: vi.fn((dto) => Promise.resolve(dto)),
-}));
-
 vi.mock('@helpers/utils/response/response.util', () => ({
   returnNotFound: vi.fn((type, id) => ({
     errors: [
@@ -28,6 +23,17 @@ vi.mock('@helpers/utils/response/response.util', () => ({
   })),
   serializeSingle: vi.fn((_req, _serializer, data) => ({ data })),
   setTopLinks: vi.fn((_req, opts) => opts),
+}));
+
+vi.mock('@api/helpers/utils/error-response/error-response.util', () => ({
+  ErrorResponse: {
+    handle: vi.fn((error: unknown) => {
+      throw error;
+    }),
+    notFound: vi.fn((type: string, id: string) => {
+      throw new HttpException(`${type} ${id} not found`, 404);
+    }),
+  },
 }));
 
 describe('FoldersController', () => {
@@ -102,10 +108,15 @@ describe('FoldersController', () => {
       const result = controller.buildFindAllQuery(mockUser, query);
 
       expect(result).toBeDefined();
-      expect(result.length).toBeGreaterThanOrEqual(1);
-      const matchStage = result[0] as { match: Record<string, unknown> };
-      expect(matchStage.match).toBeDefined();
-      expect(matchStage.match.isDeleted).toBe(false);
+      expect(result).toMatchObject({
+        where: expect.objectContaining({
+          isDeleted: false,
+          OR: [
+            { user: '507f191e810c19729de860ee' },
+            { organization: '507f191e810c19729de860ee' },
+          ],
+        }),
+      });
     });
 
     it('should handle deleted items', () => {
@@ -113,8 +124,11 @@ describe('FoldersController', () => {
 
       const result = controller.buildFindAllQuery(mockUser, query);
 
-      const matchStage = result[0] as { match: Record<string, unknown> };
-      expect(matchStage.match.isDeleted).toBe(true);
+      expect(result).toMatchObject({
+        where: expect.objectContaining({
+          isDeleted: true,
+        }),
+      });
     });
   });
 

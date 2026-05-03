@@ -7,7 +7,7 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import { AnalyticsAggregationService } from '@api/collections/posts/services/analytics-aggregation.service';
 import { StreaksService } from '@api/collections/streaks/services/streaks.service';
 import { UsersService } from '@api/collections/users/services/users.service';
-import { RequestWithContext } from '@api/common/middleware/request-context.middleware';
+import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import {
   type AccessBootstrapCachePayload,
   AccessBootstrapCacheService,

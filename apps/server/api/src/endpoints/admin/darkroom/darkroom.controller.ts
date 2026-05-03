@@ -35,8 +35,8 @@ import {
   DarkroomGenerationJobSerializer,
   DarkroomLipSyncJobSerializer,
   DarkroomLipSyncStatusSerializer,
-  DarkroomqueryCampaignSerializer,
-  DarkroomqueryStatsSerializer,
+  DarkroomPipelineCampaignSerializer,
+  DarkroomPipelineStatsSerializer,
   DarkroomServiceStatusSerializer,
   DarkroomUploadDatasetResultSerializer,
   DarkroomVoiceSerializer,
@@ -634,7 +634,7 @@ export class DarkroomController {
         name: campaign.campaign,
         status: campaign.status,
       }));
-      return serializeCollection(request, DarkroomqueryCampaignSerializer, {
+      return serializeCollection(request, DarkroomPipelineCampaignSerializer, {
         docs: data,
         hasNextPage: false,
         hasPrevPage: false,
@@ -653,10 +653,10 @@ export class DarkroomController {
 
   @Get('pipeline/stats')
   @ApiOperation({ summary: 'Get pipeline statistics' })
-  async getqueryStats(@Req() request: Request, @CurrentUser() user: User) {
+  async getPipelineStats(@Req() request: Request, @CurrentUser() user: User) {
     try {
       const { organization } = getPublicMetadata(user);
-      const stats = await this.darkroomService.getqueryStats(organization);
+      const stats = await this.darkroomService.getPipelineStats(organization);
       const data = {
         _id: `pipeline-stats:${organization}`,
         assetsGenerated: stats.assets.total,
@@ -666,9 +666,13 @@ export class DarkroomController {
           .filter(([stage]) => !['completed', 'failed'].includes(stage))
           .reduce((sum, [, count]) => sum + Number(count), 0),
       };
-      return serializeSingle(request, DarkroomqueryStatsSerializer, data);
+      return serializeSingle(request, DarkroomPipelineStatsSerializer, data);
     } catch (error) {
-      return ErrorResponse.handle(error, this.loggerService, 'getqueryStats');
+      return ErrorResponse.handle(
+        error,
+        this.loggerService,
+        'getPipelineStats',
+      );
     }
   }
 

@@ -104,3 +104,5 @@ export class ContentqueryQueueService {
       }));
   }
 }
+
+export { ContentqueryQueueService as ContentPipelineQueueService };

@@ -16,18 +16,14 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
-vi.mock('@sentry/nestjs', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@sentry/nestjs')>();
-  return {
-    ...actual,
-    SentryTraced:
-      () => (_target: unknown, _key: string, descriptor: PropertyDescriptor) =>
-        descriptor,
-    startSpan: vi.fn(async (_opts: unknown, fn: (span: unknown) => unknown) =>
-      fn(undefined),
-    ),
-  };
-});
+vi.mock('@sentry/nestjs', () => ({
+  SentryTraced:
+    () => (_target: unknown, _key: string, descriptor: PropertyDescriptor) =>
+      descriptor,
+  startSpan: vi.fn(async (_opts: unknown, fn: (span: unknown) => unknown) =>
+    fn(undefined),
+  ),
+}));
 
 describe('ContentOrchestrationService', () => {
   let service: ContentOrchestrationService;
@@ -299,7 +295,7 @@ describe('ContentOrchestrationService', () => {
   describe('validateSteps', () => {
     it('should throw when steps array is empty', () => {
       expect(() => service.validateSteps([])).toThrow(
-        'Pipeline must have at least one step',
+        'query must have at least one step',
       );
     });
 

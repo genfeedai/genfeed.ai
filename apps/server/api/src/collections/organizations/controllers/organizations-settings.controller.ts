@@ -12,7 +12,7 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { UpdateOrganizationSettingDto } from '@api/collections/organization-settings/dto/update-organization-setting.dto';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { SubscriptionsService } from '@api/collections/subscriptions/services/subscriptions.service';
-import { RequestWithContext } from '@api/common/middleware/request-context.middleware';
+import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { ConfigService } from '@api/config/config.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
