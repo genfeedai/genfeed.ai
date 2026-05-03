@@ -244,6 +244,98 @@ describe('ComfyUIService', () => {
       expect(result.filename).toBe('output_001.png');
     });
 
+    // ----- Flux 2 PuLID + Upscale pipeline routing (#61) -----
+
+    it('should route GENFEED_AI_FLUX2_DEV_PULID to correct builder', async () => {
+      setupSuccessfulRun();
+
+      const result = await service.generateImage(
+        MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID,
+        {
+          faceImage: 'face.png',
+          guidance: 4.0,
+          prompt: 'portrait photo',
+          pulidStrength: 0.9,
+        },
+      );
+      expect(result.filename).toBe('output_001.png');
+    });
+
+    it('should route GENFEED_AI_FLUX2_DEV_PULID_UPSCALE to correct builder', async () => {
+      setupSuccessfulRun();
+
+      const result = await service.generateImage(
+        MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID_UPSCALE,
+        {
+          faceImage: 'face.png',
+          guidance: 3.5,
+          height: 1216,
+          prompt: 'studio headshot',
+          pulidStrength: 0.8,
+          seed: 42,
+          upscaleModel: '4x-UltraSharp.pth',
+          width: 832,
+        },
+      );
+      expect(result.filename).toBe('output_001.png');
+      expect(result.imageBuffer).toBeInstanceOf(Buffer);
+    });
+
+    it('should route GENFEED_AI_FLUX2_DEV_PULID_LORA to correct builder', async () => {
+      setupSuccessfulRun();
+
+      const result = await service.generateImage(
+        MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID_LORA,
+        {
+          faceImage: 'face.png',
+          loraPath: 'my_style.safetensors',
+          loraStrength: 0.7,
+          prompt: 'lora portrait',
+          pulidStrength: 0.8,
+        },
+      );
+      expect(result.filename).toBe('output_001.png');
+    });
+
+    it('should route GENFEED_AI_FLUX2_KLEIN to correct builder', async () => {
+      setupSuccessfulRun();
+
+      const result = await service.generateImage(
+        MODEL_KEYS.GENFEED_AI_FLUX2_KLEIN,
+        {
+          prompt: 'quick test',
+          steps: 6,
+        },
+      );
+      expect(result.filename).toBe('output_001.png');
+    });
+
+    it('should route GENFEED_AI_FLUX_DEV_PULID to correct builder', async () => {
+      setupSuccessfulRun();
+
+      const result = await service.generateImage(
+        MODEL_KEYS.GENFEED_AI_FLUX_DEV_PULID,
+        {
+          faceImage: 'face.png',
+          prompt: 'legacy pulid test',
+        },
+      );
+      expect(result.filename).toBe('output_001.png');
+    });
+
+    it('should route GENFEED_AI_Z_IMAGE_TURBO to correct builder', async () => {
+      setupSuccessfulRun();
+
+      const result = await service.generateImage(
+        MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO,
+        {
+          prompt: 'fast test',
+          steps: 4,
+        },
+      );
+      expect(result.filename).toBe('output_001.png');
+    });
+
     it('should log error and rethrow on failure', async () => {
       httpPostMock.mockReturnValue(throwError(() => new Error('network fail')));
 
