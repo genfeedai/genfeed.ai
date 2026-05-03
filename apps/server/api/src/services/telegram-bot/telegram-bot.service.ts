@@ -11,6 +11,7 @@
 import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
+import process from 'node:process';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { RunsService } from '@api/collections/runs/services/runs.service';
 import { ConfigService } from '@api/config/config.service';
@@ -315,6 +316,7 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
           'imagen-3-fast': 'google/imagen-3-fast',
           'imagen-4-fast': 'google/imagen-4-fast',
           'nano-banana-pro': 'google/nano-banana-pro',
+          'nano-banana-2': 'google/nano-banana-2',
         };
 
         const input: Record<string, unknown> = {

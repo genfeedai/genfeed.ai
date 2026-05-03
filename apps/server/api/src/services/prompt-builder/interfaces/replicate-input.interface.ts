@@ -51,6 +51,15 @@ export interface NanoBananaProInput extends BaseImageInput {
   image_input?: string[];
 }
 
+/** Google Nano Banana 2 */
+export interface NanoBanana2Input extends BaseImageInput {
+  output_format: string;
+  resolution?: string;
+  image_input?: string[];
+  google_search?: boolean;
+  image_search?: boolean;
+}
+
 /** Ideogram Character */
 export interface IdeogramCharacterInput extends BaseImageInput {
   character_reference_image: string;
@@ -203,6 +212,7 @@ export type ReplicateImageInput =
   | ImagenInput
   | NanoBananaInput
   | NanoBananaProInput
+  | NanoBanana2Input
   | IdeogramCharacterInput
   | IdeogramV3Input
   | SeeDream4Input

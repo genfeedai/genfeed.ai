@@ -22,6 +22,11 @@ export const IMAGE_MODELS: ImageModelConfig[] = [
     label: 'Nano Banana Pro',
     value: 'nano-banana-pro',
   },
+  {
+    apiId: 'google/nano-banana-2',
+    label: 'Nano Banana 2',
+    value: 'nano-banana-2',
+  },
 ];
 
 export const IMAGE_MODEL_MAP: Record<string, ImageModel> = Object.fromEntries(

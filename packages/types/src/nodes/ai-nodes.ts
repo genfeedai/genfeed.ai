@@ -5,7 +5,7 @@
 import type { BaseNodeData } from './base';
 import type { ProviderType, SelectedModel } from './providers';
 
-export type ImageModel = 'nano-banana' | 'nano-banana-pro';
+export type ImageModel = 'nano-banana' | 'nano-banana-pro' | 'nano-banana-2';
 export type VideoModel = 'veo-3.1-fast' | 'veo-3.1';
 export type AspectRatio =
   | '1:1'
