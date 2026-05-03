@@ -4,6 +4,10 @@ import { useAuth } from '@clerk/nextjs';
 import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
 import { AnalyticsMetric } from '@genfeedai/enums';
+import {
+  formatCompactNumberIntl,
+  formatPercentageSimple,
+} from '@helpers/formatting/format/format.helper';
 import { getDateRangeWithDefaults } from '@helpers/utils/date-range.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
@@ -91,14 +95,6 @@ export default function AnalyticsBrandsList({
   const filteredBrands = brandsData.filter((brand) =>
     brand.name.toLowerCase().includes(searchTerm.toLowerCase()),
   );
-
-  const formatNumber = (num: number) => {
-    return new Intl.NumberFormat('en-US', { notation: 'compact' }).format(num);
-  };
-
-  const formatPercentage = (num: number) => {
-    return `${num.toFixed(2)}%`;
-  };
 
   return (
     <Container
@@ -192,7 +188,7 @@ export default function AnalyticsBrandsList({
                 render: (brand) => (
                   <div className="text-center">
                     <div className="font-mono font-semibold">
-                      {formatNumber(brand.totalPosts)}
+                      {formatCompactNumberIntl(brand.totalPosts)}
                     </div>
                     <div className="text-xs text-foreground/50">published</div>
                   </div>
@@ -204,7 +200,7 @@ export default function AnalyticsBrandsList({
                 render: (brand) => (
                   <div className="text-center">
                     <div className="font-mono font-semibold">
-                      {formatNumber(brand.totalViews)}
+                      {formatCompactNumberIntl(brand.totalViews)}
                     </div>
                     <div className="text-xs text-foreground/50">total</div>
                   </div>
@@ -216,7 +212,7 @@ export default function AnalyticsBrandsList({
                 render: (brand) => (
                   <div className="text-center">
                     <div className="font-mono font-semibold">
-                      {formatNumber(brand.totalEngagement)}
+                      {formatCompactNumberIntl(brand.totalEngagement)}
                     </div>
                     <div className="text-xs text-foreground/50">
                       interactions
@@ -230,7 +226,7 @@ export default function AnalyticsBrandsList({
                 render: (brand) => (
                   <div className="text-center">
                     <div className="font-mono font-semibold">
-                      {formatPercentage(brand.avgEngagementRate)}
+                      {formatPercentageSimple(brand.avgEngagementRate, 2)}
                     </div>
                     <div className="text-xs text-foreground/50">average</div>
                   </div>
@@ -251,7 +247,7 @@ export default function AnalyticsBrandsList({
                       }`}
                     >
                       {brand.growth > 0 ? '+' : ''}
-                      {formatPercentage(brand.growth)}
+                      {formatPercentageSimple(brand.growth, 2)}
                     </div>
                     <div className="text-xs text-foreground/50">
                       vs last period
