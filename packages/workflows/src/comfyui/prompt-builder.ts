@@ -235,26 +235,34 @@ export function buildZImageTurboPrompt(
 
   return {
     '1': {
-      class_type: 'CheckpointLoaderSimple',
+      class_type: 'UNETLoader',
       inputs: {
-        ckpt_name: 'z-image-turbo.safetensors',
+        unet_name: 'z_image_turbo_bf16.safetensors',
+        weight_dtype: 'default',
       },
     },
     '2': {
-      class_type: 'CLIPTextEncode',
+      class_type: 'CLIPLoader',
       inputs: {
-        clip: ['1', 1],
-        text: prompt,
+        clip_name: 'qwen_3_4b.safetensors',
+        type: 'lumina2',
       },
     },
     '3': {
       class_type: 'CLIPTextEncode',
       inputs: {
-        clip: ['1', 1],
-        text: '',
+        clip: ['2', 0],
+        text: prompt,
       },
     },
     '4': {
+      class_type: 'CLIPTextEncode',
+      inputs: {
+        clip: ['2', 0],
+        text: '',
+      },
+    },
+    '5': {
       class_type: 'EmptyLatentImage',
       inputs: {
         batch_size: 1,
@@ -262,33 +270,39 @@ export function buildZImageTurboPrompt(
         width,
       },
     },
-    '5': {
+    '6': {
       class_type: 'KSampler',
       inputs: {
         cfg: 1.0,
         denoise: 1.0,
-        latent_image: ['4', 0],
+        latent_image: ['5', 0],
         model: ['1', 0],
-        negative: ['3', 0],
-        positive: ['2', 0],
+        negative: ['4', 0],
+        positive: ['3', 0],
         sampler_name: 'euler_ancestral',
         scheduler: 'normal',
         seed,
         steps,
       },
     },
-    '6': {
-      class_type: 'VAEDecode',
+    '7': {
+      class_type: 'VAELoader',
       inputs: {
-        samples: ['5', 0],
-        vae: ['1', 2],
+        vae_name: 'ae.safetensors',
       },
     },
-    '7': {
+    '8': {
+      class_type: 'VAEDecode',
+      inputs: {
+        samples: ['6', 0],
+        vae: ['7', 0],
+      },
+    },
+    '9': {
       class_type: 'SaveImage',
       inputs: {
         filename_prefix: 'genfeed-z-turbo',
-        images: ['6', 0],
+        images: ['8', 0],
       },
     },
   };
