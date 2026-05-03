@@ -5,21 +5,17 @@
  * One-shot migration to set `succeededBy` on legacy models so the
  * CronModelDeprecationService can auto-deprecate them when successors mature.
  *
+ * Models use Prisma `Model` table with a `config` JSON column storing
+ * `key`, `succeededBy`, `predecessorOf`, `isLegacy`, etc.
+ *
  * Usage:
- *   MONGODB_URI=mongodb+srv://... bun scripts/migrations/set-model-succeeded-by.ts
+ *   DATABASE_URL=postgres://... bun scripts/migrations/set-model-succeeded-by.ts
  *
  * Dry-run (default): prints what would change.
- * Apply:  MONGODB_URI=... bun scripts/migrations/set-model-succeeded-by.ts --apply
+ * Apply:  DATABASE_URL=... bun scripts/migrations/set-model-succeeded-by.ts --apply
  */
 
-import { MongoClient } from 'mongodb';
-
-const MONGODB_URI = process.env.MONGODB_URI;
-if (!MONGODB_URI) {
-  console.error('Error: MONGODB_URI environment variable is required');
-  process.exit(1);
-}
-const mongodbUri = MONGODB_URI;
+import { PrismaClient } from '@prisma/client';
 
 const isDryRun = !process.argv.includes('--apply');
 
@@ -60,14 +56,18 @@ const SUCCESSION_MAP: Record<string, string> = {
   'bytedance/seedream-4': 'bytedance/seedream-4.5',
 };
 
+interface ModelConfig {
+  key?: string;
+  succeededBy?: string;
+  predecessorOf?: string;
+  isLegacy?: boolean;
+  [k: string]: unknown;
+}
+
 async function main(): Promise<void> {
-  const client = new MongoClient(mongodbUri);
+  const prisma = new PrismaClient();
 
   try {
-    await client.connect();
-    const db = client.db();
-    const collection = db.collection('models');
-
     console.log(
       isDryRun ? '🔍 DRY RUN (pass --apply to execute)\n' : '🚀 APPLYING\n',
     );
@@ -75,11 +75,23 @@ async function main(): Promise<void> {
     let updated = 0;
     let skipped = 0;
 
+    // Get all active, non-deleted models
+    const allModels = await prisma.model.findMany({
+      where: { isActive: true, isDeleted: false },
+    });
+
+    // Index by key from config
+    const modelsByKey = new Map<string, { id: string; config: ModelConfig }>();
+    for (const m of allModels) {
+      const config = (m.config ?? {}) as ModelConfig;
+      if (config.key) {
+        modelsByKey.set(config.key, { id: m.id, config });
+      }
+    }
+
+    // Set succeededBy + isLegacy on predecessors
     for (const [legacyKey, successorKey] of Object.entries(SUCCESSION_MAP)) {
-      const model = await collection.findOne({
-        key: legacyKey,
-        isDeleted: false,
-      });
+      const model = modelsByKey.get(legacyKey);
 
       if (!model) {
         console.log(`  SKIP: ${legacyKey} — not found in DB`);
@@ -87,7 +99,7 @@ async function main(): Promise<void> {
         continue;
       }
 
-      if (model.succeededBy === successorKey) {
+      if (model.config.succeededBy === successorKey) {
         console.log(`  SKIP: ${legacyKey} — already set to ${successorKey}`);
         skipped++;
         continue;
@@ -96,41 +108,41 @@ async function main(): Promise<void> {
       if (isDryRun) {
         console.log(`  WOULD SET: ${legacyKey} → succeededBy: ${successorKey}`);
       } else {
-        await collection.updateOne(
-          { _id: model._id },
-          {
-            $set: {
-              succeededBy: successorKey,
-              isLegacy: true,
-            },
-          },
-        );
+        const newConfig = {
+          ...model.config,
+          isLegacy: true,
+          succeededBy: successorKey,
+        };
+        await prisma.model.update({
+          data: { config: newConfig },
+          where: { id: model.id },
+        });
         console.log(`  SET: ${legacyKey} → succeededBy: ${successorKey}`);
       }
       updated++;
     }
 
-    // Also set predecessorOf on successor models
+    // Set predecessorOf on successor models
     for (const [legacyKey, successorKey] of Object.entries(SUCCESSION_MAP)) {
-      const successor = await collection.findOne({
-        key: successorKey,
-        isDeleted: false,
-      });
-
+      const successor = modelsByKey.get(successorKey);
       if (!successor) continue;
-      if (successor.predecessorOf) continue; // Don't overwrite existing
+      if (successor.config.predecessorOf) continue;
 
       if (!isDryRun) {
-        await collection.updateOne(
-          { _id: successor._id },
-          { $set: { predecessorOf: legacyKey } },
-        );
+        const newConfig = {
+          ...successor.config,
+          predecessorOf: legacyKey,
+        };
+        await prisma.model.update({
+          data: { config: newConfig },
+          where: { id: successor.id },
+        });
       }
     }
 
     console.log(`\n✅ Done. Updated: ${updated}, Skipped: ${skipped}`);
   } finally {
-    await client.close();
+    await prisma.$disconnect();
   }
 }
 
