@@ -1,4 +1,5 @@
 export default {
+  'backlog-governance': 'Backlog Governance',
   configuration: 'Configuration',
   contributing: 'Contributing',
   'execution-boundaries': 'Execution Boundaries',
