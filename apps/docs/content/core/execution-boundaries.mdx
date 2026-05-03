@@ -1,0 +1,90 @@
+import { Callout } from 'nextra/components';
+
+# Core and Cloud Execution Boundaries
+
+Genfeed Core is a self-hosted, single-tenant runtime. Genfeed Cloud is the managed service layer for hosted accounts, managed inference, publishing, analytics, collaboration, and billing. The two products share the same product model, but they do not share runtime state unless a user explicitly connects them.
+
+<Callout type="info">
+  This page is the V1 boundary contract for self-hosted Core, BYOK execution, managed Cloud execution, and account
+  handoff.
+</Callout>
+
+## Execution Modes
+
+| Mode                          | Where the app runs                                                           | Who pays providers                                     | Data owner                                                                  | Cloud account required               |
+| ----------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------ | --------------------------------------------------------------------------- | ------------------------------------ |
+| Local setup                   | Your machine or server                                                       | You, through local provider keys or local GPU services | Your self-hosted database and storage                                       | No                                   |
+| Self-hosted BYOK              | Your machine or server                                                       | You, through organization BYOK keys                    | Your self-hosted database and storage                                       | No                                   |
+| Self-hosted managed execution | Your self-hosted app, with selected generation calls routed to Genfeed Cloud | Genfeed Cloud credits                                  | Local app owns local records; Cloud processes the managed inference request | Yes, through a Genfeed Cloud API key |
+| Genfeed Cloud                 | Genfeed-managed infrastructure                                               | Genfeed Cloud credits or plan billing                  | Genfeed Cloud workspace                                                     | Yes                                  |
+
+## What Runs Locally
+
+Core owns the self-hosted runtime:
+
+- The app, API, workers, files service, notification service, and MCP service run from this repository.
+- PostgreSQL stores self-hosted records. Redis backs queues, cache, and realtime fanout.
+- Local object storage or S3-compatible storage owns generated files when configured for the self-hosted deployment.
+- Workflows, brands, prompts, provider settings, generated assets, and content run records are stored in the self-hosted deployment by default.
+- BYOK provider calls are made by the self-hosted API using keys configured on that install or on the active organization.
+
+## What Runs in Cloud
+
+Genfeed Cloud owns managed services:
+
+- Hosted app/API/workers for Cloud workspaces.
+- Managed inference credits and provider billing.
+- Team collaboration, multi-tenant organizations, roles, approvals, quotas, and billing.
+- Managed social publishing connectors.
+- Cross-workflow analytics, optimization loops, and managed scheduling.
+- Marketplace and hosted distribution surfaces.
+
+Cloud-only services do not run inside Core unless they are present under `ee/` or exposed through an explicit Cloud API integration.
+
+## Account and Sync Model
+
+Self-hosted Core has a local source of truth. A Cloud account does not automatically become the source of truth for a Core install.
+
+| State                       | Core behavior                                                                                                                               | Sync behavior                                                              |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| No auth provider configured | The install uses its local bootstrap identity and single implicit organization.                                                             | No Cloud sync.                                                             |
+| Local auth configured       | Users authenticate against the self-hosted app. Local database records remain authoritative.                                                | No automatic Cloud sync.                                                   |
+| Cloud signup handoff        | Core may send onboarding intent such as `source=oss-onboarding`, `accessMode=cloud`, brand name, and brand domain to the Cloud signup page. | Handoff parameters are one-shot onboarding hints, not data replication.    |
+| Cloud API key configured    | Core may call explicit Cloud APIs, such as managed inference, using the configured key and scopes.                                          | Only the request payload sent to that Cloud API crosses the boundary.      |
+| Cloud workspace             | Cloud records live in the Genfeed Cloud database and are governed by Cloud billing, quotas, and org roles.                                  | Export/import is the migration path until a dedicated sync feature exists. |
+
+## Offline, Logged-Out, and Logged-In Behavior
+
+- **Offline or no Cloud account:** Core should still allow local setup, workflow authoring, provider configuration, and BYOK execution when local dependencies and provider endpoints are reachable.
+- **Logged out of Core:** Public routes and onboarding entrypoints may render, but protected local resources require the self-hosted app's configured auth path.
+- **Logged into Core:** The local user and local organization select provider credentials and own local generated records.
+- **Logged into Cloud:** Cloud login does not mutate a self-hosted database unless the user completes an explicit import, export, or Cloud API action.
+- **Managed execution:** A Cloud API key authorizes the self-hosted backend to call Cloud services. The browser should not receive provider secrets or managed Cloud API secrets.
+
+## Provider Resolution
+
+Generation should resolve credentials in this order:
+
+1. Organization BYOK credentials for the selected provider.
+2. Server-level provider credentials configured on the self-hosted deployment.
+3. Explicit managed Cloud execution, when a Cloud API key is configured and the operation supports it.
+
+Provider calls must record the execution source so users can understand whether a run used BYOK, hosted/server credentials, or managed Cloud credits.
+
+## Migration Contract
+
+V1 migration between Core and Cloud is explicit, not automatic:
+
+- Core to Cloud: export workflows, brand kits, templates, and assets, then import them into a Cloud workspace.
+- Cloud to Core: export Cloud configuration and import it into the self-hosted deployment.
+- Managed execution: keep local records local and store enough metadata to identify Cloud-credit-backed runs.
+- Future sync work must define conflict handling before writing records across both systems.
+
+## Follow-On Implementation Targets
+
+Implementation work that touches this boundary should align to these contracts:
+
+- Auth bootstrap should preserve a local single-tenant source of truth for Core.
+- OSS onboarding should surface `server`, `byok`, and `cloud` access modes truthfully.
+- Managed inference should require an explicit Cloud API key and charge Cloud credits before provider execution.
+- Analytics, scheduling, publishing, and team features should remain Cloud/enterprise surfaces unless a Core implementation is documented separately.

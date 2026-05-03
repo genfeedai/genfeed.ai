@@ -1,21 +1,27 @@
 # ADR: PLG Boundary Between OSS and Genfeed Cloud
 
 ## Status
+
 Accepted
 
 ## Boundary Spec Version
-v1.1.1
+
+v1.2.0
 
 ## Last Updated
-2026-04-07
+
+2026-05-03
 
 ## Canonical Source
+
 This file.
 
 ## Public Canonical URL
-https://docs.genfeed.ai/product/core-cloud-boundary
+
+https://docs.genfeed.ai/core/execution-boundaries
 
 ## Decision Summary
+
 Genfeed follows a hybrid OSS + SaaS model:
 
 - The open-source repo is a complete self-hosted/BYOK workflow engine.
@@ -24,16 +30,17 @@ Genfeed follows a hybrid OSS + SaaS model:
 
 ## Product Boundary
 
-| Capability | OSS (Self-Hosted) | Genfeed Cloud |
-|---|---|---|
-| Visual workflow builder | Yes | Yes |
-| Local/self-hosted run | Yes | N/A |
-| BYOK execution | Yes | Yes |
-| Autonomous agent runs | No | Yes |
-| Scheduling/cron orchestration | No | Yes |
-| Social publishing connectors | Manual export/upload | Managed integrations |
-| Cross-workflow analytics and optimization loops | Limited local insight | Full managed analytics |
-| Team/org controls, billing, quotas | Enterprise only (`ee/`) | Yes |
+| Capability                                      | OSS (Self-Hosted)         | Genfeed Cloud          |
+| ----------------------------------------------- | ------------------------- | ---------------------- |
+| Visual workflow builder                         | Yes                       | Yes                    |
+| Local/self-hosted run                           | Yes                       | N/A                    |
+| BYOK execution                                  | Yes                       | Yes                    |
+| Managed inference credits                       | Optional Cloud API bridge | Yes                    |
+| Autonomous agent runs                           | No                        | Yes                    |
+| Scheduling/cron orchestration                   | No                        | Yes                    |
+| Social publishing connectors                    | Manual export/upload      | Managed integrations   |
+| Cross-workflow analytics and optimization loops | Limited local insight     | Full managed analytics |
+| Team/org controls, billing, quotas              | Enterprise only (`ee/`)   | Yes                    |
 
 ## Non-Negotiables
 
@@ -41,6 +48,7 @@ Genfeed follows a hybrid OSS + SaaS model:
 2. OSS must preserve workflow build and local/BYOK execution.
 3. Cloud-only value should center on automation, publishing, scheduling, analytics, and collaboration.
 4. Workflow portability between OSS and Cloud remains a required direction.
+5. Cloud account sync is explicit. Core local records do not replicate to Cloud without a dedicated import, export, or API action.
 
 ## Enterprise Multi-Tenancy
 
@@ -53,7 +61,8 @@ Multi-tenant organization controls are available via `ee/packages/` under commer
 
 ## Revision Log
 
-| Version | Date | Summary |
-|---|---|---|
-| v1.1.0 | 2026-03-11 | Initial accepted version |
-| v1.1.1 | 2026-03-15 | Added CI check script, revision log |
+| Version | Date       | Summary                                                                                |
+| ------- | ---------- | -------------------------------------------------------------------------------------- |
+| v1.1.0  | 2026-03-11 | Initial accepted version                                                               |
+| v1.1.1  | 2026-03-15 | Added CI check script, revision log                                                    |
+| v1.2.0  | 2026-05-03 | Added V1 execution modes, account-sync contract, and managed inference bridge boundary |
