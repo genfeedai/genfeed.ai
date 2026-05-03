@@ -217,7 +217,7 @@ export class TrendsService {
       this.loggerService.log(
         'No cached trends found, returning empty result without live fetch',
       );
-      return { where: {} };
+      return [];
     }
 
     // No cached trends, fetch fresh
@@ -283,10 +283,10 @@ export class TrendsService {
       if (credentials?.docs) {
         return credentials.docs.map((cred) => cred.platform.toLowerCase());
       }
-      return { where: {} };
+      return [];
     } catch (error: unknown) {
       this.loggerService.error('Failed to get connected platforms', error);
-      return { where: {} };
+      return [];
     }
   }
 

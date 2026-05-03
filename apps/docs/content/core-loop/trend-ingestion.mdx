@@ -46,16 +46,30 @@ flowchart LR
 
 ## Representative V1 Smoke Path
 
-The narrow verification path for v1 is in:
+The narrow Step 1 verification paths for v1 are in:
 
 - [`apps/server/api/src/collections/trends/services/trends.service.spec.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/collections/trends/services/trends.service.spec.ts)
+- [`apps/server/api/src/collections/trends/services/modules/trend-fetch.service.spec.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/collections/trends/services/modules/trend-fetch.service.spec.ts)
 
-The smoke test proves the cache-miss path is wired:
+The orchestrator smoke test proves the cache-miss path is wired:
 
 - tenant cache miss
 - optional global fallback miss
 - live fetch path invoked through `fetchAndCacheTrends()`
 - fetched trend entities returned to callers with the expected topic/platform shape
+
+The provider persist smoke test proves the ingest -> persist path is wired:
+
+- provider trend payload returned from the TikTok fetcher
+- `TrendFetchService.fetchAndCacheTrends()` calculates the v1 virality score
+- `prisma.trend.create` persists a current tenant-scoped trend document
+- the saved trend is returned as a `TrendEntity`
+
+Run both checks with:
+
+```bash
+TZ=UTC bunx vitest run --config vitest.config.ts src/collections/trends/services/trends.service.spec.ts src/collections/trends/services/modules/trend-fetch.service.spec.ts
+```
 
 That keeps verification repo-native without standing up a full ingestion environment.
 
