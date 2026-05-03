@@ -18,7 +18,7 @@ export class TagResolutionService {
    */
   async resolveTagLabels(tagIds: string[]): Promise<string[]> {
     if (!tagIds || tagIds.length === 0) {
-      return { where: {} };
+      return [];
     }
 
     const aggregate = {
