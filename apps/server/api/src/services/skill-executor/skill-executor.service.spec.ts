@@ -260,6 +260,95 @@ describe('SkillExecutorService', () => {
     );
   });
 
+  it('stores Remix Pack definitions as run variants', async () => {
+    mockSkillsService.getSkillById.mockResolvedValue({
+      isEnabled: true,
+      requiredProviders: [],
+      slug: 'trend-remix',
+    });
+    mockHandler.execute.mockResolvedValue({
+      content: 'Primary thread content',
+      metadata: {
+        remixPackVariants: [
+          {
+            angle: 'Operator pain point',
+            content: 'Primary thread content',
+            format: 'post-thread',
+            hypothesis: 'Pain-first threads convert',
+            platform: 'twitter',
+            type: 'text',
+          },
+          {
+            angle: 'Visual proof',
+            content: 'Image creative prompt',
+            format: 'social-image-creative',
+            hypothesis: 'A proof visual increases shares',
+            platform: 'twitter',
+            type: 'image',
+          },
+          {
+            angle: 'Video hook',
+            content: 'Short-form script',
+            format: 'short-form-video-script',
+            hypothesis: 'Fast hooks retain attention',
+            platform: 'twitter',
+            type: 'video-script',
+          },
+          {
+            angle: 'Long-form breakdown',
+            content: 'Newsletter outline',
+            format: 'article-newsletter-angle',
+            hypothesis: 'Deeper analysis captures high-intent users',
+            platform: 'newsletter',
+            type: 'article',
+          },
+          {
+            angle: 'Reply derivative',
+            content: 'Follow-up reply',
+            format: 'follow-up-reply',
+            hypothesis: 'Replies extend the loop',
+            platform: 'twitter',
+            type: 'reply',
+          },
+        ],
+        trendId: 'trend-1',
+      },
+      platforms: ['twitter'],
+      skillSlug: 'trend-remix',
+      type: 'text',
+    });
+
+    await service.execute('trend-remix', baseContext, {
+      trendId: 'trend-1',
+    });
+
+    expect(mockContentRunsService.patchRun).toHaveBeenCalledWith(
+      orgId,
+      runId,
+      expect.objectContaining({
+        status: ContentRunStatus.COMPLETED,
+        variants: [
+          expect.objectContaining({
+            angle: 'Operator pain point',
+            format: 'post-thread',
+            hypothesis: 'Pain-first threads convert',
+            id: `${runId}-trend-remix-post-thread`,
+            metadata: expect.objectContaining({
+              remixPack: true,
+              trendId: 'trend-1',
+            }),
+            platform: 'twitter',
+            type: 'text',
+          }),
+          expect.objectContaining({ format: 'social-image-creative' }),
+          expect.objectContaining({ format: 'short-form-video-script' }),
+          expect.objectContaining({ format: 'article-newsletter-angle' }),
+          expect.objectContaining({ format: 'follow-up-reply' }),
+        ],
+      }),
+    );
+  });
+
   it('captures publish context when scheduling metadata is present', async () => {
     mockSkillsService.getSkillById.mockResolvedValue({
       isEnabled: true,

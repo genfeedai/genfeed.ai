@@ -324,6 +324,29 @@ export class SkillExecutorService {
     draft: SkillExecutionResult['draft'],
     runId: string,
   ): ContentRunVariant[] {
+    const remixPackVariants = this.getRecords(draft.metadata.remixPackVariants);
+    if (remixPackVariants.length > 0) {
+      const draftMetadata = { ...draft.metadata };
+      delete draftMetadata.remixPackVariants;
+
+      return remixPackVariants.map((variant, index) => ({
+        angle: this.getString(variant.angle),
+        assetIds: this.getStringArray(variant.assetIds),
+        content: this.getString(variant.content) ?? draft.content,
+        format: this.getString(variant.format),
+        hypothesis: this.getString(variant.hypothesis),
+        id: `${runId}-${draft.skillSlug}-${this.getString(variant.format) ?? index + 1}`,
+        metadata: {
+          ...draftMetadata,
+          ...(this.getRecord(variant.metadata) ?? {}),
+          remixPack: true,
+        },
+        platform: this.getString(variant.platform) ?? 'unspecified',
+        status: this.getString(variant.status) ?? 'generated',
+        type: this.getString(variant.type) ?? draft.type,
+      }));
+    }
+
     const platforms =
       draft.platforms.length > 0 ? draft.platforms : ['unspecified'];
     const assetIds = this.getStringArray(draft.metadata.assetIds);
@@ -366,6 +389,17 @@ export class SkillExecutorService {
     return value && typeof value === 'object' && !Array.isArray(value)
       ? (value as Record<string, unknown>)
       : undefined;
+  }
+
+  private getRecords(value: unknown): Record<string, unknown>[] {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    return value.filter(
+      (item): item is Record<string, unknown> =>
+        item !== null && typeof item === 'object' && !Array.isArray(item),
+    );
   }
 
   private getNumber(value: unknown): number | undefined {

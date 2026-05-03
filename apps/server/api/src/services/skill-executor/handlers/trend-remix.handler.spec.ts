@@ -87,9 +87,37 @@ describe('TrendRemixHandler', () => {
     expect(result.content).toBe('Remixed trend content here! #aitrend #viral');
     expect(result.confidence).toBe(0.78);
     expect(result.metadata).toEqual({
+      remixPackVariants: expect.any(Array),
       trendId: 'trend-id-1',
       trendTopic: 'AI-generated art',
     });
+    expect(result.metadata.remixPackVariants).toEqual([
+      expect.objectContaining({
+        format: 'post-thread',
+        hypothesis: expect.any(String),
+        type: 'text',
+      }),
+      expect.objectContaining({
+        format: 'social-image-creative',
+        hypothesis: expect.any(String),
+        type: 'image',
+      }),
+      expect.objectContaining({
+        format: 'short-form-video-script',
+        hypothesis: expect.any(String),
+        type: 'video-script',
+      }),
+      expect.objectContaining({
+        format: 'article-newsletter-angle',
+        platform: 'newsletter',
+        type: 'article',
+      }),
+      expect.objectContaining({
+        format: 'follow-up-reply',
+        hypothesis: expect.any(String),
+        type: 'reply',
+      }),
+    ]);
   });
 
   it('uses explicit trendId when provided', async () => {
@@ -163,5 +191,24 @@ describe('TrendRemixHandler', () => {
     expect(result.skillSlug).toBe('trend-remix');
     expect(result.type).toBe('text');
     expect(result.platforms).toEqual(baseContext.platforms);
+  });
+
+  it('uses explicit angle and hypothesis for remix pack variants', async () => {
+    mockTrendsService.getTrendById.mockResolvedValue(mockTrend);
+    mockLlmDispatcherService.chatCompletion.mockResolvedValue(mockLlmSuccess);
+
+    const result = await handler.execute(baseContext, {
+      angle: 'Founder workflow proof point',
+      hypothesis: 'Concrete workflow examples outperform AI trend recaps',
+      trendId: 'trend-id-1',
+    });
+
+    expect(result.metadata.remixPackVariants).toContainEqual(
+      expect.objectContaining({
+        angle: 'Founder workflow proof point',
+        format: 'post-thread',
+        hypothesis: 'Concrete workflow examples outperform AI trend recaps',
+      }),
+    );
   });
 });
