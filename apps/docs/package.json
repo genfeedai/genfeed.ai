@@ -7,6 +7,7 @@
     "react-dom": "19.2.5",
     "swagger-ui-react": "5.32.5"
   },
+  "description": "Genfeed.ai documentation site built with Nextra",
   "devDependencies": {
     "@types/node": "25.6.0",
     "@types/react": "19.2.14",
@@ -17,10 +18,12 @@
   "private": true,
   "scripts": {
     "build": "next build",
-    "dev": "next dev",
+    "dev": "next dev --turbopack --port 3001",
     "format:check": "prettier --check .",
     "format:fix": "prettier --write .",
-    "start": "next start"
+    "lint": "biome check app components content mdx-components.tsx next.config.mjs package.json tsconfig.json types styles README.md",
+    "start": "next start",
+    "type-check": "tsc --noEmit"
   },
   "version": "0.0.0"
 }
