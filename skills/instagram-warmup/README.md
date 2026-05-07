@@ -10,7 +10,7 @@ npx skills add genfeedai/skills/instagram-warmup
 
 ## Usage
 
-```
+```text
 "Create an Instagram warmup plan for my fitness brand"
 "Generate warmup content for my new Instagram account in the food niche"
 "Help me warm up my Instagram before posting promotional content"

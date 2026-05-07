@@ -1,10 +1,7 @@
 import type { OAuth2Client } from 'google-auth-library';
 import { google } from 'googleapis';
 
-export interface YoutubeOAuthClient extends OAuth2Client {
-  clientId?: string;
-  redirectUri?: string;
-}
+export type YoutubeOAuthClient = OAuth2Client;
 
 /**
  * YouTube OAuth2 Utility
@@ -39,6 +36,6 @@ export class YoutubeOAuth2Util {
       clientId,
       clientSecret,
       redirectUri,
-    ) as YoutubeOAuthClient;
+    ) as unknown as YoutubeOAuthClient;
   }
 }

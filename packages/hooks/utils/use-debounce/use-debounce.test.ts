@@ -148,8 +148,7 @@ describe('useDebouncedAPI', () => {
     expect(result.current.isLoading).toBe(false);
   });
 
-  // Skip: Causes unhandled rejection due to AbortError thrown after test cleanup
-  it.skip('cancels previous requests when new call is made', async () => {
+  it('cancels previous requests when new call is made', async () => {
     const apiCall = vi.fn().mockImplementation(async (arg, { signal }) => {
       await new Promise((resolve) => setTimeout(resolve, 200));
       if (signal.aborted) {
@@ -196,8 +195,7 @@ describe('useDebouncedAPI', () => {
     expect(result.current.isLoading).toBe(false);
   });
 
-  // Skip: Causes unhandled rejection in test runner
-  it.skip('ignores AbortError', async () => {
+  it('ignores AbortError', async () => {
     const apiCall = vi.fn().mockRejectedValue(new Error('AbortError'));
     const { result } = renderHook(() => useDebouncedAPI(apiCall, 100));
 

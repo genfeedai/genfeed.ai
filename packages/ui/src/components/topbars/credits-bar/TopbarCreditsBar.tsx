@@ -45,6 +45,9 @@ export default function TopbarCreditsBar() {
   const [isLoading, setIsLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
   const refreshBreakdownRef = useRef(refreshCreditsBreakdown);
+  const balanceRefreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   refreshBreakdownRef.current = refreshCreditsBreakdown;
   const { subscribe, unsubscribe } = useSocketManager();
 
@@ -74,6 +77,17 @@ export default function TopbarCreditsBar() {
     }
   }, [organizationId, getCreditsService]);
 
+  const scheduleTopbarBalanceRefresh = useCallback(() => {
+    if (balanceRefreshTimeoutRef.current) {
+      clearTimeout(balanceRefreshTimeoutRef.current);
+    }
+
+    balanceRefreshTimeoutRef.current = setTimeout(() => {
+      balanceRefreshTimeoutRef.current = null;
+      void findTopbarBalances();
+    }, 1500);
+  }, [findTopbarBalances]);
+
   useEffect(() => {
     if (organizationId) {
       const organizationEvent = `/organizations/${organizationId}`;
@@ -84,7 +98,7 @@ export default function TopbarCreditsBar() {
         if (orgData?.balance !== undefined) {
           setBalance(orgData.balance);
           refreshBreakdownRef.current();
-          void findTopbarBalances();
+          scheduleTopbarBalanceRefresh();
         }
       };
 
@@ -93,7 +107,7 @@ export default function TopbarCreditsBar() {
         if (creditsData?.balance !== undefined) {
           setBalance(creditsData.balance);
           refreshBreakdownRef.current();
-          void findTopbarBalances();
+          scheduleTopbarBalanceRefresh();
         }
       };
 
@@ -105,7 +119,15 @@ export default function TopbarCreditsBar() {
         unsubscribe(creditsEvent, creditsHandler);
       };
     }
-  }, [organizationId, subscribe, unsubscribe, findTopbarBalances]);
+  }, [organizationId, subscribe, unsubscribe, scheduleTopbarBalanceRefresh]);
+
+  useEffect(() => {
+    return () => {
+      if (balanceRefreshTimeoutRef.current) {
+        clearTimeout(balanceRefreshTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (organizationId) {

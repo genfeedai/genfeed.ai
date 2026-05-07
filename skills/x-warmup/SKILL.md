@@ -152,25 +152,25 @@ Effective warmup replies add value to the conversation. They demonstrate that yo
 
 **Template 1: Specific Agreement With Expansion**
 
-```
+```text
 "[Specific thing they said] — exactly right. The part most people miss is [one additional insight]. [Optional: one-sentence example or elaboration]."
 ```
 
 **Template 2: Respectful Challenge With Rationale**
 
-```
+```text
 "Interesting take. I'd push back slightly on [specific point] — in [context/industry], [counter-observation]. What's your experience with [specific scenario]?"
 ```
 
 **Template 3: Experience-Based Addition**
 
-```
+```text
 "This matches what I've seen doing [relevant work/experience]. [One-sentence specific example]. The [specific variable they didn't mention] changes the outcome a lot."
 ```
 
 **Template 4: Clarifying Question That Shows You Read It**
 
-```
+```text
 "When you say [specific phrase from original], do you mean [interpretation A] or [interpretation B]? Asking because [one-sentence reason the distinction matters to you]."
 ```
 
@@ -232,7 +232,7 @@ A warmup thread should be 4-8 tweets long. Longer threads exist but require an e
 
 #### Thread Architecture
 
-```
+```text
 Tweet 1 (Hook):
   - The single most compelling version of your central claim or promise
   - Must stop a scrolling reader in under 3 seconds
@@ -260,7 +260,7 @@ Final Tweet (Value Close, No Promotional Ask):
 
 When generating warmup thread content, output a complete tweet-by-tweet brief:
 
-```
+```text
 X WARMUP THREAD BRIEF
 ---
 Topic: [Specific topic in the user's niche]
@@ -493,7 +493,7 @@ Only invoke `publish_post` after the user confirms:
 
 ### Phase 1-2 Output: Engagement Plan
 
-```
+```text
 X WARMUP — ENGAGEMENT PLAN
 Account Niche: [User-provided niche]
 Warmup Duration: Days 1-7 (consumption + light engagement)
@@ -554,7 +554,7 @@ DO NOT:
 
 ### Phase 3 Output: Warmup Thread Brief
 
-```
+```text
 X WARMUP — THREAD BRIEF (Days 8-10)
 Account Niche: [User-provided niche]
 Format: Thread (4-8 tweets)
@@ -590,7 +590,7 @@ IMAGE/MEDIA (optional):
 
 ### Phase 4 Output: Post-Warmup Assessment
 
-```
+```text
 X WARMUP — PERFORMANCE ASSESSMENT
 Thread Published: [Date]
 Assessment Date: [48 hours later]

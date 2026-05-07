@@ -70,7 +70,17 @@ export class ManagedInferenceClientService {
       return response.output;
     }
 
-    const url = response.output.url;
+    if (
+      !response.output ||
+      typeof response.output !== 'object' ||
+      Array.isArray(response.output)
+    ) {
+      throw new BadRequestException(
+        'Managed inference response did not include an image URL',
+      );
+    }
+
+    const url = (response.output as Record<string, unknown>).url;
     if (typeof url === 'string') {
       return url;
     }

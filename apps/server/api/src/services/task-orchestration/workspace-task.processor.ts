@@ -119,19 +119,20 @@ export class WorkspaceTaskProcessor extends WorkerHost {
     }
 
     const hasExplicitAvatar = Boolean(data.heygenAvatarId);
-    const hasExplicitVoice = Boolean(data.voiceId);
+    const voiceProvider = data.voiceProvider || (data.voiceId ? 'heygen' : '');
+    const hasExplicitVoice = Boolean(data.voiceId && voiceProvider);
     const useIdentity = !hasExplicitAvatar || !hasExplicitVoice;
 
     // Map generic voiceId + voiceProvider to service-specific fields.
     // HeyGen catalog voices go through heygenVoiceId directly.
     // All other providers use clonedVoiceId (DB lookup + provider routing).
     const voiceParams: Record<string, string> = {};
-    if (data.voiceId && data.voiceProvider) {
-      if (data.voiceProvider === 'heygen') {
+    if (data.voiceId && voiceProvider) {
+      if (voiceProvider === 'heygen') {
         voiceParams.heygenVoiceId = data.voiceId;
       } else {
         voiceParams.clonedVoiceId = data.voiceId;
-        voiceParams.voiceProvider = data.voiceProvider;
+        voiceParams.voiceProvider = voiceProvider;
       }
     }
 
@@ -142,7 +143,7 @@ export class WorkspaceTaskProcessor extends WorkerHost {
         taskId: data.taskId,
         useIdentity,
         voiceId: data.voiceId,
-        voiceProvider: data.voiceProvider,
+        voiceProvider,
       },
     );
 
@@ -157,12 +158,12 @@ export class WorkspaceTaskProcessor extends WorkerHost {
           heygenAvatarId: data.heygenAvatarId,
           useIdentity,
           voiceId: data.voiceId,
-          voiceProvider: data.voiceProvider,
+          voiceProvider,
         },
         type: 'task_started',
       },
       {
-        chosenProvider: data.voiceProvider || 'heygen',
+        chosenProvider: voiceProvider || 'heygen',
         executionPathUsed: 'video_generation',
         progress: {
           activeRunCount: 1,

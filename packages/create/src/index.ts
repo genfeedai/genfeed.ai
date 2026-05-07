@@ -76,7 +76,7 @@ NEXT_PUBLIC_WS_ENDPOINT=http://localhost:3011
 NEXT_PUBLIC_CDN_URL=http://localhost:3012
 
 # ─── AI Providers (add your keys during onboarding) ────────────────
-# REPLICATE_API_TOKEN=
+# REPLICATE_KEY=
 # FAL_API_KEY=
 # ELEVENLABS_API_KEY=
 # HF_API_TOKEN=

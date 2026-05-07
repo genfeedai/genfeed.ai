@@ -9,7 +9,9 @@ import { SpeedInsights } from '@vercel/speed-insights/next';
 import dynamic from 'next/dynamic';
 import { ThemeProvider, useTheme } from 'next-themes';
 import type { ComponentProps, ReactNode } from 'react';
+import { useMemo } from 'react';
 import { Toaster } from 'sonner';
+import type { MarketingTrackingConfig } from '../../marketing/browser';
 import MarketingTrackingProvider from '../../marketing/MarketingTrackingProvider';
 
 const LazyModalErrorDebug = dynamic(
@@ -36,6 +38,7 @@ export interface AppProvidersProps {
   includeVercelAnalytics?: boolean;
   marketingConsentDefault?: 'denied' | 'granted';
   marketingGtmContainerId?: string;
+  marketingLinkedinConversionIds?: MarketingTrackingConfig['linkedinConversionIds'];
   marketingLinkedinPartnerId?: string;
   marketingMetaPixelId?: string;
   marketingXPixelId?: string;
@@ -85,11 +88,30 @@ export default function AppProviders({
   includeVercelAnalytics = true,
   marketingConsentDefault = 'denied',
   marketingGtmContainerId,
+  marketingLinkedinConversionIds,
   marketingLinkedinPartnerId,
   marketingMetaPixelId,
   marketingXPixelId,
   storageKey = THEME_STORAGE_KEY,
 }: AppProvidersProps) {
+  const marketingConfig = useMemo(
+    () => ({
+      gaId: googleAnalyticsId,
+      gtmContainerId: marketingGtmContainerId,
+      linkedinConversionIds: marketingLinkedinConversionIds,
+      linkedinPartnerId: marketingLinkedinPartnerId,
+      metaPixelId: marketingMetaPixelId,
+      xPixelId: marketingXPixelId,
+    }),
+    [
+      googleAnalyticsId,
+      marketingGtmContainerId,
+      marketingLinkedinConversionIds,
+      marketingLinkedinPartnerId,
+      marketingMetaPixelId,
+      marketingXPixelId,
+    ],
+  );
   const content = (
     <>
       <ThemeCookieSync />
@@ -114,13 +136,7 @@ export default function AppProviders({
       <ThemedClerkProvider clerkProps={clerkProps}>
         {includeMarketingTracking ? (
           <MarketingTrackingProvider
-            config={{
-              gaId: googleAnalyticsId,
-              gtmContainerId: marketingGtmContainerId,
-              linkedinPartnerId: marketingLinkedinPartnerId,
-              metaPixelId: marketingMetaPixelId,
-              xPixelId: marketingXPixelId,
-            }}
+            config={marketingConfig}
             consentDefault={marketingConsentDefault}
           >
             {content}

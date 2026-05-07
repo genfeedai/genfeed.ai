@@ -10,7 +10,7 @@ npx skills add genfeedai/skills/x-warmup
 
 ## Usage
 
-```
+```text
 "Create an X warmup plan for my SaaS brand"
 "Generate a warmup thread for my new X account in the finance niche"
 "Help me warm up my Twitter before posting promotional content"

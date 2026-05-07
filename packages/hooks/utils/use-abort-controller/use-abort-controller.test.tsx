@@ -258,6 +258,11 @@ describe('isAbortError', () => {
     expect(isAbortError(error)).toBe(true);
   });
 
+  it('detects Error instances with AbortError message', () => {
+    const error = new Error('AbortError');
+    expect(isAbortError(error)).toBe(true);
+  });
+
   it('returns false for other errors', () => {
     const error = new Error('Regular error');
     expect(isAbortError(error)).toBe(false);

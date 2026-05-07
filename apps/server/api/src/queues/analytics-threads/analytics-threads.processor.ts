@@ -14,6 +14,7 @@ import { Job } from 'bullmq';
 export interface ThreadsAnalyticsJobData {
   posts: Array<{
     _id: string;
+    credential?: string;
     externalId: string;
     organization: string;
     brand: string;
@@ -74,6 +75,7 @@ export class AnalyticsThreadsProcessor extends WorkerHost {
             post.organization,
             post.brand,
             post.externalId,
+            post.credential,
           );
 
           await this.postAnalyticsService.processThreadsAnalytics(
