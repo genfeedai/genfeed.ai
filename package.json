@@ -77,6 +77,7 @@
     "dev:docs": "bunx turbo run dev --filter=@genfeedai/docs",
     "dev:frontend": "bunx turbo run dev --filter=@genfeedai/app --filter=@genfeedai/website --concurrency=3",
     "dev:website:fe": "bunx turbo run dev --filter=@genfeedai/website",
+    "design:lint": "bunx design.md lint DESIGN.md",
     "docker:build-all": "docker compose -f docker/docker-compose.yml build",
     "docker:down": "docker compose -f docker/docker-compose.yml down",
     "docker:health": "docker compose -f docker/docker-compose.yml ps",
@@ -102,6 +103,7 @@
   "devDependencies": {
     "@biomejs/biome": "2.4.13",
     "@clerk/types": "4.101.20",
+    "@google/design.md": "0.1.1",
     "@nestjs/cli": "11.0.21",
     "@nestjs/testing": "11.1.19",
     "@next/bundle-analyzer": "16.2.4",

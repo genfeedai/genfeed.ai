@@ -16,7 +16,7 @@ import { Injectable } from '@nestjs/common';
 @Injectable()
 export class LinkedInPublisherService extends BasePublisherService {
   readonly platform = CredentialPlatform.LINKEDIN;
-  readonly supportsTextOnly = false;
+  readonly supportsTextOnly = true;
   readonly supportsImages = true;
   readonly supportsVideos = true;
   readonly supportsCarousel = false;
@@ -67,8 +67,14 @@ export class LinkedInPublisherService extends BasePublisherService {
       // Sanitize HTML to plain text - LinkedIn doesn't support HTML markup
       const caption = this.sanitizeDescription(post.description);
 
-      if (mediaInfo.isImagePost) {
-        // Upload single image with caption
+      if (post.category === PostCategory.TEXT && !mediaInfo.hasIngredients) {
+        const result = await this.linkedInService.createTextPost(
+          organizationId,
+          brandId,
+          caption,
+        );
+        externalId = this.getLinkedInPublishId(result);
+      } else if (mediaInfo.isImagePost) {
         const result = await this.linkedInService.uploadImage(
           organizationId,
           brandId,
@@ -77,7 +83,6 @@ export class LinkedInPublisherService extends BasePublisherService {
         );
         externalId = this.getLinkedInPublishId(result);
       } else {
-        // Upload video with caption
         const result = await this.linkedInService.uploadVideo(
           organizationId,
           brandId,

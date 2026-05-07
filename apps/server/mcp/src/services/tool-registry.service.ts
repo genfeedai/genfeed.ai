@@ -631,6 +631,61 @@ export class ToolRegistryService {
           };
         }
 
+        case 'generate_linkedin_content': {
+          if (!args?.topic) {
+            throw new Error('topic is required');
+          }
+          const linkedInContent =
+            await this.clientService.generateLinkedInContent({
+              brandId: args.brandId as string | undefined,
+              topic: args.topic as string,
+              variationsCount: (args.variationsCount as number) || 3,
+            });
+          return {
+            content: [
+              {
+                text:
+                  linkedInContent.length > 0
+                    ? `Generated ${linkedInContent.length} LinkedIn content variations:\n\n${JSON.stringify(linkedInContent, null, 2)}`
+                    : 'No content generated.',
+                type: 'text',
+              },
+            ],
+          };
+        }
+
+        case 'get_linkedin_connection_status': {
+          const connectionStatus =
+            await this.clientService.getLinkedInConnectionStatus();
+          return {
+            content: [
+              {
+                text: JSON.stringify(connectionStatus, null, 2),
+                type: 'text',
+              },
+            ],
+          };
+        }
+
+        case 'get_linkedin_analytics': {
+          if (!args?.contentId) {
+            throw new Error('contentId is required');
+          }
+          const linkedInAnalytics =
+            await this.clientService.getLinkedInAnalytics(
+              args.contentId as string,
+              (args.timeRange as string) || '7d',
+            );
+          return {
+            content: [
+              {
+                text: JSON.stringify(linkedInAnalytics, null, 2),
+                type: 'text',
+              },
+            ],
+          };
+        }
+
         default: {
           // Route to external tool handlers
           // Check role access
