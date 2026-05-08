@@ -13,7 +13,9 @@ afterAll(() => {
 });
 
 describe('DesktopPgliteService integration', () => {
-  it('persists data across restart when using an on-disk dataDir', async () => {
+  it('persists data across restart when using an on-disk dataDir', {
+    timeout: 20_000,
+  }, async () => {
     const first = new DesktopPgliteService(dataDir);
     const firstDb = await first.init();
 

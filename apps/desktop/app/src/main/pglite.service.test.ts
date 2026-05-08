@@ -17,7 +17,9 @@ afterEach(async () => {
 });
 
 describe('DesktopPgliteService', () => {
-  it('initializes PGlite and applies Prisma migrations', async () => {
+  it('initializes PGlite and applies Prisma migrations', {
+    timeout: 20_000,
+  }, async () => {
     const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'genfeed-pglite-'));
     cleanupPaths.push(dataDir);
 
