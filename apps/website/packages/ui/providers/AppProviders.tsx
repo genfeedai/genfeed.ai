@@ -10,6 +10,7 @@ import dynamic from 'next/dynamic';
 import { ThemeProvider, useTheme } from 'next-themes';
 import type { ComponentProps, ReactNode } from 'react';
 import { Toaster } from 'sonner';
+import type { WebsiteMarketingEventName } from '../../marketing/events';
 import MarketingTrackingProvider from '../../marketing/MarketingTrackingProvider';
 
 const LazyModalErrorDebug = dynamic(
@@ -36,8 +37,12 @@ export interface AppProvidersProps {
   includeVercelAnalytics?: boolean;
   marketingConsentDefault?: 'denied' | 'granted';
   marketingGtmContainerId?: string;
+  marketingLinkedinConversionIds?: Partial<
+    Record<WebsiteMarketingEventName, string>
+  >;
   marketingLinkedinPartnerId?: string;
   marketingMetaPixelId?: string;
+  marketingXEventIds?: Partial<Record<WebsiteMarketingEventName, string>>;
   marketingXPixelId?: string;
   storageKey?: string;
 }
@@ -85,8 +90,10 @@ export default function AppProviders({
   includeVercelAnalytics = true,
   marketingConsentDefault = 'denied',
   marketingGtmContainerId,
+  marketingLinkedinConversionIds,
   marketingLinkedinPartnerId,
   marketingMetaPixelId,
+  marketingXEventIds,
   marketingXPixelId,
   storageKey = THEME_STORAGE_KEY,
 }: AppProvidersProps) {
@@ -117,8 +124,10 @@ export default function AppProviders({
             config={{
               gaId: googleAnalyticsId,
               gtmContainerId: marketingGtmContainerId,
+              linkedinConversionIds: marketingLinkedinConversionIds,
               linkedinPartnerId: marketingLinkedinPartnerId,
               metaPixelId: marketingMetaPixelId,
+              xEventIds: marketingXEventIds,
               xPixelId: marketingXPixelId,
             }}
             consentDefault={marketingConsentDefault}

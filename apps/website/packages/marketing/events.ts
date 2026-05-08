@@ -102,27 +102,41 @@ const PRICING_ACTIONS = new Set([
   'view_pricing',
 ]);
 
+function matchesActionPrefix(action: string, candidates: Set<string>): boolean {
+  for (const candidate of candidates) {
+    if (
+      action === candidate ||
+      action.startsWith(`${candidate}_`) ||
+      action.startsWith(`${candidate}-`)
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 export function deriveMarketingEventsFromCta(
   payload: MarketingEventPayload | undefined,
 ): WebsiteMarketingEventName[] {
   const action =
     typeof payload?.action === 'string' ? payload.action.toLowerCase() : '';
 
-  if (BOOK_CALL_ACTIONS.has(action)) {
+  if (matchesActionPrefix(action, BOOK_CALL_ACTIONS)) {
     return [
       WEBSITE_MARKETING_EVENTS.CTA_CLICK,
       WEBSITE_MARKETING_EVENTS.BOOK_CALL,
     ];
   }
 
-  if (SIGNUP_ACTIONS.has(action)) {
+  if (matchesActionPrefix(action, SIGNUP_ACTIONS)) {
     return [
       WEBSITE_MARKETING_EVENTS.CTA_CLICK,
       WEBSITE_MARKETING_EVENTS.START_SIGNUP,
     ];
   }
 
-  if (PRICING_ACTIONS.has(action)) {
+  if (matchesActionPrefix(action, PRICING_ACTIONS)) {
     return [
       WEBSITE_MARKETING_EVENTS.CTA_CLICK,
       WEBSITE_MARKETING_EVENTS.VIEW_PRICING,

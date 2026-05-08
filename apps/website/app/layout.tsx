@@ -112,10 +112,14 @@ export default async function RootLayout({ children }: LayoutProps) {
         googleAnalyticsId={EnvironmentService.GA_ID}
         marketingConsentDefault={EnvironmentService.marketing.consentDefault}
         marketingGtmContainerId={EnvironmentService.marketing.gtmContainerId}
+        marketingLinkedinConversionIds={
+          EnvironmentService.marketing.linkedinConversionIds
+        }
         marketingLinkedinPartnerId={
           EnvironmentService.marketing.linkedinPartnerId
         }
         marketingMetaPixelId={EnvironmentService.marketing.metaPixelId}
+        marketingXEventIds={EnvironmentService.marketing.xEventIds}
         marketingXPixelId={EnvironmentService.marketing.xPixelId}
       >
         {children}

@@ -9,6 +9,7 @@ import {
   META_EVENT_NAMES,
   WEBSITE_MARKETING_EVENTS,
   type WebsiteMarketingEvent,
+  type WebsiteMarketingEventName,
   X_EVENT_NAMES,
 } from './events';
 
@@ -27,8 +28,10 @@ declare global {
 export interface MarketingTrackingConfig {
   gaId?: string;
   gtmContainerId?: string;
+  linkedinConversionIds?: Partial<Record<WebsiteMarketingEventName, string>>;
   linkedinPartnerId?: string;
   metaPixelId?: string;
+  xEventIds?: Partial<Record<WebsiteMarketingEventName, string>>;
   xPixelId?: string;
 }
 
@@ -173,14 +176,22 @@ function dispatchBrowserVendorEvents(
     config.linkedinPartnerId &&
     event.name !== WEBSITE_MARKETING_EVENTS.PAGE_VIEW
   ) {
+    const conversionId =
+      config.linkedinConversionIds?.[event.name] ||
+      LINKEDIN_EVENT_NAMES[event.name];
+
     window.lintrk?.('track', {
-      conversion_id: LINKEDIN_EVENT_NAMES[event.name],
+      conversion_id: conversionId,
     });
   }
 
   if (config.xPixelId) {
-    window.twq?.('event', X_EVENT_NAMES[event.name], {
+    const xEventId =
+      config.xEventIds?.[event.name] || X_EVENT_NAMES[event.name];
+
+    window.twq?.('event', xEventId, {
       event_id: event.eventId,
+      event_name: X_EVENT_NAMES[event.name],
       ...payload,
     });
   }

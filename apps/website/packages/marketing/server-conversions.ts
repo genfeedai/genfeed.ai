@@ -26,6 +26,7 @@ export interface ServerConversionConfig {
   metaPixelId?: string;
   xApiEndpoint?: string;
   xBearerToken?: string;
+  xEventIds?: Partial<Record<WebsiteMarketingEventName, string>>;
 }
 
 export interface ServerConversionResult {
@@ -96,6 +97,19 @@ function getMetaEndpoint(config: ServerConversionConfig): string | null {
   )}`;
 }
 
+function getDefaultXEventIds(): Partial<
+  Record<WebsiteMarketingEventName, string>
+> {
+  return {
+    book_call: process.env.NEXT_PUBLIC_X_BOOK_CALL_EVENT_ID,
+    cta_click: process.env.NEXT_PUBLIC_X_CTA_CLICK_EVENT_ID,
+    lead_submit: process.env.NEXT_PUBLIC_X_LEAD_SUBMIT_EVENT_ID,
+    signup_complete: process.env.NEXT_PUBLIC_X_SIGNUP_COMPLETE_EVENT_ID,
+    start_signup: process.env.NEXT_PUBLIC_X_START_SIGNUP_EVENT_ID,
+    view_pricing: process.env.NEXT_PUBLIC_X_VIEW_PRICING_EVENT_ID,
+  };
+}
+
 export async function sendServerConversions(
   event: ServerConversionRequest,
   context: ServerConversionContext,
@@ -105,6 +119,7 @@ export async function sendServerConversions(
     metaPixelId: process.env.NEXT_PUBLIC_META_PIXEL_ID,
     xApiEndpoint: process.env.X_CONVERSIONS_API_ENDPOINT,
     xBearerToken: process.env.X_CONVERSIONS_API_BEARER_TOKEN,
+    xEventIds: getDefaultXEventIds(),
   },
 ): Promise<ServerConversionResult> {
   const userData = getUserData(event, context);
@@ -138,6 +153,9 @@ export async function sendServerConversions(
   }
 
   if (config.xApiEndpoint && config.xBearerToken) {
+    const xEventId =
+      config.xEventIds?.[event.name] || X_EVENT_NAMES[event.name];
+
     result.x = 'configured';
     calls.push(
       fetch(config.xApiEndpoint, {
@@ -146,7 +164,7 @@ export async function sendServerConversions(
             {
               conversion_time: new Date().toISOString(),
               event_id: event.eventId,
-              event_name: X_EVENT_NAMES[event.name],
+              event_name: xEventId,
               event_source_url: event.url,
               identifiers: {
                 ip_address: context.clientIp,

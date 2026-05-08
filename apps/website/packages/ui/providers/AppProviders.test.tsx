@@ -57,8 +57,10 @@ describe('website AppProviders', () => {
         includeVercelAnalytics={false}
         marketingConsentDefault="denied"
         marketingGtmContainerId="GTM-123"
+        marketingLinkedinConversionIds={{ book_call: 'li-book-call' }}
         marketingLinkedinPartnerId="li-123"
         marketingMetaPixelId="meta-123"
+        marketingXEventIds={{ book_call: 'tw-book-call' }}
         marketingXPixelId="x-123"
       >
         <div>Website child</div>
@@ -70,8 +72,10 @@ describe('website AppProviders', () => {
       config: {
         gaId: 'G-123',
         gtmContainerId: 'GTM-123',
+        linkedinConversionIds: { book_call: 'li-book-call' },
         linkedinPartnerId: 'li-123',
         metaPixelId: 'meta-123',
+        xEventIds: { book_call: 'tw-book-call' },
         xPixelId: 'x-123',
       },
       consentDefault: 'denied',
