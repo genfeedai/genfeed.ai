@@ -24,6 +24,8 @@
     "mac": {
       "category": "public.app-category.productivity",
       "darkModeSupport": true,
+      "entitlements": "assets/entitlements.mac.plist",
+      "entitlementsInherit": "assets/entitlements.mac.plist",
       "gatekeeperAssess": false,
       "hardenedRuntime": true,
       "icon": "build/icon.icns",
