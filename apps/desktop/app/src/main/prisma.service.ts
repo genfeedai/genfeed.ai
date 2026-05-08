@@ -1,53 +1,61 @@
+import type { PGlite } from '@electric-sql/pglite';
 import type { PrismaClient } from '@genfeedai/desktop-prisma';
 import { createDesktopPrismaClient } from '@genfeedai/desktop-prisma';
-import { DesktopPgliteService } from './pglite.service';
+
+const LOCAL_ORGANIZATION_ID = 'local-org';
+const LOCAL_USER_ID = 'local-user';
+
+const toIso = (): string => new Date().toISOString();
 
 export class DesktopPrismaService {
   private client: PrismaClient | null = null;
-  private clientPromise: Promise<PrismaClient> | null = null;
 
-  constructor(
-    private readonly pgliteService: DesktopPgliteService = new DesktopPgliteService(),
-  ) {}
+  constructor(private readonly pglite: PGlite) {}
 
-  getDatabasePath(): string {
-    return this.pgliteService.getDatabasePath();
+  getClient(): PrismaClient {
+    if (!this.client) {
+      this.client = createDesktopPrismaClient(this.pglite);
+    }
+
+    return this.client;
   }
 
-  async getClient(): Promise<PrismaClient> {
-    if (this.client) {
-      return this.client;
-    }
+  async bootstrapLocalIdentity(): Promise<void> {
+    const client = this.getClient();
+    const now = toIso();
 
-    if (this.clientPromise) {
-      return this.clientPromise;
-    }
+    await client.organization.upsert({
+      create: {
+        createdAt: now,
+        id: LOCAL_ORGANIZATION_ID,
+        name: 'Local Workspace',
+        slug: 'local-workspace',
+        updatedAt: now,
+      },
+      update: {
+        name: 'Local Workspace',
+        updatedAt: now,
+      },
+      where: {
+        id: LOCAL_ORGANIZATION_ID,
+      },
+    });
 
-    this.clientPromise = (async () => {
-      const context = await this.pgliteService.getContext();
-      const client = createDesktopPrismaClient(context.db, {
-        databaseDirPath: context.databaseDirPath,
-        log:
-          process.env.NODE_ENV === 'development'
-            ? ['query', 'error', 'warn']
-            : ['error'],
-        wasJustInitialized: context.wasJustInitialized,
-      });
-
-      this.client = client;
-      return client;
-    })();
-
-    return this.clientPromise;
-  }
-
-  async close(): Promise<void> {
-    if (this.client) {
-      await this.client.$disconnect();
-      this.client = null;
-    }
-
-    this.clientPromise = null;
-    await this.pgliteService.close();
+    await client.user.upsert({
+      create: {
+        createdAt: now,
+        id: LOCAL_USER_ID,
+        name: 'Local Desktop User',
+        organizationId: LOCAL_ORGANIZATION_ID,
+        updatedAt: now,
+      },
+      update: {
+        name: 'Local Desktop User',
+        updatedAt: now,
+      },
+      where: {
+        id: LOCAL_USER_ID,
+      },
+    });
   }
 }

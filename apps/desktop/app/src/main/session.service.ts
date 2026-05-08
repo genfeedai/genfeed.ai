@@ -3,7 +3,7 @@ import type {
   IDesktopSession,
 } from '@genfeedai/desktop-contracts';
 import { safeStorage } from 'electron';
-import type { DesktopDatabaseService } from './database.service';
+import type { DesktopKvService } from './kv.service';
 
 const SESSION_STORAGE_KEY = 'desktop.session';
 const DESKTOP_AUTH_SCHEME = 'genfeedai-desktop';
@@ -26,10 +26,8 @@ const deserializeSession = (value: string): IDesktopSession =>
   JSON.parse(value) as IDesktopSession;
 
 export class DesktopSessionService {
-  private currentSession: IDesktopSession | null = null;
-
   constructor(
-    private readonly database: DesktopDatabaseService,
+    private readonly kvService: DesktopKvService,
     private readonly environment: IDesktopEnvironment,
   ) {}
 
@@ -37,32 +35,23 @@ export class DesktopSessionService {
     return this.environment;
   }
 
-  async initialize(): Promise<IDesktopSession | null> {
-    const stored = await this.database.getValue(SESSION_STORAGE_KEY);
+  getSession(): IDesktopSession | null {
+    const stored = this.kvService.getValueSync(SESSION_STORAGE_KEY);
 
     if (!stored) {
-      this.currentSession = null;
       return null;
     }
 
     try {
-      const session = safeStorage.isEncryptionAvailable()
+      return safeStorage.isEncryptionAvailable()
         ? deserializeSession(
             safeStorage.decryptString(Buffer.from(stored, 'base64')),
           )
         : deserializeSession(stored);
-
-      this.currentSession = session;
-      return session;
     } catch {
-      this.currentSession = null;
-      await this.database.deleteValue(SESSION_STORAGE_KEY);
+      void this.clearSession();
       return null;
     }
-  }
-
-  getSession(): IDesktopSession | null {
-    return this.currentSession;
   }
 
   async setSession(session: IDesktopSession): Promise<IDesktopSession> {
@@ -71,14 +60,12 @@ export class DesktopSessionService {
       ? safeStorage.encryptString(payload).toString('base64')
       : payload;
 
-    this.currentSession = session;
-    await this.database.setValue(SESSION_STORAGE_KEY, encryptedPayload);
+    await this.kvService.setValue(SESSION_STORAGE_KEY, encryptedPayload);
     return session;
   }
 
   async clearSession(): Promise<void> {
-    this.currentSession = null;
-    await this.database.deleteValue(SESSION_STORAGE_KEY);
+    await this.kvService.deleteValue(SESSION_STORAGE_KEY);
   }
 
   getLoginUrl(): string {

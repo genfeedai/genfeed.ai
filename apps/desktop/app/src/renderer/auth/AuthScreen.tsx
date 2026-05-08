@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 export const AuthScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [isOfflineLoading, setIsOfflineLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleBrowserLogin = async (): Promise<void> => {
@@ -27,6 +28,23 @@ export const AuthScreen = () => {
     }
   };
 
+  const handleContinueOffline = async (): Promise<void> => {
+    setIsOfflineLoading(true);
+    setError(null);
+
+    try {
+      await window.genfeedDesktop.app.enableOfflineMode();
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Failed to continue offline. Please try again.',
+      );
+    } finally {
+      setIsOfflineLoading(false);
+    }
+  };
+
   return (
     <div className="auth-screen">
       <div className="auth-card">
@@ -44,12 +62,21 @@ export const AuthScreen = () => {
         <div className="auth-actions">
           <Button
             className="auth-btn"
-            disabled={isLoading}
+            disabled={isLoading || isOfflineLoading}
             onClick={() => void handleBrowserLogin()}
             type="button"
             variant={ButtonVariant.DEFAULT}
           >
             {isLoading ? 'Opening browser...' : 'Sign in with Browser'}
+          </Button>
+          <Button
+            className="auth-btn"
+            disabled={isLoading || isOfflineLoading}
+            onClick={() => void handleContinueOffline()}
+            type="button"
+            variant={ButtonVariant.SECONDARY}
+          >
+            {isOfflineLoading ? 'Opening offline mode...' : 'Continue Offline'}
           </Button>
         </div>
 
