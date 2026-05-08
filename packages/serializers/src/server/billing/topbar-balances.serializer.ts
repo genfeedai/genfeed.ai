@@ -1,7 +1,9 @@
 import { buildSerializer } from '@serializers/builders';
 import { topbarBalancesSerializerConfig } from '@serializers/configs';
 
-export const { TopbarBalancesSerializer } = buildSerializer(
+const topbarBalancesSerializers = buildSerializer(
   'server',
   topbarBalancesSerializerConfig,
 );
+
+export const { TopbarBalancesSerializer } = topbarBalancesSerializers;

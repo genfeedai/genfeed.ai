@@ -30,7 +30,7 @@ export class CreditsService extends HTTPBaseService {
     ) as CreditsService;
   }
 
-  async getByokUsageSummary(): Promise<ByokUsageSummary> {
+  public async getByokUsageSummary(): Promise<ByokUsageSummary> {
     const response = await this.instance.get<JsonApiResponseDocument>(
       '/byok-usage-summary',
     );
@@ -38,7 +38,7 @@ export class CreditsService extends HTTPBaseService {
     return deserializeResource<ByokUsageSummary>(response.data);
   }
 
-  async getTopbarBalances(): Promise<ITopbarBalances> {
+  public async getTopbarBalances(): Promise<ITopbarBalances> {
     const response =
       await this.instance.get<JsonApiResponseDocument>('/topbar-balances');
 
