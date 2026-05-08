@@ -435,6 +435,7 @@ export class ThreadsService {
     organizationId: string,
     brandId: string,
     threadId: string,
+    credentialId?: string,
   ): Promise<{
     views: number;
     likes: number;
@@ -444,7 +445,11 @@ export class ThreadsService {
   }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    const credential = await this.getCredential(organizationId, brandId);
+    const credential = await this.getCredential(
+      organizationId,
+      brandId,
+      credentialId,
+    );
     const decryptedAccessToken = EncryptionUtil.decrypt(
       this.requireString(credential.accessToken, 'Threads access token'),
     );
@@ -546,12 +551,23 @@ export class ThreadsService {
   private async getCredential(
     organizationId: string,
     brandId: string,
+    credentialId?: string,
   ): Promise<CredentialDocument> {
-    const credential = await this.credentialsService.findOne({
-      brand: brandId,
-      organization: organizationId,
-      platform: CredentialPlatform.THREADS,
-    });
+    const credential = await this.credentialsService.findOne(
+      credentialId
+        ? {
+            _id: credentialId,
+            isDeleted: false,
+            organization: organizationId,
+            platform: CredentialPlatform.THREADS,
+          }
+        : {
+            brand: brandId,
+            isDeleted: false,
+            organization: organizationId,
+            platform: CredentialPlatform.THREADS,
+          },
+    );
 
     if (!credential) {
       throw new Error('Threads credential not found');

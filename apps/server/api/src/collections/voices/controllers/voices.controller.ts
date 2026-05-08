@@ -463,7 +463,7 @@ export class VoicesController {
     ]);
 
     if (!providers) {
-      return { where: {} };
+      return [...supportedProviders];
     }
 
     const rawProviders = Array.isArray(providers)
@@ -490,7 +490,7 @@ export class VoicesController {
     ]);
 
     if (!providers || providers.length === 0) {
-      return { where: {} };
+      return [VoiceProvider.ELEVENLABS, VoiceProvider.HEYGEN];
     }
 
     const parsed = providers.filter(

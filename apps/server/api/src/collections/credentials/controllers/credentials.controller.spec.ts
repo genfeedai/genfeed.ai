@@ -1,5 +1,6 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsController } from '@api/collections/credentials/controllers/credentials.controller';
+import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { TagsService } from '@api/collections/tags/services/tags.service';
@@ -18,6 +19,7 @@ import { HttpException } from '@nestjs/common';
 
 describe('CredentialsController', () => {
   let controller: CredentialsController;
+  let accountPublishingContextService: Record<string, ReturnType<typeof vi.fn>>;
   let credentialsService: Record<string, ReturnType<typeof vi.fn>>;
   let brandsService: Record<string, ReturnType<typeof vi.fn>>;
   let organizationsService: Record<string, ReturnType<typeof vi.fn>>;
@@ -54,6 +56,26 @@ describe('CredentialsController', () => {
       patch: vi.fn(),
       remove: vi.fn(),
     };
+    accountPublishingContextService = {
+      resolve: vi.fn().mockResolvedValue({
+        account: {
+          id: credId,
+          label: 'X Account',
+          platform: CredentialPlatform.TWITTER,
+        },
+        constraints: {
+          notes: [],
+          supportsDirectPublishing: true,
+          supportsRichArticleCopy: false,
+          supportsThreads: true,
+          usesWeightedCharacters: true,
+        },
+        promptHints: [],
+        publishability: 'publishable',
+        recentPosts: [],
+        surface: 'post',
+      }),
+    };
     brandsService = { findOne: vi.fn() };
     organizationsService = { findOne: vi.fn() };
     tagsService = { create: vi.fn() };
@@ -64,6 +86,7 @@ describe('CredentialsController', () => {
     quotaService = { checkQuota: vi.fn() };
 
     controller = new CredentialsController(
+      accountPublishingContextService as unknown as AccountPublishingContextService,
       brandsService as unknown as BrandsService,
       credentialsService as unknown as CredentialsService,
       createMockPlatformService() as unknown as FacebookService,
@@ -171,6 +194,33 @@ describe('CredentialsController', () => {
     });
   });
 
+  describe('getPublishingContext', () => {
+    it('resolves account publishing context for the current brand and organization', async () => {
+      const user = {
+        ...mockUser,
+        publicMetadata: {
+          brand: 'brand-1',
+          organization: orgId,
+          user: userId,
+        },
+      } as never;
+
+      const result = await controller.getPublishingContext(
+        credId,
+        'x-article',
+        user,
+      );
+
+      expect(accountPublishingContextService.resolve).toHaveBeenCalledWith({
+        brandId: 'brand-1',
+        credentialId: credId,
+        organizationId: orgId,
+        surface: 'x-article',
+      });
+      expect(result).toBeDefined();
+    });
+  });
+
   describe('refreshCredentialToken', () => {
     it('should refresh token for supported platform', async () => {
       credentialsService.findOne
@@ -208,6 +258,7 @@ describe('CredentialsController', () => {
         refreshToken: vi.fn().mockRejectedValue(new Error('Token expired')),
       };
       const failController = new CredentialsController(
+        accountPublishingContextService as unknown as AccountPublishingContextService,
         brandsService as unknown as BrandsService,
         credentialsService as unknown as CredentialsService,
         createMockPlatformService() as unknown as FacebookService,

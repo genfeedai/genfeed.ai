@@ -3,20 +3,20 @@ import chalk from 'chalk';
 export const colors = {
   bold: chalk.bold,
   dim: chalk.dim,
-  error: chalk.red,
-  info: chalk.blue,
-  primary: chalk.hex('#7C3AED'),
-  success: chalk.green,
-  warning: chalk.yellow,
+  error: chalk.hex('#DC2626'),
+  info: chalk.hex('#3B82F6'),
+  primary: chalk.hex('#2563EB'),
+  success: chalk.hex('#10B981'),
+  warning: chalk.hex('#F59E0B'),
 };
 
 export const symbols = {
   arrow: chalk.dim('→'),
   bullet: chalk.dim('•'),
-  error: chalk.red('✖'),
-  info: chalk.blue('ℹ'),
-  success: chalk.green('✓'),
-  warning: chalk.yellow('⚠'),
+  error: colors.error('✖'),
+  info: colors.info('ℹ'),
+  success: colors.success('✓'),
+  warning: colors.warning('⚠'),
 };
 
 export function formatSuccess(message: string): string {

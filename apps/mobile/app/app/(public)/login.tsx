@@ -12,6 +12,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { colors } from '@/constants';
 
 // Required for OAuth flow
 WebBrowser.maybeCompleteAuthSession();
@@ -96,7 +97,7 @@ export default function Login() {
           disabled={!!oauthLoading}
         >
           {oauthLoading === 'oauth_google' ? (
-            <ActivityIndicator color="#000" size="small" />
+            <ActivityIndicator color={colors.black} size="small" />
           ) : (
             <>
               <Text style={styles.oauthIcon}>G</Text>
@@ -112,7 +113,7 @@ export default function Login() {
             disabled={!!oauthLoading}
           >
             {oauthLoading === 'oauth_apple' ? (
-              <ActivityIndicator color="#fff" size="small" />
+              <ActivityIndicator color={colors.white} size="small" />
             ) : (
               <>
                 <Text style={styles.appleIcon}></Text>
@@ -134,7 +135,7 @@ export default function Login() {
           <Text style={styles.inputLabel}>Email</Text>
           <TextInput
             placeholder="Enter your email"
-            placeholderTextColor="#64748b"
+            placeholderTextColor={colors.textSubtle}
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -148,7 +149,7 @@ export default function Login() {
           <Text style={styles.inputLabel}>Password</Text>
           <TextInput
             placeholder="Enter your password"
-            placeholderTextColor="#64748b"
+            placeholderTextColor={colors.textSubtle}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
@@ -166,7 +167,7 @@ export default function Login() {
           disabled={isLoading || !email || !password}
         >
           {isLoading ? (
-            <ActivityIndicator color="#fff" size="small" />
+            <ActivityIndicator color={colors.white} size="small" />
           ) : (
             <Text style={styles.signInButtonText}>Sign In</Text>
           )}
@@ -178,19 +179,19 @@ export default function Login() {
 
 const styles = StyleSheet.create({
   appleButton: {
-    backgroundColor: '#000',
+    backgroundColor: colors.black,
   },
   appleButtonText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 16,
     fontWeight: '600',
   },
   appleIcon: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 18,
   },
   container: {
-    backgroundColor: '#0f172a',
+    backgroundColor: colors.bgSecondary,
     flex: 1,
     justifyContent: 'center',
     padding: 24,
@@ -201,12 +202,12 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   dividerLine: {
-    backgroundColor: '#334155',
+    backgroundColor: colors.bgBorder,
     flex: 1,
     height: 1,
   },
   dividerText: {
-    color: '#64748b',
+    color: colors.textSubtle,
     fontSize: 14,
     paddingHorizontal: 16,
   },
@@ -214,17 +215,17 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   googleButton: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
   },
   header: {
     marginBottom: 32,
   },
   input: {
-    backgroundColor: '#1e293b',
-    borderColor: '#334155',
+    backgroundColor: colors.bgTertiary,
+    borderColor: colors.bgBorder,
     borderRadius: 10,
     borderWidth: 1,
-    color: '#f8fafc',
+    color: colors.textPrimary,
     fontSize: 16,
     padding: 14,
   },
@@ -232,7 +233,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   inputLabel: {
-    color: '#94a3b8',
+    color: colors.textMuted,
     fontSize: 14,
     fontWeight: '500',
   },
@@ -245,7 +246,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   oauthButtonText: {
-    color: '#1f2937',
+    color: colors.bgBorder,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -254,13 +255,13 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   oauthIcon: {
-    color: '#4285f4',
+    color: colors.google,
     fontSize: 18,
     fontWeight: 'bold',
   },
   signInButton: {
     alignItems: 'center',
-    backgroundColor: '#6366f1',
+    backgroundColor: colors.indigo,
     borderRadius: 12,
     marginTop: 8,
     paddingVertical: 14,
@@ -269,16 +270,16 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   signInButtonText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 16,
     fontWeight: '600',
   },
   subtitle: {
-    color: '#94a3b8',
+    color: colors.textMuted,
     fontSize: 16,
   },
   title: {
-    color: '#f8fafc',
+    color: colors.textPrimary,
     fontSize: 28,
     fontWeight: 'bold',
     marginBottom: 8,

@@ -41,8 +41,9 @@ bun run env:sync local
 | Variable                | Required   | Default | Description                                                  |
 | ----------------------- | ---------- | ------- | ------------------------------------------------------------ |
 | `JWT_SECRET`            | Yes        | --      | Secret key for signing JWT tokens. Use a long random string. |
-| `CLERK_SECRET_KEY`      | Cloud only | --      | Clerk backend secret key for user authentication             |
-| `CLERK_PUBLISHABLE_KEY` | Cloud only | --      | Clerk frontend publishable key                               |
+| `CLERK_SECRET_KEY`      | Auth       | --      | Clerk backend secret key for deployments using Clerk auth     |
+| `CLERK_PUBLISHABLE_KEY` | Auth       | --      | Clerk publishable key used by the API Clerk client           |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Auth | --   | Clerk publishable key exposed to the Next.js frontend        |
 
 ---
 
@@ -55,8 +56,8 @@ Add keys for the providers you want to use. At least one is required for content
 | `OPENAI_API_KEY`      | No       | OpenAI API key for GPT models and DALL-E image generation                            |
 | `ANTHROPIC_API_KEY`   | No       | Anthropic API key for Claude models                                                  |
 | `GOOGLE_API_KEY`      | No       | Google API key for Gemini models                                                     |
-| `REPLICATE_API_TOKEN` | No       | Replicate API token for open-source image and video models (Flux, SDXL, Kling, etc.) |
-| `FAL_KEY`             | No       | fal.ai API key for fast image and video inference                                    |
+| `REPLICATE_KEY`       | No       | Replicate API token for server-side image and video models (Flux, SDXL, Kling, etc.) |
+| `FAL_API_KEY`         | No       | fal.ai API key for server-side image and video inference                             |
 | `ELEVENLABS_API_KEY`  | No       | ElevenLabs API key for voice synthesis and text-to-speech                            |
 
 For the model registry and discovery contract, see [Provider Registry](/core/provider-registry).

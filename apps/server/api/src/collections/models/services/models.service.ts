@@ -119,20 +119,20 @@ export class ModelsService extends BaseService<
     super(prisma, 'model', logger);
   }
 
-  private isPlainObject(value: unknown): value is Record<string, unknown> {
+  private isModelRecord(value: unknown): value is Record<string, unknown> {
     return value !== null && typeof value === 'object' && !Array.isArray(value);
   }
 
   private getConfig(document: unknown): Record<string, unknown> {
-    if (!this.isPlainObject(document)) {
+    if (!this.isModelRecord(document)) {
       return {};
     }
 
-    return this.isPlainObject(document.config) ? document.config : {};
+    return this.isModelRecord(document.config) ? document.config : {};
   }
 
   private readModelValue(document: unknown, field: string): unknown {
-    if (!this.isPlainObject(document)) {
+    if (!this.isModelRecord(document)) {
       return undefined;
     }
 
@@ -214,7 +214,7 @@ export class ModelsService extends BaseService<
   private getTrainingConfig(
     training: TrainingDocument,
   ): Record<string, unknown> {
-    return this.isPlainObject(training.config) ? training.config : {};
+    return this.isModelRecord(training.config) ? training.config : {};
   }
 
   private getTrainingModelKey(training: TrainingDocument): string | undefined {
@@ -283,7 +283,7 @@ export class ModelsService extends BaseService<
         dbWhere[key] = Array.isArray(value)
           ? value
               .map((entry) =>
-                this.isPlainObject(entry)
+                this.isModelRecord(entry)
                   ? this.normalizeWhereForModel(entry).dbWhere
                   : {},
               )
@@ -330,7 +330,7 @@ export class ModelsService extends BaseService<
   }
 
   private matchesOperator(value: unknown, filter: unknown): boolean {
-    if (!this.isPlainObject(filter)) {
+    if (!this.isModelRecord(filter)) {
       return value === filter;
     }
 
@@ -380,7 +380,7 @@ export class ModelsService extends BaseService<
     });
   }
 
-  private extractOptionsWhere(
+  private extractModelOptionsWhere(
     options: AggregationOptions,
   ): Record<string, unknown> {
     return Object.fromEntries(
@@ -396,15 +396,15 @@ export class ModelsService extends BaseService<
     options: AggregationOptions,
   ): Record<string, unknown> {
     const inputWhere =
-      this.isPlainObject(input) && this.isPlainObject(input.where)
+      this.isModelRecord(input) && this.isModelRecord(input.where)
         ? input.where
-        : this.isPlainObject(input)
+        : this.isModelRecord(input)
           ? input
           : {};
 
     return {
       ...inputWhere,
-      ...this.extractOptionsWhere(options),
+      ...this.extractModelOptionsWhere(options),
     };
   }
 
@@ -412,11 +412,11 @@ export class ModelsService extends BaseService<
     input: unknown,
     options: AggregationOptions,
   ): Record<string, 'asc' | 'desc' | 1 | -1> {
-    if (this.isPlainObject(input) && this.isPlainObject(input.orderBy)) {
+    if (this.isModelRecord(input) && this.isModelRecord(input.orderBy)) {
       return input.orderBy as Record<string, 'asc' | 'desc' | 1 | -1>;
     }
 
-    if (this.isPlainObject(options.sort)) {
+    if (this.isModelRecord(options.sort)) {
       return options.sort as Record<string, 'asc' | 'desc' | 1 | -1>;
     }
 

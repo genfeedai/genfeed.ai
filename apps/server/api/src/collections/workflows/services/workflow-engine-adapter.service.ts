@@ -258,6 +258,7 @@ export class WorkflowEngineAdapterService {
     this.registerMusicSourceExecutor();
     this.registerSoundOverlayExecutor();
     this.registerTextToSpeechExecutor();
+    this.registerLlmExecutor();
     this.registerReframeExecutor();
     this.registerUpscaleExecutor();
     this.registerDirectMediaInputExecutors();
@@ -608,7 +609,7 @@ export class WorkflowEngineAdapterService {
       }
 
       return {
-        hashtags: [topic.startsWith('#') ? topic : `#${topic}`],
+        hashtags: [this.buildHashtag(topic)],
         platform: params.platform,
         soundId: null,
         topic,
@@ -654,6 +655,7 @@ export class WorkflowEngineAdapterService {
 
         for (const platform of platforms) {
           const credential = await credentialsService.findOne({
+            brand: brandId,
             isConnected: true,
             isDeleted: false,
             organization: organizationId,
@@ -751,7 +753,7 @@ export class WorkflowEngineAdapterService {
     return {
       hashtags: [match.matchedKeyword]
         .filter(Boolean)
-        .map((keyword) => (keyword.startsWith('#') ? keyword : `#${keyword}`)),
+        .map((keyword) => this.buildHashtag(keyword)),
       platform: params.platform,
       soundId: null,
       topic: match.matchedKeyword,
@@ -778,6 +780,47 @@ export class WorkflowEngineAdapterService {
       'promptConstructor',
       this.wrapEngineExecutor(promptConstructorExecutor),
     );
+  }
+
+  private registerLlmExecutor(): void {
+    const openRouterService = this.openRouterService;
+
+    this.engine.registerExecutor('llm', async (node, inputs) => {
+      if (!openRouterService) {
+        throw new Error('OpenRouter service is not available for llm nodes');
+      }
+
+      const promptInput = inputs.get('prompt');
+      const prompt =
+        typeof promptInput === 'string' && promptInput.trim().length > 0
+          ? promptInput
+          : this.readConfigString(node.config, 'prompt');
+
+      if (!prompt) {
+        throw new Error('Missing required input: prompt');
+      }
+
+      const response = await openRouterService.chatCompletion({
+        max_tokens: Math.round(
+          this.getOptionalNumberConfig(node.config, 'maxTokens', 1024),
+        ),
+        messages: [{ content: prompt, role: 'user' }],
+        model:
+          this.readConfigString(node.config, 'model') ?? 'openai/gpt-4o-mini',
+        temperature: this.getOptionalNumberConfig(
+          node.config,
+          'temperature',
+          0.8,
+        ),
+      });
+      const content = response.choices[0]?.message?.content?.trim() ?? '';
+
+      if (!content) {
+        throw new Error('LLM executor returned empty content');
+      }
+
+      return { content, model: response.model };
+    });
   }
 
   /**
@@ -1561,22 +1604,29 @@ export class WorkflowEngineAdapterService {
       workflowDoc.brands && workflowDoc.brands.length > 0
         ? workflowDoc.brands[0]?.toString()
         : undefined;
-    const nodes: ExecutableNode[] = (workflowDoc.nodes || []).map((node) => ({
-      cachedOutput: (node as unknown as { cachedOutput?: unknown })
-        .cachedOutput,
-      config: this.withWorkflowBrandId(
-        node.type,
+    const nodes: ExecutableNode[] = (workflowDoc.nodes || []).map((node) => {
+      const config =
         node.data?.config ||
-          (node as unknown as { config?: Record<string, unknown> }).config ||
-          {},
-        primaryBrandId,
-      ),
-      id: node.id,
-      inputs: (node as unknown as { inputs?: string[] }).inputs || [],
-      isLocked: workflowDoc.lockedNodeIds?.includes(node.id) || false,
-      label: node.data?.label || node.type,
-      type: NODE_TYPE_TO_EXECUTOR[node.type] || node.type,
-    }));
+        (node as unknown as { config?: Record<string, unknown> }).config ||
+        {};
+      const inputVariableKeys = (
+        node.data as unknown as { inputVariableKeys?: unknown } | undefined
+      )?.inputVariableKeys;
+      const nodeConfig = Array.isArray(inputVariableKeys)
+        ? { ...config, inputVariableKeys }
+        : config;
+
+      return {
+        cachedOutput: (node as unknown as { cachedOutput?: unknown })
+          .cachedOutput,
+        config: this.withWorkflowBrandId(node.type, nodeConfig, primaryBrandId),
+        id: node.id,
+        inputs: (node as unknown as { inputs?: string[] }).inputs || [],
+        isLocked: workflowDoc.lockedNodeIds?.includes(node.id) || false,
+        label: node.data?.label || node.type,
+        type: NODE_TYPE_TO_EXECUTOR[node.type] || node.type,
+      };
+    });
 
     const edges: ExecutableEdge[] = (workflowDoc.edges || []).map((edge) => ({
       id: edge.id,
@@ -1709,6 +1759,12 @@ export class WorkflowEngineAdapterService {
         .filter((variable) => variable.required)
         .map((variable) => variable.key),
     );
+    const inputVariableDefaults = new Map(
+      (workflowDoc.inputVariables ?? []).map((variable) => [
+        variable.key,
+        variable.defaultValue,
+      ]),
+    );
     const lockedNodeIds = new Set(executableWorkflow.lockedNodeIds);
 
     const nodes = executableWorkflow.nodes
@@ -1744,7 +1800,34 @@ export class WorkflowEngineAdapterService {
 
         return false;
       })
-      .map((node) => ({ ...node }));
+      .map((node) => {
+        const nextNode = { ...node };
+        const inputVariableKeys = Array.isArray(node.config.inputVariableKeys)
+          ? node.config.inputVariableKeys.filter(
+              (key): key is string => typeof key === 'string',
+            )
+          : [];
+
+        if (
+          inputVariableKeys.length > 0 &&
+          !isWorkflowInputNodeType(nextNode.type)
+        ) {
+          nextNode.config = { ...node.config };
+
+          for (const key of inputVariableKeys) {
+            const value =
+              inputValues[key] !== undefined
+                ? inputValues[key]
+                : inputVariableDefaults.get(key);
+
+            if (value !== undefined) {
+              nextNode.config[key] = value;
+            }
+          }
+        }
+
+        return nextNode;
+      });
 
     const nodeIds = new Set(nodes.map((node) => node.id));
 
@@ -2138,6 +2221,17 @@ export class WorkflowEngineAdapterService {
     return `${normalized.slice(0, 57).trimEnd()}...`;
   }
 
+  private buildHashtag(value: string): string {
+    const normalized = value
+      .trim()
+      .replace(/^#/, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+
+    return normalized ? `#${normalized}` : '#trend';
+  }
+
   private extractPublishIngredientIds(media: unknown): string[] {
     if (Array.isArray(media)) {
       return media
@@ -2146,7 +2240,7 @@ export class WorkflowEngineAdapterService {
     }
 
     if (typeof media === 'string') {
-      return this.isEntityId(media) ? [media] : [];
+      return this.isPublishIngredientReference(media) ? [media] : [];
     }
 
     if (!media || typeof media !== 'object') {
@@ -2154,15 +2248,28 @@ export class WorkflowEngineAdapterService {
     }
 
     const record = media as Record<string, unknown>;
-    const candidates = [record.id, record._id, record.ingredientId];
+    const candidates = [
+      record.id,
+      record._id,
+      record.ingredientId,
+      record.url,
+      record.src,
+      record.secureUrl,
+      record.videoUrl,
+      record.imageUrl,
+    ];
 
     return candidates
       .filter((candidate): candidate is string => typeof candidate === 'string')
-      .filter((candidate) => this.isEntityId(candidate));
+      .filter((candidate) => this.isPublishIngredientReference(candidate));
   }
 
   private isEntityId(value: string): boolean {
     return /^[a-f\d]{24}$/i.test(value);
+  }
+
+  private isPublishIngredientReference(value: string): boolean {
+    return this.isEntityId(value) || /^https?:\/\//i.test(value);
   }
 
   /**

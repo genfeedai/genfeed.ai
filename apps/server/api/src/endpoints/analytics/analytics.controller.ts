@@ -344,7 +344,7 @@ export class AnalyticsController {
       ): Promise<unknown[]> =>
         fetcher().catch((err: unknown) => {
           this.loggerService.error(`${url} ${label} failed`, err);
-          return { where: {} };
+          return [];
         });
 
       const [tiktokTrends, twitterTrends, youtubeTrends, instagramTrends] =

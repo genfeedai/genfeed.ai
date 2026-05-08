@@ -10,7 +10,7 @@ npx skills add genfeedai/skills/youtube-warmup
 
 ## Usage
 
-```
+```text
 "Create a YouTube warmup plan for my cooking channel"
 "Generate a warmup Shorts brief for my new YouTube channel in the finance niche"
 "Help me warm up my YouTube before posting long-form videos"

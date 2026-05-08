@@ -99,7 +99,7 @@ describe('PlatformBreakdownChart', () => {
   });
 
   describe('Empty State', () => {
-    it.skip('shows empty message when data is null', () => {
+    it('shows empty message when data is null', () => {
       render(<PlatformBreakdownChart data={null} />);
       expect(
         screen.getByText('No platform data available'),

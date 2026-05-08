@@ -4,11 +4,11 @@ import { track } from '@vercel/analytics';
 import {
   BROWSER_AND_SERVER_MARKETING_EVENTS,
   createMarketingEventId,
-  LINKEDIN_EVENT_NAMES,
   type MarketingEventPayload,
   META_EVENT_NAMES,
   WEBSITE_MARKETING_EVENTS,
   type WebsiteMarketingEvent,
+  type WebsiteMarketingEventName,
   X_EVENT_NAMES,
 } from './events';
 
@@ -27,6 +27,9 @@ declare global {
 export interface MarketingTrackingConfig {
   gaId?: string;
   gtmContainerId?: string;
+  linkedinConversionIds?: Partial<
+    Record<WebsiteMarketingEventName, number | undefined>
+  >;
   linkedinPartnerId?: string;
   metaPixelId?: string;
   xPixelId?: string;
@@ -169,12 +172,14 @@ function dispatchBrowserVendorEvents(
     });
   }
 
+  const linkedinConversionId = config.linkedinConversionIds?.[event.name];
   if (
     config.linkedinPartnerId &&
-    event.name !== WEBSITE_MARKETING_EVENTS.PAGE_VIEW
+    event.name !== WEBSITE_MARKETING_EVENTS.PAGE_VIEW &&
+    typeof linkedinConversionId === 'number'
   ) {
     window.lintrk?.('track', {
-      conversion_id: LINKEDIN_EVENT_NAMES[event.name],
+      conversion_id: linkedinConversionId,
     });
   }
 
@@ -198,11 +203,12 @@ function sendServerConversion(event: WebsiteMarketingEvent): void {
     url: event.url || window.location.href,
   });
 
-  if (navigator.sendBeacon) {
-    navigator.sendBeacon(
+  if (
+    navigator.sendBeacon?.(
       '/api/marketing/conversions',
       new Blob([body], { type: 'application/json' }),
-    );
+    )
+  ) {
     return;
   }
 

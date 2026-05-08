@@ -20,6 +20,7 @@ import { UpdateArticleDto } from '@api/collections/articles/dto/update-article.d
 import { type ArticleDocument } from '@api/collections/articles/schemas/article.schema';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
 import { HarnessProfilesService } from '@api/collections/harness-profiles/services/harness-profiles.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { baseModelKey } from '@api/collections/models/utils/model-key.util';
@@ -54,6 +55,7 @@ import {
   SystemPromptKey,
 } from '@genfeedai/enums';
 import type { ContentHarnessBrief } from '@genfeedai/harness';
+import type { AccountPublishingContext } from '@genfeedai/interfaces';
 import type {
   ArticleCreatePayload,
   ArticleGenerationResponse,
@@ -122,7 +124,50 @@ export class ArticlesContentService {
     @Optional() private readonly contentHarnessService?: ContentHarnessService,
     @Optional()
     private readonly harnessProfilesService?: HarnessProfilesService,
+    @Optional()
+    private readonly accountPublishingContextService?: AccountPublishingContextService,
   ) {}
+
+  private appendAccountPublishingContextToPrompt(
+    prompt: string,
+    context?: AccountPublishingContext,
+  ): string {
+    if (!context) {
+      return prompt;
+    }
+
+    return [
+      prompt,
+      '',
+      'Account publishing context:',
+      ...context.promptHints.map((hint) => `- ${hint}`),
+      ...context.constraints.notes.map((note) => `- ${note}`),
+      '',
+      'Write this as a copy-ready X Article for the selected account. Do not mention that Genfeed cannot publish it.',
+    ].join('\n');
+  }
+
+  private async resolveArticleAccountPublishingContext(params: {
+    brandId: string;
+    credentialId?: string;
+    organizationId: string;
+    type?: ArticleGenerationType;
+  }): Promise<AccountPublishingContext | undefined> {
+    if (
+      params.type !== ArticleGenerationType.X_ARTICLE ||
+      !params.credentialId ||
+      !this.accountPublishingContextService
+    ) {
+      return undefined;
+    }
+
+    return this.accountPublishingContextService.resolve({
+      brandId: params.brandId,
+      credentialId: params.credentialId,
+      organizationId: params.organizationId,
+      surface: 'x-article',
+    });
+  }
 
   /**
    * Generate articles using OpenAI assistant - ASYNC pattern (like video generation)
@@ -349,6 +394,14 @@ export class ArticlesContentService {
         throw new Error('Config service not available');
       }
 
+      const accountPublishingContext =
+        await this.resolveArticleAccountPublishingContext({
+          brandId,
+          credentialId: generateDto.credential,
+          organizationId,
+          type: ArticleGenerationType.X_ARTICLE,
+        });
+
       // Get prompt template from database
       const prompt = await this.templatesService?.getRenderedPrompt(
         PromptTemplateKey.X_ARTICLE_GENERATE,
@@ -382,6 +435,7 @@ export class ArticlesContentService {
         objective: 'authority',
         organizationId,
         sourceLines: [
+          ...(accountPublishingContext?.promptHints ?? []),
           ...(generateDto.keywords?.map((keyword) => `keyword: ${keyword}`) ??
             []),
           ...(generateDto.tone ? [`tone: ${generateDto.tone}`] : []),
@@ -390,7 +444,10 @@ export class ArticlesContentService {
         topic: generateDto.prompt,
       });
       const promptWithHarness = appendHarnessBriefToPrompt(
-        prompt,
+        this.appendAccountPublishingContextToPrompt(
+          prompt,
+          accountPublishingContext,
+        ),
         harnessContext.brief,
       );
 

@@ -256,7 +256,7 @@ export class CronWorkflowsService {
               message: `Workflow "${workflow.label}" completed successfully`,
             },
             type: 'telegram',
-          },
+          } as never,
           type: 'telegram',
           userId: workflow.userId,
         });
@@ -299,7 +299,7 @@ export class CronWorkflowsService {
               message: `Workflow "${workflow.label}" failed: ${(error as Error)?.message}`,
             },
             type: 'telegram',
-          },
+          } as never,
           type: 'telegram',
           userId: workflow.userId,
         });

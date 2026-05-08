@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { EmptyState, ErrorScreen } from '@/components/ScreenStates';
+import { colors } from '@/constants';
 import { useIdeaActions, useIdeas } from '@/hooks/use-ideas';
 import type { Idea } from '@/services/api/ideas.service';
 import { formatRelativeDateVerbose } from '@/utils/format-date';
@@ -88,7 +89,7 @@ export default function Ideas() {
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={refresh}
-            tintColor="#38bdf8"
+            tintColor={colors.agent}
           />
         }
       >
@@ -173,7 +174,7 @@ export default function Ideas() {
               value={newIdeaText}
               onChangeText={setNewIdeaText}
               placeholder="Enter your idea..."
-              placeholderTextColor="#64748b"
+              placeholderTextColor={colors.textSubtle}
               style={[styles.input, styles.inputMultiline]}
               multiline
               autoFocus
@@ -210,37 +211,37 @@ export default function Ideas() {
 
 const styles = StyleSheet.create({
   actionButton: {
-    backgroundColor: '#1e293b',
+    backgroundColor: colors.bgTertiary,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
   actionButtonText: {
-    color: '#38bdf8',
+    color: colors.agent,
     fontSize: 12,
     fontWeight: '500',
   },
   addButton: {
     alignItems: 'center',
-    backgroundColor: '#38bdf8',
+    backgroundColor: colors.agent,
     borderRadius: 16,
     paddingVertical: 14,
   },
   addButtonLabel: {
-    color: '#0f172a',
+    color: colors.bgSecondary,
     fontSize: 15,
     fontWeight: '600',
   },
   cancelButton: {
-    backgroundColor: '#1e293b',
+    backgroundColor: colors.bgTertiary,
   },
   cancelButtonText: {
-    color: '#94a3b8',
+    color: colors.textMuted,
     fontSize: 15,
     fontWeight: '500',
   },
   container: {
-    backgroundColor: '#020617',
+    backgroundColor: colors.bgPrimary,
     flex: 1,
   },
   contentContainer: {
@@ -249,10 +250,10 @@ const styles = StyleSheet.create({
     paddingBottom: 64,
   },
   deleteButton: {
-    backgroundColor: 'transparent',
+    backgroundColor: colors.transparent,
   },
   deleteButtonText: {
-    color: '#ef4444',
+    color: colors.error,
   },
   disabledButton: {
     opacity: 0.6,
@@ -265,15 +266,15 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   ideaCard: {
-    backgroundColor: '#0f172a',
-    borderColor: '#1e293b',
+    backgroundColor: colors.bgSecondary,
+    borderColor: colors.bgTertiary,
     borderRadius: 16,
     borderWidth: 1,
     gap: 12,
     padding: 16,
   },
   ideaDate: {
-    color: '#94a3b8',
+    color: colors.textMuted,
     fontSize: 12,
   },
   ideaFooter: {
@@ -283,16 +284,16 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   ideaText: {
-    color: '#cbd5f5',
+    color: colors.textPrimary,
     fontSize: 15,
     lineHeight: 22,
   },
   input: {
-    backgroundColor: '#020617',
-    borderColor: '#1e293b',
+    backgroundColor: colors.bgPrimary,
+    borderColor: colors.bgTertiary,
     borderRadius: 14,
     borderWidth: 1,
-    color: 'white',
+    color: colors.white,
     fontSize: 15,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -302,7 +303,7 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   kicker: {
-    color: '#38bdf8',
+    color: colors.agent,
     fontSize: 13,
     letterSpacing: 1,
     textTransform: 'uppercase',
@@ -320,7 +321,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   modalContent: {
-    backgroundColor: '#0f172a',
+    backgroundColor: colors.bgSecondary,
     borderRadius: 20,
     gap: 20,
     maxWidth: 500,
@@ -329,13 +330,13 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: colors.overlayScrim,
     flex: 1,
     justifyContent: 'center',
     padding: 24,
   },
   modalTitle: {
-    color: 'white',
+    color: colors.white,
     fontSize: 20,
     fontWeight: '600',
   },
@@ -343,20 +344,20 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   saveButton: {
-    backgroundColor: '#38bdf8',
+    backgroundColor: colors.agent,
   },
   saveButtonText: {
-    color: '#0f172a',
+    color: colors.bgSecondary,
     fontSize: 15,
     fontWeight: '600',
   },
   subtitle: {
-    color: '#cbd5f5',
+    color: colors.textPrimary,
     fontSize: 15,
     lineHeight: 22,
   },
   title: {
-    color: 'white',
+    color: colors.white,
     fontSize: 26,
     fontWeight: '600',
   },

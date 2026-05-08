@@ -41,6 +41,10 @@ export class ConfigService extends BaseConfigService<WorkersEnvConfig> {
     return this.isLocalDevFlagEnabled('GF_DEV_ENABLE_SCHEDULERS');
   }
 
+  public get ingredientsEndpoint(): string {
+    return `${this.envConfig.GENFEEDAI_CDN_URL}/ingredients`;
+  }
+
   private isLocalDevFlagEnabled(key: 'GF_DEV_ENABLE_SCHEDULERS'): boolean {
     if (!this.isDevelopment) {
       return true;

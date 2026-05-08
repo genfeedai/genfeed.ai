@@ -14,7 +14,7 @@ import {
   View,
 } from 'react-native';
 import { ErrorScreen, LoadingScreen } from '@/components/ScreenStates';
-import { CONTENT_TYPE_LABELS } from '@/constants';
+import { CONTENT_TYPE_LABELS, colors } from '@/constants';
 import { useApproval, useApprovalActions } from '@/hooks/use-approvals';
 import { formatShortDate } from '@/utils/format-date';
 
@@ -92,8 +92,8 @@ export default function ApprovalDetail() {
     <>
       <Stack.Screen
         options={{
-          headerStyle: { backgroundColor: '#0f172a' },
-          headerTintColor: '#f8fafc',
+          headerStyle: { backgroundColor: colors.bgSecondary },
+          headerTintColor: colors.textPrimary,
           title: 'Review',
         }}
       />
@@ -179,7 +179,7 @@ export default function ApprovalDetail() {
           disabled={isSubmitting}
         >
           {isSubmitting ? (
-            <ActivityIndicator size="small" color="#0f172a" />
+            <ActivityIndicator size="small" color={colors.bgSecondary} />
           ) : (
             <Text style={styles.approveButtonText}>Approve</Text>
           )}
@@ -203,7 +203,7 @@ export default function ApprovalDetail() {
               value={rejectionReason}
               onChangeText={setRejectionReason}
               placeholder="Enter rejection reason..."
-              placeholderTextColor="#64748b"
+              placeholderTextColor={colors.textSubtle}
               style={styles.input}
               multiline
               autoFocus
@@ -232,7 +232,7 @@ export default function ApprovalDetail() {
                 disabled={isSubmitting || !rejectionReason.trim()}
               >
                 {isSubmitting ? (
-                  <ActivityIndicator size="small" color="white" />
+                  <ActivityIndicator size="small" color={colors.white} />
                 ) : (
                   <Text style={styles.confirmRejectButtonText}>Reject</Text>
                 )}
@@ -256,8 +256,8 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   actions: {
-    backgroundColor: '#020617',
-    borderTopColor: '#1e293b',
+    backgroundColor: colors.bgPrimary,
+    borderTopColor: colors.bgTertiary,
     borderTopWidth: 1,
     bottom: 0,
     flexDirection: 'row',
@@ -269,50 +269,50 @@ const styles = StyleSheet.create({
     right: 0,
   },
   approveButton: {
-    backgroundColor: '#22c55e',
+    backgroundColor: colors.success,
   },
   approveButtonPressed: {
     opacity: 0.8,
   },
   approveButtonText: {
-    color: '#0f172a',
+    color: colors.bgSecondary,
     fontSize: 16,
     fontWeight: '600',
   },
   badge: {
     alignSelf: 'flex-start',
-    backgroundColor: '#1e293b',
+    backgroundColor: colors.bgTertiary,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 4,
   },
   badgeText: {
-    color: '#38bdf8',
+    color: colors.agent,
     fontSize: 12,
     fontWeight: '600',
     textTransform: 'uppercase',
   },
   cancelButton: {
-    backgroundColor: '#1e293b',
+    backgroundColor: colors.bgTertiary,
   },
   cancelButtonText: {
-    color: '#94a3b8',
+    color: colors.textMuted,
     fontSize: 15,
     fontWeight: '500',
   },
   confirmRejectButton: {
-    backgroundColor: '#ef4444',
+    backgroundColor: colors.error,
   },
   confirmRejectButtonPressed: {
     opacity: 0.8,
   },
   confirmRejectButtonText: {
-    color: 'white',
+    color: colors.white,
     fontSize: 15,
     fontWeight: '600',
   },
   container: {
-    backgroundColor: '#020617',
+    backgroundColor: colors.bgPrimary,
     flex: 1,
   },
   content: {
@@ -323,16 +323,16 @@ const styles = StyleSheet.create({
     paddingBottom: 120,
   },
   description: {
-    color: '#cbd5f5',
+    color: colors.textPrimary,
     fontSize: 15,
     lineHeight: 24,
   },
   input: {
-    backgroundColor: '#020617',
-    borderColor: '#1e293b',
+    backgroundColor: colors.bgPrimary,
+    borderColor: colors.bgTertiary,
     borderRadius: 14,
     borderWidth: 1,
-    color: 'white',
+    color: colors.white,
     fontSize: 15,
     minHeight: 100,
     paddingHorizontal: 16,
@@ -340,14 +340,14 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   metadata: {
-    backgroundColor: '#0f172a',
+    backgroundColor: colors.bgSecondary,
     borderRadius: 12,
     gap: 12,
     marginTop: 8,
     padding: 16,
   },
   metaLabel: {
-    color: '#64748b',
+    color: colors.textSubtle,
     fontSize: 14,
   },
   metaRow: {
@@ -356,7 +356,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   metaValue: {
-    color: 'white',
+    color: colors.white,
     fontSize: 14,
     fontWeight: '500',
   },
@@ -376,7 +376,7 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   modalContent: {
-    backgroundColor: '#0f172a',
+    backgroundColor: colors.bgSecondary,
     borderRadius: 20,
     gap: 16,
     maxWidth: 500,
@@ -385,38 +385,38 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: colors.overlayScrim,
     flex: 1,
     justifyContent: 'center',
     padding: 24,
   },
   modalSubtitle: {
-    color: '#94a3b8',
+    color: colors.textMuted,
     fontSize: 14,
     lineHeight: 20,
   },
   modalTitle: {
-    color: 'white',
+    color: colors.white,
     fontSize: 20,
     fontWeight: '600',
   },
   preview: {
     aspectRatio: 16 / 9,
-    backgroundColor: '#1e293b',
+    backgroundColor: colors.bgTertiary,
     width: '100%',
   },
   rejectButton: {
-    backgroundColor: 'transparent',
-    borderColor: '#ef4444',
+    backgroundColor: colors.transparent,
+    borderColor: colors.error,
     borderWidth: 2,
   },
   rejectButtonText: {
-    color: '#ef4444',
+    color: colors.error,
     fontSize: 16,
     fontWeight: '600',
   },
   title: {
-    color: 'white',
+    color: colors.white,
     fontSize: 24,
     fontWeight: '600',
     lineHeight: 32,

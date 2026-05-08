@@ -188,10 +188,10 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
         return this.buildKlingO1Prompt(params, promptText);
 
       case MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3:
-        return this.buildHailuo23Prompt(params, promptText);
+        return this.buildHailuo23Prompt(model, params, promptText);
 
       case MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST:
-        return this.buildHailuo23FastPrompt(params, promptText);
+        return this.buildHailuo23FastPrompt(model, params, promptText);
 
       case MODEL_KEYS.REPLICATE_VIDU_Q3_PRO:
       case MODEL_KEYS.REPLICATE_VIDU_Q3_TURBO:
@@ -206,7 +206,7 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
         );
 
       case MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_LITE:
-        return this.buildVeo31LitePrompt(params, promptText);
+        return this.buildVeo31LitePrompt(model, params, promptText);
 
       default:
         throw new Error(`Unsupported video model: ${model}`);
@@ -889,16 +889,17 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
   }
 
   private buildHailuo23Prompt(
+    model: string,
     params: PromptBuilderParams,
     promptText: string,
   ): Hailuo23Input {
     const aspectRatio = calculateAspectRatio(params.width, params.height);
-    const normalizedRatio = normalizeAspectRatioForModel(aspectRatio, [
-      '16:9',
-      '9:16',
-      '1:1',
-    ]);
-    const duration = DurationUtil.clampToAllowed(params.duration ?? 6, [6, 10]);
+    const normalizedRatio = normalizeAspectRatioForModel(model, aspectRatio);
+    const duration = DurationUtil.validateAndNormalize(
+      params.duration,
+      [6, 10],
+      6,
+    );
 
     const input: Hailuo23Input = {
       aspect_ratio: normalizedRatio,
@@ -922,16 +923,17 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
   }
 
   private buildHailuo23FastPrompt(
+    model: string,
     params: PromptBuilderParams,
     promptText: string,
   ): Hailuo23FastInput {
     const aspectRatio = calculateAspectRatio(params.width, params.height);
-    const normalizedRatio = normalizeAspectRatioForModel(aspectRatio, [
-      '16:9',
-      '9:16',
-      '1:1',
-    ]);
-    const duration = DurationUtil.clampToAllowed(params.duration ?? 6, [6, 10]);
+    const normalizedRatio = normalizeAspectRatioForModel(model, aspectRatio);
+    const duration = DurationUtil.validateAndNormalize(
+      params.duration,
+      [6, 10],
+      6,
+    );
 
     const input: Hailuo23FastInput = {
       aspect_ratio: normalizedRatio,
@@ -957,13 +959,7 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
     promptText: string,
   ): ViduQ3Input {
     const aspectRatio = calculateAspectRatio(params.width, params.height);
-    const normalizedRatio = normalizeAspectRatioForModel(aspectRatio, [
-      '16:9',
-      '9:16',
-      '4:3',
-      '3:4',
-      '1:1',
-    ]);
+    const normalizedRatio = normalizeAspectRatioForModel(model, aspectRatio);
     const duration = Math.min(Math.max(params.duration ?? 8, 1), 16);
 
     const input: ViduQ3Input = {
@@ -1002,13 +998,7 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
     negativePrompt: string,
   ): Wan27T2VInput {
     const aspectRatio = calculateAspectRatio(params.width, params.height);
-    const normalizedRatio = normalizeAspectRatioForModel(aspectRatio, [
-      '16:9',
-      '9:16',
-      '1:1',
-      '4:3',
-      '3:4',
-    ]);
+    const normalizedRatio = normalizeAspectRatioForModel(model, aspectRatio);
     const duration = Math.min(Math.max(params.duration ?? 5, 2), 15);
 
     const input: Wan27T2VInput = {
@@ -1033,17 +1023,16 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
   }
 
   private buildVeo31LitePrompt(
+    model: string,
     params: PromptBuilderParams,
     promptText: string,
   ): Veo31LiteInput {
     const aspectRatio = calculateAspectRatio(params.width, params.height);
-    const normalizedRatio = normalizeAspectRatioForModel(aspectRatio, [
-      '16:9',
-      '9:16',
-    ]);
-    const duration = DurationUtil.clampToAllowed(
-      params.duration ?? 8,
+    const normalizedRatio = normalizeAspectRatioForModel(model, aspectRatio);
+    const duration = DurationUtil.validateAndNormalize(
+      params.duration,
       [4, 6, 8],
+      8,
     );
 
     const input: Veo31LiteInput = {

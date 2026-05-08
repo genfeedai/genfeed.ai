@@ -16,6 +16,7 @@ import { Job } from 'bullmq';
 export interface FacebookAnalyticsJobData {
   posts: Array<{
     _id: string;
+    credential?: string;
     externalId: string;
     organization: string;
     brand: string;
@@ -73,12 +74,21 @@ export class AnalyticsFacebookProcessor extends WorkerHost {
 
       for (const post of posts) {
         try {
-          const credential = await this.credentialsService.findOne({
-            brand: post.brand,
-            isDeleted: false,
-            organization: post.organization,
-            platform: CredentialPlatform.FACEBOOK,
-          });
+          const credential = await this.credentialsService.findOne(
+            post.credential
+              ? {
+                  _id: post.credential,
+                  isDeleted: false,
+                  organization: post.organization,
+                  platform: CredentialPlatform.FACEBOOK,
+                }
+              : {
+                  brand: post.brand,
+                  isDeleted: false,
+                  organization: post.organization,
+                  platform: CredentialPlatform.FACEBOOK,
+                },
+          );
 
           if (!credential?.accessToken) {
             this.logger.warn(

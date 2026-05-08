@@ -13,6 +13,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
+import type { PrismaFindAllInput } from '@api/shared/services/base/base.service';
 import type { User } from '@clerk/backend';
 import { WorkflowExecutionSerializer } from '@genfeedai/serializers';
 import {
@@ -47,7 +48,7 @@ export class WorkflowExecutionsController {
   private buildFindAllQuery(
     organizationId: string,
     query: WorkflowExecutionQueryDto,
-  ): Record<string, unknown>[] {
+  ): PrismaFindAllInput {
     const match: Record<string, unknown> = {
       isDeleted: false,
       organization: organizationId,

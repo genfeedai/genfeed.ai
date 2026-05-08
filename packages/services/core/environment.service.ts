@@ -25,6 +25,16 @@ const getDesktopEnvironmentOverrides = (): DesktopEnvironmentOverrides => {
   return globalThis.__GENFEED_DESKTOP_ENV__ ?? {};
 };
 
+const readOptionalNumberEnv = (key: string): number | undefined => {
+  const value = process.env[key];
+  if (!value) {
+    return undefined;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+};
+
 export const EnvironmentService = {
   get apiEndpoint(): string {
     return (
@@ -151,6 +161,26 @@ export const EnvironmentService = {
         ? 'granted'
         : 'denied',
     gtmContainerId: process.env.NEXT_PUBLIC_GTM_CONTAINER_ID || '',
+    linkedinConversionIds: {
+      book_call: readOptionalNumberEnv(
+        'NEXT_PUBLIC_LINKEDIN_CONVERSION_ID_BOOK_CALL',
+      ),
+      cta_click: readOptionalNumberEnv(
+        'NEXT_PUBLIC_LINKEDIN_CONVERSION_ID_CTA_CLICK',
+      ),
+      lead_submit: readOptionalNumberEnv(
+        'NEXT_PUBLIC_LINKEDIN_CONVERSION_ID_LEAD_SUBMIT',
+      ),
+      signup_complete: readOptionalNumberEnv(
+        'NEXT_PUBLIC_LINKEDIN_CONVERSION_ID_SIGNUP_COMPLETE',
+      ),
+      start_signup: readOptionalNumberEnv(
+        'NEXT_PUBLIC_LINKEDIN_CONVERSION_ID_START_SIGNUP',
+      ),
+      view_pricing: readOptionalNumberEnv(
+        'NEXT_PUBLIC_LINKEDIN_CONVERSION_ID_VIEW_PRICING',
+      ),
+    },
     linkedinPartnerId: process.env.NEXT_PUBLIC_LINKEDIN_PARTNER_ID || '',
     metaPixelId: process.env.NEXT_PUBLIC_META_PIXEL_ID || '',
     xPixelId: process.env.NEXT_PUBLIC_X_PIXEL_ID || '',

@@ -36,6 +36,8 @@ type WorkspacePackPaths = {
   sourceEntry: string;
 };
 
+type NativeImport = (specifier: string) => Promise<PackModule>;
+
 const API_PACKAGE_NAME = '@genfeedai/api';
 const WORKSPACE_PACK_PATHS: Record<string, WorkspacePackPaths> = {
   '@genfeedai/ee-harness': {
@@ -43,6 +45,18 @@ const WORKSPACE_PACK_PATHS: Record<string, WorkspacePackPaths> = {
     sourceEntry: 'ee/packages/harness/src/index.ts',
   },
 };
+
+const nativeImport = new Function(
+  'specifier',
+  'return import(specifier)',
+) as NativeImport;
+
+function runtimeRequireModule(
+  requireFn: NodeJS.Require,
+  specifier: string,
+): PackModule {
+  return Reflect.apply(requireFn, undefined, [specifier]) as PackModule;
+}
 
 function isApiPackageJsonPath(packageJsonPath: string): boolean {
   if (!existsSync(packageJsonPath)) {
@@ -213,15 +227,19 @@ export class ContentHarnessService {
     );
 
     if (resolvedSpecifier) {
-      return this.runtimeRequireContext.require(
+      return runtimeRequireModule(
+        this.runtimeRequireContext.require,
         resolvedSpecifier,
-      ) as PackModule;
+      );
     }
 
     const workspacePackPaths = this.getWorkspacePackPaths(specifier);
 
     if (!workspacePackPaths) {
-      return this.runtimeRequireContext.require(specifier) as PackModule;
+      return runtimeRequireModule(
+        this.runtimeRequireContext.require,
+        specifier,
+      );
     }
 
     const workspaceRequire = createRequire(workspacePackPaths.packageJson);
@@ -231,15 +249,18 @@ export class ContentHarnessService {
     );
 
     if (resolvedWorkspaceSpecifier) {
-      return workspaceRequire(resolvedWorkspaceSpecifier) as PackModule;
+      return runtimeRequireModule(workspaceRequire, resolvedWorkspaceSpecifier);
     }
 
     try {
-      return workspaceRequire(workspacePackPaths.sourceEntry) as PackModule;
+      return runtimeRequireModule(
+        workspaceRequire,
+        workspacePackPaths.sourceEntry,
+      );
     } catch {
-      return (await import(
-        pathToFileURL(workspacePackPaths.sourceEntry).href
-      )) as PackModule;
+      return await nativeImport(
+        pathToFileURL(workspacePackPaths.sourceEntry).href,
+      );
     }
   }
 

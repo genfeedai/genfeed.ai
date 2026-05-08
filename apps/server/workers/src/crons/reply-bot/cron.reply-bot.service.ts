@@ -2,6 +2,7 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/services/reply-bot-configs.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { ReplyBotOrchestratorService } from '@api/services/reply-bot/reply-bot-orchestrator.service';
+import { ReplyBotPlatform } from '@genfeedai/enums';
 import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -156,12 +157,12 @@ export class CronReplyBotService {
     }
 
     return {
-      accessToken: credential.accessToken,
-      accessTokenSecret: credential.accessTokenSecret,
-      externalId: credential.externalId,
-      platform: credential.platform,
-      refreshToken: credential.refreshToken,
-      username: credential.username,
+      accessToken: credential.accessToken ?? '',
+      accessTokenSecret: credential.accessTokenSecret ?? undefined,
+      externalId: credential.externalId ?? undefined,
+      platform: credential.platform as ReplyBotPlatform,
+      refreshToken: credential.refreshToken ?? undefined,
+      username: credential.username ?? undefined,
     };
   }
 }

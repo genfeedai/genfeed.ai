@@ -6,7 +6,7 @@
 git clone https://github.com/genfeedai/genfeed.ai.git
 cd genfeed.ai/docker
 cp .env.example .env
-# Edit .env with your MongoDB URI, Redis URL, etc.
+# Edit .env with your DATABASE_URL (PostgreSQL), REDIS_URL, etc.
 docker compose up
 ```
 

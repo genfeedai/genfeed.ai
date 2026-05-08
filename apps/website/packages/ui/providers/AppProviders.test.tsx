@@ -37,7 +37,7 @@ vi.mock('../../marketing/MarketingTrackingProvider', () => ({
     consentDefault,
   }: {
     children: ReactNode;
-    config: Record<string, string | undefined>;
+    config: Record<string, unknown>;
     consentDefault: string;
   }) => {
     marketingProviderSpy({ config, consentDefault });
@@ -57,6 +57,7 @@ describe('website AppProviders', () => {
         includeVercelAnalytics={false}
         marketingConsentDefault="denied"
         marketingGtmContainerId="GTM-123"
+        marketingLinkedinConversionIds={{ book_call: 12345 }}
         marketingLinkedinPartnerId="li-123"
         marketingMetaPixelId="meta-123"
         marketingXPixelId="x-123"
@@ -70,6 +71,7 @@ describe('website AppProviders', () => {
       config: {
         gaId: 'G-123',
         gtmContainerId: 'GTM-123',
+        linkedinConversionIds: { book_call: 12345 },
         linkedinPartnerId: 'li-123',
         metaPixelId: 'meta-123',
         xPixelId: 'x-123',

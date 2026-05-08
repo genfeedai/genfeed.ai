@@ -4,15 +4,26 @@
  */
 :root {
   --destructive-foreground: 0 0% 100%;
-  --success: 142 71% 45%;
-  --success-foreground: 0 0% 100%;
+  --success: 160 84% 39%;
+  --success-foreground: 0 0% 0%;
   --warning: 38 92% 50%;
   --warning-foreground: 0 0% 0%;
-  --info: 199 89% 48%;
-  --info-foreground: 0 0% 100%;
+  --info: 217 91% 60%;
+  --info-foreground: 0 0% 0%;
 
   --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-serif: Georgia, 'Times New Roman', serif;
+  --font-size-xs: 11px;
+  --font-size-sm: 12px;
+  --font-size-md: 13px;
+  --font-size-lg: 14px;
+  --font-size-xl: 15px;
+  --font-size-xxl: 16px;
+  --font-size-xxxl: 18px;
+  --font-size-hero: 28px;
+  --font-size-h1: 26px;
+  --font-size-h2: 24px;
+  --font-size-h3: 20px;
 
   --space-xs: 4px;
   --space-sm: 8px;
@@ -22,6 +33,15 @@
   --space-xxl: 24px;
   --space-xxxl: 32px;
   --space-xxxxl: 48px;
+
+  --radius-none: 0px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 10px;
+  --radius-xxl: 12px;
+  --radius-xxxl: 16px;
+  --radius-full: 9999px;
 
   --motion-duration-fast: 200ms;
   --motion-duration-normal: 300ms;
@@ -48,7 +68,7 @@
     --muted-foreground: 0 0% 44%;
     --accent: 60 9% 96%;
     --accent-foreground: 0 0% 5%;
-    --destructive: 0 84% 60%;
+    --destructive: 0 72% 51%;
     --border: 45 5% 85%;
     --input: 45 5% 85%;
     --ring: 221 83% 53%;
@@ -76,7 +96,7 @@
     --muted-foreground: 0 0% 58%;
     --accent: 0 0% 11%;
     --accent-foreground: 0 0% 98%;
-    --destructive: 0 62% 50%;
+    --destructive: 0 72% 51%;
     --border: 0 0% 15%;
     --input: 0 0% 15%;
     --ring: 0 0% 100%;

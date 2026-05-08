@@ -7,6 +7,7 @@ import { ArticlesService } from '@genfeedai/services/content/articles.service';
 import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
+import { sanitizeHtml } from '@genfeedai/utils/sanitize-html';
 import { downloadUrl } from '@helpers/media/download/download.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCallback, useState } from 'react';
@@ -26,7 +27,49 @@ export interface UseXArticleComposeReturn {
   handleGenerateHeaderImage: () => Promise<void>;
 }
 
-export function useXArticleCompose(): UseXArticleComposeReturn {
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function buildXArticleClipboardPayload(
+  article: Article,
+  metadata: IXArticleMetadata,
+  stripHtmlTags: (html: string) => string,
+): { html: string; text: string } {
+  const textParts = [article.label, ''];
+  const htmlParts = [`<h1>${escapeHtml(article.label)}</h1>`];
+
+  for (const section of metadata.sections) {
+    textParts.push(section.heading);
+    textParts.push(stripHtmlTags(section.content));
+    if (section.pullQuote) {
+      textParts.push(`"${section.pullQuote}"`);
+    }
+    textParts.push('');
+
+    htmlParts.push(`<h2>${escapeHtml(section.heading)}</h2>`);
+    htmlParts.push(sanitizeHtml(section.content));
+    if (section.pullQuote) {
+      htmlParts.push(
+        `<blockquote>${escapeHtml(section.pullQuote)}</blockquote>`,
+      );
+    }
+  }
+
+  return {
+    html: sanitizeHtml(htmlParts.join('\n')),
+    text: textParts.join('\n').trim(),
+  };
+}
+
+export function useXArticleCompose(
+  initialArticle?: Article | null,
+): UseXArticleComposeReturn {
   const notificationsService = NotificationsService.getInstance();
   const clipboardService = ClipboardService.getInstance();
 
@@ -39,7 +82,8 @@ export function useXArticleCompose(): UseXArticleComposeReturn {
   const [error, setError] = useState<string | null>(null);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
 
-  const metadata = article?.xArticleMetadata ?? null;
+  const resolvedArticle = article ?? initialArticle ?? null;
+  const metadata = resolvedArticle?.xArticleMetadata ?? null;
 
   const handleGenerate = useCallback(
     async (data: GenerateArticlesRequest) => {
@@ -89,23 +133,18 @@ export function useXArticleCompose(): UseXArticleComposeReturn {
   );
 
   const handleCopyFullArticle = useCallback(() => {
-    if (!article || !metadata) {
+    if (!resolvedArticle || !metadata) {
       return;
     }
 
-    const parts = [article.label, ''];
+    const payload = buildXArticleClipboardPayload(
+      resolvedArticle,
+      metadata,
+      stripHtmlTags,
+    );
 
-    for (const section of metadata.sections) {
-      parts.push(section.heading);
-      parts.push(stripHtmlTags(section.content));
-      if (section.pullQuote) {
-        parts.push(`"${section.pullQuote}"`);
-      }
-      parts.push('');
-    }
-
-    clipboardService.copyToClipboard(parts.join('\n'));
-  }, [article, metadata, clipboardService, stripHtmlTags]);
+    clipboardService.copyRichTextToClipboard(payload);
+  }, [resolvedArticle, metadata, clipboardService, stripHtmlTags]);
 
   const handleDownloadImage = useCallback(
     (url: string, filename: string) => {
@@ -118,7 +157,7 @@ export function useXArticleCompose(): UseXArticleComposeReturn {
   );
 
   const handleGenerateHeaderImage = useCallback(async () => {
-    if (!article || isGeneratingImage) {
+    if (!resolvedArticle || isGeneratingImage) {
       return;
     }
 
@@ -126,12 +165,12 @@ export function useXArticleCompose(): UseXArticleComposeReturn {
 
     try {
       const service = await getArticlesService();
-      await service.generateImage(article.id, {
+      await service.generateImage(resolvedArticle.id, {
         height: 900,
         width: 1600,
       });
       // Re-fetch article to get the updated headerImageUrl
-      const updated = await service.findOne(article.id);
+      const updated = await service.findOne(resolvedArticle.id);
       setArticle(updated);
       notificationsService.success('Header image generated');
     } catch (err) {
@@ -140,7 +179,12 @@ export function useXArticleCompose(): UseXArticleComposeReturn {
     } finally {
       setIsGeneratingImage(false);
     }
-  }, [article, isGeneratingImage, getArticlesService, notificationsService]);
+  }, [
+    resolvedArticle,
+    isGeneratingImage,
+    getArticlesService,
+    notificationsService,
+  ]);
 
   return {
     article,

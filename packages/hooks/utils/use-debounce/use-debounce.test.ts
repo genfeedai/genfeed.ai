@@ -1,3 +1,4 @@
+import { logger } from '@genfeedai/services/core/logger.service';
 import {
   useDebounce,
   useDebouncedAPI,
@@ -5,6 +6,12 @@ import {
 } from '@hooks/utils/use-debounce/use-debounce';
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('@genfeedai/services/core/logger.service', () => ({
+  logger: {
+    error: vi.fn(),
+  },
+}));
 
 describe('useDebounce', () => {
   it('returns initial value immediately', () => {
@@ -148,8 +155,7 @@ describe('useDebouncedAPI', () => {
     expect(result.current.isLoading).toBe(false);
   });
 
-  // Skip: Causes unhandled rejection due to AbortError thrown after test cleanup
-  it.skip('cancels previous requests when new call is made', async () => {
+  it('cancels previous requests when new call is made', async () => {
     const apiCall = vi.fn().mockImplementation(async (arg, { signal }) => {
       await new Promise((resolve) => setTimeout(resolve, 200));
       if (signal.aborted) {
@@ -180,9 +186,9 @@ describe('useDebouncedAPI', () => {
     expect(apiCall).toHaveBeenCalledTimes(2);
   });
 
-  // Skip: Causes unhandled rejection in test runner
-  it.skip('handles API call errors', async () => {
-    const apiCall = vi.fn().mockRejectedValue(new Error('API Error'));
+  it('handles API call errors', async () => {
+    const error = new Error('API Error');
+    const apiCall = vi.fn().mockRejectedValue(error);
     const { result } = renderHook(() => useDebouncedAPI(apiCall, 100));
 
     act(() => {
@@ -194,10 +200,13 @@ describe('useDebouncedAPI', () => {
     });
 
     expect(result.current.isLoading).toBe(false);
+    expect(logger.error).toHaveBeenCalledWith(
+      'useDebouncedAPI call failed',
+      error,
+    );
   });
 
-  // Skip: Causes unhandled rejection in test runner
-  it.skip('ignores AbortError', async () => {
+  it('ignores AbortError', async () => {
     const apiCall = vi.fn().mockRejectedValue(new Error('AbortError'));
     const { result } = renderHook(() => useDebouncedAPI(apiCall, 100));
 

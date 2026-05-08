@@ -143,11 +143,16 @@ export class HarnessProfilesService {
   ): Promise<HarnessProfileDocument> {
     const existing = await this.findOneRaw(id, organizationId);
     const existingProfile = this.normalizeProfile(existing);
+    const brandId = existingProfile.brandId;
+    if (!brandId) {
+      throw new NotFoundException('Harness profile brand not found');
+    }
+
     const data = this.normalizePayload(
       {
         ...existingProfile,
         ...dto,
-        brandId: existingProfile.brandId,
+        brandId,
         examples: {
           ...existingProfile.examples,
           ...dto.examples,

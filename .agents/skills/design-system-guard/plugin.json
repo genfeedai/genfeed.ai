@@ -1,0 +1,12 @@
+{
+  "name": "design-system-guard",
+  "version": "1.0.0",
+  "description": "Enforce Genfeed.ai DESIGN.md, shared tokens, UI consistency, and design.md validation",
+  "author": {
+    "name": "Ship Shit Dev",
+    "email": "hello@shipshit.dev",
+    "url": "https://github.com/shipshitdev"
+  },
+  "license": "MIT",
+  "skills": "."
+}

@@ -1464,4 +1464,64 @@ export const MCP_SOURCE_TOOLS: McpSourceTool[] = [
     name: 'run_captioning',
     requiredRole: 'admin',
   },
+  {
+    description:
+      'Generate LinkedIn-optimized post text for a given topic or brief. Returns ready-to-publish text content with hook, body, CTA, and hashtags.',
+    inputSchema: {
+      properties: {
+        brandId: {
+          description: 'Brand ID to apply tone and voice profile',
+          type: 'string',
+        },
+        topic: {
+          description:
+            'Topic, brief, or sales objection to turn into LinkedIn content',
+          type: 'string',
+        },
+        variationsCount: {
+          default: 3,
+          description: 'Number of content variations to generate (1-5)',
+          maximum: 5,
+          minimum: 1,
+          type: 'number',
+        },
+      },
+      required: ['topic'],
+      type: 'object',
+    },
+    name: 'generate_linkedin_content',
+    requiredRole: 'user',
+  },
+  {
+    description:
+      'Check whether a LinkedIn account is connected for the current user. Returns connection status, handle, and avatar if connected.',
+    inputSchema: {
+      properties: {},
+      type: 'object',
+    },
+    name: 'get_linkedin_connection_status',
+    requiredRole: 'user',
+  },
+  {
+    description:
+      'Get analytics for LinkedIn posts including impressions, engagement rate, reactions, comments, and shares. Requires a content ID.',
+    inputSchema: {
+      properties: {
+        contentId: {
+          description: 'ID of the content to get LinkedIn analytics for',
+          type: 'string',
+        },
+        timeRange: {
+          default: '7d',
+          description: 'Time range for analytics',
+          enum: ['24h', '7d', '30d', '90d'],
+          type: 'string',
+        },
+      },
+      required: ['contentId'],
+      type: 'object',
+    },
+    name: 'get_linkedin_analytics',
+    requiredRole: 'user',
+  },
 ];
