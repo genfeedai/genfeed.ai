@@ -51,5 +51,7 @@ export default function ArticleCompose() {
     );
   }
 
-  return <ArticleDetail articleId={resolvedArticleId} />;
+  return (
+    <ArticleDetail articleId={resolvedArticleId} credentialId={credentialId} />
+  );
 }

@@ -3,10 +3,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ArticleCompose from './article-compose';
 import '@testing-library/jest-dom';
 
-const { searchParamValues, xArticleGenerateFormMock } = vi.hoisted(() => ({
-  searchParamValues: new Map<string, string>(),
-  xArticleGenerateFormMock: vi.fn(),
-}));
+const { articleDetailMock, searchParamValues, xArticleGenerateFormMock } =
+  vi.hoisted(() => ({
+    articleDetailMock: vi.fn(),
+    searchParamValues: new Map<string, string>(),
+    xArticleGenerateFormMock: vi.fn(),
+  }));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: vi.fn(() => ({
@@ -39,7 +41,10 @@ vi.mock('@ui/articles/type-selector/ArticleTypeSelector', () => ({
 }));
 
 vi.mock('./article-detail', () => ({
-  default: () => <div data-testid="article-detail" />,
+  default: (props: unknown) => {
+    articleDetailMock(props);
+    return <div data-testid="article-detail" />;
+  },
 }));
 
 vi.mock('@genfeedai/services/core/clipboard.service', () => ({
@@ -82,6 +87,20 @@ describe('ArticleCompose', () => {
       expect.objectContaining({
         credentialId: 'cred-1',
         initialPrompt: 'Write the X Article',
+      }),
+    );
+  });
+
+  it('passes credential context to generated article detail', () => {
+    searchParamValues.set('id', 'article-1');
+    searchParamValues.set('credentialId', 'cred-1');
+
+    render(<ArticleCompose />);
+
+    expect(articleDetailMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        articleId: 'article-1',
+        credentialId: 'cred-1',
       }),
     );
   });

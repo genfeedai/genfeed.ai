@@ -10,6 +10,7 @@ import {
   HiClipboardDocument,
   HiClock,
   HiPhoto,
+  HiSparkles,
 } from 'react-icons/hi2';
 
 export default function XArticleAssetsBar({
@@ -18,7 +19,10 @@ export default function XArticleAssetsBar({
   onCopyFullArticle,
   onDownloadImage,
   onGenerateHeaderImage,
+  onGenerateTeaserPost,
+  onGenerateTeaserThread,
   isGeneratingImage,
+  isGeneratingTeaser = false,
 }: XArticleAssetsBarProps) {
   const hasHeaderImage = !!metadata.headerImageUrl;
 
@@ -43,6 +47,30 @@ export default function XArticleAssetsBar({
             icon={<HiClipboardDocument className="h-4 w-4" />}
             onClick={onCopyFullArticle}
           />
+
+          {onGenerateTeaserPost && (
+            <Button
+              label="Create X Post"
+              variant={ButtonVariant.SECONDARY}
+              size={ButtonSize.SM}
+              icon={<HiSparkles className="h-4 w-4" />}
+              isLoading={isGeneratingTeaser}
+              isDisabled={isGeneratingTeaser}
+              onClick={onGenerateTeaserPost}
+            />
+          )}
+
+          {onGenerateTeaserThread && (
+            <Button
+              label="Create X Thread"
+              variant={ButtonVariant.SECONDARY}
+              size={ButtonSize.SM}
+              icon={<HiSparkles className="h-4 w-4" />}
+              isLoading={isGeneratingTeaser}
+              isDisabled={isGeneratingTeaser}
+              onClick={onGenerateTeaserThread}
+            />
+          )}
 
           {/* Header Image */}
           {hasHeaderImage ? (

@@ -6,11 +6,16 @@ import {
   ButtonSize,
   ButtonVariant,
 } from '@genfeedai/enums';
+import type { Article } from '@genfeedai/models/content/article.model';
+import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useArticleDetail } from '@hooks/pages/use-article-detail/use-article-detail';
 import { useXArticleCompose } from '@hooks/pages/use-x-article-compose/use-x-article-compose';
 import type { ArticleEditorProps } from '@props/content/article-editor.props';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
+import { PostsService } from '@services/content/posts.service';
 import { ClipboardService } from '@services/core/clipboard.service';
+import { logger } from '@services/core/logger.service';
+import { NotificationsService } from '@services/core/notifications.service';
 import XArticleAssetsBar from '@ui/articles/x-article/XArticleAssetsBar';
 import XArticleSectionCard from '@ui/articles/x-article/XArticleSectionCard';
 import Card from '@ui/card/Card';
@@ -25,8 +30,9 @@ import { Input } from '@ui/primitives/input';
 import PromptBarArticle from '@ui/prompt-bars/article/PromptBarArticle';
 import { COMPOSE_ROUTES } from '@ui-constants/compose.constant';
 import { createMarkup } from '@utils/sanitize-html';
+import { useParams, useRouter } from 'next/navigation';
 import type { ChangeEvent } from 'react';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   HiArchiveBox,
   HiCheck,
@@ -38,6 +44,8 @@ import {
   HiTrash,
 } from 'react-icons/hi2';
 
+type TeaserFormat = 'post' | 'thread';
+
 const ARTICLE_CATEGORY_OPTIONS = Object.values(ArticleCategory).map(
   (value) => ({
     key: value,
@@ -45,10 +53,50 @@ const ARTICLE_CATEGORY_OPTIONS = Object.values(ArticleCategory).map(
   }),
 );
 
-export default function ArticleDetail({ articleId }: ArticleEditorProps) {
+function buildXArticleTeaserPrompt(
+  article: Article,
+  format: TeaserFormat,
+): string {
+  const sectionHeadings =
+    article.xArticleMetadata?.sections
+      ?.slice(0, 5)
+      .map((section) => section.heading)
+      .filter(Boolean)
+      .join(', ') || 'the article sections';
+  const formatInstruction =
+    format === 'thread'
+      ? 'Create a short X thread teaser that invites people to read the full X Article.'
+      : 'Create one publishable X post teaser that invites people to read the full X Article.';
+
+  return [
+    formatInstruction,
+    `Title: ${article.label}`,
+    article.summary ? `Summary: ${article.summary}` : undefined,
+    `Key sections: ${sectionHeadings}`,
+    'Do not exceed standard X post limits. Do not claim the article is already linked unless a URL is included.',
+  ]
+    .filter(Boolean)
+    .join('\n');
+}
+
+export default function ArticleDetail({
+  articleId,
+  credentialId,
+}: ArticleEditorProps) {
   const { openConfirm } = useConfirmModal();
+  const params = useParams<{ brandSlug?: string; orgSlug?: string }>();
+  const router = useRouter();
   const [viewMode, setViewMode] = useState<'edit' | 'preview'>('edit');
+  const [generatingTeaserFormat, setGeneratingTeaserFormat] =
+    useState<TeaserFormat | null>(null);
   const clipboardService = useMemo(() => ClipboardService.getInstance(), []);
+  const notificationsService = useMemo(
+    () => NotificationsService.getInstance(),
+    [],
+  );
+  const getPostsService = useAuthedService(
+    useCallback((token: string) => PostsService.getInstance(token), []),
+  );
 
   const {
     article,
@@ -86,6 +134,55 @@ export default function ArticleDetail({ articleId }: ArticleEditorProps) {
     !!article && !isXArticle && !isPublished && form.label.trim().length > 0;
   const canArchive = !!article && isPublished;
   const plainTextContent = form.content.replace(/<[^>]*>/g, '').trim();
+  const canGenerateTeaser = !!article && hasXArticleSections && !!credentialId;
+  const handleGenerateTeaser = useCallback(
+    async (format: TeaserFormat) => {
+      if (!article || !credentialId || generatingTeaserFormat) {
+        return;
+      }
+
+      setGeneratingTeaserFormat(format);
+
+      try {
+        const postsService = await getPostsService();
+        const drafts = await postsService.generateAccountContent({
+          count: format === 'thread' ? 3 : 1,
+          credential: credentialId,
+          format,
+          tone: 'professional',
+          topic: buildXArticleTeaserPrompt(article, format),
+        });
+        const rootDraft = drafts[0];
+
+        notificationsService.success(
+          format === 'thread'
+            ? 'X thread teaser draft created'
+            : 'X post teaser draft created',
+        );
+
+        if (rootDraft?.id && params?.orgSlug && params?.brandSlug) {
+          router.push(
+            `/${params.orgSlug}/${params.brandSlug}/posts/${rootDraft.id}`,
+          );
+        }
+      } catch (err) {
+        logger.error('Failed to generate X Article teaser draft', err);
+        notificationsService.error('Generate X teaser');
+      } finally {
+        setGeneratingTeaserFormat(null);
+      }
+    },
+    [
+      article,
+      credentialId,
+      generatingTeaserFormat,
+      getPostsService,
+      notificationsService,
+      params?.brandSlug,
+      params?.orgSlug,
+      router,
+    ],
+  );
 
   if (isLoading) {
     return (
@@ -286,7 +383,18 @@ export default function ArticleDetail({ articleId }: ArticleEditorProps) {
               onCopyFullArticle={handleCopyFullArticle}
               onDownloadImage={handleDownloadImage}
               onGenerateHeaderImage={handleGenerateHeaderImage}
+              onGenerateTeaserPost={
+                canGenerateTeaser
+                  ? () => void handleGenerateTeaser('post')
+                  : undefined
+              }
+              onGenerateTeaserThread={
+                canGenerateTeaser
+                  ? () => void handleGenerateTeaser('thread')
+                  : undefined
+              }
               isGeneratingImage={isGeneratingImage}
+              isGeneratingTeaser={!!generatingTeaserFormat}
             />
           )}
 

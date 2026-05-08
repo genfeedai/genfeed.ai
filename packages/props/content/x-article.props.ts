@@ -27,5 +27,8 @@ export interface XArticleAssetsBarProps {
   onCopyFullArticle: () => void;
   onDownloadImage: (url: string, filename: string) => void;
   onGenerateHeaderImage: () => void;
+  onGenerateTeaserPost?: () => void;
+  onGenerateTeaserThread?: () => void;
   isGeneratingImage: boolean;
+  isGeneratingTeaser?: boolean;
 }
