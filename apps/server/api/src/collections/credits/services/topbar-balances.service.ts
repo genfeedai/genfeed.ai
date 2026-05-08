@@ -123,8 +123,12 @@ export class TopbarBalancesService {
     );
     const balance = this.extractNumericBalance(response.data);
 
+    if (typeof balance !== 'number') {
+      throw new Error('Replicate account response did not include balance');
+    }
+
     return {
-      balance: typeof balance === 'number' ? balance : null,
+      balance,
       currencyOrUnit: 'USD',
       label: 'Replicate',
       lastSyncedAt: new Date().toISOString(),
