@@ -741,6 +741,35 @@ Tweet 3: Tech innovation is changing the world.`,
       ).rejects.toThrow(HttpException);
     });
 
+    it('should allow scheduled text-only Threads replies', async () => {
+      mockCredentialsService.findOne.mockResolvedValueOnce({
+        ...mockCredential,
+        platform: CredentialPlatform.THREADS,
+      });
+
+      const scheduledTextDto = {
+        ...createPostDto,
+        category: PostCategory.TEXT,
+        ingredients: [],
+        status: PostStatus.SCHEDULED,
+      };
+
+      await controller.addThreadReply(
+        mockRequest,
+        mockUser,
+        postId,
+        scheduledTextDto,
+      );
+
+      expect(mockPostsService.addThreadReply).toHaveBeenCalledWith(
+        postId,
+        expect.objectContaining({
+          platform: CredentialPlatform.THREADS,
+          status: PostStatus.SCHEDULED,
+        }),
+      );
+    });
+
     it('should throw NOT_FOUND when ingredient not found', async () => {
       mockIngredientsService.findOne.mockResolvedValueOnce(null);
 

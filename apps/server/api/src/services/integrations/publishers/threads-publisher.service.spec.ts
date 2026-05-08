@@ -2,6 +2,7 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import { ConfigService } from '@api/config/config.service';
 import { ThreadsPublisherService } from '@api/services/integrations/publishers/threads-publisher.service';
 import { ThreadsService } from '@api/services/integrations/threads/services/threads.service';
+import { IngredientCategory, PostCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
@@ -14,7 +15,10 @@ describe('ThreadsPublisherService', () => {
         ThreadsPublisherService,
         {
           provide: ConfigService,
-          useValue: { get: vi.fn().mockReturnValue('') },
+          useValue: {
+            get: vi.fn().mockReturnValue(''),
+            ingredientsEndpoint: 'https://assets.test',
+          },
         },
         {
           provide: LoggerService,
@@ -22,7 +26,12 @@ describe('ThreadsPublisherService', () => {
         },
         {
           provide: ThreadsService,
-          useValue: { publishImage: vi.fn(), publishText: vi.fn() },
+          useValue: {
+            publishCarousel: vi.fn(),
+            publishImage: vi.fn(),
+            publishText: vi.fn(),
+            publishVideo: vi.fn(),
+          },
         },
         {
           provide: PostsService,
@@ -51,12 +60,12 @@ describe('ThreadsPublisherService', () => {
       expect(service.supportsImages).toBe(true);
     });
 
-    it('should not support videos', () => {
-      expect(service.supportsVideos).toBe(false);
+    it('should support videos', () => {
+      expect(service.supportsVideos).toBe(true);
     });
 
-    it('should not support carousel', () => {
-      expect(service.supportsCarousel).toBe(false);
+    it('should support carousel', () => {
+      expect(service.supportsCarousel).toBe(true);
     });
 
     it('should support threads/replies', () => {
@@ -83,7 +92,7 @@ describe('ThreadsPublisherService', () => {
   });
 
   describe('validatePost', () => {
-    it('should return invalid for carousel posts', () => {
+    it('should return valid for carousel posts within the Threads media limit', () => {
       const context = {
         brandId: 'brand-1',
         credential: {},
@@ -100,11 +109,31 @@ describe('ThreadsPublisherService', () => {
 
       const result = service.validatePost(context, mediaInfo);
 
-      expect(result.valid).toBe(false);
-      expect(result.error).toContain('carousel');
+      expect(result.valid).toBe(true);
     });
 
-    it('should return invalid for video posts', () => {
+    it('should return invalid for carousel posts above the Threads media limit', () => {
+      const context = {
+        brandId: 'brand-1',
+        credential: {},
+        organizationId: 'org-1',
+        post: {},
+      } as never;
+      const mediaInfo = {
+        hasIngredients: true,
+        ingredientIds: Array.from({ length: 21 }, (_, index) => `id-${index}`),
+        isCarousel: true,
+        isImagePost: true,
+        mediaUrls: ['url'],
+      } as never;
+
+      const result = service.validatePost(context, mediaInfo);
+
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('20');
+    });
+
+    it('should return valid for video posts', () => {
       const context = {
         brandId: 'brand-1',
         credential: {},
@@ -121,8 +150,7 @@ describe('ThreadsPublisherService', () => {
 
       const result = service.validatePost(context, mediaInfo);
 
-      expect(result.valid).toBe(false);
-      expect(result.error).toContain('video');
+      expect(result.valid).toBe(true);
     });
 
     it('should return valid for text-only posts', () => {
@@ -146,8 +174,78 @@ describe('ThreadsPublisherService', () => {
     });
   });
 
+  describe('publish', () => {
+    it('should publish single video posts', async () => {
+      const mockThreadsService = service['threadsService'];
+      (
+        mockThreadsService.publishVideo as ReturnType<typeof vi.fn>
+      ).mockResolvedValue({ threadId: 'thread-video-1' });
+
+      const result = await service.publish({
+        brandId: 'brand-1',
+        credential: { externalHandle: 'testuser' },
+        organizationId: 'org-1',
+        post: {
+          category: PostCategory.VIDEO,
+          description: 'Video caption',
+          ingredients: ['video-1'],
+        },
+        postId: 'post-1',
+      } as never);
+
+      expect(mockThreadsService.publishVideo).toHaveBeenCalledWith(
+        'org-1',
+        'brand-1',
+        'https://assets.test/videos/video-1',
+        'Video caption',
+      );
+      expect(result.success).toBe(true);
+      expect(result.externalId).toBe('thread-video-1');
+    });
+
+    it('should publish mixed media carousels', async () => {
+      const mockThreadsService = service['threadsService'];
+      (
+        mockThreadsService.publishCarousel as ReturnType<typeof vi.fn>
+      ).mockResolvedValue({ threadId: 'thread-carousel-1' });
+
+      const result = await service.publish({
+        brandId: 'brand-1',
+        credential: { externalHandle: 'testuser' },
+        organizationId: 'org-1',
+        post: {
+          category: PostCategory.IMAGE,
+          description: 'Carousel caption',
+          ingredients: [
+            { _id: 'image-1', category: IngredientCategory.IMAGE },
+            { _id: 'video-1', category: IngredientCategory.VIDEO },
+          ],
+        },
+        postId: 'post-1',
+      } as never);
+
+      expect(mockThreadsService.publishCarousel).toHaveBeenCalledWith(
+        'org-1',
+        'brand-1',
+        [
+          {
+            mediaType: 'IMAGE',
+            url: 'https://assets.test/images/image-1',
+          },
+          {
+            mediaType: 'VIDEO',
+            url: 'https://assets.test/videos/video-1',
+          },
+        ],
+        'Carousel caption',
+      );
+      expect(result.success).toBe(true);
+      expect(result.externalId).toBe('thread-carousel-1');
+    });
+  });
+
   describe('publishThreadChildren', () => {
-    it('should skip when no TEXT children exist', async () => {
+    it('should publish media children as replies', async () => {
       const context = {
         brandId: 'brand-1',
         organizationId: 'org-1',
@@ -156,13 +254,17 @@ describe('ThreadsPublisherService', () => {
       const children = [
         {
           _id: { toString: () => 'c1' },
-          category: 'image',
-          description: 'img',
+          category: PostCategory.VIDEO,
+          description: 'Video reply',
+          ingredients: ['video-1'],
           order: 0,
         },
       ];
 
       const mockThreadsService = service['threadsService'];
+      (
+        mockThreadsService.publishVideo as ReturnType<typeof vi.fn>
+      ).mockResolvedValueOnce({ threadId: 'reply-video-1' });
 
       await service.publishThreadChildren(
         context,
@@ -170,7 +272,13 @@ describe('ThreadsPublisherService', () => {
         'parent-thread-id',
       );
 
-      expect(mockThreadsService.publishText).not.toHaveBeenCalled();
+      expect(mockThreadsService.publishVideo).toHaveBeenCalledWith(
+        'org-1',
+        'brand-1',
+        'https://assets.test/videos/video-1',
+        'Video reply',
+        'parent-thread-id',
+      );
     });
 
     it('should publish TEXT children as replies in order', async () => {

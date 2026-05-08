@@ -174,11 +174,21 @@ export class PostsController extends BaseCRUDController<
         );
       }
 
-      // Validate TEXT category only allowed for Twitter when scheduling
+      // Platforms that support text-only scheduled posts
+      const textOnlyPlatforms = new Set([
+        CredentialPlatform.THREADS,
+        CredentialPlatform.TWITTER,
+        CredentialPlatform.LINKEDIN,
+      ]);
+      const isTextOnlyPlatform = textOnlyPlatforms.has(
+        credential.platform as CredentialPlatform,
+      );
+
+      // Validate TEXT category only allowed for text-capable platforms when scheduling
       if (
         createPostDto.status === PostStatus.SCHEDULED &&
         createPostDto.category === PostCategory.TEXT &&
-        String(credential.platform) !== CredentialPlatform.TWITTER
+        !isTextOnlyPlatform
       ) {
         throw new HttpException(
           {
@@ -189,10 +199,10 @@ export class PostsController extends BaseCRUDController<
         );
       }
 
-      // Validate ingredients required when scheduling for non-Twitter platforms
+      // Validate ingredients required when scheduling for media-required platforms
       if (
         createPostDto.status === PostStatus.SCHEDULED &&
-        String(credential.platform) !== CredentialPlatform.TWITTER
+        !isTextOnlyPlatform
       ) {
         if (
           !createPostDto.ingredients ||
