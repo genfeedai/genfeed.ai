@@ -67,21 +67,24 @@ export default function ArticleDetail({ articleId }: ArticleEditorProps) {
     pathname,
   } = useArticleDetail({ articleId });
 
+  const hasXArticleSections =
+    !!article?.xArticleMetadata?.sections &&
+    article.xArticleMetadata.sections.length > 0;
+  const isXArticle =
+    hasXArticleSections || form.category === ArticleCategory.X_ARTICLE;
   const {
     handleCopySection,
     handleCopyFullArticle,
     handleDownloadImage,
     handleGenerateHeaderImage,
     isGeneratingImage,
-  } = useXArticleCompose();
+  } = useXArticleCompose(article);
 
   const isNew = !articleId && !article;
   const isPublished = form.status === ArticleStatus.PUBLIC;
-  const canPublish = !!article && !isPublished && form.label.trim().length > 0;
+  const canPublish =
+    !!article && !isXArticle && !isPublished && form.label.trim().length > 0;
   const canArchive = !!article && isPublished;
-  const hasXArticleSections =
-    !!article?.xArticleMetadata?.sections &&
-    article.xArticleMetadata.sections.length > 0;
   const plainTextContent = form.content.replace(/<[^>]*>/g, '').trim();
 
   if (isLoading) {
@@ -219,7 +222,7 @@ export default function ArticleDetail({ articleId }: ArticleEditorProps) {
           {/* Copy Full Article (X Article only) */}
           {hasXArticleSections && (
             <Button
-              label="Copy Full Article"
+              label="Copy for X Article"
               variant={ButtonVariant.SECONDARY}
               size={ButtonSize.SM}
               icon={<HiClipboardDocument className="h-4 w-4" />}

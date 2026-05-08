@@ -1,3 +1,4 @@
+import { logger } from '@genfeedai/services/core/logger.service';
 import { isAbortError } from '@hooks/utils/use-abort-controller/use-abort-controller';
 import type { DependencyList } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -106,7 +107,7 @@ export function useDebouncedAPI<
           });
         } catch (error) {
           if (!isAbortError(error)) {
-            throw error;
+            logger.error('useDebouncedAPI call failed', error);
           }
         } finally {
           setIsLoading(false);

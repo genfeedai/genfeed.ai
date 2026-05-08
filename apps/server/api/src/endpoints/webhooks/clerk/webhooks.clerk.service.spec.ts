@@ -1,6 +1,8 @@
+import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { MembersService } from '@api/collections/members/services/members.service';
+import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { RolesService } from '@api/collections/roles/services/roles.service';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
@@ -21,8 +23,10 @@ describe('ClerkWebhookService', () => {
   let clerkService: ClerkService;
   let usersService: UsersService;
   let organizationsService: OrganizationsService;
+  let organizationSettingsService: OrganizationSettingsService;
   let brandsService: BrandsService;
   let membersService: MembersService;
+  let activitiesService: ActivitiesService;
 
   const mockUser = {
     _id: '507f1f77bcf86cd799439011',
@@ -66,6 +70,12 @@ describe('ClerkWebhookService', () => {
       providers: [
         ClerkWebhookService,
         {
+          provide: ActivitiesService,
+          useValue: {
+            create: vi.fn(),
+          },
+        },
+        {
           provide: LoggerService,
           useValue: {
             debug: vi.fn(),
@@ -94,7 +104,16 @@ describe('ClerkWebhookService', () => {
           useValue: {
             create: vi.fn(),
             findOne: vi.fn(),
+            generateUniqueSlug: vi.fn().mockResolvedValue('test-organization'),
             patch: vi.fn(),
+          },
+        },
+        {
+          provide: OrganizationSettingsService,
+          useValue: {
+            create: vi.fn(),
+            findOne: vi.fn(),
+            getLatestMajorVersionModelIds: vi.fn().mockResolvedValue([]),
           },
         },
         {
@@ -118,6 +137,7 @@ describe('ClerkWebhookService', () => {
             find: vi.fn().mockResolvedValue([]),
             findOne: vi.fn(),
             patch: vi.fn(),
+            patchAll: vi.fn(),
           },
         },
         {
@@ -161,8 +181,12 @@ describe('ClerkWebhookService', () => {
     usersService = module.get<UsersService>(UsersService);
     organizationsService =
       module.get<OrganizationsService>(OrganizationsService);
+    organizationSettingsService = module.get<OrganizationSettingsService>(
+      OrganizationSettingsService,
+    );
     brandsService = module.get<BrandsService>(BrandsService);
     membersService = module.get<MembersService>(MembersService);
+    activitiesService = module.get<ActivitiesService>(ActivitiesService);
 
     vi.clearAllMocks();
 
@@ -520,39 +544,141 @@ describe('ClerkWebhookService', () => {
       await expect(service.handleWebhookEvent(event, url)).rejects.toThrow(
         new HttpException(
           {
-            detail: `Event type 'session.created' is not supported. Only user.* events are handled by this webhook.`,
+            detail: `Event type 'session.created' is not supported. Supported Clerk webhook events are user.*, organization.*, organizationMembership.*, organization_membership.*, organizationInvitation.*, and organization_invitation.*.`,
             title: 'Unsupported event type',
           },
           HttpStatus.BAD_REQUEST,
         ),
       );
       expect(loggerService.warn).toHaveBeenCalledWith(`${url} rejected`, {
-        detail: `Event type 'session.created' is not supported. Only user.* events are handled by this webhook.`,
+        detail: `Event type 'session.created' is not supported. Supported Clerk webhook events are user.*, organization.*, organizationMembership.*, organization_membership.*, organizationInvitation.*, and organization_invitation.*.`,
         type: 'session.created',
       });
     });
 
-    it('should reject organization.created events', async () => {
+    it('should accept organization.created events and create a local projection', async () => {
       const event = asWebhookEvent({
         data: {
+          created_by: 'user_123456',
           id: 'org_123456',
+          name: 'Acme Inc',
+          slug: 'acme-inc',
         },
         type: 'organization.created',
       });
       const url = 'webhook/clerk';
 
-      await expect(service.handleWebhookEvent(event, url)).rejects.toThrow(
-        new HttpException(
-          {
-            detail: `Event type 'organization.created' is not supported. Only user.* events are handled by this webhook.`,
-            title: 'Unsupported event type',
-          },
-          HttpStatus.BAD_REQUEST,
-        ),
+      (organizationsService.findOne as vi.Mock).mockResolvedValue(null);
+      (usersService.findOne as vi.Mock).mockResolvedValue(mockUser);
+      (organizationsService.create as vi.Mock).mockResolvedValue({
+        ...mockOrganization,
+        _id: mockOrganization._id,
+        clerkOrganizationId: 'org_123456',
+        label: 'Acme Inc',
+      });
+      (organizationSettingsService.findOne as vi.Mock).mockResolvedValue(null);
+      (
+        organizationSettingsService.getLatestMajorVersionModelIds as vi.Mock
+      ).mockResolvedValue([]);
+      (organizationSettingsService.create as vi.Mock).mockResolvedValue({});
+      (brandsService.findOne as vi.Mock).mockResolvedValue(null);
+      (brandsService.create as vi.Mock).mockResolvedValue({
+        ...mockBrand,
+        label: 'Acme Inc',
+      });
+
+      await service.handleWebhookEvent(event, url);
+
+      expect(organizationsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          clerkOrganizationId: 'org_123456',
+          label: 'Acme Inc',
+          userId: mockUser._id,
+        }),
       );
-      expect(loggerService.warn).toHaveBeenCalledWith(`${url} rejected`, {
-        detail: `Event type 'organization.created' is not supported. Only user.* events are handled by this webhook.`,
-        type: 'organization.created',
+      expect(organizationSettingsService.create).toHaveBeenCalled();
+      expect(brandsService.create).toHaveBeenCalled();
+    });
+
+    it('should accept organization membership events and create member projection', async () => {
+      const event = asWebhookEvent({
+        data: {
+          id: 'orgmem_123456',
+          organization: {
+            id: 'org_123456',
+            name: 'Acme Inc',
+            slug: 'acme-inc',
+          },
+          public_user_data: {
+            first_name: 'John',
+            last_name: 'Doe',
+            user_id: 'user_123456',
+          },
+          role: 'org:admin',
+        },
+        type: 'organizationMembership.created',
+      });
+      const url = 'webhook/clerk';
+
+      (usersService.findOne as vi.Mock).mockResolvedValue(mockUser);
+      (organizationsService.findOne as vi.Mock).mockResolvedValue(
+        mockOrganization,
+      );
+      (membersService.findOne as vi.Mock).mockResolvedValue(null);
+      (membersService.create as vi.Mock).mockResolvedValue({
+        _id: 'member_123',
+        clerkMembershipId: 'orgmem_123456',
+        organization: mockOrganization._id,
+        user: mockUser._id,
+      });
+
+      await service.handleWebhookEvent(event, url);
+
+      expect(membersService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          clerkMembershipId: 'orgmem_123456',
+          isActive: true,
+          organizationId: mockOrganization._id,
+          roleId: 'role-id',
+          userId: mockUser._id,
+        }),
+      );
+      expect(activitiesService.create).toHaveBeenCalledWith({
+        data: {
+          clerkMembershipId: 'orgmem_123456',
+          clerkOrganizationId: 'org_123456',
+          eventType: 'organizationMembership.created',
+          role: 'org:admin',
+        },
+        key: 'organizationMembership.created',
+        organizationId: mockOrganization._id,
+        source: 'clerk',
+        userId: mockUser._id,
+      });
+    });
+
+    it('should soft-delete member projection on organization membership deletion', async () => {
+      const event = asWebhookEvent({
+        data: {
+          id: 'orgmem_123456',
+        },
+        type: 'organizationMembership.deleted',
+      });
+      const url = 'webhook/clerk';
+
+      (membersService.findOne as vi.Mock).mockResolvedValue({
+        _id: 'member_123',
+        clerkMembershipId: 'orgmem_123456',
+        organization: mockOrganization._id,
+        user: mockUser._id,
+      });
+      (membersService.patch as vi.Mock).mockResolvedValue({});
+
+      await service.handleWebhookEvent(event, url);
+
+      expect(membersService.patch).toHaveBeenCalledWith('member_123', {
+        isActive: false,
+        isDeleted: true,
       });
     });
 

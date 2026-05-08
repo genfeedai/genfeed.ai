@@ -219,8 +219,7 @@ describe('useWorkflowBuilder', () => {
     ).toBe(true);
   });
 
-  it.skip('saves and validates workflows', async () => {
-    // Skipped: Mock notification service not being called correctly
+  it('saves and validates workflows', async () => {
     mockFetch
       .mockResolvedValueOnce({
         json: async () => ({

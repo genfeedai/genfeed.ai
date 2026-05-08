@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import type { ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { EmptyState, LoadingScreen } from '@/components/ScreenStates';
+import { colors } from '@/constants';
 import { useIngredients } from '@/hooks/use-ingredients';
 import type { Ingredient } from '@/services/api/ingredients.service';
 import { formatRelativeDateVerbose } from '@/utils/format-date';
@@ -177,19 +178,19 @@ export default function Content() {
 const styles = StyleSheet.create({
   articleBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: '#38bdf8',
+    backgroundColor: colors.agent,
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
   articleBadgeText: {
-    color: '#0f172a',
+    color: colors.bgSecondary,
     fontSize: 12,
     fontWeight: '600',
     textTransform: 'uppercase',
   },
   articleCard: {
-    backgroundColor: '#1e293b',
+    backgroundColor: colors.bgTertiary,
     borderRadius: 16,
     gap: 12,
     padding: 20,
@@ -198,7 +199,7 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   card: {
-    backgroundColor: '#1e293b',
+    backgroundColor: colors.bgTertiary,
     borderRadius: 16,
     flexDirection: 'row',
     gap: 16,
@@ -209,24 +210,24 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   cardDescription: {
-    color: '#cbd5f5',
+    color: colors.textPrimary,
     fontSize: 14,
     lineHeight: 20,
   },
   cardMeta: {
-    color: '#94a3b8',
+    color: colors.textMuted,
     fontSize: 13,
   },
   cardPressed: {
     opacity: 0.8,
   },
   cardTitle: {
-    color: 'white',
+    color: colors.white,
     fontSize: 17,
     fontWeight: '600',
   },
   container: {
-    backgroundColor: '#0f172a',
+    backgroundColor: colors.bgSecondary,
     flex: 1,
   },
   contentContainer: {
@@ -235,30 +236,30 @@ const styles = StyleSheet.create({
     paddingBottom: 48,
   },
   hero: {
-    backgroundColor: '#1e293b',
+    backgroundColor: colors.bgTertiary,
     borderRadius: 16,
     gap: 12,
     padding: 24,
   },
   heroKicker: {
-    color: '#38bdf8',
+    color: colors.agent,
     fontSize: 14,
     letterSpacing: 1,
     textTransform: 'uppercase',
   },
   heroSubtitle: {
-    color: '#cbd5f5',
+    color: colors.textPrimary,
     fontSize: 15,
     lineHeight: 22,
   },
   heroTitle: {
-    color: 'white',
+    color: colors.white,
     fontSize: 24,
     fontWeight: '600',
   },
   placeholder: {
     alignItems: 'center',
-    backgroundColor: '#1e293b',
+    backgroundColor: colors.bgTertiary,
     justifyContent: 'center',
   },
   section: {
@@ -270,7 +271,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   sectionLabel: {
-    color: 'white',
+    color: colors.white,
     fontSize: 18,
     fontWeight: '600',
   },

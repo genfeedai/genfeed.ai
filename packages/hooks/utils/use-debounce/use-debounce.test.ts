@@ -1,3 +1,4 @@
+import { logger } from '@genfeedai/services/core/logger.service';
 import {
   useDebounce,
   useDebouncedAPI,
@@ -5,6 +6,12 @@ import {
 } from '@hooks/utils/use-debounce/use-debounce';
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('@genfeedai/services/core/logger.service', () => ({
+  logger: {
+    error: vi.fn(),
+  },
+}));
 
 describe('useDebounce', () => {
   it('returns initial value immediately', () => {
@@ -179,9 +186,9 @@ describe('useDebouncedAPI', () => {
     expect(apiCall).toHaveBeenCalledTimes(2);
   });
 
-  // Skip: Causes unhandled rejection in test runner
-  it.skip('handles API call errors', async () => {
-    const apiCall = vi.fn().mockRejectedValue(new Error('API Error'));
+  it('handles API call errors', async () => {
+    const error = new Error('API Error');
+    const apiCall = vi.fn().mockRejectedValue(error);
     const { result } = renderHook(() => useDebouncedAPI(apiCall, 100));
 
     act(() => {
@@ -193,6 +200,10 @@ describe('useDebouncedAPI', () => {
     });
 
     expect(result.current.isLoading).toBe(false);
+    expect(logger.error).toHaveBeenCalledWith(
+      'useDebouncedAPI call failed',
+      error,
+    );
   });
 
   it('ignores AbortError', async () => {

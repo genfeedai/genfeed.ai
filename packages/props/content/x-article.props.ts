@@ -10,6 +10,8 @@ export interface XArticleTypeSelectorProps {
 }
 
 export interface XArticleGenerateFormProps {
+  credentialId?: string;
+  initialPrompt?: string;
   onGenerate: (data: GenerateArticlesRequest) => void;
   isGenerating: boolean;
 }

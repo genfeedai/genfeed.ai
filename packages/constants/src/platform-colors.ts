@@ -48,7 +48,7 @@ export const PLATFORM_COLORS = {
     rgb: '99, 100, 255',
   },
   medium: {
-    base: '#00ab6c',
+    base: '#00AB6C',
     hover: '#00c77f',
     name: 'Medium',
     rgb: '0, 171, 108',

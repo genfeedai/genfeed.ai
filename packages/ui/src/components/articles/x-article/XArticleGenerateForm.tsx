@@ -21,10 +21,12 @@ const TONE_OPTIONS = [
 ];
 
 export default function XArticleGenerateForm({
+  credentialId,
+  initialPrompt,
   onGenerate,
   isGenerating,
 }: XArticleGenerateFormProps) {
-  const [prompt, setPrompt] = useState('');
+  const [prompt, setPrompt] = useState(initialPrompt ?? '');
   const [tone, setTone] = useState('authoritative');
   const [targetWordCount, setTargetWordCount] = useState(5000);
   const [keywords, setKeywords] = useState('');
@@ -41,6 +43,7 @@ export default function XArticleGenerateForm({
       .filter(Boolean);
 
     onGenerate({
+      credential: credentialId || undefined,
       generateHeaderImage: isGenerateHeaderImage,
       keywords: keywordList.length > 0 ? keywordList : undefined,
       prompt: prompt.trim(),

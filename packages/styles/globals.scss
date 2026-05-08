@@ -60,9 +60,12 @@
   /* Radius scale — match shipcode (apps/desktop/src/renderer/styles/app.scss) */
   --radius-sm: 4px;
   --radius-md: 6px;
-  --radius-lg: 10px;
-  --radius-xl: 16px;
-  --radius-2xl: 20px;
+  --radius-lg: 8px;
+  --radius-xl: 10px;
+  --radius-2xl: 12px;
+  --radius-3xl: 16px;
+  --radius-xxl: 12px;
+  --radius-xxxl: 16px;
 
   /* Semantic colors layered on shipshitdev/ui ship-* tokens */
   --color-border-strong: var(--ship-border-strong);
@@ -88,7 +91,7 @@
   --ship-accent-hover: #e4e4e7;
   --ship-success: #10b981;
   --ship-warning: #f59e0b;
-  --ship-danger: #ef4444;
+  --ship-danger: #dc2626;
   --ship-info: #3b82f6;
   --ship-agent: #38bdf8;
   --ship-done: #a855f7;

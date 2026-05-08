@@ -37,7 +37,7 @@ export default function XArticleAssetsBar({
         <div className="ml-auto flex items-center gap-2">
           {/* Copy Full Article */}
           <Button
-            label="Copy Full Article"
+            label="Copy for X Article"
             variant={ButtonVariant.SECONDARY}
             size={ButtonSize.SM}
             icon={<HiClipboardDocument className="h-4 w-4" />}
