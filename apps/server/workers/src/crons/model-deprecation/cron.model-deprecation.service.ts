@@ -142,6 +142,9 @@ export class CronModelDeprecationService {
     model: ModelDocument,
   ): Promise<DeprecationCandidate | null> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    if (!model.key || !model.category) {
+      return null;
+    }
 
     // 1. Check that the successor model exists and is active
     const successor = await this.modelsService.findOne({

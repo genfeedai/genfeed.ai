@@ -16,7 +16,7 @@ import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
 interface TokenRefreshService {
-  refreshToken(orgId: string, brandId: string): Promise<void>;
+  refreshToken(orgId: string, brandId: string): Promise<unknown>;
 }
 
 interface RefreshResult {
@@ -86,7 +86,7 @@ export class CronCredentialsService {
         { limit: 100, pagination: false },
       );
 
-      const expiringCredentials = result.docs;
+      const expiringCredentials = result.docs as CredentialDocument[];
 
       if (!expiringCredentials || expiringCredentials.length === 0) {
         this.logger.log(`${url} no credentials expiring soon`);
@@ -100,11 +100,20 @@ export class CronCredentialsService {
       // Refresh each credential
       const results = await Promise.allSettled(
         expiringCredentials.map(async (credential: CredentialDocument) => {
+          if (!credential.organization || !credential.brand) {
+            this.logger.warn(`${url} credential missing workspace scope`, {
+              credentialId: credential._id,
+            });
+            return { credentialId: credential._id, success: false };
+          }
+
           const orgId = credential.organization.toString();
           const brandId = credential.brand.toString();
 
           try {
-            const refresher = this.platformRefreshers.get(credential.platform);
+            const refresher = this.platformRefreshers.get(
+              credential.platform as CredentialPlatform,
+            );
 
             if (!refresher) {
               this.logger.warn(`${url} unknown platform for refresh`, {

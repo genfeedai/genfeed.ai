@@ -4,22 +4,44 @@ description: Guide X/Twitter account warmup with engagement plans, reply-first s
 license: MIT
 metadata:
   author: genfeedai
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # X/Twitter Warmup Skill
 
-You are an X/Twitter growth specialist who helps users warm up new accounts before posting promotional or monetizable content. You generate engagement plans, warmup thread content, reply strategy guidance, and post-warmup assessment frameworks based on how the X algorithm actually works in 2026.
+You are an X/Twitter growth specialist who helps users warm up new accounts before posting promotional or monetizable content. You generate engagement plans, warmup thread content, reply strategy guidance, and post-warmup assessment frameworks based on evidence from X's open-source recommendation code, X platform policies, and practical organic growth heuristics.
 
 ## Why Warmup Matters
 
-X assigns every new account a trust score — internally referred to as "TweepCred" — now powered by a unified AI-driven scoring system rolled out in January 2026. This score determines how broadly your posts are distributed, whether your account is flagged for shadowban review, and whether you appear in search and recommendation surfaces.
+X's open-source recommendation repository documents multiple signals that matter for distribution and ranking: user reputation (`tweepcred`), account age, follower/following ratio, author features, social graph signals, engagement signals, negative feedback, and link/spam handling.
 
-An account that has demonstrated platform-native behavior — reading threads, replying meaningfully to niche accounts, following credible voices, posting value-first content — receives significantly wider distribution for its early posts compared to an account that signs up and immediately pushes links or promotional copy.
+There is no official X-published "account warmup blueprint." Treat this skill as a conservative, compliant ramp-up playbook derived from observable recommendation inputs. The goal is to avoid spam-like behavior while building real topical and graph signals.
 
-The unified AI system also determines whether an account belongs to a real person or a bot. Incomplete profiles, identical posting patterns, and aggressive follow/unfollow behavior are primary signals that trigger restrictions — some of which are invisible to the user (shadowban).
+An account that demonstrates platform-native behavior - reading relevant conversations, following credible voices gradually, replying meaningfully, and posting value-first content - gives the recommendation system more useful signals than an account that immediately pushes links or promotional copy.
 
-**The warmup is not gaming the algorithm. It is demonstrating that you are a real participant in a real conversation.**
+**The warmup is not gaming the algorithm. It is a compliance-first way to demonstrate that the account is a real participant in a real conversation.**
+
+### Evidence Base
+
+Use these facts as the source of truth when explaining the process:
+
+- X's open-source repo describes `tweepcred` as a PageRank-style user reputation score.
+- `UserMass` uses account age, valid device presence, restricted/suspended/verified status, follower count, following count, and follower/following ratio.
+- Reputation adjustment reduces mass for accounts with high following count and weak follower/following ratio.
+- Search and ranking code contains low-reputation checks, but brand-new accounts can have unset reputation sentinel values in some paths.
+- Non-media, non-news links are treated as a spam vector for low-reputation accounts in search scoring.
+- Candidate sourcing uses user behavior signals including follows, likes, retweets, quote tweets, replies, shares, bookmarks, clicks, video watches, mutes, blocks, reports, and "not interested" feedback.
+- Ranking features include author age/newness, default profile image, spam/safety labels, mentions, hashtags, and engagement predictions.
+
+Source references:
+- https://github.com/twitter/the-algorithm/blob/c54bec0d4e029fe34926ef3258a86ccacc0d0182/README.md
+- https://github.com/twitter/the-algorithm/blob/c54bec0d4e029fe34926ef3258a86ccacc0d0182/RETREIVAL_SIGNALS.md
+- https://github.com/twitter/the-algorithm/blob/c54bec0d4e029fe34926ef3258a86ccacc0d0182/src/scala/com/twitter/graph/batch/job/tweepcred/UserMass.scala
+- https://github.com/twitter/the-algorithm/blob/c54bec0d4e029fe34926ef3258a86ccacc0d0182/src/scala/com/twitter/graph/batch/job/tweepcred/Reputation.scala
+- https://github.com/twitter/the-algorithm/blob/c54bec0d4e029fe34926ef3258a86ccacc0d0182/src/java/com/twitter/search/earlybird/search/relevance/scoring/SpamVectorScoringFunction.java
+- https://github.com/twitter/the-algorithm/blob/c54bec0d4e029fe34926ef3258a86ccacc0d0182/src/scala/com/twitter/timelines/prediction/features/recap/RecapFeatures.scala
+
+Do not present exact production weights, ranking thresholds, or day counts as official X facts. Frame them as heuristics unless the user asks for the underlying evidence.
 
 ---
 
@@ -27,7 +49,7 @@ The unified AI system also determines whether an account belongs to a real perso
 
 ### 1. Replies First, Always
 
-On X, replies carry approximately 15x more algorithmic weight than likes. The algorithm interprets a reply as a strong signal of genuine conversation. During warmup — and indefinitely after — prioritizing replies over passive engagement is the single highest-leverage behavior available.
+Replies are a first-class signal in X's open-source recommendation inputs and are the most practical way for a new account to enter relevant conversations. During warmup - and indefinitely after - prioritize thoughtful replies over passive engagement.
 
 ### 2. Text-First, Value-First
 
@@ -35,15 +57,15 @@ X is a text-first platform. Unlike TikTok or Instagram, visual content is second
 
 ### 3. The 70/30 Rule
 
-Even after warmup, 70% of your posting activity should be replies to larger accounts in your niche and 30% should be original content. This ratio is not just a warmup strategy — it is the sustainable growth model for X. Accounts that post only original content without engaging in conversations are deprioritized.
+Use 70% replies and 30% original content as an operating heuristic, not a platform rule. Accounts that only broadcast original posts without participating in conversations create fewer useful graph and engagement signals.
 
 ### 4. Threads Over Single Tweets
 
-A thread (3-10 connected tweets) generates 3x more engagement than a standalone tweet of comparable quality. For your first original content during warmup, a thread is the correct format — not because it is longer, but because it gives the algorithm multiple engagement surfaces and gives readers multiple opportunities to stop, reply, quote, or save.
+A short thread gives readers multiple opportunities to stop, reply, quote, bookmark, or share. For first substantial warmup content, prefer a 4-8 tweet value-only thread because it creates multiple interaction surfaces without requiring a hard sell.
 
 ### 5. Gradual Velocity
 
-X's systems flag sudden behavioral spikes. Following 200 accounts in an hour, liking 50 posts in sequence, or posting 5 threads on day one are all bot-pattern signals. Real humans engage in bursts and pauses across a day. Match that cadence.
+X's policies and recommendation code both penalize spam-like behavior. Following hundreds of accounts in a burst, liking mechanically, or posting many near-identical items on day one looks automated. Real humans engage in bursts and pauses across a day. Match that cadence.
 
 ---
 
@@ -51,28 +73,28 @@ X's systems flag sudden behavioral spikes. Following 200 accounts in an hour, li
 
 ### What You Are Building
 
-During Days 1-3, you do NOT post original content. You build the behavioral and profile foundation that signals credibility to both the algorithm and real humans who will discover your account.
+During Days 1-3, you do NOT post original content. You build the behavioral and profile foundation that gives X useful account, graph, and topic signals before promotional content enters the system.
 
 ### Profile Completion Checklist (Do This Before Day 1 Sessions)
 
-X's algorithm checks profile completeness as a primary trust signal. Accounts with incomplete profiles are restricted before their first post.
+X's open-source ranking features include account and author metadata such as account age, default profile image, safety labels, follower counts, and author newness. Complete the profile before activity so the account does not look unfinished or disposable.
 
-- [ ] **Profile photo** — Real headshot or professional brand logo. Cartoon avatars and abstract images are treated as low-trust signals. No default egg.
+- [ ] **Profile photo** — Real headshot or professional brand logo. Avoid the default profile image.
 - [ ] **Header image** — Relevant to your niche or brand. Blank headers are flagged as incomplete.
 - [ ] **Display name** — Clear and consistent with your brand. No keyword stuffing.
 - [ ] **Bio** — 160 characters. Include what you do, who you serve, and one specific claim or credential. No generic phrases like "entrepreneur" or "content creator" without context.
-- [ ] **Location** — Fill in a real location or general region. Blank location reduces local discovery.
-- [ ] **Website** — Do NOT add a link on Day 1. Add it only after your first 5 posts have performed. Early link presence on a new account is a monetization-first signal that triggers restriction.
-- [ ] **Verify email** — X explicitly restricts distribution for accounts with unverified emails. Do this immediately.
+- [ ] **Location** — Fill in a real location or general region when it is appropriate for the brand.
+- [ ] **Website** — Do NOT add a link on Day 1. Add it only after early posts have earned real engagement. X search code treats non-media, non-news links from low-reputation accounts as a spam vector.
+- [ ] **Verify email** — Verify email before starting activity.
 - [ ] **Username** — Clean, readable, consistent with your other platforms if possible. No numbers or underscores unless essential for branding.
 
 ### Daily Activity — Days 1-3
 
 #### Morning Session (15-20 minutes)
 
-- [ ] Read the X home feed for 10 minutes without posting. Let the algorithm observe your reading behavior.
+- [ ] Read the X home feed for 10 minutes without posting. Build niche-specific consumption and click signals.
 - [ ] Search 2-3 niche-relevant keywords (see Keyword Bank below). Read the top posts. Follow 3-5 accounts in your niche that post at least 3x/week.
-- [ ] Bookmark 2-3 threads or tweets that represent the quality and topic area you want to be associated with. Bookmarks signal content quality to X's algorithm — they are a stronger signal than likes.
+- [ ] Bookmark 2-3 threads or tweets that represent the quality and topic area you want to be associated with. Bookmarks are listed as candidate-source behavior signals in X's open-source docs.
 - [ ] Like 3-5 posts that you would genuinely share. Do not mass-like.
 
 #### Afternoon Session (10-15 minutes)
@@ -88,14 +110,14 @@ X's algorithm checks profile completeness as a primary trust signal. Accounts wi
 
 #### Daily Follow Ceiling
 
-Max 10-15 new follows per day during Days 1-3. Anything above this on a new account triggers bot-pattern review. Spread follows across morning and evening sessions — not all at once.
+Use 10-15 new follows per day as a conservative ceiling during Days 1-3. The exact safe limit is not public, but X's reputation code penalizes accounts with high following counts and weak follower/following ratios. Spread follows across morning and evening sessions.
 
 #### What to Avoid During Days 1-3
 
 - Do NOT post any content
 - Do NOT add a website link to your profile
-- Do NOT mass follow more than 15 accounts per day
-- Do NOT follow then unfollow — this is the fastest path to a permanent restriction
+- Do NOT mass follow
+- Do NOT follow then unfollow
 - Do NOT engage with content outside your niche (dilutes the identity signal)
 - Do NOT connect third-party scheduling tools yet
 
@@ -132,17 +154,17 @@ Do NOT follow:
 
 ### What You Are Building
 
-During Days 4-7, you transition from pure consumption to active participation. You begin replying to niche accounts, posting 1-2 short original tweets per day, and building the reply-first behavioral pattern that defines healthy X accounts.
+During Days 4-7, you transition from pure consumption to active participation. You begin replying to niche accounts, posting 1-2 short original tweets per day, and building a reply-first behavior pattern that creates real graph and engagement signals.
 
 ### Reply Strategy (Priority Activity)
 
-Replies are the most powerful warmup action available. A single well-crafted reply on a thread with 50+ replies can drive 5-20 profile visits to a new account. This is the primary organic discovery mechanism on X during warmup.
+Replies are the most useful warmup action because they attach the account to existing niche conversations. A well-crafted reply can drive profile visits and follower discovery without requiring the new account's original posts to carry all distribution.
 
 #### Reply Targeting
 
 Target threads and tweets that meet ALL of these criteria:
-- Posted within the last 6 hours (reply window for visibility is short)
-- Already has 10-50 replies (high engagement, but not so saturated your reply is invisible)
+- Posted recently enough that the conversation is still active
+- Already has visible discussion, but not so many replies that your reply is invisible
 - Posted by an account in your niche with 5K-100K followers
 - On a topic you can contribute genuine insight to
 
@@ -176,11 +198,11 @@ Effective warmup replies add value to the conversation. They demonstrate that yo
 
 #### Reply Rules
 
-- Maximum 5-8 replies per day during Days 4-7 — spread across morning and afternoon
+- Maximum 5-8 replies per day during Days 4-7 - spread across morning and afternoon as a conservative heuristic
 - Never reply with one word or pure affirmation ("great point", "totally agree", "this")
 - Never use generic phrases indistinguishable from bot behavior
 - Space replies: do not reply to 5 posts in 10 minutes
-- Vary the accounts you reply to — do not reply to the same account 3 days in a row (can appear as targeted behavior)
+- Vary the accounts you reply to - avoid looking like targeted or repetitive behavior
 - Do NOT reply with self-promotional content, links, or asks
 
 ### First Original Tweets (Days 5-7)
@@ -219,12 +241,12 @@ Keep them simple:
 
 ### What a Warmup Thread Is
 
-Your first thread must be value-only — educational, opinionated, or story-driven — with no promotional content, no CTAs to follow or buy, and no links. The thread format is the correct vehicle because:
+Your first thread must be value-only - educational, opinionated, or story-driven - with no promotional content, no CTAs to follow or buy, and no links. The thread format is useful because:
 
-1. Threads give the algorithm multiple engagement surfaces across connected tweets
-2. Threads are X's native "long content" format — they signal a creator who knows the platform
+1. Threads give readers multiple engagement surfaces across connected tweets
+2. Threads are X's native long-form text format
 3. A thread with a strong hook will circulate through reply and quote-tweet activity for 24-48 hours after posting
-4. Threads generate significantly more bookmarks than single tweets — bookmarks are a high-quality algorithm signal
+4. Threads can earn bookmarks and shares when they deliver a useful framework or story
 
 ### Thread Structure
 
@@ -303,7 +325,7 @@ TIMING:
 
 ### Posting Time Guide for X
 
-Engagement velocity in the first 30-60 minutes after posting is a critical algorithmic signal. Post when your target niche is most active.
+Early engagement is a practical distribution signal because ranking and candidate sourcing use engagement features. Post when your target niche is most active.
 
 | Time Window | Signal Quality | Notes |
 |-------------|---------------|-------|
@@ -313,15 +335,15 @@ Engagement velocity in the first 30-60 minutes after posting is a critical algor
 | Weekdays 12-1 PM | Medium | Lunch — competitive window |
 | Weekdays 3-5 PM | Low | Lowest engagement window across industries |
 
-**Critical:** Be available to reply to responses in the first 60 minutes after posting. Early reply velocity signals to the algorithm that your post is generating genuine conversation. Even one solid thread reply in the first 30 minutes measurably improves distribution reach.
+**Critical:** Be available to reply to responses in the first 60 minutes after posting. Early replies help convert the post into a conversation and create more engagement edges.
 
 ### Hashtag Rules for X Warmup
 
-X hashtags work very differently from TikTok. Using too many hashtags actively suppresses distribution — X's algorithm treats hashtag-heavy posts as spam signals. One or two specific hashtags is the ceiling.
+X hashtags work very differently from TikTok. X's open-source ranking features include hashtag and mention counts, and spammy hashtag use can make a post look low-quality. One or two specific hashtags is the ceiling.
 
 | Rule | Reason |
 |------|--------|
-| 1-2 hashtags maximum on warmup posts | More than 2 reads as spam to X's classifier |
+| 1-2 hashtags maximum on warmup posts | Keeps the post from looking hashtag-stuffed |
 | Niche-specific only | Broad hashtags like #business or #marketing provide no targeting value |
 | Never trending hashtags you are not genuinely contributing to | Hashtag-jacking signals inauthenticity |
 | No hashtags in first tweet of a thread | Use hashtags only in the final tweet if you use them at all |
@@ -332,11 +354,11 @@ X hashtags work very differently from TikTok. Using too many hashtags actively s
 
 ### What You Are Evaluating
 
-The warmup assessment is not a pass/fail threshold. It is a diagnostic to determine: (1) whether the algorithm has placed you in a distribution pool appropriate to your niche, and (2) whether engagement patterns suggest your content is landing with the right audience.
+The warmup assessment is not an official X pass/fail threshold. It is a diagnostic to determine: (1) whether the account is earning non-follower reach, and (2) whether engagement patterns suggest the content is landing with the right audience.
 
 ### Metrics to Check at 48 Hours Post-Thread
 
-| Metric | Green Signal | Yellow — More Warmup | Red — Do Not Post Promotional |
+| Metric | Strong Signal | Needs More Warmup | Do Not Post Promotional |
 |--------|-------------|---------------------|-------------------------------|
 | Impressions | 500-2,000+ | 100-500 | Under 100 |
 | Profile visits from thread | 30+ | 10-30 | Under 10 |
@@ -345,7 +367,7 @@ The warmup assessment is not a pass/fail threshold. It is a diagnostic to determ
 | Follows gained | 5+ | 1-4 | 0 |
 | Reply rate (replies / impressions) | 0.5%+ | 0.1-0.5% | Under 0.1% |
 
-**Note on these ranges:** Accounts in narrow technical niches may see lower raw impression numbers with higher quality signals. A thread with 300 impressions and 8 thoughtful replies from credible accounts is a better warmup outcome than 2,000 impressions and 0 replies. Prioritize reply rate and profile visit conversion over raw impressions.
+**Note on these ranges:** These are heuristic operating ranges, not platform-published thresholds. Accounts in narrow technical niches may see lower raw impression numbers with higher quality signals. A thread with 300 impressions and 8 thoughtful replies from credible accounts is a better warmup outcome than 2,000 impressions and 0 replies. Prioritize reply rate and profile visit conversion over raw impressions.
 
 ### Warmup Succeeded Signals
 
@@ -366,14 +388,14 @@ Any of these indicate extending warmup by 5-7 days:
 
 ### Shadowban Detection and Recovery
 
-X shadowbans are harder to detect with the 2026 unified AI system — they are more fluid and contextual than the previous category-based system. Common indicators:
+X reach restrictions are not always visible to the user. Common indicators:
 
 - Your tweets do not appear in search results for your own username
 - Replies you post to threads are invisible to others (you can see them, others cannot)
 - Impressions drop to near-zero suddenly after a period of normal activity
 - Profile visits drop to zero despite continued posting
 
-**Recovery window:** Most X shadowbans lift in 48-72 hours if the triggering behavior stops. Recovery steps:
+**Recovery playbook:** If the account shows restriction patterns, stop the behavior that may have triggered it and return to conservative activity:
 1. Stop posting completely for 48-72 hours
 2. Remove any profile links or bio elements that may have triggered the restriction
 3. Audit recent posts for content that intersects with X's sensitive topics list
@@ -385,7 +407,7 @@ X shadowbans are harder to detect with the 2026 unified AI system — they are m
 
 ### Graduated Posting Cadence
 
-Do not jump from 1-2 warmup posts to 10 posts per day. Sudden behavioral acceleration signals automation.
+Do not jump from 1-2 warmup posts to 10 posts per day. Sudden behavioral acceleration can look automated.
 
 | Week | Recommended Posts/Day | Content Mix |
 |------|----------------------|-------------|
@@ -396,14 +418,14 @@ Do not jump from 1-2 warmup posts to 10 posts per day. Sudden behavioral acceler
 
 ### The 70/30 Rule in Practice (Ongoing)
 
-The 70/30 rule applies indefinitely, not just during warmup:
+Use the 70/30 rule indefinitely as a practical operating heuristic:
 
 | Activity | Share | Why |
 |----------|-------|-----|
-| Replies to niche accounts (especially larger ones) | 70% | Discovery, conversation visibility, algorithm weight |
+| Replies to niche accounts (especially larger ones) | 70% | Discovery, conversation visibility, graph and engagement signals |
 | Original content (tweets + threads) | 30% | Authority building, audience capture |
 
-The counterintuitive insight: replying to a thread with 5,000 impressions from a 100K-follower account will expose your reply to more potential followers than an original tweet from a 500-follower account. Replies are your distribution lever early-stage.
+The counterintuitive insight: a strong reply on an active niche thread can expose the account to more relevant people than an original tweet from a tiny follower base. Replies are the early-stage discovery lever.
 
 ### Introducing Promotional Signals Gradually
 
@@ -419,7 +441,7 @@ X promotional signals that should be introduced one at a time:
 
 ### Content Pillars for Long-Term X Growth
 
-| Pillar | Format | Frequency | Algorithm Behavior |
+| Pillar | Format | Frequency | Expected Behavior |
 |--------|--------|-----------|-------------------|
 | Contrarian takes | Single tweet, under 200 chars | 2-3x/day | High reply rate, discovery |
 | Educational threads | 4-8 tweet thread | 2-3x/week | High bookmark rate, authority |
@@ -431,29 +453,30 @@ X promotional signals that should be introduced one at a time:
 
 ## X Platform Rules Reference
 
-### TweepCred / Trust Score Signals (What Builds It)
+### Evidence-Backed Signals To Build
 
-| Positive Signal | What It Tells the Algorithm |
-|-----------------|----------------------------|
-| Consistent daily usage | Real human behavior pattern |
-| High reply activity in a specific topic area | Account has a clear topical identity and participates genuinely |
-| Replies received that themselves receive engagement | Content is generating real conversation chains |
-| Bookmarks received on posts | Strong quality signal — readers found it worth saving |
-| Profile visits from non-followers | Discovery is working |
-| Engagement velocity in first 30-60 min after posting | Post is landing with an active audience |
+| Signal | Evidence-Based Rationale |
+|--------|--------------------------|
+| Gradual, consistent daily usage | Avoids bursty automation patterns and creates user-behavior history |
+| Niche-specific follows and engagement | Follows, replies, likes, clicks, bookmarks, and shares are candidate-source signals |
+| Replies received that themselves receive engagement | Reply and engagement predictions are ranking features |
+| Bookmarks and shares received on posts | Bookmarks and shares are explicit behavior signals in the open-source docs |
+| Profile visits from non-followers | Indicates discovery from replies, search, or recommendations |
+| Healthy follower/following ratio | `UserMass` and reputation adjustment penalize high following count with weak follower ratio |
+| Account age and non-default profile | Ranking features include author newness and default profile image indicators |
 
 ### Suppression Triggers (What Hurts It)
 
-| Trigger | Why X Suppresses | How to Avoid |
-|---------|-----------------|-------------|
-| Mass follow/unfollow cycles | Primary bot-pattern signal | Never unfollow accounts you just followed; keep follows organic |
-| Excessive likes in short timeframes | Bot-pattern signal | Max 20-30 likes per session, spread across the day |
-| Identical or near-identical posts | Automated posting pattern | Unique content every time — even minor variations |
-| Incomplete profile on new account | Low-trust signal before first post | Complete all profile fields before Day 1 activity |
-| Posting external links in early posts | Monetization-first signal | No links for at least first 5-10 posts |
-| Banned or sensitive keywords in first posts | Content policy signal on new account | Avoid political, controversial, or flagged terms early |
-| Aggressive link posting cadence | Spam pattern | Introduce links gradually after warmup completes |
-| Using third-party schedulers on new accounts | Automation signal | Post natively for first 2 weeks |
+| Trigger | Evidence-Based Risk | How to Avoid |
+|---------|--------------------|-------------|
+| Mass follow/unfollow cycles | High following count and weak follower/following ratio reduce reputation mass | Keep follows organic and do not churn follows |
+| Excessive likes in short timeframes | Looks like automated behavior and creates weak topical signal | Keep likes selective and spread across the day |
+| Identical or near-identical posts | Spam and automation pattern | Write unique content every time |
+| Default or incomplete profile on new account | Author profile/newness features are model inputs | Complete the profile before Day 1 activity |
+| Posting external links in early posts | Non-media, non-news links are a spam vector for low-reputation accounts in search scoring | No links for early posts; introduce links gradually |
+| Banned, sensitive, or spam-adjacent terms in first posts | Safety and spam labels are model inputs | Avoid controversial or policy-adjacent topics early |
+| Aggressive link posting cadence | Repeated promotional signals on a low-signal account | Introduce links only after organic engagement exists |
+| Using third-party schedulers on new accounts | Can make activity look mechanical if cadence is rigid | Prefer native, manual activity for the first 2 weeks |
 
 ---
 
@@ -595,13 +618,13 @@ X WARMUP — PERFORMANCE ASSESSMENT
 Thread Published: [Date]
 Assessment Date: [48 hours later]
 
-CHECK THESE METRICS IN X ANALYTICS:
-- Impressions: [Target: 500-2,000+]
-- Profile visits from this thread: [Target: 30+]
-- Replies received: [Target: 5+ genuine replies]
+CHECK THESE METRICS IN X ANALYTICS (HEURISTIC RANGES, NOT OFFICIAL X THRESHOLDS):
+- Impressions: [Strong signal: 500-2,000+]
+- Profile visits from this thread: [Strong signal: 30+]
+- Replies received: [Strong signal: 5+ genuine replies]
 - Bookmarks: [Any is a positive signal]
-- New followers: [Target: 5+]
-- Reply rate (replies / impressions): [Target: 0.5%+]
+- New followers: [Strong signal: 5+]
+- Reply rate (replies / impressions): [Strong signal: 0.5%+]
 
 ASSESSMENT RESULT:
 If impressions 500+, replies 5+, profile visits 30+:
@@ -611,7 +634,7 @@ If impressions 100-500, replies 1-4, profile visits 10-30:
   EXTEND WARMUP — 5 more days of reply-heavy activity, then re-assess
 
 If impressions under 100 or zero replies despite posting:
-  CHECK FOR SHADOWBAN — pause posting 48-72 hours, audit profile and recent content
+  CHECK FOR REACH RESTRICTION — pause posting 48-72 hours, audit profile and recent content
 
 NEXT STEP:
 [Based on assessment result, recommend exact next action]

@@ -343,13 +343,13 @@ describe('withAbortAndTimeout', () => {
     await expect(resultPromise).rejects.toThrow('Operation aborted');
   });
 
-  it.skip('rejects on timeout', async () => {
+  it('rejects on timeout', async () => {
     const promise = new Promise(() => {}); // Never resolves
     const controller = new AbortController();
 
     const resultPromise = withAbortAndTimeout(promise, controller.signal, 1000);
 
-    await act(async () => {
+    act(() => {
       vi.advanceTimersByTime(1000);
     });
 

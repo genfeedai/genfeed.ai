@@ -1,7 +1,7 @@
 {
   "name": "x-warmup",
-  "version": "1.0.0",
-  "description": "Guide X/Twitter account warmup with engagement plans, reply strategies, warmup thread content, and post-warmup assessment frameworks for new accounts before posting promotional content",
+  "version": "1.1.0",
+  "description": "Guide evidence-backed X/Twitter account warmup with engagement plans, reply strategies, warmup thread content, and post-warmup assessment frameworks for new accounts before posting promotional content",
   "author": "genfeedai",
   "license": "MIT",
   "triggers": [

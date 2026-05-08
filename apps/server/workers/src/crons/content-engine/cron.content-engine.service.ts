@@ -109,21 +109,29 @@ export class CronContentEngineService {
 
   private async processBrand(brand: {
     _id: string;
-    organization: { toString: () => string };
-    user?: { toString: () => string };
-    agentConfig?: {
-      strategy?: {
-        contentTypes?: string[];
-        platforms?: string[];
-        frequency?: string;
-        goals?: string[];
-      };
-    };
+    organization?: unknown;
+    organizationId?: string | null;
+    user?: unknown;
+    userId?: string | null;
+    agentConfig?: unknown;
   }): Promise<void> {
     const brandId = String(brand._id);
-    const organizationId = brand.organization.toString();
-    const userId = brand.user?.toString() ?? organizationId;
-    const strategy = brand.agentConfig?.strategy;
+    const organizationId = String(brand.organization ?? brand.organizationId);
+    const userId = brand.user
+      ? String(brand.user)
+      : (brand.userId ?? organizationId);
+    const strategy = (
+      brand.agentConfig as
+        | {
+            strategy?: {
+              contentTypes?: string[];
+              frequency?: string;
+              goals?: string[];
+              platforms?: string[];
+            };
+          }
+        | undefined
+    )?.strategy;
 
     if (!strategy?.contentTypes?.length) {
       return;

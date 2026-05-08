@@ -19,7 +19,7 @@ import { ConfigService } from '@workers/config/config.service';
  */
 interface IngredientWithMetadataDoc {
   _id: string;
-  category: IngredientCategory;
+  category: string;
   metadata:
     | string
     | {
@@ -143,14 +143,14 @@ export class CronIngredientsService {
           OR: [
             {
               id: {
-                in: stuckIngredients.docs.map((ing: unknown) =>
+                in: stuckIngredients.docs.map((ing: { _id: unknown }) =>
                   String(ing._id),
                 ),
               },
             },
             {
               mongoId: {
-                in: stuckIngredients.docs.map((ing: unknown) =>
+                in: stuckIngredients.docs.map((ing: { _id: unknown }) =>
                   String(ing._id),
                 ),
               },
@@ -180,7 +180,7 @@ export class CronIngredientsService {
         this.logger.debug(
           `Marked ingredients as FAILED: ${stuckIngredients.docs
             .slice(0, 10)
-            .map((ing: unknown) => ing._id.toString())
+            .map((ing: { _id: unknown }) => String(ing._id))
             .join(', ')}${stuckCount > 10 ? '...' : ''}`,
           context,
         );
@@ -301,12 +301,16 @@ export class CronIngredientsService {
         OR: [
           {
             id: {
-              in: stuckIngredients.docs.map((ing: unknown) => String(ing._id)),
+              in: stuckIngredients.docs.map((ing: { _id: unknown }) =>
+                String(ing._id),
+              ),
             },
           },
           {
             mongoId: {
-              in: stuckIngredients.docs.map((ing: unknown) => String(ing._id)),
+              in: stuckIngredients.docs.map((ing: { _id: unknown }) =>
+                String(ing._id),
+              ),
             },
           },
         ],
@@ -374,26 +378,26 @@ export class CronIngredientsService {
         },
       );
 
-      ingredientsNeedingRefresh.docs = ingredientsNeedingRefresh.docs.filter(
-        (ingredient: IngredientWithMetadataDoc) => {
-          const metadata =
-            typeof ingredient.metadata === 'object'
-              ? ingredient.metadata
-              : undefined;
+      const docsNeedingRefresh = (
+        ingredientsNeedingRefresh.docs as unknown as IngredientWithMetadataDoc[]
+      ).filter((ingredient) => {
+        const metadata =
+          typeof ingredient.metadata === 'object'
+            ? ingredient.metadata
+            : undefined;
 
-          return (
-            !metadata ||
-            metadata.width === undefined ||
-            metadata.width === null ||
-            metadata.width <= 0 ||
-            metadata.height === undefined ||
-            metadata.height === null ||
-            metadata.height <= 0
-          );
-        },
-      );
+        return (
+          !metadata ||
+          metadata.width === undefined ||
+          metadata.width === null ||
+          metadata.width <= 0 ||
+          metadata.height === undefined ||
+          metadata.height === null ||
+          metadata.height <= 0
+        );
+      });
 
-      const foundCount = ingredientsNeedingRefresh.docs?.length || 0;
+      const foundCount = docsNeedingRefresh.length;
 
       if (foundCount === 0) {
         this.logger.debug(
@@ -415,12 +419,7 @@ export class CronIngredientsService {
       let errorCount = 0;
 
       // Process each ingredient
-      const docs =
-        (
-          ingredientsNeedingRefresh as unknown as {
-            docs?: IngredientWithMetadataDoc[];
-          }
-        ).docs || [];
+      const docs = docsNeedingRefresh;
 
       for (const ingredient of docs) {
         try {
