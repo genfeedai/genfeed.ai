@@ -1025,6 +1025,26 @@ model ApiKey {
   @@map("api_keys")
 }
 
+model DesktopAuthCode {
+  id             String    @id @default(cuid())
+  codeHash       String    @unique
+  codeChallenge  String
+  stateHash      String
+  userId         String
+  organizationId String
+  scopes         String[]  @default([])
+  userEmail      String?
+  userName       String?
+  expiresAt      DateTime
+  usedAt         DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([expiresAt])
+  @@index([userId, organizationId])
+  @@map("desktop_auth_codes")
+}
+
 model OrgIntegration {
   id               String              @id @default(cuid())
   mongoId                 String?         @unique
@@ -1364,10 +1384,25 @@ model Asset {
   parentArticleId String?
   category      AssetCategory
   externalId    String?
+  localAssetId  String?
+  cloudObjectKey String?
+  sha256        String?
+  sizeBytes     Int?
+  mimeType      String?
+  kind          String?
+  origin        String?
+  residency     String?
+  uploadPolicy  String?
+  originalFileName String?
+  displayName   String?
+  deletedAt     DateTime?
   isDeleted     Boolean       @default(false)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
+  @@index([parentOrgId, parentBrandId, updatedAt(sort: Desc)])
+  @@index([sha256, sizeBytes])
+  @@index([localAssetId])
   @@map("assets")
 }
 
@@ -3723,16 +3758,19 @@ model Analytic {
 }
 
 model DesktopThread {
-  id          String           @id
-  clerkUserId String
-  title       String           @default("New conversation")
-  status      String           @default("idle")
-  workspaceId String?
-  createdAt   DateTime
-  updatedAt   DateTime
-  messages    DesktopMessage[]
+  id             String           @id
+  userId         String?          @map("user_id")
+  organizationId String?          @map("organization_id")
+  localUserId    String?          @map("local_user_id")
+  title          String           @default("New conversation")
+  status         String           @default("idle")
+  workspaceId    String?
+  createdAt      DateTime
+  updatedAt      DateTime
+  messages       DesktopMessage[]
 
-  @@index([clerkUserId, updatedAt(sort: Desc)])
+  @@index([userId, updatedAt(sort: Desc)])
+  @@index([organizationId, updatedAt(sort: Desc)])
   @@map("desktop_threads")
 }
 

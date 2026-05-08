@@ -62,10 +62,13 @@ export const LibraryView = ({ workspaceId }: LibraryViewProps) => {
     async (paths: string[]) => {
       if (!workspaceId) return;
       try {
-        await window.genfeedDesktop.files.importAssets(workspaceId, paths);
+        const assets = await window.genfeedDesktop.files.importAssets(
+          workspaceId,
+          paths,
+        );
         await window.genfeedDesktop.notifications.notify(
           'Import Complete',
-          `${String(paths.length)} file(s) imported to workspace.`,
+          `${String(assets.length)} asset(s) imported to workspace.`,
         );
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to import files');

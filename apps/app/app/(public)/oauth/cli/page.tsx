@@ -37,7 +37,7 @@ type FlowStep =
 interface FlowState {
   step: FlowStep;
   error: string | null;
-  apiKey?: string | null;
+  credential?: string | null;
 }
 
 interface DesktopIdentity {
@@ -115,13 +115,15 @@ function formatServerError(status: number, body: string): string {
 }
 
 function getDesktopCallbackUrl(
-  key: string,
+  code: string,
+  state: string,
   user: DesktopIdentity | null,
   callbackTarget: string | null,
 ): string {
   const target = callbackTarget || DESKTOP_CALLBACK_TARGET;
   const url = new URL(target);
-  url.searchParams.set('key', key);
+  url.searchParams.set('code', code);
+  url.searchParams.set('state', state);
 
   const email = user?.primaryEmailAddress?.emailAddress;
   const name = [user?.firstName, user?.lastName].filter(Boolean).join(' ');
@@ -167,7 +169,10 @@ export default function CliAuthPage() {
 
   const portParam = searchParams.get('port');
   const isDesktopMode = searchParams.get('desktop') === '1';
+  const desktopCodeChallenge = searchParams.get('code_challenge');
+  const desktopCodeChallengeMethod = searchParams.get('code_challenge_method');
   const desktopReturnTo = searchParams.get('return_to');
+  const desktopState = searchParams.get('state');
   const hasValidDesktopReturnTarget =
     isDesktopCallbackTargetValid(desktopReturnTo);
   const port = validatePort(portParam);
@@ -193,9 +198,33 @@ export default function CliAuthPage() {
           return;
         }
 
+        if (
+          isDesktopMode &&
+          (!desktopCodeChallenge ||
+            !desktopState ||
+            desktopCodeChallengeMethod !== 'S256')
+        ) {
+          setFlowState({
+            error:
+              'Missing desktop authorization challenge. Restart sign-in from Genfeed Desktop.',
+            step: 'error',
+          });
+          return;
+        }
+
         const response = await fetch(
-          `${EnvironmentService.apiEndpoint}/auth/cli/token`,
+          isDesktopMode
+            ? `${EnvironmentService.apiEndpoint}/auth/desktop/authorize`
+            : `${EnvironmentService.apiEndpoint}/auth/cli/token`,
           {
+            body: isDesktopMode
+              ? JSON.stringify({
+                  codeChallenge: desktopCodeChallenge,
+                  codeChallengeMethod: desktopCodeChallengeMethod,
+                  returnTo: desktopReturnTo,
+                  state: desktopState,
+                })
+              : undefined,
             headers: {
               Authorization: `Bearer ${token}`,
               'Content-Type': 'application/json',
@@ -219,21 +248,30 @@ export default function CliAuthPage() {
         }
 
         const data = await response.json();
-        const key = data.key || data.apiKey || data.token;
+        const credential = isDesktopMode
+          ? data.code
+          : data.key || data.apiKey || data.token;
 
-        if (!key) {
+        if (!credential) {
           setFlowState({
-            error: 'Server did not return an API key. Please try again.',
+            error: isDesktopMode
+              ? 'Server did not return a desktop authorization code. Please try again.'
+              : 'Server did not return an API key. Please try again.',
             step: 'error',
           });
           return;
         }
 
-        setFlowState({ apiKey: key, error: null, step: 'redirecting' });
+        setFlowState({ credential, error: null, step: 'redirecting' });
 
         const callbackUrl = isDesktopMode
-          ? getDesktopCallbackUrl(key, user ?? null, desktopReturnTo)
-          : `http://127.0.0.1:${port ?? 0}/callback?key=${encodeURIComponent(key)}`;
+          ? getDesktopCallbackUrl(
+              credential,
+              desktopState ?? '',
+              user ?? null,
+              desktopReturnTo,
+            )
+          : `http://127.0.0.1:${port ?? 0}/callback?key=${encodeURIComponent(credential)}`;
 
         await new Promise((resolve) => setTimeout(resolve, 500));
 
@@ -264,7 +302,7 @@ export default function CliAuthPage() {
 
             handoffCompleted = true;
             cleanup();
-            setFlowState({ apiKey: key, error: null, step: 'success' });
+            setFlowState({ credential, error: null, step: 'success' });
           };
 
           const handlePageHide = () => {
@@ -285,7 +323,7 @@ export default function CliAuthPage() {
           } catch (error) {
             cleanup();
             setFlowState({
-              apiKey: key,
+              credential,
               error:
                 error instanceof Error
                   ? error.message
@@ -302,7 +340,7 @@ export default function CliAuthPage() {
 
             cleanup();
             setFlowState({
-              apiKey: key,
+              credential,
               error:
                 'Genfeed Desktop did not open automatically. Make sure the app is installed, then try again or copy the key below.',
               step: 'error',
@@ -316,7 +354,7 @@ export default function CliAuthPage() {
 
         setTimeout(() => {
           if (!signal.aborted) {
-            setFlowState({ apiKey: key, error: null, step: 'success' });
+            setFlowState({ credential, error: null, step: 'success' });
           }
         }, 2000);
       } catch (err: unknown) {
@@ -329,7 +367,16 @@ export default function CliAuthPage() {
         setFlowState({ error: message, step: 'error' });
       }
     },
-    [desktopReturnTo, getToken, isDesktopMode, port, user],
+    [
+      desktopCodeChallenge,
+      desktopCodeChallengeMethod,
+      desktopReturnTo,
+      desktopState,
+      getToken,
+      isDesktopMode,
+      port,
+      user,
+    ],
   );
 
   useEffect(() => {
@@ -392,8 +439,8 @@ export default function CliAuthPage() {
   };
 
   const handleCopyKey = async () => {
-    if (flowState.apiKey) {
-      await navigator.clipboard.writeText(flowState.apiKey);
+    if (flowState.credential) {
+      await navigator.clipboard.writeText(flowState.credential);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
@@ -432,7 +479,7 @@ export default function CliAuthPage() {
                   routing="hash"
                   forceRedirectUrl={
                     isDesktopMode
-                      ? `/oauth/cli?desktop=1${desktopReturnTo ? `&return_to=${encodeURIComponent(desktopReturnTo)}` : ''}`
+                      ? `/oauth/cli?desktop=1${desktopReturnTo ? `&return_to=${encodeURIComponent(desktopReturnTo)}` : ''}${desktopCodeChallenge ? `&code_challenge=${encodeURIComponent(desktopCodeChallenge)}` : ''}${desktopCodeChallengeMethod ? `&code_challenge_method=${encodeURIComponent(desktopCodeChallengeMethod)}` : ''}${desktopState ? `&state=${encodeURIComponent(desktopState)}` : ''}`
                       : `/oauth/cli?port=${port}`
                   }
                   appearance={{
@@ -449,10 +496,12 @@ export default function CliAuthPage() {
               <div className="space-y-4">
                 <StepDisplay
                   icon={<Spinner size={ComponentSize.LG} />}
-                  title="Generating API key"
+                  title={
+                    isDesktopMode ? 'Connecting Desktop' : 'Generating API key'
+                  }
                   description={
                     isDesktopMode
-                      ? 'Creating a secure API key for the desktop app...'
+                      ? 'Creating a one-time authorization code for the desktop app...'
                       : 'Creating a secure API key for the CLI...'
                   }
                 />
@@ -481,9 +530,9 @@ export default function CliAuthPage() {
                       : 'Sending credentials back to the CLI. You can close this tab shortly.'
                   }
                 />
-                {flowState.apiKey && (
+                {flowState.credential && (
                   <CopyKeyFallback
-                    apiKey={flowState.apiKey}
+                    apiKey={flowState.credential}
                     copied={copied}
                     isDesktopMode={isDesktopMode}
                     onCopy={handleCopyKey}
@@ -503,9 +552,9 @@ export default function CliAuthPage() {
                       : 'You can close this browser tab and return to the CLI.'
                   }
                 />
-                {flowState.apiKey && (
+                {flowState.credential && (
                   <CopyKeyFallback
-                    apiKey={flowState.apiKey}
+                    apiKey={flowState.credential}
                     copied={copied}
                     isDesktopMode={isDesktopMode}
                     onCopy={handleCopyKey}
@@ -521,9 +570,9 @@ export default function CliAuthPage() {
                   title="Authentication failed"
                   description={flowState.error || 'An unknown error occurred.'}
                 />
-                {flowState.apiKey && (
+                {flowState.credential && (
                   <CopyKeyFallback
-                    apiKey={flowState.apiKey}
+                    apiKey={flowState.credential}
                     copied={copied}
                     isDesktopMode={isDesktopMode}
                     onCopy={handleCopyKey}
@@ -547,7 +596,7 @@ export default function CliAuthPage() {
 
         <p className="mt-5 text-center text-[11px] text-muted-foreground/50 leading-relaxed">
           {isDesktopMode
-            ? 'Desktop mode uses a server-minted API key and redirects back to the installed app.'
+            ? 'Desktop mode uses a one-time browser authorization code and redirects back to the installed app.'
             : 'This page redirects credentials to 127.0.0.1 (localhost) only.'}
           {!isDesktopMode && (
             <>
@@ -576,7 +625,7 @@ function CopyKeyFallback({
     <div className="border-t border-white/[0.08] pt-5 mt-2">
       <p className="text-xs text-muted-foreground text-center mb-3">
         If the {isDesktopMode ? 'desktop app' : 'CLI'} doesn&apos;t receive it
-        automatically, copy and paste the key:
+        automatically, copy and paste the {isDesktopMode ? 'code' : 'key'}:
       </p>
       <div className="flex items-center gap-2">
         <Code

@@ -1,11 +1,15 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type {
+  DesktopSyncCursorScope,
+  IDesktopAssetSyncUpdate,
   IDesktopBootstrap,
+  IDesktopBrandManifest,
   IDesktopContentRunDraft,
   IDesktopDataService,
   IDesktopGenerationOptions,
   IDesktopGenerationProviderConfig,
+  IDesktopSyncOpAck,
   IDesktopTerminalCreateOptions,
   IDesktopWorkflowGenerationOptions,
 } from '@genfeedai/desktop-contracts';
@@ -16,6 +20,7 @@ import {
   dialog,
   ipcMain,
   Notification,
+  protocol,
   shell,
 } from 'electron';
 import { DesktopAppShellService } from './main/app-shell.service';
@@ -54,7 +59,7 @@ const database = new DesktopDatabaseService(prismaService);
 const localIdentityService = new LocalIdentityService(database);
 const sessionService = new DesktopSessionService(database, environment);
 const workspaceService = new DesktopWorkspaceService(database);
-const filesService = new DesktopFilesService(workspaceService);
+const filesService = new DesktopFilesService(workspaceService, database);
 const syncService = new DesktopSyncService(database);
 const terminalService = new DesktopTerminalService(workspaceService);
 const generationService = new DesktopGenerationService(database);
@@ -98,6 +103,17 @@ const isLocalProviderRequiredError = (error: unknown): boolean =>
   error instanceof Error &&
   error.message.includes(LOCAL_PROVIDER_REQUIRED_ERROR);
 
+protocol.registerSchemesAsPrivileged([
+  {
+    privileges: {
+      secure: true,
+      standard: true,
+      supportFetchAPI: true,
+    },
+    scheme: 'genfeed-asset',
+  },
+]);
+
 const buildExternalAppUrl = (pathname: string): string => {
   if (!pathname.startsWith('/')) {
     throw new Error('Desktop external app paths must start with /.');
@@ -137,7 +153,8 @@ const getBootstrap = async ({
   }
 
   bootstrapPromise = (async () => {
-    const [recents, syncState, workspaces] = await Promise.all([
+    const [brands, recents, syncState, workspaces] = await Promise.all([
+      database.listBrands(),
       workspaceService.listRecents(),
       syncService.getState(),
       workspaceService.listRecentWorkspaces(),
@@ -150,6 +167,7 @@ const getBootstrap = async ({
       preferences: {
         nativeNotificationsEnabled: Notification.isSupported(),
       },
+      brands,
       recents,
       session: sessionService.getSession(),
       syncState,
@@ -369,6 +387,30 @@ const registerProtocolHandling = (): void => {
   });
 };
 
+const registerAssetProtocol = (): void => {
+  protocol.handle('genfeed-asset', async (request) => {
+    const url = new URL(request.url);
+
+    if (url.host !== 'local') {
+      return new Response('Unsupported asset host', { status: 400 });
+    }
+
+    const assetId = decodeURIComponent(url.pathname.replace(/^\/+/, ''));
+    const asset = await database.getAsset(assetId);
+
+    if (!asset?.localPath) {
+      return new Response('Asset not available locally', { status: 404 });
+    }
+
+    const body = await fs.promises.readFile(asset.localPath);
+    return new Response(body, {
+      headers: {
+        'content-type': asset.mimeType,
+      },
+    });
+  });
+};
+
 const registerIpcHandlers = (): void => {
   ipcMain.handle(DESKTOP_IPC_CHANNELS.appBootstrap, async () => getBootstrap());
   ipcMain.handle(DESKTOP_IPC_CHANNELS.appGetDiagnostics, async () => ({
@@ -541,6 +583,16 @@ const registerIpcHandlers = (): void => {
       return importedAssets;
     },
   );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.filesListAssets,
+    async (_event: unknown, workspaceId?: string) =>
+      filesService.listAssets(workspaceId),
+  );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.filesGetAssetUrl,
+    async (_event: unknown, assetId: string) =>
+      filesService.getAssetUrl(assetId),
+  );
   ipcMain.handle(DESKTOP_IPC_CHANNELS.generationGetProviderConfig, async () =>
     generationService.getPublicProviderConfig(),
   );
@@ -574,9 +626,28 @@ const registerIpcHandlers = (): void => {
     },
   );
   ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.syncAckOps,
+    async (_event: unknown, ops: IDesktopSyncOpAck[]) => {
+      await syncService.ackOps(ops);
+      await emitBootstrap();
+    },
+  );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.syncApplyBrandManifest,
+    async (_event: unknown, manifest: IDesktopBrandManifest) => {
+      await syncService.applyBrandManifest(manifest);
+      await emitBootstrap();
+    },
+  );
+  ipcMain.handle(
     DESKTOP_IPC_CHANNELS.syncGetJobs,
     async (_event: unknown, workspaceId?: string) =>
       syncService.listJobs(workspaceId),
+  );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.syncGetOps,
+    async (_event: unknown, workspaceId?: string) =>
+      syncService.listOps(workspaceId),
   );
   ipcMain.handle(DESKTOP_IPC_CHANNELS.syncGetState, async () =>
     syncService.getState(),
@@ -592,6 +663,36 @@ const registerIpcHandlers = (): void => {
       const job = await syncService.queueJob(type, payload, workspaceId);
       await emitBootstrap();
       return job;
+    },
+  );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.syncQueueOp,
+    async (
+      _event: unknown,
+      entityType: string,
+      entityId: string,
+      operation: 'create' | 'delete' | 'update',
+      payload: string,
+      workspaceId?: string,
+      baseVersion?: string,
+    ) => {
+      const op = await syncService.queueOp(
+        entityType,
+        entityId,
+        operation,
+        payload,
+        workspaceId,
+        baseVersion,
+      );
+      await emitBootstrap();
+      return op;
+    },
+  );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.syncRecordAssetSync,
+    async (_event: unknown, update: IDesktopAssetSyncUpdate) => {
+      await syncService.recordAssetSync(update);
+      await emitBootstrap();
     },
   );
   ipcMain.handle(DESKTOP_IPC_CHANNELS.cacheGetPath, async () => {
@@ -631,13 +732,15 @@ const registerIpcHandlers = (): void => {
   });
 
   // Sync cursor (durable storage in main-process KV)
-  ipcMain.handle(DESKTOP_IPC_CHANNELS.syncGetCursor, async () =>
-    localIdentityService.getSyncCursor(),
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.syncGetCursor,
+    async (_event: unknown, scope?: DesktopSyncCursorScope) =>
+      localIdentityService.getSyncCursor(scope),
   );
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.syncSetCursor,
-    async (_event: unknown, cursor: string) => {
-      await localIdentityService.setSyncCursor(cursor);
+    async (_event: unknown, cursor: string, scope?: DesktopSyncCursorScope) => {
+      await localIdentityService.setSyncCursor(cursor, scope);
     },
   );
 
@@ -718,6 +821,7 @@ app.whenReady().then(async () => {
     telemetryService.captureException(error, { source: 'unhandledRejection' });
   });
   registerProtocolHandling();
+  registerAssetProtocol();
   registerIpcHandlers();
   await createWindow();
 

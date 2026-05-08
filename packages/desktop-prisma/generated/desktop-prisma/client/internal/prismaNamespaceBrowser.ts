@@ -53,12 +53,15 @@ export const AnyNull = runtime.AnyNull
 export const ModelName = {
   DesktopKv: 'DesktopKv',
   DesktopWorkspace: 'DesktopWorkspace',
+  DesktopSyncOp: 'DesktopSyncOp',
   DesktopSyncJob: 'DesktopSyncJob',
   DesktopRecentItem: 'DesktopRecentItem',
   DesktopOrganization: 'DesktopOrganization',
+  DesktopBrand: 'DesktopBrand',
   DesktopUser: 'DesktopUser',
   DesktopProject: 'DesktopProject',
   DesktopContentItem: 'DesktopContentItem',
+  DesktopAsset: 'DesktopAsset',
   DesktopTrend: 'DesktopTrend',
   DesktopIngredient: 'DesktopIngredient',
   DesktopAgent: 'DesktopAgent',
@@ -96,6 +99,8 @@ export const DesktopWorkspaceScalarFieldEnum = {
   name: 'name',
   path: 'path',
   linkedProjectId: 'linkedProjectId',
+  linkedBrandId: 'linkedBrandId',
+  syncPolicy: 'syncPolicy',
   fileIndex: 'fileIndex',
   indexingState: 'indexingState',
   localDraftCount: 'localDraftCount',
@@ -106,6 +111,25 @@ export const DesktopWorkspaceScalarFieldEnum = {
 } as const
 
 export type DesktopWorkspaceScalarFieldEnum = (typeof DesktopWorkspaceScalarFieldEnum)[keyof typeof DesktopWorkspaceScalarFieldEnum]
+
+
+export const DesktopSyncOpScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  entityType: 'entityType',
+  entityId: 'entityId',
+  operation: 'operation',
+  payload: 'payload',
+  baseVersion: 'baseVersion',
+  status: 'status',
+  error: 'error',
+  retryCount: 'retryCount',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  acknowledgedAt: 'acknowledgedAt'
+} as const
+
+export type DesktopSyncOpScalarFieldEnum = (typeof DesktopSyncOpScalarFieldEnum)[keyof typeof DesktopSyncOpScalarFieldEnum]
 
 
 export const DesktopSyncJobScalarFieldEnum = {
@@ -136,6 +160,7 @@ export type DesktopRecentItemScalarFieldEnum = (typeof DesktopRecentItemScalarFi
 
 export const DesktopOrganizationScalarFieldEnum = {
   id: 'id',
+  cloudId: 'cloudId',
   name: 'name',
   slug: 'slug',
   createdAt: 'createdAt',
@@ -143,6 +168,22 @@ export const DesktopOrganizationScalarFieldEnum = {
 } as const
 
 export type DesktopOrganizationScalarFieldEnum = (typeof DesktopOrganizationScalarFieldEnum)[keyof typeof DesktopOrganizationScalarFieldEnum]
+
+
+export const DesktopBrandScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  cloudId: 'cloudId',
+  name: 'name',
+  slug: 'slug',
+  syncPolicy: 'syncPolicy',
+  cloudVersion: 'cloudVersion',
+  lastPulledAt: 'lastPulledAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type DesktopBrandScalarFieldEnum = (typeof DesktopBrandScalarFieldEnum)[keyof typeof DesktopBrandScalarFieldEnum]
 
 
 export const DesktopUserScalarFieldEnum = {
@@ -173,6 +214,7 @@ export type DesktopProjectScalarFieldEnum = (typeof DesktopProjectScalarFieldEnu
 export const DesktopContentItemScalarFieldEnum = {
   id: 'id',
   organizationId: 'organizationId',
+  brandId: 'brandId',
   projectId: 'projectId',
   platform: 'platform',
   type: 'type',
@@ -193,6 +235,31 @@ export const DesktopContentItemScalarFieldEnum = {
 export type DesktopContentItemScalarFieldEnum = (typeof DesktopContentItemScalarFieldEnum)[keyof typeof DesktopContentItemScalarFieldEnum]
 
 
+export const DesktopAssetScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  brandId: 'brandId',
+  workspaceId: 'workspaceId',
+  cloudId: 'cloudId',
+  cloudObjectKey: 'cloudObjectKey',
+  localPath: 'localPath',
+  sha256: 'sha256',
+  sizeBytes: 'sizeBytes',
+  mimeType: 'mimeType',
+  kind: 'kind',
+  origin: 'origin',
+  residency: 'residency',
+  uploadPolicy: 'uploadPolicy',
+  originalFileName: 'originalFileName',
+  displayName: 'displayName',
+  deletedAt: 'deletedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type DesktopAssetScalarFieldEnum = (typeof DesktopAssetScalarFieldEnum)[keyof typeof DesktopAssetScalarFieldEnum]
+
+
 export const DesktopTrendScalarFieldEnum = {
   id: 'id',
   organizationId: 'organizationId',
@@ -210,6 +277,7 @@ export type DesktopTrendScalarFieldEnum = (typeof DesktopTrendScalarFieldEnum)[k
 export const DesktopIngredientScalarFieldEnum = {
   id: 'id',
   organizationId: 'organizationId',
+  brandId: 'brandId',
   title: 'title',
   content: 'content',
   platform: 'platform',

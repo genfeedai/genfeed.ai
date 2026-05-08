@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import type { DesktopSyncCursorScope } from '@genfeedai/desktop-contracts';
 import type { DesktopDatabaseService } from './database.service';
 
 /**
@@ -10,6 +11,7 @@ import type { DesktopDatabaseService } from './database.service';
  *                            survives sign-out and token expiry
  *   onboarding.completed   — '1' once the onboarding wizard is dismissed
  *   sync.threads.cursor    — ISO timestamp cursor for bidirectional thread sync
+ *   sync.brandManifest.cursor — ISO timestamp cursor for org/brand/asset metadata
  *
  * Values are cached in memory after initialize() so callers can read them
  * synchronously while persistence stays async on the PGlite layer.
@@ -18,12 +20,21 @@ const LOCAL_USER_ID_KEY = 'local.user.id';
 const LOCAL_CLERK_ID_KEY = 'local.user.clerkId';
 const ONBOARDING_COMPLETED_KEY = 'onboarding.completed';
 const SYNC_THREADS_CURSOR_KEY = 'sync.threads.cursor';
+const SYNC_BRAND_MANIFEST_CURSOR_KEY = 'sync.brandManifest.cursor';
+
+const SYNC_CURSOR_KEYS: Record<DesktopSyncCursorScope, string> = {
+  brandManifest: SYNC_BRAND_MANIFEST_CURSOR_KEY,
+  threads: SYNC_THREADS_CURSOR_KEY,
+};
 
 export class LocalIdentityService {
   private clerkId: string | null = null;
   private localUserId: string | null = null;
   private onboardingCompleted = false;
-  private syncCursor: string | null = null;
+  private syncCursors: Record<DesktopSyncCursorScope, string | null> = {
+    brandManifest: null,
+    threads: null,
+  };
 
   constructor(private readonly database: DesktopDatabaseService) {}
 
@@ -32,21 +43,28 @@ export class LocalIdentityService {
       storedLocalUserId,
       storedClerkId,
       storedOnboardingCompleted,
-      storedSyncCursor,
+      storedThreadsCursor,
+      storedBrandManifestCursor,
     ] = await Promise.all([
       this.database.getValue(LOCAL_USER_ID_KEY),
       this.database.getValue(LOCAL_CLERK_ID_KEY),
       this.database.getValue(ONBOARDING_COMPLETED_KEY),
       this.database.getValue(SYNC_THREADS_CURSOR_KEY),
+      this.database.getValue(SYNC_BRAND_MANIFEST_CURSOR_KEY),
     ]);
 
-    this.localUserId = storedLocalUserId ?? randomUUID();
+    const localUserId = storedLocalUserId ?? randomUUID();
+
+    this.localUserId = localUserId;
     this.clerkId = storedClerkId ?? null;
     this.onboardingCompleted = storedOnboardingCompleted === '1';
-    this.syncCursor = storedSyncCursor ?? null;
+    this.syncCursors = {
+      brandManifest: storedBrandManifestCursor ?? null,
+      threads: storedThreadsCursor ?? null,
+    };
 
     if (!storedLocalUserId) {
-      await this.database.setValue(LOCAL_USER_ID_KEY, this.localUserId);
+      await this.database.setValue(LOCAL_USER_ID_KEY, localUserId);
     }
   }
 
@@ -76,12 +94,15 @@ export class LocalIdentityService {
     await this.database.setValue(ONBOARDING_COMPLETED_KEY, '1');
   }
 
-  getSyncCursor(): string | null {
-    return this.syncCursor;
+  getSyncCursor(scope: DesktopSyncCursorScope = 'threads'): string | null {
+    return this.syncCursors[scope];
   }
 
-  async setSyncCursor(cursor: string): Promise<void> {
-    this.syncCursor = cursor;
-    await this.database.setValue(SYNC_THREADS_CURSOR_KEY, cursor);
+  async setSyncCursor(
+    cursor: string,
+    scope: DesktopSyncCursorScope = 'threads',
+  ): Promise<void> {
+    this.syncCursors[scope] = cursor;
+    await this.database.setValue(SYNC_CURSOR_KEYS[scope], cursor);
   }
 }

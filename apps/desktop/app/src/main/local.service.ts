@@ -17,6 +17,7 @@ import type { DesktopGenerationService } from './generation.service';
 import type { DesktopPrismaService } from './prisma.service';
 
 const LOCAL_ORGANIZATION_ID = 'desktop-local-org';
+const LOCAL_DEFAULT_BRAND_ID = 'desktop-local-brand';
 const LOCAL_DEFAULT_PROJECT_ID = 'desktop-local-project';
 
 const DEFAULT_TRENDS: Array<{
@@ -240,6 +241,25 @@ export class DesktopLocalService implements IDesktopDataService {
       },
     });
 
+    await client.desktopBrand.upsert({
+      create: {
+        createdAt: now,
+        id: LOCAL_DEFAULT_BRAND_ID,
+        name: 'Local Brand',
+        organizationId: LOCAL_ORGANIZATION_ID,
+        slug: 'local-brand',
+        syncPolicy: 'none',
+        updatedAt: now,
+      },
+      update: {
+        name: 'Local Brand',
+        updatedAt: now,
+      },
+      where: {
+        id: LOCAL_DEFAULT_BRAND_ID,
+      },
+    });
+
     await client.desktopProject.upsert({
       create: {
         createdAt: now,
@@ -277,6 +297,7 @@ export class DesktopLocalService implements IDesktopDataService {
     if ((await client.desktopIngredient.count()) === 0) {
       await client.desktopIngredient.createMany({
         data: DEFAULT_INGREDIENTS.map((ingredient) => ({
+          brandId: LOCAL_DEFAULT_BRAND_ID,
           content: ingredient.content,
           createdAt: now,
           id: randomUUID(),
@@ -357,6 +378,7 @@ export class DesktopLocalService implements IDesktopDataService {
 
     await client.desktopContentItem.create({
       data: {
+        brandId: LOCAL_DEFAULT_BRAND_ID,
         content: generatedContent,
         createdAt: now,
         engagements: 0,
@@ -378,6 +400,7 @@ export class DesktopLocalService implements IDesktopDataService {
 
     await client.desktopIngredient.create({
       data: {
+        brandId: LOCAL_DEFAULT_BRAND_ID,
         content: generatedContent,
         createdAt: now,
         id: randomUUID(),
@@ -486,6 +509,7 @@ export class DesktopLocalService implements IDesktopDataService {
 
     const created = await client.desktopContentItem.create({
       data: {
+        brandId: LOCAL_DEFAULT_BRAND_ID,
         content: params.content,
         createdAt: now,
         engagements,

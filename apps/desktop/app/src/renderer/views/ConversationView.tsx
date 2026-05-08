@@ -707,9 +707,7 @@ export const ConversationView = ({
         currentThread = onCreateThread();
       }
 
-      const fileNames = importedAssets.map(
-        (value) => value.split('/').pop() ?? value,
-      );
+      const fileNames = importedAssets.map((asset) => asset.displayName);
       const message: IDesktopMessage = {
         content: `[Imported assets: ${fileNames.join(', ')}]`,
         createdAt: new Date().toISOString(),

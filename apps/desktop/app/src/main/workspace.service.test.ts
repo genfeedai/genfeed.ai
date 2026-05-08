@@ -104,11 +104,13 @@ describe('DesktopWorkspaceService', () => {
       id: 'workspace-1',
       indexingState: 'idle',
       lastOpenedAt: now,
+      linkedBrandId: null,
       linkedProjectId: null,
       localDraftCount: 0,
       name: 'Linked Workspace',
       path: workspaceDir,
       pendingSyncCount: 0,
+      syncPolicy: 'local-only',
       updatedAt: now,
     });
 

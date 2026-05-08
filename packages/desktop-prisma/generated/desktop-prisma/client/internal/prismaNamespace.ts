@@ -386,12 +386,15 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 export const ModelName = {
   DesktopKv: 'DesktopKv',
   DesktopWorkspace: 'DesktopWorkspace',
+  DesktopSyncOp: 'DesktopSyncOp',
   DesktopSyncJob: 'DesktopSyncJob',
   DesktopRecentItem: 'DesktopRecentItem',
   DesktopOrganization: 'DesktopOrganization',
+  DesktopBrand: 'DesktopBrand',
   DesktopUser: 'DesktopUser',
   DesktopProject: 'DesktopProject',
   DesktopContentItem: 'DesktopContentItem',
+  DesktopAsset: 'DesktopAsset',
   DesktopTrend: 'DesktopTrend',
   DesktopIngredient: 'DesktopIngredient',
   DesktopAgent: 'DesktopAgent',
@@ -413,7 +416,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "desktopKv" | "desktopWorkspace" | "desktopSyncJob" | "desktopRecentItem" | "desktopOrganization" | "desktopUser" | "desktopProject" | "desktopContentItem" | "desktopTrend" | "desktopIngredient" | "desktopAgent" | "desktopAgentRun" | "desktopWorkflow" | "desktopWorkflowRun"
+    modelProps: "desktopKv" | "desktopWorkspace" | "desktopSyncOp" | "desktopSyncJob" | "desktopRecentItem" | "desktopOrganization" | "desktopBrand" | "desktopUser" | "desktopProject" | "desktopContentItem" | "desktopAsset" | "desktopTrend" | "desktopIngredient" | "desktopAgent" | "desktopAgentRun" | "desktopWorkflow" | "desktopWorkflowRun"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -562,6 +565,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.DesktopWorkspaceCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.DesktopWorkspaceCountAggregateOutputType> | number
+        }
+      }
+    }
+    DesktopSyncOp: {
+      payload: Prisma.$DesktopSyncOpPayload<ExtArgs>
+      fields: Prisma.DesktopSyncOpFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.DesktopSyncOpFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DesktopSyncOpPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.DesktopSyncOpFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DesktopSyncOpPayload>
+        }
+        findFirst: {
+          args: Prisma.DesktopSyncOpFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DesktopSyncOpPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.DesktopSyncOpFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DesktopSyncOpPayload>
+        }
+        findMany: {
+          args: Prisma.DesktopSyncOpFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DesktopSyncOpPayload>[]
+        }
+        create: {
+          args: Prisma.DesktopSyncOpCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DesktopSyncOpPayload>
+        }
+        createMany: {
+          args: Prisma.DesktopSyncOpCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.DesktopSyncOpCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DesktopSyncOpPayload>[]
+        }
+        delete: {
+          args: Prisma.DesktopSyncOpDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DesktopSyncOpPayload>
+        }
+        update: {
+          args: Prisma.DesktopSyncOpUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DesktopSyncOpPayload>
+        }
+        deleteMany: {
+          args: Prisma.DesktopSyncOpDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.DesktopSyncOpUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.DesktopSyncOpUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DesktopSyncOpPayload>[]
+        }
+        upsert: {
+          args: Prisma.DesktopSyncOpUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DesktopSyncOpPayload>
+        }
+        aggregate: {
+          args: Prisma.DesktopSyncOpAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateDesktopSyncOp>
+        }
+        groupBy: {
+          args: Prisma.DesktopSyncOpGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DesktopSyncOpGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.DesktopSyncOpCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DesktopSyncOpCountAggregateOutputType> | number
         }
       }
     }
@@ -787,6 +864,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    DesktopBrand: {
+      payload: Prisma.$DesktopBrandPayload<ExtArgs>
+      fields: Prisma.DesktopBrandFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.DesktopBrandFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DesktopBrandPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.DesktopBrandFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DesktopBrandPayload>
+        }
+        findFirst: {
+          args: Prisma.DesktopBrandFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DesktopBrandPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.DesktopBrandFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DesktopBrandPayload>
+        }
+        findMany: {
+          args: Prisma.DesktopBrandFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DesktopBrandPayload>[]
+        }
+        create: {
+          args: Prisma.DesktopBrandCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DesktopBrandPayload>
+        }
+        createMany: {
+          args: Prisma.DesktopBrandCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.DesktopBrandCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DesktopBrandPayload>[]
+        }
+        delete: {
+          args: Prisma.DesktopBrandDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DesktopBrandPayload>
+        }
+        update: {
+          args: Prisma.DesktopBrandUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DesktopBrandPayload>
+        }
+        deleteMany: {
+          args: Prisma.DesktopBrandDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.DesktopBrandUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.DesktopBrandUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DesktopBrandPayload>[]
+        }
+        upsert: {
+          args: Prisma.DesktopBrandUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DesktopBrandPayload>
+        }
+        aggregate: {
+          args: Prisma.DesktopBrandAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateDesktopBrand>
+        }
+        groupBy: {
+          args: Prisma.DesktopBrandGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DesktopBrandGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.DesktopBrandCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DesktopBrandCountAggregateOutputType> | number
+        }
+      }
+    }
     DesktopUser: {
       payload: Prisma.$DesktopUserPayload<ExtArgs>
       fields: Prisma.DesktopUserFieldRefs
@@ -1006,6 +1157,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.DesktopContentItemCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.DesktopContentItemCountAggregateOutputType> | number
+        }
+      }
+    }
+    DesktopAsset: {
+      payload: Prisma.$DesktopAssetPayload<ExtArgs>
+      fields: Prisma.DesktopAssetFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.DesktopAssetFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DesktopAssetPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.DesktopAssetFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DesktopAssetPayload>
+        }
+        findFirst: {
+          args: Prisma.DesktopAssetFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DesktopAssetPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.DesktopAssetFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DesktopAssetPayload>
+        }
+        findMany: {
+          args: Prisma.DesktopAssetFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DesktopAssetPayload>[]
+        }
+        create: {
+          args: Prisma.DesktopAssetCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DesktopAssetPayload>
+        }
+        createMany: {
+          args: Prisma.DesktopAssetCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.DesktopAssetCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DesktopAssetPayload>[]
+        }
+        delete: {
+          args: Prisma.DesktopAssetDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DesktopAssetPayload>
+        }
+        update: {
+          args: Prisma.DesktopAssetUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DesktopAssetPayload>
+        }
+        deleteMany: {
+          args: Prisma.DesktopAssetDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.DesktopAssetUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.DesktopAssetUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DesktopAssetPayload>[]
+        }
+        upsert: {
+          args: Prisma.DesktopAssetUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DesktopAssetPayload>
+        }
+        aggregate: {
+          args: Prisma.DesktopAssetAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateDesktopAsset>
+        }
+        groupBy: {
+          args: Prisma.DesktopAssetGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DesktopAssetGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.DesktopAssetCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DesktopAssetCountAggregateOutputType> | number
         }
       }
     }
@@ -1505,6 +1730,8 @@ export const DesktopWorkspaceScalarFieldEnum = {
   name: 'name',
   path: 'path',
   linkedProjectId: 'linkedProjectId',
+  linkedBrandId: 'linkedBrandId',
+  syncPolicy: 'syncPolicy',
   fileIndex: 'fileIndex',
   indexingState: 'indexingState',
   localDraftCount: 'localDraftCount',
@@ -1515,6 +1742,25 @@ export const DesktopWorkspaceScalarFieldEnum = {
 } as const
 
 export type DesktopWorkspaceScalarFieldEnum = (typeof DesktopWorkspaceScalarFieldEnum)[keyof typeof DesktopWorkspaceScalarFieldEnum]
+
+
+export const DesktopSyncOpScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  entityType: 'entityType',
+  entityId: 'entityId',
+  operation: 'operation',
+  payload: 'payload',
+  baseVersion: 'baseVersion',
+  status: 'status',
+  error: 'error',
+  retryCount: 'retryCount',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  acknowledgedAt: 'acknowledgedAt'
+} as const
+
+export type DesktopSyncOpScalarFieldEnum = (typeof DesktopSyncOpScalarFieldEnum)[keyof typeof DesktopSyncOpScalarFieldEnum]
 
 
 export const DesktopSyncJobScalarFieldEnum = {
@@ -1545,6 +1791,7 @@ export type DesktopRecentItemScalarFieldEnum = (typeof DesktopRecentItemScalarFi
 
 export const DesktopOrganizationScalarFieldEnum = {
   id: 'id',
+  cloudId: 'cloudId',
   name: 'name',
   slug: 'slug',
   createdAt: 'createdAt',
@@ -1552,6 +1799,22 @@ export const DesktopOrganizationScalarFieldEnum = {
 } as const
 
 export type DesktopOrganizationScalarFieldEnum = (typeof DesktopOrganizationScalarFieldEnum)[keyof typeof DesktopOrganizationScalarFieldEnum]
+
+
+export const DesktopBrandScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  cloudId: 'cloudId',
+  name: 'name',
+  slug: 'slug',
+  syncPolicy: 'syncPolicy',
+  cloudVersion: 'cloudVersion',
+  lastPulledAt: 'lastPulledAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type DesktopBrandScalarFieldEnum = (typeof DesktopBrandScalarFieldEnum)[keyof typeof DesktopBrandScalarFieldEnum]
 
 
 export const DesktopUserScalarFieldEnum = {
@@ -1582,6 +1845,7 @@ export type DesktopProjectScalarFieldEnum = (typeof DesktopProjectScalarFieldEnu
 export const DesktopContentItemScalarFieldEnum = {
   id: 'id',
   organizationId: 'organizationId',
+  brandId: 'brandId',
   projectId: 'projectId',
   platform: 'platform',
   type: 'type',
@@ -1602,6 +1866,31 @@ export const DesktopContentItemScalarFieldEnum = {
 export type DesktopContentItemScalarFieldEnum = (typeof DesktopContentItemScalarFieldEnum)[keyof typeof DesktopContentItemScalarFieldEnum]
 
 
+export const DesktopAssetScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  brandId: 'brandId',
+  workspaceId: 'workspaceId',
+  cloudId: 'cloudId',
+  cloudObjectKey: 'cloudObjectKey',
+  localPath: 'localPath',
+  sha256: 'sha256',
+  sizeBytes: 'sizeBytes',
+  mimeType: 'mimeType',
+  kind: 'kind',
+  origin: 'origin',
+  residency: 'residency',
+  uploadPolicy: 'uploadPolicy',
+  originalFileName: 'originalFileName',
+  displayName: 'displayName',
+  deletedAt: 'deletedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type DesktopAssetScalarFieldEnum = (typeof DesktopAssetScalarFieldEnum)[keyof typeof DesktopAssetScalarFieldEnum]
+
+
 export const DesktopTrendScalarFieldEnum = {
   id: 'id',
   organizationId: 'organizationId',
@@ -1619,6 +1908,7 @@ export type DesktopTrendScalarFieldEnum = (typeof DesktopTrendScalarFieldEnum)[k
 export const DesktopIngredientScalarFieldEnum = {
   id: 'id',
   organizationId: 'organizationId',
+  brandId: 'brandId',
   title: 'title',
   content: 'content',
   platform: 'platform',
@@ -1876,12 +2166,15 @@ export type PrismaClientOptions = ({
 export type GlobalOmitConfig = {
   desktopKv?: Prisma.DesktopKvOmit
   desktopWorkspace?: Prisma.DesktopWorkspaceOmit
+  desktopSyncOp?: Prisma.DesktopSyncOpOmit
   desktopSyncJob?: Prisma.DesktopSyncJobOmit
   desktopRecentItem?: Prisma.DesktopRecentItemOmit
   desktopOrganization?: Prisma.DesktopOrganizationOmit
+  desktopBrand?: Prisma.DesktopBrandOmit
   desktopUser?: Prisma.DesktopUserOmit
   desktopProject?: Prisma.DesktopProjectOmit
   desktopContentItem?: Prisma.DesktopContentItemOmit
+  desktopAsset?: Prisma.DesktopAssetOmit
   desktopTrend?: Prisma.DesktopTrendOmit
   desktopIngredient?: Prisma.DesktopIngredientOmit
   desktopAgent?: Prisma.DesktopAgentOmit

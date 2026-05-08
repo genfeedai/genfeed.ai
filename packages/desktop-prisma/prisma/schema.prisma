@@ -20,6 +20,8 @@ model DesktopWorkspace {
   name             String
   path             String  @unique
   linkedProjectId  String? @map("linked_project_id")
+  linkedBrandId    String? @map("linked_brand_id")
+  syncPolicy       String  @default("local-only") @map("sync_policy")
   fileIndex        String  @default("[]") @map("file_index")
   indexingState    String  @default("idle") @map("indexing_state")
   localDraftCount  Int     @default(0) @map("local_draft_count")
@@ -30,6 +32,27 @@ model DesktopWorkspace {
 
   @@index([lastOpenedAt(sort: Desc)])
   @@map("desktop_workspace")
+}
+
+model DesktopSyncOp {
+  id             String  @id
+  workspaceId    String? @map("workspace_id")
+  entityType     String  @map("entity_type")
+  entityId       String  @map("entity_id")
+  operation      String
+  payload        String
+  baseVersion    String? @map("base_version")
+  status         String  @default("pending")
+  error          String?
+  retryCount     Int     @default(0) @map("retry_count")
+  createdAt      String  @map("created_at")
+  updatedAt      String  @map("updated_at")
+  acknowledgedAt String? @map("acknowledged_at")
+
+  @@index([status, updatedAt(sort: Desc)])
+  @@index([workspaceId, status, updatedAt(sort: Desc)])
+  @@index([entityType, entityId])
+  @@map("desktop_sync_op")
 }
 
 model DesktopSyncJob {
@@ -60,13 +83,16 @@ model DesktopRecentItem {
 }
 
 model DesktopOrganization {
-  id        String @id
+  id        String  @id
+  cloudId   String? @unique @map("cloud_id")
   name      String
-  slug      String @unique
-  createdAt String @map("created_at")
-  updatedAt String @map("updated_at")
+  slug      String  @unique
+  createdAt String  @map("created_at")
+  updatedAt String  @map("updated_at")
 
   users        DesktopUser[]
+  brands       DesktopBrand[]
+  assets       DesktopAsset[]
   projects     DesktopProject[]
   contentItems DesktopContentItem[]
   trends       DesktopTrend[]
@@ -75,6 +101,28 @@ model DesktopOrganization {
   workflows    DesktopWorkflow[]
 
   @@map("desktop_organization")
+}
+
+model DesktopBrand {
+  id             String  @id
+  organizationId String  @map("organization_id")
+  cloudId        String? @unique @map("cloud_id")
+  name           String
+  slug           String
+  syncPolicy     String  @default("none") @map("sync_policy")
+  cloudVersion   String? @map("cloud_version")
+  lastPulledAt   String? @map("last_pulled_at")
+  createdAt      String  @map("created_at")
+  updatedAt      String  @map("updated_at")
+
+  organization DesktopOrganization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  assets       DesktopAsset[]
+  contentItems DesktopContentItem[]
+  ingredients  DesktopIngredient[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId, updatedAt(sort: Desc)])
+  @@map("desktop_brand")
 }
 
 model DesktopUser {
@@ -110,6 +158,7 @@ model DesktopProject {
 model DesktopContentItem {
   id               String  @id
   organizationId   String  @map("organization_id")
+  brandId          String? @map("brand_id")
   projectId        String? @map("project_id")
   platform         String
   type             String
@@ -127,12 +176,46 @@ model DesktopContentItem {
   updatedAt        String  @map("updated_at")
 
   organization DesktopOrganization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  brand        DesktopBrand?       @relation(fields: [brandId], references: [id], onDelete: SetNull)
   project      DesktopProject?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
   @@index([organizationId, updatedAt(sort: Desc)])
+  @@index([brandId, updatedAt(sort: Desc)])
   @@index([status, publishedAt(sort: Desc)])
   @@index([platform, updatedAt(sort: Desc)])
   @@map("desktop_content_item")
+}
+
+model DesktopAsset {
+  id               String  @id
+  organizationId   String  @map("organization_id")
+  brandId          String? @map("brand_id")
+  workspaceId      String? @map("workspace_id")
+  cloudId          String? @unique @map("cloud_id")
+  cloudObjectKey   String? @map("cloud_object_key")
+  localPath        String? @map("local_path")
+  sha256           String
+  sizeBytes        Int     @map("size_bytes")
+  mimeType         String  @map("mime_type")
+  kind             String
+  origin           String
+  residency        String
+  uploadPolicy     String  @default("never") @map("upload_policy")
+  originalFileName String  @map("original_file_name")
+  displayName      String  @map("display_name")
+  deletedAt        String? @map("deleted_at")
+  createdAt        String  @map("created_at")
+  updatedAt        String  @map("updated_at")
+
+  organization DesktopOrganization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  brand        DesktopBrand?       @relation(fields: [brandId], references: [id], onDelete: SetNull)
+
+  @@index([sha256, sizeBytes])
+  @@index([organizationId, updatedAt(sort: Desc)])
+  @@index([brandId, updatedAt(sort: Desc)])
+  @@index([workspaceId, updatedAt(sort: Desc)])
+  @@index([residency, updatedAt(sort: Desc)])
+  @@map("desktop_asset")
 }
 
 model DesktopTrend {
@@ -154,6 +237,7 @@ model DesktopTrend {
 model DesktopIngredient {
   id                  String  @id
   organizationId      String  @map("organization_id")
+  brandId             String? @map("brand_id")
   title               String
   content             String
   platform            String?
@@ -163,8 +247,10 @@ model DesktopIngredient {
   updatedAt           String  @map("updated_at")
 
   organization DesktopOrganization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  brand        DesktopBrand?       @relation(fields: [brandId], references: [id], onDelete: SetNull)
 
   @@index([organizationId, updatedAt(sort: Desc)])
+  @@index([brandId, updatedAt(sort: Desc)])
   @@index([platform, totalVotes(sort: Desc)])
   @@map("desktop_ingredient")
 }

@@ -28,6 +28,11 @@ export type DesktopKv = Prisma.DesktopKvModel
  */
 export type DesktopWorkspace = Prisma.DesktopWorkspaceModel
 /**
+ * Model DesktopSyncOp
+ * 
+ */
+export type DesktopSyncOp = Prisma.DesktopSyncOpModel
+/**
  * Model DesktopSyncJob
  * 
  */
@@ -43,6 +48,11 @@ export type DesktopRecentItem = Prisma.DesktopRecentItemModel
  */
 export type DesktopOrganization = Prisma.DesktopOrganizationModel
 /**
+ * Model DesktopBrand
+ * 
+ */
+export type DesktopBrand = Prisma.DesktopBrandModel
+/**
  * Model DesktopUser
  * 
  */
@@ -57,6 +67,11 @@ export type DesktopProject = Prisma.DesktopProjectModel
  * 
  */
 export type DesktopContentItem = Prisma.DesktopContentItemModel
+/**
+ * Model DesktopAsset
+ * 
+ */
+export type DesktopAsset = Prisma.DesktopAssetModel
 /**
  * Model DesktopTrend
  * 

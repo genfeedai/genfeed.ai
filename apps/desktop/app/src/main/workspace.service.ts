@@ -89,11 +89,13 @@ export class DesktopWorkspaceService {
       id: row.id,
       indexingState: row.indexingState as 'idle' | 'indexing',
       lastOpenedAt: row.lastOpenedAt,
+      linkedBrandId: row.linkedBrandId ?? undefined,
       linkedProjectId: row.linkedProjectId ?? undefined,
       localDraftCount: row.localDraftCount,
       name: row.name,
       path: row.path,
       pendingSyncCount: row.pendingSyncCount,
+      syncPolicy: row.syncPolicy as IDesktopWorkspace['syncPolicy'],
       updatedAt: row.updatedAt,
     };
   }
@@ -123,12 +125,14 @@ export class DesktopWorkspaceService {
       id: existing?.id ?? input.id ?? randomUUID(),
       indexingState: 'idle',
       lastOpenedAt: now,
+      linkedBrandId: existing?.linkedBrandId ?? null,
       linkedProjectId:
         input.linkedProjectId ?? existing?.linkedProjectId ?? null,
       localDraftCount: existing?.localDraftCount ?? 0,
       name: input.name,
       path: input.path,
       pendingSyncCount: existing?.pendingSyncCount ?? 0,
+      syncPolicy: existing?.syncPolicy ?? 'local-only',
       updatedAt: now,
     };
 

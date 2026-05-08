@@ -37,6 +37,7 @@ export type DesktopIngredientSumAggregateOutputType = {
 export type DesktopIngredientMinAggregateOutputType = {
   id: string | null
   organizationId: string | null
+  brandId: string | null
   title: string | null
   content: string | null
   platform: string | null
@@ -49,6 +50,7 @@ export type DesktopIngredientMinAggregateOutputType = {
 export type DesktopIngredientMaxAggregateOutputType = {
   id: string | null
   organizationId: string | null
+  brandId: string | null
   title: string | null
   content: string | null
   platform: string | null
@@ -61,6 +63,7 @@ export type DesktopIngredientMaxAggregateOutputType = {
 export type DesktopIngredientCountAggregateOutputType = {
   id: number
   organizationId: number
+  brandId: number
   title: number
   content: number
   platform: number
@@ -83,6 +86,7 @@ export type DesktopIngredientSumAggregateInputType = {
 export type DesktopIngredientMinAggregateInputType = {
   id?: true
   organizationId?: true
+  brandId?: true
   title?: true
   content?: true
   platform?: true
@@ -95,6 +99,7 @@ export type DesktopIngredientMinAggregateInputType = {
 export type DesktopIngredientMaxAggregateInputType = {
   id?: true
   organizationId?: true
+  brandId?: true
   title?: true
   content?: true
   platform?: true
@@ -107,6 +112,7 @@ export type DesktopIngredientMaxAggregateInputType = {
 export type DesktopIngredientCountAggregateInputType = {
   id?: true
   organizationId?: true
+  brandId?: true
   title?: true
   content?: true
   platform?: true
@@ -206,6 +212,7 @@ export type DesktopIngredientGroupByArgs<ExtArgs extends runtime.Types.Extension
 export type DesktopIngredientGroupByOutputType = {
   id: string
   organizationId: string
+  brandId: string | null
   title: string
   content: string
   platform: string | null
@@ -241,6 +248,7 @@ export type DesktopIngredientWhereInput = {
   NOT?: Prisma.DesktopIngredientWhereInput | Prisma.DesktopIngredientWhereInput[]
   id?: Prisma.StringFilter<"DesktopIngredient"> | string
   organizationId?: Prisma.StringFilter<"DesktopIngredient"> | string
+  brandId?: Prisma.StringNullableFilter<"DesktopIngredient"> | string | null
   title?: Prisma.StringFilter<"DesktopIngredient"> | string
   content?: Prisma.StringFilter<"DesktopIngredient"> | string
   platform?: Prisma.StringNullableFilter<"DesktopIngredient"> | string | null
@@ -249,11 +257,13 @@ export type DesktopIngredientWhereInput = {
   createdAt?: Prisma.StringFilter<"DesktopIngredient"> | string
   updatedAt?: Prisma.StringFilter<"DesktopIngredient"> | string
   organization?: Prisma.XOR<Prisma.DesktopOrganizationScalarRelationFilter, Prisma.DesktopOrganizationWhereInput>
+  brand?: Prisma.XOR<Prisma.DesktopBrandNullableScalarRelationFilter, Prisma.DesktopBrandWhereInput> | null
 }
 
 export type DesktopIngredientOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   organizationId?: Prisma.SortOrder
+  brandId?: Prisma.SortOrderInput | Prisma.SortOrder
   title?: Prisma.SortOrder
   content?: Prisma.SortOrder
   platform?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -262,6 +272,7 @@ export type DesktopIngredientOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   organization?: Prisma.DesktopOrganizationOrderByWithRelationInput
+  brand?: Prisma.DesktopBrandOrderByWithRelationInput
 }
 
 export type DesktopIngredientWhereUniqueInput = Prisma.AtLeast<{
@@ -270,6 +281,7 @@ export type DesktopIngredientWhereUniqueInput = Prisma.AtLeast<{
   OR?: Prisma.DesktopIngredientWhereInput[]
   NOT?: Prisma.DesktopIngredientWhereInput | Prisma.DesktopIngredientWhereInput[]
   organizationId?: Prisma.StringFilter<"DesktopIngredient"> | string
+  brandId?: Prisma.StringNullableFilter<"DesktopIngredient"> | string | null
   title?: Prisma.StringFilter<"DesktopIngredient"> | string
   content?: Prisma.StringFilter<"DesktopIngredient"> | string
   platform?: Prisma.StringNullableFilter<"DesktopIngredient"> | string | null
@@ -278,11 +290,13 @@ export type DesktopIngredientWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.StringFilter<"DesktopIngredient"> | string
   updatedAt?: Prisma.StringFilter<"DesktopIngredient"> | string
   organization?: Prisma.XOR<Prisma.DesktopOrganizationScalarRelationFilter, Prisma.DesktopOrganizationWhereInput>
+  brand?: Prisma.XOR<Prisma.DesktopBrandNullableScalarRelationFilter, Prisma.DesktopBrandWhereInput> | null
 }, "id">
 
 export type DesktopIngredientOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   organizationId?: Prisma.SortOrder
+  brandId?: Prisma.SortOrderInput | Prisma.SortOrder
   title?: Prisma.SortOrder
   content?: Prisma.SortOrder
   platform?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -303,6 +317,7 @@ export type DesktopIngredientScalarWhereWithAggregatesInput = {
   NOT?: Prisma.DesktopIngredientScalarWhereWithAggregatesInput | Prisma.DesktopIngredientScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"DesktopIngredient"> | string
   organizationId?: Prisma.StringWithAggregatesFilter<"DesktopIngredient"> | string
+  brandId?: Prisma.StringNullableWithAggregatesFilter<"DesktopIngredient"> | string | null
   title?: Prisma.StringWithAggregatesFilter<"DesktopIngredient"> | string
   content?: Prisma.StringWithAggregatesFilter<"DesktopIngredient"> | string
   platform?: Prisma.StringNullableWithAggregatesFilter<"DesktopIngredient"> | string | null
@@ -322,11 +337,13 @@ export type DesktopIngredientCreateInput = {
   createdAt: string
   updatedAt: string
   organization: Prisma.DesktopOrganizationCreateNestedOneWithoutIngredientsInput
+  brand?: Prisma.DesktopBrandCreateNestedOneWithoutIngredientsInput
 }
 
 export type DesktopIngredientUncheckedCreateInput = {
   id: string
   organizationId: string
+  brandId?: string | null
   title: string
   content: string
   platform?: string | null
@@ -346,11 +363,13 @@ export type DesktopIngredientUpdateInput = {
   createdAt?: Prisma.StringFieldUpdateOperationsInput | string
   updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
   organization?: Prisma.DesktopOrganizationUpdateOneRequiredWithoutIngredientsNestedInput
+  brand?: Prisma.DesktopBrandUpdateOneWithoutIngredientsNestedInput
 }
 
 export type DesktopIngredientUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
+  brandId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   title?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.StringFieldUpdateOperationsInput | string
   platform?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -363,6 +382,7 @@ export type DesktopIngredientUncheckedUpdateInput = {
 export type DesktopIngredientCreateManyInput = {
   id: string
   organizationId: string
+  brandId?: string | null
   title: string
   content: string
   platform?: string | null
@@ -386,6 +406,7 @@ export type DesktopIngredientUpdateManyMutationInput = {
 export type DesktopIngredientUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
+  brandId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   title?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.StringFieldUpdateOperationsInput | string
   platform?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -408,6 +429,7 @@ export type DesktopIngredientOrderByRelationAggregateInput = {
 export type DesktopIngredientCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   organizationId?: Prisma.SortOrder
+  brandId?: Prisma.SortOrder
   title?: Prisma.SortOrder
   content?: Prisma.SortOrder
   platform?: Prisma.SortOrder
@@ -424,6 +446,7 @@ export type DesktopIngredientAvgOrderByAggregateInput = {
 export type DesktopIngredientMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   organizationId?: Prisma.SortOrder
+  brandId?: Prisma.SortOrder
   title?: Prisma.SortOrder
   content?: Prisma.SortOrder
   platform?: Prisma.SortOrder
@@ -436,6 +459,7 @@ export type DesktopIngredientMaxOrderByAggregateInput = {
 export type DesktopIngredientMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   organizationId?: Prisma.SortOrder
+  brandId?: Prisma.SortOrder
   title?: Prisma.SortOrder
   content?: Prisma.SortOrder
   platform?: Prisma.SortOrder
@@ -491,6 +515,48 @@ export type DesktopIngredientUncheckedUpdateManyWithoutOrganizationNestedInput =
   deleteMany?: Prisma.DesktopIngredientScalarWhereInput | Prisma.DesktopIngredientScalarWhereInput[]
 }
 
+export type DesktopIngredientCreateNestedManyWithoutBrandInput = {
+  create?: Prisma.XOR<Prisma.DesktopIngredientCreateWithoutBrandInput, Prisma.DesktopIngredientUncheckedCreateWithoutBrandInput> | Prisma.DesktopIngredientCreateWithoutBrandInput[] | Prisma.DesktopIngredientUncheckedCreateWithoutBrandInput[]
+  connectOrCreate?: Prisma.DesktopIngredientCreateOrConnectWithoutBrandInput | Prisma.DesktopIngredientCreateOrConnectWithoutBrandInput[]
+  createMany?: Prisma.DesktopIngredientCreateManyBrandInputEnvelope
+  connect?: Prisma.DesktopIngredientWhereUniqueInput | Prisma.DesktopIngredientWhereUniqueInput[]
+}
+
+export type DesktopIngredientUncheckedCreateNestedManyWithoutBrandInput = {
+  create?: Prisma.XOR<Prisma.DesktopIngredientCreateWithoutBrandInput, Prisma.DesktopIngredientUncheckedCreateWithoutBrandInput> | Prisma.DesktopIngredientCreateWithoutBrandInput[] | Prisma.DesktopIngredientUncheckedCreateWithoutBrandInput[]
+  connectOrCreate?: Prisma.DesktopIngredientCreateOrConnectWithoutBrandInput | Prisma.DesktopIngredientCreateOrConnectWithoutBrandInput[]
+  createMany?: Prisma.DesktopIngredientCreateManyBrandInputEnvelope
+  connect?: Prisma.DesktopIngredientWhereUniqueInput | Prisma.DesktopIngredientWhereUniqueInput[]
+}
+
+export type DesktopIngredientUpdateManyWithoutBrandNestedInput = {
+  create?: Prisma.XOR<Prisma.DesktopIngredientCreateWithoutBrandInput, Prisma.DesktopIngredientUncheckedCreateWithoutBrandInput> | Prisma.DesktopIngredientCreateWithoutBrandInput[] | Prisma.DesktopIngredientUncheckedCreateWithoutBrandInput[]
+  connectOrCreate?: Prisma.DesktopIngredientCreateOrConnectWithoutBrandInput | Prisma.DesktopIngredientCreateOrConnectWithoutBrandInput[]
+  upsert?: Prisma.DesktopIngredientUpsertWithWhereUniqueWithoutBrandInput | Prisma.DesktopIngredientUpsertWithWhereUniqueWithoutBrandInput[]
+  createMany?: Prisma.DesktopIngredientCreateManyBrandInputEnvelope
+  set?: Prisma.DesktopIngredientWhereUniqueInput | Prisma.DesktopIngredientWhereUniqueInput[]
+  disconnect?: Prisma.DesktopIngredientWhereUniqueInput | Prisma.DesktopIngredientWhereUniqueInput[]
+  delete?: Prisma.DesktopIngredientWhereUniqueInput | Prisma.DesktopIngredientWhereUniqueInput[]
+  connect?: Prisma.DesktopIngredientWhereUniqueInput | Prisma.DesktopIngredientWhereUniqueInput[]
+  update?: Prisma.DesktopIngredientUpdateWithWhereUniqueWithoutBrandInput | Prisma.DesktopIngredientUpdateWithWhereUniqueWithoutBrandInput[]
+  updateMany?: Prisma.DesktopIngredientUpdateManyWithWhereWithoutBrandInput | Prisma.DesktopIngredientUpdateManyWithWhereWithoutBrandInput[]
+  deleteMany?: Prisma.DesktopIngredientScalarWhereInput | Prisma.DesktopIngredientScalarWhereInput[]
+}
+
+export type DesktopIngredientUncheckedUpdateManyWithoutBrandNestedInput = {
+  create?: Prisma.XOR<Prisma.DesktopIngredientCreateWithoutBrandInput, Prisma.DesktopIngredientUncheckedCreateWithoutBrandInput> | Prisma.DesktopIngredientCreateWithoutBrandInput[] | Prisma.DesktopIngredientUncheckedCreateWithoutBrandInput[]
+  connectOrCreate?: Prisma.DesktopIngredientCreateOrConnectWithoutBrandInput | Prisma.DesktopIngredientCreateOrConnectWithoutBrandInput[]
+  upsert?: Prisma.DesktopIngredientUpsertWithWhereUniqueWithoutBrandInput | Prisma.DesktopIngredientUpsertWithWhereUniqueWithoutBrandInput[]
+  createMany?: Prisma.DesktopIngredientCreateManyBrandInputEnvelope
+  set?: Prisma.DesktopIngredientWhereUniqueInput | Prisma.DesktopIngredientWhereUniqueInput[]
+  disconnect?: Prisma.DesktopIngredientWhereUniqueInput | Prisma.DesktopIngredientWhereUniqueInput[]
+  delete?: Prisma.DesktopIngredientWhereUniqueInput | Prisma.DesktopIngredientWhereUniqueInput[]
+  connect?: Prisma.DesktopIngredientWhereUniqueInput | Prisma.DesktopIngredientWhereUniqueInput[]
+  update?: Prisma.DesktopIngredientUpdateWithWhereUniqueWithoutBrandInput | Prisma.DesktopIngredientUpdateWithWhereUniqueWithoutBrandInput[]
+  updateMany?: Prisma.DesktopIngredientUpdateManyWithWhereWithoutBrandInput | Prisma.DesktopIngredientUpdateManyWithWhereWithoutBrandInput[]
+  deleteMany?: Prisma.DesktopIngredientScalarWhereInput | Prisma.DesktopIngredientScalarWhereInput[]
+}
+
 export type DesktopIngredientCreateWithoutOrganizationInput = {
   id: string
   title: string
@@ -500,10 +566,12 @@ export type DesktopIngredientCreateWithoutOrganizationInput = {
   sourceContentItemId?: string | null
   createdAt: string
   updatedAt: string
+  brand?: Prisma.DesktopBrandCreateNestedOneWithoutIngredientsInput
 }
 
 export type DesktopIngredientUncheckedCreateWithoutOrganizationInput = {
   id: string
+  brandId?: string | null
   title: string
   content: string
   platform?: string | null
@@ -545,6 +613,7 @@ export type DesktopIngredientScalarWhereInput = {
   NOT?: Prisma.DesktopIngredientScalarWhereInput | Prisma.DesktopIngredientScalarWhereInput[]
   id?: Prisma.StringFilter<"DesktopIngredient"> | string
   organizationId?: Prisma.StringFilter<"DesktopIngredient"> | string
+  brandId?: Prisma.StringNullableFilter<"DesktopIngredient"> | string | null
   title?: Prisma.StringFilter<"DesktopIngredient"> | string
   content?: Prisma.StringFilter<"DesktopIngredient"> | string
   platform?: Prisma.StringNullableFilter<"DesktopIngredient"> | string | null
@@ -554,8 +623,59 @@ export type DesktopIngredientScalarWhereInput = {
   updatedAt?: Prisma.StringFilter<"DesktopIngredient"> | string
 }
 
+export type DesktopIngredientCreateWithoutBrandInput = {
+  id: string
+  title: string
+  content: string
+  platform?: string | null
+  totalVotes?: number
+  sourceContentItemId?: string | null
+  createdAt: string
+  updatedAt: string
+  organization: Prisma.DesktopOrganizationCreateNestedOneWithoutIngredientsInput
+}
+
+export type DesktopIngredientUncheckedCreateWithoutBrandInput = {
+  id: string
+  organizationId: string
+  title: string
+  content: string
+  platform?: string | null
+  totalVotes?: number
+  sourceContentItemId?: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export type DesktopIngredientCreateOrConnectWithoutBrandInput = {
+  where: Prisma.DesktopIngredientWhereUniqueInput
+  create: Prisma.XOR<Prisma.DesktopIngredientCreateWithoutBrandInput, Prisma.DesktopIngredientUncheckedCreateWithoutBrandInput>
+}
+
+export type DesktopIngredientCreateManyBrandInputEnvelope = {
+  data: Prisma.DesktopIngredientCreateManyBrandInput | Prisma.DesktopIngredientCreateManyBrandInput[]
+  skipDuplicates?: boolean
+}
+
+export type DesktopIngredientUpsertWithWhereUniqueWithoutBrandInput = {
+  where: Prisma.DesktopIngredientWhereUniqueInput
+  update: Prisma.XOR<Prisma.DesktopIngredientUpdateWithoutBrandInput, Prisma.DesktopIngredientUncheckedUpdateWithoutBrandInput>
+  create: Prisma.XOR<Prisma.DesktopIngredientCreateWithoutBrandInput, Prisma.DesktopIngredientUncheckedCreateWithoutBrandInput>
+}
+
+export type DesktopIngredientUpdateWithWhereUniqueWithoutBrandInput = {
+  where: Prisma.DesktopIngredientWhereUniqueInput
+  data: Prisma.XOR<Prisma.DesktopIngredientUpdateWithoutBrandInput, Prisma.DesktopIngredientUncheckedUpdateWithoutBrandInput>
+}
+
+export type DesktopIngredientUpdateManyWithWhereWithoutBrandInput = {
+  where: Prisma.DesktopIngredientScalarWhereInput
+  data: Prisma.XOR<Prisma.DesktopIngredientUpdateManyMutationInput, Prisma.DesktopIngredientUncheckedUpdateManyWithoutBrandInput>
+}
+
 export type DesktopIngredientCreateManyOrganizationInput = {
   id: string
+  brandId?: string | null
   title: string
   content: string
   platform?: string | null
@@ -574,10 +694,12 @@ export type DesktopIngredientUpdateWithoutOrganizationInput = {
   sourceContentItemId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.StringFieldUpdateOperationsInput | string
   updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
+  brand?: Prisma.DesktopBrandUpdateOneWithoutIngredientsNestedInput
 }
 
 export type DesktopIngredientUncheckedUpdateWithoutOrganizationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  brandId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   title?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.StringFieldUpdateOperationsInput | string
   platform?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -589,6 +711,55 @@ export type DesktopIngredientUncheckedUpdateWithoutOrganizationInput = {
 
 export type DesktopIngredientUncheckedUpdateManyWithoutOrganizationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  brandId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  content?: Prisma.StringFieldUpdateOperationsInput | string
+  platform?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  totalVotes?: Prisma.IntFieldUpdateOperationsInput | number
+  sourceContentItemId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.StringFieldUpdateOperationsInput | string
+  updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
+}
+
+export type DesktopIngredientCreateManyBrandInput = {
+  id: string
+  organizationId: string
+  title: string
+  content: string
+  platform?: string | null
+  totalVotes?: number
+  sourceContentItemId?: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export type DesktopIngredientUpdateWithoutBrandInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  content?: Prisma.StringFieldUpdateOperationsInput | string
+  platform?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  totalVotes?: Prisma.IntFieldUpdateOperationsInput | number
+  sourceContentItemId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.StringFieldUpdateOperationsInput | string
+  updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
+  organization?: Prisma.DesktopOrganizationUpdateOneRequiredWithoutIngredientsNestedInput
+}
+
+export type DesktopIngredientUncheckedUpdateWithoutBrandInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  organizationId?: Prisma.StringFieldUpdateOperationsInput | string
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  content?: Prisma.StringFieldUpdateOperationsInput | string
+  platform?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  totalVotes?: Prisma.IntFieldUpdateOperationsInput | number
+  sourceContentItemId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.StringFieldUpdateOperationsInput | string
+  updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
+}
+
+export type DesktopIngredientUncheckedUpdateManyWithoutBrandInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  organizationId?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.StringFieldUpdateOperationsInput | string
   platform?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -603,6 +774,7 @@ export type DesktopIngredientUncheckedUpdateManyWithoutOrganizationInput = {
 export type DesktopIngredientSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   organizationId?: boolean
+  brandId?: boolean
   title?: boolean
   content?: boolean
   platform?: boolean
@@ -611,11 +783,13 @@ export type DesktopIngredientSelect<ExtArgs extends runtime.Types.Extensions.Int
   createdAt?: boolean
   updatedAt?: boolean
   organization?: boolean | Prisma.DesktopOrganizationDefaultArgs<ExtArgs>
+  brand?: boolean | Prisma.DesktopIngredient$brandArgs<ExtArgs>
 }, ExtArgs["result"]["desktopIngredient"]>
 
 export type DesktopIngredientSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   organizationId?: boolean
+  brandId?: boolean
   title?: boolean
   content?: boolean
   platform?: boolean
@@ -624,11 +798,13 @@ export type DesktopIngredientSelectCreateManyAndReturn<ExtArgs extends runtime.T
   createdAt?: boolean
   updatedAt?: boolean
   organization?: boolean | Prisma.DesktopOrganizationDefaultArgs<ExtArgs>
+  brand?: boolean | Prisma.DesktopIngredient$brandArgs<ExtArgs>
 }, ExtArgs["result"]["desktopIngredient"]>
 
 export type DesktopIngredientSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   organizationId?: boolean
+  brandId?: boolean
   title?: boolean
   content?: boolean
   platform?: boolean
@@ -637,11 +813,13 @@ export type DesktopIngredientSelectUpdateManyAndReturn<ExtArgs extends runtime.T
   createdAt?: boolean
   updatedAt?: boolean
   organization?: boolean | Prisma.DesktopOrganizationDefaultArgs<ExtArgs>
+  brand?: boolean | Prisma.DesktopIngredient$brandArgs<ExtArgs>
 }, ExtArgs["result"]["desktopIngredient"]>
 
 export type DesktopIngredientSelectScalar = {
   id?: boolean
   organizationId?: boolean
+  brandId?: boolean
   title?: boolean
   content?: boolean
   platform?: boolean
@@ -651,25 +829,30 @@ export type DesktopIngredientSelectScalar = {
   updatedAt?: boolean
 }
 
-export type DesktopIngredientOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "title" | "content" | "platform" | "totalVotes" | "sourceContentItemId" | "createdAt" | "updatedAt", ExtArgs["result"]["desktopIngredient"]>
+export type DesktopIngredientOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "brandId" | "title" | "content" | "platform" | "totalVotes" | "sourceContentItemId" | "createdAt" | "updatedAt", ExtArgs["result"]["desktopIngredient"]>
 export type DesktopIngredientInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   organization?: boolean | Prisma.DesktopOrganizationDefaultArgs<ExtArgs>
+  brand?: boolean | Prisma.DesktopIngredient$brandArgs<ExtArgs>
 }
 export type DesktopIngredientIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   organization?: boolean | Prisma.DesktopOrganizationDefaultArgs<ExtArgs>
+  brand?: boolean | Prisma.DesktopIngredient$brandArgs<ExtArgs>
 }
 export type DesktopIngredientIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   organization?: boolean | Prisma.DesktopOrganizationDefaultArgs<ExtArgs>
+  brand?: boolean | Prisma.DesktopIngredient$brandArgs<ExtArgs>
 }
 
 export type $DesktopIngredientPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "DesktopIngredient"
   objects: {
     organization: Prisma.$DesktopOrganizationPayload<ExtArgs>
+    brand: Prisma.$DesktopBrandPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     organizationId: string
+    brandId: string | null
     title: string
     content: string
     platform: string | null
@@ -1072,6 +1255,7 @@ readonly fields: DesktopIngredientFieldRefs;
 export interface Prisma__DesktopIngredientClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   organization<T extends Prisma.DesktopOrganizationDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DesktopOrganizationDefaultArgs<ExtArgs>>): Prisma.Prisma__DesktopOrganizationClient<runtime.Types.Result.GetResult<Prisma.$DesktopOrganizationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  brand<T extends Prisma.DesktopIngredient$brandArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DesktopIngredient$brandArgs<ExtArgs>>): Prisma.Prisma__DesktopBrandClient<runtime.Types.Result.GetResult<Prisma.$DesktopBrandPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1103,6 +1287,7 @@ export interface Prisma__DesktopIngredientClient<T, Null = never, ExtArgs extend
 export interface DesktopIngredientFieldRefs {
   readonly id: Prisma.FieldRef<"DesktopIngredient", 'String'>
   readonly organizationId: Prisma.FieldRef<"DesktopIngredient", 'String'>
+  readonly brandId: Prisma.FieldRef<"DesktopIngredient", 'String'>
   readonly title: Prisma.FieldRef<"DesktopIngredient", 'String'>
   readonly content: Prisma.FieldRef<"DesktopIngredient", 'String'>
   readonly platform: Prisma.FieldRef<"DesktopIngredient", 'String'>
@@ -1508,6 +1693,25 @@ export type DesktopIngredientDeleteManyArgs<ExtArgs extends runtime.Types.Extens
    * Limit how many DesktopIngredients to delete.
    */
   limit?: number
+}
+
+/**
+ * DesktopIngredient.brand
+ */
+export type DesktopIngredient$brandArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the DesktopBrand
+   */
+  select?: Prisma.DesktopBrandSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the DesktopBrand
+   */
+  omit?: Prisma.DesktopBrandOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.DesktopBrandInclude<ExtArgs> | null
+  where?: Prisma.DesktopBrandWhereInput
 }
 
 /**

@@ -39,6 +39,7 @@ export type DesktopContentItemSumAggregateOutputType = {
 export type DesktopContentItemMinAggregateOutputType = {
   id: string | null
   organizationId: string | null
+  brandId: string | null
   projectId: string | null
   platform: string | null
   type: string | null
@@ -59,6 +60,7 @@ export type DesktopContentItemMinAggregateOutputType = {
 export type DesktopContentItemMaxAggregateOutputType = {
   id: string | null
   organizationId: string | null
+  brandId: string | null
   projectId: string | null
   platform: string | null
   type: string | null
@@ -79,6 +81,7 @@ export type DesktopContentItemMaxAggregateOutputType = {
 export type DesktopContentItemCountAggregateOutputType = {
   id: number
   organizationId: number
+  brandId: number
   projectId: number
   platform: number
   type: number
@@ -111,6 +114,7 @@ export type DesktopContentItemSumAggregateInputType = {
 export type DesktopContentItemMinAggregateInputType = {
   id?: true
   organizationId?: true
+  brandId?: true
   projectId?: true
   platform?: true
   type?: true
@@ -131,6 +135,7 @@ export type DesktopContentItemMinAggregateInputType = {
 export type DesktopContentItemMaxAggregateInputType = {
   id?: true
   organizationId?: true
+  brandId?: true
   projectId?: true
   platform?: true
   type?: true
@@ -151,6 +156,7 @@ export type DesktopContentItemMaxAggregateInputType = {
 export type DesktopContentItemCountAggregateInputType = {
   id?: true
   organizationId?: true
+  brandId?: true
   projectId?: true
   platform?: true
   type?: true
@@ -258,6 +264,7 @@ export type DesktopContentItemGroupByArgs<ExtArgs extends runtime.Types.Extensio
 export type DesktopContentItemGroupByOutputType = {
   id: string
   organizationId: string
+  brandId: string | null
   projectId: string | null
   platform: string
   type: string
@@ -301,6 +308,7 @@ export type DesktopContentItemWhereInput = {
   NOT?: Prisma.DesktopContentItemWhereInput | Prisma.DesktopContentItemWhereInput[]
   id?: Prisma.StringFilter<"DesktopContentItem"> | string
   organizationId?: Prisma.StringFilter<"DesktopContentItem"> | string
+  brandId?: Prisma.StringNullableFilter<"DesktopContentItem"> | string | null
   projectId?: Prisma.StringNullableFilter<"DesktopContentItem"> | string | null
   platform?: Prisma.StringFilter<"DesktopContentItem"> | string
   type?: Prisma.StringFilter<"DesktopContentItem"> | string
@@ -317,12 +325,14 @@ export type DesktopContentItemWhereInput = {
   createdAt?: Prisma.StringFilter<"DesktopContentItem"> | string
   updatedAt?: Prisma.StringFilter<"DesktopContentItem"> | string
   organization?: Prisma.XOR<Prisma.DesktopOrganizationScalarRelationFilter, Prisma.DesktopOrganizationWhereInput>
+  brand?: Prisma.XOR<Prisma.DesktopBrandNullableScalarRelationFilter, Prisma.DesktopBrandWhereInput> | null
   project?: Prisma.XOR<Prisma.DesktopProjectNullableScalarRelationFilter, Prisma.DesktopProjectWhereInput> | null
 }
 
 export type DesktopContentItemOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   organizationId?: Prisma.SortOrder
+  brandId?: Prisma.SortOrderInput | Prisma.SortOrder
   projectId?: Prisma.SortOrderInput | Prisma.SortOrder
   platform?: Prisma.SortOrder
   type?: Prisma.SortOrder
@@ -339,6 +349,7 @@ export type DesktopContentItemOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   organization?: Prisma.DesktopOrganizationOrderByWithRelationInput
+  brand?: Prisma.DesktopBrandOrderByWithRelationInput
   project?: Prisma.DesktopProjectOrderByWithRelationInput
 }
 
@@ -349,6 +360,7 @@ export type DesktopContentItemWhereUniqueInput = Prisma.AtLeast<{
   OR?: Prisma.DesktopContentItemWhereInput[]
   NOT?: Prisma.DesktopContentItemWhereInput | Prisma.DesktopContentItemWhereInput[]
   organizationId?: Prisma.StringFilter<"DesktopContentItem"> | string
+  brandId?: Prisma.StringNullableFilter<"DesktopContentItem"> | string | null
   projectId?: Prisma.StringNullableFilter<"DesktopContentItem"> | string | null
   platform?: Prisma.StringFilter<"DesktopContentItem"> | string
   type?: Prisma.StringFilter<"DesktopContentItem"> | string
@@ -364,12 +376,14 @@ export type DesktopContentItemWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.StringFilter<"DesktopContentItem"> | string
   updatedAt?: Prisma.StringFilter<"DesktopContentItem"> | string
   organization?: Prisma.XOR<Prisma.DesktopOrganizationScalarRelationFilter, Prisma.DesktopOrganizationWhereInput>
+  brand?: Prisma.XOR<Prisma.DesktopBrandNullableScalarRelationFilter, Prisma.DesktopBrandWhereInput> | null
   project?: Prisma.XOR<Prisma.DesktopProjectNullableScalarRelationFilter, Prisma.DesktopProjectWhereInput> | null
 }, "id" | "sourceDraftId">
 
 export type DesktopContentItemOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   organizationId?: Prisma.SortOrder
+  brandId?: Prisma.SortOrderInput | Prisma.SortOrder
   projectId?: Prisma.SortOrderInput | Prisma.SortOrder
   platform?: Prisma.SortOrder
   type?: Prisma.SortOrder
@@ -398,6 +412,7 @@ export type DesktopContentItemScalarWhereWithAggregatesInput = {
   NOT?: Prisma.DesktopContentItemScalarWhereWithAggregatesInput | Prisma.DesktopContentItemScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"DesktopContentItem"> | string
   organizationId?: Prisma.StringWithAggregatesFilter<"DesktopContentItem"> | string
+  brandId?: Prisma.StringNullableWithAggregatesFilter<"DesktopContentItem"> | string | null
   projectId?: Prisma.StringNullableWithAggregatesFilter<"DesktopContentItem"> | string | null
   platform?: Prisma.StringWithAggregatesFilter<"DesktopContentItem"> | string
   type?: Prisma.StringWithAggregatesFilter<"DesktopContentItem"> | string
@@ -432,12 +447,14 @@ export type DesktopContentItemCreateInput = {
   createdAt: string
   updatedAt: string
   organization: Prisma.DesktopOrganizationCreateNestedOneWithoutContentItemsInput
+  brand?: Prisma.DesktopBrandCreateNestedOneWithoutContentItemsInput
   project?: Prisma.DesktopProjectCreateNestedOneWithoutContentItemsInput
 }
 
 export type DesktopContentItemUncheckedCreateInput = {
   id: string
   organizationId: string
+  brandId?: string | null
   projectId?: string | null
   platform: string
   type: string
@@ -472,12 +489,14 @@ export type DesktopContentItemUpdateInput = {
   createdAt?: Prisma.StringFieldUpdateOperationsInput | string
   updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
   organization?: Prisma.DesktopOrganizationUpdateOneRequiredWithoutContentItemsNestedInput
+  brand?: Prisma.DesktopBrandUpdateOneWithoutContentItemsNestedInput
   project?: Prisma.DesktopProjectUpdateOneWithoutContentItemsNestedInput
 }
 
 export type DesktopContentItemUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
+  brandId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platform?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.StringFieldUpdateOperationsInput | string
@@ -498,6 +517,7 @@ export type DesktopContentItemUncheckedUpdateInput = {
 export type DesktopContentItemCreateManyInput = {
   id: string
   organizationId: string
+  brandId?: string | null
   projectId?: string | null
   platform: string
   type: string
@@ -536,6 +556,7 @@ export type DesktopContentItemUpdateManyMutationInput = {
 export type DesktopContentItemUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
+  brandId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platform?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.StringFieldUpdateOperationsInput | string
@@ -566,6 +587,7 @@ export type DesktopContentItemOrderByRelationAggregateInput = {
 export type DesktopContentItemCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   organizationId?: Prisma.SortOrder
+  brandId?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
   platform?: Prisma.SortOrder
   type?: Prisma.SortOrder
@@ -591,6 +613,7 @@ export type DesktopContentItemAvgOrderByAggregateInput = {
 export type DesktopContentItemMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   organizationId?: Prisma.SortOrder
+  brandId?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
   platform?: Prisma.SortOrder
   type?: Prisma.SortOrder
@@ -611,6 +634,7 @@ export type DesktopContentItemMaxOrderByAggregateInput = {
 export type DesktopContentItemMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   organizationId?: Prisma.SortOrder
+  brandId?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
   platform?: Prisma.SortOrder
   type?: Prisma.SortOrder
@@ -675,6 +699,48 @@ export type DesktopContentItemUncheckedUpdateManyWithoutOrganizationNestedInput 
   deleteMany?: Prisma.DesktopContentItemScalarWhereInput | Prisma.DesktopContentItemScalarWhereInput[]
 }
 
+export type DesktopContentItemCreateNestedManyWithoutBrandInput = {
+  create?: Prisma.XOR<Prisma.DesktopContentItemCreateWithoutBrandInput, Prisma.DesktopContentItemUncheckedCreateWithoutBrandInput> | Prisma.DesktopContentItemCreateWithoutBrandInput[] | Prisma.DesktopContentItemUncheckedCreateWithoutBrandInput[]
+  connectOrCreate?: Prisma.DesktopContentItemCreateOrConnectWithoutBrandInput | Prisma.DesktopContentItemCreateOrConnectWithoutBrandInput[]
+  createMany?: Prisma.DesktopContentItemCreateManyBrandInputEnvelope
+  connect?: Prisma.DesktopContentItemWhereUniqueInput | Prisma.DesktopContentItemWhereUniqueInput[]
+}
+
+export type DesktopContentItemUncheckedCreateNestedManyWithoutBrandInput = {
+  create?: Prisma.XOR<Prisma.DesktopContentItemCreateWithoutBrandInput, Prisma.DesktopContentItemUncheckedCreateWithoutBrandInput> | Prisma.DesktopContentItemCreateWithoutBrandInput[] | Prisma.DesktopContentItemUncheckedCreateWithoutBrandInput[]
+  connectOrCreate?: Prisma.DesktopContentItemCreateOrConnectWithoutBrandInput | Prisma.DesktopContentItemCreateOrConnectWithoutBrandInput[]
+  createMany?: Prisma.DesktopContentItemCreateManyBrandInputEnvelope
+  connect?: Prisma.DesktopContentItemWhereUniqueInput | Prisma.DesktopContentItemWhereUniqueInput[]
+}
+
+export type DesktopContentItemUpdateManyWithoutBrandNestedInput = {
+  create?: Prisma.XOR<Prisma.DesktopContentItemCreateWithoutBrandInput, Prisma.DesktopContentItemUncheckedCreateWithoutBrandInput> | Prisma.DesktopContentItemCreateWithoutBrandInput[] | Prisma.DesktopContentItemUncheckedCreateWithoutBrandInput[]
+  connectOrCreate?: Prisma.DesktopContentItemCreateOrConnectWithoutBrandInput | Prisma.DesktopContentItemCreateOrConnectWithoutBrandInput[]
+  upsert?: Prisma.DesktopContentItemUpsertWithWhereUniqueWithoutBrandInput | Prisma.DesktopContentItemUpsertWithWhereUniqueWithoutBrandInput[]
+  createMany?: Prisma.DesktopContentItemCreateManyBrandInputEnvelope
+  set?: Prisma.DesktopContentItemWhereUniqueInput | Prisma.DesktopContentItemWhereUniqueInput[]
+  disconnect?: Prisma.DesktopContentItemWhereUniqueInput | Prisma.DesktopContentItemWhereUniqueInput[]
+  delete?: Prisma.DesktopContentItemWhereUniqueInput | Prisma.DesktopContentItemWhereUniqueInput[]
+  connect?: Prisma.DesktopContentItemWhereUniqueInput | Prisma.DesktopContentItemWhereUniqueInput[]
+  update?: Prisma.DesktopContentItemUpdateWithWhereUniqueWithoutBrandInput | Prisma.DesktopContentItemUpdateWithWhereUniqueWithoutBrandInput[]
+  updateMany?: Prisma.DesktopContentItemUpdateManyWithWhereWithoutBrandInput | Prisma.DesktopContentItemUpdateManyWithWhereWithoutBrandInput[]
+  deleteMany?: Prisma.DesktopContentItemScalarWhereInput | Prisma.DesktopContentItemScalarWhereInput[]
+}
+
+export type DesktopContentItemUncheckedUpdateManyWithoutBrandNestedInput = {
+  create?: Prisma.XOR<Prisma.DesktopContentItemCreateWithoutBrandInput, Prisma.DesktopContentItemUncheckedCreateWithoutBrandInput> | Prisma.DesktopContentItemCreateWithoutBrandInput[] | Prisma.DesktopContentItemUncheckedCreateWithoutBrandInput[]
+  connectOrCreate?: Prisma.DesktopContentItemCreateOrConnectWithoutBrandInput | Prisma.DesktopContentItemCreateOrConnectWithoutBrandInput[]
+  upsert?: Prisma.DesktopContentItemUpsertWithWhereUniqueWithoutBrandInput | Prisma.DesktopContentItemUpsertWithWhereUniqueWithoutBrandInput[]
+  createMany?: Prisma.DesktopContentItemCreateManyBrandInputEnvelope
+  set?: Prisma.DesktopContentItemWhereUniqueInput | Prisma.DesktopContentItemWhereUniqueInput[]
+  disconnect?: Prisma.DesktopContentItemWhereUniqueInput | Prisma.DesktopContentItemWhereUniqueInput[]
+  delete?: Prisma.DesktopContentItemWhereUniqueInput | Prisma.DesktopContentItemWhereUniqueInput[]
+  connect?: Prisma.DesktopContentItemWhereUniqueInput | Prisma.DesktopContentItemWhereUniqueInput[]
+  update?: Prisma.DesktopContentItemUpdateWithWhereUniqueWithoutBrandInput | Prisma.DesktopContentItemUpdateWithWhereUniqueWithoutBrandInput[]
+  updateMany?: Prisma.DesktopContentItemUpdateManyWithWhereWithoutBrandInput | Prisma.DesktopContentItemUpdateManyWithWhereWithoutBrandInput[]
+  deleteMany?: Prisma.DesktopContentItemScalarWhereInput | Prisma.DesktopContentItemScalarWhereInput[]
+}
+
 export type DesktopContentItemCreateNestedManyWithoutProjectInput = {
   create?: Prisma.XOR<Prisma.DesktopContentItemCreateWithoutProjectInput, Prisma.DesktopContentItemUncheckedCreateWithoutProjectInput> | Prisma.DesktopContentItemCreateWithoutProjectInput[] | Prisma.DesktopContentItemUncheckedCreateWithoutProjectInput[]
   connectOrCreate?: Prisma.DesktopContentItemCreateOrConnectWithoutProjectInput | Prisma.DesktopContentItemCreateOrConnectWithoutProjectInput[]
@@ -733,11 +799,13 @@ export type DesktopContentItemCreateWithoutOrganizationInput = {
   engagements?: number
   createdAt: string
   updatedAt: string
+  brand?: Prisma.DesktopBrandCreateNestedOneWithoutContentItemsInput
   project?: Prisma.DesktopProjectCreateNestedOneWithoutContentItemsInput
 }
 
 export type DesktopContentItemUncheckedCreateWithoutOrganizationInput = {
   id: string
+  brandId?: string | null
   projectId?: string | null
   platform: string
   type: string
@@ -787,6 +855,7 @@ export type DesktopContentItemScalarWhereInput = {
   NOT?: Prisma.DesktopContentItemScalarWhereInput | Prisma.DesktopContentItemScalarWhereInput[]
   id?: Prisma.StringFilter<"DesktopContentItem"> | string
   organizationId?: Prisma.StringFilter<"DesktopContentItem"> | string
+  brandId?: Prisma.StringNullableFilter<"DesktopContentItem"> | string | null
   projectId?: Prisma.StringNullableFilter<"DesktopContentItem"> | string | null
   platform?: Prisma.StringFilter<"DesktopContentItem"> | string
   type?: Prisma.StringFilter<"DesktopContentItem"> | string
@@ -802,6 +871,72 @@ export type DesktopContentItemScalarWhereInput = {
   engagements?: Prisma.IntFilter<"DesktopContentItem"> | number
   createdAt?: Prisma.StringFilter<"DesktopContentItem"> | string
   updatedAt?: Prisma.StringFilter<"DesktopContentItem"> | string
+}
+
+export type DesktopContentItemCreateWithoutBrandInput = {
+  id: string
+  platform: string
+  type: string
+  prompt: string
+  content: string
+  status: string
+  publishIntent?: string | null
+  sourceDraftId?: string | null
+  sourceTrendId?: string | null
+  sourceTrendTopic?: string | null
+  publishedAt?: string | null
+  views?: number
+  engagements?: number
+  createdAt: string
+  updatedAt: string
+  organization: Prisma.DesktopOrganizationCreateNestedOneWithoutContentItemsInput
+  project?: Prisma.DesktopProjectCreateNestedOneWithoutContentItemsInput
+}
+
+export type DesktopContentItemUncheckedCreateWithoutBrandInput = {
+  id: string
+  organizationId: string
+  projectId?: string | null
+  platform: string
+  type: string
+  prompt: string
+  content: string
+  status: string
+  publishIntent?: string | null
+  sourceDraftId?: string | null
+  sourceTrendId?: string | null
+  sourceTrendTopic?: string | null
+  publishedAt?: string | null
+  views?: number
+  engagements?: number
+  createdAt: string
+  updatedAt: string
+}
+
+export type DesktopContentItemCreateOrConnectWithoutBrandInput = {
+  where: Prisma.DesktopContentItemWhereUniqueInput
+  create: Prisma.XOR<Prisma.DesktopContentItemCreateWithoutBrandInput, Prisma.DesktopContentItemUncheckedCreateWithoutBrandInput>
+}
+
+export type DesktopContentItemCreateManyBrandInputEnvelope = {
+  data: Prisma.DesktopContentItemCreateManyBrandInput | Prisma.DesktopContentItemCreateManyBrandInput[]
+  skipDuplicates?: boolean
+}
+
+export type DesktopContentItemUpsertWithWhereUniqueWithoutBrandInput = {
+  where: Prisma.DesktopContentItemWhereUniqueInput
+  update: Prisma.XOR<Prisma.DesktopContentItemUpdateWithoutBrandInput, Prisma.DesktopContentItemUncheckedUpdateWithoutBrandInput>
+  create: Prisma.XOR<Prisma.DesktopContentItemCreateWithoutBrandInput, Prisma.DesktopContentItemUncheckedCreateWithoutBrandInput>
+}
+
+export type DesktopContentItemUpdateWithWhereUniqueWithoutBrandInput = {
+  where: Prisma.DesktopContentItemWhereUniqueInput
+  data: Prisma.XOR<Prisma.DesktopContentItemUpdateWithoutBrandInput, Prisma.DesktopContentItemUncheckedUpdateWithoutBrandInput>
+}
+
+export type DesktopContentItemUpdateManyWithWhereWithoutBrandInput = {
+  where: Prisma.DesktopContentItemScalarWhereInput
+  data: Prisma.XOR<Prisma.DesktopContentItemUpdateManyMutationInput, Prisma.DesktopContentItemUncheckedUpdateManyWithoutBrandInput>
 }
 
 export type DesktopContentItemCreateWithoutProjectInput = {
@@ -821,11 +956,13 @@ export type DesktopContentItemCreateWithoutProjectInput = {
   createdAt: string
   updatedAt: string
   organization: Prisma.DesktopOrganizationCreateNestedOneWithoutContentItemsInput
+  brand?: Prisma.DesktopBrandCreateNestedOneWithoutContentItemsInput
 }
 
 export type DesktopContentItemUncheckedCreateWithoutProjectInput = {
   id: string
   organizationId: string
+  brandId?: string | null
   platform: string
   type: string
   prompt: string
@@ -870,6 +1007,7 @@ export type DesktopContentItemUpdateManyWithWhereWithoutProjectInput = {
 
 export type DesktopContentItemCreateManyOrganizationInput = {
   id: string
+  brandId?: string | null
   projectId?: string | null
   platform: string
   type: string
@@ -903,11 +1041,13 @@ export type DesktopContentItemUpdateWithoutOrganizationInput = {
   engagements?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.StringFieldUpdateOperationsInput | string
   updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
+  brand?: Prisma.DesktopBrandUpdateOneWithoutContentItemsNestedInput
   project?: Prisma.DesktopProjectUpdateOneWithoutContentItemsNestedInput
 }
 
 export type DesktopContentItemUncheckedUpdateWithoutOrganizationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  brandId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platform?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.StringFieldUpdateOperationsInput | string
@@ -927,6 +1067,87 @@ export type DesktopContentItemUncheckedUpdateWithoutOrganizationInput = {
 
 export type DesktopContentItemUncheckedUpdateManyWithoutOrganizationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  brandId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  platform?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.StringFieldUpdateOperationsInput | string
+  prompt?: Prisma.StringFieldUpdateOperationsInput | string
+  content?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  publishIntent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceDraftId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceTrendId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceTrendTopic?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  publishedAt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  views?: Prisma.IntFieldUpdateOperationsInput | number
+  engagements?: Prisma.IntFieldUpdateOperationsInput | number
+  createdAt?: Prisma.StringFieldUpdateOperationsInput | string
+  updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
+}
+
+export type DesktopContentItemCreateManyBrandInput = {
+  id: string
+  organizationId: string
+  projectId?: string | null
+  platform: string
+  type: string
+  prompt: string
+  content: string
+  status: string
+  publishIntent?: string | null
+  sourceDraftId?: string | null
+  sourceTrendId?: string | null
+  sourceTrendTopic?: string | null
+  publishedAt?: string | null
+  views?: number
+  engagements?: number
+  createdAt: string
+  updatedAt: string
+}
+
+export type DesktopContentItemUpdateWithoutBrandInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  platform?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.StringFieldUpdateOperationsInput | string
+  prompt?: Prisma.StringFieldUpdateOperationsInput | string
+  content?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  publishIntent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceDraftId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceTrendId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceTrendTopic?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  publishedAt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  views?: Prisma.IntFieldUpdateOperationsInput | number
+  engagements?: Prisma.IntFieldUpdateOperationsInput | number
+  createdAt?: Prisma.StringFieldUpdateOperationsInput | string
+  updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
+  organization?: Prisma.DesktopOrganizationUpdateOneRequiredWithoutContentItemsNestedInput
+  project?: Prisma.DesktopProjectUpdateOneWithoutContentItemsNestedInput
+}
+
+export type DesktopContentItemUncheckedUpdateWithoutBrandInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  organizationId?: Prisma.StringFieldUpdateOperationsInput | string
+  projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  platform?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.StringFieldUpdateOperationsInput | string
+  prompt?: Prisma.StringFieldUpdateOperationsInput | string
+  content?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  publishIntent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceDraftId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceTrendId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceTrendTopic?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  publishedAt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  views?: Prisma.IntFieldUpdateOperationsInput | number
+  engagements?: Prisma.IntFieldUpdateOperationsInput | number
+  createdAt?: Prisma.StringFieldUpdateOperationsInput | string
+  updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
+}
+
+export type DesktopContentItemUncheckedUpdateManyWithoutBrandInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  organizationId?: Prisma.StringFieldUpdateOperationsInput | string
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platform?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.StringFieldUpdateOperationsInput | string
@@ -947,6 +1168,7 @@ export type DesktopContentItemUncheckedUpdateManyWithoutOrganizationInput = {
 export type DesktopContentItemCreateManyProjectInput = {
   id: string
   organizationId: string
+  brandId?: string | null
   platform: string
   type: string
   prompt: string
@@ -980,11 +1202,13 @@ export type DesktopContentItemUpdateWithoutProjectInput = {
   createdAt?: Prisma.StringFieldUpdateOperationsInput | string
   updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
   organization?: Prisma.DesktopOrganizationUpdateOneRequiredWithoutContentItemsNestedInput
+  brand?: Prisma.DesktopBrandUpdateOneWithoutContentItemsNestedInput
 }
 
 export type DesktopContentItemUncheckedUpdateWithoutProjectInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
+  brandId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platform?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.StringFieldUpdateOperationsInput | string
   prompt?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1004,6 +1228,7 @@ export type DesktopContentItemUncheckedUpdateWithoutProjectInput = {
 export type DesktopContentItemUncheckedUpdateManyWithoutProjectInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
+  brandId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platform?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.StringFieldUpdateOperationsInput | string
   prompt?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1025,6 +1250,7 @@ export type DesktopContentItemUncheckedUpdateManyWithoutProjectInput = {
 export type DesktopContentItemSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   organizationId?: boolean
+  brandId?: boolean
   projectId?: boolean
   platform?: boolean
   type?: boolean
@@ -1041,12 +1267,14 @@ export type DesktopContentItemSelect<ExtArgs extends runtime.Types.Extensions.In
   createdAt?: boolean
   updatedAt?: boolean
   organization?: boolean | Prisma.DesktopOrganizationDefaultArgs<ExtArgs>
+  brand?: boolean | Prisma.DesktopContentItem$brandArgs<ExtArgs>
   project?: boolean | Prisma.DesktopContentItem$projectArgs<ExtArgs>
 }, ExtArgs["result"]["desktopContentItem"]>
 
 export type DesktopContentItemSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   organizationId?: boolean
+  brandId?: boolean
   projectId?: boolean
   platform?: boolean
   type?: boolean
@@ -1063,12 +1291,14 @@ export type DesktopContentItemSelectCreateManyAndReturn<ExtArgs extends runtime.
   createdAt?: boolean
   updatedAt?: boolean
   organization?: boolean | Prisma.DesktopOrganizationDefaultArgs<ExtArgs>
+  brand?: boolean | Prisma.DesktopContentItem$brandArgs<ExtArgs>
   project?: boolean | Prisma.DesktopContentItem$projectArgs<ExtArgs>
 }, ExtArgs["result"]["desktopContentItem"]>
 
 export type DesktopContentItemSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   organizationId?: boolean
+  brandId?: boolean
   projectId?: boolean
   platform?: boolean
   type?: boolean
@@ -1085,12 +1315,14 @@ export type DesktopContentItemSelectUpdateManyAndReturn<ExtArgs extends runtime.
   createdAt?: boolean
   updatedAt?: boolean
   organization?: boolean | Prisma.DesktopOrganizationDefaultArgs<ExtArgs>
+  brand?: boolean | Prisma.DesktopContentItem$brandArgs<ExtArgs>
   project?: boolean | Prisma.DesktopContentItem$projectArgs<ExtArgs>
 }, ExtArgs["result"]["desktopContentItem"]>
 
 export type DesktopContentItemSelectScalar = {
   id?: boolean
   organizationId?: boolean
+  brandId?: boolean
   projectId?: boolean
   platform?: boolean
   type?: boolean
@@ -1108,17 +1340,20 @@ export type DesktopContentItemSelectScalar = {
   updatedAt?: boolean
 }
 
-export type DesktopContentItemOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "projectId" | "platform" | "type" | "prompt" | "content" | "status" | "publishIntent" | "sourceDraftId" | "sourceTrendId" | "sourceTrendTopic" | "publishedAt" | "views" | "engagements" | "createdAt" | "updatedAt", ExtArgs["result"]["desktopContentItem"]>
+export type DesktopContentItemOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "brandId" | "projectId" | "platform" | "type" | "prompt" | "content" | "status" | "publishIntent" | "sourceDraftId" | "sourceTrendId" | "sourceTrendTopic" | "publishedAt" | "views" | "engagements" | "createdAt" | "updatedAt", ExtArgs["result"]["desktopContentItem"]>
 export type DesktopContentItemInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   organization?: boolean | Prisma.DesktopOrganizationDefaultArgs<ExtArgs>
+  brand?: boolean | Prisma.DesktopContentItem$brandArgs<ExtArgs>
   project?: boolean | Prisma.DesktopContentItem$projectArgs<ExtArgs>
 }
 export type DesktopContentItemIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   organization?: boolean | Prisma.DesktopOrganizationDefaultArgs<ExtArgs>
+  brand?: boolean | Prisma.DesktopContentItem$brandArgs<ExtArgs>
   project?: boolean | Prisma.DesktopContentItem$projectArgs<ExtArgs>
 }
 export type DesktopContentItemIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   organization?: boolean | Prisma.DesktopOrganizationDefaultArgs<ExtArgs>
+  brand?: boolean | Prisma.DesktopContentItem$brandArgs<ExtArgs>
   project?: boolean | Prisma.DesktopContentItem$projectArgs<ExtArgs>
 }
 
@@ -1126,11 +1361,13 @@ export type $DesktopContentItemPayload<ExtArgs extends runtime.Types.Extensions.
   name: "DesktopContentItem"
   objects: {
     organization: Prisma.$DesktopOrganizationPayload<ExtArgs>
+    brand: Prisma.$DesktopBrandPayload<ExtArgs> | null
     project: Prisma.$DesktopProjectPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     organizationId: string
+    brandId: string | null
     projectId: string | null
     platform: string
     type: string
@@ -1541,6 +1778,7 @@ readonly fields: DesktopContentItemFieldRefs;
 export interface Prisma__DesktopContentItemClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   organization<T extends Prisma.DesktopOrganizationDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DesktopOrganizationDefaultArgs<ExtArgs>>): Prisma.Prisma__DesktopOrganizationClient<runtime.Types.Result.GetResult<Prisma.$DesktopOrganizationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  brand<T extends Prisma.DesktopContentItem$brandArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DesktopContentItem$brandArgs<ExtArgs>>): Prisma.Prisma__DesktopBrandClient<runtime.Types.Result.GetResult<Prisma.$DesktopBrandPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   project<T extends Prisma.DesktopContentItem$projectArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DesktopContentItem$projectArgs<ExtArgs>>): Prisma.Prisma__DesktopProjectClient<runtime.Types.Result.GetResult<Prisma.$DesktopProjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -1573,6 +1811,7 @@ export interface Prisma__DesktopContentItemClient<T, Null = never, ExtArgs exten
 export interface DesktopContentItemFieldRefs {
   readonly id: Prisma.FieldRef<"DesktopContentItem", 'String'>
   readonly organizationId: Prisma.FieldRef<"DesktopContentItem", 'String'>
+  readonly brandId: Prisma.FieldRef<"DesktopContentItem", 'String'>
   readonly projectId: Prisma.FieldRef<"DesktopContentItem", 'String'>
   readonly platform: Prisma.FieldRef<"DesktopContentItem", 'String'>
   readonly type: Prisma.FieldRef<"DesktopContentItem", 'String'>
@@ -1986,6 +2225,25 @@ export type DesktopContentItemDeleteManyArgs<ExtArgs extends runtime.Types.Exten
    * Limit how many DesktopContentItems to delete.
    */
   limit?: number
+}
+
+/**
+ * DesktopContentItem.brand
+ */
+export type DesktopContentItem$brandArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the DesktopBrand
+   */
+  select?: Prisma.DesktopBrandSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the DesktopBrand
+   */
+  omit?: Prisma.DesktopBrandOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.DesktopBrandInclude<ExtArgs> | null
+  where?: Prisma.DesktopBrandWhereInput
 }
 
 /**

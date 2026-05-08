@@ -165,11 +165,13 @@ describe('DesktopDatabaseService', () => {
       id: 'workspace-1',
       indexingState: 'idle',
       lastOpenedAt: now,
+      linkedBrandId: null,
       linkedProjectId: null,
       localDraftCount: 2,
       name: 'Desktop Workspace',
       path: '/tmp/workspace',
       pendingSyncCount: 1,
+      syncPolicy: 'local-only',
       updatedAt: now,
     });
 
