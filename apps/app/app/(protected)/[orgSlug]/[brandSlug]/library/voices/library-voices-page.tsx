@@ -21,7 +21,7 @@ import { OrganizationsService } from '@services/organization/organizations.servi
 import { BrandsService } from '@services/social/brands.service';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import VoiceCatalogList from './voice-catalog-list';
 import VoiceCatalogRow from './voice-catalog-row';
 
@@ -56,8 +56,8 @@ function LibraryVoicesContent() {
   const notifications = NotificationsService.getInstance();
   const { filters, onRefresh, query } = useIngredientsContext();
   const pathname = usePathname();
-  const router = useRouter();
-  const searchParams = useSearchParams();
+  const { replace } = useRouter();
+  const { get, toString: getSearchParamsString } = useSearchParams();
   const { closeUpload, openUpload } = useUploadModal();
   const { brandId, organizationId, refreshBrands, selectedBrand } = useBrand();
   const selectedBrandState = selectedBrand as SelectedBrandState | undefined;
@@ -66,7 +66,7 @@ function LibraryVoicesContent() {
     | DefaultVoiceRef
     | null
     | undefined;
-  const currentPage = Number(searchParams?.get('page')) || 1;
+  const currentPage = Number(get('page')) || 1;
 
   const getVoiceCloneService = useAuthedService((token: string) =>
     VoiceCloneService.getInstance(token),
@@ -153,7 +153,7 @@ function LibraryVoicesContent() {
   }, [closeUpload, openUpload, refreshVoices]);
 
   const handleClearFilters = useCallback(() => {
-    const params = new URLSearchParams(searchParams?.toString() || '');
+    const params = new URLSearchParams(getSearchParamsString() || '');
     params.delete('provider');
     params.delete('search');
     params.delete('sort');
@@ -162,10 +162,10 @@ function LibraryVoicesContent() {
     params.delete('page');
     const nextQuery = params.toString();
 
-    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, {
+    replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, {
       scroll: false,
     });
-  }, [pathname, router, searchParams]);
+  }, [pathname, replace, getSearchParamsString]);
 
   useEffect(() => {
     onRefresh?.(() => {
@@ -369,7 +369,7 @@ function LibraryVoicesContent() {
   );
 }
 
-export default function LibraryVoicesPage() {
+function LibraryVoicesPageContent() {
   return (
     <IngredientsLayout
       scope={PageScope.BRAND}
@@ -378,5 +378,13 @@ export default function LibraryVoicesPage() {
     >
       <LibraryVoicesContent />
     </IngredientsLayout>
+  );
+}
+
+export default function LibraryVoicesPage() {
+  return (
+    <Suspense fallback={null}>
+      <LibraryVoicesPageContent />
+    </Suspense>
   );
 }

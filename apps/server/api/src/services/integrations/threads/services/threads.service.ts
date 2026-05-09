@@ -13,10 +13,17 @@ import { firstValueFrom } from 'rxjs';
  * Threads API Media Types
  */
 export enum ThreadsMediaType {
+  CAROUSEL = 'CAROUSEL',
   TEXT = 'TEXT',
   IMAGE = 'IMAGE',
   VIDEO = 'VIDEO',
 }
+
+export type ThreadsCarouselMediaItem = {
+  mediaType: ThreadsMediaType.IMAGE | ThreadsMediaType.VIDEO;
+  url: string;
+  altText?: string;
+};
 
 /**
  * Threads API Container Status
@@ -179,7 +186,7 @@ export class ThreadsService {
     );
 
     try {
-      const params: Record<string, string> = {
+      const params: Record<string, string | boolean> = {
         access_token: decryptedAccessToken,
         media_type: ThreadsMediaType.TEXT,
         text,
@@ -217,6 +224,7 @@ export class ThreadsService {
     imageUrl: string,
     text?: string,
     replyToId?: string,
+    options: { altText?: string; isCarouselItem?: boolean } = {},
   ): Promise<{ containerId: string }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -230,10 +238,138 @@ export class ThreadsService {
     );
 
     try {
-      const params: Record<string, string> = {
+      const params: Record<string, string | boolean> = {
         access_token: decryptedAccessToken,
         image_url: imageUrl,
         media_type: ThreadsMediaType.IMAGE,
+      };
+
+      if (text) {
+        params.text = text;
+      }
+
+      if (replyToId) {
+        params.reply_to_id = replyToId;
+      }
+
+      if (options.altText) {
+        params.alt_text = options.altText;
+      }
+
+      if (options.isCarouselItem) {
+        params.is_carousel_item = true;
+      }
+
+      const response = await firstValueFrom(
+        this.httpService.post(
+          `${this.graphUrl}/${this.apiVersion}/${externalId}/threads`,
+          null,
+          { params },
+        ),
+      );
+
+      this.loggerService.log(`${url} succeeded`, response.data);
+
+      return { containerId: response.data.id };
+    } catch (error: unknown) {
+      this.loggerService.error(`${url} failed`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create a media container for a video post
+   * Step 1 of the two-step publishing process
+   */
+  public async createVideoContainer(
+    organizationId: string,
+    brandId: string,
+    videoUrl: string,
+    text?: string,
+    replyToId?: string,
+    options: { altText?: string; isCarouselItem?: boolean } = {},
+  ): Promise<{ containerId: string }> {
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+
+    const credential = await this.getCredential(organizationId, brandId);
+    const decryptedAccessToken = EncryptionUtil.decrypt(
+      this.requireString(credential.accessToken, 'Threads access token'),
+    );
+    const externalId = this.requireString(
+      credential.externalId,
+      'Threads externalId',
+    );
+
+    try {
+      const params: Record<string, string | boolean> = {
+        access_token: decryptedAccessToken,
+        media_type: ThreadsMediaType.VIDEO,
+        video_url: videoUrl,
+      };
+
+      if (text) {
+        params.text = text;
+      }
+
+      if (replyToId) {
+        params.reply_to_id = replyToId;
+      }
+
+      if (options.altText) {
+        params.alt_text = options.altText;
+      }
+
+      if (options.isCarouselItem) {
+        params.is_carousel_item = true;
+      }
+
+      const response = await firstValueFrom(
+        this.httpService.post(
+          `${this.graphUrl}/${this.apiVersion}/${externalId}/threads`,
+          null,
+          { params },
+        ),
+      );
+
+      this.loggerService.log(`${url} succeeded`, response.data);
+
+      return { containerId: response.data.id };
+    } catch (error: unknown) {
+      this.loggerService.error(`${url} failed`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create a carousel container from previously-created item containers.
+   */
+  public async createCarouselContainer(
+    organizationId: string,
+    brandId: string,
+    childrenContainerIds: string[],
+    text?: string,
+    replyToId?: string,
+  ): Promise<{ containerId: string }> {
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+
+    if (childrenContainerIds.length < 2 || childrenContainerIds.length > 20) {
+      throw new Error('Threads carousels require between 2 and 20 media items');
+    }
+
+    const credential = await this.getCredential(organizationId, brandId);
+    const decryptedAccessToken = EncryptionUtil.decrypt(
+      this.requireString(credential.accessToken, 'Threads access token'),
+    );
+    const externalId = this.requireString(
+      credential.externalId,
+      'Threads externalId',
+    );
+
+    try {
+      const params: Record<string, string | boolean> = {
+        access_token: decryptedAccessToken,
+        children: childrenContainerIds.join(','),
+        media_type: ThreadsMediaType.CAROUSEL,
       };
 
       if (text) {
@@ -429,6 +565,126 @@ export class ThreadsService {
   }
 
   /**
+   * Publish a video thread (convenience method combining create + publish)
+   */
+  public async publishVideo(
+    organizationId: string,
+    brandId: string,
+    videoUrl: string,
+    text?: string,
+    replyToId?: string,
+  ): Promise<{ threadId: string }> {
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+
+    try {
+      if (text && text.length > 500) {
+        throw new Error('Threads posts are limited to 500 characters');
+      }
+
+      const { containerId } = await this.createVideoContainer(
+        organizationId,
+        brandId,
+        videoUrl,
+        text,
+        replyToId,
+      );
+
+      await this.waitForContainerReady(organizationId, brandId, containerId);
+
+      const { threadId } = await this.publishContainer(
+        organizationId,
+        brandId,
+        containerId,
+      );
+
+      this.loggerService.log(`${url} succeeded`, { threadId });
+
+      return { threadId };
+    } catch (error: unknown) {
+      this.loggerService.error(`${url} failed`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Publish a carousel thread with image and/or video media items.
+   */
+  public async publishCarousel(
+    organizationId: string,
+    brandId: string,
+    mediaItems: ThreadsCarouselMediaItem[],
+    text?: string,
+    replyToId?: string,
+  ): Promise<{ threadId: string }> {
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+
+    try {
+      if (text && text.length > 500) {
+        throw new Error('Threads posts are limited to 500 characters');
+      }
+
+      if (mediaItems.length < 2 || mediaItems.length > 20) {
+        throw new Error(
+          'Threads carousels require between 2 and 20 media items',
+        );
+      }
+
+      const itemContainerIds: string[] = [];
+      for (const item of mediaItems) {
+        const { containerId } =
+          item.mediaType === ThreadsMediaType.VIDEO
+            ? await this.createVideoContainer(
+                organizationId,
+                brandId,
+                item.url,
+                undefined,
+                undefined,
+                { altText: item.altText, isCarouselItem: true },
+              )
+            : await this.createImageContainer(
+                organizationId,
+                brandId,
+                item.url,
+                undefined,
+                undefined,
+                { altText: item.altText, isCarouselItem: true },
+              );
+
+        if (item.mediaType === ThreadsMediaType.VIDEO) {
+          await this.waitForContainerReady(
+            organizationId,
+            brandId,
+            containerId,
+          );
+        }
+
+        itemContainerIds.push(containerId);
+      }
+
+      const { containerId } = await this.createCarouselContainer(
+        organizationId,
+        brandId,
+        itemContainerIds,
+        text,
+        replyToId,
+      );
+
+      const { threadId } = await this.publishContainer(
+        organizationId,
+        brandId,
+        containerId,
+      );
+
+      this.loggerService.log(`${url} succeeded`, { threadId });
+
+      return { threadId };
+    } catch (error: unknown) {
+      this.loggerService.error(`${url} failed`, error);
+      throw error;
+    }
+  }
+
+  /**
    * Get insights for a thread
    */
   public async getThreadInsights(
@@ -543,6 +799,40 @@ export class ThreadsService {
         topic: 'Marketing',
       },
     ];
+  }
+
+  private async waitForContainerReady(
+    organizationId: string,
+    brandId: string,
+    containerId: string,
+    maxAttempts: number = 30,
+    delayMs: number = 2000,
+  ): Promise<void> {
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      const { errorMessage, status } = await this.getContainerStatus(
+        organizationId,
+        brandId,
+        containerId,
+      );
+
+      if (
+        status === ThreadsContainerStatus.FINISHED ||
+        status === ThreadsContainerStatus.PUBLISHED
+      ) {
+        return;
+      }
+
+      if (
+        status === ThreadsContainerStatus.ERROR ||
+        status === ThreadsContainerStatus.EXPIRED
+      ) {
+        throw new Error(errorMessage || `Threads container ${status}`);
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+
+    throw new Error('Threads media processing timeout');
   }
 
   /**

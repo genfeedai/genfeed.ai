@@ -45,7 +45,12 @@ function ModalComponent({
   return (
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 z-50 bg-black/50" onClick={onClose} />
+      <button
+        aria-label="Close modal"
+        className="fixed inset-0 z-50 bg-black/50"
+        onClick={onClose}
+        type="button"
+      />
 
       {/* Modal */}
       <div
@@ -54,7 +59,7 @@ function ModalComponent({
         {showHeader && (
           <div className="flex items-center justify-between border-b border-border px-6 py-4">
             <div className="flex items-center gap-3">
-              {Icon && <Icon className="h-5 w-5 text-primary" />}
+              {Icon && <Icon className="size-5 text-primary" />}
               <h2 className="text-lg font-semibold text-foreground">{title}</h2>
             </div>
             <Button
@@ -62,7 +67,7 @@ function ModalComponent({
               size={ButtonSize.SM}
               onClick={onClose}
             >
-              <X className="h-5 w-5" />
+              <X className="size-5" />
             </Button>
           </div>
         )}

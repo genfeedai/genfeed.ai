@@ -19,6 +19,7 @@ import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagina
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   type ReactNode,
+  Suspense,
   useCallback,
   useEffect,
   useMemo,
@@ -27,7 +28,7 @@ import {
 } from 'react';
 import { HiPencil, HiTrash } from 'react-icons/hi2';
 
-export default function MoodsList({
+function MoodsListContent({
   scope = PageScope.BRAND,
   onLoadingChange,
   onRefreshingChange,
@@ -35,15 +36,15 @@ export default function MoodsList({
 }: IElementContentProps): ReactNode {
   const notificationsService = NotificationsService.getInstance();
   const { openConfirm } = useConfirmModal();
-  const router = useRouter();
+  const { replace } = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const searchParamsString = searchParams?.toString() ?? '';
+  const { get, toString: getSearchParamsString } = useSearchParams();
+  const searchParamsString = getSearchParamsString() ?? '';
   const parsedSearchParams = useMemo(
     () => new URLSearchParams(searchParamsString),
     [searchParamsString],
   );
-  const currentPage = Number(searchParams?.get('page')) || 1;
+  const currentPage = Number(get('page')) || 1;
 
   // Admin org/brand filter state (superadmin only)
   const [adminOrg, setAdminOrg] = useState(
@@ -67,11 +68,11 @@ export default function MoodsList({
       params.delete('brand');
       params.delete('page');
       const queryString = params.toString();
-      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+      replace(queryString ? `${pathname}?${queryString}` : pathname, {
         scroll: false,
       });
     },
-    [pathname, router, searchParamsString],
+    [pathname, replace, searchParamsString],
   );
 
   const handleAdminBrandChange = useCallback(
@@ -85,11 +86,11 @@ export default function MoodsList({
       }
       params.delete('page');
       const queryString = params.toString();
-      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+      replace(queryString ? `${pathname}?${queryString}` : pathname, {
         scroll: false,
       });
     },
-    [pathname, router, searchParamsString],
+    [pathname, replace, searchParamsString],
   );
 
   const getMoodsService = useAuthedService(
@@ -266,5 +267,14 @@ export default function MoodsList({
         <AutoPagination showTotal totalLabel="moods" />
       </div>
     </>
+  );
+}
+export default function MoodsList(
+  props: Parameters<typeof MoodsListContent>[0],
+) {
+  return (
+    <Suspense fallback={null}>
+      <MoodsListContent {...props} />
+    </Suspense>
   );
 }

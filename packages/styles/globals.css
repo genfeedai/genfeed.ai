@@ -1,0 +1,552 @@
+@import "tailwindcss";
+@import "./keyframes.css";
+@import "./animate.css";
+@import "./theme.css";
+@import "./shadcn-theme.css";
+@import "./calendar.css";
+@import "./genfeed.css";
+
+@source '../../node_modules/@shipshitdev/ui/dist';
+
+@theme inline {
+  /* Semantic surface tokens */
+  --color-surface: rgb(var(--surface));
+  --color-fill: rgb(var(--fill));
+  --color-edge: rgb(var(--edge));
+  --color-inv: rgb(var(--inv));
+  --color-inv-fg: rgb(var(--inv-fg));
+
+  /* shadcn/ui color tokens — maps CSS vars from shadcn-theme to Tailwind v4 utilities */
+  --color-background: hsl(var(--background));
+  --color-background-secondary: hsl(var(--background-secondary));
+  --color-background-tertiary: hsl(var(--background-tertiary));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-success: hsl(var(--success));
+  --color-success-foreground: hsl(var(--success-foreground));
+  --color-warning: hsl(var(--warning));
+  --color-warning-foreground: hsl(var(--warning-foreground));
+  --color-info: hsl(var(--info));
+  --color-info-foreground: hsl(var(--info-foreground));
+
+  /* "error" aliases "destructive" — 92 usages across codebase kept for compatibility */
+  --color-error: hsl(var(--destructive));
+  --color-error-foreground: hsl(var(--destructive-foreground));
+
+  /* "-content" suffix aliases → shadcn "-foreground" for backward compatibility */
+  --color-primary-content: hsl(var(--primary-foreground));
+  --color-secondary-content: hsl(var(--secondary-foreground));
+  --color-success-content: hsl(var(--success-foreground));
+  --color-warning-content: hsl(var(--warning-foreground));
+  --color-info-content: hsl(var(--info-foreground));
+  --color-error-content: hsl(var(--destructive-foreground));
+
+  /* Radius scale */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 10px;
+  --radius-2xl: 12px;
+  --radius-3xl: 16px;
+  --radius-xxl: 12px;
+  --radius-xxxl: 16px;
+
+  /* Semantic colors layered on shipshitdev/ui ship-* tokens */
+  --color-border-strong: var(--ship-border-strong);
+  --color-accent-hover: var(--ship-accent-hover);
+  --color-danger: var(--ship-danger);
+  --color-agent: var(--ship-agent);
+  --color-done: var(--ship-done);
+}
+
+.ship-ui {
+  --ship-bg-primary: #050607;
+  --ship-bg-secondary: #0c0d10;
+  --ship-bg-tertiary: #131518;
+  --ship-bg-elevated: #1a1c21;
+  --ship-bg-hover: #20232a;
+  --ship-border: rgba(255, 255, 255, 0.1);
+  --ship-border-strong: rgba(255, 255, 255, 0.18);
+  --ship-text-primary: #f4f4f5;
+  --ship-text-secondary: #b4b4bc;
+  --ship-text-muted: #6b6b78;
+  --ship-accent: #fafafa;
+  --ship-accent-foreground: #050607;
+  --ship-accent-hover: #e4e4e7;
+  --ship-success: #10b981;
+  --ship-warning: #f59e0b;
+  --ship-danger: #dc2626;
+  --ship-info: #3b82f6;
+  --ship-agent: #38bdf8;
+  --ship-done: #a855f7;
+}
+
+[data-theme="light"] .ship-ui {
+  --ship-bg-primary: #f6f4ef;
+  --ship-bg-secondary: #efeae1;
+  --ship-bg-tertiary: #e6dfd3;
+  --ship-bg-elevated: #fbfaf7;
+  --ship-bg-hover: #ddd3c2;
+  --ship-border: rgba(28, 25, 23, 0.1);
+  --ship-border-strong: rgba(28, 25, 23, 0.18);
+  --ship-text-primary: #18181b;
+  --ship-text-secondary: #57534e;
+  --ship-text-muted: #8a8175;
+  --ship-accent: #111827;
+  --ship-accent-foreground: #fafaf9;
+  --ship-accent-hover: #1f2937;
+  --ship-success: #0f9f6e;
+  --ship-warning: #d97706;
+  --ship-danger: #dc2626;
+  --ship-info: #2563eb;
+  --ship-agent: #0284c7;
+  --ship-done: #7c3aed;
+}
+
+/* ship-ui scoped utilities */
+
+/* Backgrounds */
+.ship-ui.bg-primary,
+.ship-ui .bg-primary {
+  background-color: var(--ship-bg-primary);
+}
+.ship-ui.bg-secondary,
+.ship-ui .bg-secondary {
+  background-color: var(--ship-bg-secondary);
+}
+.ship-ui.bg-tertiary,
+.ship-ui .bg-tertiary {
+  background-color: var(--ship-bg-tertiary);
+}
+.ship-ui.bg-elevated,
+.ship-ui .bg-elevated {
+  background-color: var(--ship-bg-elevated);
+}
+.ship-ui.bg-hover,
+.ship-ui .bg-hover {
+  background-color: var(--ship-bg-hover);
+}
+.ship-ui.bg-accent,
+.ship-ui .bg-accent {
+  background-color: var(--ship-accent);
+}
+.ship-ui.bg-accent-hover,
+.ship-ui .bg-accent-hover {
+  background-color: var(--ship-accent-hover);
+}
+
+/* Text */
+.ship-ui.text-primary,
+.ship-ui .text-primary {
+  color: var(--ship-text-primary);
+}
+.ship-ui.text-secondary,
+.ship-ui .text-secondary {
+  color: var(--ship-text-secondary);
+}
+.ship-ui.text-muted,
+.ship-ui .text-muted {
+  color: var(--ship-text-muted);
+}
+.ship-ui.text-accent-foreground,
+.ship-ui .text-accent-foreground {
+  color: var(--ship-accent-foreground);
+}
+
+/* Borders */
+.ship-ui.border-border,
+.ship-ui .border-border {
+  border-color: var(--ship-border);
+}
+.ship-ui.border-border-strong,
+.ship-ui .border-border-strong {
+  border-color: var(--ship-border-strong);
+}
+.ship-ui.border-accent,
+.ship-ui .border-accent {
+  border-color: var(--ship-accent);
+}
+.ship-ui.border-danger\/30,
+.ship-ui .border-danger\/30 {
+  border-color: color-mix(in oklab, var(--ship-danger) 30%, transparent);
+}
+
+/* Hover */
+.ship-ui.hover\:bg-hover:hover,
+.ship-ui .hover\:bg-hover:hover {
+  background-color: var(--ship-bg-hover);
+}
+.ship-ui.hover\:bg-accent-hover:hover,
+.ship-ui .hover\:bg-accent-hover:hover {
+  background-color: var(--ship-accent-hover);
+}
+.ship-ui.hover\:text-primary:hover,
+.ship-ui .hover\:text-primary:hover {
+  color: var(--ship-text-primary);
+}
+.ship-ui.hover\:text-secondary:hover,
+.ship-ui .hover\:text-secondary:hover {
+  color: var(--ship-text-secondary);
+}
+.ship-ui.hover\:border-text-secondary:hover,
+.ship-ui .hover\:border-text-secondary:hover {
+  border-color: var(--ship-text-secondary);
+}
+
+.app-region-drag {
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+
+.app-region-no-drag {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
+/**
+ * Neural Noir Typography - Satoshi + Zodiak
+ */
+:root {
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-serif: Georgia, "Times New Roman", serif;
+}
+
+html,
+body {
+  scroll-behavior: smooth;
+  transition-property: color, background-color;
+  transition-duration: 500ms;
+  height: auto;
+
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Serif accent class for headings */
+.font-serif {
+  font-family: var(--font-serif);
+}
+
+/* Zodiak for editorial headlines */
+.font-serif-italic {
+  font-family: var(--font-serif);
+  font-style: italic;
+}
+
+a {
+  transition-property: background-color, border-color, color;
+  transition-duration: 0.3s;
+  transition-timing-function: ease-in-out;
+}
+
+/* Reset shadcn's default button shadow */
+.btn {
+  box-shadow: none;
+}
+
+/* Form focus styling utility */
+.form-focus {
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px hsl(var(--primary));
+    border-color: hsl(var(--primary));
+  }
+}
+
+/* Transition utilities for consistent interactions */
+.btn,
+button {
+  transition-property: all;
+  transition-duration: 300ms;
+}
+
+a {
+  transition-property: color, background-color, border-color;
+  transition-duration: 200ms;
+}
+
+.card {
+  transition-property: box-shadow;
+  transition-duration: 300ms;
+}
+
+/* Theme-aware scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+*:hover {
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Light theme scrollbar overrides */
+[data-theme="light"] {
+  *:hover {
+    scrollbar-color: rgba(0, 0, 0, 0.1) transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.1);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.2);
+  }
+}
+
+/* Respect user preference for reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Electron desktop shell: allow window drag on top chrome, keep inputs clickable */
+.gf-desktop-shell {
+  header,
+  [data-desktop-drag="true"] {
+    -webkit-app-region: drag;
+    app-region: drag;
+  }
+
+  a,
+  button,
+  input,
+  textarea,
+  select,
+  summary,
+  label,
+  [role="button"],
+  [role="link"],
+  [role="menu"],
+  [role="menuitem"],
+  [role="tab"],
+  [role="switch"],
+  [role="slider"],
+  [role="checkbox"],
+  [role="radio"],
+  [role="combobox"],
+  [role="listbox"],
+  [role="option"],
+  [role="textbox"],
+  [contenteditable="true"],
+  [data-desktop-drag="false"] {
+    -webkit-app-region: no-drag;
+    app-region: no-drag;
+  }
+}
+
+/* Shared operator-shell surfaces for docked tools, switchers, and prompt chrome */
+.gen-shell-panel,
+.gen-shell-surface,
+.gen-shell-control,
+.gen-shell-segmented {
+  border: 1px solid hsl(var(--border) / 0.82);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.gen-shell-panel {
+  background: hsl(var(--background));
+}
+
+.gen-shell-toolbar {
+  border-bottom: 1px solid hsl(var(--border) / 0.82);
+  background: hsl(var(--background));
+}
+
+.gen-shell-segmented {
+  background: hsl(var(--background) / 0.54);
+}
+
+.gen-shell-segmented-button {
+  color: hsl(var(--foreground) / 0.58);
+  transition:
+    background-color 180ms var(--motion-ease-standard),
+    color 180ms var(--motion-ease-standard),
+    box-shadow 180ms var(--motion-ease-standard),
+    transform 180ms var(--motion-ease-standard);
+}
+
+.gen-shell-segmented-button:hover {
+  color: hsl(var(--foreground) / 0.84);
+}
+
+.gen-shell-segmented-button[data-active="true"] {
+  background: hsl(var(--background-tertiary) / 0.96);
+  color: hsl(var(--foreground));
+  box-shadow:
+    0 12px 28px -20px rgba(0, 0, 0, 0.72),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.gen-shell-control {
+  background: hsl(var(--background) / 0.48);
+  color: hsl(var(--foreground) / 0.78);
+  transition:
+    background-color 180ms var(--motion-ease-standard),
+    border-color 180ms var(--motion-ease-standard),
+    color 180ms var(--motion-ease-standard),
+    box-shadow 180ms var(--motion-ease-standard),
+    transform 180ms var(--motion-ease-standard);
+}
+
+.gen-shell-control:hover,
+.gen-shell-control:focus-visible {
+  border-color: hsl(var(--foreground) / 0.16);
+  background: hsl(var(--background) / 0.74);
+  color: hsl(var(--foreground));
+}
+
+.gen-shell-control[data-active="true"] {
+  border-color: hsl(var(--foreground) / 0.16);
+  background: hsl(var(--background-tertiary) / 0.94);
+  color: hsl(var(--foreground));
+  box-shadow:
+    0 12px 26px -22px rgba(0, 0, 0, 0.76),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.gen-shell-control[data-tone="accent"] {
+  border-color: hsl(var(--foreground) / 0.18);
+  background: hsl(var(--foreground));
+  color: hsl(var(--background));
+  box-shadow: 0 18px 40px -28px rgba(0, 0, 0, 0.88);
+}
+
+.gen-shell-control[data-tone="accent"]:hover,
+.gen-shell-control[data-tone="accent"]:focus-visible {
+  background: hsl(var(--foreground) / 0.92);
+  color: hsl(var(--background));
+}
+
+.gen-shell-surface {
+  background: hsl(var(--background));
+}
+
+.gen-shell-surface[data-active="true"] {
+  border-color: hsl(var(--primary) / 0.26);
+  background: hsl(var(--background));
+}
+
+.gen-shell-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 999px;
+  border: 1px solid hsl(var(--border) / 0.82);
+  background: hsl(var(--background) / 0.44);
+  color: hsl(var(--foreground) / 0.66);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.gen-shell-chip[data-tone="success"] {
+  border-color: hsl(var(--success) / 0.24);
+  background: hsl(var(--success) / 0.12);
+  color: hsl(var(--success));
+}
+
+.gen-shell-chip[data-tone="info"] {
+  border-color: hsl(var(--info) / 0.24);
+  background: hsl(var(--info) / 0.12);
+  color: hsl(var(--info));
+}
+
+.gen-shell-empty-state {
+  border: 1px dashed hsl(var(--border) / 0.72);
+  background: hsl(var(--background));
+}
+
+[data-agent-console="true"] {
+  border-color: hsl(var(--border) / 0.76);
+  border-top: none;
+  background: hsl(var(--background));
+}
+
+[data-agent-console="true"] .gen-shell-toolbar {
+  border-bottom-color: hsl(var(--border) / 0.72);
+  background: hsl(var(--background));
+}
+
+[data-agent-console="true"] [data-panel-body] {
+  background: hsl(var(--background));
+}
+
+[data-agent-console="true"] .gen-shell-segmented {
+  border-color: hsl(var(--border) / 0.72);
+  background: hsl(var(--background) / 0.68);
+}
+
+[data-agent-console="true"] .gen-shell-segmented-button {
+  color: hsl(var(--foreground) / 0.42);
+}
+
+[data-agent-console="true"] .gen-shell-segmented-button:hover {
+  color: hsl(var(--foreground) / 0.72);
+}
+
+[data-agent-console="true"] .gen-shell-segmented-button[data-active="true"] {
+  background: hsl(var(--background-secondary) / 0.94);
+  color: hsl(var(--foreground));
+  box-shadow:
+    0 12px 24px -18px rgba(0, 0, 0, 0.72),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+[data-agent-console="true"] .gen-shell-control {
+  border-color: hsl(var(--border) / 0.68);
+  background: hsl(var(--background) / 0.52);
+}
+
+[data-agent-console="true"] .gen-shell-control:hover,
+[data-agent-console="true"] .gen-shell-control:focus-visible {
+  border-color: hsl(var(--foreground) / 0.14);
+  background: hsl(var(--background) / 0.78);
+}
+
+[data-agent-console="true"] .gen-shell-empty-state {
+  border-style: solid;
+  border-color: hsl(var(--border) / 0.66);
+  background: hsl(var(--background) / 0.42);
+}

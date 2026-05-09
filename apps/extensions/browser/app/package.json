@@ -43,6 +43,12 @@
     "vitest": "4.1.5"
   },
   "displayName": "Extension genfeed ai",
+  "exports": {
+    "./background": "./src/background.ts",
+    "./content": "./src/content.ts",
+    "./popup": "./src/popup.tsx",
+    "./sidepanel": "./src/sidepanel.tsx"
+  },
   "manifest": {
     "host_permissions": [
       "https://*.twitter.com/*",

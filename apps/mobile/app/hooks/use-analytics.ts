@@ -81,7 +81,7 @@ export function useAnalytics(options?: AnalyticsQueryOptions) {
   };
 }
 
-export function useTopContent(options?: AnalyticsQueryOptions) {
+function useTopContent(options?: AnalyticsQueryOptions) {
   const result = useAsyncList<TopContent, AnalyticsQueryOptions>(
     async (token, opts) => {
       const response = await analyticsService.getTopContent(token, opts);

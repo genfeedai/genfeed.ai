@@ -2,21 +2,26 @@ import { ClerkProvider, useAuth } from '@clerk/chrome-extension';
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
-import { useEffect, useState } from 'react';
+import { useEffect, useReducer } from 'react';
 import LoginPage from '~components/pages/LoginPage';
 import { LoadingSpinner } from '~components/ui';
-import { EnvironmentService } from '~services';
 import { authService, getJWTToken } from '~services/auth.service';
+import { EnvironmentService } from '~services/environment.service';
 import { initializeErrorTracking } from '~services/error-tracking.service';
 import { logger } from '~utils/logger.util';
-import '~style.scss';
+import '~style.css';
 
 initializeErrorTracking('popup');
 
 function PopupContent() {
   const { isLoaded, isSignedIn, getToken, signOut } = useAuth();
-  const [isSyncing, setIsSyncing] = useState(true);
-  const [hasValidToken, setHasValidToken] = useState(false);
+  const [authState, setAuthState] = useReducer(
+    (
+      _state: 'syncing' | 'authenticated' | 'unauthenticated',
+      nextState: 'syncing' | 'authenticated' | 'unauthenticated',
+    ) => nextState,
+    'syncing',
+  );
 
   useEffect(() => {
     async function syncAuth() {
@@ -26,28 +31,24 @@ function PopupContent() {
 
       const existingToken = await authService.getToken();
       if (existingToken) {
-        setHasValidToken(true);
-        setIsSyncing(false);
+        setAuthState('authenticated');
         return;
       }
+
+      let nextState: 'authenticated' | 'unauthenticated' = 'unauthenticated';
 
       if (isSignedIn) {
         try {
           const token = await getJWTToken(getToken);
           if (token) {
             await authService.setToken(token);
-            setHasValidToken(true);
-          } else {
-            setHasValidToken(false);
+            nextState = 'authenticated';
           }
         } catch (error) {
           logger.error('Error getting JWT token', error);
-          setHasValidToken(false);
         }
-      } else {
-        setHasValidToken(false);
       }
-      setIsSyncing(false);
+      setAuthState(nextState);
     }
     syncAuth();
   }, [isLoaded, isSignedIn, getToken]);
@@ -55,7 +56,7 @@ function PopupContent() {
   const handleLogout = async () => {
     await signOut();
     await authService.clearToken();
-    setHasValidToken(false);
+    setAuthState('unauthenticated');
   };
 
   function handleOpenSidePanel() {
@@ -68,7 +69,7 @@ function PopupContent() {
       });
   }
 
-  if (!isLoaded || isSyncing) {
+  if (!isLoaded || authState === 'syncing') {
     return (
       <div className="flex items-center justify-center h-64">
         <LoadingSpinner size="md" className="text-primary" />
@@ -76,7 +77,7 @@ function PopupContent() {
     );
   }
 
-  if (!hasValidToken) {
+  if (authState !== 'authenticated') {
     return (
       <div className="w-80 min-h-[300px] bg-muted text-foreground gf-app">
         <div className="p-4">
@@ -87,7 +88,7 @@ function PopupContent() {
               height={30}
               alt="Genfeed"
             />
-            <h1 className="text-xl font-bold text-foreground">Genfeed</h1>
+            <h1 className="text-xl font-semibold text-foreground">Genfeed</h1>
           </div>
           <LoginPage />
         </div>
@@ -106,7 +107,7 @@ function PopupContent() {
               height={30}
               alt="Genfeed"
             />
-            <h1 className="text-xl font-bold text-foreground">Genfeed</h1>
+            <h1 className="text-xl font-semibold text-foreground">Genfeed</h1>
           </div>
           <Button
             type="button"

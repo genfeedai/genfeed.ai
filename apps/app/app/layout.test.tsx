@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 const appProvidersSpy = vi.fn();
 
-vi.mock('@styles/globals.scss', () => ({}));
+vi.mock('@styles/globals.css', () => ({}));
 
 vi.mock('@genfeedai/fonts', () => ({
   fontVariables: 'font-vars',

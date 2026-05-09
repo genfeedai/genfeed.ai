@@ -19,6 +19,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import XArticleAssetsBar from '@ui/articles/x-article/XArticleAssetsBar';
 import XArticleSectionCard from '@ui/articles/x-article/XArticleSectionCard';
 import Card from '@ui/card/Card';
+import HtmlContent from '@ui/display/html-content/HtmlContent';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import LazyRichTextEditor from '@ui/editors/LazyRichTextEditor';
 import Breadcrumb from '@ui/navigation/breadcrumb/Breadcrumb';
@@ -29,7 +30,6 @@ import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import PromptBarArticle from '@ui/prompt-bars/article/PromptBarArticle';
 import { COMPOSE_ROUTES } from '@ui-constants/compose.constant';
-import { createMarkup } from '@utils/sanitize-html';
 import { useParams, useRouter } from 'next/navigation';
 import type { ChangeEvent } from 'react';
 import { useCallback, useMemo, useState } from 'react';
@@ -60,8 +60,7 @@ function buildXArticleTeaserPrompt(
   const sectionHeadings =
     article.xArticleMetadata?.sections
       ?.slice(0, 5)
-      .map((section) => section.heading)
-      .filter(Boolean)
+      .flatMap((section) => (section.heading ? [section.heading] : []))
       .join(', ') || 'the article sections';
   const formatInstruction =
     format === 'thread'
@@ -85,7 +84,7 @@ export default function ArticleDetail({
 }: ArticleEditorProps) {
   const { openConfirm } = useConfirmModal();
   const params = useParams<{ brandSlug?: string; orgSlug?: string }>();
-  const router = useRouter();
+  const { push } = useRouter();
   const [viewMode, setViewMode] = useState<'edit' | 'preview'>('edit');
   const [generatingTeaserFormat, setGeneratingTeaserFormat] =
     useState<TeaserFormat | null>(null);
@@ -161,9 +160,7 @@ export default function ArticleDetail({
         );
 
         if (rootDraft?.id && params?.orgSlug && params?.brandSlug) {
-          router.push(
-            `/${params.orgSlug}/${params.brandSlug}/posts/${rootDraft.id}`,
-          );
+          push(`/${params.orgSlug}/${params.brandSlug}/posts/${rootDraft.id}`);
         }
       } catch (err) {
         logger.error('Failed to generate X Article teaser draft', err);
@@ -180,7 +177,7 @@ export default function ArticleDetail({
       notificationsService,
       params?.brandSlug,
       params?.orgSlug,
-      router,
+      push,
     ],
   );
 
@@ -240,7 +237,7 @@ export default function ArticleDetail({
           <p className="text-sm text-foreground/60">
             {isNew ? 'Compose new article' : 'Article editor'}
           </p>
-          <h1 className="text-2xl font-bold">
+          <h1 className="text-2xl font-semibold">
             {isNew ? 'New Article' : form.label || 'Untitled Article'}
           </h1>
         </div>
@@ -256,9 +253,9 @@ export default function ArticleDetail({
               }
               icon={
                 viewMode === 'edit' ? (
-                  <HiEye className="h-4 w-4" />
+                  <HiEye className="size-4" />
                 ) : (
-                  <HiPencil className="h-4 w-4" />
+                  <HiPencil className="size-4" />
                 )
               }
             />
@@ -269,7 +266,7 @@ export default function ArticleDetail({
             <Button
               label="Publish"
               variant={ButtonVariant.DEFAULT}
-              icon={<HiRocketLaunch className="h-4 w-4" />}
+              icon={<HiRocketLaunch className="size-4" />}
               onClick={() =>
                 openConfirm({
                   cancelLabel: 'Cancel',
@@ -288,7 +285,7 @@ export default function ArticleDetail({
             <Button
               label="Archive"
               variant={ButtonVariant.SECONDARY}
-              icon={<HiArchiveBox className="h-4 w-4" />}
+              icon={<HiArchiveBox className="size-4" />}
               onClick={() =>
                 openConfirm({
                   cancelLabel: 'Cancel',
@@ -306,7 +303,7 @@ export default function ArticleDetail({
             label="Copy Article"
             variant={ButtonVariant.SECONDARY}
             size={ButtonSize.SM}
-            icon={<HiClipboardDocument className="h-4 w-4" />}
+            icon={<HiClipboardDocument className="size-4" />}
             onClick={() =>
               void clipboardService.copyToClipboard(
                 [form.label.trim(), plainTextContent]
@@ -322,7 +319,7 @@ export default function ArticleDetail({
               label="Copy for X Article"
               variant={ButtonVariant.SECONDARY}
               size={ButtonSize.SM}
-              icon={<HiClipboardDocument className="h-4 w-4" />}
+              icon={<HiClipboardDocument className="size-4" />}
               onClick={handleCopyFullArticle}
             />
           )}
@@ -331,9 +328,9 @@ export default function ArticleDetail({
           <Button
             icon={
               isDirty ? (
-                <HiExclamationCircle className="w-4 h-4" />
+                <HiExclamationCircle className="size-4" />
               ) : (
-                <HiCheck className="w-4 h-4" />
+                <HiCheck className="size-4" />
               )
             }
             label={isSaving ? 'Saving...' : isDirty ? 'Save' : 'Saved'}
@@ -354,7 +351,7 @@ export default function ArticleDetail({
             <Button
               label="Delete"
               variant={ButtonVariant.DESTRUCTIVE}
-              icon={<HiTrash className="h-4 w-4" />}
+              icon={<HiTrash className="size-4" />}
               onClick={() =>
                 openConfirm({
                   cancelLabel: 'Cancel',
@@ -493,10 +490,7 @@ export default function ArticleDetail({
                     </p>
                   )}
                   {!hasXArticleSections && (
-                    <div
-                      // biome-ignore lint/security/noDangerouslySetInnerHtml: sanitized article content
-                      dangerouslySetInnerHTML={createMarkup(form.content || '')}
-                    />
+                    <HtmlContent content={form.content || ''} />
                   )}
                 </article>
               </Card>

@@ -84,7 +84,7 @@ export default function ModalSubscription({
     handleSubmit(),
   );
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const updateSubscriptionAmount = (e: ChangeEvent<HTMLInputElement>) => {
     const value = Number(e.target.value);
     form.setValue('amount', value, { shouldValidate: true });
   };
@@ -107,7 +107,7 @@ export default function ModalSubscription({
             type="number"
             {...form.register('amount', { valueAsNumber: true })}
             name="amount"
-            onChange={handleChange}
+            onChange={updateSubscriptionAmount}
             disabled={isSubmitting}
           />
         </FormControl>

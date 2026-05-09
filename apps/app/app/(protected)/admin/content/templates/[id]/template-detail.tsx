@@ -22,6 +22,7 @@ import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import { usePathname, useRouter } from 'next/navigation';
 import { type ReactNode, useCallback, useEffect, useState } from 'react';
+import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 
 /** Reusable card section with title, used across detail pages */
 function DetailCard({
@@ -62,7 +63,7 @@ function MetadataRow({
 }
 
 export default function TemplateDetail({ templateId }: TemplateDetailProps) {
-  const router = useRouter();
+  const { push } = useRouter();
   const pathname = usePathname();
   const notificationsService = NotificationsService.getInstance();
 
@@ -85,11 +86,11 @@ export default function TemplateDetail({ templateId }: TemplateDetailProps) {
     } catch (error) {
       logger.error('Failed to load template', error);
       notificationsService.error('Failed to load template');
-      router.push('/content/templates');
+      push('/content/templates');
     } finally {
       setIsLoading(false);
     }
-  }, [templateId, getTemplatesService, notificationsService, router]);
+  }, [templateId, getTemplatesService, notificationsService, push]);
 
   useEffect(() => {
     loadTemplate();
@@ -429,12 +430,12 @@ export default function TemplateDetail({ templateId }: TemplateDetailProps) {
             <VStack gap={2} className="text-sm">
               {template.createdAt && (
                 <MetadataRow label="Created">
-                  {new Date(template.createdAt).toLocaleString()}
+                  <ClientFormattedDate value={template.createdAt} />
                 </MetadataRow>
               )}
               {template.updatedAt && (
                 <MetadataRow label="Updated">
-                  {new Date(template.updatedAt).toLocaleString()}
+                  <ClientFormattedDate value={template.updatedAt} />
                 </MetadataRow>
               )}
             </VStack>

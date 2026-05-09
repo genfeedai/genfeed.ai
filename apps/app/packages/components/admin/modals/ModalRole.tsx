@@ -43,7 +43,7 @@ export default function ModalRole({ role, onConfirm }: ModalRoleProps) {
     }
   }, [role, form]);
 
-  function handleChange(e: ChangeEvent<HTMLInputElement>): void {
+  function updateRoleField(e: ChangeEvent<HTMLInputElement>): void {
     const { name, value } = e.target;
 
     if (name === 'key') {
@@ -80,7 +80,7 @@ export default function ModalRole({ role, onConfirm }: ModalRoleProps) {
             type="text"
             {...form.register('label')}
             name="label"
-            onChange={handleChange}
+            onChange={updateRoleField}
             placeholder="Enter display label"
             required
             disabled={isSubmitting}
@@ -92,7 +92,7 @@ export default function ModalRole({ role, onConfirm }: ModalRoleProps) {
             type="text"
             {...form.register('key')}
             name="key"
-            onChange={handleChange}
+            onChange={updateRoleField}
             placeholder="lowercase-with-hyphens"
             required
             disabled={isSubmitting}
@@ -107,7 +107,7 @@ export default function ModalRole({ role, onConfirm }: ModalRoleProps) {
             type="text"
             {...form.register('primaryColor')}
             name="primaryColor"
-            onChange={handleChange}
+            onChange={updateRoleField}
             placeholder="#000000 or color name"
             required
             disabled={isSubmitting}

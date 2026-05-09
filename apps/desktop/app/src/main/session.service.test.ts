@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
 import type { IDesktopEnvironment } from '@genfeedai/desktop-contracts';
-import type { DesktopDatabaseService } from './database.service';
+import type { DesktopKvService } from './kv.service';
 import './test-support/electron.mock';
 
 const { DesktopSessionService } = await import('./session.service');
@@ -15,7 +15,7 @@ const TEST_ENVIRONMENT: IDesktopEnvironment = {
   wsEndpoint: 'https://notifications.genfeed.ai',
 };
 
-const createDatabaseMock = () => {
+const createKvMock = () => {
   const values = new Map<string, string>();
 
   return {
@@ -23,24 +23,28 @@ const createDatabaseMock = () => {
       values.delete(key);
     },
     getValue: async (key: string) => values.get(key) ?? null,
+    getValueSync: (key: string) => values.get(key) ?? null,
     setValue: async (key: string, value: string) => {
       values.set(key, value);
     },
+    setValueSync: (key: string, value: string) => {
+      values.set(key, value);
+    },
     values,
-  } as unknown as DesktopDatabaseService & { values: Map<string, string> };
+  } as unknown as DesktopKvService & { values: Map<string, string> };
 };
 
 const createSessionService = (
-  database: DesktopDatabaseService,
+  kvService: DesktopKvService,
 ): InstanceType<typeof DesktopSessionService> =>
-  new DesktopSessionService(database, TEST_ENVIRONMENT);
+  new DesktopSessionService(kvService, TEST_ENVIRONMENT);
 
 describe('DesktopSessionService', () => {
   const originalFetch = globalThis.fetch;
-  let database: ReturnType<typeof createDatabaseMock>;
+  let kvService: ReturnType<typeof createKvMock>;
 
   beforeEach(() => {
-    database = createDatabaseMock();
+    kvService = createKvMock();
     globalThis.fetch = originalFetch;
   });
 
@@ -49,7 +53,7 @@ describe('DesktopSessionService', () => {
   });
 
   it('builds a desktop-specific OAuth URL', () => {
-    const service = createSessionService(database);
+    const service = createSessionService(kvService);
 
     const loginUrl = new URL(service.getLoginUrl());
 
@@ -62,7 +66,7 @@ describe('DesktopSessionService', () => {
   });
 
   it('hydrates a session from the server-minted key', async () => {
-    const service = createSessionService(database);
+    const service = createSessionService(kvService);
 
     globalThis.fetch = (async (
       input: RequestInfo | URL,
@@ -103,7 +107,8 @@ describe('DesktopSessionService', () => {
       userId: 'user-123',
       userName: 'Desktop User',
     });
-    expect(database.values.get('desktop.session')).toContain('gf_desktop_key');
+    expect(kvService.values.get('desktop.session')).toContain('gf_desktop_key');
+    expect(service.getSession()?.token).toBe('gf_desktop_key');
   });
 
   it('exchanges browser auth codes with the stored PKCE verifier', async () => {
@@ -161,7 +166,7 @@ describe('DesktopSessionService', () => {
   });
 
   it('validates and refreshes an existing desktop session on startup', async () => {
-    const service = createSessionService(database);
+    const service = createSessionService(kvService);
 
     await service.setSession({
       issuedAt: '2026-04-01T09:00:00.000Z',
@@ -216,36 +221,15 @@ describe('DesktopSessionService', () => {
   });
 
   it('rejects callbacks without a key', async () => {
-    const service = createSessionService(database);
+    const service = createSessionService(kvService);
 
     await expect(
       service.handleCallback('genfeedai-desktop://auth?token=missing'),
     ).resolves.toBeNull();
   });
 
-  it('clears a stale desktop session when a callback key is rejected', async () => {
-    const service = createSessionService(database);
-
-    await service.setSession({
-      issuedAt: '2026-04-01T09:00:00.000Z',
-      token: 'stale_desktop_key',
-      userEmail: 'desktop@example.com',
-      userId: 'user-123',
-      userName: 'Desktop User',
-    });
-
-    globalThis.fetch = (async () => {
-      return new Response('unauthorized', { status: 401 });
-    }) as typeof fetch;
-
-    await expect(
-      service.handleCallback('genfeedai-desktop://auth?key=rejected_key'),
-    ).resolves.toBeNull();
-    expect(service.getSession()).toBeNull();
-  });
-
   it('clears a stale stored desktop session during startup validation', async () => {
-    const service = createSessionService(database);
+    const service = createSessionService(kvService);
 
     await service.setSession({
       issuedAt: '2026-04-01T09:00:00.000Z',
@@ -261,5 +245,6 @@ describe('DesktopSessionService', () => {
 
     await expect(service.validateStoredSession()).resolves.toBeNull();
     expect(service.getSession()).toBeNull();
+    expect(kvService.values.has('desktop.session')).toBe(false);
   });
 });

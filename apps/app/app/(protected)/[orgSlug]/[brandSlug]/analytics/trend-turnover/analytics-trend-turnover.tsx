@@ -99,7 +99,7 @@ export default function AnalyticsTrendTurnover() {
           </Heading>
           <Text as="p" color="subtle-70" className="max-w-3xl">
             How quickly trends appear and die on each platform over the last{' '}
-            {period} days — higher turnover means faster-moving content cycles.
+            {period} days : higher turnover means faster-moving content cycles.
           </Text>
         </VStack>
       </header>
@@ -125,13 +125,13 @@ export default function AnalyticsTrendTurnover() {
             description: 'Average time a trend stays active',
             icon: HiOutlineClock,
             label: 'Avg Lifespan',
-            value: totals ? `${totals.avgLifespanDays.toFixed(1)}d` : '—',
+            value: totals ? `${totals.avgLifespanDays.toFixed(1)}d` : ':',
           },
           {
             description: 'Percentage of new trends that expired',
             icon: HiOutlineFire,
             label: 'Turnover Rate',
-            value: totals ? `${totals.turnoverRate}%` : '—',
+            value: totals ? `${totals.turnoverRate}%` : ':',
           },
         ]}
       />
@@ -168,7 +168,7 @@ export default function AnalyticsTrendTurnover() {
                   <div className="flex items-center gap-2">
                     {Icon && (
                       <Icon
-                        className="h-4 w-4"
+                        className="size-4"
                         style={{ color: config?.color }}
                       />
                     )}
@@ -231,7 +231,7 @@ export default function AnalyticsTrendTurnover() {
         label="Platform Volatility"
       >
         <Text size="sm" color="subtle-60">
-          Turnover rate by platform — higher bars indicate faster trend churn.
+          Turnover rate by platform : higher bars indicate faster trend churn.
         </Text>
         <div className="space-y-3">
           {(data?.byPlatform ?? []).map((item) => {
@@ -243,7 +243,7 @@ export default function AnalyticsTrendTurnover() {
                   <div className="flex items-center gap-2">
                     {Icon && (
                       <Icon
-                        className="h-3.5 w-3.5"
+                        className="size-3.5"
                         style={{ color: config?.color }}
                       />
                     )}

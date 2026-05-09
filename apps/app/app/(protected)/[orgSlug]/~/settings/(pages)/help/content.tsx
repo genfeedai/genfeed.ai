@@ -78,9 +78,9 @@ function LinkCard({ item }: { item: LinkItem }) {
       rel="noopener noreferrer"
       className="flex items-center gap-3 rounded-lg border border-border p-4 no-underline text-foreground transition-colors hover:bg-muted/50"
     >
-      <Icon className="h-5 w-5 shrink-0 text-muted-foreground" />
+      <Icon className="size-5 shrink-0 text-muted-foreground" />
       <span className="flex-1 text-sm font-medium">{item.label}</span>
-      <HiArrowTopRightOnSquare className="h-4 w-4 shrink-0 text-muted-foreground" />
+      <HiArrowTopRightOnSquare className="size-4 shrink-0 text-muted-foreground" />
     </a>
   );
 }

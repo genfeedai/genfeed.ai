@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type ContextMenuType = 'node' | 'edge' | 'pane' | 'selection' | null;
+type ContextMenuType = 'node' | 'edge' | 'pane' | 'selection' | null;
 
 interface ContextMenuPosition {
   x: number;

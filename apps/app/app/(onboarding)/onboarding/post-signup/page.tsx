@@ -15,15 +15,15 @@ import { OrganizationsService } from '@services/organization/organizations.servi
 import PageLoadingState from '@ui/loading/page/PageLoadingState';
 import { Button } from '@ui/primitives/button';
 import { useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { isEEEnabled, isSelfHosted } from '@/lib/config/edition';
 import { ONBOARDING_STORAGE_KEYS } from '@/lib/onboarding/onboarding-access.util';
 
-export default function PostSignupPage() {
+function PostSignupPageContent() {
   const { getToken } = useAuth();
   const { user: clerkUser } = useUser();
   const { currentUser, isLoading } = useCurrentUser();
-  const searchParams = useSearchParams();
+  const { get } = useSearchParams();
   const calledRef = useRef(false);
   const [showFallback, setShowFallback] = useState(false);
   const [statusMessage, setStatusMessage] = useState(
@@ -86,9 +86,7 @@ export default function PostSignupPage() {
     }, 12_000);
 
     const route = async () => {
-      const requestedCredits = parseSelectedCredits(
-        searchParams.get('credits'),
-      );
+      const requestedCredits = parseSelectedCredits(get('credits'));
       if (requestedCredits) {
         localStorage.removeItem(ONBOARDING_STORAGE_KEYS.selectedPlan);
         localStorage.setItem(
@@ -209,18 +207,11 @@ export default function PostSignupPage() {
     return () => {
       window.clearTimeout(fallbackTimeout);
     };
-  }, [
-    clerkUser,
-    currentUser,
-    getToken,
-    isLoading,
-    resolveOnboardingHref,
-    searchParams,
-  ]);
+  }, [clerkUser, currentUser, getToken, isLoading, resolveOnboardingHref, get]);
 
   return (
     <PageLoadingState
-      className="bg-black"
+      className="bg-neutral-950"
       fullScreen={true}
       message={statusMessage}
     >
@@ -241,5 +232,13 @@ export default function PostSignupPage() {
         </div>
       ) : null}
     </PageLoadingState>
+  );
+}
+
+export default function PostSignupPage() {
+  return (
+    <Suspense fallback={null}>
+      <PostSignupPageContent />
+    </Suspense>
   );
 }

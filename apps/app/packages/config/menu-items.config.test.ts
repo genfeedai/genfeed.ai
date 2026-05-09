@@ -15,9 +15,12 @@ describe('APP_MENU_ITEMS', () => {
   });
 
   it('renders the workspace entrypoints as standalone top-level rows', () => {
-    const ungroupedLabels = APP_MENU_ITEMS.filter(
-      (item) => item.group === AppMenuGroup.Root && !item.isPrimary,
-    ).map((item) => item.label);
+    const ungroupedLabels = APP_MENU_ITEMS.reduce<string[]>((labels, item) => {
+      if (item.group === AppMenuGroup.Root && !item.isPrimary) {
+        labels.push(item.label);
+      }
+      return labels;
+    }, []);
 
     expect(ungroupedLabels).toEqual([
       'Dashboard',
@@ -30,8 +33,8 @@ describe('APP_MENU_ITEMS', () => {
   it('does not surface content drilldowns in the shared sidebar', () => {
     const groups = [
       ...new Set(
-        APP_MENU_ITEMS.map((item) => item.group).filter(
-          (group) => group.length > 0,
+        APP_MENU_ITEMS.flatMap((item) =>
+          item.group.length > 0 ? [item.group] : [],
         ),
       ),
     ];
@@ -43,9 +46,12 @@ describe('APP_MENU_ITEMS', () => {
   });
 
   it('gives workspace first-class subroutes in the main sidebar', () => {
-    const workspaceLabels = APP_MENU_ITEMS.filter(
-      (item) => item.group === AppMenuGroup.Root,
-    ).map((item) => item.label);
+    const workspaceLabels = APP_MENU_ITEMS.reduce<string[]>((labels, item) => {
+      if (item.group === AppMenuGroup.Root) {
+        labels.push(item.label);
+      }
+      return labels;
+    }, []);
 
     expect(workspaceLabels).toEqual([
       'Dashboard',
@@ -56,10 +62,18 @@ describe('APP_MENU_ITEMS', () => {
   });
 
   it('does not include analytics group items pointing to /analytics/* routes', () => {
-    const analyticsGroupHrefs = APP_MENU_ITEMS.filter(
-      (item) =>
-        typeof item.href === 'string' && item.href.startsWith('/analytics/'),
-    ).map((item) => item.href);
+    const analyticsGroupHrefs = APP_MENU_ITEMS.reduce<string[]>(
+      (hrefs, item) => {
+        if (
+          typeof item.href === 'string' &&
+          item.href.startsWith('/analytics/')
+        ) {
+          hrefs.push(item.href);
+        }
+        return hrefs;
+      },
+      [],
+    );
 
     // Only /posts/analytics is allowed — no /analytics/* items
     expect(analyticsGroupHrefs).toHaveLength(0);

@@ -65,41 +65,39 @@ export default function AgentRunContentGrid({
     };
   }, [fetchContent]);
 
-  if (isLoading) {
-    return (
-      <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3 lg:grid-cols-4">
-        {[1, 2, 3, 4].map((i) => (
-          <div
-            key={i}
-            className="h-32 animate-pulse rounded border border-foreground/10 bg-foreground/5"
-          />
-        ))}
-      </div>
-    );
-  }
+  const allItems: IAgentRunContentItem[] = content
+    ? [
+        ...content.posts.map((p) => ({ ...p, type: 'post' as const })),
+        ...content.ingredients.map((i) => ({
+          ...i,
+          type: 'ingredient' as const,
+        })),
+      ]
+    : [];
 
-  if (!content) {
-    return (
-      <div className="p-4 text-center text-sm text-foreground/40">
-        Failed to load content.
-      </div>
-    );
-  }
-
-  const allItems: IAgentRunContentItem[] = [
-    ...content.posts.map((p) => ({ ...p, type: 'post' as const })),
-    ...content.ingredients.map((i) => ({ ...i, type: 'ingredient' as const })),
-  ];
-
-  if (allItems.length === 0) {
-    return (
-      <div className="p-4 text-center text-sm text-foreground/40">
-        No content produced by this run.
-      </div>
-    );
-  }
-
-  return (
+  return isLoading ? (
+    <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3 lg:grid-cols-4">
+      {[
+        'run-content-skeleton-1',
+        'run-content-skeleton-2',
+        'run-content-skeleton-3',
+        'run-content-skeleton-4',
+      ].map((skeletonId) => (
+        <div
+          key={skeletonId}
+          className="h-32 animate-pulse rounded border border-foreground/10 bg-foreground/5"
+        />
+      ))}
+    </div>
+  ) : !content ? (
+    <div className="p-4 text-center text-sm text-foreground/40">
+      Failed to load content.
+    </div>
+  ) : allItems.length === 0 ? (
+    <div className="p-4 text-center text-sm text-foreground/40">
+      No content produced by this run.
+    </div>
+  ) : (
     <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3 lg:grid-cols-4">
       {allItems.map((item) => (
         <ContentCard key={`${item.type}-${item.id}`} item={item} />

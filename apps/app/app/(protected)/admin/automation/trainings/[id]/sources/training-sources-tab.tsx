@@ -58,27 +58,19 @@ export default function TrainingSourcesTab() {
     };
   }, [getTrainingsService, notificationsService, training]);
 
-  if (isLoading && sourceImages.length === 0) {
-    return (
-      <MasonryGrid
-        ingredients={[]}
-        selectedIngredientId={[]}
-        isActionsEnabled={false}
-        isLoading
-      />
-    );
-  }
-
-  if (sourceImages.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <FaDatabase className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-        <p className="text-muted-foreground">No training sources available.</p>
-      </div>
-    );
-  }
-
-  return (
+  return isLoading && sourceImages.length === 0 ? (
+    <MasonryGrid
+      ingredients={[]}
+      selectedIngredientId={[]}
+      isActionsEnabled={false}
+      isLoading
+    />
+  ) : sourceImages.length === 0 ? (
+    <div className="text-center py-12">
+      <FaDatabase className="mx-auto size-12 text-muted-foreground mb-4" />
+      <p className="text-muted-foreground">No training sources available.</p>
+    </div>
+  ) : (
     <MasonryGrid
       ingredients={sourceImages}
       selectedIngredientId={[]}

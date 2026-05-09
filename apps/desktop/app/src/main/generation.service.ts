@@ -12,7 +12,25 @@ import {
   DEFAULT_WORKFLOW_GENERATION_NODE_TYPES,
   parseWorkflowGenerationResponse,
 } from '@genfeedai/workflows';
-import type { DesktopDatabaseService, SyncJobRow } from './database.service';
+
+export interface GenerationSyncJobRow {
+  createdAt: string;
+  error: string | null;
+  id: string;
+  payload: string;
+  retryCount: number;
+  status: string;
+  type: string;
+  updatedAt: string;
+  workspaceId: string | null;
+}
+
+export interface DesktopGenerationStore {
+  deleteValue: (key: string) => Promise<void>;
+  getValue: (key: string) => Promise<string | null>;
+  setValue: (key: string, value: string) => Promise<void>;
+  upsertSyncJob: (row: GenerationSyncJobRow) => Promise<void>;
+}
 
 const PROVIDER_CONFIG_KEY = 'desktop.generation.provider';
 const GENERATION_JOB_TYPE = 'generation';
@@ -289,7 +307,7 @@ const buildProviderHeaders = (
 });
 
 export class DesktopGenerationService {
-  constructor(private readonly database: DesktopDatabaseService) {}
+  constructor(private readonly database: DesktopGenerationStore) {}
 
   async clearProviderConfig(): Promise<void> {
     await this.database.deleteValue(PROVIDER_CONFIG_KEY);
@@ -401,9 +419,9 @@ export class DesktopGenerationService {
 
   private async createGenerationJob(
     params: IDesktopGenerationOptions,
-  ): Promise<SyncJobRow> {
+  ): Promise<GenerationSyncJobRow> {
     const now = toIso();
-    const row: SyncJobRow = {
+    const row: GenerationSyncJobRow = {
       createdAt: now,
       error: null,
       id: randomUUID(),
@@ -686,8 +704,8 @@ export class DesktopGenerationService {
   }
 
   private async updateGenerationJob(
-    job: SyncJobRow,
-    status: SyncJobRow['status'],
+    job: GenerationSyncJobRow,
+    status: GenerationSyncJobRow['status'],
     error?: string,
   ): Promise<void> {
     await this.database.upsertSyncJob({

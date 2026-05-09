@@ -124,7 +124,7 @@ export default function ProvidersContent() {
   const getUsersService = useAuthedService((token: string) =>
     UsersService.getInstance(token),
   );
-  const router = useRouter();
+  const { push } = useRouter();
   const [pendingMode, setPendingMode] = useState<OnboardingAccessMode | null>(
     null,
   );
@@ -229,7 +229,7 @@ export default function ProvidersContent() {
   const handleServerContinue = async () => {
     setPendingMode('server');
     await persistAccessMode('server');
-    router.push('/onboarding/summary');
+    push('/onboarding/summary');
   };
 
   const handleByokClick = async (
@@ -243,7 +243,7 @@ export default function ProvidersContent() {
 
     setPendingMode('byok');
     await persistAccessMode('byok');
-    router.push('/settings/api-keys');
+    push('/settings/api-keys');
   };
 
   const handleCloudContinue = async () => {
@@ -283,7 +283,7 @@ export default function ProvidersContent() {
 
           <div className="rounded-2xl border border-emerald-400/15 bg-emerald-500/5 p-4 text-sm text-white/55">
             <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-200">
-              <HiSparkles className="h-3.5 w-3.5" />
+              <HiSparkles className="size-3.5" />
               Server Defaults First
             </div>
             <p>
@@ -330,9 +330,9 @@ export default function ProvidersContent() {
                   }`}
                 >
                   {tool.enabled ? (
-                    <HiCheckCircle className="h-4 w-4" />
+                    <HiCheckCircle className="size-4" />
                   ) : (
-                    <HiKey className="h-4 w-4" />
+                    <HiKey className="size-4" />
                   )}
                   {tool.enabled ? 'Detected' : 'Not detected'}
                 </div>
@@ -374,9 +374,9 @@ export default function ProvidersContent() {
                   }`}
                 >
                   {provider.enabled ? (
-                    <HiCheckCircle className="h-4 w-4" />
+                    <HiCheckCircle className="size-4" />
                   ) : (
-                    <HiKey className="h-4 w-4" />
+                    <HiKey className="size-4" />
                   )}
                   {provider.enabled ? 'Server ready' : 'Missing server key'}
                 </div>
@@ -442,15 +442,15 @@ export default function ProvidersContent() {
             variant={ButtonVariant.GHOST}
             size={ButtonSize.SM}
             withWrapper={false}
-            onClick={() => router.push('/onboarding/brand')}
-            icon={<HiArrowLeft className="h-4 w-4" />}
+            onClick={() => push('/onboarding/brand')}
+            icon={<HiArrowLeft className="size-4" />}
             className="h-8 rounded-full border border-white/10 bg-white/[0.03] px-4 text-white/45 hover:border-white/15 hover:bg-white/[0.06] hover:text-white/75"
           >
             Back
           </Button>
 
           <div className="step-badge inline-flex h-8 shrink-0 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 text-[10px] font-black uppercase tracking-[0.2em] text-white/60">
-            <HiSparkles className="h-3 w-3" />
+            <HiSparkles className="size-3" />
             Step 2 of 3
           </div>
         </div>

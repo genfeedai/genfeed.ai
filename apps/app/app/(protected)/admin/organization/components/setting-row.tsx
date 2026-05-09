@@ -46,7 +46,7 @@ export function SettingRow({ label, value, type, onEdit }: SettingRowProps) {
           aria-label={`Edit ${label}`}
           title="Edit"
         >
-          <HiPencil className="h-4 w-4" />
+          <HiPencil className="size-4" />
         </Button>
       </td>
     </tr>

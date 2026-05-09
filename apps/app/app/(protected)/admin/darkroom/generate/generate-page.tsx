@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
+import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { HiOutlinePhoto } from 'react-icons/hi2';
 
@@ -238,15 +239,15 @@ export default function GeneratePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             {/* Character Selector */}
             <div>
-              <label className="block text-sm font-medium text-foreground/70 mb-1">
+              <span className="block text-sm font-medium text-foreground/70 mb-1">
                 Character
-              </label>
+              </span>
               <Select
                 onValueChange={setSelectedCharacter}
                 value={selectedCharacter}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select a character..." />
+                  <SelectValue placeholder="Select a character…" />
                 </SelectTrigger>
                 <SelectContent>
                   {(characters || []).map((c) => (
@@ -261,9 +262,9 @@ export default function GeneratePage() {
 
             {/* Model Selector */}
             <div>
-              <label className="block text-sm font-medium text-foreground/70 mb-1">
+              <span className="block text-sm font-medium text-foreground/70 mb-1">
                 Model
-              </label>
+              </span>
               <Select onValueChange={setModel} value={model}>
                 <SelectTrigger className="w-full">
                   <SelectValue />
@@ -280,9 +281,9 @@ export default function GeneratePage() {
 
             {/* Aspect Ratio */}
             <div>
-              <label className="block text-sm font-medium text-foreground/70 mb-1">
+              <span className="block text-sm font-medium text-foreground/70 mb-1">
                 Aspect Ratio
-              </label>
+              </span>
               <Select onValueChange={setAspectRatio} value={aspectRatio}>
                 <SelectTrigger className="w-full">
                   <SelectValue />
@@ -299,9 +300,9 @@ export default function GeneratePage() {
 
             {/* Steps */}
             <div>
-              <label className="block text-sm font-medium text-foreground/70 mb-1">
+              <span className="block text-sm font-medium text-foreground/70 mb-1">
                 Steps
-              </label>
+              </span>
               <Input
                 className="w-full"
                 min={1}
@@ -315,9 +316,9 @@ export default function GeneratePage() {
 
           {/* Prompt */}
           <div className="mb-4">
-            <label className="block text-sm font-medium text-foreground/70 mb-1">
+            <span className="block text-sm font-medium text-foreground/70 mb-1">
               Prompt
-            </label>
+            </span>
             <Textarea
               className="w-full min-h-[80px]"
               onChange={(e) => setPrompt(e.target.value)}
@@ -329,9 +330,9 @@ export default function GeneratePage() {
 
           {/* Negative Prompt */}
           <div className="mb-4">
-            <label className="block text-sm font-medium text-foreground/70 mb-1">
+            <span className="block text-sm font-medium text-foreground/70 mb-1">
               Negative Prompt
-            </label>
+            </span>
             <Input
               className="w-full"
               onChange={(e) => setNegativePrompt(e.target.value)}
@@ -362,7 +363,7 @@ export default function GeneratePage() {
             isDisabled={!selectedCharacter || !prompt.trim() || isGenerating}
             onClick={handleGenerate}
           >
-            {isGenerating ? 'Generating...' : 'Generate Image'}
+            {isGenerating ? 'Generating…' : 'Generate Image'}
           </Button>
         </div>
       </WorkspaceSurface>
@@ -380,17 +381,17 @@ export default function GeneratePage() {
               <Card key={img.id}>
                 <div className="p-4">
                   {img.cdnUrl ? (
-                    <>
-                      {/* biome-ignore lint/performance/noImgElement: generated asset previews use direct CDN URLs */}
-                      <img
-                        alt={img.prompt}
-                        className="w-full rounded mb-3 aspect-square object-cover"
-                        src={img.cdnUrl}
-                      />
-                    </>
+                    <Image
+                      unoptimized
+                      alt={img.prompt}
+                      className="w-full rounded mb-3 aspect-square object-cover"
+                      src={img.cdnUrl}
+                      width={800}
+                      height={600}
+                    />
                   ) : (
                     <div className="w-full rounded mb-3 aspect-square bg-foreground/5 flex items-center justify-center text-foreground/30">
-                      Processing...
+                      Processing…
                     </div>
                   )}
                   <p className="text-sm text-foreground/70 line-clamp-2">

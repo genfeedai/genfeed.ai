@@ -12,7 +12,7 @@ import { useEffect } from 'react';
 export default function OnboardingRootPage() {
   const { currentUser, isLoading } = useCurrentUser();
   const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
-  const router = useRouter();
+  const { replace } = useRouter();
 
   useEffect(() => {
     if (isLoading || !currentUser || !isClerkLoaded) {
@@ -20,7 +20,7 @@ export default function OnboardingRootPage() {
     }
 
     if (clerkUser?.publicMetadata?.proactiveLeadId) {
-      router.replace('/onboarding/proactive');
+      replace('/onboarding/proactive');
       return;
     }
 
@@ -30,16 +30,16 @@ export default function OnboardingRootPage() {
     );
 
     if (hasCompletedAllOnboardingSteps) {
-      router.replace('/onboarding/summary');
+      replace('/onboarding/summary');
       return;
     }
 
-    router.replace(`/onboarding/${getResumeStep(completedSteps)}`);
-  }, [clerkUser, currentUser, isClerkLoaded, isLoading, router]);
+    replace(`/onboarding/${getResumeStep(completedSteps)}`);
+  }, [clerkUser, currentUser, isClerkLoaded, isLoading, replace]);
 
   return (
     <div className="flex items-center justify-center min-h-[60vh]">
-      <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+      <div className="size-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
     </div>
   );
 }

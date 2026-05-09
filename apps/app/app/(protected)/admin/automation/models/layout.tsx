@@ -11,12 +11,12 @@ import { useState } from 'react';
 import { HiOutlineCpuChip, HiPlus } from 'react-icons/hi2';
 
 export default function ModelsLayout({ children }: LayoutProps) {
-  const router = useRouter();
+  const { refresh } = useRouter();
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   function handleRefresh(): void {
     setIsRefreshing(true);
-    router.refresh();
+    refresh();
     setTimeout(() => setIsRefreshing(false), 500);
   }
 

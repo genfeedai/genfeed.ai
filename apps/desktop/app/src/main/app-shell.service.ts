@@ -42,7 +42,7 @@ export class DesktopAppShellService {
   constructor(
     private readonly environment: IDesktopEnvironment,
     private readonly getSession: () => IDesktopSession | null,
-    private readonly getSessionDbPath: () => string,
+    private readonly getDataDir: () => string,
   ) {}
 
   /**
@@ -116,7 +116,7 @@ export class DesktopAppShellService {
       API_URL: stripApiVersionSuffix(this.environment.apiEndpoint),
       ELECTRON_RUN_AS_NODE: '1',
       GENFEED_DESKTOP_APP_PORT: String(this.environment.appPort),
-      GENFEED_DESKTOP_SESSION_DB_PATH: this.getSessionDbPath(),
+      GENFEED_DESKTOP_DATA_DIR: this.getDataDir(),
       HOSTNAME: this.appUrl.hostname,
       NEXT_PUBLIC_API_ENDPOINT: this.environment.apiEndpoint,
       NEXT_PUBLIC_DESKTOP_SHELL: '1',

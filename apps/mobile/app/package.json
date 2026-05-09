@@ -50,7 +50,7 @@
     "vitest": "4.1.5"
   },
   "main": "expo-router/entry",
-  "name": "mobile.genfeed.ai",
+  "name": "@genfeedai/mobile",
   "overrides": {
     "typescript": "6.0.2"
   },

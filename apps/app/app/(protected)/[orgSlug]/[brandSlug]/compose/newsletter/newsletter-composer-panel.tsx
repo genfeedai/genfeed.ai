@@ -32,7 +32,7 @@ function stripHtml(value?: string): string {
 }
 
 export default function NewsletterComposerPanel() {
-  const router = useRouter();
+  const { push } = useRouter();
   const notificationsService = NotificationsService.getInstance();
   const clipboardService = useMemo(() => ClipboardService.getInstance(), []);
   const [topic, setTopic] = useState('');
@@ -129,7 +129,7 @@ export default function NewsletterComposerPanel() {
       return;
     }
 
-    router.push(`/posts/newsletters?id=${newsletterId}`);
+    push(`/posts/newsletters?id=${newsletterId}`);
   }
 
   return (
@@ -146,7 +146,7 @@ export default function NewsletterComposerPanel() {
         </div>
 
         <div className="grid gap-4">
-          <label className="grid gap-2 text-sm text-foreground/75">
+          <span className="grid gap-2 text-sm text-foreground/75">
             <span>Topic</span>
             <Input
               value={topic}
@@ -154,9 +154,9 @@ export default function NewsletterComposerPanel() {
               placeholder="What should this issue cover?"
               className="rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-white/20"
             />
-          </label>
+          </span>
 
-          <label className="grid gap-2 text-sm text-foreground/75">
+          <span className="grid gap-2 text-sm text-foreground/75">
             <span>Angle</span>
             <Input
               value={angle}
@@ -164,7 +164,7 @@ export default function NewsletterComposerPanel() {
               placeholder="Optional framing or thesis"
               className="rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-white/20"
             />
-          </label>
+          </span>
 
           <Textarea
             label="Editorial instructions"
@@ -175,7 +175,7 @@ export default function NewsletterComposerPanel() {
             className="min-h-28 rounded-xl border-white/10 bg-black/20"
           />
 
-          <label className="grid gap-2 text-sm text-foreground/75">
+          <span className="grid gap-2 text-sm text-foreground/75">
             <span>Draft label</span>
             <Input
               value={label}
@@ -183,7 +183,7 @@ export default function NewsletterComposerPanel() {
               placeholder="Newsletter title"
               className="rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-white/20"
             />
-          </label>
+          </span>
 
           <Textarea
             label="Summary"
@@ -210,7 +210,7 @@ export default function NewsletterComposerPanel() {
         <div className="flex flex-wrap gap-3">
           <Button
             label="Generate draft"
-            icon={<HiSparkles className="h-4 w-4" />}
+            icon={<HiSparkles className="size-4" />}
             isLoading={isGenerating}
             isDisabled={!topic.trim()}
             onClick={() => void handleGenerateDraft()}
@@ -218,7 +218,7 @@ export default function NewsletterComposerPanel() {
           />
           <Button
             label="Save draft"
-            icon={<HiEnvelope className="h-4 w-4" />}
+            icon={<HiEnvelope className="size-4" />}
             isLoading={isSaving}
             isDisabled={!newsletterId}
             variant={ButtonVariant.SECONDARY}
@@ -227,14 +227,14 @@ export default function NewsletterComposerPanel() {
           />
           <Button
             label="Copy content"
-            icon={<HiClipboardDocument className="h-4 w-4" />}
+            icon={<HiClipboardDocument className="size-4" />}
             variant={ButtonVariant.SECONDARY}
             onClick={() => void handleCopy()}
             className="rounded-xl"
           />
           <Button
             label="Open newsletters"
-            icon={<HiArrowPathRoundedSquare className="h-4 w-4" />}
+            icon={<HiArrowPathRoundedSquare className="size-4" />}
             variant={ButtonVariant.SECONDARY}
             isDisabled={!newsletterId}
             onClick={handleOpenWorkspace}

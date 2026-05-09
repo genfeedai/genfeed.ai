@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { HiGlobeAlt } from 'react-icons/hi2';
 
@@ -54,17 +55,17 @@ export default function UrlPreview({ url }: UrlPreviewProps) {
       aria-label={`Preview for ${domain}`}
     >
       {!faviconError ? (
-        <>
-          {/* biome-ignore lint/performance/noImgElement: favicon preview is a tiny remote asset and does not benefit from next/image */}
-          <img
-            src={faviconUrl}
-            alt=""
-            className="w-4 h-4 rounded-sm"
-            onError={() => setFaviconError(true)}
-          />
-        </>
+        <Image
+          unoptimized
+          src={faviconUrl}
+          alt=""
+          className="size-4 rounded-sm"
+          onError={() => setFaviconError(true)}
+          width={800}
+          height={600}
+        />
       ) : (
-        <HiGlobeAlt className="w-4 h-4 text-white/40" />
+        <HiGlobeAlt className="size-4 text-white/40" />
       )}
       <span className="text-xs text-white/50 truncate">{domain}</span>
       <span className="text-[10px] text-white/20 ml-auto">

@@ -28,18 +28,18 @@ import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagina
 import { Button } from '@ui/primitives/button';
 import { Switch } from '@ui/primitives/switch';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useMemo, useState } from 'react';
+import { Suspense, useCallback, useMemo, useState } from 'react';
 import { HiFolderOpen, HiPencil, HiPlus, HiTrash } from 'react-icons/hi2';
 
-export default function FoldersList({ scope = PageScope.BRAND }: ContentProps) {
+function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
   const { isSignedIn } = useAuth();
   const notificationsService = NotificationsService.getInstance();
   const { openConfirm } = useConfirmModal();
 
-  const router = useRouter();
+  const { replace } = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const searchParamsString = searchParams?.toString() ?? '';
+  const { get, toString: getSearchParamsString } = useSearchParams();
+  const searchParamsString = getSearchParamsString() ?? '';
   const parsedSearchParams = useMemo(
     () => new URLSearchParams(searchParamsString),
     [searchParamsString],
@@ -73,11 +73,11 @@ export default function FoldersList({ scope = PageScope.BRAND }: ContentProps) {
       params.delete('brand');
       params.delete('page');
       const queryString = params.toString();
-      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+      replace(queryString ? `${pathname}?${queryString}` : pathname, {
         scroll: false,
       });
     },
-    [pathname, router, searchParamsString],
+    [pathname, replace, searchParamsString],
   );
 
   const handleAdminBrandChange = useCallback(
@@ -91,11 +91,11 @@ export default function FoldersList({ scope = PageScope.BRAND }: ContentProps) {
       }
       params.delete('page');
       const queryString = params.toString();
-      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+      replace(queryString ? `${pathname}?${queryString}` : pathname, {
         scroll: false,
       });
     },
-    [pathname, router, searchParamsString],
+    [pathname, replace, searchParamsString],
   );
 
   // Filters state
@@ -110,7 +110,7 @@ export default function FoldersList({ scope = PageScope.BRAND }: ContentProps) {
   });
 
   // Extract page from URL to use as dependency (triggers re-fetch when page changes)
-  const currentPage = Number(searchParams?.get('page')) || 1;
+  const currentPage = Number(get('page')) || 1;
 
   // Load folders using useResource (handles AbortController cleanup properly)
   const {
@@ -336,5 +336,15 @@ export default function FoldersList({ scope = PageScope.BRAND }: ContentProps) {
         <AutoPagination showTotal totalLabel="folders" />
       </div>
     </Container>
+  );
+}
+
+export default function FoldersList(
+  props: Parameters<typeof FoldersListContent>[0],
+) {
+  return (
+    <Suspense fallback={null}>
+      <FoldersListContent {...props} />
+    </Suspense>
   );
 }

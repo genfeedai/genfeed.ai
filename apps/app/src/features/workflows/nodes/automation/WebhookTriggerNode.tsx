@@ -13,6 +13,7 @@ import {
 } from '@ui/primitives/collapsible';
 import type { NodeProps } from '@xyflow/react';
 import { memo, useCallback, useState } from 'react';
+import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import { NodeBadge } from '@/features/workflows/components/ui/badge';
 import {
   NodeButton,
@@ -119,7 +120,7 @@ function WebhookTriggerNodeComponent(props: NodeProps): React.JSX.Element {
   return (
     <NodeCard minWidth="300px">
       <NodeHeader
-        icon={<WebhookIcon className="h-4 w-4" />}
+        icon={<WebhookIcon className="size-4" />}
         title="Webhook Trigger"
         badge={<NodeBadge variant="blue">Trigger</NodeBadge>}
       />
@@ -133,7 +134,7 @@ function WebhookTriggerNodeComponent(props: NodeProps): React.JSX.Element {
         <NodeButton
           fullWidth
           onClick={handleGenerateWebhook}
-          icon={<WebhookIcon className="h-4 w-4" />}
+          icon={<WebhookIcon className="size-4" />}
         >
           Generate Webhook URL
         </NodeButton>
@@ -143,7 +144,7 @@ function WebhookTriggerNodeComponent(props: NodeProps): React.JSX.Element {
         <div className="space-y-3">
           {/* URL Display */}
           <div>
-            <label className="text-xs text-muted-foreground">Webhook URL</label>
+            <span className="text-xs text-muted-foreground">Webhook URL</span>
             <div className="flex items-center gap-2 mt-1">
               <Code className="flex-1 truncate">{data.webhookUrl}</Code>
               <NodeIconButton
@@ -151,9 +152,9 @@ function WebhookTriggerNodeComponent(props: NodeProps): React.JSX.Element {
                 title="Copy URL"
               >
                 {copied === 'url' ? (
-                  <CheckIcon className="h-4 w-4" />
+                  <CheckIcon className="size-4" />
                 ) : (
-                  <CopyIcon className="h-4 w-4" />
+                  <CopyIcon className="size-4" />
                 )}
               </NodeIconButton>
             </div>
@@ -186,9 +187,9 @@ function WebhookTriggerNodeComponent(props: NodeProps): React.JSX.Element {
                   title={showSecret ? 'Hide secret' : 'Show secret'}
                 >
                   {showSecret ? (
-                    <EyeOffIcon className="h-4 w-4" />
+                    <EyeOffIcon className="size-4" />
                   ) : (
-                    <EyeIcon className="h-4 w-4" />
+                    <EyeIcon className="size-4" />
                   )}
                 </NodeIconButton>
                 <NodeIconButton
@@ -196,16 +197,16 @@ function WebhookTriggerNodeComponent(props: NodeProps): React.JSX.Element {
                   title="Copy secret"
                 >
                   {copied === 'secret' ? (
-                    <CheckIcon className="h-4 w-4" />
+                    <CheckIcon className="size-4" />
                   ) : (
-                    <CopyIcon className="h-4 w-4" />
+                    <CopyIcon className="size-4" />
                   )}
                 </NodeIconButton>
                 <NodeIconButton
                   onClick={handleRegenerateSecret}
                   title="Regenerate secret"
                 >
-                  <RefreshIcon className="h-4 w-4" />
+                  <RefreshIcon className="size-4" />
                 </NodeIconButton>
               </div>
               <p className="text-xs text-muted-foreground mt-1">
@@ -236,7 +237,11 @@ function WebhookTriggerNodeComponent(props: NodeProps): React.JSX.Element {
             <span>Triggers: {data.triggerCount}</span>
             {data.lastTriggeredAt && (
               <span>
-                Last: {new Date(data.lastTriggeredAt).toLocaleDateString()}
+                Last:{' '}
+                <ClientFormattedDate
+                  format="date"
+                  value={data.lastTriggeredAt}
+                />
               </span>
             )}
           </div>
@@ -248,7 +253,7 @@ function WebhookTriggerNodeComponent(props: NodeProps): React.JSX.Element {
 
 export const WebhookTriggerNode = memo(WebhookTriggerNodeComponent);
 
-export const webhookTriggerNodeDefaults: Partial<WebhookTriggerNodeData> = {
+const webhookTriggerNodeDefaults: Partial<WebhookTriggerNodeData> = {
   authType: 'secret',
   label: 'Webhook Trigger',
   lastTriggeredAt: null,

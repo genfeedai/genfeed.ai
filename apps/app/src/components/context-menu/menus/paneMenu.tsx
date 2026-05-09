@@ -33,7 +33,7 @@ import {
 import {
   type ContextMenuItemConfig,
   createSeparator,
-} from '@/components/context-menu/ContextMenu';
+} from '@/components/context-menu/context-menu-config';
 
 // Icon mapping from node definition icon strings to Lucide components
 const NODE_ICONS: Record<string, LucideIcon> = {
@@ -113,13 +113,13 @@ export function getPaneMenuItems({
     const nodes = nodesByCategory[category];
 
     return {
-      icon: <CategoryIcon className="w-4 h-4" />,
+      icon: <CategoryIcon className="size-4" />,
       id: `add-${category}`,
       label: CATEGORY_LABELS[category],
       submenu: nodes.map((node) => {
         const NodeIcon = NODE_ICONS[node.icon] ?? Sparkles;
         return {
-          icon: <NodeIcon className="w-4 h-4" />,
+          icon: <NodeIcon className="size-4" />,
           id: `add-${node.type}`,
           label: node.label,
           onClick: () => onAddNode(node.type, screenX, screenY),
@@ -133,7 +133,7 @@ export function getPaneMenuItems({
     createSeparator('separator-1'),
     {
       disabled: !hasClipboard,
-      icon: <Clipboard className="w-4 h-4" />,
+      icon: <Clipboard className="size-4" />,
       id: 'paste',
       label: 'Paste',
       onClick: onPaste,
@@ -147,14 +147,14 @@ export function getPaneMenuItems({
       shortcut: '⌘A',
     },
     {
-      icon: <Maximize className="w-4 h-4" />,
+      icon: <Maximize className="size-4" />,
       id: 'fit-view',
       label: 'Fit View',
       onClick: onFitView,
       shortcut: 'F',
     },
     {
-      icon: <LayoutGrid className="w-4 h-4" />,
+      icon: <LayoutGrid className="size-4" />,
       id: 'auto-layout',
       label: 'Auto-layout Nodes',
       onClick: onAutoLayout,

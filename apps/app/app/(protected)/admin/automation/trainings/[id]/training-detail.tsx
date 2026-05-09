@@ -101,7 +101,7 @@ export default function TrainingDetail({
     return (
       <Container>
         <Card className="p-12 text-center">
-          <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center">
+          <div className="mx-auto mb-4 size-12 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center">
             <span className="text-2xl">!</span>
           </div>
 
@@ -138,7 +138,7 @@ export default function TrainingDetail({
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <div className="flex items-start justify-between mb-2">
-                <h1 className="text-2xl font-bold text-foreground">
+                <h1 className="text-2xl font-semibold text-foreground">
                   {training.label}
                 </h1>
                 <Button

@@ -36,7 +36,7 @@ import {
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
 import {
-  forwardRef,
+  type Ref,
   useCallback,
   useEffect,
   useImperativeHandle,
@@ -56,6 +56,7 @@ interface WorkspaceBrandMentionItem {
 interface WorkspaceBrandMentionListProps {
   command: (item: WorkspaceBrandMentionItem) => void;
   items: WorkspaceBrandMentionItem[];
+  ref?: Ref<{ onKeyDown: (props: { event: KeyboardEvent }) => boolean }>;
 }
 
 interface WorkspaceBrandMentionMatch {
@@ -162,10 +163,11 @@ function extractBrandMentionMatch(
   return null;
 }
 
-const WorkspaceBrandMentionList = forwardRef<
-  { onKeyDown: (props: { event: KeyboardEvent }) => boolean },
-  WorkspaceBrandMentionListProps
->(function WorkspaceBrandMentionList({ command, items }, ref) {
+function WorkspaceBrandMentionList({
+  command,
+  items,
+  ref,
+}: WorkspaceBrandMentionListProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   useEffect(() => {
@@ -224,7 +226,7 @@ const WorkspaceBrandMentionList = forwardRef<
       ))}
     </div>
   );
-});
+}
 
 export function WorkspaceTaskComposer({
   onOpenChange,
@@ -740,9 +742,9 @@ export function WorkspaceTaskComposer({
         <Modal.Body className="space-y-4">
           <div className="space-y-1.5">
             <div className="flex items-center justify-between gap-3">
-              <label className="block text-xs font-medium text-foreground/60">
+              <span className="block text-xs font-medium text-foreground/60">
                 Target brand
-              </label>
+              </span>
               {taskTargetBrandId ? (
                 <Button
                   size={ButtonSize.XS}
@@ -843,8 +845,8 @@ export function WorkspaceTaskComposer({
                 disabled={taskEnhancementBusy || !taskRequest.trim()}
                 onClick={() => void handleEnhanceTaskRequest()}
               >
-                <HiOutlineSparkles className="h-3.5 w-3.5" />
-                {taskEnhancementBusy ? 'Enhancing...' : 'Enhance - 1 credit'}
+                <HiOutlineSparkles className="size-3.5" />
+                {taskEnhancementBusy ? 'Enhancing…' : 'Enhance - 1 credit'}
               </Button>
             </div>
           </div>
@@ -866,7 +868,7 @@ export function WorkspaceTaskComposer({
                 </p>
                 {facecamLoading ? (
                   <span className="text-[11px] text-foreground/40">
-                    Loading avatars & voices...
+                    Loading avatars & voices…
                   </span>
                 ) : null}
               </div>
@@ -964,7 +966,7 @@ export function WorkspaceTaskComposer({
             disabled={taskBusy}
             onClick={() => void handleCreateTask()}
           >
-            {taskBusy ? 'Creating...' : 'Create Task'}
+            {taskBusy ? 'Creating…' : 'Create Task'}
             {!taskBusy && (
               <span className="ml-2 text-xs opacity-50">Cmd+Enter</span>
             )}

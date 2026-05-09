@@ -16,10 +16,29 @@ describe('website marketing events', () => {
       WEBSITE_MARKETING_EVENTS.CTA_CLICK,
       WEBSITE_MARKETING_EVENTS.BOOK_CALL,
     ]);
+    expect(deriveMarketingEventsFromCta({ action: 'book_call_hero' })).toEqual([
+      WEBSITE_MARKETING_EVENTS.CTA_CLICK,
+      WEBSITE_MARKETING_EVENTS.BOOK_CALL,
+    ]);
+  });
+
+  it('maps suffixed signup CTAs to signup starts', () => {
+    expect(
+      deriveMarketingEventsFromCta({ action: 'signup_bottom_cta' }),
+    ).toEqual([
+      WEBSITE_MARKETING_EVENTS.CTA_CLICK,
+      WEBSITE_MARKETING_EVENTS.START_SIGNUP,
+    ]);
   });
 
   it('maps pricing CTAs to pricing views', () => {
     expect(deriveMarketingEventsFromCta({ action: 'view_plans' })).toEqual([
+      WEBSITE_MARKETING_EVENTS.CTA_CLICK,
+      WEBSITE_MARKETING_EVENTS.VIEW_PRICING,
+    ]);
+    expect(
+      deriveMarketingEventsFromCta({ action: 'view_pricing_hero' }),
+    ).toEqual([
       WEBSITE_MARKETING_EVENTS.CTA_CLICK,
       WEBSITE_MARKETING_EVENTS.VIEW_PRICING,
     ]);

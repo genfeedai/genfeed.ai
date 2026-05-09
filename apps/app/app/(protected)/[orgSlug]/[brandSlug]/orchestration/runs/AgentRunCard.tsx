@@ -111,7 +111,7 @@ export default function AgentRunCard({ run, onCancel }: AgentRunCardProps) {
             className={`inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium ${statusConfig.color}`}
           >
             {statusConfig.pulse && (
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-current" />
+              <span className="size-1.5 animate-pulse rounded-full bg-current" />
             )}
             {statusConfig.label}
           </span>

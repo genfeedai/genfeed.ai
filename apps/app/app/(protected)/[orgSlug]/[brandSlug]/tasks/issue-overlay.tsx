@@ -81,7 +81,7 @@ interface IssueOverlayProps {
 }
 
 export default function IssueOverlay({ issue, onClose }: IssueOverlayProps) {
-  const router = useRouter();
+  const { push } = useRouter();
   const [comments, setComments] = useState<IssueComment[]>([]);
   const [showAllComments, setShowAllComments] = useState(false);
   const controllerRef = useRef<AbortController | null>(null);
@@ -135,10 +135,10 @@ export default function IssueOverlay({ issue, onClose }: IssueOverlayProps) {
 
   const handleOpenDetail = useCallback(() => {
     if (issue) {
-      router.push(`/tasks/${issue.identifier}`);
+      push(`/tasks/${issue.identifier}`);
       closeIssueOverlay();
     }
-  }, [issue, router]);
+  }, [issue, push]);
 
   if (!issue) return null;
 
@@ -178,7 +178,7 @@ export default function IssueOverlay({ issue, onClose }: IssueOverlayProps) {
         {issue.linkedEntities?.length > 0 && (
           <div>
             <h3 className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-white/40">
-              <HiOutlineLink className="h-3.5 w-3.5" />
+              <HiOutlineLink className="size-3.5" />
               Linked ({issue.linkedEntities.length})
             </h3>
             <div className="flex flex-wrap gap-1.5">
@@ -191,9 +191,9 @@ export default function IssueOverlay({ issue, onClose }: IssueOverlayProps) {
                   )}
                 >
                   {entity.entityModel === 'Ingredient' ? (
-                    <HiOutlinePhoto className="h-3 w-3" />
+                    <HiOutlinePhoto className="size-3" />
                   ) : (
-                    <HiOutlineDocumentText className="h-3 w-3" />
+                    <HiOutlineDocumentText className="size-3" />
                   )}
                   <span className="text-[10px] font-medium">
                     {ENTITY_MODEL_LABELS[entity.entityModel]}
@@ -206,7 +206,7 @@ export default function IssueOverlay({ issue, onClose }: IssueOverlayProps) {
 
         <div>
           <h3 className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-white/40">
-            <HiOutlineChatBubbleLeft className="h-3.5 w-3.5" />
+            <HiOutlineChatBubbleLeft className="size-3.5" />
             Comments ({comments.length})
           </h3>
 
@@ -219,7 +219,7 @@ export default function IssueOverlay({ issue, onClose }: IssueOverlayProps) {
                   className="flex w-full items-center justify-center gap-1.5 border-b border-white/5 py-2 text-[11px] text-white/40 transition-colors hover:bg-white/[0.02] hover:text-white/60"
                   onClick={() => setShowAllComments(true)}
                 >
-                  <HiChevronDown className="h-3 w-3" />
+                  <HiChevronDown className="size-3" />
                   Show {hiddenCommentCount} earlier{' '}
                   {hiddenCommentCount === 1 ? 'comment' : 'comments'}
                 </Button>
@@ -241,9 +241,9 @@ export default function IssueOverlay({ issue, onClose }: IssueOverlayProps) {
                         )}
                       >
                         {isAgent ? (
-                          <HiOutlineCpuChip className="h-3 w-3" />
+                          <HiOutlineCpuChip className="size-3" />
                         ) : (
-                          <HiOutlineUser className="h-3 w-3" />
+                          <HiOutlineUser className="size-3" />
                         )}
                       </div>
                       <span

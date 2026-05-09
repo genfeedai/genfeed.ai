@@ -32,6 +32,7 @@ export interface MarketingTrackingConfig {
   >;
   linkedinPartnerId?: string;
   metaPixelId?: string;
+  xEventIds?: Partial<Record<WebsiteMarketingEventName, string>>;
   xPixelId?: string;
 }
 
@@ -184,8 +185,12 @@ function dispatchBrowserVendorEvents(
   }
 
   if (config.xPixelId) {
-    window.twq?.('event', X_EVENT_NAMES[event.name], {
+    const xEventId =
+      config.xEventIds?.[event.name] || X_EVENT_NAMES[event.name];
+
+    window.twq?.('event', xEventId, {
       event_id: event.eventId,
+      event_name: X_EVENT_NAMES[event.name],
       ...payload,
     });
   }

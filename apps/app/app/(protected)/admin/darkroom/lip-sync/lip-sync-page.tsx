@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
+import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { HiOutlineVideoCamera } from 'react-icons/hi2';
 
@@ -169,9 +170,9 @@ export default function LipSyncPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             {/* Character Selector */}
             <div>
-              <label className="block text-sm font-medium text-foreground/70 mb-1">
+              <span className="block text-sm font-medium text-foreground/70 mb-1">
                 Character
-              </label>
+              </span>
               <Select
                 onValueChange={setSelectedCharacter}
                 value={selectedCharacter}
@@ -192,9 +193,9 @@ export default function LipSyncPage() {
 
             {/* Audio Source Toggle */}
             <div>
-              <label className="block text-sm font-medium text-foreground/70 mb-1">
+              <span className="block text-sm font-medium text-foreground/70 mb-1">
                 Audio Source
-              </label>
+              </span>
               <Select
                 onValueChange={(value) =>
                   setAudioSource(value as AudioSourceType)
@@ -214,9 +215,9 @@ export default function LipSyncPage() {
 
           {/* Source Image URL */}
           <div className="mb-4">
-            <label className="block text-sm font-medium text-foreground/70 mb-1">
+            <span className="block text-sm font-medium text-foreground/70 mb-1">
               Source Image URL
-            </label>
+            </span>
             <Input
               className="w-full"
               onChange={(e) => setImageUrl(e.target.value)}
@@ -228,9 +229,9 @@ export default function LipSyncPage() {
           {/* Audio URL (when upload mode) */}
           {audioSource === 'upload' && (
             <div className="mb-4">
-              <label className="block text-sm font-medium text-foreground/70 mb-1">
+              <span className="block text-sm font-medium text-foreground/70 mb-1">
                 Audio URL
-              </label>
+              </span>
               <Input
                 className="w-full"
                 onChange={(e) => setAudioUrl(e.target.value)}
@@ -243,9 +244,9 @@ export default function LipSyncPage() {
           {/* TTS Text (when TTS mode) */}
           {audioSource === 'tts' && (
             <div className="mb-4">
-              <label className="block text-sm font-medium text-foreground/70 mb-1">
+              <span className="block text-sm font-medium text-foreground/70 mb-1">
                 Text for TTS
-              </label>
+              </span>
               <Textarea
                 className="w-full min-h-[80px]"
                 onChange={(e) => setTtsText(e.target.value)}
@@ -259,14 +260,16 @@ export default function LipSyncPage() {
           {/* Image Preview */}
           {imageUrl && (
             <div className="mb-4">
-              <label className="block text-sm font-medium text-foreground/70 mb-1">
+              <span className="block text-sm font-medium text-foreground/70 mb-1">
                 Source Preview
-              </label>
-              {/* biome-ignore lint/performance/noImgElement: source preview is a transient uploaded image URL */}
-              <img
+              </span>
+              <Image
+                unoptimized
                 alt="Source"
-                className="w-48 h-48 rounded object-cover border border-foreground/10"
+                className="size-48 rounded object-cover border border-foreground/10"
                 src={imageUrl}
+                width={800}
+                height={600}
               />
             </div>
           )}
@@ -292,7 +295,7 @@ export default function LipSyncPage() {
           data-testid="darkroom-lip-sync-progress-surface"
         >
           <div className="flex items-center gap-3">
-            <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full" />
+            <div className="animate-spin size-5 border-2 border-primary border-t-transparent rounded-full" />
             <div>
               <p className="text-sm text-foreground/50">
                 Job ID: {jobId} - This may take a few minutes

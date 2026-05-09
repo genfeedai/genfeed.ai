@@ -270,9 +270,8 @@ describe('proxy', () => {
       delete process.env.CLERK_SECRET_KEY;
       process.env.NEXT_PUBLIC_DESKTOP_SHELL = '1';
 
-      const { default: proxy } = await import(
-        `./proxy?desktop-shell-settings=${Date.now()}`
-      );
+      vi.resetModules();
+      const { default: proxy } = await import('./proxy');
 
       const response = await proxy(
         {
@@ -441,9 +440,8 @@ describe('proxy', () => {
     delete process.env.CLERK_SECRET_KEY;
     process.env.NEXT_PUBLIC_DESKTOP_SHELL = '1';
 
-    const { default: proxy } = await import(
-      `./proxy?desktop-shell=${Date.now()}`
-    );
+    vi.resetModules();
+    const { default: proxy } = await import('./proxy');
 
     const response = await proxy(
       {
@@ -477,9 +475,8 @@ describe('proxy', () => {
       async () => new Response('error', { status: 500 }),
     );
 
-    const { default: proxy } = await import(
-      `./proxy?desktop-shell-stale-root=${Date.now()}`
-    );
+    vi.resetModules();
+    const { default: proxy } = await import('./proxy');
 
     const response = await proxy(
       {
@@ -508,9 +505,8 @@ describe('proxy', () => {
   it('skips API call when valid slug cookie is present', async () => {
     process.env.COOKIE_SECRET = 'test-secret-at-least-32-chars-long!!';
 
-    const { default: proxy } = await import(
-      `./proxy?cookie-cache=${Date.now()}`
-    );
+    vi.resetModules();
+    const { default: proxy } = await import('./proxy');
 
     const firstResponse = await proxy(
       {
@@ -560,9 +556,8 @@ describe('proxy', () => {
   it('falls back to API when cookie is expired or tampered', async () => {
     process.env.COOKIE_SECRET = 'test-secret-at-least-32-chars-long!!';
 
-    const { default: proxy } = await import(
-      `./proxy?cookie-tampered=${Date.now()}`
-    );
+    vi.resetModules();
+    const { default: proxy } = await import('./proxy');
 
     const response = await proxy(
       {
@@ -586,9 +581,8 @@ describe('proxy', () => {
   });
 
   it('deletes slug cookie on logout', async () => {
-    const { default: proxy } = await import(
-      `./proxy?logout-cookie=${Date.now()}`
-    );
+    vi.resetModules();
+    const { default: proxy } = await import('./proxy');
 
     const response = await proxy(
       {
@@ -612,9 +606,8 @@ describe('proxy', () => {
       async () => new Response('error', { status: 500 }),
     );
 
-    const { default: proxy } = await import(
-      `./proxy?desktop-shell-stale-login=${Date.now()}`
-    );
+    vi.resetModules();
+    const { default: proxy } = await import('./proxy');
 
     const response = await proxy(
       {

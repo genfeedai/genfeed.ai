@@ -13,14 +13,10 @@ import type {
   IDesktopSyncOpAck,
   IDesktopSyncState,
 } from '@genfeedai/desktop-contracts';
-import type {
-  DesktopDatabaseService,
-  SyncJobRow,
-  SyncOpRow,
-} from './database.service';
+import type { PrismaClient } from '@genfeedai/desktop-prisma';
 
 const toIso = (): string => new Date().toISOString();
-const LOCAL_ORGANIZATION_ID = 'desktop-local-org';
+const LOCAL_ORGANIZATION_ID = 'local-org';
 
 const ASSET_KINDS = ['audio', 'document', 'image', 'video'] as const;
 const ASSET_ORIGINS = [
@@ -43,9 +39,102 @@ const isOneOf = <T extends string>(
 ): value is T => Boolean(value && allowed.includes(value as T));
 
 export class DesktopSyncService {
-  constructor(private readonly database: DesktopDatabaseService) {}
+  private readonly assets = new Map<string, IDesktopAsset>();
+  private readonly jobs = new Map<string, IDesktopSyncJob>();
+  private readonly ops = new Map<string, IDesktopSyncOp>();
 
-  private toSyncJob(row: SyncJobRow): IDesktopSyncJob {
+  constructor(private readonly prisma: PrismaClient) {}
+
+  async init(): Promise<void> {
+    const [assetRows, jobRows, opRows] = await Promise.all([
+      this.prisma.desktopAsset.findMany({
+        orderBy: {
+          updatedAt: 'desc',
+        },
+      }),
+      this.prisma.desktopSyncJob.findMany({
+        orderBy: {
+          updatedAt: 'desc',
+        },
+      }),
+      this.prisma.desktopSyncOp.findMany({
+        orderBy: {
+          updatedAt: 'desc',
+        },
+      }),
+    ]);
+
+    this.assets.clear();
+    for (const row of assetRows) {
+      this.assets.set(row.id, this.toAsset(row));
+    }
+
+    this.jobs.clear();
+    for (const row of jobRows) {
+      this.jobs.set(row.id, this.toSyncJob(row));
+    }
+
+    this.ops.clear();
+    for (const row of opRows) {
+      this.ops.set(row.id, this.toSyncOp(row));
+    }
+  }
+
+  private toAsset(row: {
+    brandId: string | null;
+    cloudId: string | null;
+    cloudObjectKey: string | null;
+    createdAt: string;
+    deletedAt: string | null;
+    displayName: string;
+    id: string;
+    kind: string;
+    localPath: string | null;
+    mimeType: string;
+    organizationId: string;
+    origin: string;
+    originalFileName: string;
+    residency: string;
+    sha256: string;
+    sizeBytes: number;
+    updatedAt: string;
+    uploadPolicy: string;
+    workspaceId: string | null;
+  }): IDesktopAsset {
+    return {
+      brandId: row.brandId ?? undefined,
+      cloudId: row.cloudId ?? undefined,
+      cloudObjectKey: row.cloudObjectKey ?? undefined,
+      createdAt: row.createdAt,
+      deletedAt: row.deletedAt ?? undefined,
+      displayName: row.displayName,
+      id: row.id,
+      kind: row.kind as DesktopAssetKind,
+      localPath: row.localPath ?? undefined,
+      mimeType: row.mimeType,
+      organizationId: row.organizationId,
+      origin: row.origin as DesktopAssetOrigin,
+      originalFileName: row.originalFileName,
+      residency: row.residency as DesktopAssetResidency,
+      sha256: row.sha256,
+      sizeBytes: row.sizeBytes,
+      updatedAt: row.updatedAt,
+      uploadPolicy: row.uploadPolicy as DesktopAssetUploadPolicy,
+      workspaceId: row.workspaceId ?? undefined,
+    };
+  }
+
+  private toSyncJob(row: {
+    createdAt: string;
+    error: string | null;
+    id: string;
+    payload: string;
+    retryCount: number;
+    status: string;
+    type: string;
+    updatedAt: string;
+    workspaceId: string | null;
+  }): IDesktopSyncJob {
     return {
       createdAt: row.createdAt,
       error: row.error ?? undefined,
@@ -59,7 +148,33 @@ export class DesktopSyncService {
     };
   }
 
-  private toSyncOp(row: SyncOpRow): IDesktopSyncOp {
+  private listJobCache(workspaceId?: string): IDesktopSyncJob[] {
+    return Array.from(this.jobs.values())
+      .filter((job) => !workspaceId || job.workspaceId === workspaceId)
+      .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
+  }
+
+  private listOpCache(workspaceId?: string): IDesktopSyncOp[] {
+    return Array.from(this.ops.values())
+      .filter((op) => !workspaceId || op.workspaceId === workspaceId)
+      .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
+  }
+
+  private toSyncOp(row: {
+    acknowledgedAt: string | null;
+    baseVersion: string | null;
+    createdAt: string;
+    entityId: string;
+    entityType: string;
+    error: string | null;
+    id: string;
+    operation: string;
+    payload: string;
+    retryCount: number;
+    status: string;
+    updatedAt: string;
+    workspaceId: string | null;
+  }): IDesktopSyncOp {
     return {
       acknowledgedAt: row.acknowledgedAt ?? undefined,
       baseVersion: row.baseVersion ?? undefined,
@@ -77,29 +192,24 @@ export class DesktopSyncService {
     };
   }
 
-  async listJobs(workspaceId?: string): Promise<IDesktopSyncJob[]> {
-    const rows = await this.database.listSyncJobs(workspaceId);
-    return rows.map((row) => this.toSyncJob(row));
+  listJobs(workspaceId?: string): IDesktopSyncJob[] {
+    return this.listJobCache(workspaceId);
   }
 
-  async listOps(workspaceId?: string): Promise<IDesktopSyncOp[]> {
-    const rows = await this.database.listSyncOps(workspaceId);
-    return rows.map((row) => this.toSyncOp(row));
+  listOps(workspaceId?: string): IDesktopSyncOp[] {
+    return this.listOpCache(workspaceId);
   }
 
-  async getState(): Promise<IDesktopSyncState> {
-    const [assets, jobs, ops] = await Promise.all([
-      this.database.listAssets(),
-      this.listJobs(),
-      this.listOps(),
-    ]);
+  getState(): IDesktopSyncState {
+    const jobs = this.listJobCache();
+    const ops = this.listOpCache();
 
     return {
       failedCount:
         jobs.filter((job) => job.status === 'failed').length +
         ops.filter((op) => op.status === 'failed').length,
       lastSyncAt: jobs[0]?.updatedAt ?? ops[0]?.updatedAt,
-      pendingAssetCount: assets.filter(
+      pendingAssetCount: Array.from(this.assets.values()).filter(
         (asset) => asset.residency === 'upload-pending',
       ).length,
       pendingCount:
@@ -119,6 +229,39 @@ export class DesktopSyncService {
     return 'document';
   }
 
+  private async upsertAsset(asset: IDesktopAsset): Promise<void> {
+    const row = {
+      brandId: asset.brandId ?? null,
+      cloudId: asset.cloudId ?? null,
+      cloudObjectKey: asset.cloudObjectKey ?? null,
+      createdAt: asset.createdAt,
+      deletedAt: asset.deletedAt ?? null,
+      displayName: asset.displayName,
+      id: asset.id,
+      kind: asset.kind,
+      localPath: asset.localPath ?? null,
+      mimeType: asset.mimeType,
+      organizationId: asset.organizationId,
+      origin: asset.origin,
+      originalFileName: asset.originalFileName,
+      residency: asset.residency,
+      sha256: asset.sha256,
+      sizeBytes: asset.sizeBytes,
+      updatedAt: asset.updatedAt,
+      uploadPolicy: asset.uploadPolicy,
+      workspaceId: asset.workspaceId ?? null,
+    };
+
+    await this.prisma.desktopAsset.upsert({
+      create: row,
+      update: row,
+      where: {
+        id: row.id,
+      },
+    });
+    this.assets.set(asset.id, asset);
+  }
+
   private async applyCloudAsset(
     cloudAsset: IDesktopBrandManifest['assets'][number],
   ): Promise<void> {
@@ -127,8 +270,8 @@ export class DesktopSyncService {
     }
 
     const localAsset = cloudAsset.localAssetId
-      ? await this.database.getAsset(cloudAsset.localAssetId)
-      : null;
+      ? this.assets.get(cloudAsset.localAssetId)
+      : undefined;
     const mimeType =
       cloudAsset.mimeType ?? localAsset?.mimeType ?? 'application/octet-stream';
     const kind = isOneOf(cloudAsset.kind, ASSET_KINDS)
@@ -159,7 +302,7 @@ export class DesktopSyncService {
       localAsset?.displayName ??
       cloudAsset.id;
 
-    const asset: IDesktopAsset = {
+    await this.upsertAsset({
       brandId: cloudAsset.parentBrandId ?? localAsset?.brandId,
       cloudId: cloudAsset.id,
       cloudObjectKey: cloudAsset.cloudObjectKey ?? localAsset?.cloudObjectKey,
@@ -184,28 +327,19 @@ export class DesktopSyncService {
       updatedAt: cloudAsset.updatedAt,
       uploadPolicy,
       workspaceId: localAsset?.workspaceId,
-    };
-
-    await this.database.upsertAsset(asset);
+    });
   }
 
   async applyBrandManifest(manifest: IDesktopBrandManifest): Promise<void> {
     const pulledAt = toIso();
 
-    if (manifest.organization) {
-      await this.database.upsertOrganization({
-        cloudId: manifest.organization.id,
-        createdAt: manifest.organization.updatedAt,
-        id: LOCAL_ORGANIZATION_ID,
-        name: manifest.organization.label,
-        slug: manifest.organization.slug,
-        updatedAt: manifest.organization.updatedAt,
-      });
-    }
-
     for (const cloudBrand of manifest.brands) {
       if (cloudBrand.isDeleted) {
-        await this.database.deleteBrand(cloudBrand.id);
+        await this.prisma.desktopBrand.deleteMany({
+          where: {
+            cloudId: cloudBrand.id,
+          },
+        });
         continue;
       }
 
@@ -221,36 +355,32 @@ export class DesktopSyncService {
         updatedAt: cloudBrand.updatedAt,
       };
 
-      await this.database.upsertBrand(brand);
-    }
-
-    for (const cloudIngredient of manifest.ingredients ?? []) {
-      if (cloudIngredient.isDeleted) {
-        await this.database.deleteIngredient(cloudIngredient.id);
-        continue;
-      }
-
-      const title =
-        cloudIngredient.metadata?.label ??
-        cloudIngredient.category ??
-        cloudIngredient.id;
-      const content =
-        cloudIngredient.metadata?.description ??
-        cloudIngredient.cdnUrl ??
-        cloudIngredient.s3Key ??
-        title;
-
-      await this.database.upsertIngredient({
-        brandId: cloudIngredient.brandId ?? null,
-        content,
-        createdAt: cloudIngredient.createdAt,
-        id: cloudIngredient.id,
-        organizationId: LOCAL_ORGANIZATION_ID,
-        platform: cloudIngredient.category ?? null,
-        sourceContentItemId: null,
-        title,
-        totalVotes: 0,
-        updatedAt: cloudIngredient.updatedAt,
+      await this.prisma.desktopBrand.upsert({
+        create: {
+          cloudId: brand.cloudId ?? null,
+          cloudVersion: brand.cloudVersion ?? null,
+          createdAt: brand.createdAt,
+          id: brand.id,
+          lastPulledAt: brand.lastPulledAt ?? null,
+          name: brand.name,
+          organizationId: brand.organizationId,
+          slug: brand.slug,
+          syncPolicy: brand.syncPolicy,
+          updatedAt: brand.updatedAt,
+        },
+        update: {
+          cloudId: brand.cloudId ?? null,
+          cloudVersion: brand.cloudVersion ?? null,
+          lastPulledAt: brand.lastPulledAt ?? null,
+          name: brand.name,
+          organizationId: brand.organizationId,
+          slug: brand.slug,
+          syncPolicy: brand.syncPolicy,
+          updatedAt: brand.updatedAt,
+        },
+        where: {
+          id: brand.id,
+        },
       });
     }
 
@@ -265,7 +395,7 @@ export class DesktopSyncService {
     workspaceId?: string,
   ): Promise<IDesktopSyncJob> {
     const now = toIso();
-    const row: SyncJobRow = {
+    const row = {
       createdAt: now,
       error: null,
       id: randomUUID(),
@@ -277,8 +407,17 @@ export class DesktopSyncService {
       workspaceId: workspaceId ?? null,
     };
 
-    await this.database.upsertSyncJob(row);
-    return this.toSyncJob(row);
+    await this.prisma.desktopSyncJob.upsert({
+      create: row,
+      update: row,
+      where: {
+        id: row.id,
+      },
+    });
+
+    const job = this.toSyncJob(row);
+    this.jobs.set(job.id, job);
+    return job;
   }
 
   async queueOp(
@@ -290,7 +429,7 @@ export class DesktopSyncService {
     baseVersion?: string,
   ): Promise<IDesktopSyncOp> {
     const now = toIso();
-    const row: SyncOpRow = {
+    const row = {
       acknowledgedAt: null,
       baseVersion: baseVersion ?? null,
       createdAt: now,
@@ -306,15 +445,69 @@ export class DesktopSyncService {
       workspaceId: workspaceId ?? null,
     };
 
-    await this.database.upsertSyncOp(row);
-    return this.toSyncOp(row);
+    await this.prisma.desktopSyncOp.upsert({
+      create: row,
+      update: row,
+      where: {
+        id: row.id,
+      },
+    });
+
+    const op = this.toSyncOp(row);
+    this.ops.set(op.id, op);
+    return op;
   }
 
   async ackOps(results: IDesktopSyncOpAck[]): Promise<void> {
-    await this.database.ackSyncOps(results);
+    const updatedAt = toIso();
+
+    await Promise.all(
+      results.map(async (result) => {
+        const row = {
+          acknowledgedAt:
+            result.status === 'acked'
+              ? (result.acknowledgedAt ?? updatedAt)
+              : null,
+          error: result.error ?? null,
+          status: result.status,
+          updatedAt,
+        };
+
+        await this.prisma.desktopSyncOp.updateMany({
+          data: row,
+          where: {
+            id: result.id,
+          },
+        });
+
+        const existing = this.ops.get(result.id);
+        if (existing) {
+          this.ops.set(result.id, {
+            ...existing,
+            acknowledgedAt: row.acknowledgedAt ?? undefined,
+            error: row.error ?? undefined,
+            status: row.status,
+            updatedAt: row.updatedAt,
+          });
+        }
+      }),
+    );
   }
 
   async recordAssetSync(update: IDesktopAssetSyncUpdate): Promise<void> {
-    await this.database.recordAssetSync(update);
+    const existing = this.assets.get(update.localAssetId);
+    if (!existing) {
+      return;
+    }
+
+    await this.upsertAsset({
+      ...existing,
+      cloudId: update.cloudId ?? existing.cloudId,
+      cloudObjectKey: update.cloudObjectKey ?? existing.cloudObjectKey,
+      deletedAt: update.deletedAt ?? existing.deletedAt,
+      residency: update.residency ?? existing.residency,
+      updatedAt: update.updatedAt ?? toIso(),
+      uploadPolicy: update.uploadPolicy ?? existing.uploadPolicy,
+    });
   }
 }

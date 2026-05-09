@@ -55,12 +55,12 @@
       "require": "./dist/*.js",
       "types": "./dist/*.d.ts"
     },
-    "./web-tokens.scss": "./web-tokens.scss"
+    "./web-tokens.css": "./web-tokens.css"
   },
   "files": [
     "dist",
     "presets",
-    "web-tokens.scss"
+    "web-tokens.css"
   ],
   "license": "MIT",
   "main": "./dist/index.js",
@@ -111,12 +111,11 @@
   "scripts": {
     "build": "tsc --build --force && bunx tsc-alias -p tsconfig.json",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
-    "test": "vitest run --config vitest.config.ts",
+    "test": "../../scripts/sh/sanitize-node-color-env.sh vitest run --config vitest.config.ts",
     "test:watch": "vitest watch --config vitest.config.ts"
   },
   "sideEffects": [
-    "**/*.css",
-    "**/*.scss"
+    "**/*.css"
   ],
   "types": "./dist/index.d.ts",
   "version": "2.0.1"

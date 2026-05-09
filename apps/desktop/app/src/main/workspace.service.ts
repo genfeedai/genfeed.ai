@@ -11,8 +11,8 @@ import {
   DEFAULT_MAX_INDEXED_FILES,
   resolvePathInsideRoot,
 } from '@genfeedai/desktop-core';
+import type { PrismaClient } from '@genfeedai/desktop-prisma';
 import { dialog, shell } from 'electron';
-import type { DesktopDatabaseService, WorkspaceRow } from './database.service';
 
 const toIso = (): string => new Date().toISOString();
 const SKIPPED_INDEX_DIRECTORIES = new Set([
@@ -30,7 +30,41 @@ const SKIPPED_INDEX_DIRECTORIES = new Set([
 ]);
 
 export class DesktopWorkspaceService {
-  constructor(private readonly database: DesktopDatabaseService) {}
+  private readonly recents = new Map<string, IDesktopRecentItem>();
+  private readonly workspaces = new Map<string, IDesktopWorkspace>();
+
+  constructor(private readonly prisma: PrismaClient) {}
+
+  async init(): Promise<void> {
+    const [workspaceRows, recentRows] = await Promise.all([
+      this.prisma.desktopWorkspace.findMany({
+        orderBy: {
+          lastOpenedAt: 'desc',
+        },
+      }),
+      this.prisma.desktopRecentItem.findMany({
+        orderBy: {
+          openedAt: 'desc',
+        },
+      }),
+    ]);
+
+    this.workspaces.clear();
+    for (const row of workspaceRows) {
+      this.workspaces.set(row.id, this.toWorkspace(row));
+    }
+
+    this.recents.clear();
+    for (const row of recentRows) {
+      this.recents.set(row.id, {
+        id: row.id,
+        kind: row.kind as 'project' | 'workspace',
+        label: row.label,
+        openedAt: row.openedAt,
+        value: row.value,
+      });
+    }
+  }
 
   private ensureWorkspaceMetadataFolder(workspacePath: string): void {
     fs.mkdirSync(buildWorkspaceMetadataDir(workspacePath), {
@@ -82,7 +116,19 @@ export class DesktopWorkspaceService {
     return files;
   }
 
-  private toWorkspace(row: WorkspaceRow): IDesktopWorkspace {
+  private toWorkspace(row: {
+    createdAt: string;
+    fileIndex: string;
+    id: string;
+    indexingState: string;
+    lastOpenedAt: string;
+    linkedProjectId: string | null;
+    localDraftCount: number;
+    name: string;
+    path: string;
+    pendingSyncCount: number;
+    updatedAt: string;
+  }): IDesktopWorkspace {
     return {
       createdAt: row.createdAt,
       fileIndex: JSON.parse(row.fileIndex) as IDesktopWorkspaceFile[],
@@ -100,6 +146,18 @@ export class DesktopWorkspaceService {
     };
   }
 
+  private listWorkspaceCache(): IDesktopWorkspace[] {
+    return Array.from(this.workspaces.values()).sort((left, right) =>
+      right.lastOpenedAt.localeCompare(left.lastOpenedAt),
+    );
+  }
+
+  private listRecentCache(): IDesktopRecentItem[] {
+    return Array.from(this.recents.values()).sort((left, right) =>
+      right.openedAt.localeCompare(left.openedAt),
+    );
+  }
+
   private async persistWorkspace(input: {
     id?: string;
     linkedProjectId?: string;
@@ -109,17 +167,16 @@ export class DesktopWorkspaceService {
   }): Promise<IDesktopWorkspace> {
     this.ensureWorkspaceMetadataFolder(input.path);
     const now = toIso();
-    const workspaces = await this.database.listWorkspaces();
-    const existing = workspaces.find(
+    const existing = this.listWorkspaceCache().find(
       (workspace) => workspace.path === input.path,
     );
     const shouldReindex = input.reindex ?? true;
     const fileIndex =
       !shouldReindex && existing
-        ? (JSON.parse(existing.fileIndex) as IDesktopWorkspaceFile[])
+        ? existing.fileIndex
         : this.indexWorkspaceFiles(input.path);
 
-    const row: WorkspaceRow = {
+    const row = {
       createdAt: existing?.createdAt ?? now,
       fileIndex: JSON.stringify(fileIndex),
       id: existing?.id ?? input.id ?? randomUUID(),
@@ -136,16 +193,44 @@ export class DesktopWorkspaceService {
       updatedAt: now,
     };
 
-    await this.database.upsertWorkspace(row);
-    await this.database.upsertRecentItem({
-      id: row.id,
-      kind: 'workspace',
-      label: row.name,
-      openedAt: now,
-      value: row.path,
+    await this.prisma.desktopWorkspace.upsert({
+      create: row,
+      update: row,
+      where: {
+        id: row.id,
+      },
     });
 
-    return this.toWorkspace(row);
+    await this.prisma.desktopRecentItem.upsert({
+      create: {
+        id: row.id,
+        kind: 'workspace',
+        label: row.name,
+        openedAt: now,
+        value: row.path,
+      },
+      update: {
+        kind: 'workspace',
+        label: row.name,
+        openedAt: now,
+        value: row.path,
+      },
+      where: {
+        id: row.id,
+      },
+    });
+
+    const workspace = this.toWorkspace(row);
+    this.workspaces.set(workspace.id, workspace);
+    this.recents.set(workspace.id, {
+      id: workspace.id,
+      kind: 'workspace',
+      label: workspace.name,
+      openedAt: now,
+      value: workspace.path,
+    });
+
+    return workspace;
   }
 
   async openWorkspace(): Promise<IDesktopWorkspace | null> {
@@ -167,26 +252,25 @@ export class DesktopWorkspaceService {
     });
   }
 
-  async listRecentWorkspaces(): Promise<IDesktopWorkspace[]> {
-    const workspaces = await this.database.listWorkspaces();
-    return workspaces.map((row) => this.toWorkspace(row));
+  listRecentWorkspaces(): IDesktopWorkspace[] {
+    return this.listWorkspaceCache();
   }
 
-  async getWorkspace(id: string): Promise<IDesktopWorkspace> {
-    const row = await this.database.getWorkspaceById(id);
+  getWorkspace(id: string): IDesktopWorkspace {
+    const workspace = this.workspaces.get(id);
 
-    if (!row) {
+    if (!workspace) {
       throw new Error(`Workspace not found: ${id}`);
     }
 
-    return this.toWorkspace(row);
+    return workspace;
   }
 
   async linkProject(
     workspaceId: string,
     projectId: string,
   ): Promise<IDesktopWorkspace> {
-    const workspace = await this.getWorkspace(workspaceId);
+    const workspace = this.getWorkspace(workspaceId);
 
     return this.persistWorkspace({
       id: workspace.id,
@@ -198,26 +282,16 @@ export class DesktopWorkspaceService {
   }
 
   async revealInFinder(workspaceId: string): Promise<void> {
-    const workspace = await this.getWorkspace(workspaceId);
+    const workspace = this.getWorkspace(workspaceId);
     void shell.showItemInFolder(workspace.path);
   }
 
-  async assertInsideWorkspace(
-    workspaceId: string,
-    relativePath: string,
-  ): Promise<string> {
-    const workspace = await this.getWorkspace(workspaceId);
+  assertInsideWorkspace(workspaceId: string, relativePath: string): string {
+    const workspace = this.getWorkspace(workspaceId);
     return resolvePathInsideRoot(workspace.path, relativePath);
   }
 
-  async listRecents(): Promise<IDesktopRecentItem[]> {
-    const recentItems = await this.database.listRecentItems();
-    return recentItems.map((item) => ({
-      id: item.id,
-      kind: item.kind as 'project' | 'workspace',
-      label: item.label,
-      openedAt: item.openedAt,
-      value: item.value,
-    }));
+  listRecents(): IDesktopRecentItem[] {
+    return this.listRecentCache();
   }
 }

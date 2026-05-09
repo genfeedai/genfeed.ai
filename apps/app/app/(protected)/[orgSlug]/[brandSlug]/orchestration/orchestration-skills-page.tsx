@@ -104,7 +104,7 @@ function getModalityBadgeVariant(
 }
 
 export default function OrchestrationSkillsPage() {
-  const router = useRouter();
+  const { push } = useRouter();
   const { getToken } = useAuth();
   const { isReady, selectedBrand } = useBrand();
 
@@ -164,18 +164,18 @@ export default function OrchestrationSkillsPage() {
 
   const filteredSkills = useMemo(() => {
     return skills
-      .filter((skill) =>
-        sourceFilter === 'all' ? true : skill.source === sourceFilter,
-      )
-      .filter((skill) =>
-        modalityFilter === 'all'
-          ? true
-          : skill.modalities.includes(modalityFilter) ||
-            skill.modalities.includes('multi'),
-      )
-      .filter((skill) =>
-        stageFilter === 'all' ? true : skill.workflowStage === stageFilter,
-      )
+      .filter((skill) => {
+        const sourceMatches =
+          sourceFilter === 'all' || skill.source === sourceFilter;
+        const modalityMatches =
+          modalityFilter === 'all' ||
+          skill.modalities.includes(modalityFilter) ||
+          skill.modalities.includes('multi');
+        const stageMatches =
+          stageFilter === 'all' || skill.workflowStage === stageFilter;
+
+        return sourceMatches && modalityMatches && stageMatches;
+      })
       .sort((left, right) => left.name.localeCompare(right.name));
   }, [modalityFilter, skills, sourceFilter, stageFilter]);
 
@@ -263,8 +263,8 @@ export default function OrchestrationSkillsPage() {
     }
 
     const prompt = buildSkillTestPrompt(selectedSkill);
-    router.push(`/chat/new?prompt=${encodeURIComponent(prompt)}`);
-  }, [router, selectedSkill]);
+    push(`/chat/new?prompt=${encodeURIComponent(prompt)}`);
+  }, [push, selectedSkill]);
 
   return (
     <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 px-4 py-6 md:px-6 lg:px-8">
@@ -296,7 +296,7 @@ export default function OrchestrationSkillsPage() {
               onClick={() => void refreshCatalog()}
               variant={ButtonVariant.OUTLINE}
             >
-              <HiOutlineArrowPath className="h-4 w-4" />
+              <HiOutlineArrowPath className="size-4" />
               Refresh
             </Button>
             <Button
@@ -305,7 +305,7 @@ export default function OrchestrationSkillsPage() {
               variant={ButtonVariant.OUTLINE}
             >
               <Link href="/chat">
-                <HiOutlineSparkles className="h-4 w-4" />
+                <HiOutlineSparkles className="size-4" />
                 Open Chat
               </Link>
             </Button>
@@ -384,7 +384,7 @@ export default function OrchestrationSkillsPage() {
           <div className="grid gap-3">
             {loading ? (
               <InsetSurface className="text-sm text-foreground/55">
-                Loading skill catalog...
+                Loading skill catalog…
               </InsetSurface>
             ) : null}
 
@@ -517,7 +517,7 @@ export default function OrchestrationSkillsPage() {
                   onClick={handleOpenTestInChat}
                   variant={ButtonVariant.OUTLINE}
                 >
-                  <HiOutlineBeaker className="h-4 w-4" />
+                  <HiOutlineBeaker className="size-4" />
                   Test in chat
                 </Button>
               </div>
@@ -541,13 +541,13 @@ export default function OrchestrationSkillsPage() {
                       onClick={() => void handleCustomize()}
                       variant={ButtonVariant.OUTLINE}
                     >
-                      <HiOutlineSparkles className="h-4 w-4" />
-                      {customizing ? 'Customizing...' : 'Customize'}
+                      <HiOutlineSparkles className="size-4" />
+                      {customizing ? 'Customizing…' : 'Customize'}
                     </Button>
                   ) : null}
                 </div>
 
-                <label className="grid gap-2 text-sm text-foreground/70">
+                <span className="grid gap-2 text-sm text-foreground/70">
                   Name
                   <Input
                     className="rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-foreground outline-none"
@@ -560,9 +560,9 @@ export default function OrchestrationSkillsPage() {
                     }
                     value={skillDraft.name}
                   />
-                </label>
+                </span>
 
-                <label className="grid gap-2 text-sm text-foreground/70">
+                <span className="grid gap-2 text-sm text-foreground/70">
                   Description
                   <Textarea
                     className="min-h-24 rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-foreground outline-none"
@@ -575,9 +575,9 @@ export default function OrchestrationSkillsPage() {
                     }
                     value={skillDraft.description}
                   />
-                </label>
+                </span>
 
-                <label className="grid gap-2 text-sm text-foreground/70">
+                <span className="grid gap-2 text-sm text-foreground/70">
                   Default instructions
                   <Textarea
                     className="min-h-28 rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm font-mono text-foreground outline-none"
@@ -590,7 +590,7 @@ export default function OrchestrationSkillsPage() {
                     }
                     value={skillDraft.defaultInstructions}
                   />
-                </label>
+                </span>
 
                 <Collapsible>
                   <CollapsibleTrigger className="text-sm font-medium text-foreground/50 hover:text-foreground/70">
@@ -624,7 +624,7 @@ export default function OrchestrationSkillsPage() {
                     onClick={() => void handleSaveSkill()}
                     variant={ButtonVariant.DEFAULT}
                   >
-                    {savingSkill ? 'Saving...' : 'Save variant'}
+                    {savingSkill ? 'Saving…' : 'Save variant'}
                   </Button>
                 ) : null}
               </InsetSurface>

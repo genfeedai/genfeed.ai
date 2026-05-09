@@ -10,7 +10,7 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { Button } from '@ui/primitives/button';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { getDesktopBridge, isDesktopShell } from '@/lib/desktop/runtime';
 
 function buildTwitterRemixTopic(params: {
@@ -45,10 +45,10 @@ async function generateDesktopRemix(params: {
   });
 }
 
-export default function TrendRemixPage() {
-  const router = useRouter();
+function TrendRemixPageContent() {
+  const { push, replace } = useRouter();
   const { href, orgHref } = useOrgUrl();
-  const searchParams = useSearchParams();
+  const { get } = useSearchParams();
   const { credentials, isReady } = useBrand();
   const hasStartedRef = useRef(false);
   const notificationsService = useMemo(
@@ -62,13 +62,13 @@ export default function TrendRemixPage() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(true);
 
-  const mode = searchParams.get('mode') === 'thread' ? 'thread' : 'tweet';
-  const topic = searchParams.get('topic')?.trim() || '';
-  const trendId = searchParams.get('trendId')?.trim() || '';
-  const sourceReferenceId = searchParams.get('sourceReferenceId')?.trim() || '';
-  const sourceText = searchParams.get('sourceText')?.trim() || '';
-  const sourceAuthor = searchParams.get('sourceAuthor')?.trim() || '';
-  const sourceUrl = searchParams.get('sourceUrl')?.trim() || '';
+  const mode = get('mode') === 'thread' ? 'thread' : 'tweet';
+  const topic = get('topic')?.trim() || '';
+  const trendId = get('trendId')?.trim() || '';
+  const sourceReferenceId = get('sourceReferenceId')?.trim() || '';
+  const sourceText = get('sourceText')?.trim() || '';
+  const sourceAuthor = get('sourceAuthor')?.trim() || '';
+  const sourceUrl = get('sourceUrl')?.trim() || '';
 
   const twitterCredential = useMemo(
     () =>
@@ -135,7 +135,7 @@ export default function TrendRemixPage() {
             description: generated.content,
             title: topic || 'Twitter remix',
           });
-          router.replace(href(`/compose/post?${params.toString()}`));
+          replace(href(`/compose/post?${params.toString()}`));
           return;
         }
 
@@ -176,7 +176,7 @@ export default function TrendRemixPage() {
             ? 'Thread remix draft created'
             : 'Tweet remix draft created',
         );
-        router.replace('/posts?platform=twitter');
+        replace('/posts?platform=twitter');
       } catch (runError) {
         logger.error('Failed to create trend remix draft', runError);
         setError('Failed to create the remix draft.');
@@ -194,7 +194,7 @@ export default function TrendRemixPage() {
     isReady,
     mode,
     notificationsService,
-    router,
+    replace,
     sourceAuthor,
     sourceReferenceId,
     sourceText,
@@ -204,20 +204,16 @@ export default function TrendRemixPage() {
     twitterCredential?.id,
   ]);
 
-  if (isSubmitting) {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <div className="text-center">
-          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-t-2 border-primary" />
-          <p className="mt-4 text-sm text-foreground/70">
-            Creating your Twitter remix draft...
-          </p>
-        </div>
+  return isSubmitting ? (
+    <div className="flex min-h-[50vh] items-center justify-center">
+      <div className="text-center">
+        <div className="mx-auto size-12 animate-spin rounded-full border-b-2 border-t-2 border-primary" />
+        <p className="mt-4 text-sm text-foreground/70">
+          Creating your Twitter remix draft…
+        </p>
       </div>
-    );
-  }
-
-  return (
+    </div>
+  ) : (
     <div className="flex min-h-[50vh] items-center justify-center px-6">
       <div className="max-w-md space-y-4 text-center">
         <h1 className="text-xl font-semibold">Unable to create remix draft</h1>
@@ -228,15 +224,23 @@ export default function TrendRemixPage() {
           <Button
             label="Go to Drafts"
             variant={ButtonVariant.SECONDARY}
-            onClick={() => router.push('/posts?platform=twitter')}
+            onClick={() => push('/posts?platform=twitter')}
           />
           <Button
             label="Go to Credentials"
             variant={ButtonVariant.OUTLINE}
-            onClick={() => router.push(orgHref('/settings/api-keys'))}
+            onClick={() => push(orgHref('/settings/api-keys'))}
           />
         </div>
       </div>
     </div>
+  );
+}
+
+export default function TrendRemixPage() {
+  return (
+    <Suspense fallback={null}>
+      <TrendRemixPageContent />
+    </Suspense>
   );
 }

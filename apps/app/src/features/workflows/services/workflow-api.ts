@@ -107,7 +107,7 @@ export interface ExecutionEtaMetadata {
   criticalPathNodeIds?: string[];
 }
 
-export interface ExecutionMetadata extends Record<string, unknown> {
+interface ExecutionMetadata extends Record<string, unknown> {
   creditsUsed?: number;
   eta?: ExecutionEtaMetadata;
 }
@@ -148,7 +148,7 @@ export interface BatchRunResult {
   totalCount: number;
 }
 
-export interface BatchOutputSummary {
+interface BatchOutputSummary {
   id: string;
   category: string;
   status?: string;

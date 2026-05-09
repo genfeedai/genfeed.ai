@@ -2,6 +2,10 @@ import { Head } from 'nextra/components';
 import { getPageMap } from 'nextra/page-map';
 import { Footer, Layout, Navbar } from 'nextra-theme-docs';
 import 'nextra-theme-docs/style.css';
+import {
+  docsContentMetaRegistry,
+  docsMdxComponentRegistry,
+} from '../content/meta-registry';
 import '../styles/globals.css';
 
 export const metadata = {
@@ -69,6 +73,9 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  void docsContentMetaRegistry;
+  void docsMdxComponentRegistry;
+
   return (
     <html lang="en" dir="ltr" suppressHydrationWarning>
       <Head />

@@ -24,10 +24,17 @@ import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagina
 import { Button } from '@ui/primitives/button';
 import { Switch } from '@ui/primitives/switch';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { HiPencil, HiPlus, HiTrash } from 'react-icons/hi2';
 
-export default function PresetsList({
+function PresetsListContent({
   scope = PageScope.BRAND,
   onLoadingChange,
   onRefreshingChange,
@@ -40,10 +47,10 @@ export default function PresetsList({
     PresetsService.getInstance(token),
   );
 
-  const router = useRouter();
+  const { replace } = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const searchParamsString = searchParams?.toString() ?? '';
+  const { get, toString: getSearchParamsString } = useSearchParams();
+  const searchParamsString = getSearchParamsString() ?? '';
   const parsedSearchParams = useMemo(
     () => new URLSearchParams(searchParamsString),
     [searchParamsString],
@@ -73,11 +80,11 @@ export default function PresetsList({
       params.delete('brand');
       params.delete('page');
       const queryString = params.toString();
-      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+      replace(queryString ? `${pathname}?${queryString}` : pathname, {
         scroll: false,
       });
     },
-    [pathname, router, searchParamsString],
+    [pathname, replace, searchParamsString],
   );
 
   const handleAdminBrandChange = useCallback(
@@ -91,11 +98,11 @@ export default function PresetsList({
       }
       params.delete('page');
       const queryString = params.toString();
-      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+      replace(queryString ? `${pathname}?${queryString}` : pathname, {
         scroll: false,
       });
     },
-    [pathname, router, searchParamsString],
+    [pathname, replace, searchParamsString],
   );
 
   // Use refs for callback props to prevent unnecessary re-renders
@@ -108,7 +115,7 @@ export default function PresetsList({
   });
 
   // Extract page from URL to use as dependency (triggers re-fetch when page changes)
-  const currentPage = Number(searchParams?.get('page')) || 1;
+  const currentPage = Number(get('page')) || 1;
 
   // Load presets using useResource (handles AbortController cleanup properly)
   const {
@@ -384,5 +391,15 @@ export default function PresetsList({
         <AutoPagination showTotal totalLabel="presets" />
       </div>
     </Container>
+  );
+}
+
+export default function PresetsList(
+  props: Parameters<typeof PresetsListContent>[0],
+) {
+  return (
+    <Suspense fallback={null}>
+      <PresetsListContent {...props} />
+    </Suspense>
   );
 }

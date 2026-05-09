@@ -166,7 +166,7 @@ export const CATEGORY_LABELS: Record<CommandCategory, string> = {
   recent: 'Recent',
 };
 
-export const CATEGORY_ORDER: CommandCategory[] = [
+const CATEGORY_ORDER: CommandCategory[] = [
   'recent',
   'actions',
   'nodes',
@@ -208,9 +208,13 @@ export function groupCommandsByCategory(
 
   // Add recent commands first if any match
   if (recentIds.length > 0) {
-    const recentCommands = recentIds
-      .map((id) => commands.find((cmd) => cmd.id === id))
-      .filter((cmd): cmd is Command => cmd !== undefined);
+    const recentCommands = recentIds.reduce<Command[]>((matched, id) => {
+      const command = commands.find((cmd) => cmd.id === id);
+      if (command) {
+        matched.push(command);
+      }
+      return matched;
+    }, []);
 
     if (recentCommands.length > 0) {
       groups.set('recent', recentCommands);

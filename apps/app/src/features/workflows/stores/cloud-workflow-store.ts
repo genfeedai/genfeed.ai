@@ -16,7 +16,7 @@ import type {
 // TYPES
 // =============================================================================
 
-export type WorkflowLifecycle = 'draft' | 'published' | 'archived';
+type WorkflowLifecycle = 'draft' | 'published' | 'archived';
 
 interface CloudWorkflowState {
   /** Cloud workflow ID (mirrors workflowStore.workflowId) */

@@ -90,7 +90,7 @@ export default {
       ],
     ],
     scheme: 'genfeed',
-    slug: 'mobile.genfeed.ai',
+    slug: 'genfeed-mobile',
 
     splash: {
       backgroundColor: '#ffffff',

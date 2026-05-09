@@ -124,12 +124,12 @@ export default function EditorProjectsPage() {
           <div className="flex items-center gap-3">
             <Link
               href="/studio/video"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-foreground/40 transition-colors duration-150 hover:bg-white/[0.06] hover:text-foreground"
+              className="flex size-8 shrink-0 items-center justify-center rounded-lg text-foreground/40 transition-colors duration-150 hover:bg-white/[0.06] hover:text-foreground"
               aria-label="Back to Studio"
             >
-              <HiOutlineArrowLeft className="h-4 w-4" />
+              <HiOutlineArrowLeft className="size-4" />
             </Link>
-            <h1 className="text-3xl font-bold">Video Editor</h1>
+            <h1 className="text-3xl font-semibold">Video Editor</h1>
           </div>
           <p className="text-foreground/60">
             Advanced video editing with timeline, transitions, and professional
@@ -141,15 +141,23 @@ export default function EditorProjectsPage() {
           href="/editor/new"
           className="inline-flex items-center gap-2 bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
         >
-          <HiOutlinePlus className="h-4 w-4" />
+          <HiOutlinePlus className="size-4" />
           New Project
         </Link>
       </div>
 
       {isLoading ? (
         <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3].map((i) => (
-            <Card key={i} variant={CardVariant.DEFAULT} className="p-6">
+          {[
+            'editor-project-skeleton-1',
+            'editor-project-skeleton-2',
+            'editor-project-skeleton-3',
+          ].map((skeletonId) => (
+            <Card
+              key={skeletonId}
+              variant={CardVariant.DEFAULT}
+              className="p-6"
+            >
               <div className="animate-pulse space-y-3">
                 <div className="h-4 w-3/4 rounded bg-muted" />
                 <div className="h-3 w-1/2 rounded bg-muted" />
@@ -199,12 +207,12 @@ export default function EditorProjectsPage() {
                       ariaLabel="Delete project"
                       tooltip="Delete project"
                     >
-                      <HiOutlineTrash className="h-4 w-4" />
+                      <HiOutlineTrash className="size-4" />
                     </Button>
                   </div>
 
                   <div className="mb-3 flex aspect-video items-center justify-center rounded bg-muted/50">
-                    <HiOutlineFilm className="h-8 w-8 text-foreground/20" />
+                    <HiOutlineFilm className="size-8 text-foreground/20" />
                   </div>
 
                   <div className="flex items-center gap-3 text-xs text-foreground/50">
@@ -222,8 +230,8 @@ export default function EditorProjectsPage() {
       ) : (
         <Card variant={CardVariant.DEFAULT} className="mb-8 p-8">
           <div className="mx-auto max-w-2xl text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-              <HiOutlineFilm className="h-8 w-8 text-primary" />
+            <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-primary/10">
+              <HiOutlineFilm className="size-8 text-primary" />
             </div>
 
             <h2 className="mb-2 text-xl font-semibold">
@@ -240,7 +248,7 @@ export default function EditorProjectsPage() {
               href="/editor/new"
               className="inline-flex items-center gap-2 bg-primary px-6 py-3 font-medium text-primary-foreground transition-colors hover:bg-primary/90"
             >
-              <HiOutlinePlus className="h-5 w-5" />
+              <HiOutlinePlus className="size-5" />
               Start New Project
             </Link>
           </div>
@@ -257,7 +265,7 @@ export default function EditorProjectsPage() {
           >
             <div className="flex items-start gap-4">
               <div className={`p-3 ${feature.color}`}>
-                <feature.icon className="h-6 w-6" />
+                <feature.icon className="size-6" />
               </div>
               <div>
                 <h4 className="mb-1 font-semibold">{feature.title}</h4>

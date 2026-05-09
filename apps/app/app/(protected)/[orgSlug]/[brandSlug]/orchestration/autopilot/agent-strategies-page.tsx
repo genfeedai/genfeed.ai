@@ -258,10 +258,10 @@ function buildPayload(form: AgentStrategyFormState): AgentStrategyPayload {
       weeklySummaryEnabled: form.weeklySummaryEnabled,
     },
     runFrequency: form.runFrequency,
-    topics: form.topics
-      .split(',')
-      .map((topic) => topic.trim())
-      .filter(Boolean),
+    topics: form.topics.split(',').flatMap((topic) => {
+      const trimmedTopic = topic.trim();
+      return trimmedTopic ? [trimmedTopic] : [];
+    }),
   };
 }
 
@@ -337,9 +337,9 @@ function AgentStrategyDialog({
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">
+              <span className="text-sm font-medium text-foreground">
                 Agent Type
-              </label>
+              </span>
               <Select
                 value={form.agentType}
                 onValueChange={(value) =>
@@ -363,9 +363,9 @@ function AgentStrategyDialog({
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">
+              <span className="text-sm font-medium text-foreground">
                 Autonomy
-              </label>
+              </span>
               <Select
                 value={form.autonomyMode}
                 onValueChange={(value) =>
@@ -389,9 +389,9 @@ function AgentStrategyDialog({
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">
+              <span className="text-sm font-medium text-foreground">
                 Run Frequency
-              </label>
+              </span>
               <Select
                 value={form.runFrequency}
                 onValueChange={(value) =>
@@ -415,9 +415,9 @@ function AgentStrategyDialog({
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">
+              <span className="text-sm font-medium text-foreground">
                 Goal Profile
-              </label>
+              </span>
               <Select
                 value={form.goalProfile}
                 onValueChange={(value) =>
@@ -496,10 +496,10 @@ function AgentStrategyDialog({
               onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
                 setForm((prev) => ({
                   ...prev,
-                  skillSlugs: event.target.value
-                    .split(',')
-                    .map((s) => s.trim())
-                    .filter(Boolean),
+                  skillSlugs: event.target.value.split(',').flatMap((slug) => {
+                    const trimmedSlug = slug.trim();
+                    return trimmedSlug ? [trimmedSlug] : [];
+                  }),
                 }))
               }
             />
@@ -665,7 +665,7 @@ function AgentStrategyDialog({
           </div>
 
           <div className="flex flex-col gap-3 rounded-lg border border-white/10 p-4">
-            <label className="flex items-center gap-3 text-sm text-foreground">
+            <span className="flex items-center gap-3 text-sm text-foreground">
               <Checkbox
                 checked={form.autoPublishEnabled}
                 onCheckedChange={(checked) =>
@@ -677,9 +677,9 @@ function AgentStrategyDialog({
                 aria-label="Enable autopilot auto publish"
               />
               Enforce autopilot publish gate before auto-publishing text drafts
-            </label>
+            </span>
 
-            <label className="flex items-center gap-3 text-sm text-foreground">
+            <span className="flex items-center gap-3 text-sm text-foreground">
               <Checkbox
                 checked={form.isEnabled}
                 onCheckedChange={(checked) =>
@@ -691,9 +691,9 @@ function AgentStrategyDialog({
                 aria-label="Enable strategy"
               />
               Enabled for scheduling
-            </label>
+            </span>
 
-            <label className="flex items-center gap-3 text-sm text-foreground">
+            <span className="flex items-center gap-3 text-sm text-foreground">
               <Checkbox
                 checked={form.isActive}
                 onCheckedChange={(checked) =>
@@ -705,11 +705,11 @@ function AgentStrategyDialog({
                 aria-label="Mark strategy active"
               />
               Active and ready to run
-            </label>
+            </span>
           </div>
 
           <div className="grid gap-3 rounded-lg border border-white/10 p-4 md:grid-cols-2">
-            <label className="flex items-center gap-3 text-sm text-foreground">
+            <span className="flex items-center gap-3 text-sm text-foreground">
               <Checkbox
                 checked={form.trendWatchersEnabled}
                 onCheckedChange={(checked) =>
@@ -721,9 +721,9 @@ function AgentStrategyDialog({
                 aria-label="Enable trend watchers"
               />
               Trend watchers
-            </label>
+            </span>
 
-            <label className="flex items-center gap-3 text-sm text-foreground">
+            <span className="flex items-center gap-3 text-sm text-foreground">
               <Checkbox
                 checked={form.eventTriggersEnabled}
                 onCheckedChange={(checked) =>
@@ -735,9 +735,9 @@ function AgentStrategyDialog({
                 aria-label="Enable event triggers"
               />
               Event triggers
-            </label>
+            </span>
 
-            <label className="flex items-center gap-3 text-sm text-foreground">
+            <span className="flex items-center gap-3 text-sm text-foreground">
               <Checkbox
                 checked={form.evergreenCadenceEnabled}
                 onCheckedChange={(checked) =>
@@ -749,9 +749,9 @@ function AgentStrategyDialog({
                 aria-label="Enable evergreen cadence"
               />
               Evergreen cadence
-            </label>
+            </span>
 
-            <label className="flex items-center gap-3 text-sm text-foreground">
+            <span className="flex items-center gap-3 text-sm text-foreground">
               <Checkbox
                 checked={form.dailyDigestEnabled}
                 onCheckedChange={(checked) =>
@@ -763,9 +763,9 @@ function AgentStrategyDialog({
                 aria-label="Enable daily digest"
               />
               Daily digest
-            </label>
+            </span>
 
-            <label className="flex items-center gap-3 text-sm text-foreground">
+            <span className="flex items-center gap-3 text-sm text-foreground">
               <Checkbox
                 checked={form.weeklySummaryEnabled}
                 onCheckedChange={(checked) =>
@@ -777,7 +777,7 @@ function AgentStrategyDialog({
                 aria-label="Enable weekly summary"
               />
               Weekly summary
-            </label>
+            </span>
           </div>
 
           <DialogFooter className="gap-2 sm:space-x-0">
@@ -805,7 +805,7 @@ function AgentStrategyDialog({
 }
 
 export default function AgentStrategiesPage() {
-  const router = useRouter();
+  const { push } = useRouter();
   const { href } = useOrgUrl();
   const notificationsService = NotificationsService.getInstance();
   const { strategies, isLoading, refresh } = useAgentStrategies();
@@ -1109,9 +1109,7 @@ export default function AgentStrategiesPage() {
           actions={actions}
           isLoading={isLoading}
           getRowKey={(strategy) => strategy.id}
-          onRowClick={(strategy) =>
-            router.push(`/orchestration/${strategy.id}`)
-          }
+          onRowClick={(strategy) => push(`/orchestration/${strategy.id}`)}
           emptyState={
             <div className="flex flex-col items-center justify-center gap-4 rounded-lg border border-white/10 p-10 text-center">
               <span className="flex size-14 items-center justify-center rounded-full bg-white/5 text-white/40">

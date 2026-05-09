@@ -1,7 +1,7 @@
 'use client';
 
 import type { AgentApiService } from '@genfeedai/agent';
-import { createContext, useContext } from 'react';
+import { createContext, use } from 'react';
 
 export interface ChatWorkspaceContextValue {
   agentApiService: AgentApiService;
@@ -15,7 +15,7 @@ export const ChatWorkspaceContext =
   createContext<ChatWorkspaceContextValue | null>(null);
 
 export function useChatWorkspace(): ChatWorkspaceContextValue {
-  const ctx = useContext(ChatWorkspaceContext);
+  const ctx = use(ChatWorkspaceContext);
   if (!ctx) {
     throw new Error(
       'useChatWorkspace must be used within ChatWorkspaceLayoutClient',

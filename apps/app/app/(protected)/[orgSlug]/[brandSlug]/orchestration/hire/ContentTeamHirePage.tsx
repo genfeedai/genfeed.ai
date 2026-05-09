@@ -38,7 +38,7 @@ interface HireFormState {
 }
 
 export default function ContentTeamHirePage() {
-  const router = useRouter();
+  const { push } = useRouter();
   const notificationsService = NotificationsService.getInstance();
   const { brandId, brands } = useBrand();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -100,7 +100,7 @@ export default function ContentTeamHirePage() {
         });
 
         notificationsService.success('Agent hired successfully');
-        router.push('/orchestration');
+        push('/orchestration');
       } catch (error) {
         logger.error('Failed to hire content team agent', { error });
         notificationsService.error('Unable to hire agent');
@@ -119,7 +119,7 @@ export default function ContentTeamHirePage() {
       form.teamGroup,
       getStrategiesService,
       notificationsService,
-      router,
+      push,
       selectedPreset,
     ],
   );
@@ -293,7 +293,7 @@ export default function ContentTeamHirePage() {
             />
             <Button
               label="Cancel"
-              onClick={() => router.push('/orchestration')}
+              onClick={() => push('/orchestration')}
               type="button"
               variant={ButtonVariant.SECONDARY}
             />

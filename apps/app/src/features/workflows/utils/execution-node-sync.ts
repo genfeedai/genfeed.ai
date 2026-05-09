@@ -122,7 +122,14 @@ export function buildExecutionNodePatch(
 export function buildExecutionNodePatches(
   execution: Pick<ExecutionResult, 'nodeResults'>,
 ): ExecutionNodePatch[] {
-  return execution.nodeResults
-    .map((nodeResult) => buildExecutionNodePatch(nodeResult))
-    .filter((patch): patch is ExecutionNodePatch => patch !== null);
+  return execution.nodeResults.reduce<ExecutionNodePatch[]>(
+    (patches, nodeResult) => {
+      const patch = buildExecutionNodePatch(nodeResult);
+      if (patch) {
+        patches.push(patch);
+      }
+      return patches;
+    },
+    [],
+  );
 }

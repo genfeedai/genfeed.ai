@@ -22,6 +22,7 @@ import {
 } from 'next/navigation';
 import {
   type PropsWithChildren,
+  Suspense,
   useCallback,
   useEffect,
   useMemo,
@@ -32,7 +33,7 @@ import { ChatWorkspaceContext } from './chat-workspace-context';
 
 const UNSET_THREAD_BASELINE = Symbol('chat-new-route-baseline');
 
-export function ChatWorkspaceLayoutClient({
+function ChatWorkspaceLayoutClientContent({
   children,
 }: PropsWithChildren): JSX.Element {
   const rawPathname = usePathname();
@@ -41,8 +42,8 @@ export function ChatWorkspaceLayoutClient({
     [rawPathname],
   );
   const params = useParams<{ id?: string; threadId?: string }>();
-  const router = useRouter();
-  const searchParams = useSearchParams();
+  const { replace } = useRouter();
+  const { get } = useSearchParams();
   const { getToken, isLoaded } = useAuth();
   const { session } = useSession();
   const playwrightAuth = getPlaywrightAuthState();
@@ -64,7 +65,7 @@ export function ChatWorkspaceLayoutClient({
     pathname === '/agent' ||
     pathname === '/agent/new';
   const isUnthreadedRoute = isOnboardingEntryRoute || isStandardNewRoute;
-  const prefillPrompt = searchParams.get('prompt')?.trim() || '';
+  const prefillPrompt = get('prompt')?.trim() || '';
   const effectiveIsLoaded = isLoaded || playwrightAuth?.isLoaded === true;
   const threadId =
     typeof params.threadId === 'string' && params.threadId.length > 0
@@ -200,7 +201,7 @@ export function ChatWorkspaceLayoutClient({
         : `${conversationBasePath}/${activeThreadId}`;
       newRouteBaselineThreadRef.current = activeThreadId;
       pendingNavigationThreadRef.current = activeThreadId;
-      router.replace(nextRoute);
+      replace(nextRoute);
     }
   }, [
     activeThreadId,
@@ -208,7 +209,7 @@ export function ChatWorkspaceLayoutClient({
     isJourneyRoute,
     isOnboarding,
     isUnthreadedRoute,
-    router,
+    replace,
   ]);
 
   const contextValue = useMemo(
@@ -232,5 +233,17 @@ export function ChatWorkspaceLayoutClient({
     <ChatWorkspaceContext.Provider value={contextValue}>
       {children}
     </ChatWorkspaceContext.Provider>
+  );
+}
+
+export function ChatWorkspaceLayoutClient({
+  children,
+}: PropsWithChildren): JSX.Element {
+  return (
+    <Suspense fallback={null}>
+      <ChatWorkspaceLayoutClientContent>
+        {children}
+      </ChatWorkspaceLayoutClientContent>
+    </Suspense>
   );
 }

@@ -63,7 +63,7 @@ function SliderField({
         max={100}
         value={value}
         onChange={(e) => onChange(parseInt(e.target.value, 10))}
-        className="h-1.5 w-full cursor-pointer appearance-none rounded-full border-0 bg-muted px-0 py-0 shadow-none accent-primary focus-visible:ring-0"
+        className="h-1.5 w-full cursor-pointer appearance-none rounded-full border-0 bg-muted p-0 shadow-none accent-primary focus-visible:ring-0"
       />
     </div>
   );
@@ -208,7 +208,7 @@ function EffectColorGradeNodeComponent(props: NodeProps): React.JSX.Element {
       {data.outputImage ? (
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-green-500">
-            <CheckCircleIcon className="h-4 w-4" />
+            <CheckCircleIcon className="size-4" />
             <span className="text-sm">Color grading applied</span>
           </div>
           <MediaPreview src={data.outputImage} type="image" />
@@ -224,7 +224,7 @@ function EffectColorGradeNodeComponent(props: NodeProps): React.JSX.Element {
 
 export const EffectColorGradeNode = memo(EffectColorGradeNodeComponent);
 
-export const colorGradeNodeDefaults: Partial<ColorGradeNodeData> = {
+const colorGradeNodeDefaults: Partial<ColorGradeNodeData> = {
   contrast: 55,
   grain: 15,
   inputImage: null,

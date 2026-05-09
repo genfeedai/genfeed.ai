@@ -11,6 +11,7 @@ import CardEmpty from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import Container from '@ui/layout/container/Container';
+import Image from 'next/image';
 import Link from 'next/link';
 import { HiOutlineUserCircle } from 'react-icons/hi2';
 
@@ -85,16 +86,16 @@ export default function CharactersList() {
                   {/* Header: Emoji + Label */}
                   <div className="flex items-center gap-3 mb-4">
                     {character.profileImageUrl ? (
-                      <>
-                        {/* biome-ignore lint/performance/noImgElement: profile image URLs are dynamic remote assets */}
-                        <img
-                          alt={character.label}
-                          className="w-12 h-12 rounded-full object-cover border border-foreground/10"
-                          src={character.profileImageUrl}
-                        />
-                      </>
+                      <Image
+                        unoptimized
+                        alt={character.label}
+                        className="size-12 rounded-full object-cover border border-foreground/10"
+                        src={character.profileImageUrl}
+                        width={800}
+                        height={600}
+                      />
                     ) : (
-                      <div className="w-12 h-12 rounded-full bg-foreground/5 flex items-center justify-center text-2xl">
+                      <div className="size-12 rounded-full bg-foreground/5 flex items-center justify-center text-2xl">
                         {character.emoji || '🤖'}
                       </div>
                     )}

@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react';
 export default function LoginPage() {
   const [isMounted, setIsMounted] = useState(false);
   const { isSignedIn, isLoaded } = useAuth();
-  const router = useRouter();
+  const { push } = useRouter();
 
   useEffect(() => {
     setIsMounted(true);
@@ -17,9 +17,9 @@ export default function LoginPage() {
   // Redirect authenticated users — handles cases where <SignIn> doesn't auto-redirect
   useEffect(() => {
     if (isLoaded && isSignedIn) {
-      router.push('/');
+      push('/');
     }
-  }, [isLoaded, isSignedIn, router]);
+  }, [isLoaded, isSignedIn, push]);
 
   return (
     <AuthFormLayout>

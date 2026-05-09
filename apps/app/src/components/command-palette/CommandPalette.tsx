@@ -46,7 +46,7 @@ function CommandItem({
         ${isSelected ? 'bg-primary/10 text-foreground' : 'text-muted-foreground hover:bg-secondary/50'}
       `}
     >
-      <Icon className="h-4 w-4 shrink-0" />
+      <Icon className="size-4 shrink-0" />
       <span className="flex-1 truncate">{command.label}</span>
       {command.shortcut && (
         <Kbd
@@ -62,7 +62,7 @@ function CommandItem({
 }
 
 export function CommandPalette() {
-  const router = useRouter();
+  const { push } = useRouter();
   const { href } = useOrgUrl();
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -155,7 +155,7 @@ export function CommandPalette() {
           toggleAIGenerator();
           break;
         case 'new-workflow':
-          router.push(href('/workflows/new'));
+          push(href('/workflows/new'));
           break;
         default:
           // Handle node addition
@@ -181,7 +181,7 @@ export function CommandPalette() {
       exportWorkflow,
       openModal,
       toggleAIGenerator,
-      router,
+      push,
       href,
       addNode,
     ],
@@ -249,14 +249,14 @@ export function CommandPalette() {
   if (!isOpen) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh]"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) close();
-      }}
-    >
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh]">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+      <button
+        aria-label="Close command palette"
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        onClick={close}
+        type="button"
+      />
 
       {/* Palette */}
       <div className="relative w-full max-w-lg overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
@@ -266,7 +266,7 @@ export function CommandPalette() {
           className="flex items-center gap-3 border-b border-border px-4 py-3"
         >
           <svg
-            className="h-4 w-4 shrink-0 text-muted-foreground"
+            className="size-4 shrink-0 text-muted-foreground"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"

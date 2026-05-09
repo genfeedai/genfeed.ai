@@ -62,13 +62,16 @@ describe('DesktopCloudService', () => {
 
     const service = new DesktopCloudService(environment, () => session);
 
-    await expect(service.listProjects()).resolves.toEqual([
-      {
-        id: 'project-1',
-        name: 'Desktop Launch',
-        status: 'active',
-      },
-    ]);
+    await expect(service.listProjects()).resolves.toEqual({
+      data: [
+        {
+          id: 'project-1',
+          name: 'Desktop Launch',
+          status: 'active',
+        },
+      ],
+      status: 'success',
+    });
   });
 
   it('publishes an existing draft through the dedicated publish endpoint', async () => {
@@ -107,9 +110,15 @@ describe('DesktopCloudService', () => {
       platform: 'twitter',
     });
 
-    expect(result.platform).toBe('twitter');
-    expect(result.postId).toBe('published-1');
-    expect(result.status).toBe('published');
+    expect(result).toEqual({
+      data: {
+        platform: 'twitter',
+        postId: 'published-1',
+        publishedAt: expect.any(String),
+        status: 'published',
+      },
+      status: 'success',
+    });
   });
 
   it('generates desktop content through the credit-backed Genfeed server endpoint', async () => {
@@ -152,11 +161,14 @@ describe('DesktopCloudService', () => {
     });
 
     expect(result).toEqual({
-      content: 'Launch faster with Genfeed Desktop.',
-      hooks: ['Launch faster with Genfeed Desktop.'],
-      id: '',
-      platform: 'twitter',
-      type: 'hook',
+      data: {
+        content: 'Launch faster with Genfeed Desktop.',
+        hooks: ['Launch faster with Genfeed Desktop.'],
+        id: '',
+        platform: 'twitter',
+        type: 'hook',
+      },
+      status: 'success',
     });
   });
 

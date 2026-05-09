@@ -113,7 +113,7 @@ function ClipSelectorNodeComponent(props: NodeProps): React.JSX.Element {
   return (
     <NodeCard minWidth="300px">
       <NodeHeader
-        icon={<ScissorsIcon className="h-4 w-4" />}
+        icon={<ScissorsIcon className="size-4" />}
         title="AI Clip Selector"
         badge={<NodeBadge variant="orange">Repurposing</NodeBadge>}
       />
@@ -177,14 +177,14 @@ function ClipSelectorNodeComponent(props: NodeProps): React.JSX.Element {
 
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <label className="text-sm">Include intro clip</label>
+            <span className="text-sm">Include intro clip</span>
             <Toggle
               checked={data.includeIntro}
               onChange={() => handleToggle('includeIntro')}
             />
           </div>
           <div className="flex items-center justify-between">
-            <label className="text-sm">Include outro clip</label>
+            <span className="text-sm">Include outro clip</span>
             <Toggle
               checked={data.includeOutro}
               onChange={() => handleToggle('includeOutro')}
@@ -202,13 +202,13 @@ function ClipSelectorNodeComponent(props: NodeProps): React.JSX.Element {
           <div className="max-h-48 overflow-y-auto space-y-2">
             {data.outputClips.map((clip, index) => (
               <div
-                key={index}
+                key={`${clip.start}-${clip.end}-${clip.title}`}
                 className="p-2 border border-white/[0.08] bg-muted/30 text-xs space-y-1"
               >
                 <div className="flex items-center justify-between">
                   <span className="font-medium">Clip {index + 1}</span>
                   <span className="text-muted-foreground flex items-center gap-1">
-                    <ClockIcon className="h-4 w-4" />
+                    <ClockIcon className="size-4" />
                     {formatTime(clip.startTime)} - {formatTime(clip.endTime)}
                   </span>
                 </div>
@@ -243,7 +243,7 @@ function ClipSelectorNodeComponent(props: NodeProps): React.JSX.Element {
           fullWidth
           onClick={handleAnalyze}
           disabled={!canAnalyze}
-          icon={<SparklesIcon className="h-4 w-4" />}
+          icon={<SparklesIcon className="size-4" />}
         >
           Analyze & Select Clips
         </NodeButton>
@@ -262,7 +262,7 @@ function ClipSelectorNodeComponent(props: NodeProps): React.JSX.Element {
 
 export const ClipSelectorNode = memo(ClipSelectorNodeComponent);
 
-export const clipSelectorNodeDefaults: Partial<ClipSelectorNodeData> = {
+const clipSelectorNodeDefaults: Partial<ClipSelectorNodeData> = {
   clipCount: 5,
   clipDuration: { max: 60, min: 15 },
   includeIntro: true,

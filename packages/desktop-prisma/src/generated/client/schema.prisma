@@ -1,0 +1,269 @@
+generator client {
+  provider        = "prisma-client-js"
+  output          = "../src/generated/client"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id             String       @id
+  organizationId String       @map("organization_id")
+  clerkId        String?      @unique @map("clerk_id")
+  email          String?
+  name           String
+  createdAt      String       @map("created_at")
+  updatedAt      String       @map("updated_at")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("users")
+}
+
+model Organization {
+  id              String          @id
+  name            String
+  slug            String          @unique
+  createdAt       String          @map("created_at")
+  updatedAt       String          @map("updated_at")
+  users           User[]
+  posts           Post[]
+  trends          Trend[]
+  ingredients     Ingredient[]
+  agentStrategies AgentStrategy[]
+  workflows       Workflow[]
+
+  @@map("organizations")
+}
+
+model Post {
+  id               String       @id
+  organizationId   String       @map("organization_id")
+  workspaceId      String?      @map("workspace_id")
+  platform         String
+  type             String
+  prompt           String
+  content          String
+  status           String
+  publishIntent    String?      @map("publish_intent")
+  sourceDraftId    String?      @unique @map("source_draft_id")
+  sourceTrendId    String?      @map("source_trend_id")
+  sourceTrendTopic String?      @map("source_trend_topic")
+  publishedAt      String?      @map("published_at")
+  views            Int          @default(0)
+  engagements      Int          @default(0)
+  createdAt        String       @map("created_at")
+  updatedAt        String       @map("updated_at")
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, updatedAt(sort: Desc)])
+  @@index([status, publishedAt(sort: Desc)])
+  @@index([platform, updatedAt(sort: Desc)])
+  @@map("posts")
+}
+
+model Ingredient {
+  id             String       @id
+  organizationId String       @map("organization_id")
+  title          String
+  content        String
+  platform       String?
+  totalVotes     Int          @default(0) @map("total_votes")
+  sourcePostId   String?      @map("source_post_id")
+  createdAt      String       @map("created_at")
+  updatedAt      String       @map("updated_at")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, updatedAt(sort: Desc)])
+  @@index([platform, totalVotes(sort: Desc)])
+  @@map("ingredients")
+}
+
+model Trend {
+  id              String       @id
+  organizationId  String       @map("organization_id")
+  platform        String
+  topic           String
+  summary         String?
+  viralityScore   Int          @map("virality_score")
+  engagementScore Int          @map("engagement_score")
+  createdAt       String       @map("created_at")
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, platform, topic])
+  @@map("trends")
+}
+
+model AgentStrategy {
+  id             String              @id
+  organizationId String              @map("organization_id")
+  name           String
+  avatar         String?
+  platformsJson  String              @default("[]") @map("platforms_json")
+  status         String
+  isActive       Boolean             @default(true) @map("is_active")
+  lastRunAt      String?             @map("last_run_at")
+  createdAt      String              @map("created_at")
+  updatedAt      String              @map("updated_at")
+  organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workflows      WorkflowExecution[]
+
+  @@index([organizationId, updatedAt(sort: Desc)])
+  @@map("agent_strategies")
+}
+
+model Workflow {
+  id             String              @id
+  organizationId String              @map("organization_id")
+  name           String
+  description    String?
+  lifecycle      String
+  nodeCount      Int                 @map("node_count")
+  supportsBatch  Boolean             @default(false) @map("supports_batch")
+  lastExecutedAt String?             @map("last_executed_at")
+  createdAt      String              @map("created_at")
+  updatedAt      String              @map("updated_at")
+  organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  executions     WorkflowExecution[]
+
+  @@index([organizationId, updatedAt(sort: Desc)])
+  @@map("workflows")
+}
+
+model WorkflowExecution {
+  id              String         @id
+  workflowId      String         @map("workflow_id")
+  agentStrategyId String?        @map("agent_strategy_id")
+  mode            String
+  status          String
+  startedAt       String         @map("started_at")
+  completedAt     String?        @map("completed_at")
+  workflow        Workflow       @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  agentStrategy   AgentStrategy? @relation(fields: [agentStrategyId], references: [id], onDelete: SetNull)
+
+  @@index([workflowId, startedAt(sort: Desc)])
+  @@index([agentStrategyId, startedAt(sort: Desc)])
+  @@map("workflow_executions")
+}
+
+model DesktopKv {
+  key   String @id
+  value String
+
+  @@map("desktop_kv")
+}
+
+model DesktopWorkspace {
+  id               String  @id
+  name             String
+  path             String  @unique
+  linkedProjectId  String? @map("linked_project_id")
+  linkedBrandId    String? @map("linked_brand_id")
+  syncPolicy       String  @default("local-only") @map("sync_policy")
+  fileIndex        String  @default("[]") @map("file_index")
+  indexingState    String  @default("idle") @map("indexing_state")
+  localDraftCount  Int     @default(0) @map("local_draft_count")
+  pendingSyncCount Int     @default(0) @map("pending_sync_count")
+  createdAt        String  @map("created_at")
+  updatedAt        String  @map("updated_at")
+  lastOpenedAt     String  @map("last_opened_at")
+
+  @@index([lastOpenedAt(sort: Desc)])
+  @@map("desktop_workspace")
+}
+
+model DesktopBrand {
+  id             String  @id
+  organizationId String  @map("organization_id")
+  cloudId        String? @unique @map("cloud_id")
+  name           String
+  slug           String
+  syncPolicy     String  @default("none") @map("sync_policy")
+  cloudVersion   String? @map("cloud_version")
+  lastPulledAt   String? @map("last_pulled_at")
+  createdAt      String  @map("created_at")
+  updatedAt      String  @map("updated_at")
+
+  @@unique([organizationId, slug])
+  @@index([organizationId, updatedAt(sort: Desc)])
+  @@map("desktop_brand")
+}
+
+model DesktopAsset {
+  id               String  @id
+  organizationId   String  @map("organization_id")
+  brandId          String? @map("brand_id")
+  workspaceId      String? @map("workspace_id")
+  cloudId          String? @unique @map("cloud_id")
+  cloudObjectKey   String? @map("cloud_object_key")
+  localPath        String? @map("local_path")
+  sha256           String
+  sizeBytes        Int     @map("size_bytes")
+  mimeType         String  @map("mime_type")
+  kind             String
+  origin           String
+  residency        String
+  uploadPolicy     String  @default("never") @map("upload_policy")
+  originalFileName String  @map("original_file_name")
+  displayName      String  @map("display_name")
+  deletedAt        String? @map("deleted_at")
+  createdAt        String  @map("created_at")
+  updatedAt        String  @map("updated_at")
+
+  @@index([sha256, sizeBytes])
+  @@index([organizationId, updatedAt(sort: Desc)])
+  @@index([brandId, updatedAt(sort: Desc)])
+  @@index([workspaceId, updatedAt(sort: Desc)])
+  @@index([residency, updatedAt(sort: Desc)])
+  @@map("desktop_asset")
+}
+
+model DesktopSyncOp {
+  id             String  @id
+  workspaceId    String? @map("workspace_id")
+  entityType     String  @map("entity_type")
+  entityId       String  @map("entity_id")
+  operation      String
+  payload        String
+  baseVersion    String? @map("base_version")
+  status         String  @default("pending")
+  error          String?
+  retryCount     Int     @default(0) @map("retry_count")
+  createdAt      String  @map("created_at")
+  updatedAt      String  @map("updated_at")
+  acknowledgedAt String? @map("acknowledged_at")
+
+  @@index([status, updatedAt(sort: Desc)])
+  @@index([workspaceId, status, updatedAt(sort: Desc)])
+  @@index([entityType, entityId])
+  @@map("desktop_sync_op")
+}
+
+model DesktopSyncJob {
+  id          String  @id
+  workspaceId String? @map("workspace_id")
+  type        String
+  payload     String
+  status      String
+  error       String?
+  retryCount  Int     @default(0) @map("retry_count")
+  createdAt   String  @map("created_at")
+  updatedAt   String  @map("updated_at")
+
+  @@index([workspaceId, updatedAt(sort: Desc)])
+  @@index([status, updatedAt(sort: Desc)])
+  @@map("desktop_sync_job")
+}
+
+model DesktopRecentItem {
+  id       String @id
+  kind     String
+  label    String
+  value    String
+  openedAt String @map("opened_at")
+
+  @@index([openedAt(sort: Desc)])
+  @@map("desktop_recent_item")
+}

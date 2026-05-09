@@ -4,6 +4,8 @@ import { contextBridge, ipcRenderer } from 'electron';
 
 const desktopBridge: IGenfeedDesktopBridge = {
   app: {
+    enableOfflineMode: async () =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.appEnableOfflineMode),
     getBootstrap: async () =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.appBootstrap),
     getDiagnostics: async () =>

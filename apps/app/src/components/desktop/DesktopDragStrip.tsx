@@ -28,11 +28,7 @@ export default function DesktopDragStrip() {
     setIsMac(detectMac());
   }, []);
 
-  if (!IS_DESKTOP_SHELL || !isMac) {
-    return null;
-  }
-
-  return (
+  return IS_DESKTOP_SHELL && isMac ? (
     <div
       aria-hidden="true"
       data-desktop-drag="true"
@@ -43,8 +39,8 @@ export default function DesktopDragStrip() {
         position: 'fixed',
         right: 0,
         top: 0,
-        zIndex: 9999,
+        zIndex: 50,
       }}
     />
-  );
+  ) : null;
 }

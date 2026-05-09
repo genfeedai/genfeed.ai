@@ -17,7 +17,7 @@ export default defineConfig({
       '~popup': path.resolve(__dirname, './src/popup.tsx'),
       '~services': path.resolve(__dirname, './src/services'),
       '~store': path.resolve(__dirname, './src/store'),
-      '~style.scss': path.resolve(__dirname, './src/style.scss'),
+      '~style.css': path.resolve(__dirname, './src/style.css'),
       '~utils': path.resolve(__dirname, './src/utils'),
     },
   },

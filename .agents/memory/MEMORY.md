@@ -17,6 +17,7 @@
 - [GitHub issue worktree workflow](feedback_gh_issue_worktree_workflow.md) — Assigned issues use worktrees from develop
 - [No external symlinks](feedback_no_external_symlinks.md) — Open source repo. Internal symlinks only.
 - [End-to-end implementation](feedback_end_to_end_implementation.md) — Never ship half-architecture; wire the full user path
+- [P0 status, not label](feedback_p0_status_not_label.md) — P0 is issue status; never create priority labels
 
 ## References
 - [MongoDB Atlas URI](reference_mongodb_atlas.md) — Atlas connection string for `cloud` DB

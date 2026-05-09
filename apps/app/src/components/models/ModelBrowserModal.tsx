@@ -27,9 +27,16 @@ import {
   X,
   ZoomIn,
 } from 'lucide-react';
-import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
+import {
+  type JSX,
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import { createPortal } from 'react-dom';
-
 import { logger } from '@/lib/logger';
 import { useSettingsStore } from '@/store/settingsStore';
 
@@ -126,7 +133,7 @@ function UseCaseBadge({ useCase }: { useCase: ModelUseCase }) {
 
   return (
     <span className="inline-flex items-center gap-1 rounded bg-purple-500/10 px-1.5 py-0.5 text-[10px] font-medium text-purple-400 border border-purple-500/20">
-      <Icon className="h-2.5 w-2.5" />
+      <Icon className="size-2.5" />
       {config.label}
     </span>
   );
@@ -155,15 +162,18 @@ function ModelCard({ model, onSelect, isRecent }: ModelCardProps) {
       <div className="flex items-stretch">
         {/* Thumbnail or placeholder - full height */}
         {model.thumbnail && !imgError ? (
-          <img
+          <Image
+            unoptimized
             src={model.thumbnail}
             alt={model.displayName}
             className="w-20 shrink-0 object-cover bg-secondary"
             onError={() => setImgError(true)}
+            width={800}
+            height={600}
           />
         ) : (
           <div className="flex w-20 shrink-0 items-center justify-center bg-secondary">
-            <Sparkles className="h-6 w-6 text-muted-foreground" />
+            <Sparkles className="size-6 text-muted-foreground" />
           </div>
         )}
 
@@ -173,7 +183,7 @@ function ModelCard({ model, onSelect, isRecent }: ModelCardProps) {
             <h3 className="truncate text-sm font-medium text-foreground">
               {model.displayName}
             </h3>
-            {isRecent && <Clock className="h-3 w-3 text-muted-foreground" />}
+            {isRecent && <Clock className="size-3 text-muted-foreground" />}
           </div>
 
           {/* Model ID */}
@@ -187,11 +197,12 @@ function ModelCard({ model, onSelect, isRecent }: ModelCardProps) {
             {model.capabilities.map((cap) => (
               <CapabilityBadge key={cap} capability={cap} />
             ))}
-            {model.useCases
-              ?.filter((uc) => uc !== 'general')
-              .map((uc) => (
-                <UseCaseBadge key={uc} useCase={uc} />
-              ))}
+            {model.useCases?.reduce<JSX.Element[]>((badges, uc) => {
+              if (uc !== 'general') {
+                badges.push(<UseCaseBadge key={uc} useCase={uc} />);
+              }
+              return badges;
+            }, [])}
           </div>
 
           {/* Description and pricing */}
@@ -382,14 +393,19 @@ function ModelBrowserModalComponent({
   return createPortal(
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 z-50 bg-black/50" onClick={onClose} />
+      <button
+        aria-label="Close model browser"
+        className="fixed inset-0 z-50 bg-black/50"
+        onClick={onClose}
+        type="button"
+      />
 
       {/* Modal */}
       <div className="fixed inset-4 z-50 flex flex-col overflow-hidden rounded-xl bg-card shadow-xl md:inset-10">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <div className="flex items-center gap-3">
-            <Sparkles className="h-5 w-5 text-primary" />
+            <Sparkles className="size-5 text-primary" />
             <h2 className="text-lg font-semibold text-foreground">{title}</h2>
           </div>
           <Button
@@ -397,7 +413,7 @@ function ModelBrowserModalComponent({
             withWrapper={false}
             onClick={onClose}
             className="p-2 rounded-lg hover:bg-secondary transition"
-            icon={<X className="h-5 w-5" />}
+            icon={<X className="size-5" />}
           />
         </div>
 
@@ -406,7 +422,7 @@ function ModelBrowserModalComponent({
           <div className="flex items-center gap-4 px-6 py-4">
             {/* Search */}
             <div className="relative max-w-md flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 type="text"
                 value={searchQuery}
@@ -456,7 +472,7 @@ function ModelBrowserModalComponent({
                     ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
                     : 'bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-transparent'
                 }`}
-                icon={<Sparkles className="h-3 w-3" />}
+                icon={<Sparkles className="size-3" />}
               >
                 All
               </Button>
@@ -474,7 +490,7 @@ function ModelBrowserModalComponent({
                         ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
                         : 'bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-transparent'
                     }`}
-                    icon={<Icon className="h-3 w-3" />}
+                    icon={<Icon className="size-3" />}
                   >
                     {config.label}
                   </Button>
@@ -489,7 +505,7 @@ function ModelBrowserModalComponent({
           {/* Warning when no providers configured */}
           {!isLoading && hasFetched && configuredProviders.length === 0 && (
             <div className="mb-6 flex items-start gap-3 rounded-lg border border-yellow-500/20 bg-yellow-500/10 p-4">
-              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-yellow-600" />
+              <AlertTriangle className="mt-0.5 size-5 shrink-0 text-yellow-600" />
               <div>
                 <p className="text-sm font-medium text-yellow-600">
                   No AI providers configured
@@ -505,7 +521,7 @@ function ModelBrowserModalComponent({
 
           {isLoading ? (
             <div className="flex h-full items-center justify-center">
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              <div className="size-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
             </div>
           ) : (
             <div className="space-y-6">
@@ -542,7 +558,7 @@ function ModelBrowserModalComponent({
                 </h3>
                 {models.length === 0 ? (
                   <div className="flex h-40 flex-col items-center justify-center text-muted-foreground">
-                    <Sparkles className="mb-2 h-8 w-8" />
+                    <Sparkles className="mb-2 size-8" />
                     <p className="text-sm">No models found</p>
                   </div>
                 ) : (
@@ -573,7 +589,7 @@ function ModelBrowserModalComponent({
             className="flex items-center gap-1 text-xs text-primary hover:underline"
           >
             Explore more on Replicate
-            <ExternalLink className="h-3 w-3" />
+            <ExternalLink className="size-3" />
           </a>
         </div>
       </div>

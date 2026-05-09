@@ -1,6 +1,7 @@
 'use client';
 
 import { cn } from '@helpers/formatting/cn/cn.util';
+import Image from 'next/image';
 
 interface MediaPreviewProps {
   src: string;
@@ -46,7 +47,14 @@ export function MediaPreview({
   if (type === 'image') {
     return (
       <div className={containerClass}>
-        <img src={src} alt="Preview" className="h-24 w-full object-contain" />
+        <Image
+          unoptimized
+          src={src}
+          alt="Preview"
+          className="h-24 w-full object-contain"
+          width={800}
+          height={600}
+        />
       </div>
     );
   }

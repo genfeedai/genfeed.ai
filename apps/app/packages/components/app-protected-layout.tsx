@@ -84,6 +84,7 @@ import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   type ReactNode,
+  Suspense,
   useCallback,
   useEffect,
   useMemo,
@@ -194,7 +195,7 @@ function ChatSidebarContent({
             href={orgHref(`${conversationBasePath}/new`)}
             className="flex h-9 w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-white/80 transition-colors duration-200 group cursor-pointer hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
           >
-            <HiPlus className="h-4 w-4 text-white/80 group-hover:text-white" />
+            <HiPlus className="size-4 text-white/80 group-hover:text-white" />
             <span className="text-sm font-medium text-white/90">New Chat</span>
             <Kbd
               variant="ghost"
@@ -221,7 +222,7 @@ function AppLayoutWithDynamicMenu({
 }: AppLayoutWithDynamicMenuProps) {
   const shellChromeVariant = 'default' as const;
   const rawPathname = usePathname();
-  const searchParams = useSearchParams();
+  const { toString: getSearchParamsString } = useSearchParams();
   // Strip org/brand prefix from pathname for route detection.
   // Pathname may be /orgSlug/brandSlug/studio or /orgSlug/~/settings.
   const pathname = useMemo(
@@ -291,21 +292,21 @@ function AppLayoutWithDynamicMenu({
   const shouldInitAgentApiService =
     shouldMountAgentPanel || isConversationRoute;
 
-  const router = useRouter();
+  const { push, refresh } = useRouter();
   const { getToken, isSignedIn } = useOptionalAuth();
   const prevIsSignedInRef = useRef(false);
   useEffect(() => {
     if (isSignedIn && !prevIsSignedInRef.current) {
-      router.refresh();
+      refresh();
     }
     prevIsSignedInRef.current = isSignedIn ?? false;
-  }, [isSignedIn, router]);
+  }, [isSignedIn, refresh]);
   const taskContextSearchParams = useMemo(
     () =>
       pickOperatorTaskContextSearchParams(
-        new URLSearchParams(searchParams?.toString()),
+        new URLSearchParams(getSearchParamsString()),
       ),
-    [searchParams],
+    [getSearchParamsString],
   );
   const getTokenRef = useRef(getToken);
   useEffect(() => {
@@ -439,16 +440,14 @@ function AppLayoutWithDynamicMenu({
   useAgentPageContext(role);
 
   const handleNavigateToBilling = useCallback(() => {
-    router.push(
-      orgHref(isEEEnabled() ? '/settings/billing' : '/settings/api-keys'),
-    );
-  }, [router, orgHref]);
+    push(orgHref(isEEEnabled() ? '/settings/billing' : '/settings/api-keys'));
+  }, [push, orgHref]);
 
   const handleNavigate = useCallback(
     (path: string) => {
-      router.push(path);
+      push(path);
     },
-    [router],
+    [push],
   );
   const handleOpenCommandPalette = useCallback(() => {
     useCommandPaletteStore.getState().open();
@@ -477,27 +476,37 @@ function AppLayoutWithDynamicMenu({
       ]),
     );
 
-    return STUDIO_MENU_ITEMS.filter((item) => {
+    return STUDIO_MENU_ITEMS.reduce<MenuItemConfig[]>((items, item) => {
       if (!item.href) {
-        return true;
+        items.push({
+          ...item,
+          href: withTaskContextHref(item.href, taskContextSearchParams),
+        });
+        return items;
       }
 
       const studioCategory = categoryByHref.get(item.href);
 
       if (!studioCategory) {
-        return true;
+        items.push({
+          ...item,
+          href: withTaskContextHref(item.href, taskContextSearchParams),
+        });
+        return items;
       }
 
-      return (
+      if (
         enabledCategories.includes(studioCategory.category) &&
         (!isEnabledCategoriesLoading || studioCategory.settingKey === null)
-      );
-    }).map(
-      (item): MenuItemConfig => ({
-        ...item,
-        href: withTaskContextHref(item.href, taskContextSearchParams),
-      }),
-    );
+      ) {
+        items.push({
+          ...item,
+          href: withTaskContextHref(item.href, taskContextSearchParams),
+        });
+      }
+
+      return items;
+    }, []);
   }, [enabledCategories, isEnabledCategoriesLoading, taskContextSearchParams]);
 
   const composeMenuItems = useMemo(
@@ -719,7 +728,7 @@ function AppLayoutWithDynamicMenu({
                 <>
                   <SidebarActionTrigger
                     ariaLabel="Open new task modal"
-                    icon={<HiPlus className="h-4 w-4 flex-shrink-0" />}
+                    icon={<HiPlus className="size-4 flex-shrink-0" />}
                     label="New Task"
                     onClick={dispatchOpenTaskComposer}
                     shortcut="⌘⇧N"
@@ -864,7 +873,7 @@ interface AppProtectedLayoutProps extends LayoutProps {
   initialBootstrap?: ProtectedBootstrapData | null;
 }
 
-export default function AppProtectedLayout({
+function AppProtectedLayoutContent({
   children,
   initialBootstrap,
 }: AppProtectedLayoutProps) {
@@ -896,5 +905,15 @@ export default function AppProtectedLayout({
         <OnboardingGuard>{children}</OnboardingGuard>
       </AppLayoutWithDynamicMenu>
     </ProtectedProviders>
+  );
+}
+
+export default function AppProtectedLayout(
+  props: Parameters<typeof AppProtectedLayoutContent>[0],
+) {
+  return (
+    <Suspense fallback={null}>
+      <AppProtectedLayoutContent {...props} />
+    </Suspense>
   );
 }

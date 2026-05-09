@@ -6,6 +6,7 @@ import {
   useWorkflowStore,
 } from '@genfeedai/workflow-ui/stores';
 import type { NodeProps } from '@xyflow/react';
+import Image from 'next/image';
 import { memo, useCallback } from 'react';
 import { NodeBadge } from '@/features/workflows/components/ui/badge';
 import { NodeCard, NodeHeader } from '@/features/workflows/components/ui/card';
@@ -115,13 +116,16 @@ function PersonaPhotoSessionNodeComponent(props: NodeProps): React.JSX.Element {
           <div className="grid grid-cols-3 gap-1">
             {data.resolvedImageUrls.map((url, index) => (
               <div
-                key={`photo-${index}`}
+                key={url}
                 className="overflow-hidden bg-black/20 aspect-square"
               >
-                <img
+                <Image
+                  unoptimized
                   src={url}
                   alt={`Generated ${index + 1}`}
                   className="h-full w-full object-cover"
+                  width={800}
+                  height={600}
                 />
               </div>
             ))}
@@ -142,17 +146,16 @@ function PersonaPhotoSessionNodeComponent(props: NodeProps): React.JSX.Element {
 
 export const PersonaPhotoSessionNode = memo(PersonaPhotoSessionNodeComponent);
 
-export const personaPhotoSessionNodeDefaults: Partial<PersonaPhotoSessionNodeData> =
-  {
-    count: 1,
-    label: 'Persona Photo Session',
-    personaId: null,
-    prompt: null,
-    resolvedAvatarProvider: null,
-    resolvedImageUrls: [],
-    resolvedJobIds: [],
-    resolvedPersonaId: null,
-    resolvedPersonaLabel: null,
-    status: 'idle',
-    type: 'personaPhotoSession',
-  };
+const personaPhotoSessionNodeDefaults: Partial<PersonaPhotoSessionNodeData> = {
+  count: 1,
+  label: 'Persona Photo Session',
+  personaId: null,
+  prompt: null,
+  resolvedAvatarProvider: null,
+  resolvedImageUrls: [],
+  resolvedJobIds: [],
+  resolvedPersonaId: null,
+  resolvedPersonaLabel: null,
+  status: 'idle',
+  type: 'personaPhotoSession',
+};
