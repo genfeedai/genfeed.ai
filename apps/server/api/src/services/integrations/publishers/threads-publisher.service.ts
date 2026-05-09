@@ -8,8 +8,17 @@ import type {
   PublishResult,
   ThreadChild,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
-import { ThreadsService } from '@api/services/integrations/threads/services/threads.service';
-import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
+import {
+  type ThreadsCarouselMediaItem,
+  ThreadsMediaType,
+  ThreadsService,
+} from '@api/services/integrations/threads/services/threads.service';
+import {
+  CredentialPlatform,
+  IngredientCategory,
+  PostCategory,
+  PostStatus,
+} from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
@@ -19,8 +28,8 @@ export class ThreadsPublisherService extends BasePublisherService {
   readonly platform = CredentialPlatform.THREADS;
   readonly supportsTextOnly = true; // Threads primary use case is text
   readonly supportsImages = true;
-  readonly supportsVideos = false; // Threads doesn't support video yet
-  readonly supportsCarousel = false; // Threads doesn't support carousel yet
+  readonly supportsVideos = true;
+  readonly supportsCarousel = true; // Up to 20 image/video items
   readonly supportsThreads = true; // Native thread/reply support
 
   constructor(
@@ -63,12 +72,35 @@ export class ThreadsPublisherService extends BasePublisherService {
         );
       }
 
-      if (mediaInfo.hasIngredients && mediaInfo.isImagePost) {
+      const mediaItems = this.extractThreadsMediaItems(
+        post.category,
+        post.ingredients,
+      );
+
+      if (mediaItems.length > 1) {
+        // Carousel post
+        const result = await this.threadsService.publishCarousel(
+          organizationId,
+          brandId,
+          mediaItems,
+          text,
+        );
+        threadId = result.threadId;
+      } else if (mediaItems[0]?.mediaType === ThreadsMediaType.IMAGE) {
         // Image post
         const result = await this.threadsService.publishImage(
           organizationId,
           brandId,
-          mediaInfo.mediaUrls[0],
+          mediaItems[0].url,
+          text,
+        );
+        threadId = result.threadId;
+      } else if (mediaItems[0]?.mediaType === ThreadsMediaType.VIDEO) {
+        // Video post
+        const result = await this.threadsService.publishVideo(
+          organizationId,
+          brandId,
+          mediaItems[0].url,
           text,
         );
         threadId = result.threadId;
@@ -126,18 +158,9 @@ export class ThreadsPublisherService extends BasePublisherService {
       return baseValidation;
     }
 
-    // Threads-specific: no carousel support
-    if (mediaInfo.isCarousel) {
+    if (mediaInfo.ingredientIds.length > 20) {
       return {
-        error: 'Threads does not support carousel posts',
-        valid: false,
-      };
-    }
-
-    // Threads-specific: no video support (yet)
-    if (!mediaInfo.isImagePost && mediaInfo.hasIngredients) {
-      return {
-        error: 'Threads does not support video posts yet',
+        error: 'Threads carousels support at most 20 media items',
         valid: false,
       };
     }
@@ -146,7 +169,7 @@ export class ThreadsPublisherService extends BasePublisherService {
   }
 
   /**
-   * Publish TEXT children as replies to the parent thread
+   * Publish children as replies to the parent thread
    * Threads has native reply support at the API level
    */
   async publishThreadChildren(
@@ -157,13 +180,8 @@ export class ThreadsPublisherService extends BasePublisherService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const { organizationId, brandId } = context;
 
-    // Filter for TEXT category children only
-    const textChildren = children.filter(
-      (child) => child.category === PostCategory.TEXT,
-    );
-
-    if (textChildren.length === 0) {
-      this.logger.log(`${url} no TEXT children to post as replies`, {
+    if (children.length === 0) {
+      this.logger.log(`${url} no children to post as replies`, {
         parentExternalId,
         parentPostId: context.postId,
       });
@@ -171,7 +189,7 @@ export class ThreadsPublisherService extends BasePublisherService {
     }
 
     // Sort by order to ensure correct sequence
-    const sortedChildren = [...textChildren].sort(
+    const sortedChildren = [...children].sort(
       (a, b) => (a.order || 0) - (b.order || 0),
     );
 
@@ -196,11 +214,12 @@ export class ThreadsPublisherService extends BasePublisherService {
           });
         }
 
-        const result = await this.threadsService.publishText(
+        const result = await this.publishChildThread(
+          child,
           organizationId,
           brandId,
-          text.substring(0, 500), // Truncate if needed
-          replyToId, // Reply to previous post in thread
+          text.substring(0, 500),
+          replyToId,
         );
 
         if (result?.threadId) {
@@ -246,5 +265,95 @@ export class ThreadsPublisherService extends BasePublisherService {
       childrenCount: sortedChildren.length,
       parentPostId: context.postId,
     });
+  }
+
+  private extractThreadsMediaItems(
+    fallbackCategory: PostCategory | string | undefined,
+    ingredients: unknown[] | undefined,
+  ): ThreadsCarouselMediaItem[] {
+    return (ingredients || []).map((ingredient) => {
+      const id = this.getRecordId(ingredient);
+      const mediaType = this.getThreadsMediaType(fallbackCategory, ingredient);
+      const path = mediaType === ThreadsMediaType.IMAGE ? 'images' : 'videos';
+
+      return {
+        mediaType,
+        url: `${this.configService.ingredientsEndpoint}/${path}/${id}`,
+      };
+    });
+  }
+
+  private getThreadsMediaType(
+    fallbackCategory: PostCategory | string | undefined,
+    ingredient: unknown,
+  ): ThreadsMediaType.IMAGE | ThreadsMediaType.VIDEO {
+    const ingredientCategory =
+      ingredient !== null &&
+      typeof ingredient === 'object' &&
+      'category' in ingredient
+        ? String((ingredient as { category?: unknown }).category ?? '')
+        : '';
+    const category = (ingredientCategory || String(fallbackCategory ?? ''))
+      .toLowerCase()
+      .trim();
+
+    if (
+      category === IngredientCategory.VIDEO.toLowerCase() ||
+      category === PostCategory.VIDEO.toLowerCase()
+    ) {
+      return ThreadsMediaType.VIDEO;
+    }
+
+    return ThreadsMediaType.IMAGE;
+  }
+
+  private async publishChildThread(
+    child: ThreadChild,
+    organizationId: string,
+    brandId: string,
+    text: string,
+    replyToId: string,
+  ): Promise<{ threadId: string }> {
+    const mediaItems = this.extractThreadsMediaItems(
+      child.category,
+      child.ingredients,
+    );
+
+    if (mediaItems.length > 1) {
+      return this.threadsService.publishCarousel(
+        organizationId,
+        brandId,
+        mediaItems,
+        text,
+        replyToId,
+      );
+    }
+
+    if (mediaItems[0]?.mediaType === ThreadsMediaType.IMAGE) {
+      return this.threadsService.publishImage(
+        organizationId,
+        brandId,
+        mediaItems[0].url,
+        text,
+        replyToId,
+      );
+    }
+
+    if (mediaItems[0]?.mediaType === ThreadsMediaType.VIDEO) {
+      return this.threadsService.publishVideo(
+        organizationId,
+        brandId,
+        mediaItems[0].url,
+        text,
+        replyToId,
+      );
+    }
+
+    return this.threadsService.publishText(
+      organizationId,
+      brandId,
+      text,
+      replyToId,
+    );
   }
 }

@@ -176,6 +176,7 @@ export class PostsController extends BaseCRUDController<
 
       // Platforms that support text-only scheduled posts
       const textOnlyPlatforms = new Set([
+        CredentialPlatform.THREADS,
         CredentialPlatform.TWITTER,
         CredentialPlatform.LINKEDIN,
       ]);
