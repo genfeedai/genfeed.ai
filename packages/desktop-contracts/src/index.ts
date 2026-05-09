@@ -2,6 +2,7 @@
 
 export const DESKTOP_IPC_CHANNELS = {
   appBootstrap: 'desktop:app:bootstrap',
+  appEnableOfflineMode: 'desktop:app:enableOfflineMode',
   appGetDiagnostics: 'desktop:app:getDiagnostics',
   appOpenExternalPath: 'desktop:app:openExternalPath',
   authChanged: 'desktop:auth:changed',
@@ -210,30 +211,58 @@ export interface IDesktopCloudProject {
   status?: string;
 }
 
+export interface IDesktopLocalUser {
+  id: string;
+  name: string;
+  organizationId: string;
+  userEmail?: string;
+}
+
+export interface IDesktopLocalOrganization {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+export type IDesktopDataResult<T> =
+  | {
+      data: T;
+      status: 'success';
+    }
+  | {
+      message: string;
+      status: 'queued_offline';
+      syncJobId: string;
+    };
+
 export interface IDesktopDataService {
   generateContent: (
     params: IDesktopGenerationOptions,
-  ) => Promise<IDesktopGeneratedContent>;
-  generateHooks: (topic: string) => Promise<string[]>;
-  getAnalytics: (params: { days: number }) => Promise<IDesktopAnalytics>;
+  ) => Promise<IDesktopDataResult<IDesktopGeneratedContent>>;
+  generateHooks: (topic: string) => Promise<IDesktopDataResult<string[]>>;
+  getAnalytics: (params: {
+    days: number;
+  }) => Promise<IDesktopDataResult<IDesktopAnalytics>>;
   getIngredients: (filter?: {
     limit?: number;
     platform?: string;
-  }) => Promise<IDesktopIngredient[]>;
-  getTrends: (platform: string) => Promise<IDesktopTrend[]>;
-  listAgents: () => Promise<IDesktopAgent[]>;
-  listProjects: () => Promise<IDesktopCloudProject[]>;
-  listWorkflows: () => Promise<IDesktopWorkflow[]>;
+  }) => Promise<IDesktopDataResult<IDesktopIngredient[]>>;
+  getTrends: (platform: string) => Promise<IDesktopDataResult<IDesktopTrend[]>>;
+  listAgents: () => Promise<IDesktopDataResult<IDesktopAgent[]>>;
+  listProjects: () => Promise<IDesktopDataResult<IDesktopCloudProject[]>>;
+  listWorkflows: () => Promise<IDesktopDataResult<IDesktopWorkflow[]>>;
   publishPost: (params: {
     content: string;
     draftId?: string;
     platform: DesktopContentPlatform | string;
-  }) => Promise<IDesktopPublishResult>;
-  runAgent: (agentId: string) => Promise<IDesktopAgentRunResult>;
+  }) => Promise<IDesktopDataResult<IDesktopPublishResult>>;
+  runAgent: (
+    agentId: string,
+  ) => Promise<IDesktopDataResult<IDesktopAgentRunResult>>;
   runWorkflow: (params: {
     batch?: boolean;
     workflowId: string;
-  }) => Promise<IDesktopWorkflowRunResult>;
+  }) => Promise<IDesktopDataResult<IDesktopWorkflowRunResult>>;
 }
 
 /* ─── Preferences ─── */
@@ -248,6 +277,9 @@ export interface IDesktopBootstrap {
   /** Clerk user ID persisted locally after first cloud sign-in; null if never signed in */
   clerkId: string | null;
   environment: IDesktopEnvironment;
+  isOfflineMode: boolean;
+  localOrganization: IDesktopLocalOrganization;
+  localUser: IDesktopLocalUser;
   /** Stable local UUID set on first boot — the sync anchor for Phase 2 PGlite */
   localUserId: string;
   preferences: IDesktopPreferences;
@@ -448,6 +480,7 @@ export interface IDesktopWorkflowRunResult {
 
 export interface IGenfeedDesktopBridge {
   app: {
+    enableOfflineMode: () => Promise<void>;
     getDiagnostics: () => Promise<{
       isPackaged: boolean;
       platform: string;

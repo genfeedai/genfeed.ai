@@ -3,15 +3,16 @@ import type {
   IDesktopGenerationOptions,
   IDesktopGenerationProviderConfig,
 } from '@genfeedai/desktop-contracts';
-import type { DesktopDatabaseService, SyncJobRow } from './database.service';
 import {
   __desktopGenerationServiceTestUtils,
   DesktopGenerationService,
+  type DesktopGenerationStore,
+  type GenerationSyncJobRow,
 } from './generation.service';
 
 const createDatabaseMock = () => {
   const kv = new Map<string, string>();
-  const syncJobs = new Map<string, SyncJobRow>();
+  const syncJobs = new Map<string, GenerationSyncJobRow>();
 
   return {
     deleteValue: async (key: string) => {
@@ -23,7 +24,7 @@ const createDatabaseMock = () => {
     setValue: async (key: string, value: string) => {
       kv.set(key, value);
     },
-    upsertSyncJob: async (row: SyncJobRow) => {
+    upsertSyncJob: async (row: GenerationSyncJobRow) => {
       syncJobs.set(row.id, row);
     },
   };
@@ -52,7 +53,7 @@ describe('DesktopGenerationService', () => {
   it('persists provider config without exposing the api key publicly', async () => {
     const database = createDatabaseMock();
     const service = new DesktopGenerationService(
-      database as unknown as DesktopDatabaseService,
+      database as unknown as DesktopGenerationStore,
     );
 
     const publicConfig = await service.saveProviderConfig({
@@ -76,7 +77,7 @@ describe('DesktopGenerationService', () => {
   it('runs generation through an OpenAI-compatible provider and records the local job', async () => {
     const database = createDatabaseMock();
     const service = new DesktopGenerationService(
-      database as unknown as DesktopDatabaseService,
+      database as unknown as DesktopGenerationStore,
     );
 
     await service.saveProviderConfig(providerConfig);
@@ -128,7 +129,7 @@ describe('DesktopGenerationService', () => {
   it('marks the local generation job as failed when the provider fails', async () => {
     const database = createDatabaseMock();
     const service = new DesktopGenerationService(
-      database as unknown as DesktopDatabaseService,
+      database as unknown as DesktopGenerationStore,
     );
 
     await service.saveProviderConfig(providerConfig);
@@ -148,7 +149,7 @@ describe('DesktopGenerationService', () => {
   it('generates workflows through the same local provider', async () => {
     const database = createDatabaseMock();
     const service = new DesktopGenerationService(
-      database as unknown as DesktopDatabaseService,
+      database as unknown as DesktopGenerationStore,
     );
 
     await service.saveProviderConfig(providerConfig);
@@ -201,7 +202,7 @@ describe('DesktopGenerationService', () => {
   it('runs generation through Replicate model predictions with a provider API key', async () => {
     const database = createDatabaseMock();
     const service = new DesktopGenerationService(
-      database as unknown as DesktopDatabaseService,
+      database as unknown as DesktopGenerationStore,
     );
 
     await service.saveProviderConfig({
@@ -248,7 +249,7 @@ describe('DesktopGenerationService', () => {
   it('polls Replicate predictions until output is ready', async () => {
     const database = createDatabaseMock();
     const service = new DesktopGenerationService(
-      database as unknown as DesktopDatabaseService,
+      database as unknown as DesktopGenerationStore,
     );
     const calls: string[] = [];
 
@@ -308,7 +309,7 @@ describe('DesktopGenerationService', () => {
   it('runs generation through the fal queue API with a provider API key', async () => {
     const database = createDatabaseMock();
     const service = new DesktopGenerationService(
-      database as unknown as DesktopDatabaseService,
+      database as unknown as DesktopGenerationStore,
     );
     const calls: string[] = [];
 
