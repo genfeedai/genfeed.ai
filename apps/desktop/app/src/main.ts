@@ -1,11 +1,15 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type {
+  DesktopSyncCursorScope,
+  IDesktopAssetSyncUpdate,
   IDesktopBootstrap,
+  IDesktopBrandManifest,
   IDesktopContentRunDraft,
   IDesktopDataService,
   IDesktopGenerationOptions,
   IDesktopGenerationProviderConfig,
+  IDesktopSyncOpAck,
   IDesktopTerminalCreateOptions,
   IDesktopWorkflowGenerationOptions,
 } from '@genfeedai/desktop-contracts';
@@ -98,6 +102,10 @@ const OFFLINE_MODE_KEY = 'desktop.offline.mode';
 const ONBOARDING_COMPLETED_KEY = 'onboarding.completed';
 const SYNC_THREADS_CURSOR_KEY = 'sync.threads.cursor';
 const LOCAL_CLERK_ID_KEY = 'local.user.clerkId';
+
+function getSyncCursorKey(scope: DesktopSyncCursorScope = 'threads'): string {
+  return scope === 'threads' ? SYNC_THREADS_CURSOR_KEY : `sync.${scope}.cursor`;
+}
 
 function getClerkId(): string | null {
   return kvService.getValueSync(LOCAL_CLERK_ID_KEY);
@@ -537,27 +545,6 @@ const registerIpcHandlers = (): void => {
       }
     },
   );
-  ipcMain.handle(
-    DESKTOP_IPC_CHANNELS.syncGetJobs,
-    async (_event: unknown, workspaceId?: string) =>
-      syncService.listJobs(workspaceId),
-  );
-  ipcMain.handle(DESKTOP_IPC_CHANNELS.syncGetState, async () =>
-    syncService.getState(),
-  );
-  ipcMain.handle(
-    DESKTOP_IPC_CHANNELS.syncQueueJob,
-    async (
-      _event: unknown,
-      type: string,
-      payload: string,
-      workspaceId?: string,
-    ) => {
-      const job = await syncService.queueJob(type, payload, workspaceId);
-      await emitBootstrap();
-      return job;
-    },
-  );
   ipcMain.handle(DESKTOP_IPC_CHANNELS.cacheGetPath, async () => {
     const cachePath = path.join(app.getPath('userData'), 'cache');
     fs.mkdirSync(cachePath, { recursive: true });
@@ -586,6 +573,77 @@ const registerIpcHandlers = (): void => {
     async () => process.platform,
   );
 
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.syncAckOps,
+    async (_event: unknown, ops: IDesktopSyncOpAck[]) => {
+      await syncService.ackOps(ops);
+      await emitBootstrap();
+    },
+  );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.syncApplyBrandManifest,
+    async (_event: unknown, manifest: IDesktopBrandManifest) => {
+      await syncService.applyBrandManifest(manifest);
+      await emitBootstrap();
+    },
+  );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.syncGetJobs,
+    async (_event: unknown, workspaceId?: string) =>
+      syncService.listJobs(workspaceId),
+  );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.syncGetOps,
+    async (_event: unknown, workspaceId?: string) =>
+      syncService.listOps(workspaceId),
+  );
+  ipcMain.handle(DESKTOP_IPC_CHANNELS.syncGetState, async () =>
+    syncService.getState(),
+  );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.syncQueueJob,
+    async (
+      _event: unknown,
+      type: string,
+      payload: string,
+      workspaceId?: string,
+    ) => {
+      const job = await syncService.queueJob(type, payload, workspaceId);
+      await emitBootstrap();
+      return job;
+    },
+  );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.syncQueueOp,
+    async (
+      _event: unknown,
+      entityType: string,
+      entityId: string,
+      operation: 'create' | 'delete' | 'update',
+      payload: string,
+      workspaceId?: string,
+      baseVersion?: string,
+    ) => {
+      const op = await syncService.queueOp(
+        entityType,
+        entityId,
+        operation,
+        payload,
+        workspaceId,
+        baseVersion,
+      );
+      await emitBootstrap();
+      return op;
+    },
+  );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.syncRecordAssetSync,
+    async (_event: unknown, update: IDesktopAssetSyncUpdate) => {
+      await syncService.recordAssetSync(update);
+      await emitBootstrap();
+    },
+  );
+
   // Onboarding
   ipcMain.handle(DESKTOP_IPC_CHANNELS.appGetOnboardingState, async () => ({
     completed: kvService.getValueSync(ONBOARDING_COMPLETED_KEY) === '1',
@@ -595,13 +653,15 @@ const registerIpcHandlers = (): void => {
   });
 
   // Sync cursor (durable storage in main-process KV)
-  ipcMain.handle(DESKTOP_IPC_CHANNELS.syncGetCursor, async () =>
-    kvService.getValueSync(SYNC_THREADS_CURSOR_KEY),
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.syncGetCursor,
+    async (_event: unknown, scope?: DesktopSyncCursorScope) =>
+      kvService.getValueSync(getSyncCursorKey(scope)),
   );
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.syncSetCursor,
-    async (_event: unknown, cursor: string) => {
-      kvService.setValueSync(SYNC_THREADS_CURSOR_KEY, cursor);
+    async (_event: unknown, cursor: string, scope?: DesktopSyncCursorScope) => {
+      kvService.setValueSync(getSyncCursorKey(scope), cursor);
     },
   );
 

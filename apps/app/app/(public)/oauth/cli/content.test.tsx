@@ -96,7 +96,9 @@ describe('CliAuthPage', () => {
     globalThis.fetch = originalFetch;
 
     useSearchParamsMock.mockReturnValue(
-      new URLSearchParams('desktop=1&return_to=genfeedai-desktop://auth'),
+      new URLSearchParams(
+        'desktop=1&return_to=genfeedai-desktop://auth&code_challenge=desktop-challenge&code_challenge_method=S256&state=desktop-state',
+      ),
     );
     useAuthMock.mockReturnValue({
       getToken: vi.fn(),
@@ -142,7 +144,7 @@ describe('CliAuthPage', () => {
 
   it('falls back to manual recovery when the desktop app does not open', async () => {
     globalThis.fetch = vi.fn(async () => {
-      return new Response(JSON.stringify({ key: 'gf_desktop_key' }), {
+      return new Response(JSON.stringify({ code: 'gf_desktop_code' }), {
         headers: {
           'content-type': 'application/json',
         },
@@ -154,7 +156,7 @@ describe('CliAuthPage', () => {
 
     await waitFor(() => {
       expect(redirectToCallbackMock).toHaveBeenCalledWith(
-        'genfeedai-desktop://auth?key=gf_desktop_key&userId=user-123&email=desktop%40example.com&name=Desktop+User',
+        'genfeedai-desktop://auth?code=gf_desktop_code&state=desktop-state&userId=user-123&email=desktop%40example.com&name=Desktop+User',
       );
     });
 
@@ -170,7 +172,7 @@ describe('CliAuthPage', () => {
         'Genfeed Desktop did not open automatically. Make sure the app is installed, then try again or copy the key below.',
       ),
     ).toBeInTheDocument();
-    expect(screen.getByText('gf_desktop_key')).toBeInTheDocument();
+    expect(screen.getByText('gf_desktop_code')).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Try again' }),
     ).toBeInTheDocument();

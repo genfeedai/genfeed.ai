@@ -26,6 +26,7 @@ export type AggregateDesktopOrganization = {
 
 export type DesktopOrganizationMinAggregateOutputType = {
   id: string | null
+  cloudId: string | null
   name: string | null
   slug: string | null
   createdAt: string | null
@@ -34,6 +35,7 @@ export type DesktopOrganizationMinAggregateOutputType = {
 
 export type DesktopOrganizationMaxAggregateOutputType = {
   id: string | null
+  cloudId: string | null
   name: string | null
   slug: string | null
   createdAt: string | null
@@ -42,6 +44,7 @@ export type DesktopOrganizationMaxAggregateOutputType = {
 
 export type DesktopOrganizationCountAggregateOutputType = {
   id: number
+  cloudId: number
   name: number
   slug: number
   createdAt: number
@@ -52,6 +55,7 @@ export type DesktopOrganizationCountAggregateOutputType = {
 
 export type DesktopOrganizationMinAggregateInputType = {
   id?: true
+  cloudId?: true
   name?: true
   slug?: true
   createdAt?: true
@@ -60,6 +64,7 @@ export type DesktopOrganizationMinAggregateInputType = {
 
 export type DesktopOrganizationMaxAggregateInputType = {
   id?: true
+  cloudId?: true
   name?: true
   slug?: true
   createdAt?: true
@@ -68,6 +73,7 @@ export type DesktopOrganizationMaxAggregateInputType = {
 
 export type DesktopOrganizationCountAggregateInputType = {
   id?: true
+  cloudId?: true
   name?: true
   slug?: true
   createdAt?: true
@@ -149,6 +155,7 @@ export type DesktopOrganizationGroupByArgs<ExtArgs extends runtime.Types.Extensi
 
 export type DesktopOrganizationGroupByOutputType = {
   id: string
+  cloudId: string | null
   name: string
   slug: string
   createdAt: string
@@ -178,11 +185,14 @@ export type DesktopOrganizationWhereInput = {
   OR?: Prisma.DesktopOrganizationWhereInput[]
   NOT?: Prisma.DesktopOrganizationWhereInput | Prisma.DesktopOrganizationWhereInput[]
   id?: Prisma.StringFilter<"DesktopOrganization"> | string
+  cloudId?: Prisma.StringNullableFilter<"DesktopOrganization"> | string | null
   name?: Prisma.StringFilter<"DesktopOrganization"> | string
   slug?: Prisma.StringFilter<"DesktopOrganization"> | string
   createdAt?: Prisma.StringFilter<"DesktopOrganization"> | string
   updatedAt?: Prisma.StringFilter<"DesktopOrganization"> | string
   users?: Prisma.DesktopUserListRelationFilter
+  brands?: Prisma.DesktopBrandListRelationFilter
+  assets?: Prisma.DesktopAssetListRelationFilter
   projects?: Prisma.DesktopProjectListRelationFilter
   contentItems?: Prisma.DesktopContentItemListRelationFilter
   trends?: Prisma.DesktopTrendListRelationFilter
@@ -193,11 +203,14 @@ export type DesktopOrganizationWhereInput = {
 
 export type DesktopOrganizationOrderByWithRelationInput = {
   id?: Prisma.SortOrder
+  cloudId?: Prisma.SortOrderInput | Prisma.SortOrder
   name?: Prisma.SortOrder
   slug?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   users?: Prisma.DesktopUserOrderByRelationAggregateInput
+  brands?: Prisma.DesktopBrandOrderByRelationAggregateInput
+  assets?: Prisma.DesktopAssetOrderByRelationAggregateInput
   projects?: Prisma.DesktopProjectOrderByRelationAggregateInput
   contentItems?: Prisma.DesktopContentItemOrderByRelationAggregateInput
   trends?: Prisma.DesktopTrendOrderByRelationAggregateInput
@@ -208,6 +221,7 @@ export type DesktopOrganizationOrderByWithRelationInput = {
 
 export type DesktopOrganizationWhereUniqueInput = Prisma.AtLeast<{
   id?: string
+  cloudId?: string
   slug?: string
   AND?: Prisma.DesktopOrganizationWhereInput | Prisma.DesktopOrganizationWhereInput[]
   OR?: Prisma.DesktopOrganizationWhereInput[]
@@ -216,16 +230,19 @@ export type DesktopOrganizationWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.StringFilter<"DesktopOrganization"> | string
   updatedAt?: Prisma.StringFilter<"DesktopOrganization"> | string
   users?: Prisma.DesktopUserListRelationFilter
+  brands?: Prisma.DesktopBrandListRelationFilter
+  assets?: Prisma.DesktopAssetListRelationFilter
   projects?: Prisma.DesktopProjectListRelationFilter
   contentItems?: Prisma.DesktopContentItemListRelationFilter
   trends?: Prisma.DesktopTrendListRelationFilter
   ingredients?: Prisma.DesktopIngredientListRelationFilter
   agents?: Prisma.DesktopAgentListRelationFilter
   workflows?: Prisma.DesktopWorkflowListRelationFilter
-}, "id" | "slug">
+}, "id" | "cloudId" | "slug">
 
 export type DesktopOrganizationOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
+  cloudId?: Prisma.SortOrderInput | Prisma.SortOrder
   name?: Prisma.SortOrder
   slug?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -240,6 +257,7 @@ export type DesktopOrganizationScalarWhereWithAggregatesInput = {
   OR?: Prisma.DesktopOrganizationScalarWhereWithAggregatesInput[]
   NOT?: Prisma.DesktopOrganizationScalarWhereWithAggregatesInput | Prisma.DesktopOrganizationScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"DesktopOrganization"> | string
+  cloudId?: Prisma.StringNullableWithAggregatesFilter<"DesktopOrganization"> | string | null
   name?: Prisma.StringWithAggregatesFilter<"DesktopOrganization"> | string
   slug?: Prisma.StringWithAggregatesFilter<"DesktopOrganization"> | string
   createdAt?: Prisma.StringWithAggregatesFilter<"DesktopOrganization"> | string
@@ -248,11 +266,14 @@ export type DesktopOrganizationScalarWhereWithAggregatesInput = {
 
 export type DesktopOrganizationCreateInput = {
   id: string
+  cloudId?: string | null
   name: string
   slug: string
   createdAt: string
   updatedAt: string
   users?: Prisma.DesktopUserCreateNestedManyWithoutOrganizationInput
+  brands?: Prisma.DesktopBrandCreateNestedManyWithoutOrganizationInput
+  assets?: Prisma.DesktopAssetCreateNestedManyWithoutOrganizationInput
   projects?: Prisma.DesktopProjectCreateNestedManyWithoutOrganizationInput
   contentItems?: Prisma.DesktopContentItemCreateNestedManyWithoutOrganizationInput
   trends?: Prisma.DesktopTrendCreateNestedManyWithoutOrganizationInput
@@ -263,11 +284,14 @@ export type DesktopOrganizationCreateInput = {
 
 export type DesktopOrganizationUncheckedCreateInput = {
   id: string
+  cloudId?: string | null
   name: string
   slug: string
   createdAt: string
   updatedAt: string
   users?: Prisma.DesktopUserUncheckedCreateNestedManyWithoutOrganizationInput
+  brands?: Prisma.DesktopBrandUncheckedCreateNestedManyWithoutOrganizationInput
+  assets?: Prisma.DesktopAssetUncheckedCreateNestedManyWithoutOrganizationInput
   projects?: Prisma.DesktopProjectUncheckedCreateNestedManyWithoutOrganizationInput
   contentItems?: Prisma.DesktopContentItemUncheckedCreateNestedManyWithoutOrganizationInput
   trends?: Prisma.DesktopTrendUncheckedCreateNestedManyWithoutOrganizationInput
@@ -278,11 +302,14 @@ export type DesktopOrganizationUncheckedCreateInput = {
 
 export type DesktopOrganizationUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  cloudId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.StringFieldUpdateOperationsInput | string
   updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
   users?: Prisma.DesktopUserUpdateManyWithoutOrganizationNestedInput
+  brands?: Prisma.DesktopBrandUpdateManyWithoutOrganizationNestedInput
+  assets?: Prisma.DesktopAssetUpdateManyWithoutOrganizationNestedInput
   projects?: Prisma.DesktopProjectUpdateManyWithoutOrganizationNestedInput
   contentItems?: Prisma.DesktopContentItemUpdateManyWithoutOrganizationNestedInput
   trends?: Prisma.DesktopTrendUpdateManyWithoutOrganizationNestedInput
@@ -293,11 +320,14 @@ export type DesktopOrganizationUpdateInput = {
 
 export type DesktopOrganizationUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  cloudId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.StringFieldUpdateOperationsInput | string
   updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
   users?: Prisma.DesktopUserUncheckedUpdateManyWithoutOrganizationNestedInput
+  brands?: Prisma.DesktopBrandUncheckedUpdateManyWithoutOrganizationNestedInput
+  assets?: Prisma.DesktopAssetUncheckedUpdateManyWithoutOrganizationNestedInput
   projects?: Prisma.DesktopProjectUncheckedUpdateManyWithoutOrganizationNestedInput
   contentItems?: Prisma.DesktopContentItemUncheckedUpdateManyWithoutOrganizationNestedInput
   trends?: Prisma.DesktopTrendUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -308,6 +338,7 @@ export type DesktopOrganizationUncheckedUpdateInput = {
 
 export type DesktopOrganizationCreateManyInput = {
   id: string
+  cloudId?: string | null
   name: string
   slug: string
   createdAt: string
@@ -316,6 +347,7 @@ export type DesktopOrganizationCreateManyInput = {
 
 export type DesktopOrganizationUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  cloudId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.StringFieldUpdateOperationsInput | string
@@ -324,6 +356,7 @@ export type DesktopOrganizationUpdateManyMutationInput = {
 
 export type DesktopOrganizationUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  cloudId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.StringFieldUpdateOperationsInput | string
@@ -332,6 +365,7 @@ export type DesktopOrganizationUncheckedUpdateManyInput = {
 
 export type DesktopOrganizationCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  cloudId?: Prisma.SortOrder
   name?: Prisma.SortOrder
   slug?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -340,6 +374,7 @@ export type DesktopOrganizationCountOrderByAggregateInput = {
 
 export type DesktopOrganizationMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  cloudId?: Prisma.SortOrder
   name?: Prisma.SortOrder
   slug?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -348,6 +383,7 @@ export type DesktopOrganizationMaxOrderByAggregateInput = {
 
 export type DesktopOrganizationMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  cloudId?: Prisma.SortOrder
   name?: Prisma.SortOrder
   slug?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -357,6 +393,20 @@ export type DesktopOrganizationMinOrderByAggregateInput = {
 export type DesktopOrganizationScalarRelationFilter = {
   is?: Prisma.DesktopOrganizationWhereInput
   isNot?: Prisma.DesktopOrganizationWhereInput
+}
+
+export type DesktopOrganizationCreateNestedOneWithoutBrandsInput = {
+  create?: Prisma.XOR<Prisma.DesktopOrganizationCreateWithoutBrandsInput, Prisma.DesktopOrganizationUncheckedCreateWithoutBrandsInput>
+  connectOrCreate?: Prisma.DesktopOrganizationCreateOrConnectWithoutBrandsInput
+  connect?: Prisma.DesktopOrganizationWhereUniqueInput
+}
+
+export type DesktopOrganizationUpdateOneRequiredWithoutBrandsNestedInput = {
+  create?: Prisma.XOR<Prisma.DesktopOrganizationCreateWithoutBrandsInput, Prisma.DesktopOrganizationUncheckedCreateWithoutBrandsInput>
+  connectOrCreate?: Prisma.DesktopOrganizationCreateOrConnectWithoutBrandsInput
+  upsert?: Prisma.DesktopOrganizationUpsertWithoutBrandsInput
+  connect?: Prisma.DesktopOrganizationWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.DesktopOrganizationUpdateToOneWithWhereWithoutBrandsInput, Prisma.DesktopOrganizationUpdateWithoutBrandsInput>, Prisma.DesktopOrganizationUncheckedUpdateWithoutBrandsInput>
 }
 
 export type DesktopOrganizationCreateNestedOneWithoutUsersInput = {
@@ -399,6 +449,20 @@ export type DesktopOrganizationUpdateOneRequiredWithoutContentItemsNestedInput =
   upsert?: Prisma.DesktopOrganizationUpsertWithoutContentItemsInput
   connect?: Prisma.DesktopOrganizationWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.DesktopOrganizationUpdateToOneWithWhereWithoutContentItemsInput, Prisma.DesktopOrganizationUpdateWithoutContentItemsInput>, Prisma.DesktopOrganizationUncheckedUpdateWithoutContentItemsInput>
+}
+
+export type DesktopOrganizationCreateNestedOneWithoutAssetsInput = {
+  create?: Prisma.XOR<Prisma.DesktopOrganizationCreateWithoutAssetsInput, Prisma.DesktopOrganizationUncheckedCreateWithoutAssetsInput>
+  connectOrCreate?: Prisma.DesktopOrganizationCreateOrConnectWithoutAssetsInput
+  connect?: Prisma.DesktopOrganizationWhereUniqueInput
+}
+
+export type DesktopOrganizationUpdateOneRequiredWithoutAssetsNestedInput = {
+  create?: Prisma.XOR<Prisma.DesktopOrganizationCreateWithoutAssetsInput, Prisma.DesktopOrganizationUncheckedCreateWithoutAssetsInput>
+  connectOrCreate?: Prisma.DesktopOrganizationCreateOrConnectWithoutAssetsInput
+  upsert?: Prisma.DesktopOrganizationUpsertWithoutAssetsInput
+  connect?: Prisma.DesktopOrganizationWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.DesktopOrganizationUpdateToOneWithWhereWithoutAssetsInput, Prisma.DesktopOrganizationUpdateWithoutAssetsInput>, Prisma.DesktopOrganizationUncheckedUpdateWithoutAssetsInput>
 }
 
 export type DesktopOrganizationCreateNestedOneWithoutTrendsInput = {
@@ -457,12 +521,99 @@ export type DesktopOrganizationUpdateOneRequiredWithoutWorkflowsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.DesktopOrganizationUpdateToOneWithWhereWithoutWorkflowsInput, Prisma.DesktopOrganizationUpdateWithoutWorkflowsInput>, Prisma.DesktopOrganizationUncheckedUpdateWithoutWorkflowsInput>
 }
 
-export type DesktopOrganizationCreateWithoutUsersInput = {
+export type DesktopOrganizationCreateWithoutBrandsInput = {
   id: string
+  cloudId?: string | null
   name: string
   slug: string
   createdAt: string
   updatedAt: string
+  users?: Prisma.DesktopUserCreateNestedManyWithoutOrganizationInput
+  assets?: Prisma.DesktopAssetCreateNestedManyWithoutOrganizationInput
+  projects?: Prisma.DesktopProjectCreateNestedManyWithoutOrganizationInput
+  contentItems?: Prisma.DesktopContentItemCreateNestedManyWithoutOrganizationInput
+  trends?: Prisma.DesktopTrendCreateNestedManyWithoutOrganizationInput
+  ingredients?: Prisma.DesktopIngredientCreateNestedManyWithoutOrganizationInput
+  agents?: Prisma.DesktopAgentCreateNestedManyWithoutOrganizationInput
+  workflows?: Prisma.DesktopWorkflowCreateNestedManyWithoutOrganizationInput
+}
+
+export type DesktopOrganizationUncheckedCreateWithoutBrandsInput = {
+  id: string
+  cloudId?: string | null
+  name: string
+  slug: string
+  createdAt: string
+  updatedAt: string
+  users?: Prisma.DesktopUserUncheckedCreateNestedManyWithoutOrganizationInput
+  assets?: Prisma.DesktopAssetUncheckedCreateNestedManyWithoutOrganizationInput
+  projects?: Prisma.DesktopProjectUncheckedCreateNestedManyWithoutOrganizationInput
+  contentItems?: Prisma.DesktopContentItemUncheckedCreateNestedManyWithoutOrganizationInput
+  trends?: Prisma.DesktopTrendUncheckedCreateNestedManyWithoutOrganizationInput
+  ingredients?: Prisma.DesktopIngredientUncheckedCreateNestedManyWithoutOrganizationInput
+  agents?: Prisma.DesktopAgentUncheckedCreateNestedManyWithoutOrganizationInput
+  workflows?: Prisma.DesktopWorkflowUncheckedCreateNestedManyWithoutOrganizationInput
+}
+
+export type DesktopOrganizationCreateOrConnectWithoutBrandsInput = {
+  where: Prisma.DesktopOrganizationWhereUniqueInput
+  create: Prisma.XOR<Prisma.DesktopOrganizationCreateWithoutBrandsInput, Prisma.DesktopOrganizationUncheckedCreateWithoutBrandsInput>
+}
+
+export type DesktopOrganizationUpsertWithoutBrandsInput = {
+  update: Prisma.XOR<Prisma.DesktopOrganizationUpdateWithoutBrandsInput, Prisma.DesktopOrganizationUncheckedUpdateWithoutBrandsInput>
+  create: Prisma.XOR<Prisma.DesktopOrganizationCreateWithoutBrandsInput, Prisma.DesktopOrganizationUncheckedCreateWithoutBrandsInput>
+  where?: Prisma.DesktopOrganizationWhereInput
+}
+
+export type DesktopOrganizationUpdateToOneWithWhereWithoutBrandsInput = {
+  where?: Prisma.DesktopOrganizationWhereInput
+  data: Prisma.XOR<Prisma.DesktopOrganizationUpdateWithoutBrandsInput, Prisma.DesktopOrganizationUncheckedUpdateWithoutBrandsInput>
+}
+
+export type DesktopOrganizationUpdateWithoutBrandsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  cloudId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.StringFieldUpdateOperationsInput | string
+  updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
+  users?: Prisma.DesktopUserUpdateManyWithoutOrganizationNestedInput
+  assets?: Prisma.DesktopAssetUpdateManyWithoutOrganizationNestedInput
+  projects?: Prisma.DesktopProjectUpdateManyWithoutOrganizationNestedInput
+  contentItems?: Prisma.DesktopContentItemUpdateManyWithoutOrganizationNestedInput
+  trends?: Prisma.DesktopTrendUpdateManyWithoutOrganizationNestedInput
+  ingredients?: Prisma.DesktopIngredientUpdateManyWithoutOrganizationNestedInput
+  agents?: Prisma.DesktopAgentUpdateManyWithoutOrganizationNestedInput
+  workflows?: Prisma.DesktopWorkflowUpdateManyWithoutOrganizationNestedInput
+}
+
+export type DesktopOrganizationUncheckedUpdateWithoutBrandsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  cloudId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.StringFieldUpdateOperationsInput | string
+  updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
+  users?: Prisma.DesktopUserUncheckedUpdateManyWithoutOrganizationNestedInput
+  assets?: Prisma.DesktopAssetUncheckedUpdateManyWithoutOrganizationNestedInput
+  projects?: Prisma.DesktopProjectUncheckedUpdateManyWithoutOrganizationNestedInput
+  contentItems?: Prisma.DesktopContentItemUncheckedUpdateManyWithoutOrganizationNestedInput
+  trends?: Prisma.DesktopTrendUncheckedUpdateManyWithoutOrganizationNestedInput
+  ingredients?: Prisma.DesktopIngredientUncheckedUpdateManyWithoutOrganizationNestedInput
+  agents?: Prisma.DesktopAgentUncheckedUpdateManyWithoutOrganizationNestedInput
+  workflows?: Prisma.DesktopWorkflowUncheckedUpdateManyWithoutOrganizationNestedInput
+}
+
+export type DesktopOrganizationCreateWithoutUsersInput = {
+  id: string
+  cloudId?: string | null
+  name: string
+  slug: string
+  createdAt: string
+  updatedAt: string
+  brands?: Prisma.DesktopBrandCreateNestedManyWithoutOrganizationInput
+  assets?: Prisma.DesktopAssetCreateNestedManyWithoutOrganizationInput
   projects?: Prisma.DesktopProjectCreateNestedManyWithoutOrganizationInput
   contentItems?: Prisma.DesktopContentItemCreateNestedManyWithoutOrganizationInput
   trends?: Prisma.DesktopTrendCreateNestedManyWithoutOrganizationInput
@@ -473,10 +624,13 @@ export type DesktopOrganizationCreateWithoutUsersInput = {
 
 export type DesktopOrganizationUncheckedCreateWithoutUsersInput = {
   id: string
+  cloudId?: string | null
   name: string
   slug: string
   createdAt: string
   updatedAt: string
+  brands?: Prisma.DesktopBrandUncheckedCreateNestedManyWithoutOrganizationInput
+  assets?: Prisma.DesktopAssetUncheckedCreateNestedManyWithoutOrganizationInput
   projects?: Prisma.DesktopProjectUncheckedCreateNestedManyWithoutOrganizationInput
   contentItems?: Prisma.DesktopContentItemUncheckedCreateNestedManyWithoutOrganizationInput
   trends?: Prisma.DesktopTrendUncheckedCreateNestedManyWithoutOrganizationInput
@@ -503,10 +657,13 @@ export type DesktopOrganizationUpdateToOneWithWhereWithoutUsersInput = {
 
 export type DesktopOrganizationUpdateWithoutUsersInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  cloudId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.StringFieldUpdateOperationsInput | string
   updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
+  brands?: Prisma.DesktopBrandUpdateManyWithoutOrganizationNestedInput
+  assets?: Prisma.DesktopAssetUpdateManyWithoutOrganizationNestedInput
   projects?: Prisma.DesktopProjectUpdateManyWithoutOrganizationNestedInput
   contentItems?: Prisma.DesktopContentItemUpdateManyWithoutOrganizationNestedInput
   trends?: Prisma.DesktopTrendUpdateManyWithoutOrganizationNestedInput
@@ -517,10 +674,13 @@ export type DesktopOrganizationUpdateWithoutUsersInput = {
 
 export type DesktopOrganizationUncheckedUpdateWithoutUsersInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  cloudId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.StringFieldUpdateOperationsInput | string
   updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
+  brands?: Prisma.DesktopBrandUncheckedUpdateManyWithoutOrganizationNestedInput
+  assets?: Prisma.DesktopAssetUncheckedUpdateManyWithoutOrganizationNestedInput
   projects?: Prisma.DesktopProjectUncheckedUpdateManyWithoutOrganizationNestedInput
   contentItems?: Prisma.DesktopContentItemUncheckedUpdateManyWithoutOrganizationNestedInput
   trends?: Prisma.DesktopTrendUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -531,11 +691,14 @@ export type DesktopOrganizationUncheckedUpdateWithoutUsersInput = {
 
 export type DesktopOrganizationCreateWithoutProjectsInput = {
   id: string
+  cloudId?: string | null
   name: string
   slug: string
   createdAt: string
   updatedAt: string
   users?: Prisma.DesktopUserCreateNestedManyWithoutOrganizationInput
+  brands?: Prisma.DesktopBrandCreateNestedManyWithoutOrganizationInput
+  assets?: Prisma.DesktopAssetCreateNestedManyWithoutOrganizationInput
   contentItems?: Prisma.DesktopContentItemCreateNestedManyWithoutOrganizationInput
   trends?: Prisma.DesktopTrendCreateNestedManyWithoutOrganizationInput
   ingredients?: Prisma.DesktopIngredientCreateNestedManyWithoutOrganizationInput
@@ -545,11 +708,14 @@ export type DesktopOrganizationCreateWithoutProjectsInput = {
 
 export type DesktopOrganizationUncheckedCreateWithoutProjectsInput = {
   id: string
+  cloudId?: string | null
   name: string
   slug: string
   createdAt: string
   updatedAt: string
   users?: Prisma.DesktopUserUncheckedCreateNestedManyWithoutOrganizationInput
+  brands?: Prisma.DesktopBrandUncheckedCreateNestedManyWithoutOrganizationInput
+  assets?: Prisma.DesktopAssetUncheckedCreateNestedManyWithoutOrganizationInput
   contentItems?: Prisma.DesktopContentItemUncheckedCreateNestedManyWithoutOrganizationInput
   trends?: Prisma.DesktopTrendUncheckedCreateNestedManyWithoutOrganizationInput
   ingredients?: Prisma.DesktopIngredientUncheckedCreateNestedManyWithoutOrganizationInput
@@ -575,11 +741,14 @@ export type DesktopOrganizationUpdateToOneWithWhereWithoutProjectsInput = {
 
 export type DesktopOrganizationUpdateWithoutProjectsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  cloudId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.StringFieldUpdateOperationsInput | string
   updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
   users?: Prisma.DesktopUserUpdateManyWithoutOrganizationNestedInput
+  brands?: Prisma.DesktopBrandUpdateManyWithoutOrganizationNestedInput
+  assets?: Prisma.DesktopAssetUpdateManyWithoutOrganizationNestedInput
   contentItems?: Prisma.DesktopContentItemUpdateManyWithoutOrganizationNestedInput
   trends?: Prisma.DesktopTrendUpdateManyWithoutOrganizationNestedInput
   ingredients?: Prisma.DesktopIngredientUpdateManyWithoutOrganizationNestedInput
@@ -589,11 +758,14 @@ export type DesktopOrganizationUpdateWithoutProjectsInput = {
 
 export type DesktopOrganizationUncheckedUpdateWithoutProjectsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  cloudId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.StringFieldUpdateOperationsInput | string
   updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
   users?: Prisma.DesktopUserUncheckedUpdateManyWithoutOrganizationNestedInput
+  brands?: Prisma.DesktopBrandUncheckedUpdateManyWithoutOrganizationNestedInput
+  assets?: Prisma.DesktopAssetUncheckedUpdateManyWithoutOrganizationNestedInput
   contentItems?: Prisma.DesktopContentItemUncheckedUpdateManyWithoutOrganizationNestedInput
   trends?: Prisma.DesktopTrendUncheckedUpdateManyWithoutOrganizationNestedInput
   ingredients?: Prisma.DesktopIngredientUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -603,11 +775,14 @@ export type DesktopOrganizationUncheckedUpdateWithoutProjectsInput = {
 
 export type DesktopOrganizationCreateWithoutContentItemsInput = {
   id: string
+  cloudId?: string | null
   name: string
   slug: string
   createdAt: string
   updatedAt: string
   users?: Prisma.DesktopUserCreateNestedManyWithoutOrganizationInput
+  brands?: Prisma.DesktopBrandCreateNestedManyWithoutOrganizationInput
+  assets?: Prisma.DesktopAssetCreateNestedManyWithoutOrganizationInput
   projects?: Prisma.DesktopProjectCreateNestedManyWithoutOrganizationInput
   trends?: Prisma.DesktopTrendCreateNestedManyWithoutOrganizationInput
   ingredients?: Prisma.DesktopIngredientCreateNestedManyWithoutOrganizationInput
@@ -617,11 +792,14 @@ export type DesktopOrganizationCreateWithoutContentItemsInput = {
 
 export type DesktopOrganizationUncheckedCreateWithoutContentItemsInput = {
   id: string
+  cloudId?: string | null
   name: string
   slug: string
   createdAt: string
   updatedAt: string
   users?: Prisma.DesktopUserUncheckedCreateNestedManyWithoutOrganizationInput
+  brands?: Prisma.DesktopBrandUncheckedCreateNestedManyWithoutOrganizationInput
+  assets?: Prisma.DesktopAssetUncheckedCreateNestedManyWithoutOrganizationInput
   projects?: Prisma.DesktopProjectUncheckedCreateNestedManyWithoutOrganizationInput
   trends?: Prisma.DesktopTrendUncheckedCreateNestedManyWithoutOrganizationInput
   ingredients?: Prisma.DesktopIngredientUncheckedCreateNestedManyWithoutOrganizationInput
@@ -647,11 +825,14 @@ export type DesktopOrganizationUpdateToOneWithWhereWithoutContentItemsInput = {
 
 export type DesktopOrganizationUpdateWithoutContentItemsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  cloudId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.StringFieldUpdateOperationsInput | string
   updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
   users?: Prisma.DesktopUserUpdateManyWithoutOrganizationNestedInput
+  brands?: Prisma.DesktopBrandUpdateManyWithoutOrganizationNestedInput
+  assets?: Prisma.DesktopAssetUpdateManyWithoutOrganizationNestedInput
   projects?: Prisma.DesktopProjectUpdateManyWithoutOrganizationNestedInput
   trends?: Prisma.DesktopTrendUpdateManyWithoutOrganizationNestedInput
   ingredients?: Prisma.DesktopIngredientUpdateManyWithoutOrganizationNestedInput
@@ -661,12 +842,99 @@ export type DesktopOrganizationUpdateWithoutContentItemsInput = {
 
 export type DesktopOrganizationUncheckedUpdateWithoutContentItemsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  cloudId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.StringFieldUpdateOperationsInput | string
   updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
   users?: Prisma.DesktopUserUncheckedUpdateManyWithoutOrganizationNestedInput
+  brands?: Prisma.DesktopBrandUncheckedUpdateManyWithoutOrganizationNestedInput
+  assets?: Prisma.DesktopAssetUncheckedUpdateManyWithoutOrganizationNestedInput
   projects?: Prisma.DesktopProjectUncheckedUpdateManyWithoutOrganizationNestedInput
+  trends?: Prisma.DesktopTrendUncheckedUpdateManyWithoutOrganizationNestedInput
+  ingredients?: Prisma.DesktopIngredientUncheckedUpdateManyWithoutOrganizationNestedInput
+  agents?: Prisma.DesktopAgentUncheckedUpdateManyWithoutOrganizationNestedInput
+  workflows?: Prisma.DesktopWorkflowUncheckedUpdateManyWithoutOrganizationNestedInput
+}
+
+export type DesktopOrganizationCreateWithoutAssetsInput = {
+  id: string
+  cloudId?: string | null
+  name: string
+  slug: string
+  createdAt: string
+  updatedAt: string
+  users?: Prisma.DesktopUserCreateNestedManyWithoutOrganizationInput
+  brands?: Prisma.DesktopBrandCreateNestedManyWithoutOrganizationInput
+  projects?: Prisma.DesktopProjectCreateNestedManyWithoutOrganizationInput
+  contentItems?: Prisma.DesktopContentItemCreateNestedManyWithoutOrganizationInput
+  trends?: Prisma.DesktopTrendCreateNestedManyWithoutOrganizationInput
+  ingredients?: Prisma.DesktopIngredientCreateNestedManyWithoutOrganizationInput
+  agents?: Prisma.DesktopAgentCreateNestedManyWithoutOrganizationInput
+  workflows?: Prisma.DesktopWorkflowCreateNestedManyWithoutOrganizationInput
+}
+
+export type DesktopOrganizationUncheckedCreateWithoutAssetsInput = {
+  id: string
+  cloudId?: string | null
+  name: string
+  slug: string
+  createdAt: string
+  updatedAt: string
+  users?: Prisma.DesktopUserUncheckedCreateNestedManyWithoutOrganizationInput
+  brands?: Prisma.DesktopBrandUncheckedCreateNestedManyWithoutOrganizationInput
+  projects?: Prisma.DesktopProjectUncheckedCreateNestedManyWithoutOrganizationInput
+  contentItems?: Prisma.DesktopContentItemUncheckedCreateNestedManyWithoutOrganizationInput
+  trends?: Prisma.DesktopTrendUncheckedCreateNestedManyWithoutOrganizationInput
+  ingredients?: Prisma.DesktopIngredientUncheckedCreateNestedManyWithoutOrganizationInput
+  agents?: Prisma.DesktopAgentUncheckedCreateNestedManyWithoutOrganizationInput
+  workflows?: Prisma.DesktopWorkflowUncheckedCreateNestedManyWithoutOrganizationInput
+}
+
+export type DesktopOrganizationCreateOrConnectWithoutAssetsInput = {
+  where: Prisma.DesktopOrganizationWhereUniqueInput
+  create: Prisma.XOR<Prisma.DesktopOrganizationCreateWithoutAssetsInput, Prisma.DesktopOrganizationUncheckedCreateWithoutAssetsInput>
+}
+
+export type DesktopOrganizationUpsertWithoutAssetsInput = {
+  update: Prisma.XOR<Prisma.DesktopOrganizationUpdateWithoutAssetsInput, Prisma.DesktopOrganizationUncheckedUpdateWithoutAssetsInput>
+  create: Prisma.XOR<Prisma.DesktopOrganizationCreateWithoutAssetsInput, Prisma.DesktopOrganizationUncheckedCreateWithoutAssetsInput>
+  where?: Prisma.DesktopOrganizationWhereInput
+}
+
+export type DesktopOrganizationUpdateToOneWithWhereWithoutAssetsInput = {
+  where?: Prisma.DesktopOrganizationWhereInput
+  data: Prisma.XOR<Prisma.DesktopOrganizationUpdateWithoutAssetsInput, Prisma.DesktopOrganizationUncheckedUpdateWithoutAssetsInput>
+}
+
+export type DesktopOrganizationUpdateWithoutAssetsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  cloudId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.StringFieldUpdateOperationsInput | string
+  updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
+  users?: Prisma.DesktopUserUpdateManyWithoutOrganizationNestedInput
+  brands?: Prisma.DesktopBrandUpdateManyWithoutOrganizationNestedInput
+  projects?: Prisma.DesktopProjectUpdateManyWithoutOrganizationNestedInput
+  contentItems?: Prisma.DesktopContentItemUpdateManyWithoutOrganizationNestedInput
+  trends?: Prisma.DesktopTrendUpdateManyWithoutOrganizationNestedInput
+  ingredients?: Prisma.DesktopIngredientUpdateManyWithoutOrganizationNestedInput
+  agents?: Prisma.DesktopAgentUpdateManyWithoutOrganizationNestedInput
+  workflows?: Prisma.DesktopWorkflowUpdateManyWithoutOrganizationNestedInput
+}
+
+export type DesktopOrganizationUncheckedUpdateWithoutAssetsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  cloudId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.StringFieldUpdateOperationsInput | string
+  updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
+  users?: Prisma.DesktopUserUncheckedUpdateManyWithoutOrganizationNestedInput
+  brands?: Prisma.DesktopBrandUncheckedUpdateManyWithoutOrganizationNestedInput
+  projects?: Prisma.DesktopProjectUncheckedUpdateManyWithoutOrganizationNestedInput
+  contentItems?: Prisma.DesktopContentItemUncheckedUpdateManyWithoutOrganizationNestedInput
   trends?: Prisma.DesktopTrendUncheckedUpdateManyWithoutOrganizationNestedInput
   ingredients?: Prisma.DesktopIngredientUncheckedUpdateManyWithoutOrganizationNestedInput
   agents?: Prisma.DesktopAgentUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -675,11 +943,14 @@ export type DesktopOrganizationUncheckedUpdateWithoutContentItemsInput = {
 
 export type DesktopOrganizationCreateWithoutTrendsInput = {
   id: string
+  cloudId?: string | null
   name: string
   slug: string
   createdAt: string
   updatedAt: string
   users?: Prisma.DesktopUserCreateNestedManyWithoutOrganizationInput
+  brands?: Prisma.DesktopBrandCreateNestedManyWithoutOrganizationInput
+  assets?: Prisma.DesktopAssetCreateNestedManyWithoutOrganizationInput
   projects?: Prisma.DesktopProjectCreateNestedManyWithoutOrganizationInput
   contentItems?: Prisma.DesktopContentItemCreateNestedManyWithoutOrganizationInput
   ingredients?: Prisma.DesktopIngredientCreateNestedManyWithoutOrganizationInput
@@ -689,11 +960,14 @@ export type DesktopOrganizationCreateWithoutTrendsInput = {
 
 export type DesktopOrganizationUncheckedCreateWithoutTrendsInput = {
   id: string
+  cloudId?: string | null
   name: string
   slug: string
   createdAt: string
   updatedAt: string
   users?: Prisma.DesktopUserUncheckedCreateNestedManyWithoutOrganizationInput
+  brands?: Prisma.DesktopBrandUncheckedCreateNestedManyWithoutOrganizationInput
+  assets?: Prisma.DesktopAssetUncheckedCreateNestedManyWithoutOrganizationInput
   projects?: Prisma.DesktopProjectUncheckedCreateNestedManyWithoutOrganizationInput
   contentItems?: Prisma.DesktopContentItemUncheckedCreateNestedManyWithoutOrganizationInput
   ingredients?: Prisma.DesktopIngredientUncheckedCreateNestedManyWithoutOrganizationInput
@@ -719,11 +993,14 @@ export type DesktopOrganizationUpdateToOneWithWhereWithoutTrendsInput = {
 
 export type DesktopOrganizationUpdateWithoutTrendsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  cloudId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.StringFieldUpdateOperationsInput | string
   updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
   users?: Prisma.DesktopUserUpdateManyWithoutOrganizationNestedInput
+  brands?: Prisma.DesktopBrandUpdateManyWithoutOrganizationNestedInput
+  assets?: Prisma.DesktopAssetUpdateManyWithoutOrganizationNestedInput
   projects?: Prisma.DesktopProjectUpdateManyWithoutOrganizationNestedInput
   contentItems?: Prisma.DesktopContentItemUpdateManyWithoutOrganizationNestedInput
   ingredients?: Prisma.DesktopIngredientUpdateManyWithoutOrganizationNestedInput
@@ -733,11 +1010,14 @@ export type DesktopOrganizationUpdateWithoutTrendsInput = {
 
 export type DesktopOrganizationUncheckedUpdateWithoutTrendsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  cloudId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.StringFieldUpdateOperationsInput | string
   updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
   users?: Prisma.DesktopUserUncheckedUpdateManyWithoutOrganizationNestedInput
+  brands?: Prisma.DesktopBrandUncheckedUpdateManyWithoutOrganizationNestedInput
+  assets?: Prisma.DesktopAssetUncheckedUpdateManyWithoutOrganizationNestedInput
   projects?: Prisma.DesktopProjectUncheckedUpdateManyWithoutOrganizationNestedInput
   contentItems?: Prisma.DesktopContentItemUncheckedUpdateManyWithoutOrganizationNestedInput
   ingredients?: Prisma.DesktopIngredientUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -747,11 +1027,14 @@ export type DesktopOrganizationUncheckedUpdateWithoutTrendsInput = {
 
 export type DesktopOrganizationCreateWithoutIngredientsInput = {
   id: string
+  cloudId?: string | null
   name: string
   slug: string
   createdAt: string
   updatedAt: string
   users?: Prisma.DesktopUserCreateNestedManyWithoutOrganizationInput
+  brands?: Prisma.DesktopBrandCreateNestedManyWithoutOrganizationInput
+  assets?: Prisma.DesktopAssetCreateNestedManyWithoutOrganizationInput
   projects?: Prisma.DesktopProjectCreateNestedManyWithoutOrganizationInput
   contentItems?: Prisma.DesktopContentItemCreateNestedManyWithoutOrganizationInput
   trends?: Prisma.DesktopTrendCreateNestedManyWithoutOrganizationInput
@@ -761,11 +1044,14 @@ export type DesktopOrganizationCreateWithoutIngredientsInput = {
 
 export type DesktopOrganizationUncheckedCreateWithoutIngredientsInput = {
   id: string
+  cloudId?: string | null
   name: string
   slug: string
   createdAt: string
   updatedAt: string
   users?: Prisma.DesktopUserUncheckedCreateNestedManyWithoutOrganizationInput
+  brands?: Prisma.DesktopBrandUncheckedCreateNestedManyWithoutOrganizationInput
+  assets?: Prisma.DesktopAssetUncheckedCreateNestedManyWithoutOrganizationInput
   projects?: Prisma.DesktopProjectUncheckedCreateNestedManyWithoutOrganizationInput
   contentItems?: Prisma.DesktopContentItemUncheckedCreateNestedManyWithoutOrganizationInput
   trends?: Prisma.DesktopTrendUncheckedCreateNestedManyWithoutOrganizationInput
@@ -791,11 +1077,14 @@ export type DesktopOrganizationUpdateToOneWithWhereWithoutIngredientsInput = {
 
 export type DesktopOrganizationUpdateWithoutIngredientsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  cloudId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.StringFieldUpdateOperationsInput | string
   updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
   users?: Prisma.DesktopUserUpdateManyWithoutOrganizationNestedInput
+  brands?: Prisma.DesktopBrandUpdateManyWithoutOrganizationNestedInput
+  assets?: Prisma.DesktopAssetUpdateManyWithoutOrganizationNestedInput
   projects?: Prisma.DesktopProjectUpdateManyWithoutOrganizationNestedInput
   contentItems?: Prisma.DesktopContentItemUpdateManyWithoutOrganizationNestedInput
   trends?: Prisma.DesktopTrendUpdateManyWithoutOrganizationNestedInput
@@ -805,11 +1094,14 @@ export type DesktopOrganizationUpdateWithoutIngredientsInput = {
 
 export type DesktopOrganizationUncheckedUpdateWithoutIngredientsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  cloudId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.StringFieldUpdateOperationsInput | string
   updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
   users?: Prisma.DesktopUserUncheckedUpdateManyWithoutOrganizationNestedInput
+  brands?: Prisma.DesktopBrandUncheckedUpdateManyWithoutOrganizationNestedInput
+  assets?: Prisma.DesktopAssetUncheckedUpdateManyWithoutOrganizationNestedInput
   projects?: Prisma.DesktopProjectUncheckedUpdateManyWithoutOrganizationNestedInput
   contentItems?: Prisma.DesktopContentItemUncheckedUpdateManyWithoutOrganizationNestedInput
   trends?: Prisma.DesktopTrendUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -819,11 +1111,14 @@ export type DesktopOrganizationUncheckedUpdateWithoutIngredientsInput = {
 
 export type DesktopOrganizationCreateWithoutAgentsInput = {
   id: string
+  cloudId?: string | null
   name: string
   slug: string
   createdAt: string
   updatedAt: string
   users?: Prisma.DesktopUserCreateNestedManyWithoutOrganizationInput
+  brands?: Prisma.DesktopBrandCreateNestedManyWithoutOrganizationInput
+  assets?: Prisma.DesktopAssetCreateNestedManyWithoutOrganizationInput
   projects?: Prisma.DesktopProjectCreateNestedManyWithoutOrganizationInput
   contentItems?: Prisma.DesktopContentItemCreateNestedManyWithoutOrganizationInput
   trends?: Prisma.DesktopTrendCreateNestedManyWithoutOrganizationInput
@@ -833,11 +1128,14 @@ export type DesktopOrganizationCreateWithoutAgentsInput = {
 
 export type DesktopOrganizationUncheckedCreateWithoutAgentsInput = {
   id: string
+  cloudId?: string | null
   name: string
   slug: string
   createdAt: string
   updatedAt: string
   users?: Prisma.DesktopUserUncheckedCreateNestedManyWithoutOrganizationInput
+  brands?: Prisma.DesktopBrandUncheckedCreateNestedManyWithoutOrganizationInput
+  assets?: Prisma.DesktopAssetUncheckedCreateNestedManyWithoutOrganizationInput
   projects?: Prisma.DesktopProjectUncheckedCreateNestedManyWithoutOrganizationInput
   contentItems?: Prisma.DesktopContentItemUncheckedCreateNestedManyWithoutOrganizationInput
   trends?: Prisma.DesktopTrendUncheckedCreateNestedManyWithoutOrganizationInput
@@ -863,11 +1161,14 @@ export type DesktopOrganizationUpdateToOneWithWhereWithoutAgentsInput = {
 
 export type DesktopOrganizationUpdateWithoutAgentsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  cloudId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.StringFieldUpdateOperationsInput | string
   updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
   users?: Prisma.DesktopUserUpdateManyWithoutOrganizationNestedInput
+  brands?: Prisma.DesktopBrandUpdateManyWithoutOrganizationNestedInput
+  assets?: Prisma.DesktopAssetUpdateManyWithoutOrganizationNestedInput
   projects?: Prisma.DesktopProjectUpdateManyWithoutOrganizationNestedInput
   contentItems?: Prisma.DesktopContentItemUpdateManyWithoutOrganizationNestedInput
   trends?: Prisma.DesktopTrendUpdateManyWithoutOrganizationNestedInput
@@ -877,11 +1178,14 @@ export type DesktopOrganizationUpdateWithoutAgentsInput = {
 
 export type DesktopOrganizationUncheckedUpdateWithoutAgentsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  cloudId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.StringFieldUpdateOperationsInput | string
   updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
   users?: Prisma.DesktopUserUncheckedUpdateManyWithoutOrganizationNestedInput
+  brands?: Prisma.DesktopBrandUncheckedUpdateManyWithoutOrganizationNestedInput
+  assets?: Prisma.DesktopAssetUncheckedUpdateManyWithoutOrganizationNestedInput
   projects?: Prisma.DesktopProjectUncheckedUpdateManyWithoutOrganizationNestedInput
   contentItems?: Prisma.DesktopContentItemUncheckedUpdateManyWithoutOrganizationNestedInput
   trends?: Prisma.DesktopTrendUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -891,11 +1195,14 @@ export type DesktopOrganizationUncheckedUpdateWithoutAgentsInput = {
 
 export type DesktopOrganizationCreateWithoutWorkflowsInput = {
   id: string
+  cloudId?: string | null
   name: string
   slug: string
   createdAt: string
   updatedAt: string
   users?: Prisma.DesktopUserCreateNestedManyWithoutOrganizationInput
+  brands?: Prisma.DesktopBrandCreateNestedManyWithoutOrganizationInput
+  assets?: Prisma.DesktopAssetCreateNestedManyWithoutOrganizationInput
   projects?: Prisma.DesktopProjectCreateNestedManyWithoutOrganizationInput
   contentItems?: Prisma.DesktopContentItemCreateNestedManyWithoutOrganizationInput
   trends?: Prisma.DesktopTrendCreateNestedManyWithoutOrganizationInput
@@ -905,11 +1212,14 @@ export type DesktopOrganizationCreateWithoutWorkflowsInput = {
 
 export type DesktopOrganizationUncheckedCreateWithoutWorkflowsInput = {
   id: string
+  cloudId?: string | null
   name: string
   slug: string
   createdAt: string
   updatedAt: string
   users?: Prisma.DesktopUserUncheckedCreateNestedManyWithoutOrganizationInput
+  brands?: Prisma.DesktopBrandUncheckedCreateNestedManyWithoutOrganizationInput
+  assets?: Prisma.DesktopAssetUncheckedCreateNestedManyWithoutOrganizationInput
   projects?: Prisma.DesktopProjectUncheckedCreateNestedManyWithoutOrganizationInput
   contentItems?: Prisma.DesktopContentItemUncheckedCreateNestedManyWithoutOrganizationInput
   trends?: Prisma.DesktopTrendUncheckedCreateNestedManyWithoutOrganizationInput
@@ -935,11 +1245,14 @@ export type DesktopOrganizationUpdateToOneWithWhereWithoutWorkflowsInput = {
 
 export type DesktopOrganizationUpdateWithoutWorkflowsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  cloudId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.StringFieldUpdateOperationsInput | string
   updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
   users?: Prisma.DesktopUserUpdateManyWithoutOrganizationNestedInput
+  brands?: Prisma.DesktopBrandUpdateManyWithoutOrganizationNestedInput
+  assets?: Prisma.DesktopAssetUpdateManyWithoutOrganizationNestedInput
   projects?: Prisma.DesktopProjectUpdateManyWithoutOrganizationNestedInput
   contentItems?: Prisma.DesktopContentItemUpdateManyWithoutOrganizationNestedInput
   trends?: Prisma.DesktopTrendUpdateManyWithoutOrganizationNestedInput
@@ -949,11 +1262,14 @@ export type DesktopOrganizationUpdateWithoutWorkflowsInput = {
 
 export type DesktopOrganizationUncheckedUpdateWithoutWorkflowsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  cloudId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.StringFieldUpdateOperationsInput | string
   updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
   users?: Prisma.DesktopUserUncheckedUpdateManyWithoutOrganizationNestedInput
+  brands?: Prisma.DesktopBrandUncheckedUpdateManyWithoutOrganizationNestedInput
+  assets?: Prisma.DesktopAssetUncheckedUpdateManyWithoutOrganizationNestedInput
   projects?: Prisma.DesktopProjectUncheckedUpdateManyWithoutOrganizationNestedInput
   contentItems?: Prisma.DesktopContentItemUncheckedUpdateManyWithoutOrganizationNestedInput
   trends?: Prisma.DesktopTrendUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -968,6 +1284,8 @@ export type DesktopOrganizationUncheckedUpdateWithoutWorkflowsInput = {
 
 export type DesktopOrganizationCountOutputType = {
   users: number
+  brands: number
+  assets: number
   projects: number
   contentItems: number
   trends: number
@@ -978,6 +1296,8 @@ export type DesktopOrganizationCountOutputType = {
 
 export type DesktopOrganizationCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   users?: boolean | DesktopOrganizationCountOutputTypeCountUsersArgs
+  brands?: boolean | DesktopOrganizationCountOutputTypeCountBrandsArgs
+  assets?: boolean | DesktopOrganizationCountOutputTypeCountAssetsArgs
   projects?: boolean | DesktopOrganizationCountOutputTypeCountProjectsArgs
   contentItems?: boolean | DesktopOrganizationCountOutputTypeCountContentItemsArgs
   trends?: boolean | DesktopOrganizationCountOutputTypeCountTrendsArgs
@@ -1001,6 +1321,20 @@ export type DesktopOrganizationCountOutputTypeDefaultArgs<ExtArgs extends runtim
  */
 export type DesktopOrganizationCountOutputTypeCountUsersArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.DesktopUserWhereInput
+}
+
+/**
+ * DesktopOrganizationCountOutputType without action
+ */
+export type DesktopOrganizationCountOutputTypeCountBrandsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.DesktopBrandWhereInput
+}
+
+/**
+ * DesktopOrganizationCountOutputType without action
+ */
+export type DesktopOrganizationCountOutputTypeCountAssetsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.DesktopAssetWhereInput
 }
 
 /**
@@ -1048,11 +1382,14 @@ export type DesktopOrganizationCountOutputTypeCountWorkflowsArgs<ExtArgs extends
 
 export type DesktopOrganizationSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  cloudId?: boolean
   name?: boolean
   slug?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   users?: boolean | Prisma.DesktopOrganization$usersArgs<ExtArgs>
+  brands?: boolean | Prisma.DesktopOrganization$brandsArgs<ExtArgs>
+  assets?: boolean | Prisma.DesktopOrganization$assetsArgs<ExtArgs>
   projects?: boolean | Prisma.DesktopOrganization$projectsArgs<ExtArgs>
   contentItems?: boolean | Prisma.DesktopOrganization$contentItemsArgs<ExtArgs>
   trends?: boolean | Prisma.DesktopOrganization$trendsArgs<ExtArgs>
@@ -1064,6 +1401,7 @@ export type DesktopOrganizationSelect<ExtArgs extends runtime.Types.Extensions.I
 
 export type DesktopOrganizationSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  cloudId?: boolean
   name?: boolean
   slug?: boolean
   createdAt?: boolean
@@ -1072,6 +1410,7 @@ export type DesktopOrganizationSelectCreateManyAndReturn<ExtArgs extends runtime
 
 export type DesktopOrganizationSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  cloudId?: boolean
   name?: boolean
   slug?: boolean
   createdAt?: boolean
@@ -1080,15 +1419,18 @@ export type DesktopOrganizationSelectUpdateManyAndReturn<ExtArgs extends runtime
 
 export type DesktopOrganizationSelectScalar = {
   id?: boolean
+  cloudId?: boolean
   name?: boolean
   slug?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type DesktopOrganizationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "slug" | "createdAt" | "updatedAt", ExtArgs["result"]["desktopOrganization"]>
+export type DesktopOrganizationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "cloudId" | "name" | "slug" | "createdAt" | "updatedAt", ExtArgs["result"]["desktopOrganization"]>
 export type DesktopOrganizationInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   users?: boolean | Prisma.DesktopOrganization$usersArgs<ExtArgs>
+  brands?: boolean | Prisma.DesktopOrganization$brandsArgs<ExtArgs>
+  assets?: boolean | Prisma.DesktopOrganization$assetsArgs<ExtArgs>
   projects?: boolean | Prisma.DesktopOrganization$projectsArgs<ExtArgs>
   contentItems?: boolean | Prisma.DesktopOrganization$contentItemsArgs<ExtArgs>
   trends?: boolean | Prisma.DesktopOrganization$trendsArgs<ExtArgs>
@@ -1104,6 +1446,8 @@ export type $DesktopOrganizationPayload<ExtArgs extends runtime.Types.Extensions
   name: "DesktopOrganization"
   objects: {
     users: Prisma.$DesktopUserPayload<ExtArgs>[]
+    brands: Prisma.$DesktopBrandPayload<ExtArgs>[]
+    assets: Prisma.$DesktopAssetPayload<ExtArgs>[]
     projects: Prisma.$DesktopProjectPayload<ExtArgs>[]
     contentItems: Prisma.$DesktopContentItemPayload<ExtArgs>[]
     trends: Prisma.$DesktopTrendPayload<ExtArgs>[]
@@ -1113,6 +1457,7 @@ export type $DesktopOrganizationPayload<ExtArgs extends runtime.Types.Extensions
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
+    cloudId: string | null
     name: string
     slug: string
     createdAt: string
@@ -1512,6 +1857,8 @@ readonly fields: DesktopOrganizationFieldRefs;
 export interface Prisma__DesktopOrganizationClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   users<T extends Prisma.DesktopOrganization$usersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DesktopOrganization$usersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DesktopUserPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  brands<T extends Prisma.DesktopOrganization$brandsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DesktopOrganization$brandsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DesktopBrandPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  assets<T extends Prisma.DesktopOrganization$assetsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DesktopOrganization$assetsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DesktopAssetPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   projects<T extends Prisma.DesktopOrganization$projectsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DesktopOrganization$projectsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DesktopProjectPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   contentItems<T extends Prisma.DesktopOrganization$contentItemsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DesktopOrganization$contentItemsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DesktopContentItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   trends<T extends Prisma.DesktopOrganization$trendsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DesktopOrganization$trendsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DesktopTrendPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -1548,6 +1895,7 @@ export interface Prisma__DesktopOrganizationClient<T, Null = never, ExtArgs exte
  */
 export interface DesktopOrganizationFieldRefs {
   readonly id: Prisma.FieldRef<"DesktopOrganization", 'String'>
+  readonly cloudId: Prisma.FieldRef<"DesktopOrganization", 'String'>
   readonly name: Prisma.FieldRef<"DesktopOrganization", 'String'>
   readonly slug: Prisma.FieldRef<"DesktopOrganization", 'String'>
   readonly createdAt: Prisma.FieldRef<"DesktopOrganization", 'String'>
@@ -1966,6 +2314,54 @@ export type DesktopOrganization$usersArgs<ExtArgs extends runtime.Types.Extensio
   take?: number
   skip?: number
   distinct?: Prisma.DesktopUserScalarFieldEnum | Prisma.DesktopUserScalarFieldEnum[]
+}
+
+/**
+ * DesktopOrganization.brands
+ */
+export type DesktopOrganization$brandsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the DesktopBrand
+   */
+  select?: Prisma.DesktopBrandSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the DesktopBrand
+   */
+  omit?: Prisma.DesktopBrandOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.DesktopBrandInclude<ExtArgs> | null
+  where?: Prisma.DesktopBrandWhereInput
+  orderBy?: Prisma.DesktopBrandOrderByWithRelationInput | Prisma.DesktopBrandOrderByWithRelationInput[]
+  cursor?: Prisma.DesktopBrandWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.DesktopBrandScalarFieldEnum | Prisma.DesktopBrandScalarFieldEnum[]
+}
+
+/**
+ * DesktopOrganization.assets
+ */
+export type DesktopOrganization$assetsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the DesktopAsset
+   */
+  select?: Prisma.DesktopAssetSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the DesktopAsset
+   */
+  omit?: Prisma.DesktopAssetOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.DesktopAssetInclude<ExtArgs> | null
+  where?: Prisma.DesktopAssetWhereInput
+  orderBy?: Prisma.DesktopAssetOrderByWithRelationInput | Prisma.DesktopAssetOrderByWithRelationInput[]
+  cursor?: Prisma.DesktopAssetWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.DesktopAssetScalarFieldEnum | Prisma.DesktopAssetScalarFieldEnum[]
 }
 
 /**

@@ -91,12 +91,16 @@ const desktopBridge: IGenfeedDesktopBridge = {
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.draftsSave, workspaceId, draft),
   },
   files: {
+    getAssetUrl: async (assetId) =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.filesGetAssetUrl, assetId),
     importAssets: async (workspaceId, filePaths) =>
       ipcRenderer.invoke(
         DESKTOP_IPC_CHANNELS.filesImportAssets,
         workspaceId,
         filePaths,
       ),
+    listAssets: async (workspaceId) =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.filesListAssets, workspaceId),
     openFileDialog: async () =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.openFileDialog),
     readFile: async (workspaceId, relativePath) =>
@@ -154,10 +158,16 @@ const desktopBridge: IGenfeedDesktopBridge = {
   },
   platform: process.platform,
   sync: {
-    getCursor: async () =>
-      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncGetCursor),
+    ackOps: async (ops) =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncAckOps, ops),
+    applyBrandManifest: async (manifest) =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncApplyBrandManifest, manifest),
+    getCursor: async (scope) =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncGetCursor, scope),
     getJobs: async (workspaceId) =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncGetJobs, workspaceId),
+    getOps: async (workspaceId) =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncGetOps, workspaceId),
     getState: async () => ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncGetState),
     onSyncThreadsRequested: (callback) => {
       const listener = () => callback();
@@ -172,8 +182,27 @@ const desktopBridge: IGenfeedDesktopBridge = {
         payload,
         workspaceId,
       ),
-    setCursor: async (cursor: string) =>
-      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncSetCursor, cursor),
+    queueOp: async (
+      entityType,
+      entityId,
+      operation,
+      payload,
+      workspaceId,
+      baseVersion,
+    ) =>
+      ipcRenderer.invoke(
+        DESKTOP_IPC_CHANNELS.syncQueueOp,
+        entityType,
+        entityId,
+        operation,
+        payload,
+        workspaceId,
+        baseVersion,
+      ),
+    recordAssetSync: async (update) =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncRecordAssetSync, update),
+    setCursor: async (cursor: string, scope) =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncSetCursor, cursor, scope),
     triggerThreads: async () =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncTriggerThreads),
   },

@@ -116,6 +116,8 @@ CREATE TABLE IF NOT EXISTS desktop_workspace (
   name TEXT NOT NULL,
   path TEXT NOT NULL UNIQUE,
   linked_project_id TEXT,
+  linked_brand_id TEXT,
+  sync_policy TEXT NOT NULL DEFAULT 'local-only',
   file_index TEXT NOT NULL DEFAULT '[]',
   indexing_state TEXT NOT NULL DEFAULT 'idle',
   local_draft_count INTEGER NOT NULL DEFAULT 0,
@@ -125,6 +127,67 @@ CREATE TABLE IF NOT EXISTS desktop_workspace (
   last_opened_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_desktop_workspace_last_opened_at ON desktop_workspace (last_opened_at DESC);
+
+CREATE TABLE IF NOT EXISTS desktop_brand (
+  id TEXT PRIMARY KEY,
+  organization_id TEXT NOT NULL,
+  cloud_id TEXT UNIQUE,
+  name TEXT NOT NULL,
+  slug TEXT NOT NULL,
+  sync_policy TEXT NOT NULL DEFAULT 'none',
+  cloud_version TEXT,
+  last_pulled_at TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE (organization_id, slug)
+);
+CREATE INDEX IF NOT EXISTS idx_desktop_brand_org_updated ON desktop_brand (organization_id, updated_at DESC);
+
+CREATE TABLE IF NOT EXISTS desktop_asset (
+  id TEXT PRIMARY KEY,
+  organization_id TEXT NOT NULL,
+  brand_id TEXT,
+  workspace_id TEXT,
+  cloud_id TEXT UNIQUE,
+  cloud_object_key TEXT,
+  local_path TEXT,
+  sha256 TEXT NOT NULL,
+  size_bytes INTEGER NOT NULL,
+  mime_type TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  origin TEXT NOT NULL,
+  residency TEXT NOT NULL,
+  upload_policy TEXT NOT NULL DEFAULT 'never',
+  original_file_name TEXT NOT NULL,
+  display_name TEXT NOT NULL,
+  deleted_at TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_desktop_asset_hash_size ON desktop_asset (sha256, size_bytes);
+CREATE INDEX IF NOT EXISTS idx_desktop_asset_org_updated ON desktop_asset (organization_id, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_desktop_asset_brand_updated ON desktop_asset (brand_id, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_desktop_asset_workspace_updated ON desktop_asset (workspace_id, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_desktop_asset_residency_updated ON desktop_asset (residency, updated_at DESC);
+
+CREATE TABLE IF NOT EXISTS desktop_sync_op (
+  id TEXT PRIMARY KEY,
+  workspace_id TEXT,
+  entity_type TEXT NOT NULL,
+  entity_id TEXT NOT NULL,
+  operation TEXT NOT NULL,
+  payload TEXT NOT NULL,
+  base_version TEXT,
+  status TEXT NOT NULL DEFAULT 'pending',
+  error TEXT,
+  retry_count INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  acknowledged_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_desktop_sync_op_status_updated ON desktop_sync_op (status, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_desktop_sync_op_workspace_status_updated ON desktop_sync_op (workspace_id, status, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_desktop_sync_op_entity ON desktop_sync_op (entity_type, entity_id);
 
 CREATE TABLE IF NOT EXISTS desktop_sync_job (
   id TEXT PRIMARY KEY,

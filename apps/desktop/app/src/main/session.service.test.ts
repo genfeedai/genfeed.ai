@@ -111,6 +111,60 @@ describe('DesktopSessionService', () => {
     expect(service.getSession()?.token).toBe('gf_desktop_key');
   });
 
+  it('exchanges browser auth codes with the stored PKCE verifier', async () => {
+    const service = createSessionService(database);
+    const loginUrl = new URL(service.getLoginUrl());
+    const state = loginUrl.searchParams.get('state');
+
+    if (!state) {
+      throw new Error('Expected login URL state');
+    }
+
+    globalThis.fetch = (async (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ) => {
+      expect(String(input)).toBe(
+        'https://api.genfeed.ai/v1/auth/desktop/exchange',
+      );
+      expect(init?.method).toBe('POST');
+      expect(JSON.parse(String(init?.body))).toMatchObject({
+        code: 'desktop-code',
+        codeVerifier: expect.any(String),
+        state,
+      });
+
+      return new Response(
+        JSON.stringify({
+          issuedAt: '2026-05-01T10:00:00.000Z',
+          token: 'gf_desktop_key',
+          userEmail: 'desktop@example.com',
+          userId: 'user-123',
+          userName: 'Desktop User',
+        }),
+        {
+          headers: {
+            'content-type': 'application/json',
+          },
+          status: 200,
+        },
+      );
+    }) as typeof fetch;
+
+    const session = await service.handleCallback(
+      `genfeedai-desktop://auth?code=desktop-code&state=${state}`,
+    );
+
+    expect(session).toEqual({
+      issuedAt: '2026-05-01T10:00:00.000Z',
+      token: 'gf_desktop_key',
+      userEmail: 'desktop@example.com',
+      userId: 'user-123',
+      userName: 'Desktop User',
+    });
+    expect(database.values.get('desktop.session')).toContain('gf_desktop_key');
+  });
+
   it('validates and refreshes an existing desktop session on startup', async () => {
     const service = createSessionService(kvService);
 

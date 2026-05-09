@@ -81,6 +81,7 @@ const emptyBootstrap: IDesktopBootstrap = {
   },
   localUserId: '',
   preferences: { nativeNotificationsEnabled: false },
+  brands: [],
   recents: [],
   session: null,
   syncState: {

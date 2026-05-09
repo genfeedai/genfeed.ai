@@ -27,7 +27,9 @@ export const DESKTOP_IPC_CHANNELS = {
   draftsGet: 'desktop:drafts:get',
   draftsList: 'desktop:drafts:list',
   draftsSave: 'desktop:drafts:save',
+  filesGetAssetUrl: 'desktop:files:getAssetUrl',
   filesImportAssets: 'desktop:files:importAssets',
+  filesListAssets: 'desktop:files:listAssets',
   filesRead: 'desktop:files:read',
   filesWrite: 'desktop:files:write',
   generationClearProviderConfig: 'desktop:generation:clearProviderConfig',
@@ -41,10 +43,15 @@ export const DESKTOP_IPC_CHANNELS = {
   quickGenerate: 'desktop:quickGenerate',
   appGetOnboardingState: 'desktop:app:getOnboardingState',
   appSetOnboardingCompleted: 'desktop:app:setOnboardingCompleted',
+  syncApplyBrandManifest: 'desktop:sync:applyBrandManifest',
+  syncAckOps: 'desktop:sync:ackOps',
   syncGetCursor: 'desktop:sync:getCursor',
   syncGetJobs: 'desktop:sync:getJobs',
+  syncGetOps: 'desktop:sync:getOps',
   syncGetState: 'desktop:sync:getState',
   syncQueueJob: 'desktop:sync:queueJob',
+  syncQueueOp: 'desktop:sync:queueOp',
+  syncRecordAssetSync: 'desktop:sync:recordAssetSync',
   syncSetCursor: 'desktop:sync:setCursor',
   syncThreadsRequested: 'desktop:sync:threadsRequested',
   syncTriggerThreads: 'desktop:sync:triggerThreads',
@@ -122,15 +129,134 @@ export interface IDesktopWorkspace {
   id: string;
   indexingState: 'idle' | 'indexing';
   lastOpenedAt: string;
+  linkedBrandId?: string;
   linkedProjectId?: string;
   localDraftCount: number;
   name: string;
   path: string;
   pendingSyncCount: number;
+  syncPolicy: DesktopSyncPolicy;
   updatedAt: string;
 }
 
 /* ─── Sync ─── */
+
+export type DesktopSyncPolicy =
+  | 'full-asset-sync'
+  | 'local-only'
+  | 'metadata-sync'
+  | 'sync-paused';
+
+export type DesktopAssetResidency =
+  | 'cloud-only'
+  | 'local-only'
+  | 'missing-local'
+  | 'synced'
+  | 'upload-pending';
+
+export type DesktopAssetOrigin =
+  | 'cloud-generation'
+  | 'local-generation'
+  | 'local-import';
+
+export type DesktopAssetKind = 'audio' | 'document' | 'image' | 'video';
+
+export type DesktopAssetUploadPolicy = 'full' | 'metadata-only' | 'never';
+
+export type DesktopSyncCursorScope = 'brandManifest' | 'threads';
+
+export type DesktopAssetUploadMode = 'api-proxy' | 'presigned-put';
+
+export interface IDesktopBrand {
+  cloudId?: string;
+  cloudVersion?: string;
+  createdAt: string;
+  id: string;
+  lastPulledAt?: string;
+  name: string;
+  organizationId: string;
+  slug: string;
+  syncPolicy: DesktopSyncPolicy | 'none';
+  updatedAt: string;
+}
+
+export interface IDesktopBrandManifest {
+  assets: Array<{
+    cloudObjectKey?: string;
+    createdAt: string;
+    deletedAt?: string;
+    displayName?: string;
+    id: string;
+    isDeleted?: boolean;
+    kind?: DesktopAssetKind | string;
+    localAssetId?: string;
+    mimeType?: string;
+    origin?: DesktopAssetOrigin | string;
+    originalFileName?: string;
+    parentBrandId?: string;
+    parentOrgId?: string;
+    residency?: DesktopAssetResidency | string;
+    sha256?: string;
+    sizeBytes?: number;
+    updatedAt: string;
+    uploadPolicy?: DesktopAssetUploadPolicy | string;
+  }>;
+  brands: Array<{
+    id: string;
+    isDeleted?: boolean;
+    label: string;
+    organizationId: string;
+    slug: string;
+    updatedAt: string;
+  }>;
+  ingredients: Array<{
+    brandId?: string;
+    category?: string;
+    cdnUrl?: string;
+    createdAt: string;
+    fileSize?: number;
+    id: string;
+    isDeleted?: boolean;
+    metadata?: {
+      description?: string;
+      label?: string;
+    } | null;
+    mimeType?: string;
+    organizationId?: string;
+    s3Key?: string;
+    status?: string;
+    updatedAt: string;
+  }>;
+  organization?: {
+    id: string;
+    label: string;
+    slug: string;
+    updatedAt: string;
+  } | null;
+  updatedCursor: string;
+}
+
+export interface IDesktopAsset {
+  brandId?: string;
+  cloudId?: string;
+  cloudObjectKey?: string;
+  createdAt: string;
+  deletedAt?: string;
+  displayName: string;
+  id: string;
+  kind: DesktopAssetKind;
+  localPath?: string;
+  mimeType: string;
+  organizationId: string;
+  origin: DesktopAssetOrigin;
+  originalFileName: string;
+  residency: DesktopAssetResidency;
+  sha256: string;
+  sizeBytes: number;
+  updatedAt: string;
+  uploadPolicy: DesktopAssetUploadPolicy;
+  workspaceId?: string;
+}
 
 export interface IDesktopSyncJob {
   createdAt: string;
@@ -144,9 +270,43 @@ export interface IDesktopSyncJob {
   workspaceId?: string;
 }
 
+export interface IDesktopSyncOp {
+  acknowledgedAt?: string;
+  baseVersion?: string;
+  createdAt: string;
+  entityId: string;
+  entityType: string;
+  error?: string;
+  id: string;
+  operation: 'create' | 'delete' | 'update';
+  payload: string;
+  retryCount: number;
+  status: 'acked' | 'conflict' | 'failed' | 'pending' | 'running';
+  updatedAt: string;
+  workspaceId?: string;
+}
+
+export interface IDesktopSyncOpAck {
+  acknowledgedAt?: string;
+  error?: string;
+  id: string;
+  status: 'acked' | 'conflict' | 'failed';
+}
+
+export interface IDesktopAssetSyncUpdate {
+  cloudId?: string;
+  cloudObjectKey?: string;
+  deletedAt?: string;
+  localAssetId: string;
+  residency?: DesktopAssetResidency;
+  updatedAt?: string;
+  uploadPolicy?: DesktopAssetUploadPolicy;
+}
+
 export interface IDesktopSyncState {
   failedCount: number;
   lastSyncAt?: string;
+  pendingAssetCount?: number;
   pendingCount: number;
   retryingCount: number;
   runningCount: number;
@@ -283,6 +443,7 @@ export interface IDesktopBootstrap {
   /** Stable local UUID set on first boot — the sync anchor for Phase 2 PGlite */
   localUserId: string;
   preferences: IDesktopPreferences;
+  brands: IDesktopBrand[];
   recents: IDesktopRecentItem[];
   session: IDesktopSession | null;
   syncState: IDesktopSyncState;
@@ -544,10 +705,12 @@ export interface IGenfeedDesktopBridge {
     ) => Promise<IDesktopContentRunDraft>;
   };
   files: {
+    getAssetUrl: (assetId: string) => Promise<string>;
     importAssets: (
       workspaceId: string,
       filePaths?: string[],
-    ) => Promise<string[]>;
+    ) => Promise<IDesktopAsset[]>;
+    listAssets: (workspaceId?: string) => Promise<IDesktopAsset[]>;
     openFileDialog: () => Promise<{ canceled: boolean; filePaths: string[] }>;
     readFile: (workspaceId: string, relativePath: string) => Promise<string>;
     writeFile: (
@@ -578,8 +741,11 @@ export interface IGenfeedDesktopBridge {
   };
   platform: string;
   sync: {
-    getCursor: () => Promise<string | null>;
+    ackOps: (ops: IDesktopSyncOpAck[]) => Promise<void>;
+    applyBrandManifest: (manifest: IDesktopBrandManifest) => Promise<void>;
+    getCursor: (scope?: DesktopSyncCursorScope) => Promise<string | null>;
     getJobs: (workspaceId?: string) => Promise<IDesktopSyncJob[]>;
+    getOps: (workspaceId?: string) => Promise<IDesktopSyncOp[]>;
     getState: () => Promise<IDesktopSyncState>;
     onSyncThreadsRequested: (callback: () => void) => () => void;
     queueJob: (
@@ -587,7 +753,19 @@ export interface IGenfeedDesktopBridge {
       payload: string,
       workspaceId?: string,
     ) => Promise<IDesktopSyncJob>;
-    setCursor: (cursor: string) => Promise<void>;
+    queueOp: (
+      entityType: string,
+      entityId: string,
+      operation: IDesktopSyncOp['operation'],
+      payload: string,
+      workspaceId?: string,
+      baseVersion?: string,
+    ) => Promise<IDesktopSyncOp>;
+    recordAssetSync: (update: IDesktopAssetSyncUpdate) => Promise<void>;
+    setCursor: (
+      cursor: string,
+      scope?: DesktopSyncCursorScope,
+    ) => Promise<void>;
     triggerThreads: () => Promise<{ ok: boolean; error?: string }>;
   };
   terminal: {

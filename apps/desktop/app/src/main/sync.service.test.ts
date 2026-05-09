@@ -2,9 +2,36 @@ import { describe, expect, it } from 'bun:test';
 import { DesktopSyncService } from './sync.service';
 
 const createPrismaMock = (rows: Array<Record<string, unknown>> = []) => {
+  const assets = new Map<string, Record<string, unknown>>();
   const syncJobs = new Map(rows.map((row) => [String(row.id), row]));
+  const syncOps = new Map<string, Record<string, unknown>>();
 
   return {
+    desktopAsset: {
+      findMany: async () =>
+        Array.from(assets.values()).sort((left, right) =>
+          String(right.updatedAt).localeCompare(String(left.updatedAt)),
+        ),
+      upsert: async ({
+        create,
+        update,
+        where,
+      }: {
+        create: Record<string, unknown>;
+        update: Record<string, unknown>;
+        where: { id: string };
+      }) => {
+        assets.set(where.id, {
+          ...(assets.get(where.id) ?? create),
+          ...update,
+          id: where.id,
+        });
+      },
+    },
+    desktopBrand: {
+      deleteMany: async () => undefined,
+      upsert: async () => undefined,
+    },
     desktopSyncJob: {
       findMany: async ({ where }: { where?: { workspaceId?: string } } = {}) =>
         Array.from(syncJobs.values())
@@ -31,7 +58,47 @@ const createPrismaMock = (rows: Array<Record<string, unknown>> = []) => {
         });
       },
     },
+    desktopSyncOp: {
+      findMany: async ({ where }: { where?: { workspaceId?: string } } = {}) =>
+        Array.from(syncOps.values())
+          .filter(
+            (row) =>
+              !where?.workspaceId || row.workspaceId === where.workspaceId,
+          )
+          .sort((left, right) =>
+            String(right.updatedAt).localeCompare(String(left.updatedAt)),
+          ),
+      updateMany: async ({
+        data,
+        where,
+      }: {
+        data: Record<string, unknown>;
+        where: { id: string };
+      }) => {
+        const existing = syncOps.get(where.id);
+        if (existing) {
+          syncOps.set(where.id, { ...existing, ...data });
+        }
+      },
+      upsert: async ({
+        create,
+        update,
+        where,
+      }: {
+        create: Record<string, unknown>;
+        update: Record<string, unknown>;
+        where: { id: string };
+      }) => {
+        syncOps.set(where.id, {
+          ...(syncOps.get(where.id) ?? create),
+          ...update,
+          id: where.id,
+        });
+      },
+    },
+    assets,
     syncJobs,
+    syncOps,
   };
 };
 
@@ -97,6 +164,7 @@ describe('DesktopSyncService', () => {
     expect(service.getState()).toEqual({
       failedCount: 1,
       lastSyncAt: '2026-04-01T11:00:00.000Z',
+      pendingAssetCount: 0,
       pendingCount: 1,
       retryingCount: 0,
       runningCount: 1,

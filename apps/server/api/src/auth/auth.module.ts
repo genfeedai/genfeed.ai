@@ -1,8 +1,10 @@
 import { AuthBootstrapController } from '@api/auth/controllers/auth-bootstrap.controller';
 import { AuthCliController } from '@api/auth/controllers/auth-cli.controller';
+import { AuthDesktopController } from '@api/auth/controllers/auth-desktop.controller';
 import { AuthWhoamiController } from '@api/auth/controllers/auth-whoami.controller';
 import { ClerkStrategy } from '@api/auth/passport/clerk.strategy';
 import { AuthBootstrapService } from '@api/auth/services/auth-bootstrap.service';
+import { AuthDesktopService } from '@api/auth/services/auth-desktop.service';
 import { AuthIdentityResolverService } from '@api/auth/services/auth-identity-resolver.service';
 import { AgentRunsModule } from '@api/collections/agent-runs/agent-runs.module';
 import { ApiKeysModule } from '@api/collections/api-keys/api-keys.module';
@@ -30,6 +32,7 @@ import { PassportModule } from '@nestjs/passport';
     AuthBootstrapController,
     AuthWhoamiController,
     AuthCliController,
+    AuthDesktopController,
   ],
   exports: [PassportModule],
   imports: [
@@ -53,6 +56,7 @@ import { PassportModule } from '@nestjs/passport';
   ],
   providers: [
     AuthBootstrapService,
+    AuthDesktopService,
     ClerkStrategy,
     ClerkClientProvider,
     ClerkService,
