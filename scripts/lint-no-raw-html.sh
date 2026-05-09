@@ -69,6 +69,17 @@ done
 violations=0
 violated_files=()
 
+mark_violation() {
+  local file="$1"
+
+  for violated_file in "${violated_files[@]}"; do
+    [[ "$violated_file" == "$file" ]] && return
+  done
+
+  violated_files+=("$file")
+  violations=$((violations + 1))
+}
+
 for file in "$@"; do
   # Skip unsupported files
   [[ "$file" != *.tsx && "$file" != *.ts ]] && continue
@@ -99,13 +110,12 @@ for file in "$@"; do
   [[ "$file" == *packages/workflow-ui/* ]] && continue
 
   # Check for raw HTML elements in TSX only
-  if [[ "$file" == *.tsx ]] && grep -qnE "$PATTERN" "$file" 2>/dev/null; then
-    matches=$(grep -nE "$PATTERN" "$file" 2>/dev/null || true)
+  if [[ "$file" == *.tsx ]] && grep -qnE "$PATTERN" -- "$file" 2>/dev/null; then
+    matches=$(grep -nE "$PATTERN" -- "$file" 2>/dev/null || true)
     # Filter out JSX comments {/* ... */} — crude but effective
     matches=$(echo "$matches" | grep -v '{/\*' | grep -v '\*/' || true)
     if [ -n "$matches" ]; then
-      violated_files+=("$file")
-      violations=$((violations + 1))
+      mark_violation "$file"
       echo ""
       echo "  ✘ $file"
       echo "$matches" | while IFS= read -r line; do
@@ -115,11 +125,10 @@ for file in "$@"; do
   fi
 
   # Check for banned wrapper imports in TS/TSX
-  if grep -qnE "$IMPORT_PATTERN" "$file" 2>/dev/null; then
-    matches=$(grep -nE "$IMPORT_PATTERN" "$file" 2>/dev/null || true)
+  if grep -qnE "$IMPORT_PATTERN" -- "$file" 2>/dev/null; then
+    matches=$(grep -nE "$IMPORT_PATTERN" -- "$file" 2>/dev/null || true)
     if [ -n "$matches" ]; then
-      violated_files+=("$file")
-      violations=$((violations + 1))
+      mark_violation "$file"
       echo ""
       echo "  ✘ $file"
       echo "$matches" | while IFS= read -r line; do

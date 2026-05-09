@@ -36,6 +36,7 @@ import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   type ReactNode,
+  Suspense,
   startTransition,
   useCallback,
   useEffect,
@@ -50,6 +51,7 @@ import {
   HiOutlineInboxStack,
   HiOutlineSquares2X2,
 } from 'react-icons/hi2';
+import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import {
   buildTaskLaunchHref,
   OPERATOR_TASK_CONTEXT_QUERY_KEYS,
@@ -67,6 +69,8 @@ const WorkspaceTaskComposer = dynamic(
 
 type WorkspaceSection = 'activity' | 'inbox' | 'overview';
 type InboxView = 'all' | 'recent' | 'unread';
+
+const EMPTY_AGENT_RUNS: IAgentRun[] = [];
 
 interface ReviewInboxItem {
   createdAt: string;
@@ -347,7 +351,7 @@ function useWorkspaceTaskLinkedRunSummary(
   task: Task | null,
 ): WorkspaceTaskLinkedRunSummary & { isLoading: boolean } {
   const { getToken } = useAuth();
-  const [summary, setSummary] = useState<WorkspaceTaskLinkedRunSummary>(
+  const [summary, setSummary] = useState<WorkspaceTaskLinkedRunSummary>(() =>
     getEmptyLinkedRunSummary(),
   );
   const [isLoading, setIsLoading] = useState(false);
@@ -390,11 +394,12 @@ function useWorkspaceTaskLinkedRunSummary(
         }
 
         const reportThreadIds = Array.from(
-          new Set(
-            batchResults
-              .map((result) => result.threadId)
-              .filter(isNonEmptyString),
-          ),
+          batchResults.reduce<Set<string>>((threadIds, result) => {
+            if (isNonEmptyString(result.threadId)) {
+              threadIds.add(result.threadId);
+            }
+            return threadIds;
+          }, new Set()),
         );
 
         setSummary({
@@ -500,7 +505,7 @@ function groupWorkspaceLinkedOutputs(
     }
   }
 
-  return [...groups.values()].sort((left, right) => {
+  return Array.from(groups.values()).toSorted((left, right) => {
     const leftTime = new Date(left.root.updatedAt ?? left.root.createdAt ?? 0);
     const rightTime = new Date(
       right.root.updatedAt ?? right.root.createdAt ?? 0,
@@ -597,7 +602,7 @@ function useWorkspaceTaskLinkedOutputs(
   task: Task | null,
 ): WorkspaceTaskLinkedOutputSummary {
   const { getToken } = useAuth();
-  const [summary, setSummary] = useState<WorkspaceTaskLinkedOutputSummary>(
+  const [summary, setSummary] = useState<WorkspaceTaskLinkedOutputSummary>(() =>
     getEmptyLinkedOutputSummary(),
   );
   const _linkedOutputIdsKey = useMemo(
@@ -679,7 +684,7 @@ function useWorkspaceTaskLinkedIssue(
   task: Task | null,
 ): WorkspaceTaskLinkedIssueSummary {
   const { getToken } = useAuth();
-  const [summary, setSummary] = useState<WorkspaceTaskLinkedIssueSummary>(
+  const [summary, setSummary] = useState<WorkspaceTaskLinkedIssueSummary>(() =>
     getEmptyLinkedIssueSummary(),
   );
 
@@ -761,7 +766,7 @@ function WorkspaceTaskRow({
       variant={ButtonVariant.UNSTYLED}
       withWrapper={false}
       ariaLabel={`Open details for ${task.title}`}
-      className="w-full border-b border-white/[0.06] px-4 py-4 text-left transition-colors duration-150 last:border-b-0 hover:bg-white/[0.03]"
+      className="w-full border-b border-white/[0.06] p-4 text-left transition-colors duration-150 last:border-b-0 hover:bg-white/[0.03]"
       data-testid="workspace-task-row"
       onClick={() => onOpen(task)}
     >
@@ -807,7 +812,7 @@ function WorkspaceTaskRow({
           </div>
         </div>
 
-        <HiArrowTopRightOnSquare className="mt-1 h-4 w-4 shrink-0 text-foreground/30" />
+        <HiArrowTopRightOnSquare className="mt-1 size-4 shrink-0 text-foreground/30" />
       </div>
     </BaseButton>
   );
@@ -991,10 +996,10 @@ function WorkspaceTaskInspector({
               </SheetHeader>
             </div>
 
-            <div className="flex-1 space-y-6 px-6 py-6">
+            <div className="flex-1 space-y-6 p-6">
               <div className="grid gap-4 sm:grid-cols-2">
                 <Card bodyClassName="space-y-2 p-4">
-                  <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-foreground/35">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-foreground/35">
                     Routing
                   </p>
                   <p className="text-sm text-foreground">
@@ -1003,7 +1008,7 @@ function WorkspaceTaskInspector({
                   </p>
                 </Card>
                 <Card bodyClassName="space-y-2 p-4">
-                  <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-foreground/35">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-foreground/35">
                     Progress
                   </p>
                   <div className="space-y-1 text-sm text-foreground/60">
@@ -1017,15 +1022,18 @@ function WorkspaceTaskInspector({
                       <p>{task.progress.message}</p>
                     ) : null}
                     <p className="flex items-center gap-2">
-                      <HiOutlineClock className="h-4 w-4" />
+                      <HiOutlineClock className="size-4" />
                       Updated {formatTaskTimestamp(task)}
                     </p>
                     {task.createdAt ? (
-                      <p>Created {new Date(task.createdAt).toLocaleString()}</p>
+                      <p>
+                        Created <ClientFormattedDate value={task.createdAt} />
+                      </p>
                     ) : null}
                     {task.completedAt ? (
                       <p>
-                        Completed {new Date(task.completedAt).toLocaleString()}
+                        Completed{' '}
+                        <ClientFormattedDate value={task.completedAt} />
                       </p>
                     ) : null}
                   </div>
@@ -1052,10 +1060,10 @@ function WorkspaceTaskInspector({
                   >
                     {[...(task.eventStream ?? [])]
                       .slice()
-                      .sort(
-                        (left, right) =>
-                          new Date(right.timestamp).getTime() -
-                          new Date(left.timestamp).getTime(),
+                      .sort((left, right) =>
+                        (right.timestamp ?? '').localeCompare(
+                          left.timestamp ?? '',
+                        ),
                       )
                       .map((event) => {
                         const message = getWorkspaceEventMessage(event);
@@ -1069,11 +1077,10 @@ function WorkspaceTaskInspector({
                               <p className="font-medium text-foreground">
                                 {formatWorkspaceEventLabel(event)}
                               </p>
-                              <span className="text-xs text-foreground/40">
-                                {event.timestamp
-                                  ? new Date(event.timestamp).toLocaleString()
-                                  : ''}
-                              </span>
+                              <ClientFormattedDate
+                                className="text-xs text-foreground/40"
+                                value={event.timestamp}
+                              />
                             </div>
                             {message ? (
                               <p className="mt-2 text-sm text-foreground/60">
@@ -1412,12 +1419,12 @@ function WorkspaceTaskInspector({
   );
 }
 
-export default function WorkspacePageContent({
+function WorkspacePageContentContent({
   defaultInboxView = 'unread',
-  initialActiveRuns = [],
+  initialActiveRuns = EMPTY_AGENT_RUNS,
   initialAnalytics,
   initialReviewInbox = DEFAULT_REVIEW_INBOX,
-  initialRuns = [],
+  initialRuns = EMPTY_AGENT_RUNS,
   initialStats = null,
   initialTimeSeriesData,
   section = 'overview',
@@ -1429,9 +1436,9 @@ export default function WorkspacePageContent({
   const { subscribe } = useSocketManager();
   const { organizationId } = useBrand();
   const pathname = usePathname();
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const requestedTaskId = searchParams?.get('taskId');
+  const { push, replace } = useRouter();
+  const { get, toString: getSearchParamsString } = useSearchParams();
+  const requestedTaskId = get('taskId');
   const [isTaskComposerOpen, setTaskComposerOpen] = useState(false);
   const [workspaceActionError, setWorkspaceActionError] = useState<
     string | null
@@ -1508,7 +1515,7 @@ export default function WorkspacePageContent({
   );
   const replaceTaskSearchParam = useCallback(
     (taskId: string | null) => {
-      const nextSearchParams = new URLSearchParams(searchParams?.toString());
+      const nextSearchParams = new URLSearchParams(getSearchParamsString());
 
       for (const key of OPERATOR_TASK_CONTEXT_QUERY_KEYS) {
         if (key !== 'taskId') {
@@ -1523,11 +1530,11 @@ export default function WorkspacePageContent({
       }
 
       const nextQuery = nextSearchParams.toString();
-      router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, {
+      replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, {
         scroll: false,
       });
     },
-    [pathname, router, searchParams],
+    [pathname, replace, getSearchParamsString],
   );
   const visibleInboxTasks = useMemo(() => {
     switch (defaultInboxView) {
@@ -1715,7 +1722,7 @@ export default function WorkspacePageContent({
         );
       });
 
-      router.push(`/chat/${planningThread.threadId}`);
+      push(`/chat/${planningThread.threadId}`);
     } catch (error) {
       setWorkspaceActionError(
         error instanceof Error
@@ -1932,7 +1939,7 @@ export default function WorkspacePageContent({
 
             {shouldShowInbox ? (
               <section data-testid="workspace-inbox" className="space-y-3">
-                <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-foreground/35">
+                <h2 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/35">
                   {section === 'inbox' ? defaultInboxView : 'Inbox'}
                 </h2>
                 <AppTable<Task>
@@ -1986,7 +1993,7 @@ export default function WorkspacePageContent({
                       className: 'w-36 hidden lg:table-cell',
                       render: (task) => (
                         <span className="text-xs text-foreground/45">
-                          {task.executionPathUsed?.replaceAll('_', ' ') ?? '—'}
+                          {task.executionPathUsed?.replaceAll('_', ' ') ?? ':'}
                         </span>
                       ),
                     },
@@ -2007,7 +2014,7 @@ export default function WorkspacePageContent({
 
             {shouldShowHistory ? (
               <section data-testid="workspace-activity" className="space-y-3">
-                <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-foreground/35">
+                <h2 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/35">
                   Activity
                 </h2>
                 <AppTable<Task>
@@ -2053,7 +2060,7 @@ export default function WorkspacePageContent({
                       className: 'w-36 hidden lg:table-cell',
                       render: (task) => (
                         <span className="text-xs text-foreground/45">
-                          {task.executionPathUsed?.replaceAll('_', ' ') ?? '—'}
+                          {task.executionPathUsed?.replaceAll('_', ' ') ?? ':'}
                         </span>
                       ),
                     },
@@ -2117,15 +2124,15 @@ export default function WorkspacePageContent({
                               {item.platform ? ` on ${item.platform}` : ''}
                             </p>
                             <p className="text-xs text-foreground/40">
-                              {new Date(item.createdAt).toLocaleString()}
+                              <ClientFormattedDate value={item.createdAt} />
                             </p>
                           </div>
                           {item.reviewDecision === 'approved' ? (
-                            <HiOutlineCheckCircle className="h-5 w-5 text-emerald-300" />
+                            <HiOutlineCheckCircle className="size-5 text-emerald-300" />
                           ) : item.reviewDecision === 'request_changes' ? (
-                            <HiOutlineClipboardDocumentCheck className="h-5 w-5 text-amber-300" />
+                            <HiOutlineClipboardDocumentCheck className="size-5 text-amber-300" />
                           ) : (
-                            <HiOutlineInboxStack className="h-5 w-5 text-foreground/40" />
+                            <HiOutlineInboxStack className="size-5 text-foreground/40" />
                           )}
                         </div>
                       ))}
@@ -2253,5 +2260,15 @@ export default function WorkspacePageContent({
         }
       />
     </Container>
+  );
+}
+
+export default function WorkspacePageContent(
+  props: Parameters<typeof WorkspacePageContentContent>[0],
+) {
+  return (
+    <Suspense fallback={null}>
+      <WorkspacePageContentContent {...props} />
+    </Suspense>
   );
 }

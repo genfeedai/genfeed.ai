@@ -74,7 +74,7 @@ function getViralityBadgeClass(score: number): string {
 }
 
 export default function AnalyticsTrends() {
-  const router = useRouter();
+  const { push } = useRouter();
   const brandId = useBrandId();
   const getTrendsService = useAuthedService((token: string) =>
     TrendsService.getInstance(token),
@@ -325,7 +325,7 @@ export default function AnalyticsTrends() {
     return TRENDS_PLATFORMS.map((config) => {
       const trendsByPlatform = getTrendsByPlatform(config.id);
 
-      const sortedTrends = [...trendsByPlatform].sort(
+      const sortedTrends = trendsByPlatform.toSorted(
         (a, b) => b.mentions - a.mentions,
       );
 
@@ -504,13 +504,19 @@ export default function AnalyticsTrends() {
           </p>
           {isLoadingTrends ? (
             <div className="animate-pulse space-y-3">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <div key={i} className="h-12 bg-background" />
+              {[
+                'trend-skeleton-1',
+                'trend-skeleton-2',
+                'trend-skeleton-3',
+                'trend-skeleton-4',
+                'trend-skeleton-5',
+              ].map((skeletonId) => (
+                <div key={skeletonId} className="h-12 bg-background" />
               ))}
             </div>
           ) : trendingTopics.length === 0 ? (
             <div className="text-center py-8 text-foreground/60">
-              <HiOutlineFire className="h-12 w-12 mx-auto mb-3 opacity-30" />
+              <HiOutlineFire className="size-12 mx-auto mb-3 opacity-30" />
               <p>No trending topics available.</p>
               <p className="text-sm mt-1">
                 Connect your social accounts to see personalized trends.
@@ -520,9 +526,7 @@ export default function AnalyticsTrends() {
             <Table<TrendItem>
               items={trendingTopics.slice(0, 20)}
               getRowKey={(item) => item.id}
-              onRowClick={(item) =>
-                router.push(`/analytics/trends/detail/${item.id}`)
-              }
+              onRowClick={(item) => push(`/analytics/trends/detail/${item.id}`)}
               columns={[
                 {
                   className: 'min-w-32',
@@ -535,7 +539,7 @@ export default function AnalyticsTrends() {
                       <div className="flex items-center gap-2">
                         {Icon && (
                           <Icon
-                            className="h-4 w-4"
+                            className="size-4"
                             style={{ color: config?.color }}
                           />
                         )}
@@ -787,7 +791,7 @@ export default function AnalyticsTrends() {
                     >
                       <div className="flex items-start gap-3">
                         {Icon && (
-                          <span className="mt-1 flex h-8 w-8 items-center justify-center rounded-full bg-background/60 text-base text-foreground/70">
+                          <span className="mt-1 flex size-8 items-center justify-center rounded-full bg-background/60 text-base text-foreground/70">
                             <Icon />
                           </span>
                         )}

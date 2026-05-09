@@ -11,7 +11,7 @@ import {
   type ContentType,
 } from '@/services/api/approvals.service';
 
-export type { Approval, ApprovalStatus, ContentType };
+export type { Approval };
 
 export interface UseApprovalsOptions {
   status?: ApprovalStatus;

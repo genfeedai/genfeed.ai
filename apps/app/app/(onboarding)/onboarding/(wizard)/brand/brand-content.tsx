@@ -16,7 +16,7 @@ import { UsersService } from '@services/organization/users.service';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import {
   HiArrowRight,
   HiBriefcase,
@@ -93,11 +93,11 @@ function normalizeWebsiteUrl(url: string): string | null {
   return trimmedUrl.includes('://') ? trimmedUrl : `https://${trimmedUrl}`;
 }
 
-export default function BrandContent() {
+function BrandContentContent() {
   const sectionRef = useGsapTimeline<HTMLDivElement>({ steps: TIMELINE_STEPS });
   const { getToken } = useAuth();
-  const router = useRouter();
-  const searchParams = useSearchParams();
+  const { push } = useRouter();
+  const { get } = useSearchParams();
 
   const [brandName, setBrandName] = useState('');
   const [websiteUrl, setWebsiteUrl] = useState('');
@@ -250,13 +250,13 @@ export default function BrandContent() {
           await service.updateBrandName(effectiveBrandName);
         }
 
-        router.push('/onboarding/providers');
+        push('/onboarding/providers');
       } catch (error) {
         logger.error('Failed to continue onboarding', error);
         setSubmitting(false);
       }
     },
-    [getToken, brandName, websiteUrl, router],
+    [getToken, brandName, websiteUrl, push],
   );
 
   const handleSkipOnboarding = useCallback(async () => {
@@ -271,12 +271,12 @@ export default function BrandContent() {
       await OnboardingService.getInstance(token).skip(
         'skipped-from-brand-step',
       );
-      router.push('/');
+      push('/');
     } catch (error) {
       logger.error('Failed to skip onboarding', error);
       setSubmitting(false);
     }
-  }, [getToken, router]);
+  }, [getToken, push]);
 
   // Auto-scan from corporate email flow
   useEffect(() => {
@@ -284,7 +284,7 @@ export default function BrandContent() {
       return;
     }
 
-    const isAuto = searchParams.get('auto') === 'true';
+    const isAuto = get('auto') === 'true';
     const storedDomain = localStorage.getItem(
       ONBOARDING_STORAGE_KEYS.brandDomain,
     );
@@ -305,13 +305,13 @@ export default function BrandContent() {
         logger.error('Failed to continue auto onboarding flow', error);
       });
     }
-  }, [handleContinue, searchParams.get]);
+  }, [handleContinue, get]);
 
   return (
     <div ref={sectionRef}>
       {/* Badge */}
       <div className="step-badge opacity-0 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-white/60 text-[10px] font-black uppercase tracking-[0.2em] mb-8">
-        <HiSparkles className="h-3 w-3" />
+        <HiSparkles className="size-3" />
         Step 1 of 3
       </div>
 
@@ -327,7 +327,7 @@ export default function BrandContent() {
       {/* Account type selector */}
       <div className="step-form opacity-0 max-w-md mb-8">
         <p className="text-xs font-medium text-white/50 uppercase tracking-wider mb-3">
-          I am a...
+          I am a…
         </p>
         <div className="grid grid-cols-3 gap-3">
           {ACCOUNT_TYPES.map(({ category, description, icon: Icon, label }) => (
@@ -399,7 +399,7 @@ export default function BrandContent() {
             </span>
           </label>
           <div className="relative">
-            <HiGlobeAlt className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" />
+            <HiGlobeAlt className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-white/30" />
             <Input
               id="brand-website-url"
               type="url"
@@ -421,7 +421,7 @@ export default function BrandContent() {
               variant={ButtonVariant.WHITE}
               size={ButtonSize.DEFAULT}
               label="Continue"
-              icon={<HiArrowRight className="h-4 w-4" />}
+              icon={<HiArrowRight className="size-4" />}
               isLoading={submitting}
               isDisabled={!brandName.trim()}
               onClick={() => handleContinue()}
@@ -439,5 +439,13 @@ export default function BrandContent() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function BrandContent() {
+  return (
+    <Suspense fallback={null}>
+      <BrandContentContent />
+    </Suspense>
   );
 }

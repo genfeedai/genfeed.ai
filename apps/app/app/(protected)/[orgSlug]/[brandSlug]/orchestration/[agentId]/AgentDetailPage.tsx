@@ -33,11 +33,10 @@ import {
   TableHeader,
   TableRow,
 } from '@ui/primitives/table';
-import { formatDistanceToNow } from 'date-fns';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { useCallback, useMemo, useState } from 'react';
+import { Suspense, useCallback, useMemo, useState } from 'react';
 import { FaLinkedin, FaXTwitter, FaYoutube } from 'react-icons/fa6';
 import {
   HiArrowLeft,
@@ -53,6 +52,7 @@ import {
   HiOutlineUser,
   HiOutlineVideoCamera,
 } from 'react-icons/hi2';
+import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 
 const AgentRunContentGrid = dynamic(() => import('./AgentRunContentGrid'), {
   ssr: false,
@@ -118,10 +118,10 @@ function getRunModelLabel(run: AgentRunRowProps['run']): string {
   return actualModel ?? requestedModel ?? 'Untracked';
 }
 
-export default function AgentDetailPage({ agentId }: AgentDetailPageProps) {
+function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
   const notificationsService = NotificationsService.getInstance();
-  const searchParams = useSearchParams();
-  const requestedOpportunityId = searchParams.get('opportunity');
+  const { get } = useSearchParams();
+  const requestedOpportunityId = get('opportunity');
   const {
     strategy,
     isLoading: isStrategyLoading,
@@ -379,9 +379,13 @@ export default function AgentDetailPage({ agentId }: AgentDetailPageProps) {
           </h3>
           {isRunsLoading ? (
             <div className="space-y-2">
-              {[1, 2, 3].map((i) => (
+              {[
+                'run-history-skeleton-1',
+                'run-history-skeleton-2',
+                'run-history-skeleton-3',
+              ].map((skeletonId) => (
                 <div
-                  key={i}
+                  key={skeletonId}
                   className="h-12 animate-pulse rounded bg-foreground/5"
                 />
               ))}
@@ -449,29 +453,29 @@ function RunRow({ run, isExpanded, onToggle }: AgentRunRowProps) {
             <HiChevronRight className="size-4 text-foreground/40" />
           )}
         </TableCell>
-        <TableCell className="px-4 py-4 align-middle">
+        <TableCell className="p-4 align-middle">
           <Badge variant={RUN_STATUS_VARIANTS[run.status] ?? 'secondary'}>
             {run.status}
           </Badge>
         </TableCell>
-        <TableCell className="px-4 py-4 align-middle text-sm">
+        <TableCell className="p-4 align-middle text-sm">
           {run.creditsUsed ?? 0}
         </TableCell>
         <TableCell
-          className="max-w-[18rem] px-4 py-4 align-middle text-sm text-foreground/60"
+          className="max-w-[18rem] p-4 align-middle text-sm text-foreground/60"
           title={getRunModelLabel(run)}
         >
           <span className="block truncate">{getRunModelLabel(run)}</span>
         </TableCell>
-        <TableCell className="px-4 py-4 align-middle text-sm text-foreground/60">
+        <TableCell className="p-4 align-middle text-sm text-foreground/60">
           {run.durationMs ? `${Math.round(run.durationMs / 1000)}s` : '\u2014'}
         </TableCell>
-        <TableCell className="px-4 py-4 align-middle text-sm text-foreground/60">
-          {run.startedAt
-            ? formatDistanceToNow(new Date(run.startedAt), {
-                addSuffix: true,
-              })
-            : '\u2014'}
+        <TableCell className="p-4 align-middle text-sm text-foreground/60">
+          {run.startedAt ? (
+            <ClientFormattedDate format="relative" value={run.startedAt} />
+          ) : (
+            '\u2014'
+          )}
         </TableCell>
       </TableRow>
       {isExpanded && (
@@ -503,5 +507,15 @@ function RunRow({ run, isExpanded, onToggle }: AgentRunRowProps) {
         </TableRow>
       )}
     </>
+  );
+}
+
+export default function AgentDetailPage(
+  props: Parameters<typeof AgentDetailPageContent>[0],
+) {
+  return (
+    <Suspense fallback={null}>
+      <AgentDetailPageContent {...props} />
+    </Suspense>
   );
 }

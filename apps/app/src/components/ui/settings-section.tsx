@@ -27,7 +27,7 @@ export function SettingsField({
       <div className="flex items-center justify-between">
         <div>
           <label className="text-sm font-medium text-foreground flex items-center gap-2">
-            {Icon && <Icon className="h-4 w-4" />}
+            {Icon && <Icon className="size-4" />}
             {label}
           </label>
           {description && (
@@ -75,7 +75,7 @@ export function InfoBox({
           {Icon && (
             <Icon
               className={cn(
-                'h-5 w-5 shrink-0 mt-0.5',
+                'size-5 shrink-0 mt-0.5',
                 isWarning ? 'text-amber-500' : 'text-muted-foreground',
               )}
             />
@@ -142,11 +142,11 @@ export function LinkCard({
       )}
     >
       {prominent ? (
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10">
-          <Icon className="h-5 w-5 text-primary" />
+        <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-primary/10">
+          <Icon className="size-5 text-primary" />
         </div>
       ) : (
-        <Icon className="h-5 w-5 text-muted-foreground" />
+        <Icon className="size-5 text-muted-foreground" />
       )}
       <div>
         <div className="font-medium text-foreground">{title}</div>

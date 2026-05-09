@@ -23,6 +23,7 @@ import { Slider } from '@ui/primitives/slider';
 import { Textarea } from '@ui/primitives/textarea';
 import { useCallback, useRef, useState } from 'react';
 import { HiOutlineSpeakerWave } from 'react-icons/hi2';
+import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 
 interface VoiceOption {
   voiceId: string;
@@ -149,9 +150,9 @@ export default function VoicesPage() {
         <div className="p-6">
           <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-              <label className="mb-1 block text-sm font-medium text-foreground/70">
+              <span className="mb-1 block text-sm font-medium text-foreground/70">
                 Character (Optional)
-              </label>
+              </span>
               <Select
                 onValueChange={(value) =>
                   setSelectedCharacter(
@@ -178,9 +179,9 @@ export default function VoicesPage() {
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-foreground/70">
+              <span className="mb-1 block text-sm font-medium text-foreground/70">
                 Voice
-              </label>
+              </span>
               <Select
                 disabled={isLoadingVoices}
                 onValueChange={setSelectedVoiceId}
@@ -226,9 +227,9 @@ export default function VoicesPage() {
           </div>
 
           <div className="mb-4">
-            <label className="mb-1 block text-sm font-medium text-foreground/70">
+            <span className="mb-1 block text-sm font-medium text-foreground/70">
               Text
-            </label>
+            </span>
             <Textarea
               className="min-h-[120px] w-full"
               onChange={(event) => setText(event.target.value)}
@@ -273,7 +274,7 @@ export default function VoicesPage() {
                       </p>
                       <p className="text-xs text-foreground/40">
                         Voice: {audio.voiceName} -{' '}
-                        {new Date(audio.createdAt).toLocaleString()}
+                        <ClientFormattedDate value={audio.createdAt} />
                       </p>
                     </div>
                     <a

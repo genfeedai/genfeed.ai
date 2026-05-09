@@ -161,7 +161,7 @@ export default function VoiceCatalogRow({
               variant={ButtonVariant.GHOST}
               withWrapper={false}
             >
-              <HiTrash className="h-4 w-4" />
+              <HiTrash className="size-4" />
             </Button>
           ) : null}
         </>

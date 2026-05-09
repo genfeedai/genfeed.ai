@@ -3,14 +3,40 @@ import type {
   IDesktopSyncJob,
   IDesktopSyncState,
 } from '@genfeedai/desktop-contracts';
-import type { DesktopDatabaseService, SyncJobRow } from './database.service';
+import type { PrismaClient } from '@genfeedai/desktop-prisma';
 
 const toIso = (): string => new Date().toISOString();
 
 export class DesktopSyncService {
-  constructor(private readonly database: DesktopDatabaseService) {}
+  private readonly jobs = new Map<string, IDesktopSyncJob>();
 
-  private toSyncJob(row: SyncJobRow): IDesktopSyncJob {
+  constructor(private readonly prisma: PrismaClient) {}
+
+  async init(): Promise<void> {
+    const rows = await this.prisma.desktopSyncJob.findMany({
+      orderBy: {
+        updatedAt: 'desc',
+      },
+    });
+
+    this.jobs.clear();
+
+    for (const row of rows) {
+      this.jobs.set(row.id, this.toSyncJob(row));
+    }
+  }
+
+  private toSyncJob(row: {
+    createdAt: string;
+    error: string | null;
+    id: string;
+    payload: string;
+    retryCount: number;
+    status: string;
+    type: string;
+    updatedAt: string;
+    workspaceId: string | null;
+  }): IDesktopSyncJob {
     return {
       createdAt: row.createdAt,
       error: row.error ?? undefined,
@@ -24,13 +50,18 @@ export class DesktopSyncService {
     };
   }
 
-  async listJobs(workspaceId?: string): Promise<IDesktopSyncJob[]> {
-    const rows = await this.database.listSyncJobs(workspaceId);
-    return rows.map((row) => this.toSyncJob(row));
+  private listJobCache(workspaceId?: string): IDesktopSyncJob[] {
+    return Array.from(this.jobs.values())
+      .filter((job) => !workspaceId || job.workspaceId === workspaceId)
+      .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
   }
 
-  async getState(): Promise<IDesktopSyncState> {
-    const jobs = await this.listJobs();
+  listJobs(workspaceId?: string): IDesktopSyncJob[] {
+    return this.listJobCache(workspaceId);
+  }
+
+  getState(): IDesktopSyncState {
+    const jobs = this.listJobCache();
 
     return {
       failedCount: jobs.filter((job) => job.status === 'failed').length,
@@ -47,7 +78,7 @@ export class DesktopSyncService {
     workspaceId?: string,
   ): Promise<IDesktopSyncJob> {
     const now = toIso();
-    const row: SyncJobRow = {
+    const row = {
       createdAt: now,
       error: null,
       id: randomUUID(),
@@ -59,7 +90,16 @@ export class DesktopSyncService {
       workspaceId: workspaceId ?? null,
     };
 
-    await this.database.upsertSyncJob(row);
-    return this.toSyncJob(row);
+    await this.prisma.desktopSyncJob.upsert({
+      create: row,
+      update: row,
+      where: {
+        id: row.id,
+      },
+    });
+
+    const job = this.toSyncJob(row);
+    this.jobs.set(job.id, job);
+    return job;
   }
 }

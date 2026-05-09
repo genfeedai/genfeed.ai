@@ -5,7 +5,7 @@ import { applyEditOperations } from '@/lib/chat/editOperations';
 import type { NodeGroup } from '@/types/groups';
 import type { WorkflowStore } from '../types';
 
-export interface WorkflowSnapshot {
+interface WorkflowSnapshot {
   nodes: WorkflowNode[];
   edges: WorkflowEdge[];
   groups: NodeGroup[];

@@ -24,6 +24,7 @@ import {
   HiPencil,
   HiTrash,
 } from 'react-icons/hi2';
+import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 
 const WORKFLOW_SKELETON_KEYS = [
   'workflow-skeleton-1',
@@ -120,114 +121,113 @@ export default function WorkflowsPage() {
     [openConfirmDelete, getWorkflowsService, notificationsService],
   );
 
-  if (isLoading) {
-    return (
-      <Container
-        label="Workflows"
-        description="Create multi-step automation pipelines for content generation and publishing"
-        icon={HiOutlineClipboardDocumentList}
-      >
-        <div className="grid gap-4">
-          {WORKFLOW_SKELETON_KEYS.map((key) => (
-            <SkeletonCard key={key} showImage={false} />
-          ))}
-        </div>
-      </Container>
-    );
-  }
-
   return (
     <Container
       label="Workflows"
       description="Create multi-step automation pipelines for content generation and publishing"
       icon={HiOutlineClipboardDocumentList}
-      right=<ButtonRefresh
-        onClick={() => loadWorkflows(true)}
-        isRefreshing={isRefreshing}
-      />
+      right={
+        <ButtonRefresh
+          onClick={() => loadWorkflows(true)}
+          isRefreshing={isRefreshing}
+        />
+      }
     >
-      <WorkspaceSurface
-        title="Automation Workflows"
-        tone="muted"
-        data-testid="automation-workflows-surface"
-      >
+      {isLoading ? (
         <div className="grid gap-4">
-          {workflows.length === 0 ? (
-            <CardEmpty label="No workflows found" />
-          ) : (
-            workflows.map((workflow: Workflow) => (
-              <Card key={workflow.id}>
-                <div className="p-6">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="card-label text-lg">{workflow.label}</h3>
-                        <Badge
-                          variant={getWorkflowStatusVariant(workflow.status)}
-                        >
-                          {workflow.status}
-                        </Badge>
-                        <Badge variant="outline" className="capitalize">
-                          {workflow.trigger}
-                        </Badge>
-                      </div>
-
-                      {workflow.description && (
-                        <p className="text-foreground/70 mb-3">
-                          {workflow.description}
-                        </p>
-                      )}
-
-                      <div className="flex items-center gap-4 text-sm text-foreground/60 mb-3">
-                        {workflow.createdAt && (
-                          <span>
-                            Created:{' '}
-                            {new Date(workflow.createdAt).toLocaleDateString()}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    <Dropdown
-                      trigger={
-                        <Button
-                          variant={ButtonVariant.GHOST}
-                          size={ButtonSize.ICON}
-                        >
-                          <HiEllipsisVertical className="w-4 h-4" />
-                        </Button>
-                      }
-                      usePortal
-                    >
-                      <ul className="menu p-0">
-                        <li>
-                          <Button asChild variant={ButtonVariant.SOFT}>
-                            <Link href={`/workflows/${workflow.id}`}>
-                              <HiPencil className="w-4 h-4" />
-                              View/Edit
-                            </Link>
-                          </Button>
-                        </li>
-                        <li>
-                          <Button
-                            variant={ButtonVariant.UNSTYLED}
-                            withWrapper={false}
-                            className="text-error"
-                            onClick={() => handleDelete(workflow)}
-                          >
-                            <HiTrash className="w-4 h-4" />
-                            Delete
-                          </Button>
-                        </li>
-                      </ul>
-                    </Dropdown>
-                  </div>
-                </div>
-              </Card>
-            ))
-          )}
+          {WORKFLOW_SKELETON_KEYS.map((key) => (
+            <SkeletonCard key={key} showImage={false} />
+          ))}
         </div>
-      </WorkspaceSurface>
+      ) : (
+        <WorkspaceSurface
+          title="Automation Workflows"
+          tone="muted"
+          data-testid="automation-workflows-surface"
+        >
+          <div className="grid gap-4">
+            {workflows.length === 0 ? (
+              <CardEmpty label="No workflows found" />
+            ) : (
+              workflows.map((workflow: Workflow) => (
+                <Card key={workflow.id}>
+                  <div className="p-6">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="card-label text-lg">
+                            {workflow.label}
+                          </h3>
+                          <Badge
+                            variant={getWorkflowStatusVariant(workflow.status)}
+                          >
+                            {workflow.status}
+                          </Badge>
+                          <Badge variant="outline" className="capitalize">
+                            {workflow.trigger}
+                          </Badge>
+                        </div>
+
+                        {workflow.description && (
+                          <p className="text-foreground/70 mb-3">
+                            {workflow.description}
+                          </p>
+                        )}
+
+                        <div className="flex items-center gap-4 text-sm text-foreground/60 mb-3">
+                          {workflow.createdAt && (
+                            <span>
+                              Created:{' '}
+                              <ClientFormattedDate
+                                format="date"
+                                value={workflow.createdAt}
+                              />
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <Dropdown
+                        trigger={
+                          <Button
+                            variant={ButtonVariant.GHOST}
+                            size={ButtonSize.ICON}
+                          >
+                            <HiEllipsisVertical className="size-4" />
+                          </Button>
+                        }
+                        usePortal
+                      >
+                        <ul className="menu p-0">
+                          <li>
+                            <Button asChild variant={ButtonVariant.SOFT}>
+                              <Link href={`/workflows/${workflow.id}`}>
+                                <HiPencil className="size-4" />
+                                View/Edit
+                              </Link>
+                            </Button>
+                          </li>
+                          <li>
+                            <Button
+                              variant={ButtonVariant.UNSTYLED}
+                              withWrapper={false}
+                              className="text-error"
+                              onClick={() => handleDelete(workflow)}
+                            >
+                              <HiTrash className="size-4" />
+                              Delete
+                            </Button>
+                          </li>
+                        </ul>
+                      </Dropdown>
+                    </div>
+                  </div>
+                </Card>
+              ))
+            )}
+          </div>
+        </WorkspaceSurface>
+      )}
     </Container>
   );
 }

@@ -65,7 +65,7 @@ export default function BotToggle({
   disabledMessage = 'Bot is currently disabled',
   configItems,
 }: BotToggleProps): React.JSX.Element {
-  const router = useRouter();
+  const { push } = useRouter();
   const { href } = useOrgUrl();
   const [isEnabled, setIsEnabled] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -85,12 +85,12 @@ export default function BotToggle({
           href={href('/bots')}
           className="p-2 hover:bg-muted transition-colors"
         >
-          <HiArrowLeft className="w-5 h-5" />
+          <HiArrowLeft className="size-5" />
         </Link>
         <div className="flex items-center gap-3">
           <div className={cn('p-3', iconBgColor)}>{icon}</div>
           <div>
-            <h1 className="text-2xl font-bold">{title}</h1>
+            <h1 className="text-2xl font-semibold">{title}</h1>
             <p className="text-muted-foreground">{description}</p>
           </div>
         </div>
@@ -144,7 +144,7 @@ export default function BotToggle({
             href={editorPath}
             className="flex items-center gap-2 text-sm text-primary hover:underline"
           >
-            <HiCog6Tooth className="w-4 h-4" />
+            <HiCog6Tooth className="size-4" />
             Advanced Settings
           </Link>
         </div>
@@ -171,7 +171,7 @@ export default function BotToggle({
       <div className="flex justify-end">
         <Button
           variant={ButtonVariant.SECONDARY}
-          onClick={() => router.push(href(editorPath))}
+          onClick={() => push(href(editorPath))}
         >
           View Workflow
         </Button>

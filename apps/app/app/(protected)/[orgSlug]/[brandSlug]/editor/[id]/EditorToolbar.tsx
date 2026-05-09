@@ -69,7 +69,7 @@ const FORMAT_OPTIONS = [
   { height: 1080, label: '1:1', value: IngredientFormat.SQUARE, width: 1080 },
 ];
 
-export function EditorToolbar({
+function EditorToolbar({
   projectName,
   format,
   isPlaying,
@@ -101,7 +101,7 @@ export function EditorToolbar({
           variant={ButtonVariant.GHOST}
           size={ButtonSize.SM}
           onClick={onBack}
-          icon={<ArrowLeft className="w-4 h-4" />}
+          icon={<ArrowLeft className="size-4" />}
         >
           Back
         </Button>
@@ -123,7 +123,7 @@ export function EditorToolbar({
           size={ButtonSize.ICON}
           onClick={onSeekStart}
           tooltip="Go to start"
-          icon={<SkipBack className="w-4 h-4" />}
+          icon={<SkipBack className="size-4" />}
         />
 
         {/* Step back */}
@@ -133,7 +133,7 @@ export function EditorToolbar({
           size={ButtonSize.ICON}
           onClick={onStepBack}
           tooltip="Previous frame"
-          icon={<StepBack className="w-4 h-4" />}
+          icon={<StepBack className="size-4" />}
         />
 
         {/* Play/Pause */}
@@ -143,12 +143,12 @@ export function EditorToolbar({
           size={ButtonSize.ICON}
           onClick={onPlayPause}
           tooltip={isPlaying ? 'Pause' : 'Play'}
-          className="h-10 w-10 rounded-full"
+          className="size-10 rounded-full"
           icon={
             isPlaying ? (
-              <Pause className="w-5 h-5" />
+              <Pause className="size-5" />
             ) : (
-              <Play className="w-5 h-5" />
+              <Play className="size-5" />
             )
           }
         />
@@ -160,7 +160,7 @@ export function EditorToolbar({
           size={ButtonSize.ICON}
           onClick={onStepForward}
           tooltip="Next frame"
-          icon={<StepForward className="w-4 h-4" />}
+          icon={<StepForward className="size-4" />}
         />
 
         {/* Go to end */}
@@ -170,7 +170,7 @@ export function EditorToolbar({
           size={ButtonSize.ICON}
           onClick={onSeekEnd}
           tooltip="Go to end"
-          icon={<SkipForward className="w-4 h-4" />}
+          icon={<SkipForward className="size-4" />}
         />
 
         {/* Time display */}
@@ -189,7 +189,7 @@ export function EditorToolbar({
             size={ButtonSize.SM}
             onClick={onAddVideoTrack}
             tooltip="Add Video Track"
-            icon={<HiOutlineFilm className="h-4 w-4" />}
+            icon={<HiOutlineFilm className="size-4" />}
           >
             <span className="hidden sm:inline">Video</span>
           </Button>
@@ -199,7 +199,7 @@ export function EditorToolbar({
             size={ButtonSize.SM}
             onClick={onAddAudioTrack}
             tooltip="Add Audio Track"
-            icon={<HiOutlineMusicalNote className="h-4 w-4" />}
+            icon={<HiOutlineMusicalNote className="size-4" />}
           >
             <span className="hidden sm:inline">Audio</span>
           </Button>

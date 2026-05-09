@@ -20,7 +20,7 @@ export const ONBOARDING_STORAGE_KEYS = {
 
 type OnboardingHandoffStorage = Pick<Storage, 'setItem'>;
 
-export function normalizeOnboardingAccessMode(
+function normalizeOnboardingAccessMode(
   value: unknown,
 ): OnboardingAccessMode | null {
   if (value === 'server' || value === 'byok' || value === 'cloud') {
@@ -83,8 +83,12 @@ export function deriveBrandNameFromDomain(domain: string): string {
   return domain
     .replace(/\.[a-z]{2,}$/i, '')
     .split(/[.\-_]+/)
-    .filter(Boolean)
-    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+    .reduce<string[]>((segments, segment) => {
+      if (segment) {
+        segments.push(segment.charAt(0).toUpperCase() + segment.slice(1));
+      }
+      return segments;
+    }, [])
     .join(' ')
     .trim();
 }

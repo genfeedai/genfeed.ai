@@ -8,8 +8,8 @@
     "asarUnpack": [
       "dist/app-shell/**/*",
       "node_modules/node-pty/**/*",
-      "node_modules/@electric-sql/pglite/**/*",
-      "node_modules/.bun/@electric-sql+pglite@*/node_modules/@electric-sql/pglite/**/*"
+      "node_modules/@electric-sql/pglite/dist/**",
+      "node_modules/.bun/@electric-sql+pglite@*/node_modules/@electric-sql/pglite/dist/**"
     ],
     "directories": {
       "output": "release"
@@ -24,6 +24,8 @@
     "mac": {
       "category": "public.app-category.productivity",
       "darkModeSupport": true,
+      "entitlements": "assets/entitlements.mac.plist",
+      "entitlementsInherit": "assets/entitlements.mac.plist",
       "gatekeeperAssess": false,
       "hardenedRuntime": true,
       "icon": "build/icon.icns",
@@ -56,6 +58,9 @@
     "react": "19.2.5",
     "react-dom": "19.2.5"
   },
+  "optionalDependencies": {
+    "better-sqlite3": "^12.4.1"
+  },
   "description": "GenFeed — Electron native app for content creation",
   "devDependencies": {
     "@biomejs/biome": "2.4.13",
@@ -69,7 +74,6 @@
     "electron-builder": "26.8.1",
     "esbuild": "0.28.0",
     "jsdom": "29.1.0",
-    "sass": "1.99.0",
     "typescript": "6.0.2",
     "vitest": "4.1.5"
   },
@@ -83,7 +87,7 @@
   "scripts": {
     "build": "bun run build:native && bun run build:app-shell && bun run copy:app-shell",
     "build:app-shell": "node ./scripts/build-app-shell.cjs",
-    "build:main": "bunx esbuild src/main.ts --bundle --platform=node --target=node20 --outfile=dist/main.js --external:electron --external:@electric-sql/pglite --external:@electric-sql/pglite/* --external:@electric-sql/pglite-socket --external:node-pty --tsconfig=tsconfig.json",
+    "build:main": "bunx esbuild src/main.ts --bundle --platform=node --target=node20 --outfile=dist/main.js --external:electron --external:@electric-sql/pglite --external:@electric-sql/pglite/* --external:@electric-sql/pglite-socket --external:@genfeedai/desktop-prisma --external:@genfeedai/desktop-prisma/* --external:node-pty --tsconfig=tsconfig.json",
     "build:preload": "bunx esbuild src/preload.ts --bundle --platform=node --target=node20 --outfile=dist/preload.js --external:electron --tsconfig=tsconfig.json",
     "build:release": "bun run build && bun run prepare:release",
     "build:native": "bun run clean && bun run build:main && bun run build:preload && bun run copy:assets",
@@ -96,6 +100,7 @@
     "icon:mac": "bash ./scripts/generate-macos-icon.sh",
     "lint": "biome check src scripts package.json",
     "native:rebuild": "electron-builder install-app-deps",
+    "notarize": "node ./scripts/notarize.cjs",
     "pack:mac": "bun run electron:install-binary && bun run native:rebuild && bun run build:release && electron-builder --mac --dir --publish never",
     "prepare:release": "bun run icon:mac",
     "release:mac": "bun run electron:install-binary && bun run native:rebuild && bun run build:release && electron-builder --mac dmg zip --publish never",

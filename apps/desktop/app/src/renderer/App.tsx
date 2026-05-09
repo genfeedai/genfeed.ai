@@ -10,12 +10,14 @@ import {
   useEffect,
   useState,
 } from 'react';
+import { AuthScreen } from './auth/AuthScreen';
 import OnboardingWizard from './components/OnboardingWizard';
 import ReconnectBanner from './components/ReconnectBanner';
 import { Sidebar } from './components/Sidebar';
 import { Topbar } from './components/Topbar';
 import { useThreads } from './hooks/useThreads';
 import type { NavView } from './nav-view';
+import OfflineShell from './offline/OfflineShell';
 import { useSyncEngine } from './sync/useSyncEngine';
 import { initializeRendererTelemetry } from './telemetry';
 
@@ -65,6 +67,17 @@ const emptyBootstrap: IDesktopBootstrap = {
     authEndpoint: '',
     cdnUrl: '',
     wsEndpoint: '',
+  },
+  isOfflineMode: false,
+  localOrganization: {
+    id: 'local-org',
+    name: 'Local Workspace',
+    slug: 'local-workspace',
+  },
+  localUser: {
+    id: 'local-user',
+    name: 'Local Desktop User',
+    organizationId: 'local-org',
   },
   localUserId: '',
   preferences: { nativeNotificationsEnabled: false },
@@ -279,7 +292,10 @@ export const App = () => {
   /* ─── Derived state ─── */
 
   const shouldShowWizard =
-    onboardingState.loaded && !onboardingState.completed && !bootstrap.clerkId;
+    onboardingState.loaded &&
+    !onboardingState.completed &&
+    !bootstrap.clerkId &&
+    bootstrap.session !== null;
 
   const shouldShowReconnect =
     !isDismissedReconnect &&
@@ -298,6 +314,14 @@ export const App = () => {
     return (
       <OnboardingWizard onComplete={() => void handleOnboardingComplete()} />
     );
+  }
+
+  if (bootstrap.session === null && bootstrap.isOfflineMode) {
+    return <OfflineShell bootstrap={bootstrap} />;
+  }
+
+  if (bootstrap.session === null) {
+    return <AuthScreen />;
   }
 
   const renderMainView = () => {

@@ -24,14 +24,14 @@ import AppTable from '@ui/display/table/Table';
 import { LazyModalTag } from '@ui/lazy/modal/LazyModal';
 import { Switch } from '@ui/primitives/switch';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useMemo, useState } from 'react';
+import { Suspense, useCallback, useMemo, useState } from 'react';
 import { HiPencil, HiTrash } from 'react-icons/hi2';
 
 function isGlobalTag(tag: ITag): boolean {
   return !tag.organization && !tag.user;
 }
 
-export default function TagsList({
+function TagsListContent({
   scope,
   filter,
   externalFilters,
@@ -53,10 +53,10 @@ export default function TagsList({
 
   const { openConfirm } = useConfirmModal();
 
-  const router = useRouter();
+  const { replace } = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const searchParamsString = searchParams?.toString() ?? '';
+  const { toString: getSearchParamsString } = useSearchParams();
+  const searchParamsString = getSearchParamsString() ?? '';
   const parsedSearchParams = useMemo(
     () => new URLSearchParams(searchParamsString),
     [searchParamsString],
@@ -84,11 +84,11 @@ export default function TagsList({
       params.delete('brand');
       params.delete('page');
       const queryString = params.toString();
-      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+      replace(queryString ? `${pathname}?${queryString}` : pathname, {
         scroll: false,
       });
     },
-    [pathname, router, searchParamsString],
+    [pathname, replace, searchParamsString],
   );
 
   const handleAdminBrandChange = useCallback(
@@ -102,11 +102,11 @@ export default function TagsList({
       }
       params.delete('page');
       const queryString = params.toString();
-      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+      replace(queryString ? `${pathname}?${queryString}` : pathname, {
         scroll: false,
       });
     },
-    [pathname, router, searchParamsString],
+    [pathname, replace, searchParamsString],
   );
 
   // Use external filters if provided, otherwise use defaults
@@ -492,5 +492,13 @@ export default function TagsList({
         />
       )}
     </>
+  );
+}
+
+export default function TagsList(props: Parameters<typeof TagsListContent>[0]) {
+  return (
+    <Suspense fallback={null}>
+      <TagsListContent {...props} />
+    </Suspense>
   );
 }

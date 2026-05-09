@@ -49,7 +49,7 @@ export function EditSettingModal({
     }
   }, [editedValue, onSave, closeEditModal]);
 
-  const handleChange = useCallback(
+  const updateScalarSettingValue = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       if (type === 'number') {
         setEditedValue(Number(e.target.value));
@@ -90,7 +90,7 @@ export function EditSettingModal({
               type="number"
               className={inputClassName}
               value={editedValue as number}
-              onChange={handleChange}
+              onChange={updateScalarSettingValue}
               disabled={isSaving}
             />
           </Field>
@@ -102,7 +102,7 @@ export function EditSettingModal({
               type="text"
               className={inputClassName}
               value={editedValue as string}
-              onChange={handleChange}
+              onChange={updateScalarSettingValue}
               disabled={isSaving}
             />
           </Field>

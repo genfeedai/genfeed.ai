@@ -226,7 +226,7 @@ function GenerateWorkflowModalComponent() {
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <div className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-primary" />
+          <Sparkles className="size-5 text-primary" />
           <h2 className="font-semibold text-foreground">
             AI Workflow Generator
           </h2>
@@ -237,7 +237,7 @@ function GenerateWorkflowModalComponent() {
           withWrapper={false}
           onClick={handleClose}
         >
-          <X className="h-5 w-5" />
+          <X className="size-5" />
         </Button>
       </div>
 
@@ -245,9 +245,9 @@ function GenerateWorkflowModalComponent() {
       <div className="flex-1 overflow-auto p-4">
         {/* Description Input */}
         <div className="space-y-2">
-          <label className="text-sm font-medium text-foreground">
+          <span className="text-sm font-medium text-foreground">
             Describe your workflow
-          </label>
+          </span>
           <Textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -259,7 +259,7 @@ function GenerateWorkflowModalComponent() {
 
         {/* Model Selection */}
         <div className="mt-4 space-y-2">
-          <label className="text-sm font-medium text-foreground">Model</label>
+          <span className="text-sm font-medium text-foreground">Model</span>
           <Select
             value={model}
             onValueChange={(value) => setModel(value)}
@@ -283,9 +283,9 @@ function GenerateWorkflowModalComponent() {
 
         {/* Example Prompts */}
         <div className="mt-4 space-y-2">
-          <label className="text-xs font-medium text-muted-foreground">
+          <span className="text-xs font-medium text-muted-foreground">
             Examples
-          </label>
+          </span>
           <div className="flex flex-wrap gap-1.5">
             {EXAMPLE_PROMPTS.map((prompt) => (
               <Button
@@ -296,7 +296,7 @@ function GenerateWorkflowModalComponent() {
                 className="rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground transition hover:border-primary hover:text-foreground"
                 isDisabled={isGenerating}
               >
-                {prompt.length > 40 ? `${prompt.slice(0, 40)}...` : prompt}
+                {prompt.length > 40 ? `${prompt.slice(0, 40)}…` : prompt}
               </Button>
             ))}
           </div>
@@ -304,9 +304,9 @@ function GenerateWorkflowModalComponent() {
 
         {/* Content Level */}
         <div className="mt-6 space-y-2">
-          <label className="text-sm font-medium text-foreground">
+          <span className="text-sm font-medium text-foreground">
             Content Level
-          </label>
+          </span>
           <div className="space-y-2">
             {CONTENT_LEVELS.map(({ value, label, description: desc }) => (
               <Button
@@ -340,7 +340,7 @@ function GenerateWorkflowModalComponent() {
         {/* Error Message */}
         {error && (
           <div className="mt-4 flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3">
-            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+            <AlertCircle className="mt-0.5 size-4 shrink-0 text-destructive" />
             <p className="text-sm text-destructive">{error}</p>
           </div>
         )}
@@ -349,9 +349,9 @@ function GenerateWorkflowModalComponent() {
         {generatedWorkflow && (
           <div className="mt-4 space-y-3">
             <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-foreground">
+              <span className="text-sm font-medium text-foreground">
                 Generated Workflow
-              </label>
+              </span>
               <span className="text-xs text-muted-foreground">
                 {generatedWorkflow.nodes.length} nodes,{' '}
                 {generatedWorkflow.edges.length} edges
@@ -390,7 +390,7 @@ function GenerateWorkflowModalComponent() {
               onClick={handleApply}
               className="w-full"
             >
-              <Sparkles className="mr-2 h-4 w-4" />
+              <Sparkles className="mr-2 size-4" />
               Apply to Canvas
             </Button>
           </div>
@@ -407,12 +407,12 @@ function GenerateWorkflowModalComponent() {
         >
           {isGenerating ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Generating...
+              <Loader2 className="mr-2 size-4 animate-spin" />
+              Generating…
             </>
           ) : (
             <>
-              <Sparkles className="mr-2 h-4 w-4" />
+              <Sparkles className="mr-2 size-4" />
               Generate Workflow
             </>
           )}

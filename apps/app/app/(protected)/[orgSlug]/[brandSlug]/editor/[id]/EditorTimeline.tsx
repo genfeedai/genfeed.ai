@@ -304,7 +304,7 @@ function ClipBlock({
   );
 }
 
-export function EditorTimeline({
+function EditorTimeline({
   tracks,
   currentFrame,
   totalFrames,
@@ -409,7 +409,7 @@ export function EditorTimeline({
           style={{ left: `${192 + currentFrame * zoom}px` }}
           onMouseDown={handlePlayheadDrag}
         >
-          <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-3 h-3 bg-red-500 rounded-full" />
+          <div className="absolute -top-1 left-1/2 -translate-x-1/2 size-3 bg-red-500 rounded-full" />
         </div>
       </div>
 

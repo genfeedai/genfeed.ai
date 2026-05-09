@@ -66,6 +66,7 @@ import {
 import type { Resolver } from 'react-hook-form';
 import { useForm } from 'react-hook-form';
 import { HiArrowLeft, HiCheck, HiClock } from 'react-icons/hi2';
+import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 
 const CATEGORY_LABELS: Partial<Record<IngredientCategory, string>> = {
   [IngredientCategory.VIDEO]: 'Video',
@@ -87,13 +88,13 @@ const STATUS_BADGE_CONFIG: Partial<
 > = {
   [IngredientStatus.VALIDATED]: {
     bgClass: 'bg-success/20',
-    icon: <HiCheck className="w-3.5 h-3.5" />,
+    icon: <HiCheck className="size-3.5" />,
     label: 'Validated',
     textClass: 'text-success',
   },
   [IngredientStatus.PROCESSING]: {
     bgClass: 'bg-warning/20',
-    icon: <HiClock className="w-3.5 h-3.5" />,
+    icon: <HiClock className="size-3.5" />,
     label: 'Processing',
     textClass: 'text-warning',
   },
@@ -105,7 +106,7 @@ export default function StudioEditDetail({
   const { subscribe } = useSocketManager();
   const socketSubscriptionsRef = useRef<Array<() => void>>([]);
   const { brandId } = useBrand();
-  const router = useRouter();
+  const { push } = useRouter();
   const { href } = useOrgUrl();
 
   const notificationsService = NotificationsService.getInstance();
@@ -575,7 +576,7 @@ export default function StudioEditDetail({
     return (
       <div className="flex flex-col h-screen items-center justify-center">
         <div className="text-center max-w-md mx-auto p-8 bg-background shadow-lg">
-          <h2 className="text-2xl font-bold text-error mb-4">
+          <h2 className="text-2xl font-semibold text-error mb-4">
             Error Loading Ingredient
           </h2>
           <p className="text-foreground/70 mb-6">{loadError}</p>
@@ -610,7 +611,7 @@ export default function StudioEditDetail({
               size={ButtonSize.SM}
             >
               <Link href={href('/studio')}>
-                <HiArrowLeft className="w-4 h-4" />
+                <HiArrowLeft className="size-4" />
                 Back to Generate
               </Link>
             </PrimitiveButton>
@@ -658,15 +659,18 @@ export default function StudioEditDetail({
                     <div>
                       <span className="text-foreground/60">Created</span>
                       <p className="font-medium mt-1">
-                        {new Date(
-                          selectedIngredient.createdAt,
-                        ).toLocaleDateString('en-US', {
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                          month: 'short',
-                          year: 'numeric',
-                        })}
+                        <ClientFormattedDate
+                          format="date"
+                          locales="en-US"
+                          options={{
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            month: 'short',
+                            year: 'numeric',
+                          }}
+                          value={selectedIngredient.createdAt}
+                        />
                       </p>
                     </div>
                     <div>
@@ -712,17 +716,22 @@ export default function StudioEditDetail({
                                 <div className="w-full h-full bg-muted animate-pulse" />
                               )}
                               <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                                <div className="w-8 h-8 rounded-full bg-white/20 animate-pulse" />
+                                <div className="size-8 rounded-full bg-white/20 animate-pulse" />
                               </div>
                             </div>
-                            <p className="font-medium text-sm">Processing...</p>
+                            <p className="font-medium text-sm">Processing…</p>
                             <p className="text-xs text-foreground/60">
-                              {new Date().toLocaleDateString('en-US', {
-                                day: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                                month: 'short',
-                              })}
+                              <ClientFormattedDate
+                                format="date"
+                                locales="en-US"
+                                options={{
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                  month: 'short',
+                                }}
+                                value="now"
+                              />
                             </p>
                           </Card>
                         );
@@ -733,9 +742,7 @@ export default function StudioEditDetail({
                           key={result.id}
                           type="button"
                           variant={ButtonVariant.UNSTYLED}
-                          onClick={() =>
-                            router.push(href(`/edit/${result.id}`))
-                          }
+                          onClick={() => push(href(`/edit/${result.id}`))}
                           className="cursor-pointer w-full text-left bg-transparent border-0 p-0"
                         >
                           <Card className="p-3 bg-card hover:shadow-lg transition-all">
@@ -758,15 +765,17 @@ export default function StudioEditDetail({
                               {result.metadataLabel || 'Version'}
                             </p>
                             <p className="text-xs text-foreground/60">
-                              {new Date(result.createdAt).toLocaleDateString(
-                                'en-US',
-                                {
+                              <ClientFormattedDate
+                                format="date"
+                                locales="en-US"
+                                options={{
                                   day: 'numeric',
                                   hour: '2-digit',
                                   minute: '2-digit',
                                   month: 'short',
-                                },
-                              )}
+                                }}
+                                value={result.createdAt}
+                              />
                             </p>
                             {result.promptText && (
                               <p className="text-xs text-foreground/80 line-clamp-2 mt-2">

@@ -232,6 +232,32 @@ describe('PostsController', () => {
         }),
       );
     });
+
+    it('should allow scheduled text-only Threads posts', async () => {
+      mockServices.credentialsService.findOne.mockResolvedValueOnce({
+        ...mockCredential,
+        label: 'Threads Account',
+        platform: 'threads',
+      });
+
+      const createPostDto: CreatePostDto = {
+        category: 'text' as never,
+        credential: mockCredential._id,
+        description: 'Text-only Threads post',
+        ingredients: [],
+        label: 'Threads post',
+        status: 'scheduled' as never,
+      };
+
+      await controller.create(mockRequest, mockUser, createPostDto);
+
+      expect(mockServices.postsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          platform: 'threads',
+          status: 'scheduled',
+        }),
+      );
+    });
   });
 
   describe('findAll', () => {

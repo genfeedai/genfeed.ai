@@ -160,6 +160,7 @@ export function BottomBar() {
     <div
       className="fixed bottom-5 left-1/2 z-50 -translate-x-1/2"
       onMouseDown={(e) => e.stopPropagation()}
+      role="toolbar"
     >
       <div className="flex items-center gap-1 rounded-md border border-neutral-700/80 bg-neutral-800/95 px-2 py-1 shadow-lg backdrop-blur-sm">
         {/* Batch Counter */}
@@ -170,8 +171,8 @@ export function BottomBar() {
             withWrapper={false}
             onClick={decrementBatch}
             isDisabled={batchCount <= MIN_BATCH || isActive}
-            className="flex h-5 w-5 items-center justify-center rounded text-neutral-400 transition hover:bg-neutral-700 hover:text-white disabled:opacity-40 disabled:hover:bg-transparent"
-            icon={<Minus className="h-2.5 w-2.5" />}
+            className="flex size-5 items-center justify-center rounded text-neutral-400 transition hover:bg-neutral-700 hover:text-white disabled:opacity-40 disabled:hover:bg-transparent"
+            icon={<Minus className="size-2.5" />}
           />
           <span className="w-4 text-center text-xs font-medium tabular-nums text-white">
             {batchCount}
@@ -181,8 +182,8 @@ export function BottomBar() {
             withWrapper={false}
             onClick={incrementBatch}
             isDisabled={batchCount >= MAX_BATCH || isActive}
-            className="flex h-5 w-5 items-center justify-center rounded text-neutral-400 transition hover:bg-neutral-700 hover:text-white disabled:opacity-40 disabled:hover:bg-transparent"
-            icon={<Plus className="h-2.5 w-2.5" />}
+            className="flex size-5 items-center justify-center rounded text-neutral-400 transition hover:bg-neutral-700 hover:text-white disabled:opacity-40 disabled:hover:bg-transparent"
+            icon={<Plus className="size-2.5" />}
           />
         </div>
 
@@ -209,12 +210,12 @@ export function BottomBar() {
           >
             {isActive ? (
               <>
-                <Square className="h-3.5 w-3.5" />
+                <Square className="size-3.5" />
                 Stop
               </>
             ) : (
               <>
-                <Play className="h-3.5 w-3.5 fill-current" />
+                <Play className="size-3.5 fill-current" />
                 Run
               </>
             )}
@@ -238,22 +239,26 @@ export function BottomBar() {
                   ? 'border-neutral-300 bg-white text-black hover:bg-neutral-200'
                   : 'border-neutral-500 bg-neutral-600 text-neutral-400'
             } disabled:cursor-not-allowed`}
-            icon={<ChevronUp className="h-3.5 w-3.5" />}
+            icon={<ChevronUp className="size-3.5" />}
           />
 
           {/* Dropdown Menu (opens upward) */}
           {dropdownOpen && (
             <>
               {/* Backdrop */}
-              <div
+              <button
+                aria-label="Close execution menu"
                 className="fixed inset-0 z-40"
                 onClick={() => setDropdownOpen(false)}
+                type="button"
               />
               <div
                 ref={dropdownRef}
                 onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
                 onPointerDown={(e) => e.stopPropagation()}
                 className="absolute bottom-full left-0 z-50 mb-1.5 min-w-[180px] rounded-md border border-neutral-700 bg-neutral-800 py-0.5 shadow-xl"
+                role="menu"
               >
                 <Button
                   variant={ButtonVariant.UNSTYLED}
@@ -264,7 +269,7 @@ export function BottomBar() {
                   }}
                   isDisabled={!canRunWorkflow}
                   className="flex w-full items-center gap-1.5 px-2.5 py-1.5 text-left text-xs text-neutral-200 transition hover:bg-neutral-700 disabled:text-neutral-500 disabled:hover:bg-transparent"
-                  icon={<Play className="h-3 w-3" />}
+                  icon={<Play className="size-3" />}
                 >
                   Run Workflow
                 </Button>
@@ -274,7 +279,7 @@ export function BottomBar() {
                   onClick={handleRunSelected}
                   isDisabled={!hasSelection || isRunning}
                   className="flex w-full items-center gap-1.5 px-2.5 py-1.5 text-left text-xs text-neutral-200 transition hover:bg-neutral-700 disabled:text-neutral-500 disabled:hover:bg-transparent"
-                  icon={<PlayCircle className="h-3 w-3" />}
+                  icon={<PlayCircle className="size-3" />}
                 >
                   Run Selected ({selectedNodeIds.length})
                 </Button>
@@ -286,7 +291,7 @@ export function BottomBar() {
                       withWrapper={false}
                       onClick={handleResume}
                       className="flex w-full items-center gap-1.5 px-2.5 py-1.5 text-left text-xs text-neutral-200 transition hover:bg-neutral-700"
-                      icon={<RotateCcw className="h-3 w-3" />}
+                      icon={<RotateCcw className="size-3" />}
                     >
                       Resume from Failed
                     </Button>

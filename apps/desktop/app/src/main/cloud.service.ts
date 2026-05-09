@@ -3,6 +3,7 @@ import type {
   IDesktopAgentRunResult,
   IDesktopAnalytics,
   IDesktopCloudProject,
+  IDesktopDataResult,
   IDesktopDataService,
   IDesktopEnvironment,
   IDesktopGeneratedContent,
@@ -49,7 +50,7 @@ export class DesktopCloudService implements IDesktopDataService {
     return (await response.json()) as T;
   }
 
-  async listProjects(): Promise<IDesktopCloudProject[]> {
+  async listProjects(): Promise<IDesktopDataResult<IDesktopCloudProject[]>> {
     const response = await this.fetchJson<{
       data?: Array<{
         attributes?: Record<string, unknown>;
@@ -57,16 +58,19 @@ export class DesktopCloudService implements IDesktopDataService {
       }>;
     }>('/editor-projects');
 
-    return (response.data ?? []).map((project) => ({
-      id: project.id ?? '',
-      name: String(project.attributes?.name ?? 'Untitled Project'),
-      status: project.attributes?.status
-        ? String(project.attributes.status)
-        : undefined,
-    }));
+    return {
+      data: (response.data ?? []).map((project) => ({
+        id: project.id ?? '',
+        name: String(project.attributes?.name ?? 'Untitled Project'),
+        status: project.attributes?.status
+          ? String(project.attributes.status)
+          : undefined,
+      })),
+      status: 'success',
+    };
   }
 
-  async generateHooks(topic: string): Promise<string[]> {
+  async generateHooks(topic: string): Promise<IDesktopDataResult<string[]>> {
     const response = await this.fetchJson<{ hooks: string[] }>(
       '/posts/hook-generations',
       {
@@ -78,12 +82,15 @@ export class DesktopCloudService implements IDesktopDataService {
       },
     );
 
-    return response.hooks;
+    return {
+      data: response.hooks,
+      status: 'success',
+    };
   }
 
   async generateContent(
     params: IDesktopGenerationOptions,
-  ): Promise<IDesktopGeneratedContent> {
+  ): Promise<IDesktopDataResult<IDesktopGeneratedContent>> {
     const response = await this.fetchJson<{ hooks?: string[] }>(
       '/posts/hook-generations',
       {
@@ -102,15 +109,20 @@ export class DesktopCloudService implements IDesktopDataService {
     }
 
     return {
-      content: generatedContent,
-      hooks: response.hooks,
-      id: params.sourceDraftId ?? '',
-      platform: params.platform,
-      type: params.type,
+      data: {
+        content: generatedContent,
+        hooks: response.hooks,
+        id: params.sourceDraftId ?? '',
+        platform: params.platform,
+        type: params.type,
+      },
+      status: 'success',
     };
   }
 
-  async getTrends(platform: string): Promise<IDesktopTrend[]> {
+  async getTrends(
+    platform: string,
+  ): Promise<IDesktopDataResult<IDesktopTrend[]>> {
     const response = await this.fetchJson<{
       data?: Array<{
         attributes?: Record<string, unknown>;
@@ -118,22 +130,25 @@ export class DesktopCloudService implements IDesktopDataService {
       }>;
     }>(`/trends?platform=${encodeURIComponent(platform)}`);
 
-    return (response.data ?? []).map((item) => ({
-      engagementScore: Number(item.attributes?.engagementScore ?? 0),
-      id: String(item.id ?? ''),
-      platform: String(item.attributes?.platform ?? platform),
-      summary: item.attributes?.summary
-        ? String(item.attributes.summary)
-        : undefined,
-      topic: String(item.attributes?.topic ?? ''),
-      viralityScore: Number(item.attributes?.viralityScore ?? 0),
-    }));
+    return {
+      data: (response.data ?? []).map((item) => ({
+        engagementScore: Number(item.attributes?.engagementScore ?? 0),
+        id: String(item.id ?? ''),
+        platform: String(item.attributes?.platform ?? platform),
+        summary: item.attributes?.summary
+          ? String(item.attributes.summary)
+          : undefined,
+        topic: String(item.attributes?.topic ?? ''),
+        viralityScore: Number(item.attributes?.viralityScore ?? 0),
+      })),
+      status: 'success',
+    };
   }
 
   async getIngredients(filter?: {
     limit?: number;
     platform?: string;
-  }): Promise<IDesktopIngredient[]> {
+  }): Promise<IDesktopDataResult<IDesktopIngredient[]>> {
     const params = new URLSearchParams();
     if (filter?.platform) {
       params.set('platform', filter.platform);
@@ -151,22 +166,25 @@ export class DesktopCloudService implements IDesktopDataService {
       }>;
     }>(pathname);
 
-    return (response.data ?? []).map((item) => ({
-      content: String(item.attributes?.content ?? ''),
-      id: String(item.id ?? ''),
-      platform: item.attributes?.platform
-        ? String(item.attributes.platform)
-        : undefined,
-      title: String(item.attributes?.title ?? 'Untitled'),
-      totalVotes: Number(item.attributes?.totalVotes ?? 0),
-    }));
+    return {
+      data: (response.data ?? []).map((item) => ({
+        content: String(item.attributes?.content ?? ''),
+        id: String(item.id ?? ''),
+        platform: item.attributes?.platform
+          ? String(item.attributes.platform)
+          : undefined,
+        title: String(item.attributes?.title ?? 'Untitled'),
+        totalVotes: Number(item.attributes?.totalVotes ?? 0),
+      })),
+      status: 'success',
+    };
   }
 
   async publishPost(params: {
     content: string;
     draftId?: string;
     platform: string;
-  }): Promise<IDesktopPublishResult> {
+  }): Promise<IDesktopDataResult<IDesktopPublishResult>> {
     const publishedAt = new Date().toISOString();
 
     if (params.draftId) {
@@ -180,10 +198,13 @@ export class DesktopCloudService implements IDesktopDataService {
         method: 'POST',
       });
       return {
-        platform: params.platform,
-        postId: String(response.data?.id ?? params.draftId),
-        publishedAt,
-        status: 'published',
+        data: {
+          platform: params.platform,
+          postId: String(response.data?.id ?? params.draftId),
+          publishedAt,
+          status: 'published',
+        },
+        status: 'success',
       };
     }
 
@@ -197,15 +218,21 @@ export class DesktopCloudService implements IDesktopDataService {
       }),
       method: 'POST',
     });
+
     return {
-      platform: params.platform,
-      postId: String(response.data?.id ?? ''),
-      publishedAt,
-      status: 'published',
+      data: {
+        platform: params.platform,
+        postId: String(response.data?.id ?? ''),
+        publishedAt,
+        status: 'published',
+      },
+      status: 'success',
     };
   }
 
-  async getAnalytics(params: { days: number }): Promise<IDesktopAnalytics> {
+  async getAnalytics(params: {
+    days: number;
+  }): Promise<IDesktopDataResult<IDesktopAnalytics>> {
     const response = await this.fetchJson<{
       recentPosts?: Array<{
         content?: string;
@@ -220,20 +247,23 @@ export class DesktopCloudService implements IDesktopDataService {
     }>(`/analytics/overview?days=${params.days}`);
 
     return {
-      recentPosts: (response.recentPosts ?? []).map((post) => ({
-        content: String(post.content ?? ''),
-        id: String(post.id ?? ''),
-        platform: String(post.platform ?? ''),
-        views: Number(post.views ?? 0),
-      })),
-      topPlatform: String(response.topPlatform ?? 'unknown'),
-      totalEngagements: Number(response.totalEngagements ?? 0),
-      totalPosts: Number(response.totalPosts ?? 0),
-      totalViews: Number(response.totalViews ?? 0),
+      data: {
+        recentPosts: (response.recentPosts ?? []).map((post) => ({
+          content: String(post.content ?? ''),
+          id: String(post.id ?? ''),
+          platform: String(post.platform ?? ''),
+          views: Number(post.views ?? 0),
+        })),
+        topPlatform: String(response.topPlatform ?? 'unknown'),
+        totalEngagements: Number(response.totalEngagements ?? 0),
+        totalPosts: Number(response.totalPosts ?? 0),
+        totalViews: Number(response.totalViews ?? 0),
+      },
+      status: 'success',
     };
   }
 
-  async listAgents(): Promise<IDesktopAgent[]> {
+  async listAgents(): Promise<IDesktopDataResult<IDesktopAgent[]>> {
     const response = await this.fetchJson<{
       data?: Array<{
         attributes?: Record<string, unknown>;
@@ -241,40 +271,45 @@ export class DesktopCloudService implements IDesktopDataService {
       }>;
     }>('/agent-strategies');
 
-    return (response.data ?? []).map((item) => {
-      const attrs = item.attributes ?? {};
-      const runHistory = Array.isArray(attrs.runHistory)
-        ? (attrs.runHistory as Array<Record<string, unknown>>)
-        : [];
-      const recentRuns = runHistory.slice(0, 5).map((run) => ({
-        completedAt: run.endedAt ? String(run.endedAt) : undefined,
-        id: String(run._id ?? run.id ?? ''),
-        startedAt: String(run.startedAt ?? ''),
-        status: String(run.status ?? 'completed') as
-          | 'completed'
-          | 'failed'
-          | 'pending'
-          | 'running',
-      }));
+    return {
+      data: (response.data ?? []).map((item) => {
+        const attrs = item.attributes ?? {};
+        const runHistory = Array.isArray(attrs.runHistory)
+          ? (attrs.runHistory as Array<Record<string, unknown>>)
+          : [];
+        const recentRuns = runHistory.slice(0, 5).map((run) => ({
+          completedAt: run.endedAt ? String(run.endedAt) : undefined,
+          id: String(run._id ?? run.id ?? ''),
+          startedAt: String(run.startedAt ?? ''),
+          status: String(run.status ?? 'completed') as
+            | 'completed'
+            | 'failed'
+            | 'pending'
+            | 'running',
+        }));
 
-      const isActive = Boolean(attrs.isActive ?? attrs.enabled ?? false);
-      return {
-        avatar: attrs.avatar ? String(attrs.avatar) : undefined,
-        id: String(item.id ?? ''),
-        isActive,
-        lastRunAt: recentRuns[0]?.startedAt,
-        latestRun: recentRuns[0],
-        name: String(attrs.name ?? 'Unnamed Agent'),
-        platforms: Array.isArray(attrs.platforms)
-          ? (attrs.platforms as string[])
-          : [],
-        recentRuns,
-        status: isActive ? ('active' as const) : ('paused' as const),
-      };
-    });
+        const isActive = Boolean(attrs.isActive ?? attrs.enabled ?? false);
+        return {
+          avatar: attrs.avatar ? String(attrs.avatar) : undefined,
+          id: String(item.id ?? ''),
+          isActive,
+          lastRunAt: recentRuns[0]?.startedAt,
+          latestRun: recentRuns[0],
+          name: String(attrs.name ?? 'Unnamed Agent'),
+          platforms: Array.isArray(attrs.platforms)
+            ? (attrs.platforms as string[])
+            : [],
+          recentRuns,
+          status: isActive ? ('active' as const) : ('paused' as const),
+        };
+      }),
+      status: 'success',
+    };
   }
 
-  async runAgent(agentId: string): Promise<IDesktopAgentRunResult> {
+  async runAgent(
+    agentId: string,
+  ): Promise<IDesktopDataResult<IDesktopAgentRunResult>> {
     const response = await this.fetchJson<{
       data?: { id?: string; attributes?: Record<string, unknown> };
     }>(`/agent-strategies/${agentId}/run-now`, {
@@ -282,14 +317,17 @@ export class DesktopCloudService implements IDesktopDataService {
     });
 
     return {
-      runId: String(response.data?.id ?? ''),
-      status: String(response.data?.attributes?.status ?? 'pending') as
-        | 'pending'
-        | 'running',
+      data: {
+        runId: String(response.data?.id ?? ''),
+        status: String(response.data?.attributes?.status ?? 'pending') as
+          | 'pending'
+          | 'running',
+      },
+      status: 'success',
     };
   }
 
-  async listWorkflows(): Promise<IDesktopWorkflow[]> {
+  async listWorkflows(): Promise<IDesktopDataResult<IDesktopWorkflow[]>> {
     const response = await this.fetchJson<{
       data?: Array<{
         attributes?: Record<string, unknown>;
@@ -297,65 +335,74 @@ export class DesktopCloudService implements IDesktopDataService {
       }>;
     }>('/workflows');
 
-    return (response.data ?? []).map((item) => {
-      const attrs = item.attributes ?? {};
-      const nodes = Array.isArray(attrs.nodes) ? attrs.nodes : [];
-      const runHistory = Array.isArray(attrs.runHistory)
-        ? (attrs.runHistory as Array<Record<string, unknown>>)
-        : [];
-      const latestRun = runHistory[0];
-      return {
-        description: attrs.description ? String(attrs.description) : undefined,
-        id: String(item.id ?? ''),
-        lastExecutedAt: attrs.lastExecutedAt
-          ? String(attrs.lastExecutedAt)
-          : undefined,
-        latestRun: latestRun
-          ? {
-              completedAt: latestRun.endedAt
-                ? String(latestRun.endedAt)
-                : undefined,
-              id: String(latestRun._id ?? latestRun.id ?? ''),
-              mode: latestRun.mode === 'batch' ? 'batch' : 'single',
-              startedAt: String(latestRun.startedAt ?? ''),
-              status: String(latestRun.status ?? 'completed') as
-                | 'completed'
-                | 'failed'
-                | 'pending'
-                | 'running',
-            }
-          : undefined,
-        lifecycle: String(attrs.lifecycle ?? 'draft') as
-          | 'archived'
-          | 'draft'
-          | 'published',
-        name: String(attrs.name ?? 'Untitled Workflow'),
-        nodeCount: Number(attrs.nodeCount ?? nodes.length ?? 0),
-        supportsBatch: Boolean(attrs.supportsBatch ?? false),
-      };
-    });
+    return {
+      data: (response.data ?? []).map((item) => {
+        const attrs = item.attributes ?? {};
+        const nodes = Array.isArray(attrs.nodes) ? attrs.nodes : [];
+        const runHistory = Array.isArray(attrs.runHistory)
+          ? (attrs.runHistory as Array<Record<string, unknown>>)
+          : [];
+        const latestRun = runHistory[0];
+
+        return {
+          description: attrs.description
+            ? String(attrs.description)
+            : undefined,
+          id: String(item.id ?? ''),
+          lastExecutedAt: attrs.lastExecutedAt
+            ? String(attrs.lastExecutedAt)
+            : undefined,
+          latestRun: latestRun
+            ? {
+                completedAt: latestRun.endedAt
+                  ? String(latestRun.endedAt)
+                  : undefined,
+                id: String(latestRun._id ?? latestRun.id ?? ''),
+                mode: latestRun.mode === 'batch' ? 'batch' : 'single',
+                startedAt: String(latestRun.startedAt ?? ''),
+                status: String(latestRun.status ?? 'completed') as
+                  | 'completed'
+                  | 'failed'
+                  | 'pending'
+                  | 'running',
+              }
+            : undefined,
+          lifecycle:
+            attrs.lifecycle === 'archived'
+              ? 'archived'
+              : attrs.lifecycle === 'published'
+                ? 'published'
+                : 'draft',
+          name: String(attrs.name ?? 'Unnamed Workflow'),
+          nodeCount: nodes.length,
+          supportsBatch: Boolean(attrs.supportsBatch ?? false),
+        };
+      }),
+      status: 'success',
+    };
   }
 
   async runWorkflow(params: {
     batch?: boolean;
     workflowId: string;
-  }): Promise<IDesktopWorkflowRunResult> {
-    const endpoint = params.batch
-      ? `/workflows/${params.workflowId}/batch`
-      : '/workflow-executions';
-    const body = params.batch ? {} : { workflow: params.workflowId };
-
+  }): Promise<IDesktopDataResult<IDesktopWorkflowRunResult>> {
     const response = await this.fetchJson<{
       data?: { id?: string; attributes?: Record<string, unknown> };
-      runId?: string;
-    }>(endpoint, {
-      body: JSON.stringify(body),
+    }>(`/workflows/${params.workflowId}/run`, {
+      body: JSON.stringify({
+        mode: params.batch ? 'batch' : 'single',
+      }),
       method: 'POST',
     });
 
     return {
-      runId: String(response.data?.id ?? response.runId ?? ''),
-      status: 'running' as const,
+      data: {
+        runId: String(response.data?.id ?? ''),
+        status: String(response.data?.attributes?.status ?? 'pending') as
+          | 'pending'
+          | 'running',
+      },
+      status: 'success',
     };
   }
 }

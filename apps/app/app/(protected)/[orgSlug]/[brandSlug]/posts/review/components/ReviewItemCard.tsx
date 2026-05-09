@@ -73,7 +73,7 @@ export default function ReviewItemCard({
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}
           onClick={onSelect}
-          className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-neutral-900"
+          className="relative size-20 shrink-0 overflow-hidden rounded-lg bg-neutral-900"
         >
           {item.mediaUrl ? (
             <Image
@@ -85,7 +85,7 @@ export default function ReviewItemCard({
             />
           ) : (
             <div className="flex h-full items-center justify-center text-neutral-600">
-              <HiPhoto className="h-6 w-6" />
+              <HiPhoto className="size-6" />
             </div>
           )}
         </Button>
@@ -129,13 +129,13 @@ export default function ReviewItemCard({
                 onClick={() => onToggleSelect(item.id)}
                 ariaLabel={isSelected ? 'Deselect item' : 'Select item'}
                 className={cn(
-                  'flex h-6 w-6 items-center justify-center rounded border transition-all',
+                  'flex size-6 items-center justify-center rounded border transition-all',
                   isSelected
                     ? 'border-primary bg-primary text-white'
                     : 'border-white/15 bg-white/[0.03] text-foreground/50 hover:border-white/25 hover:text-foreground/75',
                 )}
               >
-                {isSelected && <HiCheck className="h-3 w-3" />}
+                {isSelected && <HiCheck className="size-3" />}
               </Button>
             )}
           </div>

@@ -1,6 +1,6 @@
 import { apiClient } from './client';
 
-export interface NodeResult {
+interface NodeResult {
   nodeId: string;
   status: 'pending' | 'processing' | 'complete' | 'error';
   output?: Record<string, unknown>;

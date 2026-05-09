@@ -124,7 +124,7 @@ export default function SummaryContent() {
   const getUsersService = useAuthedService((token: string) =>
     UsersService.getInstance(token),
   );
-  const router = useRouter();
+  const { push } = useRouter();
   const [pendingMode, setPendingMode] = useState<OnboardingAccessMode | null>(
     null,
   );
@@ -232,13 +232,13 @@ export default function SummaryContent() {
 
     setPendingMode('byok');
     await persistAccessMode('byok');
-    router.push('/settings/api-keys');
+    push('/settings/api-keys');
   };
 
   const handleContinueSelfHosted = async () => {
     setPendingMode('server');
     await persistAccessMode('server');
-    router.push('/onboarding/success');
+    push('/onboarding/success');
   };
 
   const handleCloudContinue = async () => {
@@ -349,7 +349,7 @@ export default function SummaryContent() {
                 ? 'Opening Genfeed Cloud...'
                 : 'Continue to Genfeed Cloud'
             }
-            icon={<HiArrowUpRight className="h-4 w-4" />}
+            icon={<HiArrowUpRight className="size-4" />}
             disabled={loading || pendingMode !== null}
             className="w-full rounded-full border border-white/10 bg-white/[0.03] text-white/75 hover:border-white/15 hover:bg-white/[0.06] hover:text-white md:w-auto"
           />
@@ -360,15 +360,15 @@ export default function SummaryContent() {
             variant={ButtonVariant.GHOST}
             size={ButtonSize.SM}
             withWrapper={false}
-            onClick={() => router.push('/onboarding/providers')}
-            icon={<HiArrowLeft className="h-4 w-4" />}
+            onClick={() => push('/onboarding/providers')}
+            icon={<HiArrowLeft className="size-4" />}
             className="h-8 rounded-full border border-white/10 bg-white/[0.03] px-4 text-white/45 hover:border-white/15 hover:bg-white/[0.06] hover:text-white/75"
           >
             Back
           </Button>
 
           <div className="step-badge inline-flex h-8 shrink-0 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 text-[10px] font-black uppercase tracking-[0.2em] text-white/60">
-            <HiSparkles className="h-3 w-3" />
+            <HiSparkles className="size-3" />
             Step 3 of 3
           </div>
         </div>

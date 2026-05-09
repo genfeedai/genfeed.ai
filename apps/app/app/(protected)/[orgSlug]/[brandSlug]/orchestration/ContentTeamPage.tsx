@@ -178,9 +178,16 @@ function resolveApprovalPolicy(
   campaign: AgentCampaign,
   strategiesById: Map<string, AgentStrategy>,
 ): string {
-  const linkedStrategies = campaign.agents
-    .map((agentId) => strategiesById.get(agentId))
-    .filter((strategy): strategy is AgentStrategy => Boolean(strategy));
+  const linkedStrategies = campaign.agents.reduce<AgentStrategy[]>(
+    (strategies, agentId) => {
+      const strategy = strategiesById.get(agentId);
+      if (strategy) {
+        strategies.push(strategy);
+      }
+      return strategies;
+    },
+    [],
+  );
 
   if (linkedStrategies.length === 0) {
     return 'Manual review';
@@ -450,12 +457,14 @@ export default function ContentTeamPage() {
 
         {isStrategiesLoading ? (
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            {[1, 2].map((index) => (
-              <div
-                key={index}
-                className="h-56 animate-pulse rounded-[1.25rem] border border-white/[0.08] bg-white/[0.04]"
-              />
-            ))}
+            {['strategy-skeleton-1', 'strategy-skeleton-2'].map(
+              (skeletonId) => (
+                <div
+                  key={skeletonId}
+                  className="h-56 animate-pulse rounded-[1.25rem] border border-white/[0.08] bg-white/[0.04]"
+                />
+              ),
+            )}
           </div>
         ) : strategies.length === 0 ? (
           <Card
@@ -526,12 +535,14 @@ export default function ContentTeamPage() {
 
         {isCampaignsLoading ? (
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-            {[1, 2].map((index) => (
-              <div
-                key={index}
-                className="h-48 animate-pulse rounded-[1.25rem] border border-white/[0.08] bg-white/[0.04]"
-              />
-            ))}
+            {['campaign-skeleton-1', 'campaign-skeleton-2'].map(
+              (skeletonId) => (
+                <div
+                  key={skeletonId}
+                  className="h-48 animate-pulse rounded-[1.25rem] border border-white/[0.08] bg-white/[0.04]"
+                />
+              ),
+            )}
           </div>
         ) : campaigns.length === 0 ? (
           <Card

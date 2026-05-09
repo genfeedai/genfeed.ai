@@ -49,11 +49,11 @@ export function StatusIcon({
 }: StatusIconProps): React.JSX.Element | null {
   switch (status) {
     case 'complete':
-      return <CheckIcon className="h-4 w-4" />;
+      return <CheckIcon className="size-4" />;
     case 'error':
-      return <AlertCircleIcon className="h-4 w-4" />;
+      return <AlertCircleIcon className="size-4" />;
     case 'processing':
-      return <LoaderIcon className="h-4 w-4 animate-spin" />;
+      return <LoaderIcon className="size-4 animate-spin" />;
     default:
       return null;
   }

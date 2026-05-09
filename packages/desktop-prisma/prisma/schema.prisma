@@ -1,11 +1,151 @@
 generator client {
-  provider     = "prisma-client"
-  output       = "../generated/desktop-prisma/client"
-  moduleFormat = "cjs"
+  provider        = "prisma-client-js"
+  output          = "../src/generated/client"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+model User {
+  id             String         @id
+  organizationId String         @map("organization_id")
+  clerkId        String?        @unique @map("clerk_id")
+  email          String?
+  name           String
+  createdAt      String         @map("created_at")
+  updatedAt      String         @map("updated_at")
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("users")
+}
+
+model Organization {
+  id        String          @id
+  name      String
+  slug      String          @unique
+  createdAt String          @map("created_at")
+  updatedAt String          @map("updated_at")
+  users     User[]
+  posts     Post[]
+  trends    Trend[]
+  ingredients Ingredient[]
+  agentStrategies AgentStrategy[]
+  workflows Workflow[]
+
+  @@map("organizations")
+}
+
+model Post {
+  id               String        @id
+  organizationId   String        @map("organization_id")
+  workspaceId      String?       @map("workspace_id")
+  platform         String
+  type             String
+  prompt           String
+  content          String
+  status           String
+  publishIntent    String?       @map("publish_intent")
+  sourceDraftId    String?       @unique @map("source_draft_id")
+  sourceTrendId    String?       @map("source_trend_id")
+  sourceTrendTopic String?       @map("source_trend_topic")
+  publishedAt      String?       @map("published_at")
+  views            Int           @default(0)
+  engagements      Int           @default(0)
+  createdAt        String        @map("created_at")
+  updatedAt        String        @map("updated_at")
+  organization     Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, updatedAt(sort: Desc)])
+  @@index([status, publishedAt(sort: Desc)])
+  @@index([platform, updatedAt(sort: Desc)])
+  @@map("posts")
+}
+
+model Ingredient {
+  id                  String        @id
+  organizationId      String        @map("organization_id")
+  title               String
+  content             String
+  platform            String?
+  totalVotes          Int           @default(0) @map("total_votes")
+  sourcePostId        String?       @map("source_post_id")
+  createdAt           String        @map("created_at")
+  updatedAt           String        @map("updated_at")
+  organization        Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, updatedAt(sort: Desc)])
+  @@index([platform, totalVotes(sort: Desc)])
+  @@map("ingredients")
+}
+
+model Trend {
+  id              String        @id
+  organizationId  String        @map("organization_id")
+  platform        String
+  topic           String
+  summary         String?
+  viralityScore   Int           @map("virality_score")
+  engagementScore Int           @map("engagement_score")
+  createdAt       String        @map("created_at")
+  organization    Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, platform, topic])
+  @@map("trends")
+}
+
+model AgentStrategy {
+  id             String               @id
+  organizationId String               @map("organization_id")
+  name           String
+  avatar         String?
+  platformsJson  String               @default("[]") @map("platforms_json")
+  status         String
+  isActive       Boolean              @default(true) @map("is_active")
+  lastRunAt      String?              @map("last_run_at")
+  createdAt      String               @map("created_at")
+  updatedAt      String               @map("updated_at")
+  organization   Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workflows      WorkflowExecution[]
+
+  @@index([organizationId, updatedAt(sort: Desc)])
+  @@map("agent_strategies")
+}
+
+model Workflow {
+  id             String               @id
+  organizationId String               @map("organization_id")
+  name           String
+  description    String?
+  lifecycle      String
+  nodeCount      Int                  @map("node_count")
+  supportsBatch  Boolean              @default(false) @map("supports_batch")
+  lastExecutedAt String?              @map("last_executed_at")
+  createdAt      String               @map("created_at")
+  updatedAt      String               @map("updated_at")
+  organization   Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  executions     WorkflowExecution[]
+
+  @@index([organizationId, updatedAt(sort: Desc)])
+  @@map("workflows")
+}
+
+model WorkflowExecution {
+  id              String         @id
+  workflowId      String         @map("workflow_id")
+  agentStrategyId String?        @map("agent_strategy_id")
+  mode            String
+  status          String
+  startedAt       String         @map("started_at")
+  completedAt     String?        @map("completed_at")
+  workflow        Workflow       @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  agentStrategy   AgentStrategy? @relation(fields: [agentStrategyId], references: [id], onDelete: SetNull)
+
+  @@index([workflowId, startedAt(sort: Desc)])
+  @@index([agentStrategyId, startedAt(sort: Desc)])
+  @@map("workflow_executions")
 }
 
 model DesktopKv {
@@ -57,179 +197,4 @@ model DesktopRecentItem {
 
   @@index([openedAt(sort: Desc)])
   @@map("desktop_recent_item")
-}
-
-model DesktopOrganization {
-  id        String @id
-  name      String
-  slug      String @unique
-  createdAt String @map("created_at")
-  updatedAt String @map("updated_at")
-
-  users        DesktopUser[]
-  projects     DesktopProject[]
-  contentItems DesktopContentItem[]
-  trends       DesktopTrend[]
-  ingredients  DesktopIngredient[]
-  agents       DesktopAgent[]
-  workflows    DesktopWorkflow[]
-
-  @@map("desktop_organization")
-}
-
-model DesktopUser {
-  id             String  @id
-  organizationId String  @map("organization_id")
-  clerkId        String? @unique @map("clerk_id")
-  email          String?
-  name           String
-  createdAt      String  @map("created_at")
-  updatedAt      String  @map("updated_at")
-
-  organization DesktopOrganization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  @@index([organizationId])
-  @@map("desktop_user")
-}
-
-model DesktopProject {
-  id             String @id
-  organizationId String @map("organization_id")
-  name           String
-  status         String
-  createdAt      String @map("created_at")
-  updatedAt      String @map("updated_at")
-
-  organization DesktopOrganization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  contentItems  DesktopContentItem[]
-
-  @@index([organizationId, updatedAt(sort: Desc)])
-  @@map("desktop_project")
-}
-
-model DesktopContentItem {
-  id               String  @id
-  organizationId   String  @map("organization_id")
-  projectId        String? @map("project_id")
-  platform         String
-  type             String
-  prompt           String
-  content          String
-  status           String
-  publishIntent    String? @map("publish_intent")
-  sourceDraftId    String? @unique @map("source_draft_id")
-  sourceTrendId    String? @map("source_trend_id")
-  sourceTrendTopic String? @map("source_trend_topic")
-  publishedAt      String? @map("published_at")
-  views            Int     @default(0)
-  engagements      Int     @default(0)
-  createdAt        String  @map("created_at")
-  updatedAt        String  @map("updated_at")
-
-  organization DesktopOrganization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  project      DesktopProject?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
-
-  @@index([organizationId, updatedAt(sort: Desc)])
-  @@index([status, publishedAt(sort: Desc)])
-  @@index([platform, updatedAt(sort: Desc)])
-  @@map("desktop_content_item")
-}
-
-model DesktopTrend {
-  id              String  @id
-  organizationId  String  @map("organization_id")
-  platform        String
-  topic           String
-  summary         String?
-  viralityScore   Int     @map("virality_score")
-  engagementScore Int     @map("engagement_score")
-  createdAt       String  @map("created_at")
-
-  organization DesktopOrganization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  @@index([organizationId, platform, topic])
-  @@map("desktop_trend")
-}
-
-model DesktopIngredient {
-  id                  String  @id
-  organizationId      String  @map("organization_id")
-  title               String
-  content             String
-  platform            String?
-  totalVotes          Int     @default(0) @map("total_votes")
-  sourceContentItemId String? @map("source_content_item_id")
-  createdAt           String  @map("created_at")
-  updatedAt           String  @map("updated_at")
-
-  organization DesktopOrganization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  @@index([organizationId, updatedAt(sort: Desc)])
-  @@index([platform, totalVotes(sort: Desc)])
-  @@map("desktop_ingredient")
-}
-
-model DesktopAgent {
-  id             String @id
-  organizationId String @map("organization_id")
-  name           String
-  avatar         String?
-  platformsJson  String @default("[]") @map("platforms_json")
-  status         String
-  isActive       Boolean @default(true) @map("is_active")
-  lastRunAt      String? @map("last_run_at")
-  createdAt      String @map("created_at")
-  updatedAt      String @map("updated_at")
-
-  organization DesktopOrganization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  runs         DesktopAgentRun[]
-
-  @@index([organizationId, updatedAt(sort: Desc)])
-  @@map("desktop_agent")
-}
-
-model DesktopAgentRun {
-  id          String  @id
-  agentId     String  @map("agent_id")
-  status      String
-  startedAt   String  @map("started_at")
-  completedAt String? @map("completed_at")
-
-  agent DesktopAgent @relation(fields: [agentId], references: [id], onDelete: Cascade)
-
-  @@index([agentId, startedAt(sort: Desc)])
-  @@map("desktop_agent_run")
-}
-
-model DesktopWorkflow {
-  id             String @id
-  organizationId String @map("organization_id")
-  name           String
-  description    String?
-  lifecycle      String
-  nodeCount      Int    @map("node_count")
-  supportsBatch  Boolean @default(false) @map("supports_batch")
-  lastExecutedAt String? @map("last_executed_at")
-  createdAt      String @map("created_at")
-  updatedAt      String @map("updated_at")
-
-  organization DesktopOrganization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  runs         DesktopWorkflowRun[]
-
-  @@index([organizationId, updatedAt(sort: Desc)])
-  @@map("desktop_workflow")
-}
-
-model DesktopWorkflowRun {
-  id          String  @id
-  workflowId  String  @map("workflow_id")
-  mode        String
-  status      String
-  startedAt   String  @map("started_at")
-  completedAt String? @map("completed_at")
-
-  workflow DesktopWorkflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
-
-  @@index([workflowId, startedAt(sort: Desc)])
-  @@map("desktop_workflow_run")
 }

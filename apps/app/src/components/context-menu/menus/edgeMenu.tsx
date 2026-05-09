@@ -1,5 +1,5 @@
 import { Trash2 } from 'lucide-react';
-import type { ContextMenuItemConfig } from '@/components/context-menu/ContextMenu';
+import type { ContextMenuItemConfig } from '@/components/context-menu/context-menu-config';
 
 interface EdgeMenuOptions {
   edgeId: string;
@@ -13,7 +13,7 @@ export function getEdgeMenuItems({
   return [
     {
       danger: true,
-      icon: <Trash2 className="w-4 h-4" />,
+      icon: <Trash2 className="size-4" />,
       id: 'delete',
       label: 'Delete Connection',
       onClick: () => onDelete(edgeId),

@@ -7,10 +7,10 @@ export function PlatformIcon({
 }): React.JSX.Element {
   switch (type) {
     case 'phone':
-      return <Smartphone className="h-4 w-4" />;
+      return <Smartphone className="size-4" />;
     case 'monitor':
-      return <Monitor className="h-4 w-4" />;
+      return <Monitor className="size-4" />;
     case 'square':
-      return <Square className="h-4 w-4" />;
+      return <Square className="size-4" />;
   }
 }

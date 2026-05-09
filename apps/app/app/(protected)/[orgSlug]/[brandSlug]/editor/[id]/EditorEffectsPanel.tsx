@@ -9,7 +9,7 @@ import {
 import type { IEditorEffect, IEditorTrack } from '@genfeedai/interfaces';
 import { Button } from '@ui/primitives/button';
 import { Slider } from '@ui/primitives/slider';
-import { useCallback, useState } from 'react';
+import { type JSX, useCallback, useState } from 'react';
 
 interface EditorEffectsPanelProps {
   tracks: IEditorTrack[];
@@ -64,7 +64,7 @@ const AVAILABLE_EFFECTS: EffectConfig[] = [
   },
 ];
 
-export function EditorEffectsPanel({
+function EditorEffectsPanel({
   tracks,
   selectedTrackId,
   selectedClipId,
@@ -72,7 +72,7 @@ export function EditorEffectsPanel({
 }: EditorEffectsPanelProps) {
   const [isExpanded, setIsExpanded] = useState(true);
 
-  // Find the selected clip (from video or audio tracks — effects apply to video)
+  // Find the selected clip (from video or audio tracks : effects apply to video)
   const selectedClip = (() => {
     if (!selectedTrackId || !selectedClipId) return null;
     const track = tracks.find((t) => t.id === selectedTrackId);
@@ -253,31 +253,43 @@ export function EditorEffectsPanel({
                   Available Effects
                 </h4>
                 <div className="space-y-1">
-                  {AVAILABLE_EFFECTS.filter(
-                    (config) =>
-                      !appliedEffects.some((e) => e.type === config.type),
-                  ).map((config) => (
-                    <Button
-                      withWrapper={false}
-                      variant={ButtonVariant.UNSTYLED}
-                      size={ButtonSize.SM}
-                      key={config.type}
-                      className="w-full flex items-center gap-3 px-2 py-2 rounded hover:bg-muted/50 transition-colors text-left"
-                      onClick={() =>
-                        handleAddEffect(config.type, config.defaultIntensity)
+                  {AVAILABLE_EFFECTS.reduce<JSX.Element[]>(
+                    (buttons, config) => {
+                      if (appliedEffects.some((e) => e.type === config.type)) {
+                        return buttons;
                       }
-                    >
-                      <div className="flex-1 min-w-0">
-                        <span className="text-sm font-medium block">
-                          {config.label}
-                        </span>
-                        <span className="text-xs text-muted-foreground block truncate">
-                          {config.description}
-                        </span>
-                      </div>
-                      <span className="text-xs text-muted-foreground">+</span>
-                    </Button>
-                  ))}
+
+                      buttons.push(
+                        <Button
+                          withWrapper={false}
+                          variant={ButtonVariant.UNSTYLED}
+                          size={ButtonSize.SM}
+                          key={config.type}
+                          className="w-full flex items-center gap-3 p-2 rounded hover:bg-muted/50 transition-colors text-left"
+                          onClick={() =>
+                            handleAddEffect(
+                              config.type,
+                              config.defaultIntensity,
+                            )
+                          }
+                        >
+                          <div className="flex-1 min-w-0">
+                            <span className="text-sm font-medium block">
+                              {config.label}
+                            </span>
+                            <span className="text-xs text-muted-foreground block truncate">
+                              {config.description}
+                            </span>
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            +
+                          </span>
+                        </Button>,
+                      );
+                      return buttons;
+                    },
+                    [],
+                  )}
                   {AVAILABLE_EFFECTS.every((config) =>
                     appliedEffects.some((e) => e.type === config.type),
                   ) && (

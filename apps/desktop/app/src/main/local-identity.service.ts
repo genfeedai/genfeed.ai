@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { DesktopDatabaseService } from './database.service';
+import type { DesktopKvService } from './kv.service';
 
 /**
  * Manages the stable local identity for this desktop installation.
@@ -25,7 +25,7 @@ export class LocalIdentityService {
   private onboardingCompleted = false;
   private syncCursor: string | null = null;
 
-  constructor(private readonly database: DesktopDatabaseService) {}
+  constructor(private readonly database: DesktopKvService) {}
 
   async initialize(): Promise<void> {
     const [

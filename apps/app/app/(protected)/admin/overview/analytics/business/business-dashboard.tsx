@@ -383,7 +383,7 @@ export default function BusinessDashboard() {
                 key={item.category}
                 className="flex items-center gap-2 rounded bg-muted px-3 py-2"
               >
-                <HiOutlinePhoto className="h-4 w-4 text-muted-foreground" />
+                <HiOutlinePhoto className="size-4 text-muted-foreground" />
                 <span className="text-sm font-medium capitalize text-foreground">
                   {item.category.toLowerCase()}
                 </span>

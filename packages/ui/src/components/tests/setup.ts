@@ -15,6 +15,12 @@ if (typeof global.document === 'undefined') {
   global.navigator = dom.window.navigator;
 }
 
+Object.defineProperty(globalThis, 'localStorage', {
+  configurable: true,
+  value: window.localStorage,
+  writable: true,
+});
+
 // Make React globally available
 globalThis.React = React;
 
@@ -247,6 +253,17 @@ vi.mock('next/image', () => ({
     React.createElement('img', { alt, src, ...props }),
 }));
 
+vi.mock('socket.io-client', () => ({
+  io: vi.fn(() => ({
+    close: vi.fn(),
+    connect: vi.fn(),
+    disconnect: vi.fn(),
+    emit: vi.fn(),
+    off: vi.fn(),
+    on: vi.fn(),
+  })),
+}));
+
 // Mock @clerk/nextjs — nearly all components use useAuth/useUser/useOrganization
 vi.mock('@clerk/nextjs', () => ({
   ClerkProvider: ({ children }: { children: React.ReactNode }) =>
@@ -294,7 +311,6 @@ vi.mock('@clerk/nextjs', () => ({
 
 // Mock CSS and static file imports
 vi.mock('*.css', () => ({}));
-vi.mock('*.scss', () => ({}));
 vi.mock('*.png', () => 'test-image.png');
 vi.mock('*.jpg', () => 'test-image.jpg');
 vi.mock('*.jpeg', () => 'test-image.jpeg');

@@ -149,7 +149,7 @@ export function ExecutionPanel({
       <div className="h-[calc(100%-56px)] overflow-y-auto p-4">
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
-            <div className="animate-pulse">Loading...</div>
+            <div className="animate-pulse">Loading…</div>
           </div>
         ) : error ? (
           <div className="space-y-3">

@@ -15,7 +15,7 @@ export default function GenerationFeatureGuard({
   children,
 }: GenerationFeatureGuardProps) {
   const { isEnabled, isLoading } = useEnabledCategories();
-  const router = useRouter();
+  const { replace } = useRouter();
 
   const categoryEnabled = isEnabled(category);
 
@@ -25,9 +25,9 @@ export default function GenerationFeatureGuard({
     }
 
     if (!categoryEnabled) {
-      router.replace('/studio');
+      replace('/studio');
     }
-  }, [categoryEnabled, isLoading, router]);
+  }, [categoryEnabled, isLoading, replace]);
 
   if (isLoading) {
     return (

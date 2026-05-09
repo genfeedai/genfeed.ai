@@ -88,7 +88,7 @@ function checkDesignLint(failures: string[]): void {
 }
 
 function checkWebTokenDrift(failures: string[]): void {
-  const webTokens = readRepoFile('packages/ui/web-tokens.scss');
+  const webTokens = readRepoFile('packages/ui/web-tokens.css');
 
   for (const themeTokens of Object.values(semanticColorTokens)) {
     for (const [tokenName, value] of Object.entries(themeTokens)) {
@@ -96,7 +96,7 @@ function checkWebTokenDrift(failures: string[]): void {
         webTokens,
         `--${cssName(tokenName)}: ${value.hsl};`,
         failures,
-        'packages/ui/web-tokens.scss',
+        'packages/ui/web-tokens.css',
       );
     }
   }
@@ -106,7 +106,7 @@ function checkWebTokenDrift(failures: string[]): void {
       webTokens,
       `--${cssName(tokenName)}: ${value};`,
       failures,
-      'packages/ui/web-tokens.scss',
+      'packages/ui/web-tokens.css',
     );
   }
 
@@ -115,7 +115,7 @@ function checkWebTokenDrift(failures: string[]): void {
       webTokens,
       `--space-${tokenName}: ${value};`,
       failures,
-      'packages/ui/web-tokens.scss',
+      'packages/ui/web-tokens.css',
     );
   }
 
@@ -124,7 +124,7 @@ function checkWebTokenDrift(failures: string[]): void {
       webTokens,
       `--radius-${tokenName}: ${value};`,
       failures,
-      'packages/ui/web-tokens.scss',
+      'packages/ui/web-tokens.css',
     );
   }
 
@@ -133,7 +133,7 @@ function checkWebTokenDrift(failures: string[]): void {
       webTokens,
       `--motion-${cssName(tokenName)}: ${value};`,
       failures,
-      'packages/ui/web-tokens.scss',
+      'packages/ui/web-tokens.css',
     );
   }
 }
@@ -143,7 +143,7 @@ function checkPlatformCoverage(failures: string[]): void {
   const tailwindConfig = readRepoFile(
     'packages/next-config/tailwind.config.base.ts',
   );
-  const shadcnTheme = readRepoFile('packages/styles/shadcn-theme.scss');
+  const shadcnTheme = readRepoFile('packages/styles/shadcn-theme.css');
 
   for (const [platformId, platform] of Object.entries(PLATFORM_COLORS)) {
     const hex = platform.base.toUpperCase();
@@ -166,7 +166,7 @@ function checkPlatformCoverage(failures: string[]): void {
       shadcnTheme,
       `--platform-${platformId}: ${lowerHex};`,
       failures,
-      'packages/styles/shadcn-theme.scss',
+      'packages/styles/shadcn-theme.css',
     );
   }
 }

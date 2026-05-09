@@ -9,6 +9,7 @@ import {
   useWorkflowStore,
 } from '@genfeedai/workflow-ui/stores';
 import type { NodeProps } from '@xyflow/react';
+import Image from 'next/image';
 import { memo, useCallback } from 'react';
 import { NodeBadge } from '@/features/workflows/components/ui/badge';
 import { NodeCard, NodeHeader } from '@/features/workflows/components/ui/card';
@@ -94,10 +95,13 @@ function BrandAssetNodeComponent(props: NodeProps): React.JSX.Element {
       {/* Single asset preview (logo/banner) */}
       {data.resolvedUrl && data.assetType !== 'references' && (
         <div className="overflow-hidden bg-black/20">
-          <img
+          <Image
+            unoptimized
             src={data.resolvedUrl}
             alt={`${data.assetType} asset`}
             className="h-24 w-full object-contain"
+            width={800}
+            height={600}
           />
           {data.dimensions && (
             <p className="text-[10px] text-muted-foreground text-center py-1">
@@ -113,13 +117,16 @@ function BrandAssetNodeComponent(props: NodeProps): React.JSX.Element {
         <div className="grid grid-cols-3 gap-1">
           {data.resolvedUrls.map((url, index) => (
             <div
-              key={`ref-${index}`}
+              key={url}
               className="overflow-hidden bg-black/20 aspect-square"
             >
-              <img
+              <Image
+                unoptimized
                 src={url}
                 alt={`Reference ${index + 1}`}
                 className="h-full w-full object-cover"
+                width={800}
+                height={600}
               />
             </div>
           ))}
@@ -135,7 +142,7 @@ function BrandAssetNodeComponent(props: NodeProps): React.JSX.Element {
 
 export const BrandAssetNode = memo(BrandAssetNodeComponent);
 
-export const brandAssetNodeDefaults: Partial<BrandAssetNodeData> = {
+const brandAssetNodeDefaults: Partial<BrandAssetNodeData> = {
   assetType: 'logo',
   brandId: null,
   brandLabel: null,

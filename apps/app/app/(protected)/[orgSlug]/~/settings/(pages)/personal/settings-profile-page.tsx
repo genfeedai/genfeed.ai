@@ -57,7 +57,7 @@ export default function SettingsProfilePage() {
   if (!isLoaded) {
     return (
       <div className="flex items-center justify-center min-h-form">
-        <span className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
+        <span className="animate-spin size-8 border-2 border-primary border-t-transparent rounded-full" />
       </div>
     );
   }

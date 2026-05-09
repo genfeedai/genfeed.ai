@@ -57,11 +57,11 @@ function GridPositionSelectorComponent({
 
   return (
     <div className={cn('space-y-1.5', className)}>
-      <label className="text-xs text-muted-foreground">Content Position</label>
+      <span className="text-xs text-muted-foreground">Content Position</span>
       <div className="grid grid-cols-3 gap-1 p-2 bg-background border border-input rounded-md">
-        {GRID_POSITIONS.map((pos, idx) => (
+        {GRID_POSITIONS.map((pos, _idx) => (
           <Button
-            key={idx}
+            key={`${pos.x}-${pos.y}`}
             onClick={() => onPositionChange(pos)}
             variant={ButtonVariant.UNSTYLED}
             withWrapper={false}

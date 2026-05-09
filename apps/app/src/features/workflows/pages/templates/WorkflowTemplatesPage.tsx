@@ -7,7 +7,7 @@ import { logger } from '@services/core/logger.service';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import {
   createWorkflowApiService,
   type WorkflowTemplate,
@@ -27,7 +27,7 @@ const TEMPLATE_CATEGORIES = [
 /**
  * Template Gallery - Pre-built workflow templates
  */
-export default function WorkflowTemplatesPage() {
+function WorkflowTemplatesPageContent() {
   const { href } = useOrgUrl();
   const [templates, setTemplates] = useState<WorkflowTemplate[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -37,9 +37,9 @@ export default function WorkflowTemplatesPage() {
 
   const mountedRef = useRef(true);
   const getService = useAuthedService(createWorkflowApiService);
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const templateId = searchParams.get('template');
+  const { replace } = useRouter();
+  const { get } = useSearchParams();
+  const templateId = get('template');
 
   const loadTemplates = useCallback(async () => {
     setIsLoading(true);
@@ -82,7 +82,7 @@ export default function WorkflowTemplatesPage() {
     };
   }, [loadTemplates]);
 
-  // Stable navigation callback — avoids re-running the bootstrap effect
+  // Stable navigation callback : avoids re-running the bootstrap effect
   // when useOrgUrl() returns a fresh href function on each render.
   const hrefRef = useRef(href);
   hrefRef.current = href;
@@ -114,7 +114,7 @@ export default function WorkflowTemplatesPage() {
         });
 
         if (!isCancelled) {
-          router.replace(hrefRef.current(`/workflows/${workflow._id}`));
+          replace(hrefRef.current(`/workflows/${workflow._id}`));
         }
       } catch (err) {
         logger.error('Failed to bootstrap workflow template', { error: err });
@@ -135,7 +135,7 @@ export default function WorkflowTemplatesPage() {
     return () => {
       isCancelled = true;
     };
-  }, [getService, router, templateId]);
+  }, [getService, replace, templateId]);
 
   const filteredTemplates =
     selectedCategory === 'all'
@@ -199,7 +199,7 @@ export default function WorkflowTemplatesPage() {
       <header className="border-b border-white/[0.08] bg-card px-6 py-4">
         <div className="mx-auto flex max-w-7xl items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">Templates</h1>
+            <h1 className="text-2xl font-semibold">Templates</h1>
             <p className="text-sm text-muted-foreground">
               Start with a pre-built workflow template
             </p>
@@ -288,5 +288,13 @@ export default function WorkflowTemplatesPage() {
         )}
       </main>
     </div>
+  );
+}
+
+export default function WorkflowTemplatesPage() {
+  return (
+    <Suspense fallback={null}>
+      <WorkflowTemplatesPageContent />
+    </Suspense>
   );
 }

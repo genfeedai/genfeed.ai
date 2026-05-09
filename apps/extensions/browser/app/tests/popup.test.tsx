@@ -26,7 +26,7 @@ vi.mock('~components/pages/LoginPage', () => ({
   default: () => React.createElement('div', null, 'Login Page'),
 }));
 
-vi.mock('~style.scss', () => ({}));
+vi.mock('~style.css', () => ({}));
 
 vi.mock('~services', () => ({
   EnvironmentService: {

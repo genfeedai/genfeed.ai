@@ -1,21 +1,25 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
-import { forwardRef } from 'react';
+import type { Ref } from 'react';
 import { cn } from '@/lib/utils';
 
-export interface ToggleSwitchProps {
+interface ToggleSwitchProps {
   checked: boolean;
   onCheckedChange: (checked: boolean) => void;
   /** Override the active color (defaults to bg-primary) */
   activeColor?: string;
   className?: string;
+  ref?: Ref<HTMLButtonElement>;
 }
 
-const ToggleSwitch = forwardRef<HTMLButtonElement, ToggleSwitchProps>(
-  (
-    { checked, onCheckedChange, activeColor = 'bg-primary', className },
-    ref,
-  ) => (
+function ToggleSwitch({
+  activeColor = 'bg-primary',
+  checked,
+  className,
+  onCheckedChange,
+  ref,
+}: ToggleSwitchProps) {
+  return (
     <Button
       ref={ref}
       variant={ButtonVariant.UNSTYLED}
@@ -36,8 +40,7 @@ const ToggleSwitch = forwardRef<HTMLButtonElement, ToggleSwitchProps>(
         )}
       />
     </Button>
-  ),
-);
-ToggleSwitch.displayName = 'ToggleSwitch';
+  );
+}
 
 export { ToggleSwitch };

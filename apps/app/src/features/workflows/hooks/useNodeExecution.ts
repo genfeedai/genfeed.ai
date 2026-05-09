@@ -95,10 +95,13 @@ export function useNodeExecution(): UseNodeExecutionReturn {
             execution._id,
           );
 
-          // Find this node's result
-          const nodeResult = result.nodeResults.find(
-            (nr) => nr.nodeId === nodeId,
+          const nodeResultsById = new Map(
+            result.nodeResults.map((nodeResult) => [
+              nodeResult.nodeId,
+              nodeResult,
+            ]),
           );
+          const nodeResult = nodeResultsById.get(nodeId);
           if (nodeResult?.output) {
             updateNodeData(nodeId, {
               ...nodeResult.output,

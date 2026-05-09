@@ -154,7 +154,7 @@ export default function SettingsApiKeysPage() {
   if (!desktop && (!isReady || isLoading)) {
     return (
       <div className="flex items-center justify-center min-h-form">
-        <span className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
+        <span className="animate-spin size-8 border-2 border-primary border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -193,7 +193,7 @@ export default function SettingsApiKeysPage() {
                     {isConnected ? (
                       <>
                         <span className="flex items-center gap-1.5 text-xs text-green-500">
-                          <span className="h-2 w-2 rounded-full bg-green-500" />
+                          <span className="size-2 rounded-full bg-green-500" />
                           Connected
                         </span>
                         <Button
@@ -215,13 +215,13 @@ export default function SettingsApiKeysPage() {
                             removingProvider === providerStatus.provider
                           }
                         >
-                          <HiTrash className="h-4 w-4" />
+                          <HiTrash className="size-4" />
                         </Button>
                       </>
                     ) : (
                       <>
                         <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <span className="h-2 w-2 rounded-full bg-muted-foreground/30" />
+                          <span className="size-2 rounded-full bg-muted-foreground/30" />
                           Not configured
                         </span>
                         <Button
@@ -249,9 +249,9 @@ export default function SettingsApiKeysPage() {
                   <div className="mt-4 pt-4 border-t border-border">
                     <div className="space-y-3">
                       <div>
-                        <label className="text-xs text-muted-foreground mb-1 block">
+                        <span className="text-xs text-muted-foreground mb-1 block">
                           API Key
-                        </label>
+                        </span>
                         <Input
                           type="password"
                           value={apiKeyInputs[providerStatus.provider] || ''}
@@ -267,9 +267,9 @@ export default function SettingsApiKeysPage() {
                       </div>
                       {providerStatus.requiresSecret && (
                         <div>
-                          <label className="text-xs text-muted-foreground mb-1 block">
+                          <span className="text-xs text-muted-foreground mb-1 block">
                             API Secret
-                          </label>
+                          </span>
                           <Input
                             type="password"
                             value={

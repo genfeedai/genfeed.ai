@@ -136,17 +136,16 @@ function PersonaVideoContentNodeComponent(props: NodeProps): React.JSX.Element {
 
 export const PersonaVideoContentNode = memo(PersonaVideoContentNodeComponent);
 
-export const personaVideoContentNodeDefaults: Partial<PersonaVideoContentNodeData> =
-  {
-    aspectRatio: '16:9',
-    label: 'Persona Video',
-    personaId: null,
-    resolvedAvatarProvider: null,
-    resolvedJobId: null,
-    resolvedPersonaId: null,
-    resolvedPersonaLabel: null,
-    resolvedVideoUrl: null,
-    script: null,
-    status: 'idle',
-    type: 'personaVideoContent',
-  };
+const personaVideoContentNodeDefaults: Partial<PersonaVideoContentNodeData> = {
+  aspectRatio: '16:9',
+  label: 'Persona Video',
+  personaId: null,
+  resolvedAvatarProvider: null,
+  resolvedJobId: null,
+  resolvedPersonaId: null,
+  resolvedPersonaLabel: null,
+  resolvedVideoUrl: null,
+  script: null,
+  status: 'idle',
+  type: 'personaVideoContent',
+};

@@ -83,7 +83,7 @@ function BrandContextNodeComponent(props: NodeProps): React.JSX.Element {
                 {Object.entries(data.resolvedColors).map(([key, color]) => (
                   <div key={key} className="text-center">
                     <span
-                      className="inline-block h-5 w-5 rounded border border-white/[0.08]"
+                      className="inline-block size-5 rounded border border-white/[0.08]"
                       style={{ backgroundColor: color }}
                     />
                     <p className="text-[10px] text-muted-foreground mt-0.5">
@@ -132,7 +132,7 @@ function BrandContextNodeComponent(props: NodeProps): React.JSX.Element {
 
 export const BrandContextNode = memo(BrandContextNodeComponent);
 
-export const brandContextNodeDefaults: Partial<BrandContextNodeData> = {
+const brandContextNodeDefaults: Partial<BrandContextNodeData> = {
   brandHandle: null,
   brandId: null,
   brandLabel: null,

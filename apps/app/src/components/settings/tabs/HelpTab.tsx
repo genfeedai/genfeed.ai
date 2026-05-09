@@ -26,8 +26,8 @@ export function HelpTab() {
           withWrapper={false}
           className="flex w-full items-center gap-3 rounded-lg border border-border p-4 text-left transition hover:border-primary/50 hover:bg-secondary/30"
         >
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-            <HelpCircle className="h-5 w-5 text-primary" />
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+            <HelpCircle className="size-5 text-primary" />
           </div>
           <div>
             <div className="font-medium text-foreground">

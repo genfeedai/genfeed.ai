@@ -52,7 +52,7 @@ vi.mock('./components/ReviewStatsHeader', () => ({
 }));
 
 vi.mock('@ui/loading/default/Loading', () => ({
-  default: () => <div>Loading...</div>,
+  default: () => <div>Loading…</div>,
 }));
 
 vi.mock('@ui/layout/container/Container', () => ({

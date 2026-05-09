@@ -150,7 +150,7 @@ export default function CharacterDetail({ slug }: CharacterDetailProps) {
         <div className="flex items-center gap-3">
           <Button asChild variant={ButtonVariant.GHOST} size={ButtonSize.SM}>
             <Link href="/darkroom/characters" aria-label="Back to characters">
-              <HiArrowLeft className="w-5 h-5 text-foreground/60 transition-colors hover:text-foreground" />
+              <HiArrowLeft className="size-5 text-foreground/60 transition-colors hover:text-foreground" />
             </Link>
           </Button>
 
@@ -184,13 +184,13 @@ export default function CharacterDetail({ slug }: CharacterDetailProps) {
           {character.profileImageUrl ? (
             <Image
               alt={character.label}
-              className="w-16 h-16 rounded-full object-cover border border-foreground/10"
+              className="size-16 rounded-full object-cover border border-foreground/10"
               src={character.profileImageUrl}
               width={64}
               height={64}
             />
           ) : (
-            <div className="w-16 h-16 rounded-full bg-foreground/5 flex items-center justify-center text-3xl">
+            <div className="size-16 rounded-full bg-foreground/5 flex items-center justify-center text-3xl">
               {character.emoji || '🤖'}
             </div>
           )}

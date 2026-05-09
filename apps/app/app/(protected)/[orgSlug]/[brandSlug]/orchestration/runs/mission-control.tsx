@@ -16,7 +16,7 @@ import Container from '@ui/layout/container/Container';
 import FormSearchbar from '@ui/primitives/searchbar';
 import { SelectField } from '@ui/primitives/select';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import ActiveRunsPanel from './ActiveRunsPanel';
 import RunAnomaliesPanel from './RunAnomaliesPanel';
 import RunHistoryList from './RunHistoryList';
@@ -46,22 +46,20 @@ function parseTimeRange(value: string | null): AgentRunTimeRange {
     : DEFAULT_AGENT_RUN_TIME_RANGE;
 }
 
-export default function MissionControl() {
+function MissionControlContent() {
   const pathname = usePathname();
-  const router = useRouter();
-  const searchParams = useSearchParams();
+  const { replace } = useRouter();
+  const { get, toString: getSearchParamsString } = useSearchParams();
 
-  const [searchQuery, setSearchQuery] = useState(
-    () => searchParams.get('q') ?? '',
-  );
+  const [searchQuery, setSearchQuery] = useState(() => get('q') ?? '');
   const [selectedModel, setSelectedModel] = useState(
-    () => searchParams.get('model') ?? 'all',
+    () => get('model') ?? 'all',
   );
   const [sortMode, setSortMode] = useState<AgentRunSortMode>(() =>
-    parseSortMode(searchParams.get('sort')),
+    parseSortMode(get('sort')),
   );
   const [timeRange, setTimeRange] = useState<AgentRunTimeRange>(() =>
-    parseTimeRange(searchParams.get('range')),
+    parseTimeRange(get('range')),
   );
 
   const { runs, stats, isLoading, refresh, cancelRun } = useAgentRuns({
@@ -78,7 +76,7 @@ export default function MissionControl() {
   }, [refresh, refreshActive]);
 
   useEffect(() => {
-    const nextParams = new URLSearchParams(searchParams.toString());
+    const nextParams = new URLSearchParams(getSearchParamsString());
 
     if (searchQuery.trim().length > 0) {
       nextParams.set('q', searchQuery.trim());
@@ -105,17 +103,17 @@ export default function MissionControl() {
     }
 
     const nextQuery = nextParams.toString();
-    const currentQuery = searchParams.toString();
+    const currentQuery = getSearchParamsString();
 
     if (nextQuery !== currentQuery) {
-      router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, {
+      replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, {
         scroll: false,
       });
     }
   }, [
     pathname,
-    router,
-    searchParams,
+    replace,
+    getSearchParamsString,
     searchQuery,
     selectedModel,
     sortMode,
@@ -219,5 +217,13 @@ export default function MissionControl() {
         <RunHistoryList runs={runs} isLoading={isLoading} />
       </div>
     </Container>
+  );
+}
+
+export default function MissionControl() {
+  return (
+    <Suspense fallback={null}>
+      <MissionControlContent />
+    </Suspense>
   );
 }

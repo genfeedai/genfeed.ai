@@ -12,12 +12,12 @@ import { NotificationsService } from '@services/core/notifications.service';
 import AppTable from '@ui/display/table/Table';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useState } from 'react';
 
-export default function CaptionsList() {
+function CaptionsListContent() {
   const notificationsService = NotificationsService.getInstance();
-  const searchParams = useSearchParams();
-  const currentPage = Number(searchParams?.get('page')) || 1;
+  const { get } = useSearchParams();
+  const currentPage = Number(get('page')) || 1;
 
   const getCaptionsService = useAuthedService(
     useCallback((token: string) => CaptionsService.getInstance(token), []),
@@ -81,5 +81,13 @@ export default function CaptionsList() {
         <AutoPagination showTotal totalLabel="captions" />
       </div>
     </>
+  );
+}
+
+export default function CaptionsList() {
+  return (
+    <Suspense fallback={null}>
+      <CaptionsListContent />
+    </Suspense>
   );
 }

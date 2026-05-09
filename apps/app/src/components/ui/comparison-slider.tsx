@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { memo, useCallback, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -75,6 +76,21 @@ function ComparisonSliderComponent({
     [isDragging, handleMove],
   );
 
+  const handleKeyDown = useCallback(
+    (event: React.KeyboardEvent) => {
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        onPositionChange(Math.max(0, position - 5));
+      }
+
+      if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        onPositionChange(Math.min(100, position + 5));
+      }
+    },
+    [onPositionChange, position],
+  );
+
   return (
     <div
       ref={containerRef}
@@ -90,13 +106,23 @@ function ComparisonSliderComponent({
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleMouseUp}
+      onKeyDown={handleKeyDown}
+      role="slider"
+      tabIndex={0}
+      aria-label="Compare images"
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={Math.round(position)}
     >
       {/* After image (full width background) */}
-      <img
+      <Image
+        unoptimized
         src={afterSrc}
         alt={afterLabel}
         className="absolute inset-0 w-full h-full object-cover pointer-events-none"
         draggable={false}
+        width={800}
+        height={600}
       />
 
       {/* Before image (clipped) */}
@@ -104,12 +130,15 @@ function ComparisonSliderComponent({
         className="absolute inset-0 overflow-hidden pointer-events-none"
         style={{ width: `${position}%` }}
       >
-        <img
+        <Image
+          unoptimized
           src={beforeSrc}
           alt={beforeLabel}
           className="absolute inset-0 h-full object-cover"
           style={{ width: containerRef.current?.offsetWidth ?? '100%' }}
           draggable={false}
+          width={800}
+          height={600}
         />
       </div>
 
@@ -119,8 +148,8 @@ function ComparisonSliderComponent({
         style={{ left: `${position}%`, transform: 'translateX(-50%)' }}
       >
         {/* Handle */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-6 bg-white rounded-full shadow-lg flex items-center justify-center">
-          <svg viewBox="0 0 24 24" className="w-3 h-3 text-gray-600">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-6 bg-white rounded-full shadow-lg flex items-center justify-center">
+          <svg viewBox="0 0 24 24" className="size-3 text-muted-foreground">
             <path fill="currentColor" d="M8 5v14l-7-7 7-7m8 0v14l7-7-7-7" />
           </svg>
         </div>

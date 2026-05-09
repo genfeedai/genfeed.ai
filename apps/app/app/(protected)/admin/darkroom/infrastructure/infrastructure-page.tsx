@@ -307,7 +307,7 @@ export default function InfrastructurePage() {
               isDisabled={!canStart || isActioning}
               onClick={() => handleEC2Action(instance.instanceId, 'start')}
             >
-              <HiPlay className="w-3.5 h-3.5" />
+              <HiPlay className="size-3.5" />
               Start
             </Button>
 
@@ -318,7 +318,7 @@ export default function InfrastructurePage() {
               isDisabled={!canStop || isActioning}
               onClick={() => handleEC2Action(instance.instanceId, 'stop')}
             >
-              <HiStop className="w-3.5 h-3.5" />
+              <HiStop className="size-3.5" />
               Stop
             </Button>
           </div>
@@ -463,7 +463,7 @@ export default function InfrastructurePage() {
               isDisabled={isActioningAll}
               onClick={() => handleEC2ActionAll('start')}
             >
-              <HiPlay className="w-4 h-4" />
+              <HiPlay className="size-4" />
               Start All
             </Button>
 
@@ -474,7 +474,7 @@ export default function InfrastructurePage() {
               isDisabled={isActioningAll}
               onClick={() => handleEC2ActionAll('stop')}
             >
-              <HiStop className="w-4 h-4" />
+              <HiStop className="size-4" />
               Stop All
             </Button>
           </div>

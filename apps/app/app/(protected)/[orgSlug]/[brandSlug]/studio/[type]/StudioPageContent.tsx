@@ -13,9 +13,9 @@ import { Suspense, useCallback, useEffect, useMemo, useRef } from 'react';
 import GenerationFeatureGuard from './GenerationFeatureGuard';
 
 function StudioPageContentInner() {
-  const router = useRouter();
+  const { replace } = useRouter();
   const params = useParams<{ type?: string }>();
-  const searchParams = useSearchParams();
+  const { get } = useSearchParams();
   const { isEnabled, defaultCategory, isLoading } = useEnabledCategories();
   const hasRedirectedRef = useRef(false);
 
@@ -26,8 +26,8 @@ function StudioPageContentInner() {
       return paramToCategory(fromPath);
     }
 
-    return paramToCategory(searchParams.get('type'));
-  }, [params.type, searchParams]);
+    return paramToCategory(get('type'));
+  }, [params.type, get]);
 
   // Redirect to default if current category is disabled
   useEffect(() => {
@@ -37,11 +37,11 @@ function StudioPageContentInner() {
 
     if (!isEnabled(category)) {
       hasRedirectedRef.current = true;
-      router.replace(`/studio/${categoryToParam(defaultCategory)}`, {
+      replace(`/studio/${categoryToParam(defaultCategory)}`, {
         scroll: false,
       });
     }
-  }, [isLoading, category, isEnabled, defaultCategory, router]);
+  }, [isLoading, category, isEnabled, defaultCategory, replace]);
 
   // Reset redirect flag on URL change
   useEffect(() => {
@@ -50,11 +50,11 @@ function StudioPageContentInner() {
 
   const handleCategoryChange = useCallback(
     (newCategory: IngredientCategory) => {
-      router.replace(`/studio/${categoryToParam(newCategory)}`, {
+      replace(`/studio/${categoryToParam(newCategory)}`, {
         scroll: false,
       });
     },
-    [router],
+    [replace],
   );
 
   return (

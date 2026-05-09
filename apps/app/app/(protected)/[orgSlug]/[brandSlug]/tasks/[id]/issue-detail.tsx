@@ -122,9 +122,9 @@ function CommentItem({ comment }: { comment: IssueComment }) {
           )}
         >
           {isAgent ? (
-            <HiOutlineCpuChip className="h-3.5 w-3.5" />
+            <HiOutlineCpuChip className="size-3.5" />
           ) : (
-            <HiOutlineUser className="h-3.5 w-3.5" />
+            <HiOutlineUser className="size-3.5" />
           )}
         </div>
         <span
@@ -306,7 +306,7 @@ export default function IssueDetail({
       <Container>
         <Card>
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <HiOutlineExclamationTriangle className="mb-3 h-8 w-8 text-white/20" />
+            <HiOutlineExclamationTriangle className="mb-3 size-8 text-white/20" />
             <p className="text-sm text-white/50">Issue not found</p>
             <Link
               href="/tasks"
@@ -327,7 +327,7 @@ export default function IssueDetail({
           href="/tasks"
           className="inline-flex items-center gap-1 text-xs text-white/40 transition-colors hover:text-white/60"
         >
-          <HiArrowLeft className="h-3 w-3" />
+          <HiArrowLeft className="size-3" />
           Back to issues
         </Link>
       </div>
@@ -417,7 +417,7 @@ export default function IssueDetail({
           <Card>
             <div className="flex items-center justify-between border-b border-white/10 px-4 py-2">
               <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-white/40">
-                <HiOutlineChatBubbleLeft className="h-3.5 w-3.5" />
+                <HiOutlineChatBubbleLeft className="size-3.5" />
                 Comments ({comments.length})
               </h3>
               {comments.length > VISIBLE_COMMENT_COUNT && (
@@ -428,7 +428,7 @@ export default function IssueDetail({
                   className="flex items-center gap-1 text-[10px] text-blue-400 hover:text-blue-300"
                   onClick={scrollToLatestComment}
                 >
-                  <HiOutlineChevronDoubleDown className="h-3 w-3" />
+                  <HiOutlineChevronDoubleDown className="size-3" />
                   Jump to latest
                 </Button>
               )}
@@ -443,7 +443,7 @@ export default function IssueDetail({
                     className="flex w-full items-center justify-center gap-1.5 border-b border-white/5 py-2 text-[11px] text-white/40 hover:bg-white/[0.02] hover:text-white/60"
                     onClick={() => setShowAllComments(true)}
                   >
-                    <HiChevronDown className="h-3 w-3" />
+                    <HiChevronDown className="size-3" />
                     Show {hiddenCommentCount} earlier{' '}
                     {hiddenCommentCount === 1 ? 'comment' : 'comments'}
                   </Button>
@@ -582,7 +582,7 @@ export default function IssueDetail({
             <Card>
               <div className="p-4">
                 <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-white/40">
-                  <HiOutlineLink className="h-3.5 w-3.5" />
+                  <HiOutlineLink className="size-3.5" />
                   Linked ({issue.linkedEntities.length})
                 </h3>
                 <div className="space-y-2">
@@ -598,9 +598,9 @@ export default function IssueDetail({
                         )}
                       >
                         {entity.entityModel === 'Ingredient' ? (
-                          <HiOutlinePhoto className="h-3 w-3" />
+                          <HiOutlinePhoto className="size-3" />
                         ) : (
-                          <HiOutlineDocumentText className="h-3 w-3" />
+                          <HiOutlineDocumentText className="size-3" />
                         )}
                       </span>
                       <div className="min-w-0 flex-1">

@@ -1,5 +1,4 @@
 export {
-  Check,
   Check as CheckIcon,
   CircleAlert as AlertCircleIcon,
   CircleCheck as CheckCircleIcon,
@@ -11,13 +10,10 @@ export {
   Hash as HashIcon,
   LoaderCircle as LoaderIcon,
   Mail as MailIcon,
-  Monitor as MonitorIcon,
   RefreshCw as RefreshIcon,
   Scissors as ScissorsIcon,
   ShieldCheck as ShieldCheckIcon,
-  Smartphone as PhoneIcon,
   Sparkles as SparklesIcon,
-  Square as SquareIcon,
   Webhook as WebhookIcon,
   X as XIcon,
 } from 'lucide-react';

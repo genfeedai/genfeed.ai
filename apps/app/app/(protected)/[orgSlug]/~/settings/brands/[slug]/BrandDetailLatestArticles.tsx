@@ -44,7 +44,7 @@ export default function BrandDetailLatestArticles({
                 <h3 className="text-lg font-semibold mb-2">{article.label}</h3>
 
                 {article.summary && (
-                  <p className="text-sm text-gray-400 line-clamp-3 mb-4">
+                  <p className="text-sm text-muted-foreground line-clamp-3 mb-4">
                     {article.summary}
                   </p>
                 )}
