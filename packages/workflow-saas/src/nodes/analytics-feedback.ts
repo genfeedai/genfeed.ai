@@ -40,5 +40,5 @@ export const analyticsFeedbackNodeDefinition = {
     },
     { id: 'bestPostingTimes', label: 'Best Posting Times', type: 'json' },
   ],
-  type: 'analyticsFeedback',
+  type: 'analytics-feedback',
 };

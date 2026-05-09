@@ -882,7 +882,7 @@ export class PostAnalyticsService extends BaseService<
       await this.updateTodayAnalytics(postId, CREDENTIAL_PLATFORM.THREADS, {
         totalComments: analytics.replies,
         totalLikes: analytics.likes,
-        totalShares: analytics.reposts,
+        totalShares: analytics.reposts + analytics.quotes,
         totalViews: analytics.views,
       });
 

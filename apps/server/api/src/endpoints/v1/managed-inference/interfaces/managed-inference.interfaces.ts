@@ -12,13 +12,13 @@ export interface ManagedInferenceRequestUser {
   publicMetadata?: ManagedInferenceAuthMetadata;
 }
 
-export interface ManagedInferenceAuthenticatedRequest extends Request {
+export type ManagedInferenceAuthenticatedRequest = Omit<Request, 'user'> & {
   user?: ManagedInferenceRequestUser;
-}
+};
 
 export interface ManagedInferenceResponse {
   creditsDebited: number;
   model: string;
-  output: Record<string, unknown> | string;
+  output: unknown;
   provider: string;
 }

@@ -57,12 +57,14 @@ export default function MarketingTrackingProvider({
     !hasConsentChoice && hasConfiguredMarketingTag(config);
 
   const currentUrl = useMemo(() => {
+    const pathWithSearch = search ? `${pathname}?${search}` : pathname;
+
     if (typeof window === 'undefined') {
-      return pathname;
+      return pathWithSearch;
     }
 
-    return window.location.href;
-  }, [pathname]);
+    return `${window.location.origin}${pathWithSearch}${window.location.hash}`;
+  }, [pathname, search]);
 
   useEffect(() => {
     const stored = parseMarketingConsent(

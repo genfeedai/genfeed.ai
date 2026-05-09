@@ -245,6 +245,66 @@ describe('DesktopGenerationService', () => {
     );
   });
 
+  it('polls Replicate predictions until output is ready', async () => {
+    const database = createDatabaseMock();
+    const service = new DesktopGenerationService(
+      database as unknown as DesktopDatabaseService,
+    );
+    const calls: string[] = [];
+
+    await service.saveProviderConfig({
+      apiKey: 'replicate-secret',
+      baseUrl: 'https://api.replicate.com/v1',
+      model: 'meta/slow-model',
+      provider: 'replicate',
+    });
+
+    globalThis.fetch = (async (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ) => {
+      calls.push(String(input));
+      expect(init?.headers).toMatchObject({
+        Authorization: 'Bearer replicate-secret',
+      });
+
+      if (calls.length === 1) {
+        return new Response(
+          JSON.stringify({
+            id: 'prediction-1',
+            status: 'processing',
+            urls: {
+              get: 'https://api.replicate.com/v1/predictions/prediction-1',
+            },
+          }),
+          {
+            headers: { 'content-type': 'application/json' },
+            status: 200,
+          },
+        );
+      }
+
+      return new Response(
+        JSON.stringify({
+          output: ['Replicate completed after polling.'],
+          status: 'succeeded',
+        }),
+        {
+          headers: { 'content-type': 'application/json' },
+          status: 200,
+        },
+      );
+    }) as typeof fetch;
+
+    await expect(service.generateContent(generationParams)).resolves.toBe(
+      'Replicate completed after polling.',
+    );
+    expect(calls).toEqual([
+      'https://api.replicate.com/v1/models/meta/slow-model/predictions',
+      'https://api.replicate.com/v1/predictions/prediction-1',
+    ]);
+  });
+
   it('runs generation through the fal queue API with a provider API key', async () => {
     const database = createDatabaseMock();
     const service = new DesktopGenerationService(

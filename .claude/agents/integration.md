@@ -6,7 +6,7 @@ description: |
 
   <example>
   Context: User needs new OAuth integration
-  user: "Add a Mastodon OAuth integration with connect and callback endpoints"
+  user: "Add a Mastodon OAuth integration with connect and verify endpoints"
   assistant: "I'll use the integration agent to scaffold this."
   <commentary>
   New OAuth platform integration — use integration agent.
@@ -35,6 +35,9 @@ model: sonnet
 
 You handle third-party platform integrations in Genfeed.ai. Integrations live
 in `apps/server/api/src/services/integrations/<platform>/`.
+
+48+ platform integrations exist. `CredentialPlatform` enum covers 23 social/publishing
+platforms. AI tool integrations (openai-llm, anthropic, fal, etc.) use separate patterns.
 
 ## Integration Module Structure
 
@@ -87,27 +90,37 @@ export class <Platform>Controller {
     // Return: serializeSingle(result, CredentialOAuthSerializer)
   }
 
-  @Get('callback')
-  async callback(
-    @Query('code') code: string,
-    @Query('state') state: string,
-    @Req() req: Request,
-  ): Promise<JsonApiSingleResponse> {
-    // Exchange code for tokens
-    // credentialsService.saveCredentials(brand, CredentialPlatform.X, fields)
-    // Return: serializeSingle(credential, CredentialSerializer)
-  }
-
   @Post('verify')
   async verify(
     @Body() dto: CreateCredentialVerifyDto,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
     const { organizationId, brandId } = getPublicMetadata(user);
-    // Test token validity, update isConnected
+    // Exchange code for tokens (PKCE flow handles this in verify, not a separate callback)
+    // credentialsService.saveCredentials(brand, CredentialPlatform.X, fields)
     // Return: serializeSingle(credential, CredentialSerializer)
   }
 }
+```
+
+OAuth uses PKCE — no separate `@Get('callback')` endpoint. The `verify` endpoint
+handles code exchange.
+
+## Error Handling
+
+Two patterns in codebase (prefer the newer helper pattern):
+
+```typescript
+// Newer pattern — use this for new integrations
+import { returnBadRequest, returnNotFound, returnInternalServerError } from '@api/helpers/utils/response/response.util';
+
+if (!credential) return returnNotFound('Credential not found');
+if (!token) return returnBadRequest('Invalid token');
+```
+
+```typescript
+// Older pattern — still in some integrations, do not use for new code
+throw new HttpException('Invalid token', HttpStatus.BAD_REQUEST);
 ```
 
 ## Credential Save Pattern
@@ -151,7 +164,7 @@ export class <Platform>Service {
 }
 ```
 
-Use `HttpService` + `firstValueFrom(observable)` — never raw `fetch`.
+`HttpService` lives in the **service layer**, not controllers. Use `firstValueFrom(observable)` — never raw `fetch`.
 
 ## Module Pattern
 
@@ -182,8 +195,8 @@ this.configService.get('PLATFORM_CLIENT_ID')
 
 ## Serializer Usage
 
-- `CredentialOAuthSerializer` — OAuth initiation URLs (step 1)
-- `CredentialSerializer` — saved credential objects (steps 2-3)
+- `CredentialOAuthSerializer` — OAuth initiation URLs (connect step)
+- `CredentialSerializer` — saved credential objects (verify step)
 Both from `@genfeedai/serializers`.
 
 ## Hard Rules
@@ -191,13 +204,14 @@ Both from `@genfeedai/serializers`.
 - Always encrypt tokens with `EncryptionUtil` before storing
 - Always use `CredentialPlatform` enum — never raw strings
 - Register platform in `platform.enum.ts` first
-- Use `HttpService` (NestJS Axios), not raw `fetch`
+- Use `HttpService` (NestJS Axios) in services, not raw `fetch`
 - Use `getPublicMetadata(user)` from `@api/helpers/utils/clerk/clerk.util`
 - Return serialized responses — never raw credential objects
+- Use `returnBadRequest`/`returnNotFound` helpers for errors in new integrations
 
 ## Key Reference Files
 
 - `apps/server/api/src/services/integrations/twitter/` — OAuth 2 PKCE
-- `apps/server/api/src/services/integrations/instagram/` — Facebook OAuth
+- `apps/server/api/src/services/integrations/linkedin/` — newer error pattern
 - `apps/server/api/src/collections/credentials/services/credentials.service.ts`
 - `packages/enums/src/platform.enum.ts`

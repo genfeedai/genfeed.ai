@@ -166,7 +166,7 @@ export function createUserLookupPipeline(
       ? { _id: 1, clerkId: 1, email: 1, firstName: 1, handle: 1, lastName: 1 }
       : {};
 
-  return { where: {} };
+  return [];
 }
 
 /**

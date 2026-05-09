@@ -1,6 +1,7 @@
 import { useLocalSearchParams } from 'expo-router';
 import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ErrorScreen, LoadingScreen } from '@/components/ScreenStates';
+import { colors } from '@/constants';
 import { useIngredient } from '@/hooks/use-ingredients';
 import { formatFullDate } from '@/utils/format-date';
 
@@ -91,9 +92,9 @@ export default function IngredientDetail() {
 const styles = StyleSheet.create({
   categoryBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: '#38bdf8',
+    backgroundColor: colors.agent,
     borderRadius: 999,
-    color: '#0f172a',
+    color: colors.bgSecondary,
     fontSize: 12,
     fontWeight: '600',
     paddingHorizontal: 10,
@@ -101,14 +102,14 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   container: {
-    backgroundColor: '#0f172a',
+    backgroundColor: colors.bgSecondary,
     flex: 1,
   },
   contentContainer: {
     paddingBottom: 48,
   },
   description: {
-    color: '#cbd5f5',
+    color: colors.textPrimary,
     fontSize: 15,
     lineHeight: 22,
   },
@@ -119,7 +120,7 @@ const styles = StyleSheet.create({
   imageContainer: {
     alignItems: 'center',
     aspectRatio: 16 / 9,
-    backgroundColor: '#1e293b',
+    backgroundColor: colors.bgTertiary,
     justifyContent: 'center',
     width: '100%',
   },
@@ -128,7 +129,7 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   metaLabel: {
-    color: '#94a3b8',
+    color: colors.textMuted,
     fontSize: 14,
   },
   metaRow: {
@@ -137,19 +138,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   metaSection: {
-    borderTopColor: '#1e293b',
+    borderTopColor: colors.bgTertiary,
     borderTopWidth: 1,
     gap: 12,
     marginTop: 8,
     paddingTop: 16,
   },
   metaValue: {
-    color: 'white',
+    color: colors.white,
     fontSize: 14,
     fontWeight: '500',
   },
   title: {
-    color: 'white',
+    color: colors.white,
     fontSize: 24,
     fontWeight: '600',
   },

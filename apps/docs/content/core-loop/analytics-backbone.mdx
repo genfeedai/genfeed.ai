@@ -160,7 +160,7 @@ flowchart LR
 Run it with:
 
 ```bash
-TZ=UTC bunx vitest run --config vitest.config.ts src/collections/content-performance/services/analytics-ingestion-dashboard-smoke.spec.ts
+cd apps/server/api && TZ=UTC bunx vitest run --config vitest.config.ts src/collections/content-performance/services/analytics-ingestion-dashboard-smoke.spec.ts
 ```
 
 The content-performance dashboard intentionally excludes current-day metrics because today's provider data is incomplete. The smoke path records a provider ingestion row, verifies the publication analytics summary immediately, then advances the date window and verifies the same row appears in the weekly content-performance summary.

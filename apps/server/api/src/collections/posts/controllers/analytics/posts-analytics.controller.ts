@@ -255,7 +255,7 @@ export class PostsAnalyticsController {
       const posts = await this.postsService.findAll(
         {
           where: {
-            externalId: { not: true, not: null },
+            externalId: { not: null },
             isDeleted: false,
             organization: publicMetadata.organization,
             status: {

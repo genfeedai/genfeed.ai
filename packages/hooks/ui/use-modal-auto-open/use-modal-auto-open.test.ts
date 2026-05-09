@@ -58,6 +58,19 @@ describe('useModalAutoOpen', () => {
     expect(closeModal).toHaveBeenCalledWith('modal-id');
   });
 
+  it('reopens the modal when openKey changes while open', () => {
+    const { rerender } = renderHook(
+      ({ openKey }) => useModalAutoOpen('modal-id', { isOpen: true, openKey }),
+      { initialProps: { openKey: 0 } },
+    );
+
+    expect(openModal).toHaveBeenCalledTimes(1);
+
+    rerender({ openKey: 1 });
+
+    expect(openModal).toHaveBeenCalledTimes(2);
+  });
+
   it('cancels animation frames on cleanup', () => {
     const { unmount } = renderHook(() =>
       useModalAutoOpen('modal-id', { isOpen: true }),

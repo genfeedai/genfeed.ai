@@ -115,10 +115,10 @@ describe('AppSwitcher', () => {
       'Posts',
       'Workspace',
       'Agent',
-      'Studio',
+      'Image',
       'Workflows',
       'Editor',
-      'Compose',
+      'Write',
       'Analytics',
     ]) {
       expect(screen.getByRole('link', { name: label })).toBeInTheDocument();
@@ -141,7 +141,7 @@ describe('AppSwitcher', () => {
 
   it('active app button carries the shared shell active state', () => {
     render(<AppSwitcher orgSlug="acme" currentApp="compose" />);
-    const btn = screen.getByRole('link', { name: 'Compose' });
+    const btn = screen.getByRole('link', { name: 'Write' });
     expect(btn).toBeDefined();
     expect(btn).toHaveAttribute('data-active', 'true');
   });
@@ -161,7 +161,7 @@ describe('AppSwitcher', () => {
           brandSlug="my-brand"
         />,
       );
-      expect(screen.getByRole('link', { name: 'Studio' })).toHaveAttribute(
+      expect(screen.getByRole('link', { name: 'Image' })).toHaveAttribute(
         'href',
         '/acme/my-brand/studio/image',
       );
@@ -169,7 +169,7 @@ describe('AppSwitcher', () => {
 
     it('links to org overview for studio when brandSlug is absent', () => {
       render(<AppSwitcher orgSlug="acme" currentApp="workspace" />);
-      expect(screen.getByRole('link', { name: 'Studio' })).toHaveAttribute(
+      expect(screen.getByRole('link', { name: 'Image' })).toHaveAttribute(
         'href',
         '/acme/~/overview',
       );
@@ -183,11 +183,48 @@ describe('AppSwitcher', () => {
       );
     });
 
+    it('links to brand-scoped workspace when a brand is selected', () => {
+      render(
+        <AppSwitcher orgSlug="acme" currentApp="studio" brandSlug="my-brand" />,
+      );
+      expect(screen.getByRole('link', { name: 'Workspace' })).toHaveAttribute(
+        'href',
+        '/acme/my-brand/workspace',
+      );
+    });
+
     it('links to correct route for analytics app', () => {
       render(<AppSwitcher orgSlug="acme" currentApp="workspace" />);
       expect(screen.getByRole('link', { name: 'Analytics' })).toHaveAttribute(
         'href',
         '/acme/~/analytics/overview',
+      );
+    });
+
+    it('links brand app surfaces to brand-scoped routes', () => {
+      render(
+        <AppSwitcher
+          orgSlug="acme"
+          currentApp="workspace"
+          brandSlug="my-brand"
+        />,
+      );
+
+      expect(screen.getByRole('link', { name: 'Write' })).toHaveAttribute(
+        'href',
+        '/acme/my-brand/compose/post',
+      );
+      expect(screen.getByRole('link', { name: 'Editor' })).toHaveAttribute(
+        'href',
+        '/acme/my-brand/editor',
+      );
+      expect(screen.getByRole('link', { name: 'Workflows' })).toHaveAttribute(
+        'href',
+        '/acme/my-brand/workflows',
+      );
+      expect(screen.getByRole('link', { name: 'Analytics' })).toHaveAttribute(
+        'href',
+        '/acme/my-brand/analytics/overview',
       );
     });
 

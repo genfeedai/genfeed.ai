@@ -40,16 +40,6 @@ export const META_EVENT_NAMES: Record<WebsiteMarketingEventName, string> = {
   [WEBSITE_MARKETING_EVENTS.VIEW_PRICING]: 'ViewContent',
 };
 
-export const LINKEDIN_EVENT_NAMES: Record<WebsiteMarketingEventName, string> = {
-  [WEBSITE_MARKETING_EVENTS.BOOK_CALL]: 'book_call',
-  [WEBSITE_MARKETING_EVENTS.CTA_CLICK]: 'cta_click',
-  [WEBSITE_MARKETING_EVENTS.LEAD_SUBMIT]: 'lead_submit',
-  [WEBSITE_MARKETING_EVENTS.PAGE_VIEW]: 'page_view',
-  [WEBSITE_MARKETING_EVENTS.SIGNUP_COMPLETE]: 'signup_complete',
-  [WEBSITE_MARKETING_EVENTS.START_SIGNUP]: 'start_signup',
-  [WEBSITE_MARKETING_EVENTS.VIEW_PRICING]: 'view_pricing',
-};
-
 export const X_EVENT_NAMES: Record<WebsiteMarketingEventName, string> = {
   [WEBSITE_MARKETING_EVENTS.BOOK_CALL]: 'BookCall',
   [WEBSITE_MARKETING_EVENTS.CTA_CLICK]: 'ClickButton',

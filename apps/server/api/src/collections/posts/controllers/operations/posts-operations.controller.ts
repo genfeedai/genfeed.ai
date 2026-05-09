@@ -1,5 +1,7 @@
+import { randomUUID } from 'node:crypto';
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import type { IngredientRefDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
@@ -8,6 +10,7 @@ import { CreatePostDto } from '@api/collections/posts/dto/create-post.dto';
 import { CreateRemixPostDto } from '@api/collections/posts/dto/create-remix-post.dto';
 import { EnhancePostDto } from '@api/collections/posts/dto/enhance-post.dto';
 import { ExpandToThreadDto } from '@api/collections/posts/dto/expand-thread.dto';
+import { GenerateAccountPostDto } from '@api/collections/posts/dto/generate-account-post.dto';
 import { GenerateHooksDto } from '@api/collections/posts/dto/generate-hooks.dto';
 import { GenerateThreadDto } from '@api/collections/posts/dto/generate-thread.dto';
 import {
@@ -56,8 +59,10 @@ import {
   SystemPromptKey,
 } from '@genfeedai/enums';
 import type {
+  AccountPublishingContext,
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
+  SocialGenerationFormat,
 } from '@genfeedai/interfaces';
 import { PostListSerializer, PostSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -73,6 +78,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import type { Request } from 'express';
+import { parseTweet } from 'twitter-text';
 
 @AutoSwagger()
 @Controller('posts')
@@ -81,6 +87,7 @@ export class PostsOperationsController {
   private readonly serializer = PostSerializer;
 
   constructor(
+    private readonly accountPublishingContextService: AccountPublishingContextService,
     private readonly activitiesService: ActivitiesService,
     private readonly configService: ConfigService,
     private readonly credentialsService: CredentialsService,
@@ -106,20 +113,46 @@ export class PostsOperationsController {
     return html.replace(/<[^>]+>/g, '');
   }
 
+  private getWeightedCharacterCount(text: string): number {
+    return parseTweet(text).weightedLength;
+  }
+
   /**
-   * Validate post length (max 500 chars without HTML tags)
+   * Validate post length without HTML tags.
    */
-  private isValidPostLength(postHtml: string, maxLength = 560): boolean {
+  private isValidPostLength(
+    postHtml: string,
+    maxLength = 560,
+    usesWeightedCharacters = false,
+  ): boolean {
     const textOnly = this.stripHtmlTags(postHtml);
-    return textOnly.length > 0 && textOnly.length <= maxLength;
+    const length = usesWeightedCharacters
+      ? this.getWeightedCharacterCount(textOnly)
+      : textOnly.length;
+
+    return textOnly.length > 0 && length <= maxLength;
   }
 
   /**
    * Parse AI-generated content into an array of tweets
    * Handles JSON arrays and fallback to marker-based splitting
    */
-  private parseTweetContent(content: string, maxCount: number): string[] {
+  private parseTweetContent(
+    content: string,
+    maxCount: number,
+    context?: Pick<AccountPublishingContext, 'account' | 'constraints'>,
+  ): string[] {
     let tweetLines: string[] = [];
+    const maxLength =
+      context?.constraints.maxWeightedCharacters ??
+      context?.constraints.maxCharacters ??
+      560;
+    const usesWeightedCharacters =
+      context?.constraints.usesWeightedCharacters ?? false;
+    const cleanPost = (post: string) =>
+      post.replace(/^[-*\s]*(?:tweet|post)?\s*\d+[:.)-]\s*/i, '').trim();
+    const isValid = (post: string) =>
+      this.isValidPostLength(post, maxLength, usesWeightedCharacters);
 
     try {
       // Try to parse as JSON array first
@@ -133,28 +166,37 @@ export class PostsOperationsController {
       const parsed = JSON.parse(trimmedContent);
       if (Array.isArray(parsed)) {
         tweetLines = parsed
-          .map((post: unknown) => String(post).trim())
-          .filter(
-            (post: string) => post.length > 0 && this.isValidPostLength(post),
-          )
+          .map((post: unknown) => cleanPost(String(post)))
+          .filter((post: string) => post.length > 0 && isValid(post))
           .slice(0, maxCount);
       }
     } catch {
       // Fallback to marker-based splitting (---)
       const posts = content
         .split('---')
-        .map((post) => post.trim())
-        .filter((post) => post.length > 0 && this.isValidPostLength(post))
+        .map((post) => cleanPost(post))
+        .filter((post) => post.length > 0 && isValid(post))
         .slice(0, maxCount);
 
       if (posts.length > 0) {
         tweetLines = posts;
       } else {
+        const numberedOrLinePosts = content
+          .split('\n')
+          .map((post) => cleanPost(post))
+          .filter((post) => post.length > 0 && isValid(post))
+          .slice(0, maxCount);
+
+        if (numberedOrLinePosts.length > 0) {
+          tweetLines = numberedOrLinePosts;
+          return tweetLines;
+        }
+
         // Last resort: split by double newline
         tweetLines = content
           .split(/\n\n+/)
-          .map((post) => post.trim())
-          .filter((post) => post.length > 0 && this.isValidPostLength(post))
+          .map((post) => cleanPost(post))
+          .filter((post) => post.length > 0 && isValid(post))
           .slice(0, maxCount);
       }
     }
@@ -211,8 +253,9 @@ export class PostsOperationsController {
   private normalizeCredentialPlatform(
     value: unknown,
   ): CredentialPlatform | undefined {
+    const normalized = String(value ?? '').toLowerCase();
     return Object.values(CredentialPlatform).find(
-      (platform) => platform === value,
+      (platform) => platform === normalized,
     );
   }
 
@@ -228,6 +271,46 @@ export class PostsOperationsController {
     return (
       this.normalizeCredentialPlatform(value) === CredentialPlatform.TWITTER
     );
+  }
+
+  private getAccountContextSurface(
+    format: SocialGenerationFormat,
+  ): AccountPublishingContext['surface'] {
+    return format === 'thread' ? 'thread' : 'post';
+  }
+
+  private getSystemPromptForPlatform(
+    platform: CredentialPlatform,
+  ): SystemPromptKey {
+    switch (platform) {
+      case CredentialPlatform.INSTAGRAM:
+        return SystemPromptKey.INSTAGRAM;
+      case CredentialPlatform.LINKEDIN:
+        return SystemPromptKey.LINKEDIN;
+      case CredentialPlatform.TIKTOK:
+        return SystemPromptKey.TIKTOK;
+      case CredentialPlatform.YOUTUBE:
+        return SystemPromptKey.YOUTUBE;
+      case CredentialPlatform.TWITTER:
+        return SystemPromptKey.TWITTER;
+      default:
+        return SystemPromptKey.BRAND_CONTEXT;
+    }
+  }
+
+  private appendPublishingContextToPrompt(
+    prompt: string,
+    context: AccountPublishingContext,
+  ): string {
+    return [
+      prompt,
+      '',
+      'Account publishing context:',
+      ...context.promptHints.map((hint) => `- ${hint}`),
+      ...context.constraints.notes.map((note) => `- ${note}`),
+      '',
+      'Do not repeat recent account posts. Keep the output tailored to this selected account.',
+    ].join('\n');
   }
 
   private getPostCategoryFromIngredient(
@@ -274,9 +357,414 @@ export class PostsOperationsController {
     });
   }
 
+  private async resolveAccountPublishingContext(
+    dto: Pick<
+      GenerateAccountPostDto,
+      'credential' | 'format' | 'sourceReferenceIds' | 'sourceUrl' | 'trendId'
+    >,
+    publicMetadata: { brand: string; organization: string },
+  ): Promise<AccountPublishingContext> {
+    return this.accountPublishingContextService.resolve({
+      brandId: publicMetadata.brand,
+      credentialId: dto.credential,
+      organizationId: publicMetadata.organization,
+      sourceLineage: {
+        sourceReferenceIds: dto.sourceReferenceIds,
+        sourceUrl: dto.sourceUrl,
+        trendId: dto.trendId,
+      },
+      surface: this.getAccountContextSurface(dto.format),
+    });
+  }
+
+  private async createProcessingPostsForAccount(
+    dto: GenerateAccountPostDto,
+    publicMetadata: { user: string; organization: string; brand: string },
+    context: AccountPublishingContext,
+  ): Promise<PostDocument[]> {
+    const createdPosts: PostDocument[] = [];
+    const groupId = randomUUID();
+    let rootPostId: string | undefined;
+
+    for (let i = 0; i < dto.count; i++) {
+      const post = await this.postsService.create({
+        brand: publicMetadata.brand,
+        category: PostCategory.TEXT,
+        credential: dto.credential,
+        description: 'Generating...',
+        groupId,
+        ingredients: [],
+        label: '',
+        order: i,
+        organization: publicMetadata.organization,
+        parent: dto.format === 'thread' && i > 0 ? rootPostId : undefined,
+        platform: context.account.platform,
+        status: PostStatus.PROCESSING,
+        user: publicMetadata.user,
+      });
+
+      createdPosts.push(post);
+
+      if (i === 0) {
+        rootPostId = String(post._id ?? post.id);
+      }
+    }
+
+    return createdPosts;
+  }
+
+  private async buildAccountGenerationPrompt(
+    dto: GenerateAccountPostDto,
+    context: AccountPublishingContext,
+    publicMetadata: { organization: string },
+  ): Promise<string> {
+    const tone = dto.tone || TweetTone.PROFESSIONAL;
+    const isTwitter = context.account.platform === CredentialPlatform.TWITTER;
+
+    if (isTwitter) {
+      const template =
+        dto.format === 'thread'
+          ? PromptTemplateKey.THREAD_GENERATION
+          : PromptTemplateKey.TWEET_GENERATION;
+      const prompt = await this.templatesService.getRenderedPrompt(
+        template,
+        {
+          count: dto.count,
+          tone,
+          topic: dto.topic,
+        },
+        publicMetadata.organization,
+      );
+
+      return this.appendPublishingContextToPrompt(prompt, context);
+    }
+
+    const limit =
+      context.constraints.maxCharacters ??
+      context.constraints.maxWeightedCharacters ??
+      5000;
+
+    return this.appendPublishingContextToPrompt(
+      [
+        `Generate ${dto.count} ${context.account.platform} ${dto.format === 'thread' ? 'thread posts' : 'social posts'} for the selected account.`,
+        `Topic: ${dto.topic}`,
+        `Tone: ${tone}`,
+        `Maximum length per post: ${limit} characters.`,
+        'Return only the generated posts, one per line. Do not include numbering unless necessary for clarity.',
+      ].join('\n'),
+      context,
+    );
+  }
+
+  private async generateParsedAccountPosts(params: {
+    context: AccountPublishingContext;
+    count: number;
+    input: Record<string, unknown>;
+    model: string;
+    organizationId: string;
+  }): Promise<string[]> {
+    const maxAttempts =
+      params.context.account.platform === CredentialPlatform.TWITTER ? 3 : 1;
+    let content = '';
+    let input = params.input;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      content =
+        (await this.replicateService.generateTextCompletionSync(
+          params.model,
+          input,
+        )) ?? '';
+
+      if (!content) {
+        throw new Error('No content generated from AI service');
+      }
+
+      const lines = this.parseTweetContent(
+        content,
+        params.count,
+        params.context,
+      );
+
+      if (lines.length >= params.count) {
+        return lines;
+      }
+
+      if (attempt < maxAttempts - 1) {
+        const repairPrompt = this.appendPublishingContextToPrompt(
+          [
+            'Regenerate the social content so every item satisfies the account constraints.',
+            `Required item count: ${params.count}`,
+            'Invalid previous output:',
+            content,
+            'Return only valid posts, one per line.',
+          ].join('\n'),
+          params.context,
+        );
+        const built = await this.promptBuilderService.buildPrompt(
+          params.model,
+          {
+            maxTokens: TEXT_GENERATION_LIMITS.postTweetGeneration,
+            modelCategory: ModelCategory.TEXT,
+            prompt: repairPrompt,
+            systemPromptTemplate: this.getSystemPromptForPlatform(
+              params.context.account.platform,
+            ),
+            temperature: 0.7,
+            useTemplate: false,
+          },
+          params.organizationId,
+        );
+        input = built.input;
+      }
+    }
+
+    return this.parseTweetContent(content, params.count, params.context);
+  }
+
+  private async generateAccountContentAsync(
+    dto: GenerateAccountPostDto,
+    createdPosts: PostDocument[],
+    publicMetadata: { user: string; organization: string; brand: string },
+    context: AccountPublishingContext,
+  ): Promise<void> {
+    const activity = await this.activitiesService.create(
+      new ActivityEntity({
+        brand: publicMetadata.brand,
+        key: ActivityKey.POST_PROCESSING,
+        organization: publicMetadata.organization,
+        source: ActivitySource.POST_GENERATION,
+        user: publicMetadata.user,
+        value: JSON.stringify({
+          count: dto.count,
+          topic: dto.topic?.substring(0, 100),
+          type: `${dto.format}-generation`,
+        }),
+      }),
+    );
+
+    try {
+      const prompt = await this.buildAccountGenerationPrompt(
+        dto,
+        context,
+        publicMetadata,
+      );
+      const model = DEFAULT_MINI_TEXT_MODEL;
+      const { input } = await this.promptBuilderService.buildPrompt(
+        model,
+        {
+          maxTokens:
+            dto.format === 'thread'
+              ? TEXT_GENERATION_LIMITS.postThreadGeneration
+              : TEXT_GENERATION_LIMITS.postTweetGeneration,
+          modelCategory: ModelCategory.TEXT,
+          prompt,
+          systemPromptTemplate: this.getSystemPromptForPlatform(
+            context.account.platform,
+          ),
+          temperature: 0.8,
+          useTemplate: false,
+        },
+        publicMetadata.organization,
+      );
+
+      const generatedLines = await this.generateParsedAccountPosts({
+        context,
+        count: dto.count,
+        input,
+        model,
+        organizationId: publicMetadata.organization,
+      });
+
+      for (
+        let i = 0;
+        i < createdPosts.length && i < generatedLines.length;
+        i++
+      ) {
+        const post = createdPosts[i];
+        const postText = generatedLines[i];
+        const postId = String(post._id ?? post.id);
+
+        try {
+          const updatedPost = await this.postsService.patch(
+            postId,
+            {
+              description: postText,
+              label: this.extractLabelFromTweet(postText),
+              status: PostStatus.DRAFT,
+            },
+            [
+              { path: 'ingredients', select: '_id url' },
+              { path: 'credential', select: '_id label handle' },
+            ],
+          );
+
+          await this.websocketService.emit(WebSocketPaths.post(postId), {
+            result: updatedPost,
+            status: Status.COMPLETED,
+          });
+
+          await this.activitiesService.create(
+            new ActivityEntity({
+              brand: publicMetadata.brand,
+              entityId: postId,
+              entityModel: ActivityEntityModel.POST,
+              key: ActivityKey.POST_GENERATED,
+              organization: publicMetadata.organization,
+              source: ActivitySource.POST_GENERATION,
+              user: publicMetadata.user,
+              value: postId,
+            }),
+          );
+
+          try {
+            await this.recordGeneratedPostLineage({
+              draftType: dto.format === 'thread' ? 'thread' : 'tweet',
+              dto,
+              platform: context.account.platform,
+              postId,
+              prompt: dto.topic,
+              publicMetadata,
+            });
+          } catch (lineageError) {
+            this.logger.warn('Failed to record post remix lineage', {
+              error:
+                lineageError instanceof Error
+                  ? lineageError.message
+                  : String(lineageError),
+              postId,
+            });
+          }
+        } catch (error) {
+          await this.handleGeneratedPostFailure(postId, error);
+        }
+      }
+
+      for (let i = generatedLines.length; i < createdPosts.length; i++) {
+        await this.handleGeneratedPostFailure(
+          String(createdPosts[i]._id ?? createdPosts[i].id),
+          new Error('Insufficient valid posts generated'),
+        );
+      }
+    } catch (error) {
+      this.logger.error('Failed to generate account content asynchronously', {
+        error,
+        platform: context.account.platform,
+      });
+
+      await this.activitiesService.patch(activity._id.toString(), {
+        key: ActivityKey.POST_FAILED,
+        value: JSON.stringify({
+          error: (error as Error)?.message || 'Generation failed',
+        }),
+      });
+
+      for (const post of createdPosts) {
+        await this.handleGeneratedPostFailure(
+          String(post._id ?? post.id),
+          error,
+        );
+      }
+    }
+  }
+
+  private async handleGeneratedPostFailure(
+    postId: string,
+    error: unknown,
+  ): Promise<void> {
+    try {
+      await this.postsService.patch(postId, {
+        status: PostStatus.FAILED,
+      });
+
+      await this.websocketService.emit(WebSocketPaths.post(postId), {
+        error: (error as Error)?.message || 'Generation failed',
+        status: Status.FAILED,
+      });
+    } catch (patchError) {
+      this.logger.error(
+        `Failed to update post ${postId} to FAILED status`,
+        patchError,
+      );
+    }
+  }
+
   // ============================================================================
   // ENDPOINTS
   // ============================================================================
+
+  @Post('account-generations')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async generateAccountContent(
+    @Req() request: Request,
+    @Body() dto: GenerateAccountPostDto,
+    @CurrentUser() user: User,
+  ): Promise<JsonApiCollectionResponse> {
+    const publicMetadata = getPublicMetadata(user);
+
+    if (dto.format === 'thread' && dto.count < 2) {
+      throw new HttpException(
+        {
+          detail: 'Thread generation requires at least two posts',
+          title: 'Invalid thread count',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    if (dto.format === 'thread' && dto.count > 25) {
+      throw new HttpException(
+        {
+          detail: 'Thread generation supports at most 25 posts',
+          title: 'Invalid thread count',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    try {
+      const context = await this.resolveAccountPublishingContext(
+        dto,
+        publicMetadata,
+      );
+      const createdPosts = await this.createProcessingPostsForAccount(
+        dto,
+        publicMetadata,
+        context,
+      );
+      const response = serializeCollection(request, PostListSerializer, {
+        docs: createdPosts,
+      });
+
+      this.generateAccountContentAsync(
+        dto,
+        createdPosts,
+        publicMetadata,
+        context,
+      ).catch((error) => {
+        this.logger.error(
+          'Failed to generate account content asynchronously',
+          error,
+        );
+      });
+
+      return response;
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      this.logger.error('Failed to generate account content', error);
+      throw new HttpException(
+        {
+          detail:
+            (error as Error)?.message ||
+            'An error occurred while generating account content',
+          title: 'Failed to generate account content',
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
 
   @Post('generations')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -285,84 +773,11 @@ export class PostsOperationsController {
     @Body() dto: GenerateTweetsDto,
     @CurrentUser() user: User,
   ) {
-    const publicMetadata = getPublicMetadata(user);
-
-    try {
-      // Validate credential
-      const credential = await this.credentialsService.findOne({
-        _id: dto.credential,
-        isConnected: true,
-        isDeleted: false,
-        organization: publicMetadata.organization,
-      });
-
-      if (!credential) {
-        throw new HttpException(
-          {
-            detail:
-              'The specified credential does not exist or is not connected',
-            title: 'Credential not found',
-          },
-          HttpStatus.NOT_FOUND,
-        );
-      }
-
-      // Create posts immediately with PROCESSING status
-      const createdPosts = [];
-      const groupId = '507f191e810c19729de860ee'.toString();
-
-      // Create placeholder posts with PROCESSING status
-      for (let i = 0; i < dto.count; i++) {
-        const createPostDto: CreatePostDto = {
-          credential: dto.credential,
-          description: 'Generating...', // Placeholder - will be filled when generation completes
-          groupId,
-          ingredients: [],
-          label: '',
-          status: PostStatus.PROCESSING,
-        };
-
-        const post = await this.postsService.create({
-          ...createPostDto,
-          brand: publicMetadata.brand,
-          category: PostCategory.TEXT, // AI-generated tweets are text-only
-          organization: publicMetadata.organization,
-          platform: CredentialPlatform.TWITTER,
-          user: publicMetadata.user,
-        });
-
-        createdPosts.push(post);
-      }
-
-      // Return immediately with PROCESSING posts
-      const response = serializeCollection(request, PostListSerializer, {
-        docs: createdPosts,
-      });
-
-      // Continue async generation in background
-      this.generateTweetsAsync(dto, createdPosts, publicMetadata).catch(
-        (error) => {
-          this.logger.error('Failed to generate tweets asynchronously', error);
-        },
-      );
-
-      return response;
-    } catch (error) {
-      if (error instanceof HttpException) {
-        throw error;
-      }
-
-      this.logger.error('Failed to generate tweets', error);
-      throw new HttpException(
-        {
-          detail:
-            (error as Error)?.message ||
-            'An error occurred while generating tweets',
-          title: 'Failed to generate tweets',
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
+    return this.generateAccountContent(
+      request,
+      { ...dto, format: 'post' },
+      user,
+    );
   }
 
   @Post('thread-generations')
@@ -372,88 +787,11 @@ export class PostsOperationsController {
     @CurrentUser() user: User,
     @Body() dto: GenerateThreadDto,
   ): Promise<JsonApiCollectionResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
-    try {
-      // Validate credential
-      const credential = await this.credentialsService.findOne({
-        _id: dto.credential,
-        isConnected: true,
-        isDeleted: false,
-        organization: publicMetadata.organization,
-      });
-
-      if (!credential) {
-        throw new HttpException(
-          {
-            detail:
-              'The specified credential does not exist or is not connected',
-            title: 'Credential not found',
-          },
-          HttpStatus.NOT_FOUND,
-        );
-      }
-
-      // Create placeholder posts with PROCESSING status, linked as thread
-      const createdPosts = [];
-      const groupId = '507f191e810c19729de860ee'.toString();
-
-      let rootPostId: string | undefined;
-
-      for (let i = 0; i < dto.count; i++) {
-        const post = await this.postsService.create({
-          brand: publicMetadata.brand,
-          category: PostCategory.TEXT,
-          credential: dto.credential,
-          description: 'Generating...',
-          groupId,
-          ingredients: [],
-          label: '',
-          order: i,
-          organization: publicMetadata.organization,
-          parent: i === 0 ? undefined : rootPostId,
-          platform: CredentialPlatform.TWITTER,
-          status: PostStatus.PROCESSING,
-          user: publicMetadata.user,
-        });
-
-        createdPosts.push(post);
-
-        // Store root post ID after creating first post
-        if (i === 0) {
-          rootPostId = post._id as string;
-        }
-      }
-
-      // Return immediately with PROCESSING posts
-      const response = serializeCollection(request, PostListSerializer, {
-        docs: createdPosts,
-      });
-
-      // Continue async generation in background
-      this.generateThreadAsync(dto, createdPosts, publicMetadata).catch(
-        (error) => {
-          this.logger.error('Failed to generate thread asynchronously', error);
-        },
-      );
-
-      return response;
-    } catch (error) {
-      if (error instanceof HttpException) {
-        throw error;
-      }
-
-      this.logger.error('Failed to generate thread', error);
-      throw new HttpException(
-        {
-          detail:
-            (error as Error)?.message ||
-            'An error occurred while generating thread',
-          title: 'Failed to generate thread',
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
+    return this.generateAccountContent(
+      request,
+      { ...dto, format: 'thread' },
+      user,
+    );
   }
 
   /**
@@ -546,7 +884,9 @@ export class PostsOperationsController {
         order: i + 1, // Original is order 0
         organization: publicMetadata.organization,
         parent: postId,
-        platform: CredentialPlatform.TWITTER,
+        platform:
+          this.normalizeCredentialPlatform(originalPost.platform) ??
+          CredentialPlatform.TWITTER,
         status: PostStatus.PROCESSING,
         user: publicMetadata.user,
       });

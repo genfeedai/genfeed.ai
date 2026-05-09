@@ -80,6 +80,8 @@ import { ContentPipelineProcessor } from '@api/services/content-orchestration/co
 import { TelegramDistributionModule } from '@api/services/distribution/telegram/telegram-distribution.module';
 import { FacebookModule } from '@api/services/integrations/facebook/facebook.module';
 import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';
+import { LinkedInModule } from '@api/services/integrations/linkedin/linkedin.module';
+import { MastodonModule } from '@api/services/integrations/mastodon/mastodon.module';
 import { MetaAdsModule } from '@api/services/integrations/meta-ads/meta-ads.module';
 import { PinterestModule } from '@api/services/integrations/pinterest/pinterest.module';
 import { ThreadsModule } from '@api/services/integrations/threads/threads.module';
@@ -141,6 +143,8 @@ import { WorkersQueuesModule } from '@workers/queues/queues.module';
     forwardRef(() => ContentOrchestrationModule),
     forwardRef(() => FacebookModule),
     forwardRef(() => InstagramModule),
+    forwardRef(() => LinkedInModule),
+    forwardRef(() => MastodonModule),
     forwardRef(() => MetaAdsModule),
     forwardRef(() => NotificationsModule),
     forwardRef(() => PinterestModule),

@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import React, { type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { colors } from '@/constants';
 
 interface ScreenErrorFallbackProps {
   onRetry: () => void;
@@ -82,8 +83,8 @@ const styles = StyleSheet.create({
   },
   backButton: {
     alignItems: 'center',
-    backgroundColor: 'transparent',
-    borderColor: '#1e293b',
+    backgroundColor: colors.transparent,
+    borderColor: colors.bgTertiary,
     borderRadius: 12,
     borderWidth: 2,
     paddingVertical: 14,
@@ -92,13 +93,13 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   backButtonText: {
-    color: '#94a3b8',
+    color: colors.textMuted,
     fontSize: 16,
     fontWeight: '500',
   },
   container: {
     alignItems: 'center',
-    backgroundColor: '#020617',
+    backgroundColor: colors.bgPrimary,
     flex: 1,
     justifyContent: 'center',
     padding: 24,
@@ -113,7 +114,7 @@ const styles = StyleSheet.create({
   },
   retryButton: {
     alignItems: 'center',
-    backgroundColor: '#6366f1',
+    backgroundColor: colors.indigo,
     borderRadius: 12,
     paddingVertical: 14,
   },
@@ -121,19 +122,19 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   retryButtonText: {
-    color: 'white',
+    color: colors.white,
     fontSize: 16,
     fontWeight: '600',
   },
   subtitle: {
-    color: '#94a3b8',
+    color: colors.textMuted,
     fontSize: 16,
     lineHeight: 24,
     marginBottom: 32,
     textAlign: 'center',
   },
   title: {
-    color: 'white',
+    color: colors.white,
     fontSize: 28,
     fontWeight: '700',
     marginBottom: 8,

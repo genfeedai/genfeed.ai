@@ -1,3 +1,4 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ArticleCategory } from '@genfeedai/enums';
 import {
   IsBoolean,
@@ -29,6 +30,10 @@ export class GenerateArticlesDto {
   @IsOptional()
   @IsEnum(ArticleCategory)
   category?: ArticleCategory;
+
+  @IsOptional()
+  @IsEntityId()
+  credential?: string;
 
   @IsOptional()
   @IsString({ each: true })

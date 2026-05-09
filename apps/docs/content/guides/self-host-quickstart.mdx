@@ -30,8 +30,20 @@ cd core
 ### Install dependencies
 
 <Tabs items={['Bun (Recommended)', 'npm']}>
-  <Tabs.Tab>```bash bun install ```</Tabs.Tab>
-  <Tabs.Tab>```bash npm install ```</Tabs.Tab>
+  <Tabs.Tab>
+
+```bash
+bun install
+```
+
+  </Tabs.Tab>
+  <Tabs.Tab>
+
+```bash
+npm install
+```
+
+  </Tabs.Tab>
 </Tabs>
 
 ### Configure environment
@@ -49,8 +61,8 @@ DATABASE_URL=postgresql://genfeed:genfeed_local@localhost:5432/genfeed
 REDIS_URL=redis://localhost:6379
 
 # AI Providers (at least one required)
-REPLICATE_API_TOKEN=your_token_here
-FAL_KEY=your_key_here
+REPLICATE_KEY=your_token_here
+FAL_API_KEY=your_key_here
 
 # Optional
 PORT=3010
@@ -60,8 +72,20 @@ NODE_ENV=development
 ### Start the server
 
 <Tabs items={['Bun', 'npm']}>
-  <Tabs.Tab>```bash bun run dev ```</Tabs.Tab>
-  <Tabs.Tab>```bash npm run dev ```</Tabs.Tab>
+  <Tabs.Tab>
+
+```bash
+bun run dev
+```
+
+  </Tabs.Tab>
+  <Tabs.Tab>
+
+```bash
+npm run dev
+```
+
+  </Tabs.Tab>
 </Tabs>
 
 ### Generate your first image
@@ -95,7 +119,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://genfeed:genfeed_local@postgres:5432/genfeed
       - REDIS_URL=redis://redis:6379
-      - REPLICATE_API_TOKEN=${REPLICATE_API_TOKEN}
+      - REPLICATE_KEY=${REPLICATE_KEY}
     depends_on:
       - postgres
       - redis

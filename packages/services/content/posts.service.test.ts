@@ -185,8 +185,8 @@ describe('PostsService', () => {
       const result = await service.generateTweets(data);
 
       expect(mockInstance.post).toHaveBeenCalledWith(
-        'https://api.genfeed.ai/posts/generations',
-        data,
+        'https://api.genfeed.ai/posts/account-generations',
+        { ...data, format: 'post' },
       );
       expect(Array.isArray(result)).toBe(true);
     });
@@ -204,8 +204,8 @@ describe('PostsService', () => {
       await service.generateTweets(data);
 
       expect(mockInstance.post).toHaveBeenCalledWith(
-        'https://api.genfeed.ai/posts/generations',
-        data,
+        'https://api.genfeed.ai/posts/account-generations',
+        { ...data, format: 'post' },
       );
     });
 
@@ -224,8 +224,8 @@ describe('PostsService', () => {
       await service.generateTweets(data);
 
       expect(mockInstance.post).toHaveBeenCalledWith(
-        'https://api.genfeed.ai/posts/generations',
-        data,
+        'https://api.genfeed.ai/posts/account-generations',
+        { ...data, format: 'post' },
       );
     });
   });
@@ -243,8 +243,8 @@ describe('PostsService', () => {
       const result = await service.generateThread(data);
 
       expect(mockInstance.post).toHaveBeenCalledWith(
-        'https://api.genfeed.ai/posts/thread-generations',
-        data,
+        'https://api.genfeed.ai/posts/account-generations',
+        { ...data, format: 'thread' },
       );
       expect(Array.isArray(result)).toBe(true);
     });
@@ -262,8 +262,8 @@ describe('PostsService', () => {
       await service.generateThread(data);
 
       expect(mockInstance.post).toHaveBeenCalledWith(
-        'https://api.genfeed.ai/posts/thread-generations',
-        data,
+        'https://api.genfeed.ai/posts/account-generations',
+        { ...data, format: 'thread' },
       );
     });
 
@@ -282,8 +282,8 @@ describe('PostsService', () => {
       await service.generateThread(data);
 
       expect(mockInstance.post).toHaveBeenCalledWith(
-        'https://api.genfeed.ai/posts/thread-generations',
-        data,
+        'https://api.genfeed.ai/posts/account-generations',
+        { ...data, format: 'thread' },
       );
     });
   });

@@ -199,7 +199,7 @@ export class PostsController extends BaseCRUDController<
         );
       }
 
-      // Validate ingredients required when scheduling for media-required platforms
+      // Validate ingredients required when scheduling for platforms that require media
       if (
         createPostDto.status === PostStatus.SCHEDULED &&
         !isTextOnlyPlatform
