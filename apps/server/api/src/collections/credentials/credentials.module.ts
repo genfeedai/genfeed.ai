@@ -5,6 +5,7 @@ encrypted credential storage, and credential rotation.
  */
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CredentialsController } from '@api/collections/credentials/controllers/credentials.controller';
+import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
 import { TagsModule } from '@api/collections/tags/tags.module';
@@ -22,7 +23,7 @@ import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   controllers: [CredentialsController],
-  exports: [CredentialsService],
+  exports: [AccountPublishingContextService, CredentialsService],
   imports: [
     forwardRef(() => QuotaModule),
 
@@ -39,6 +40,6 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => TwitterModule),
     forwardRef(() => YoutubeModule),
   ],
-  providers: [CredentialsService],
+  providers: [AccountPublishingContextService, CredentialsService],
 })
 export class CredentialsModule {}

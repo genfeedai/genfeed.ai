@@ -74,25 +74,41 @@ describe('NodeConfigPanel', () => {
     expect(screen.queryByText('Resize')).not.toBeInTheDocument();
   });
 
-  it.skip('should handle user interactions correctly', () => {
+  it('should handle user interactions correctly', () => {
     const onUpdateConfig = vi.fn();
+    const textConfigNode: Node<WorkflowNodeData> = {
+      ...mockNode,
+      data: {
+        ...mockNode.data,
+        config: { prompt: 'old prompt' },
+        definition: {
+          ...mockNode.data.definition,
+          configSchema: {
+            prompt: {
+              label: 'Prompt',
+              placeholder: 'Write a prompt',
+              type: 'text',
+            },
+          },
+        },
+      },
+    };
+
     render(
-      <NodeConfigPanel {...defaultProps} onUpdateConfig={onUpdateConfig} />,
+      <NodeConfigPanel
+        {...defaultProps}
+        selectedNode={textConfigNode}
+        onUpdateConfig={onUpdateConfig}
+      />,
     );
 
-    // Test updating config values
-    const configInputs = screen.getAllByRole('textbox');
-    if (configInputs.length > 0) {
-      fireEvent.change(configInputs[0], { target: { value: '9:16' } });
-      expect(onUpdateConfig).toHaveBeenCalled();
-    }
+    fireEvent.change(screen.getByRole('textbox'), {
+      target: { value: 'new prompt' },
+    });
 
-    // Test selecting from dropdown/enum values
-    const selectInputs = screen.getAllByRole('combobox');
-    if (selectInputs.length > 0) {
-      fireEvent.change(selectInputs[0], { target: { value: '9:16' } });
-      expect(onUpdateConfig).toHaveBeenCalled();
-    }
+    expect(onUpdateConfig).toHaveBeenCalledWith('node-1', {
+      prompt: 'new prompt',
+    });
   });
 
   it('should apply correct styles and classes', () => {

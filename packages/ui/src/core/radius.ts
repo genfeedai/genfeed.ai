@@ -5,14 +5,16 @@ export type RadiusTokenName =
   | 'lg'
   | 'xl'
   | 'xxl'
+  | 'xxxl'
   | 'full';
 
 export const radiusTokens = {
-  full: '999px',
-  lg: '12px',
-  md: '8px',
+  full: '9999px',
+  lg: '8px',
+  md: '6px',
   none: '0px',
-  sm: '6px',
-  xl: '16px',
-  xxl: '24px',
+  sm: '4px',
+  xl: '10px',
+  xxl: '12px',
+  xxxl: '16px',
 } as const satisfies Record<RadiusTokenName, string>;

@@ -23,11 +23,11 @@ description: |
   </example>
 
   <example>
-  Context: User needs client-side serializer
-  user: "Create a client variant of the ContentNote serializer"
-  assistant: "I'll use the serializer agent to create the client serializer."
+  Context: User needs a list-view serializer variant
+  user: "Create a minimal list serializer for posts"
+  assistant: "I'll use the serializer agent to add the list config and serializer."
   <commentary>
-  Client serializer variant — use serializer agent.
+  List-view serializer variant — use serializer agent.
   </commentary>
   </example>
 model: sonnet
@@ -35,6 +35,22 @@ model: sonnet
 
 You handle the serializer layer in Genfeed.ai. All serializers live in
 `packages/serializers/src/`. Never create a serializer anywhere else.
+
+## Directory Structure
+
+```
+packages/serializers/src/
+  attributes/<domain>/     # Entity attribute arrays
+  builders/                # buildSerializer, rel, nestedRel, simpleConfig
+  configs/<domain>/        # Serializer configs (attributes + relationships)
+  helpers/                 # toPlainJson utility
+  interfaces/              # ISerializer, IDeserializer
+  relationships/           # Shared relationship constants
+  server/<domain>/         # Server-side serializers
+```
+
+There is no `client/` directory in the source tree. Client serializers are built
+inline by consumers using `buildSerializer('client', config)`.
 
 ## The Triplet Pattern
 
@@ -59,15 +75,31 @@ export const <camelName>Attributes = createEntityAttributes([
 
 **Path:** `packages/serializers/src/configs/<domain>/<name>.config.ts`
 
+A config file can export **multiple configs** for different use cases:
+
 ```typescript
 import { <camelName>Attributes } from '@serializers/attributes/<domain>/<name>.attributes';
-import { STANDARD_ENTITY_RELS } from '@serializers/relationships';
+import { STANDARD_ENTITY_RELS, MINIMAL_ENTITY_RELS } from '@serializers/relationships';
 
+// Full detail view
 export const <camelName>SerializerConfig = {
   attributes: <camelName>Attributes,
   type: '<kebab-name>',    // must match @Controller route string
   ...STANDARD_ENTITY_RELS,
 };
+
+// Lightweight list view
+export const <camelName>ListSerializerConfig = {
+  attributes: <camelName>Attributes,
+  type: '<kebab-name>',
+  ...MINIMAL_ENTITY_RELS,
+};
+```
+
+For entities with no relationships, use `simpleConfig`:
+```typescript
+import { simpleConfig } from '@serializers/builders';
+export const <camelName>SerializerConfig = simpleConfig('<kebab-name>', <camelName>Attributes);
 ```
 
 ### File 3: Server Serializer
@@ -76,38 +108,59 @@ export const <camelName>SerializerConfig = {
 
 ```typescript
 import { buildSerializer } from '@serializers/builders';
-import { <camelName>SerializerConfig } from '@serializers/configs';
+import { <camelName>SerializerConfig, <camelName>ListSerializerConfig } from '@serializers/configs';
 
-export const { <PascalName>Serializer } = buildSerializer(
-  'server',
-  <camelName>SerializerConfig,
-);
+export const { <PascalName>Serializer } = buildSerializer('server', <camelName>SerializerConfig);
+export const { <PascalName>ListSerializer } = buildSerializer('server', <camelName>ListSerializerConfig);
 ```
 
-### Client Variant (if needed)
+## Builder Functions
 
-**Path:** `packages/serializers/src/client/<domain>/<name>.serializer.ts`
+From `@serializers/builders`:
 
-```typescript
-import { buildSerializer } from '@serializers/builders';
-import { <camelName>SerializerConfig } from '@serializers/configs';
+| Function | Purpose |
+|----------|---------|
+| `buildSerializer(type, config)` | Main builder. `type` is `'server'` or `'client'`. Returns `{ <Name>Serializer }` |
+| `buildSingleSerializer(type, config)` | Returns single `ISerializer` instead of named record |
+| `simpleConfig(type, attributes)` | Config shorthand for no-relationship entities |
+| `rel(type, attributes)` | Relationship definition shorthand |
+| `nestedRel(type, attributes, nestedRels)` | Nested relationship (rel-within-rel) |
+| `createSerializerConfig(type, attributes, relationships?)` | Explicit config builder |
 
-export const { <PascalName>Serializer } = buildSerializer(
-  'client',
-  <camelName>SerializerConfig,
-);
-```
-
-## Available Relationship Constants
+## Relationship Constants
 
 From `@serializers/relationships`:
-- `STANDARD_ENTITY_RELS` — `{ user, organization, brand, tags }` full attributes
-- `CONTENT_ENTITY_RELS` — STANDARD + `{ evaluation }`
-- `MINIMAL_ENTITY_RELS` — minimal `{ user, organization, brand }` for list views
-- Individual: `USER_REL`, `ORGANIZATION_REL`, `BRAND_REL`, `TAG_REL`, `ASSET_REL`, `EVALUATION_REL`, `FOLDER_REL`
-- Minimal: `ORGANIZATION_MINIMAL_REL`, `BRAND_MINIMAL_REL`
-- Custom: `rel('<name>', attributes)` from `@serializers/builders`
-- Nested: `nestedRel(type, attrs, nestedRels)` for deep nesting
+
+### Preset bundles
+| Constant | Contains |
+|----------|----------|
+| `STANDARD_ENTITY_RELS` | `{ user, organization, brand, tags }` — full attributes |
+| `CONTENT_ENTITY_RELS` | STANDARD + `{ evaluation }` |
+| `MINIMAL_ENTITY_RELS` | `{ user, organization, brand }` — minimal attributes for list views |
+
+### Individual relationships
+`USER_REL`, `ORGANIZATION_REL`, `BRAND_REL`, `TAG_REL`, `ASSET_REL`, `EVALUATION_REL`, `FOLDER_REL`
+
+### Minimal variants
+`ORGANIZATION_MINIMAL_REL` — `rel('organization', ['label'])`
+`BRAND_MINIMAL_REL` — `rel('brand', ['label', 'slug'])`
+
+### Custom relationships
+```typescript
+import { rel, nestedRel } from '@serializers/builders';
+
+// Simple custom rel
+const ingredientRel = rel('ingredient', ['label', 'type', 'url']);
+
+// Nested rel (rel with its own relationships)
+const ingredientWithMetadata = nestedRel('ingredient', ['label', 'type'], {
+  metadata: rel('metadata', ['key', 'value']),
+});
+```
+
+## Helpers
+
+`toPlainJson<T>` from `@serializers/helpers` — converts serialized output to plain JSON object.
 
 ## Barrel Exports
 
@@ -115,7 +168,6 @@ After creating files, add to domain index:
 - `packages/serializers/src/attributes/<domain>/index.ts`
 - `packages/serializers/src/configs/<domain>/index.ts`
 - `packages/serializers/src/server/<domain>/index.ts`
-- `packages/serializers/src/client/<domain>/index.ts` (if client variant)
 
 ## Domain Reference
 
@@ -138,3 +190,4 @@ After creating files, add to domain index:
 - `buildSerializer('server', ...)` for API; `buildSerializer('client', ...)` for frontend
 - `type` string must match `@Controller('<route>')` exactly
 - Path alias `@serializers/` maps to `packages/serializers/src/`
+- Use `MINIMAL_ENTITY_RELS` for list endpoints, `STANDARD_ENTITY_RELS` for detail

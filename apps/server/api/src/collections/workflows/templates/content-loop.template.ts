@@ -30,7 +30,7 @@ export const CONTENT_LOOP_TEMPLATE: WorkflowTemplate = {
     {
       id: 'e-brand-prompt',
       source: 'brand-context',
-      sourceHandle: 'brandVoice',
+      sourceHandle: 'voice',
       target: 'prompt-constructor',
       targetHandle: 'brandVoice',
     },
@@ -44,7 +44,7 @@ export const CONTENT_LOOP_TEMPLATE: WorkflowTemplate = {
     {
       id: 'e-brand-publish',
       source: 'brand-context',
-      sourceHandle: 'brand',
+      sourceHandle: 'brandId',
       target: 'publish',
       targetHandle: 'brand',
     },
@@ -160,13 +160,13 @@ export const CONTENT_LOOP_TEMPLATE: WorkflowTemplate = {
   ],
   steps: [
     {
-      category: WorkflowStepCategory.TRIGGER,
+      category: WorkflowStepCategory.PERFORMANCE_TRACK,
       config: { topN: 5, worstN: 3 },
       id: 'step-analytics-feedback',
       name: 'Read Analytics',
     },
     {
-      category: WorkflowStepCategory.TRIGGER,
+      category: WorkflowStepCategory.WEBHOOK,
       config: {
         checkFrequency: '6hr',
         minViralScore: 70,
@@ -177,21 +177,21 @@ export const CONTENT_LOOP_TEMPLATE: WorkflowTemplate = {
       name: 'Find Matching Trend',
     },
     {
-      category: WorkflowStepCategory.PROCESSING,
+      category: WorkflowStepCategory.GENERATE_HOOK,
       config: { includeHashtags: true, tone: 'brand-voice' },
       dependsOn: ['step-trend-trigger'],
       id: 'step-prompt',
       name: 'Build Prompt',
     },
     {
-      category: WorkflowStepCategory.GENERATION,
+      category: WorkflowStepCategory.GENERATE_ARTICLE,
       config: { model: 'openai/gpt-4o-mini', temperature: 0.8 },
       dependsOn: ['step-prompt'],
       id: 'step-generate',
       name: 'Generate Content',
     },
     {
-      category: WorkflowStepCategory.OUTPUT,
+      category: WorkflowStepCategory.PUBLISH,
       config: {
         platforms: {
           facebook: false,

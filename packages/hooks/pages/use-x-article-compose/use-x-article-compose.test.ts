@@ -2,6 +2,8 @@ import { useXArticleCompose } from '@hooks/pages/use-x-article-compose/use-x-art
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+const copyRichTextToClipboardMock = vi.fn();
+
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: vi.fn(() => ({
     brandId: 'brand-1',
@@ -31,7 +33,8 @@ vi.mock('@genfeedai/services/content/articles.service', () => ({
 vi.mock('@genfeedai/services/core/clipboard.service', () => ({
   ClipboardService: {
     getInstance: vi.fn(() => ({
-      copy: vi.fn(),
+      copyRichTextToClipboard: copyRichTextToClipboardMock,
+      copyToClipboard: vi.fn(),
     })),
   },
 }));
@@ -104,6 +107,45 @@ describe('useXArticleCompose', () => {
     expect(downloadUrl).toHaveBeenCalledWith(
       'https://example.com/img.png',
       'test.png',
+    );
+  });
+
+  it('copies an existing X Article as rich HTML with plain text fallback', () => {
+    const { result } = renderHook(() =>
+      useXArticleCompose({
+        id: 'article-1',
+        label: 'X Article Title',
+        xArticleMetadata: {
+          estimatedReadTime: 4,
+          sections: [
+            {
+              content: '<p><strong>Useful</strong> section.</p>',
+              heading: 'Section One',
+              id: 'section-1',
+              order: 1,
+              pullQuote: 'Quote',
+            },
+          ],
+          wordCount: 750,
+        },
+      } as never),
+    );
+
+    act(() => {
+      result.current.handleCopyFullArticle();
+    });
+
+    expect(copyRichTextToClipboardMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        html: expect.stringContaining('<h1>X Article Title</h1>'),
+        text: expect.stringContaining('Section One'),
+      }),
+    );
+    expect(copyRichTextToClipboardMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        html: expect.stringContaining('<strong>Useful</strong>'),
+        text: expect.stringContaining('"Quote"'),
+      }),
     );
   });
 });

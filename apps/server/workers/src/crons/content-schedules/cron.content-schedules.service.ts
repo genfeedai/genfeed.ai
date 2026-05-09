@@ -8,6 +8,19 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 const LOCK_KEY = 'cron:content-schedules';
 const LOCK_TTL_SECONDS = 55;
 
+type LegacyContentSchedule = {
+  _id?: unknown;
+  brand?: unknown;
+  brandId?: string | null;
+  cronExpression?: string;
+  id?: string;
+  organization?: unknown;
+  organizationId: string;
+  skillParams?: Record<string, unknown>;
+  skillSlugs?: string[];
+  timezone?: string;
+};
+
 @Injectable()
 export class CronContentSchedulesService {
   constructor(
@@ -31,31 +44,36 @@ export class CronContentSchedulesService {
     const now = new Date();
 
     try {
-      const schedules =
-        await this.contentSchedulesService.getActiveSchedules(now);
+      const schedules = (await this.contentSchedulesService.getActiveSchedules(
+        now,
+      )) as unknown as LegacyContentSchedule[];
 
       for (const schedule of schedules) {
         try {
+          const scheduleId = String(schedule._id ?? schedule.id);
+          const organizationId = String(
+            schedule.organization ?? schedule.organizationId,
+          );
           await this.contentGatewayService.routeSignal({
-            brandId: schedule.brand.toString(),
-            organizationId: schedule.organization.toString(),
+            brandId: String(schedule.brand ?? schedule.brandId),
+            organizationId,
             payload: {
-              scheduleId: String(schedule._id),
+              scheduleId,
               skillParams: schedule.skillParams ?? {},
-              skillSlugs: schedule.skillSlugs,
+              skillSlugs: schedule.skillSlugs ?? [],
             },
             type: 'cron',
           });
 
           const nextRunAt = this.contentSchedulesService.calculateNextRunAt(
-            schedule.cronExpression,
-            schedule.timezone,
+            schedule.cronExpression ?? '* * * * *',
+            schedule.timezone ?? 'UTC',
             now,
           );
 
           await this.contentSchedulesService.markScheduleRan(
-            String(schedule._id),
-            schedule.organization.toString(),
+            scheduleId,
+            organizationId,
             nextRunAt,
             now,
           );
@@ -63,7 +81,7 @@ export class CronContentSchedulesService {
           const message =
             error instanceof Error ? error.message : 'Unknown error';
           this.logger.error(
-            `Failed content schedule ${String(schedule._id)}: ${message}`,
+            `Failed content schedule ${String(schedule._id ?? schedule.id)}: ${message}`,
             'CronContentSchedulesService',
           );
         }

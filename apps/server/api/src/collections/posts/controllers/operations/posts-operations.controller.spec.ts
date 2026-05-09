@@ -20,6 +20,7 @@ vi.mock('@api/collections/templates/services/templates.service', () => ({
 }));
 
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MembersService } from '@api/collections/members/services/members.service';
@@ -93,6 +94,31 @@ describe('PostsOperationsController', () => {
     platform: CredentialPlatform.TWITTER,
   };
 
+  const mockPublishingContext = {
+    account: {
+      handle: 'testaccount',
+      id: credentialId,
+      label: 'Twitter Account',
+      platform: CredentialPlatform.TWITTER,
+    },
+    brand: {
+      id: brandId,
+      label: 'Test Brand',
+    },
+    constraints: {
+      maxWeightedCharacters: 280,
+      notes: ['Standard X posts use the 280 weighted-character limit.'],
+      supportsDirectPublishing: true,
+      supportsRichArticleCopy: false,
+      supportsThreads: true,
+      usesWeightedCharacters: true,
+    },
+    promptHints: ['Account: Twitter Account', 'Platform: twitter'],
+    publishability: 'publishable',
+    recentPosts: [],
+    surface: 'post',
+  };
+
   const mockIngredient = {
     _id: ingredientId,
     brand: brandId,
@@ -117,6 +143,10 @@ describe('PostsOperationsController', () => {
   const mockActivitiesService = {
     create: vi.fn().mockResolvedValue(mockActivity),
     patch: vi.fn().mockResolvedValue(mockActivity),
+  };
+
+  const mockAccountPublishingContextService = {
+    resolve: vi.fn().mockResolvedValue(mockPublishingContext),
   };
 
   const mockConfigService = {
@@ -195,6 +225,9 @@ Tweet 3: Tech innovation is changing the world.`,
 
     mockActivitiesService.create.mockResolvedValue(mockActivity);
     mockActivitiesService.patch.mockResolvedValue(mockActivity);
+    mockAccountPublishingContextService.resolve.mockResolvedValue(
+      mockPublishingContext,
+    );
     mockCredentialsService.findOne.mockResolvedValue(mockCredential);
     mockIngredientsService.findByIds.mockResolvedValue([]);
     mockIngredientsService.findOne.mockResolvedValue(mockIngredient);
@@ -226,6 +259,10 @@ Tweet 3: Tech innovation is changing the world.`,
     const module: TestingModule = await Test.createTestingModule({
       controllers: [PostsOperationsController],
       providers: [
+        {
+          provide: AccountPublishingContextService,
+          useValue: mockAccountPublishingContextService,
+        },
         { provide: ActivitiesService, useValue: mockActivitiesService },
         { provide: ConfigService, useValue: mockConfigService },
         { provide: CredentialsService, useValue: mockCredentialsService },
@@ -288,19 +325,38 @@ Tweet 3: Tech innovation is changing the world.`,
         mockUser,
       );
 
-      expect(mockCredentialsService.findOne).toHaveBeenCalledWith({
-        _id: generateTweetsDto.credential,
-        isConnected: true,
-        isDeleted: false,
-        organization: organizationId,
+      expect(mockAccountPublishingContextService.resolve).toHaveBeenCalledWith({
+        brandId,
+        credentialId: generateTweetsDto.credential,
+        organizationId,
+        sourceLineage: {
+          sourceReferenceIds: undefined,
+          sourceUrl: undefined,
+          trendId: undefined,
+        },
+        surface: 'post',
       });
       expect(mockPostsService.create).toHaveBeenCalledTimes(3);
+      expect(mockPostsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          platform: CredentialPlatform.TWITTER,
+        }),
+      );
       expect(result).toBeDefined();
       expect(result.data).toBeDefined();
     });
 
     it('should throw NOT_FOUND when credential does not exist', async () => {
-      mockCredentialsService.findOne.mockResolvedValueOnce(null);
+      const notFoundError = new HttpException(
+        {
+          detail: 'The specified account does not exist or is not connected',
+          title: 'Credential not found',
+        },
+        HttpStatus.NOT_FOUND,
+      );
+      mockAccountPublishingContextService.resolve
+        .mockRejectedValueOnce(notFoundError)
+        .mockRejectedValueOnce(notFoundError);
 
       await expect(
         controller.generateTweets(mockRequest, generateTweetsDto, mockUser),
@@ -327,7 +383,9 @@ Tweet 3: Tech innovation is changing the world.`,
 
     it('should re-throw HttpException as-is', async () => {
       const httpError = new HttpException('Custom error', HttpStatus.FORBIDDEN);
-      mockCredentialsService.findOne.mockRejectedValueOnce(httpError);
+      mockAccountPublishingContextService.resolve.mockRejectedValueOnce(
+        httpError,
+      );
 
       await expect(
         controller.generateTweets(mockRequest, generateTweetsDto, mockUser),
@@ -335,9 +393,10 @@ Tweet 3: Tech innovation is changing the world.`,
     });
 
     it('records remix lineage for generated tweet posts when source metadata is provided', async () => {
-      await (controller as any).generateTweetsAsync(
+      await (controller as any).generateAccountContentAsync(
         {
           ...generateTweetsDto,
+          format: 'post',
           sourceReferenceIds: ['507f1f77bcf86cd799439099'],
           sourceUrl: 'https://x.com/example/status/1',
           trendId: '507f1f77bcf86cd799439098',
@@ -348,6 +407,7 @@ Tweet 3: Tech innovation is changing the world.`,
           organization: organizationId,
           user: userId,
         },
+        mockPublishingContext,
       );
 
       expect(
@@ -359,6 +419,24 @@ Tweet 3: Tech innovation is changing the world.`,
           organizationId,
           platforms: [CredentialPlatform.TWITTER],
           postId,
+        }),
+      );
+    });
+
+    it('uses the selected account platform when creating generated drafts', async () => {
+      mockAccountPublishingContextService.resolve.mockResolvedValueOnce({
+        ...mockPublishingContext,
+        account: {
+          ...mockPublishingContext.account,
+          platform: CredentialPlatform.LINKEDIN,
+        },
+      });
+
+      await controller.generateTweets(mockRequest, generateTweetsDto, mockUser);
+
+      expect(mockPostsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          platform: CredentialPlatform.LINKEDIN,
         }),
       );
     });
@@ -392,14 +470,29 @@ Tweet 3: Tech innovation is changing the world.`,
         generateThreadDto,
       );
 
-      expect(mockCredentialsService.findOne).toHaveBeenCalled();
+      expect(mockAccountPublishingContextService.resolve).toHaveBeenCalledWith(
+        expect.objectContaining({
+          brandId,
+          credentialId: generateThreadDto.credential,
+          organizationId,
+          surface: 'thread',
+        }),
+      );
       expect(mockPostsService.create).toHaveBeenCalledTimes(5);
       expect(result).toBeDefined();
       expect(result.data).toBeDefined();
     });
 
     it('should throw NOT_FOUND when credential not found', async () => {
-      mockCredentialsService.findOne.mockResolvedValueOnce(null);
+      mockAccountPublishingContextService.resolve.mockRejectedValueOnce(
+        new HttpException(
+          {
+            detail: 'The specified account does not exist or is not connected',
+            title: 'Credential not found',
+          },
+          HttpStatus.NOT_FOUND,
+        ),
+      );
 
       await expect(
         controller.generateThread(mockRequest, mockUser, generateThreadDto),
@@ -419,9 +512,10 @@ Tweet 3: Tech innovation is changing the world.`,
     });
 
     it('records remix lineage for generated thread posts when source metadata is provided', async () => {
-      await (controller as any).generateThreadAsync(
+      await (controller as any).generateAccountContentAsync(
         {
           ...generateThreadDto,
+          format: 'thread',
           sourceReferenceIds: ['507f1f77bcf86cd799439099'],
           sourceUrl: 'https://x.com/example/status/1',
           trendId: '507f1f77bcf86cd799439098',
@@ -432,6 +526,7 @@ Tweet 3: Tech innovation is changing the world.`,
           organization: organizationId,
           user: userId,
         },
+        mockPublishingContext,
       );
 
       expect(
@@ -1039,6 +1134,36 @@ Tweet 3: Tech innovation is changing the world.`,
         );
 
         expect(mockPostsService.create).toHaveBeenCalled();
+      });
+
+      it('should use X weighted character counting for emoji and URLs', () => {
+        const weightedValidPost = `${'a'.repeat(
+          250,
+        )} https://example.com/${'b'.repeat(220)} 😄`;
+        const weightedInvalidPost = `${'a'.repeat(279)} 😄`;
+        const parser = controller as unknown as {
+          parseTweetContent: (
+            content: string,
+            maxCount: number,
+            context: typeof mockPublishingContext,
+          ) => string[];
+        };
+
+        expect(weightedValidPost.length).toBeGreaterThan(280);
+        expect(
+          parser.parseTweetContent(
+            JSON.stringify([weightedValidPost]),
+            1,
+            mockPublishingContext,
+          ),
+        ).toEqual([weightedValidPost]);
+        expect(
+          parser.parseTweetContent(
+            JSON.stringify([weightedInvalidPost]),
+            1,
+            mockPublishingContext,
+          ),
+        ).toEqual([]);
       });
     });
 

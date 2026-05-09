@@ -1,8 +1,16 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsBoolean, IsOptional } from 'class-validator';
+import { IsArray, IsBoolean, IsOptional, IsString } from 'class-validator';
 
 export class CreateMemberDto {
+  @IsString()
+  @IsOptional()
+  @ApiProperty({
+    description: 'Clerk organization membership ID used to synchronize state',
+    required: false,
+  })
+  readonly clerkMembershipId?: string | null;
+
   @IsEntityId()
   @ApiProperty({
     description: 'The organization ID this member belongs to',

@@ -1560,4 +1560,120 @@ export class ClientService {
       throw new Error('Failed to benchmark ad performance');
     }
   }
+
+  // ── LinkedIn Tools ──
+
+  async generateLinkedInContent(params: {
+    brandId?: string;
+    topic: string;
+    variationsCount?: number;
+  }): Promise<
+    Array<{
+      body: string;
+      content: string;
+      cta: string;
+      hashtags: string[];
+      hook: string;
+    }>
+  > {
+    this.logger.debug('Generating LinkedIn content', { params });
+
+    try {
+      const response = await this.client.post(
+        '/content-intelligence/generate',
+        {
+          brandId: params.brandId,
+          platform: 'linkedin',
+          topic: params.topic,
+          variationsCount: params.variationsCount || 3,
+        },
+      );
+
+      return (
+        response.data?.data?.map(
+          (item: {
+            attributes?: {
+              body?: string;
+              content?: string;
+              cta?: string;
+              hashtags?: string[];
+              hook?: string;
+            };
+          }) => ({
+            body: item.attributes?.body || '',
+            content: item.attributes?.content || '',
+            cta: item.attributes?.cta || '',
+            hashtags: item.attributes?.hashtags || [],
+            hook: item.attributes?.hook || '',
+          }),
+        ) || []
+      );
+    } catch (error: unknown) {
+      this.logError('generating LinkedIn content', error as ApiError);
+      throw new Error('Failed to generate LinkedIn content');
+    }
+  }
+
+  async getLinkedInConnectionStatus(): Promise<{
+    avatar: string | null;
+    connected: boolean;
+    handle: string | null;
+    name: string | null;
+    platform: string;
+  }> {
+    this.logger.debug('Getting LinkedIn connection status');
+
+    try {
+      const response = await this.client.get('/credentials/mentions');
+      const mentions = response.data?.mentions || [];
+      const linkedin = mentions.find(
+        (m: { platform?: string }) => m.platform === 'linkedin',
+      );
+
+      if (linkedin) {
+        return {
+          avatar: linkedin.avatar || null,
+          connected: true,
+          handle: linkedin.handle || null,
+          name: linkedin.name || null,
+          platform: 'linkedin',
+        };
+      }
+
+      return {
+        avatar: null,
+        connected: false,
+        handle: null,
+        name: null,
+        platform: 'linkedin',
+      };
+    } catch (error: unknown) {
+      this.logError('getting LinkedIn connection status', error as ApiError);
+      throw new Error('Failed to get LinkedIn connection status');
+    }
+  }
+
+  async getLinkedInAnalytics(
+    contentId: string,
+    timeRange: string = '7d',
+  ): Promise<Record<string, unknown>> {
+    this.logger.debug('Getting LinkedIn analytics', { contentId, timeRange });
+
+    try {
+      const response = await this.client.get(
+        `/content-performance/${contentId}`,
+        {
+          params: {
+            platform: 'linkedin',
+            timeRange,
+          },
+        },
+      );
+
+      return response.data?.data?.attributes || response.data?.data || {};
+    } catch (error: unknown) {
+      this.logError('getting LinkedIn analytics', error as ApiError);
+      throw new Error('Failed to get LinkedIn analytics');
+    }
+  }
 }

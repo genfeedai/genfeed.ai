@@ -30,9 +30,11 @@ export interface ServerConversionConfig {
 }
 
 export interface ServerConversionResult {
-  meta: 'configured' | 'skipped';
-  x: 'configured' | 'skipped';
+  meta: 'configured' | 'failed' | 'skipped';
+  x: 'configured' | 'failed' | 'skipped';
 }
+
+const CONVERSION_API_TIMEOUT_MS = 5000;
 
 export function parseServerConversionRequest(
   input: unknown,
@@ -90,7 +92,7 @@ function getMetaEndpoint(config: ServerConversionConfig): string | null {
     return null;
   }
 
-  const version = config.metaGraphVersion || 'v24.0';
+  const version = config.metaGraphVersion || 'v25.0';
 
   return `https://graph.facebook.com/${version}/${config.metaPixelId}/events?access_token=${encodeURIComponent(
     config.metaAccessToken,
@@ -110,6 +112,21 @@ function getDefaultXEventIds(): Partial<
   };
 }
 
+function fetchWithTimeout(
+  input: RequestInfo | URL,
+  init: RequestInit = {},
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(
+    () => controller.abort(),
+    CONVERSION_API_TIMEOUT_MS,
+  );
+
+  return fetch(input, { ...init, signal: controller.signal }).finally(() => {
+    clearTimeout(timeout);
+  });
+}
+
 export async function sendServerConversions(
   event: ServerConversionRequest,
   context: ServerConversionContext,
@@ -123,7 +140,10 @@ export async function sendServerConversions(
   },
 ): Promise<ServerConversionResult> {
   const userData = getUserData(event, context);
-  const calls: Promise<Response>[] = [];
+  const calls: Array<{
+    provider: keyof ServerConversionResult;
+    request: Promise<Response>;
+  }> = [];
   const result: ServerConversionResult = {
     meta: 'skipped',
     x: 'skipped',
@@ -132,8 +152,9 @@ export async function sendServerConversions(
 
   if (metaEndpoint) {
     result.meta = 'configured';
-    calls.push(
-      fetch(metaEndpoint, {
+    calls.push({
+      provider: 'meta',
+      request: fetchWithTimeout(metaEndpoint, {
         body: JSON.stringify({
           data: [
             {
@@ -149,7 +170,7 @@ export async function sendServerConversions(
         headers: { 'Content-Type': 'application/json' },
         method: 'POST',
       }),
-    );
+    });
   }
 
   if (config.xApiEndpoint && config.xBearerToken) {
@@ -157,8 +178,9 @@ export async function sendServerConversions(
       config.xEventIds?.[event.name] || X_EVENT_NAMES[event.name];
 
     result.x = 'configured';
-    calls.push(
-      fetch(config.xApiEndpoint, {
+    calls.push({
+      provider: 'x',
+      request: fetchWithTimeout(config.xApiEndpoint, {
         body: JSON.stringify({
           conversions: [
             {
@@ -179,10 +201,23 @@ export async function sendServerConversions(
         },
         method: 'POST',
       }),
-    );
+    });
   }
 
-  await Promise.allSettled(calls);
+  const outcomes = await Promise.allSettled(calls.map((call) => call.request));
+  outcomes.forEach((outcome, index) => {
+    const provider = calls[index]?.provider;
+    if (!provider) {
+      return;
+    }
+
+    if (
+      outcome.status === 'rejected' ||
+      (outcome.status === 'fulfilled' && !outcome.value.ok)
+    ) {
+      result[provider] = 'failed';
+    }
+  });
 
   return result;
 }

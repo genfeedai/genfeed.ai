@@ -9,6 +9,7 @@
  */
 
 import type { ICommand } from '@genfeedai/interfaces/ui/command-palette.interface';
+import { CommandPaletteService } from '@services/core/command-palette.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import {
   HiOutlineArrowPath,
@@ -486,10 +487,6 @@ export function registerDefaultCommands(
   orgSlug: string,
   brandSlug: string,
 ): void {
-  // Import and register commands dynamically
-  const {
-    CommandPaletteService,
-  } = require('@services/core/command-palette.service');
   CommandPaletteService.registerCommands(
     createDefaultCommands(orgSlug, brandSlug),
   );

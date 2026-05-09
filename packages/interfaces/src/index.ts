@@ -64,6 +64,7 @@ export * from './components/storyboard.interface';
 export * from './components/topbar-activities.interface';
 export * from './components/video-operations.interface';
 export * from './components/virtual-list.interface';
+export * from './content/account-publishing-context.interface';
 export * from './content/article.interface';
 export * from './content/article-extended.interface';
 export * from './content/composer-content.interface';

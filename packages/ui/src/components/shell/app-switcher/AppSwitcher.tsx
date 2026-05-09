@@ -48,7 +48,8 @@ const PLATFORM_APPS: AppSwitcherItemConfig[] = [
     icon: HiOutlineSquares2X2,
     id: 'workspace',
     label: 'Workspace',
-    route: (org) => `/${org}/~/overview`,
+    route: (org, brand) =>
+      brand ? `/${org}/${brand}/workspace` : `/${org}/~/overview`,
   },
   {
     icon: HiOutlineChatBubbleLeftRight,
@@ -59,7 +60,7 @@ const PLATFORM_APPS: AppSwitcherItemConfig[] = [
   {
     icon: HiOutlineSparkles,
     id: 'studio',
-    label: 'Studio',
+    label: 'Image',
     route: (org, brand) =>
       brand ? `/${org}/${brand}/studio/image` : `/${org}/~/overview`,
   },
@@ -67,25 +68,31 @@ const PLATFORM_APPS: AppSwitcherItemConfig[] = [
     icon: HiOutlineCog6Tooth,
     id: 'workflows',
     label: 'Workflows',
-    route: (org) => `/${org}/~/workflows`,
+    route: (org, brand) =>
+      brand ? `/${org}/${brand}/workflows` : `/${org}/~/overview`,
   },
   {
     icon: HiOutlinePencilSquare,
     id: 'editor',
     label: 'Editor',
-    route: (org) => `/${org}/~/editor`,
+    route: (org, brand) =>
+      brand ? `/${org}/${brand}/editor` : `/${org}/~/overview`,
   },
   {
     icon: HiOutlineRectangleGroup,
     id: 'compose',
-    label: 'Compose',
-    route: (org) => `/${org}/~/compose/post`,
+    label: 'Write',
+    route: (org, brand) =>
+      brand ? `/${org}/${brand}/compose/post` : `/${org}/~/overview`,
   },
   {
     icon: HiOutlineChartBarSquare,
     id: 'analytics',
     label: 'Analytics',
-    route: (org) => `/${org}/~/analytics/overview`,
+    route: (org, brand) =>
+      brand
+        ? `/${org}/${brand}/analytics/overview`
+        : `/${org}/~/analytics/overview`,
   },
 ];
 

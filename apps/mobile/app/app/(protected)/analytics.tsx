@@ -10,6 +10,7 @@ import {
   ErrorScreen,
   LoadingScreen,
 } from '@/components/ScreenStates';
+import { colors } from '@/constants';
 import { useAnalytics } from '@/hooks/use-analytics';
 import { formatNumber, formatPercentage } from '@/utils/format-date';
 
@@ -190,7 +191,9 @@ export default function AnalyticsScreen() {
   const { data, isLoading, error, refetch } = useAnalytics();
 
   if (isLoading && !data.overview) {
-    return <LoadingScreen message="Loading analytics..." color="#6366f1" />;
+    return (
+      <LoadingScreen message="Loading analytics..." color={colors.indigo} />
+    );
   }
 
   if (error) {
@@ -213,7 +216,7 @@ export default function AnalyticsScreen() {
         <RefreshControl
           refreshing={isLoading}
           onRefresh={refetch}
-          tintColor="#6366f1"
+          tintColor={colors.indigo}
         />
       }
     >
@@ -307,10 +310,10 @@ export default function AnalyticsScreen() {
 
 const styles = StyleSheet.create({
   commentsBar: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: colors.info,
   },
   container: {
-    backgroundColor: '#0f172a',
+    backgroundColor: colors.bgSecondary,
     flex: 1,
   },
   contentContainer: {
@@ -325,7 +328,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   engagementLabel: {
-    color: '#94a3b8',
+    color: colors.textMuted,
     fontSize: 11,
   },
   engagementLegend: {
@@ -333,7 +336,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   engagementSection: {
-    backgroundColor: '#1e293b',
+    backgroundColor: colors.bgTertiary,
     borderRadius: 12,
     padding: 16,
   },
@@ -341,7 +344,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   engagementValue: {
-    color: '#6366f1',
+    color: colors.indigo,
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -349,12 +352,12 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   headerSubtitle: {
-    color: '#94a3b8',
+    color: colors.textMuted,
     fontSize: 14,
     marginTop: 4,
   },
   headerTitle: {
-    color: '#f8fafc',
+    color: colors.textPrimary,
     fontSize: 28,
     fontWeight: 'bold',
   },
@@ -371,18 +374,18 @@ const styles = StyleSheet.create({
     width: '50%',
   },
   legendText: {
-    color: '#94a3b8',
+    color: colors.textMuted,
     fontSize: 13,
   },
   likesBar: {
-    backgroundColor: '#ef4444',
+    backgroundColor: colors.error,
   },
   negative: {
-    color: '#ef4444',
+    color: colors.error,
   },
   platformCard: {
     alignItems: 'center',
-    backgroundColor: '#1e293b',
+    backgroundColor: colors.bgTertiary,
     borderRadius: 12,
     flexDirection: 'row',
     marginBottom: 8,
@@ -392,13 +395,13 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   platformIcon: {
-    color: '#f8fafc',
+    color: colors.textPrimary,
     fontSize: 18,
     fontWeight: 'bold',
   },
   platformIconContainer: {
     alignItems: 'center',
-    backgroundColor: '#334155',
+    backgroundColor: colors.bgBorder,
     borderRadius: 10,
     height: 40,
     justifyContent: 'center',
@@ -409,45 +412,45 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   platformName: {
-    color: '#f8fafc',
+    color: colors.textPrimary,
     fontSize: 16,
     fontWeight: '600',
   },
   platformStats: {
-    color: '#94a3b8',
+    color: colors.textMuted,
     fontSize: 13,
     marginTop: 2,
   },
   positive: {
-    color: '#22c55e',
+    color: colors.success,
   },
   rankBadge: {
     alignItems: 'center',
-    backgroundColor: '#6366f1',
+    backgroundColor: colors.indigo,
     borderRadius: 8,
     height: 32,
     justifyContent: 'center',
     width: 32,
   },
   rankText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 14,
     fontWeight: 'bold',
   },
   savesBar: {
-    backgroundColor: '#f59e0b',
+    backgroundColor: colors.warning,
   },
   section: {
     marginBottom: 24,
   },
   sectionTitle: {
-    color: '#f8fafc',
+    color: colors.textPrimary,
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 12,
   },
   sharesBar: {
-    backgroundColor: '#22c55e',
+    backgroundColor: colors.success,
   },
   statCard: {
     padding: 6,
@@ -459,9 +462,9 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   statIcon: {
-    backgroundColor: '#1e293b',
+    backgroundColor: colors.bgTertiary,
     borderRadius: 8,
-    color: '#6366f1',
+    color: colors.indigo,
     fontSize: 20,
     height: 36,
     lineHeight: 36,
@@ -471,7 +474,7 @@ const styles = StyleSheet.create({
     width: 36,
   },
   statLabel: {
-    color: '#94a3b8',
+    color: colors.textMuted,
     fontSize: 13,
     marginTop: 2,
   },
@@ -482,13 +485,13 @@ const styles = StyleSheet.create({
     marginHorizontal: -6,
   },
   statValue: {
-    color: '#f8fafc',
+    color: colors.textPrimary,
     fontSize: 24,
     fontWeight: 'bold',
   },
   topContentCard: {
     alignItems: 'center',
-    backgroundColor: '#1e293b',
+    backgroundColor: colors.bgTertiary,
     borderRadius: 12,
     flexDirection: 'row',
     marginBottom: 8,
@@ -503,23 +506,23 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   topContentPlatform: {
-    color: '#94a3b8',
+    color: colors.textMuted,
     fontSize: 12,
     marginTop: 2,
   },
   topContentTitle: {
-    color: '#f8fafc',
+    color: colors.textPrimary,
     fontSize: 14,
     fontWeight: '500',
     lineHeight: 18,
   },
   topContentViews: {
-    color: '#f8fafc',
+    color: colors.textPrimary,
     fontSize: 16,
     fontWeight: 'bold',
   },
   topContentViewsLabel: {
-    color: '#94a3b8',
+    color: colors.textMuted,
     fontSize: 11,
   },
 });

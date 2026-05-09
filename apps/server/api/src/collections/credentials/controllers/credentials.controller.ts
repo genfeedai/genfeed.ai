@@ -2,6 +2,7 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { UpdateCredentialDto } from '@api/collections/credentials/dto/update-credential.dto';
 import { CredentialEntity } from '@api/collections/credentials/entities/credential.entity';
 import { type CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
+import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { CreateTagDto } from '@api/collections/tags/dto/create-tag.dto';
@@ -35,6 +36,7 @@ import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { User } from '@clerk/backend';
 import { CredentialPlatform } from '@genfeedai/enums';
 import type {
+  ContentSurface,
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/interfaces';
@@ -79,6 +81,23 @@ function toCredentialPlatform(platform: unknown): CredentialPlatform {
   return platform as unknown as CredentialPlatform;
 }
 
+function toContentSurface(surface: unknown): ContentSurface {
+  const value = typeof surface === 'string' ? surface : '';
+  const allowed: ContentSurface[] = [
+    'article',
+    'image',
+    'newsletter',
+    'post',
+    'thread',
+    'video',
+    'x-article',
+  ];
+
+  return allowed.includes(value as ContentSurface)
+    ? (value as ContentSurface)
+    : 'post';
+}
+
 @AutoSwagger()
 @Controller('credentials')
 @UseGuards(RolesGuard)
@@ -90,6 +109,7 @@ export class CredentialsController {
   >;
 
   constructor(
+    private readonly accountPublishingContextService: AccountPublishingContextService,
     private readonly brandsService: BrandsService,
     private readonly credentialsService: CredentialsService,
     private readonly facebookService: FacebookService,
@@ -116,6 +136,23 @@ export class CredentialsController {
       [CredentialPlatform.TWITTER, this.twitterService],
       [CredentialPlatform.YOUTUBE, this.youtubeService],
     ]);
+  }
+
+  @Get(':credentialId/publishing-context')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async getPublishingContext(
+    @Param('credentialId') credentialId: string,
+    @Query('surface') surface: string | undefined,
+    @CurrentUser() user: User,
+  ) {
+    const publicMetadata = getPublicMetadata(user);
+
+    return this.accountPublishingContextService.resolve({
+      brandId: publicMetadata.brand,
+      credentialId,
+      organizationId: publicMetadata.organization,
+      surface: toContentSurface(surface),
+    });
   }
 
   @Get()

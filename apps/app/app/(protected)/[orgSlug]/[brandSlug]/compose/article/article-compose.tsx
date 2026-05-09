@@ -10,10 +10,19 @@ import ArticleDetail from './article-detail';
 export default function ArticleCompose() {
   const searchParams = useSearchParams();
   const articleId = searchParams?.get('id') || '';
+  const credentialId = searchParams?.get('credentialId') || '';
+  const initialPrompt = searchParams?.get('prompt') || '';
+  const requestedType = searchParams?.get('type') || '';
 
   const [composeMode, setComposeMode] = useState<
     'select' | 'quick' | 'x-article'
-  >(articleId ? 'quick' : 'select');
+  >(
+    articleId
+      ? 'quick'
+      : requestedType === 'x-article'
+        ? 'x-article'
+        : 'select',
+  );
 
   const { phase, article, handleGenerate } = useXArticleCompose();
 
@@ -33,6 +42,8 @@ export default function ArticleCompose() {
     return (
       <div className="container mx-auto p-6">
         <XArticleGenerateForm
+          credentialId={credentialId}
+          initialPrompt={initialPrompt}
           onGenerate={handleGenerate}
           isGenerating={phase === 'generating'}
         />
@@ -40,5 +51,7 @@ export default function ArticleCompose() {
     );
   }
 
-  return <ArticleDetail articleId={resolvedArticleId} />;
+  return (
+    <ArticleDetail articleId={resolvedArticleId} credentialId={credentialId} />
+  );
 }

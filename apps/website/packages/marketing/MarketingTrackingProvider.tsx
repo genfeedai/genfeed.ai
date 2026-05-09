@@ -4,7 +4,7 @@ import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
 import { usePathname, useSearchParams } from 'next/navigation';
 import type { ReactNode } from 'react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   loadMarketingTags,
   type MarketingTrackingConfig,
@@ -56,10 +56,15 @@ export default function MarketingTrackingProvider({
   const shouldShowBanner =
     !hasConsentChoice && hasConfiguredMarketingTag(config);
 
-  const currentUrl =
-    typeof window === 'undefined'
-      ? `${pathname}${search ? `?${search}` : ''}`
-      : window.location.href;
+  const currentUrl = useMemo(() => {
+    const pathWithSearch = search ? `${pathname}?${search}` : pathname;
+
+    if (typeof window === 'undefined') {
+      return pathWithSearch;
+    }
+
+    return `${window.location.origin}${pathWithSearch}${window.location.hash}`;
+  }, [pathname, search]);
 
   useEffect(() => {
     const stored = parseMarketingConsent(

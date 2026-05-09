@@ -299,6 +299,42 @@ describe('SharedService', () => {
         },
       );
     });
+
+    it('should persist trimmed promptId after validation', async () => {
+      const metadataData = new MetadataEntity({
+        _id: '507f1f77bcf86cd799439013',
+      });
+      const ingredientData = new IngredientEntity({
+        _id: '507f1f77bcf86cd799439014',
+      });
+      const result = 'Updated result';
+      const promptId = '507f1f77bcf86cd799439015';
+
+      (metadataService.patch as vi.Mock).mockResolvedValue(mockMetadata);
+      (ingredientsService.patch as vi.Mock).mockResolvedValue(mockIngredient);
+
+      await service.updateDocuments(
+        metadataData,
+        ingredientData,
+        result,
+        ` ${promptId} `,
+      );
+
+      expect(metadataService.patch).toHaveBeenCalledWith(
+        metadataData._id,
+        expect.objectContaining({
+          prompt: promptId,
+          result,
+        }),
+      );
+      expect(ingredientsService.patch).toHaveBeenCalledWith(
+        ingredientData._id,
+        {
+          prompt: promptId,
+          status: IngredientStatus.GENERATED,
+        },
+      );
+    });
   });
 
   describe('saveDocumentsInternal', () => {
@@ -530,6 +566,40 @@ describe('SharedService', () => {
         ingredientData,
         result,
         promptId,
+      );
+
+      expect(mockPromptsService.patch).toHaveBeenCalledWith(promptId, {
+        ingredient: ingredientData._id,
+      });
+    });
+
+    it('should link prompt with the normalized promptId', async () => {
+      const metadataData = new MetadataEntity({
+        _id: '507f1f77bcf86cd799439013',
+      });
+      const ingredientData = new IngredientEntity({
+        _id: '507f1f77bcf86cd799439014',
+      });
+      const result = 'Updated result';
+      const promptId = '507f1f77bcf86cd799439015';
+
+      const mockPromptsService = {
+        patch: vi.fn().mockResolvedValue({}),
+      };
+
+      Object.defineProperty(service, 'promptsService', {
+        configurable: true,
+        get: () => mockPromptsService,
+      });
+
+      (metadataService.patch as vi.Mock).mockResolvedValue(mockMetadata);
+      (ingredientsService.patch as vi.Mock).mockResolvedValue(mockIngredient);
+
+      await service.updateDocuments(
+        metadataData,
+        ingredientData,
+        result,
+        ` ${promptId} `,
       );
 
       expect(mockPromptsService.patch).toHaveBeenCalledWith(promptId, {

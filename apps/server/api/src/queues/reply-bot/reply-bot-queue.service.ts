@@ -150,7 +150,7 @@ export class ReplyBotQueueService implements OnModuleInit {
       return results;
     } catch (error: unknown) {
       this.logger.error(`${url} failed`, error);
-      return { where: {} };
+      return [];
     }
   }
 

@@ -1,43 +1,46 @@
 import { PerformanceSummaryService } from '@api/collections/content-performance/services/performance-summary.service';
+import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { PostAnalytics } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 
-interface AnalyticsRow {
-  brandId: string;
-  date: Date;
-  engagementRate: number;
-  id: string;
-  isDeleted: boolean;
-  organizationId: string;
-  platform: string;
-  postId: string;
-  totalComments: number;
-  totalCommentsIncrement: number;
-  totalLikes: number;
-  totalLikesIncrement: number;
-  totalSaves: number;
-  totalSavesIncrement: number;
-  totalShares: number;
-  totalSharesIncrement: number;
-  totalViews: number;
-  totalViewsIncrement: number;
-  userId: string;
-}
+type AnalyticsRow = Pick<
+  PostAnalytics,
+  | 'brandId'
+  | 'date'
+  | 'engagementRate'
+  | 'id'
+  | 'organizationId'
+  | 'platform'
+  | 'postId'
+  | 'totalComments'
+  | 'totalCommentsIncrement'
+  | 'totalLikes'
+  | 'totalLikesIncrement'
+  | 'totalSaves'
+  | 'totalSavesIncrement'
+  | 'totalShares'
+  | 'totalSharesIncrement'
+  | 'totalViews'
+  | 'totalViewsIncrement'
+  | 'userId'
+>;
 
-interface PostRow {
-  brand: string;
-  category: string;
-  description: string;
-  externalId: string;
-  id: string;
-  ingredients: string[];
-  label: string;
-  organization: string;
-  publicationDate: Date;
-  user: string;
-  _id: string;
-}
+type SmokePost = Pick<
+  PostDocument,
+  | '_id'
+  | 'brand'
+  | 'category'
+  | 'description'
+  | 'externalId'
+  | 'id'
+  | 'ingredients'
+  | 'label'
+  | 'organization'
+  | 'publicationDate'
+  | 'user'
+>;
 
 function dateMatches(
   rowDate: Date,
@@ -59,7 +62,7 @@ describe('analytics ingestion to dashboard smoke path', () => {
   const userId = '507f1f77bcf86cd799439011';
   const postId = '507f1f77bcf86cd799439014';
 
-  const post: PostRow = {
+  const post: SmokePost = {
     _id: postId,
     brand: brandId,
     category: 'video',
@@ -166,7 +169,7 @@ describe('analytics ingestion to dashboard smoke path', () => {
           const next = {
             ...create,
             id: create.id ?? 'analytics-row-1',
-          };
+          } as AnalyticsRow;
           rows.push(next);
           return Promise.resolve(next);
         },

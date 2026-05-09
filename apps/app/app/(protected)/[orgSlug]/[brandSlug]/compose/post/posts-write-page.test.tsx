@@ -2,12 +2,13 @@ import PostsWritePage from './posts-write-page';
 import '@testing-library/jest-dom';
 import { PostStatus } from '@genfeedai/enums';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const pushMock = vi.fn();
 const replaceMock = vi.fn();
 const searchParamsState = new URLSearchParams();
 const postMock = vi.fn();
+const generateAccountContentMock = vi.fn();
 const generateTweetsMock = vi.fn();
 const generateThreadMock = vi.fn();
 const trackMock = vi.fn();
@@ -25,6 +26,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => async () => ({
+    generateAccountContent: generateAccountContentMock,
     generateThread: generateThreadMock,
     generateTweets: generateTweetsMock,
     post: postMock,
@@ -57,12 +59,29 @@ vi.mock('@/lib/desktop/runtime', () => ({
   isDesktopShell: desktopRuntimeMocks.isDesktopShell,
 }));
 
+beforeAll(() => {
+  Element.prototype.hasPointerCapture ??= () => false;
+  Element.prototype.releasePointerCapture ??= () => undefined;
+  Element.prototype.scrollIntoView ??= () => undefined;
+  Element.prototype.setPointerCapture ??= () => undefined;
+});
+
+function openSelect(name: string) {
+  fireEvent.pointerDown(screen.getByRole('combobox', { name }), {
+    button: 0,
+    ctrlKey: false,
+    pointerId: 1,
+    pointerType: 'mouse',
+  });
+}
+
 describe('PostsWritePage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     searchParamsState.forEach((_, key) => {
       searchParamsState.delete(key);
     });
+    generateAccountContentMock.mockReset();
     useBrandMock.mockReturnValue({
       credentials: [],
     });
@@ -181,7 +200,7 @@ describe('PostsWritePage', () => {
         },
       ],
     });
-    generateTweetsMock.mockResolvedValue([{ id: 'generated-1' }]);
+    generateAccountContentMock.mockResolvedValue([{ id: 'generated-1' }]);
 
     render(<PostsWritePage />);
 
@@ -189,13 +208,14 @@ describe('PostsWritePage', () => {
       target: { value: 'Write a post about AI agents' },
     });
     fireEvent.click(
-      screen.getByRole('button', { name: 'Generate post in Genfeed' }),
+      screen.getByRole('button', { name: 'Generate in Genfeed (Post)' }),
     );
 
     await waitFor(() => {
-      expect(generateTweetsMock).toHaveBeenCalledWith({
+      expect(generateAccountContentMock).toHaveBeenCalledWith({
         count: 1,
         credential: 'cred-1',
+        format: 'post',
         tone: 'professional',
         topic: 'Write a post about AI agents',
       });
@@ -220,21 +240,24 @@ describe('PostsWritePage', () => {
         },
       ],
     });
-    generateThreadMock.mockResolvedValue([{ id: 'thread-root' }]);
+    generateAccountContentMock.mockResolvedValue([{ id: 'thread-root' }]);
 
     render(<PostsWritePage />);
 
     fireEvent.change(screen.getByLabelText('Prompt'), {
       target: { value: 'Create a 5-part thread on product strategy' },
     });
+    openSelect('Format');
+    fireEvent.click(await screen.findByRole('option', { name: 'Thread' }));
     fireEvent.click(
-      screen.getByRole('button', { name: 'Generate thread in Genfeed' }),
+      screen.getByRole('button', { name: 'Generate in Genfeed (Thread)' }),
     );
 
     await waitFor(() => {
-      expect(generateThreadMock).toHaveBeenCalledWith({
+      expect(generateAccountContentMock).toHaveBeenCalledWith({
         count: 5,
         credential: 'cred-1',
+        format: 'thread',
         tone: 'professional',
         topic: 'Create a 5-part thread on product strategy',
       });
@@ -247,6 +270,63 @@ describe('PostsWritePage', () => {
       'content_write_prompt_generated',
       expect.objectContaining({ mode: 'thread' }),
     );
+  });
+
+  it('keeps the connected account selector labeled Account and exposes X Article for X accounts', async () => {
+    useBrandMock.mockReturnValue({
+      credentials: [
+        {
+          externalHandle: 'genfeed',
+          id: 'cred-1',
+          isConnected: true,
+          platform: 'twitter',
+        },
+      ],
+    });
+
+    render(<PostsWritePage />);
+
+    expect(screen.getByText('Account')).toBeInTheDocument();
+    expect(
+      screen.getByText(/280 weighted characters per post/i),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Publishable/i)).toBeInTheDocument();
+
+    openSelect('Format');
+
+    expect(
+      await screen.findByRole('option', { name: 'X Article' }),
+    ).toBeInTheDocument();
+  });
+
+  it('routes X Article format to the article composer with account context', async () => {
+    useBrandMock.mockReturnValue({
+      credentials: [
+        {
+          externalHandle: 'genfeed',
+          id: 'cred-1',
+          isConnected: true,
+          platform: 'twitter',
+        },
+      ],
+    });
+
+    render(<PostsWritePage />);
+
+    fireEvent.change(screen.getByLabelText('Prompt'), {
+      target: { value: 'Write an X Article about autonomous content systems' },
+    });
+    openSelect('Format');
+    fireEvent.click(await screen.findByRole('option', { name: 'X Article' }));
+    expect(screen.getByText(/Copy only/i)).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Generate in Genfeed (X Article)' }),
+    );
+
+    expect(pushMock).toHaveBeenCalledWith(
+      '/moonrise-org/moonrise-studio/compose/article?credentialId=cred-1&prompt=Write+an+X+Article+about+autonomous+content+systems&type=x-article',
+    );
+    expect(generateAccountContentMock).not.toHaveBeenCalled();
   });
 
   it('generates local desktop content when no connected accounts are available', async () => {
@@ -268,7 +348,7 @@ describe('PostsWritePage', () => {
     fireEvent.change(screen.getByLabelText('Prompt'), {
       target: { value: 'Write locally about offline workflows' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Generate post' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Generate (Post)' }));
 
     await waitFor(() => {
       expect(generateContent).toHaveBeenCalledWith({
@@ -301,7 +381,7 @@ describe('PostsWritePage', () => {
         },
       ],
     });
-    generateTweetsMock.mockRejectedValue(new Error('network offline'));
+    generateAccountContentMock.mockRejectedValue(new Error('network offline'));
     const generateContent = vi.fn().mockResolvedValue({
       content: 'Desktop fallback post',
       id: 'fallback-post-1',
@@ -320,7 +400,7 @@ describe('PostsWritePage', () => {
       target: { value: 'Recover from cloud failure' },
     });
     fireEvent.click(
-      screen.getByRole('button', { name: 'Generate post in Genfeed' }),
+      screen.getByRole('button', { name: 'Generate in Genfeed (Post)' }),
     );
 
     await waitFor(() => {
@@ -348,7 +428,9 @@ describe('PostsWritePage', () => {
         },
       ],
     });
-    generateTweetsMock.mockRejectedValue(new Error('Generation failed'));
+    generateAccountContentMock.mockRejectedValue(
+      new Error('Generation failed'),
+    );
 
     render(<PostsWritePage />);
 
@@ -357,7 +439,7 @@ describe('PostsWritePage', () => {
       target: { value: 'Keep this prompt after failure' },
     });
     fireEvent.click(
-      screen.getByRole('button', { name: 'Generate post in Genfeed' }),
+      screen.getByRole('button', { name: 'Generate in Genfeed (Post)' }),
     );
 
     await waitFor(() => {

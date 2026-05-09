@@ -348,7 +348,7 @@ export class ArticlesService extends BaseService<
   protected getPopulationForContext(
     _context: 'list' | 'detail' | 'minimal' | 'create' = 'minimal',
   ): PopulateOption[] {
-    return { where: {} };
+    return [];
   }
 
   @HandleErrors('create article', 'articles')

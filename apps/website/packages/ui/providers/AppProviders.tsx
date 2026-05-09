@@ -9,8 +9,9 @@ import { SpeedInsights } from '@vercel/speed-insights/next';
 import dynamic from 'next/dynamic';
 import { ThemeProvider, useTheme } from 'next-themes';
 import type { ComponentProps, ReactNode } from 'react';
+import { useMemo } from 'react';
 import { Toaster } from 'sonner';
-import type { WebsiteMarketingEventName } from '../../marketing/events';
+import type { MarketingTrackingConfig } from '../../marketing/browser';
 import MarketingTrackingProvider from '../../marketing/MarketingTrackingProvider';
 
 const LazyModalErrorDebug = dynamic(
@@ -37,12 +38,10 @@ export interface AppProvidersProps {
   includeVercelAnalytics?: boolean;
   marketingConsentDefault?: 'denied' | 'granted';
   marketingGtmContainerId?: string;
-  marketingLinkedinConversionIds?: Partial<
-    Record<WebsiteMarketingEventName, string>
-  >;
+  marketingLinkedinConversionIds?: MarketingTrackingConfig['linkedinConversionIds'];
   marketingLinkedinPartnerId?: string;
   marketingMetaPixelId?: string;
-  marketingXEventIds?: Partial<Record<WebsiteMarketingEventName, string>>;
+  marketingXEventIds?: MarketingTrackingConfig['xEventIds'];
   marketingXPixelId?: string;
   storageKey?: string;
 }
@@ -97,6 +96,26 @@ export default function AppProviders({
   marketingXPixelId,
   storageKey = THEME_STORAGE_KEY,
 }: AppProvidersProps) {
+  const marketingConfig = useMemo(
+    () => ({
+      gaId: googleAnalyticsId,
+      gtmContainerId: marketingGtmContainerId,
+      linkedinConversionIds: marketingLinkedinConversionIds,
+      linkedinPartnerId: marketingLinkedinPartnerId,
+      metaPixelId: marketingMetaPixelId,
+      xEventIds: marketingXEventIds,
+      xPixelId: marketingXPixelId,
+    }),
+    [
+      googleAnalyticsId,
+      marketingGtmContainerId,
+      marketingLinkedinConversionIds,
+      marketingLinkedinPartnerId,
+      marketingMetaPixelId,
+      marketingXEventIds,
+      marketingXPixelId,
+    ],
+  );
   const content = (
     <>
       <ThemeCookieSync />
@@ -121,15 +140,7 @@ export default function AppProviders({
       <ThemedClerkProvider clerkProps={clerkProps}>
         {includeMarketingTracking ? (
           <MarketingTrackingProvider
-            config={{
-              gaId: googleAnalyticsId,
-              gtmContainerId: marketingGtmContainerId,
-              linkedinConversionIds: marketingLinkedinConversionIds,
-              linkedinPartnerId: marketingLinkedinPartnerId,
-              metaPixelId: marketingMetaPixelId,
-              xEventIds: marketingXEventIds,
-              xPixelId: marketingXPixelId,
-            }}
+            config={marketingConfig}
             consentDefault={marketingConsentDefault}
           >
             {content}

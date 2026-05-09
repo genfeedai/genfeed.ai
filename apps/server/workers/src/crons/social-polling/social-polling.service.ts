@@ -43,7 +43,7 @@ type WorkflowConfig = {
  */
 interface PollState {
   /** Last seen event ID per trigger node */
-  [nodeId: string]: string | null;
+  [nodeId: string]: PollState | string | null | undefined;
   /** Timestamp of last successful poll */
   lastPolledAt?: string;
 }
@@ -172,11 +172,10 @@ export class SocialPollingService {
           continue;
         }
 
-        const result = await this.checkTrigger(
-          workflow,
-          node,
-          pollState[node.id] || null,
-        );
+        const previousEventId = pollState[node.id];
+        const lastEventId: string | null =
+          typeof previousEventId === 'string' ? previousEventId : null;
+        const result = await this.checkTrigger(workflow, node, lastEventId);
 
         if (result) {
           // Queue workflow execution

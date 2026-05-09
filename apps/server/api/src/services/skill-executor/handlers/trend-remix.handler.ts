@@ -16,6 +16,12 @@ const PLATFORM_CHAR_LIMITS: Record<string, number> = {
   youtube: 5000,
 };
 
+const TRUSTED_TREND_REMIX_MODELS = new Set([
+  'anthropic/claude-sonnet-4.5',
+  'openai/gpt-4o',
+  'openai/gpt-4o-mini',
+]);
+
 type RemixPackVariantDefinition = {
   angle: string;
   content: string;
@@ -75,7 +81,7 @@ export class TrendRemixHandler implements SkillHandler {
       `Create a ${platform ?? 'social media'} post that remixes the following trend:`,
       ``,
       `Trend topic: ${trend.topic}`,
-      hashtags ? `Trending hashtags: ${hashtags}` : '',
+      hashtags ? `Trending hashtags: ${hashtags}` : null,
       ``,
       `Requirements:`,
       `- Stay within ${charLimit} characters`,
@@ -84,7 +90,7 @@ export class TrendRemixHandler implements SkillHandler {
       `- Include 2-3 relevant hashtags naturally`,
       `- Make it platform-native and engaging`,
     ]
-      .filter(Boolean)
+      .filter((line): line is string => line !== null)
       .join('\n');
 
     try {
@@ -94,10 +100,7 @@ export class TrendRemixHandler implements SkillHandler {
             { content: systemPrompt, role: 'system' },
             { content: userPrompt, role: 'user' },
           ],
-          model:
-            typeof params.model === 'string'
-              ? params.model
-              : 'openai/gpt-4o-mini',
+          model: this.resolveModel(params.model),
           temperature: 0.8,
         },
         context.organizationId,
@@ -165,10 +168,23 @@ export class TrendRemixHandler implements SkillHandler {
     platform: string | undefined,
   ) {
     if (typeof params.trendId === 'string') {
-      return this.trendsService.getTrendById(
+      const trend = await this.trendsService.getTrendById(
         params.trendId,
         context.organizationId,
       );
+
+      const trendOrganizationId = (
+        trend as unknown as { organizationId?: string | null } | null
+      )?.organizationId;
+      if (
+        trend &&
+        trendOrganizationId &&
+        trendOrganizationId !== context.organizationId
+      ) {
+        return null;
+      }
+
+      return trend;
     }
 
     const response = await this.trendsService.getTrendsWithAccessControl(
@@ -178,6 +194,17 @@ export class TrendRemixHandler implements SkillHandler {
     );
 
     return response.trends[0] ?? null;
+  }
+
+  private resolveModel(value: unknown): string {
+    if (
+      typeof value === 'string' &&
+      TRUSTED_TREND_REMIX_MODELS.has(value.trim())
+    ) {
+      return value.trim();
+    }
+
+    return 'openai/gpt-4o-mini';
   }
 
   private buildRemixPackVariants(

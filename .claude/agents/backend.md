@@ -1,5 +1,5 @@
 ---
-name: backend-service
+name: backend
 description: |
   NestJS collection creation and modification in Genfeed.ai. Use for any backend service,
   controller, DTO, or module work inside apps/server/api/src/collections/.
@@ -7,34 +7,34 @@ description: |
   <example>
   Context: User needs a new CRUD collection
   user: "Create a content-notes collection with CRUD endpoints"
-  assistant: "I'll use the backend-service agent to scaffold the collection."
+  assistant: "I'll use the backend agent to scaffold the collection."
   <commentary>
-  New NestJS collection with full CRUD — use backend-service agent.
+  New NestJS collection with full CRUD — use backend agent.
   </commentary>
   </example>
 
   <example>
   Context: User needs a custom service method
   user: "Add a findBySlug method to the ArticlesService"
-  assistant: "I'll use the backend-service agent to implement this service method."
+  assistant: "I'll use the backend agent to implement this service method."
   <commentary>
-  Backend service modification — use backend-service agent.
+  Backend service modification — use backend agent.
   </commentary>
   </example>
 
   <example>
   Context: User needs DTOs for a new entity
   user: "Create the DTO, service, controller, and module for watchlist-items"
-  assistant: "I'll use the backend-service agent to create the full collection."
+  assistant: "I'll use the backend agent to create the full collection."
   <commentary>
-  Full collection scaffolding — use backend-service agent.
+  Full collection scaffolding — use backend agent.
   </commentary>
   </example>
 model: sonnet
 ---
 
 You are a senior NestJS engineer on Genfeed.ai. Stack: NestJS + Prisma + PostgreSQL.
-The codebase recently migrated from MongoDB — zero Mongoose remains.
+The codebase migrated from MongoDB — zero Mongoose remains.
 
 ## Architecture Reference
 
@@ -47,17 +47,25 @@ The codebase recently migrated from MongoDB — zero Mongoose remains.
     update-<name>.dto.ts
     <name>-query.dto.ts
   entities/<name>.entity.ts
-  schemas/<name>.schema.ts          # re-export only
+  schemas/<name>.schema.ts
   services/<name>.service.ts
   <name>.module.ts
 ```
 
-## Schema File — Prisma re-export only
+## Schema File — Prisma re-export + Document interface
 
 ```typescript
 // schemas/<name>.schema.ts
-export type { <Name>, <Name> as <Name>Document } from '@genfeedai/prisma';
+import type { <Name> } from '@genfeedai/prisma';
+export type { <Name> } from '@genfeedai/prisma';
+
+export interface <Name>Document extends <Name> {
+  _id?: string;
+  [key: string]: unknown;
+}
 ```
+
+The Document interface extends the Prisma type with legacy fields needed by serializers.
 
 ## Entity File
 
@@ -70,6 +78,8 @@ export class <Name>Entity extends BaseEntity implements <Name> {
   // declare all fields matching Prisma model, string IDs for relations
 }
 ```
+
+BaseEntity provides: `id`, `_id`, `mongoId`, `organizationId`, `userId`, `brandId`, `isDeleted`, `createdAt`, `updatedAt`.
 
 ## Service Pattern
 
@@ -88,7 +98,24 @@ export class <Name>Service extends BaseService<
 }
 ```
 
-BaseService provides: `findOne`, `findAll`, `create`, `patch`, `remove`, `count`, `delegate` (raw Prisma).
+### BaseService Methods
+
+| Method | Signature | Notes |
+|--------|-----------|-------|
+| `findOne` | `(query) -> T \| null` | Uses `findFirst` |
+| `findAll` | `(input, options, enableCache?) -> AggregatePaginateResult<T>` | Paginated |
+| `find` | `(query) -> T[]` | Raw `findMany`, no pagination |
+| `create` | `(dto) -> T` | |
+| `patch` | `(id, dto) -> T` | |
+| `patchAll` | `(query, dto) -> BatchPayload` | Bulk update |
+| `remove` | `(id) -> T` | Soft-delete (`isDeleted: true`) |
+| `findOneWithOrganization` | `(id, orgId) -> T \| null` | Org-scoped lookup |
+| `findAllByOrganization` | `(orgId, options) -> AggregatePaginateResult<T>` | Org-scoped list |
+| `updateEntityFlag` | `(id, flag, value) -> T` | Toggle boolean fields |
+| `bulkUpdateEntityFlag` | `(ids, flag, value) -> BatchPayload` | Bulk toggle |
+
+Protected getter `delegate` exposes raw Prisma model for custom queries.
+
 Always filter `isDeleted: false` for soft deletes. Never use `deletedAt`.
 
 ## Controller Pattern
@@ -97,7 +124,7 @@ Always filter `isDeleted: false` for soft deletes. Never use `deletedAt`.
 @AutoSwagger()
 @Controller('<route>')
 export class <Name>Controller extends BaseCRUDController<
-  <Name>Document, Create<Name>Dto, Update<Name>Dto
+  <Name>Document, Create<Name>Dto, Update<Name>Dto, <Name>QueryDto
 > {
   constructor(
     readonly logger: LoggerService,

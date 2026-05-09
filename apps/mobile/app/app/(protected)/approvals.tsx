@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { EmptyState, LoadingScreen } from '@/components/ScreenStates';
-import { CONTENT_TYPE_LABELS } from '@/constants';
+import { CONTENT_TYPE_LABELS, colors } from '@/constants';
 import {
   useApprovalActions,
   useApprovals,
@@ -364,7 +364,7 @@ export default function Approvals() {
               disabled={isSubmitting}
             >
               {isSubmitting ? (
-                <ActivityIndicator size="small" color="#0f172a" />
+                <ActivityIndicator size="small" color={colors.bgSecondary} />
               ) : (
                 <Text style={styles.approveButtonText}>Approve All</Text>
               )}
@@ -389,7 +389,7 @@ export default function Approvals() {
             <RefreshControl
               refreshing={isRefreshing}
               onRefresh={refresh}
-              tintColor="#38bdf8"
+              tintColor={colors.agent}
             />
           }
         />
@@ -400,34 +400,34 @@ export default function Approvals() {
 
 const styles = StyleSheet.create({
   approveAction: {
-    backgroundColor: '#22c55e',
+    backgroundColor: colors.success,
   },
   approveButton: {
-    backgroundColor: '#22c55e',
+    backgroundColor: colors.success,
   },
   approveButtonPressed: {
     opacity: 0.8,
   },
   approveButtonText: {
-    color: '#0f172a',
+    color: colors.bgSecondary,
     fontSize: 13,
     fontWeight: '600',
   },
   badge: {
-    backgroundColor: '#1e293b',
+    backgroundColor: colors.bgTertiary,
     borderRadius: 6,
     paddingHorizontal: 8,
     paddingVertical: 2,
   },
   badgeText: {
-    color: '#38bdf8',
+    color: colors.agent,
     fontSize: 11,
     fontWeight: '600',
     textTransform: 'uppercase',
   },
   card: {
-    backgroundColor: '#0f172a',
-    borderColor: '#1e293b',
+    backgroundColor: colors.bgSecondary,
+    borderColor: colors.bgTertiary,
     borderRadius: 16,
     borderWidth: 1,
     flexDirection: 'row',
@@ -440,11 +440,11 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   cardDate: {
-    color: '#64748b',
+    color: colors.textSubtle,
     fontSize: 12,
   },
   cardDescription: {
-    color: '#94a3b8',
+    color: colors.textMuted,
     fontSize: 13,
   },
   cardHeader: {
@@ -456,17 +456,17 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   cardSelected: {
-    backgroundColor: '#1e293b',
-    borderColor: '#38bdf8',
+    backgroundColor: colors.bgTertiary,
+    borderColor: colors.agent,
   },
   cardTitle: {
-    color: 'white',
+    color: colors.white,
     fontSize: 16,
     fontWeight: '600',
   },
   checkbox: {
     alignItems: 'center',
-    borderColor: '#475569',
+    borderColor: colors.textSubtle,
     borderRadius: 12,
     borderWidth: 2,
     height: 24,
@@ -474,37 +474,37 @@ const styles = StyleSheet.create({
     width: 24,
   },
   checkboxSelected: {
-    backgroundColor: '#38bdf8',
-    borderColor: '#38bdf8',
+    backgroundColor: colors.agent,
+    borderColor: colors.agent,
   },
   checkmark: {
-    color: '#0f172a',
+    color: colors.bgSecondary,
     fontSize: 14,
     fontWeight: 'bold',
   },
   container: {
-    backgroundColor: '#020617',
+    backgroundColor: colors.bgPrimary,
     flex: 1,
   },
   filterChip: {
-    backgroundColor: '#1e293b',
+    backgroundColor: colors.bgTertiary,
     borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 8,
   },
   filterChipActive: {
-    backgroundColor: '#38bdf8',
+    backgroundColor: colors.agent,
   },
   filterChipPressed: {
     opacity: 0.8,
   },
   filterChipText: {
-    color: '#94a3b8',
+    color: colors.textMuted,
     fontSize: 13,
     fontWeight: '500',
   },
   filterChipTextActive: {
-    color: '#0f172a',
+    color: colors.bgSecondary,
   },
   filters: {
     flexDirection: 'row',
@@ -518,7 +518,7 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   kicker: {
-    color: '#38bdf8',
+    color: colors.agent,
     fontSize: 13,
     letterSpacing: 1,
     textTransform: 'uppercase',
@@ -528,10 +528,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   rejectAction: {
-    backgroundColor: '#ef4444',
+    backgroundColor: colors.error,
   },
   requestedBy: {
-    color: '#64748b',
+    color: colors.textSubtle,
     fontSize: 12,
   },
   selectionActions: {
@@ -540,14 +540,14 @@ const styles = StyleSheet.create({
   },
   selectionBar: {
     alignItems: 'center',
-    backgroundColor: '#1e293b',
+    backgroundColor: colors.bgTertiary,
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: 24,
     paddingVertical: 12,
   },
   selectionButton: {
-    backgroundColor: '#334155',
+    backgroundColor: colors.bgBorder,
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -556,17 +556,17 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   selectionButtonText: {
-    color: '#94a3b8',
+    color: colors.textMuted,
     fontSize: 13,
     fontWeight: '500',
   },
   selectionText: {
-    color: 'white',
+    color: colors.white,
     fontSize: 14,
     fontWeight: '500',
   },
   subtitle: {
-    color: '#94a3b8',
+    color: colors.textMuted,
     fontSize: 14,
   },
   swipeAction: {
@@ -580,7 +580,7 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   swipeActionText: {
-    color: 'white',
+    color: colors.white,
     fontSize: 13,
     fontWeight: '600',
   },
@@ -591,16 +591,16 @@ const styles = StyleSheet.create({
   },
   thumbnailPlaceholder: {
     alignItems: 'center',
-    backgroundColor: '#1e293b',
+    backgroundColor: colors.bgTertiary,
     justifyContent: 'center',
   },
   thumbnailPlaceholderText: {
-    color: '#475569',
+    color: colors.textSubtle,
     fontSize: 24,
     fontWeight: 'bold',
   },
   title: {
-    color: 'white',
+    color: colors.white,
     fontSize: 26,
     fontWeight: '600',
   },

@@ -84,6 +84,13 @@ export class CronAdSyncMetaService {
         return;
       }
 
+      if (!credential.brand || !credential.organization) {
+        this.logger.warn(`${url} skipping credential without workspace scope`, {
+          credentialId: credential._id,
+        });
+        return;
+      }
+
       const lastSyncDate =
         await this.adPerformanceService.findLatestSyncDateForCredential(
           String(credential._id),

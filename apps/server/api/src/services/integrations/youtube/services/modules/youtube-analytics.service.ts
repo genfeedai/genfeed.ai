@@ -3,6 +3,7 @@ import type { IYouTubeVideoStats } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
+import type { OAuth2Client } from 'google-auth-library';
 import { google, type youtube_v3 } from 'googleapis';
 
 @Injectable()
@@ -38,12 +39,12 @@ export class YoutubeAnalyticsService {
   async getChannelDetails(
     organizationId: string,
     brandId: string,
-    authOrSkipRefresh?: unknown,
+    authOrSkipRefresh?: OAuth2Client | boolean | unknown,
   ): Promise<unknown> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      let auth: unknown;
+      let auth: youtube_v3.Params$Resource$Channels$List['auth'];
       if (typeof authOrSkipRefresh === 'boolean') {
         this.loggerService.log(
           `${url} started (skipRefresh ignored for safety)`,
@@ -54,7 +55,8 @@ export class YoutubeAnalyticsService {
         this.loggerService.log(`${url} started with per-request auth`, {
           organizationId,
         });
-        auth = authOrSkipRefresh;
+        auth =
+          authOrSkipRefresh as youtube_v3.Params$Resource$Channels$List['auth'];
       } else {
         this.loggerService.log(`${url} started`, { organizationId });
         auth = await this.authService.refreshToken(organizationId, brandId);

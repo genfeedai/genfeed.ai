@@ -3,15 +3,78 @@
     "rootDir": "../../..",
     "declaration": false,
     "declarationMap": false,
+    "lib": ["ES2022", "DOM"],
     "outDir": "../dist/apps/workers",
     "paths": {
+      "@api-root/*": ["../api/*"],
+      "@api-scripts/*": ["../api/scripts/*"],
+      "@api-test/*": ["../api/test/*"],
+      "@api-types/*": ["../../../packages/api-types/src/*"],
       "@api/*": ["../api/src/*"],
-      "@genfeedai/workflow-saas": ["../../../packages/workflow-saas/src"],
-      "@genfeedai/workflow-saas/*": ["../../../packages/workflow-saas/src/*"],
+      "@clips/*": ["../clips/src/*"],
+      "@config/*": ["../../../packages/config/src/*"],
+      "@discord/*": ["../discord/src/*"],
+      "@fanvue/*": ["../fanvue/src/*"],
       "@files/*": ["../files/src/*"],
+      "@genfeedai-types/*": ["../../../packages/types/src/*"],
+      "@genfeedai/agent": ["../../../packages/agent/src/index.ts"],
+      "@genfeedai/agent/*": ["../../../packages/agent/src/*"],
+      "@genfeedai/config": ["../../../packages/config/src/index.ts"],
+      "@genfeedai/config/*": ["../../../packages/config/src/*"],
+      "@genfeedai/constants": ["../../../packages/constants/dist/index"],
+      "@genfeedai/constants/*": ["../../../packages/constants/dist/*"],
+      "@genfeedai/ee-harness": ["../../../ee/packages/harness/src/index.ts"],
+      "@genfeedai/enums": ["../../../packages/enums/dist/index"],
+      "@genfeedai/enums/*": ["../../../packages/enums/dist/*"],
+      "@genfeedai/harness": ["../../../packages/harness/src/index.ts"],
+      "@genfeedai/harness/*": ["../../../packages/harness/src/*"],
+      "@genfeedai/integrations": [
+        "../../../packages/integrations/src/index.ts"
+      ],
+      "@genfeedai/integrations/*": ["../../../packages/integrations/src/*"],
+      "@genfeedai/interfaces": ["../../../packages/interfaces/src/index.ts"],
+      "@genfeedai/interfaces/*": ["../../../packages/interfaces/src/*"],
+      "@genfeedai/prisma": ["../../../packages/prisma/src/index.ts"],
+      "@genfeedai/prisma/*": ["../../../packages/prisma/src/*"],
+      "@genfeedai/serializers": ["../../../packages/serializers/src/index.ts"],
+      "@genfeedai/serializers/*": ["../../../packages/serializers/src/*"],
+      "@genfeedai/storage": ["../../../packages/storage/src"],
+      "@genfeedai/storage/*": ["../../../packages/storage/src/*"],
+      "@genfeedai/types": ["../../../packages/types/src/index.ts"],
+      "@genfeedai/types/*": ["../../../packages/types/src/*"],
+      "@genfeedai/utils": ["../../../packages/utils/index.ts"],
+      "@genfeedai/utils/*": ["../../../packages/utils/*"],
+      "@genfeedai/workflow-engine": [
+        "../../../packages/workflow-engine/src/index.ts"
+      ],
+      "@genfeedai/workflow-engine/*": [
+        "../../../packages/workflow-engine/src/*"
+      ],
+      "@genfeedai/workflow-saas": [
+        "../../../packages/workflow-saas/src/index.ts"
+      ],
+      "@genfeedai/workflow-saas/*": ["../../../packages/workflow-saas/src/*"],
+      "@genfeedai/workflows": ["../../../packages/workflows/src/index.ts"],
+      "@genfeedai/workflows/*": ["../../../packages/workflows/src/*"],
+      "@helpers/*": ["../../../packages/helpers/src/*"],
+      "@images/*": ["../images/src/*"],
       "@libs/*": ["../../../packages/libs/*"],
-      "@workers/*": ["./src/*"]
-    }
+      "@llm/*": ["../llm/src/*"],
+      "@mcp/*": ["../mcp/src/*"],
+      "@notifications/*": ["../notifications/src/*"],
+      "@serializers/*": ["../../../packages/serializers/src/*"],
+      "@slack/*": ["../slack/src/*"],
+      "@telegram/*": ["../telegram/src/*"],
+      "@twitch/*": ["../twitch/src/*"],
+      "@videos/*": ["../videos/src/*"],
+      "@voices/*": ["../voices/src/*"],
+      "@workers/*": ["./src/*"],
+      "@workflow-engine/*": ["../../../packages/workflow-engine/src/*"],
+      "@workflow-saas/*": ["../../../packages/workflow-saas/src/*"]
+    },
+    "target": "es2022",
+    "types": ["node", "multer"],
+    "useDefineForClassFields": false
   },
   "exclude": [
     "node_modules",
@@ -22,5 +85,5 @@
     "**/*.e2e-spec.ts"
   ],
   "extends": "../tsconfig.json",
-  "include": ["src/**/*"]
+  "include": ["src/**/*", "../api/src/types/**/*.d.ts"]
 }

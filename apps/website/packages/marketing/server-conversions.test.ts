@@ -7,6 +7,7 @@ import {
 describe('server conversions', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it('accepts only supported lower-funnel events', () => {
@@ -63,5 +64,25 @@ describe('server conversions', () => {
     );
     expect(fetchMock.mock.calls[1]?.[1]?.body).toContain('book_call:1');
     expect(fetchMock.mock.calls[1]?.[1]?.body).toContain('tw-book-call');
+  });
+
+  it('reports configured providers as failed when the conversion request fails', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network')));
+
+    const result = await sendServerConversions(
+      {
+        eventId: 'lead_submit:1',
+        name: 'lead_submit',
+        payload: {},
+        url: 'https://genfeed.ai',
+      },
+      {},
+      {
+        metaAccessToken: 'meta-token',
+        metaPixelId: 'meta-pixel',
+      },
+    );
+
+    expect(result).toEqual({ meta: 'failed', x: 'skipped' });
   });
 });

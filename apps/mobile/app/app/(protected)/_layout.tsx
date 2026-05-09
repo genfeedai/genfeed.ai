@@ -2,6 +2,7 @@ import { useAuth } from '@clerk/clerk-expo';
 import { Tabs, useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { Button, StyleSheet, Text, View } from 'react-native';
+import { colors } from '@/constants';
 import { usePendingApprovalCount } from '@/hooks/use-approvals';
 
 function SignOutButton() {
@@ -26,7 +27,7 @@ function ApprovalBadge() {
 const badgeStyles = StyleSheet.create({
   container: {
     alignItems: 'center',
-    backgroundColor: '#ef4444',
+    backgroundColor: colors.error,
     borderRadius: 10,
     height: 20,
     justifyContent: 'center',
@@ -37,7 +38,7 @@ const badgeStyles = StyleSheet.create({
     top: -4,
   },
   text: {
-    color: 'white',
+    color: colors.white,
     fontSize: 11,
     fontWeight: '600',
   },
@@ -62,14 +63,14 @@ export default function ProtectedLayout() {
       screenOptions={{
         headerRight: () => <SignOutButton />,
         headerStyle: {
-          backgroundColor: '#0f172a',
+          backgroundColor: colors.bgSecondary,
         },
-        headerTintColor: '#f8fafc',
-        tabBarActiveTintColor: '#6366f1',
-        tabBarInactiveTintColor: '#64748b',
+        headerTintColor: colors.textPrimary,
+        tabBarActiveTintColor: colors.indigo,
+        tabBarInactiveTintColor: colors.textSubtle,
         tabBarStyle: {
-          backgroundColor: '#0f172a',
-          borderTopColor: '#1e293b',
+          backgroundColor: colors.bgSecondary,
+          borderTopColor: colors.bgTertiary,
         },
       }}
     >

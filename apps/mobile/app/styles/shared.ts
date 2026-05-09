@@ -102,7 +102,7 @@ export const sharedStyles = StyleSheet.create({
   // Modal styles
   modalOverlay: {
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: colors.overlayScrim,
     flex: 1,
     justifyContent: 'center',
     padding: spacing.xxl,

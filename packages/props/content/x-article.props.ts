@@ -10,6 +10,8 @@ export interface XArticleTypeSelectorProps {
 }
 
 export interface XArticleGenerateFormProps {
+  credentialId?: string;
+  initialPrompt?: string;
   onGenerate: (data: GenerateArticlesRequest) => void;
   isGenerating: boolean;
 }
@@ -25,5 +27,8 @@ export interface XArticleAssetsBarProps {
   onCopyFullArticle: () => void;
   onDownloadImage: (url: string, filename: string) => void;
   onGenerateHeaderImage: () => void;
+  onGenerateTeaserPost?: () => void;
+  onGenerateTeaserThread?: () => void;
   isGeneratingImage: boolean;
+  isGeneratingTeaser?: boolean;
 }
