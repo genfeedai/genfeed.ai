@@ -30,7 +30,7 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { type JSX, useCallback, useEffect, useRef, useState } from 'react';
 import {
   HiOutlineExclamationTriangle,
   HiOutlineListBullet,
@@ -304,7 +304,7 @@ export default function IssuesList() {
             className="inline-flex items-center gap-1.5"
             onClick={() => setShowCreateDialog(true)}
           >
-            <HiOutlinePlusCircle className="h-3.5 w-3.5" />
+            <HiOutlinePlusCircle className="size-3.5" />
             New Task
           </Button>
           <Select
@@ -337,7 +337,7 @@ export default function IssuesList() {
               )}
               onClick={() => setViewMode('list')}
             >
-              <HiOutlineListBullet className="h-4 w-4" />
+              <HiOutlineListBullet className="size-4" />
             </Button>
             <Button
               variant={ButtonVariant.GHOST}
@@ -350,7 +350,7 @@ export default function IssuesList() {
               )}
               onClick={() => setViewMode('kanban')}
             >
-              <HiOutlineViewColumns className="h-4 w-4" />
+              <HiOutlineViewColumns className="size-4" />
             </Button>
           </div>
         </div>
@@ -361,7 +361,7 @@ export default function IssuesList() {
       ) : issues.length === 0 ? (
         <Card>
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <HiOutlineExclamationTriangle className="mb-3 h-8 w-8 text-white/20" />
+            <HiOutlineExclamationTriangle className="mb-3 size-8 text-white/20" />
             <p className="text-sm text-white/50">No tasks found</p>
             <p className="mt-1 text-xs text-white/30">
               Tasks will appear here once created
@@ -371,11 +371,12 @@ export default function IssuesList() {
       ) : viewMode === 'list' ? (
         <Card>
           <div className="divide-y divide-white/[0.04]">
-            {STATUS_ORDER.filter(
-              (status) => groupedByStatus[status].length > 0,
-            ).map((status) => {
+            {STATUS_ORDER.reduce<JSX.Element[]>((sections, status) => {
+              if (groupedByStatus[status].length === 0) {
+                return sections;
+              }
               const statusTasks = groupedByStatus[status];
-              return (
+              sections.push(
                 <div key={status}>
                   <div className="flex items-center gap-2 bg-white/[0.02] px-4 py-2">
                     <TaskStatusBadge status={status} />
@@ -392,9 +393,10 @@ export default function IssuesList() {
                       />
                     ))}
                   </div>
-                </div>
+                </div>,
               );
-            })}
+              return sections;
+            }, [])}
           </div>
         </Card>
       ) : (
@@ -416,21 +418,20 @@ export default function IssuesList() {
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label className="mb-1 block text-xs font-medium text-white/50">
+              <span className="mb-1 block text-xs font-medium text-white/50">
                 Title
-              </label>
+              </span>
               <Input
                 type="text"
                 placeholder="Task title"
                 value={createTitle}
                 onChange={(e) => setCreateTitle(e.target.value)}
-                autoFocus
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-white/50">
+              <span className="mb-1 block text-xs font-medium text-white/50">
                 Description
-              </label>
+              </span>
               <Textarea
                 className="w-full rounded border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/90 outline-none placeholder:text-white/25 focus:border-white/20"
                 placeholder="Optional description"
@@ -440,9 +441,9 @@ export default function IssuesList() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-white/50">
+              <span className="mb-1 block text-xs font-medium text-white/50">
                 Priority
-              </label>
+              </span>
               <Select
                 value={createPriority}
                 onValueChange={(value) =>

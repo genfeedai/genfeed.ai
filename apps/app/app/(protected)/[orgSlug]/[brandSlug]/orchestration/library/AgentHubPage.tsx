@@ -208,9 +208,13 @@ export default function AgentHubPage() {
     >
       {isLoading ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3].map((i) => (
+          {[
+            'agent-hub-skeleton-1',
+            'agent-hub-skeleton-2',
+            'agent-hub-skeleton-3',
+          ].map((skeletonId) => (
             <div
-              key={i}
+              key={skeletonId}
               className="h-44 animate-pulse rounded border border-foreground/10 bg-foreground/5"
             />
           ))}

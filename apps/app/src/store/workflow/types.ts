@@ -23,7 +23,7 @@ import type { SnapshotSlice } from './slices/snapshotSlice';
 // STATE TYPES
 // =============================================================================
 
-export interface WorkflowState {
+interface WorkflowState {
   nodes: WorkflowNode[];
   edges: WorkflowEdge[];
   edgeStyle: EdgeStyle;
@@ -43,7 +43,7 @@ export interface WorkflowState {
 // ACTION TYPES
 // =============================================================================
 
-export interface NodeActions {
+interface NodeActions {
   addNode: (type: NodeType, position: XYPosition) => string;
   addNodesAndEdges: (nodes: WorkflowNode[], edges: WorkflowEdge[]) => void;
   updateNodeData: <T extends WorkflowNodeData>(
@@ -58,19 +58,19 @@ export interface NodeActions {
   ) => void;
 }
 
-export interface ReactFlowActions {
+interface ReactFlowActions {
   onNodesChange: (changes: NodeChange<WorkflowNode>[]) => void;
   onEdgesChange: (changes: EdgeChange<WorkflowEdge>[]) => void;
   onConnect: (connection: Connection) => void;
 }
 
-export interface EdgeActions {
+interface EdgeActions {
   removeEdge: (edgeId: string) => void;
   setEdgeStyle: (style: EdgeStyle) => void;
   toggleEdgePause: (edgeId: string) => void;
 }
 
-export interface LockingActions {
+interface LockingActions {
   _setNodeLockState: (
     predicate: (nodeId: string) => boolean,
     lock: boolean,
@@ -84,7 +84,7 @@ export interface LockingActions {
   isNodeLocked: (nodeId: string) => boolean;
 }
 
-export interface GroupActions {
+interface GroupActions {
   createGroup: (nodeIds: string[], name?: string) => string;
   deleteGroup: (groupId: string) => void;
   addToGroup: (groupId: string, nodeIds: string[]) => void;
@@ -96,20 +96,20 @@ export interface GroupActions {
   getGroupById: (groupId: string) => NodeGroup | undefined;
 }
 
-export interface SelectionActions {
+interface SelectionActions {
   setSelectedNodeIds: (nodeIds: string[]) => void;
   addToSelection: (nodeId: string) => void;
   removeFromSelection: (nodeId: string) => void;
   clearSelection: () => void;
 }
 
-export interface LocalWorkflowActions {
+interface LocalWorkflowActions {
   loadWorkflow: (workflow: WorkflowFile) => void;
   clearWorkflow: () => void;
   exportWorkflow: () => WorkflowFile;
 }
 
-export interface ApiActions {
+interface ApiActions {
   saveWorkflow: (signal?: AbortSignal) => Promise<WorkflowData>;
   loadWorkflowById: (id: string, signal?: AbortSignal) => Promise<void>;
   listWorkflows: (signal?: AbortSignal) => Promise<WorkflowListItem[]>;
@@ -123,7 +123,7 @@ export interface ApiActions {
   setWorkflowTags: (tags: string[]) => void;
 }
 
-export interface HelperActions {
+interface HelperActions {
   getNodeById: (id: string) => WorkflowNode | undefined;
   getConnectedInputs: (nodeId: string) => Map<string, string | string[]>;
   getConnectedNodeIds: (nodeIds: string[]) => string[];
@@ -137,7 +137,7 @@ export interface HelperActions {
   setDirty: (dirty: boolean) => void;
 }
 
-export interface CommentNavigationActions {
+interface CommentNavigationActions {
   getNodesWithComments: () => WorkflowNode[];
   markCommentViewed: (nodeId: string) => void;
   setNavigationTarget: (nodeId: string | null) => void;

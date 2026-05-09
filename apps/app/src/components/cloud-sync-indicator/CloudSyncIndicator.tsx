@@ -54,13 +54,13 @@ export default function CloudSyncIndicator() {
           type="button"
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}
-          className="relative inline-flex h-7 w-7 items-center justify-center rounded border border-border bg-background-secondary transition-colors hover:border-border-strong hover:bg-background-tertiary cursor-pointer"
+          className="relative inline-flex size-7 items-center justify-center rounded border border-border bg-background-secondary transition-colors hover:border-border-strong hover:bg-background-tertiary cursor-pointer"
           ariaLabel={isConnected ? 'Cloud connected' : 'Cloud disconnected'}
         >
           {isConnected ? (
-            <Cloud className="h-3.5 w-3.5 text-foreground/56" />
+            <Cloud className="size-3.5 text-foreground/56" />
           ) : (
-            <CloudOff className="h-3.5 w-3.5 text-foreground/56" />
+            <CloudOff className="size-3.5 text-foreground/56" />
           )}
           <span
             className={cn(
@@ -120,10 +120,10 @@ export default function CloudSyncIndicator() {
               variant={ButtonVariant.UNSTYLED}
               withWrapper={false}
               onClick={() => setShowSignIn(false)}
-              className="absolute -right-2 -top-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-background text-muted-foreground shadow-lg hover:text-foreground cursor-pointer"
+              className="absolute -right-2 -top-2 z-10 flex size-8 items-center justify-center rounded-full bg-background text-muted-foreground shadow-lg hover:text-foreground cursor-pointer"
               ariaLabel="Close sign in"
             >
-              <X className="h-4 w-4" />
+              <X className="size-4" />
             </Button>
             <SignIn
               routing="hash"

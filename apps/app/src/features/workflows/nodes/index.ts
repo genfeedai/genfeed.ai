@@ -8,19 +8,12 @@
  * - SaaS: Brand management, AI persona content
  */
 
-// Automation nodes
-export * from '@/features/workflows/nodes/automation';
-// Distribution nodes
-export * from '@/features/workflows/nodes/distribution';
 // Effects nodes
 export * from '@/features/workflows/nodes/effects';
-// Repurposing nodes
-export * from '@/features/workflows/nodes/repurposing';
 // SaaS nodes
 export * from '@/features/workflows/nodes/saas';
 // Types
 export * from '@/features/workflows/nodes/types';
-export { extendedNodeDefinitions, saasNodeDefinitions } from './definitions';
 
 // SaaS node definitions from workflow-saas registry
 import { ReviewGateNode } from '@/features/workflows/nodes/automation/ReviewGateNode';
@@ -53,7 +46,7 @@ export const extendedNodeTypes = {
 /**
  * Extended node categories
  */
-export const extendedNodeCategories = {
+const extendedNodeCategories = {
   automation: {
     color: 'green',
     description: 'Triggers, scheduling, and workflow automation',

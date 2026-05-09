@@ -70,35 +70,27 @@ export default function TrainingImagesTab({
     };
   }, [getTrainingsService, notificationsService, scope, training]);
 
-  if (isLoading && generatedAssets.length === 0) {
-    return (
-      <MasonryGrid
-        ingredients={[]}
-        selectedIngredientId={[]}
-        isActionsEnabled={false}
-        isLoading
-      />
-    );
-  }
+  return isLoading && generatedAssets.length === 0 ? (
+    <MasonryGrid
+      ingredients={[]}
+      selectedIngredientId={[]}
+      isActionsEnabled={false}
+      isLoading
+    />
+  ) : generatedAssets.length === 0 ? (
+    <div className="text-center py-12">
+      <FaImage className="mx-auto size-12 text-muted-foreground mb-4" />
+      <p className="text-muted-foreground">
+        No assets have been generated with this training model yet.
+      </p>
 
-  if (generatedAssets.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <FaImage className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-        <p className="text-muted-foreground">
-          No assets have been generated with this training model yet.
+      {training?.status === TrainingStatus.COMPLETED && (
+        <p className="text-sm text-muted-foreground mt-2">
+          Use the trigger word <Code>{training.trigger}</Code> in your prompts
         </p>
-
-        {training?.status === TrainingStatus.COMPLETED && (
-          <p className="text-sm text-muted-foreground mt-2">
-            Use the trigger word <Code>{training.trigger}</Code> in your prompts
-          </p>
-        )}
-      </div>
-    );
-  }
-
-  return (
+      )}
+    </div>
+  ) : (
     <MasonryGrid
       ingredients={generatedAssets}
       selectedIngredientId={[]}

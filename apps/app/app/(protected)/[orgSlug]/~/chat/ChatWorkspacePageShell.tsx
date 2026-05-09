@@ -17,7 +17,7 @@ interface ChatWorkspacePageShellProps {
 export function ChatWorkspacePageShell({
   threadId,
 }: ChatWorkspacePageShellProps) {
-  const router = useRouter();
+  const { push } = useRouter();
   const { orgHref } = useOrgUrl();
   const { getToken } = useAuth();
   const {
@@ -55,14 +55,14 @@ export function ChatWorkspacePageShell({
         showThreadSidebar={false}
         threadId={threadId}
         onNavigateToBilling={() => {
-          router.push(
+          push(
             orgHref(isEEEnabled() ? '/settings/billing' : '/settings/api-keys'),
           );
         }}
         onOAuthConnect={handleOAuthConnect}
         onOnboardingCompleted={completeOnboardingFlow}
         onSelectCreditPack={(pack) => {
-          router.push(
+          push(
             isEEEnabled()
               ? orgHref(`/settings/billing?pack=${pack.label.toLowerCase()}`)
               : orgHref('/settings/api-keys'),

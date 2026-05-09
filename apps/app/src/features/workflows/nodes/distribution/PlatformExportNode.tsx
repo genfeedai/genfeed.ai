@@ -6,7 +6,7 @@ import {
   useWorkflowStore,
 } from '@genfeedai/workflow-ui/stores';
 import type { NodeProps } from '@xyflow/react';
-import { memo, useCallback } from 'react';
+import { type JSX, memo, useCallback } from 'react';
 import { NodeButton } from '@/features/workflows/components/ui/button';
 import { NodeCard, NodeHeader } from '@/features/workflows/components/ui/card';
 import {
@@ -100,31 +100,43 @@ function PlatformExportNodeComponent(props: NodeProps): React.JSX.Element {
         onChange={handlePlatformChange}
       >
         <optgroup label="Vertical (9:16)">
-          {PLATFORM_OPTIONS.filter((p) => p.aspectRatio === '9:16').map(
-            (option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ),
-          )}
+          {PLATFORM_OPTIONS.reduce<JSX.Element[]>((options, option) => {
+            if (option.aspectRatio === '9:16') {
+              options.push(
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>,
+              );
+            }
+            return options;
+          }, [])}
         </optgroup>
         <optgroup label="Square (1:1)">
-          {PLATFORM_OPTIONS.filter((p) => p.aspectRatio === '1:1').map(
-            (option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ),
-          )}
+          {PLATFORM_OPTIONS.reduce<JSX.Element[]>((options, option) => {
+            if (option.aspectRatio === '1:1') {
+              options.push(
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>,
+              );
+            }
+            return options;
+          }, [])}
         </optgroup>
         <optgroup label="Horizontal (16:9)">
-          {PLATFORM_OPTIONS.filter(
-            (p) => p.aspectRatio === '16:9' || p.aspectRatio === 'Custom',
-          ).map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
+          {PLATFORM_OPTIONS.reduce<JSX.Element[]>((options, option) => {
+            if (
+              option.aspectRatio === '16:9' ||
+              option.aspectRatio === 'Custom'
+            ) {
+              options.push(
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>,
+              );
+            }
+            return options;
+          }, [])}
         </optgroup>
       </NodeSelect>
 
@@ -181,13 +193,13 @@ function PlatformExportNodeComponent(props: NodeProps): React.JSX.Element {
       {data.outputMedia ? (
         <>
           <div className="flex items-center gap-2 text-green-500">
-            <CheckCircleIcon className="h-4 w-4" />
+            <CheckCircleIcon className="size-4" />
             <span className="text-sm">Export Ready</span>
           </div>
           <NodeButton
             fullWidth
             onClick={handleExport}
-            icon={<DownloadIcon className="h-4 w-4" />}
+            icon={<DownloadIcon className="size-4" />}
           >
             Download for {getPlatformLabel(data.platform)}
           </NodeButton>
@@ -205,7 +217,7 @@ function PlatformExportNodeComponent(props: NodeProps): React.JSX.Element {
 
 export const PlatformExportNode = memo(PlatformExportNodeComponent);
 
-export const platformExportNodeDefaults: Partial<PlatformExportNodeData> = {
+const platformExportNodeDefaults: Partial<PlatformExportNodeData> = {
   exportedSpec: null,
   inputMedia: null,
   inputType: null,

@@ -76,5 +76,7 @@ export default function ProtectedRootResolver() {
     selectedBrand,
   ]);
 
-  return <PageLoadingState className="bg-black" message={statusMessage} />;
+  return (
+    <PageLoadingState className="bg-neutral-950" message={statusMessage} />
+  );
 }

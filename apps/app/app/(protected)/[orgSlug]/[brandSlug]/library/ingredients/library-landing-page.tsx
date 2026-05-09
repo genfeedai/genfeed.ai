@@ -158,7 +158,7 @@ function LibraryCategoryTile({
           <span>Browse</span>
           <HiOutlineArrowRight
             aria-hidden="true"
-            className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1"
+            className="size-4 transition-transform duration-200 group-hover:translate-x-1"
           />
         </div>
       </article>

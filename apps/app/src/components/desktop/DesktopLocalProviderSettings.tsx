@@ -234,7 +234,5 @@ export default function DesktopLocalProviderSettings({
     return <Card className="p-5">{content}</Card>;
   }
 
-  return (
-    <div className="border-t border-white/[0.06] px-3 py-3">{content}</div>
-  );
+  return <div className="border-t border-white/[0.06] p-3">{content}</div>;
 }

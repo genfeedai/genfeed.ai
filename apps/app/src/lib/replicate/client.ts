@@ -1,8 +1,6 @@
 import type { CostBreakdown, NodeCostEstimate } from '@genfeedai/types';
 import Replicate from 'replicate';
 
-export type { CostBreakdown, NodeCostEstimate } from '@genfeedai/types';
-
 // Initialize Replicate client
 const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN,
@@ -71,7 +69,7 @@ export const PRICING = {
 } as const;
 
 // Type definitions
-export interface ImageGenInput {
+interface ImageGenInput {
   prompt: string;
   image_input?: string[];
   aspect_ratio?: string;
@@ -80,7 +78,7 @@ export interface ImageGenInput {
   safety_filter_level?: string;
 }
 
-export interface VideoGenInput {
+interface VideoGenInput {
   prompt: string;
   image?: string;
   last_frame?: string;
@@ -93,7 +91,7 @@ export interface VideoGenInput {
   seed?: number;
 }
 
-export interface LLMInput {
+interface LLMInput {
   prompt: string;
   system_prompt?: string;
   max_tokens?: number;
@@ -101,14 +99,14 @@ export interface LLMInput {
   top_p?: number;
 }
 
-export type LipSyncModel =
+type LipSyncModel =
   | 'sync/lipsync-2-pro'
   | 'sync/lipsync-2'
   | 'pixverse/lipsync';
 
-export type LipSyncMode = 'loop' | 'bounce' | 'cut_off' | 'silence' | 'remap';
+type LipSyncMode = 'loop' | 'bounce' | 'cut_off' | 'silence' | 'remap';
 
-export interface LipSyncInput {
+interface LipSyncInput {
   video?: string;
   image?: string;
   audio: string;
@@ -117,7 +115,7 @@ export interface LipSyncInput {
   active_speaker?: boolean;
 }
 
-export interface PredictionResult {
+interface PredictionResult {
   id: string;
   status: 'starting' | 'processing' | 'succeeded' | 'failed' | 'canceled';
   output: unknown;
@@ -130,7 +128,7 @@ export interface PredictionResult {
 /**
  * Generate an image using nano-banana models
  */
-export async function generateImage(
+async function _generateImage(
   model: 'nano-banana' | 'nano-banana-pro',
   input: ImageGenInput,
   webhookUrl?: string,
@@ -161,7 +159,7 @@ export async function generateImage(
 /**
  * Generate a video using veo-3.1 models
  */
-export async function generateVideo(
+async function _generateVideo(
   model: 'veo-3.1-fast' | 'veo-3.1',
   input: VideoGenInput,
   webhookUrl?: string,
@@ -194,7 +192,7 @@ export async function generateVideo(
 /**
  * Generate text using meta-llama
  */
-export async function generateText(input: LLMInput): Promise<string> {
+async function _generateText(input: LLMInput): Promise<string> {
   const output = await replicate.run(MODELS.llama, {
     input: {
       max_tokens: input.max_tokens ?? 1024,
@@ -216,7 +214,7 @@ export async function generateText(input: LLMInput): Promise<string> {
 /**
  * Generate lip-synced video from image/video and audio
  */
-export async function generateLipSync(
+async function _generateLipSync(
   model: LipSyncModel,
   input: LipSyncInput,
   webhookUrl?: string,
@@ -263,7 +261,7 @@ export async function generateLipSync(
 /**
  * Get prediction status
  */
-export async function getPredictionStatus(
+async function _getPredictionStatus(
   predictionId: string,
 ): Promise<PredictionResult> {
   const prediction = await replicate.predictions.get(predictionId);
@@ -273,7 +271,7 @@ export async function getPredictionStatus(
 /**
  * Cancel a prediction
  */
-export async function cancelPrediction(predictionId: string): Promise<void> {
+async function _cancelPrediction(predictionId: string): Promise<void> {
   await replicate.predictions.cancel(predictionId);
 }
 
@@ -318,7 +316,7 @@ export function calculateWorkflowCost(
 /**
  * Calculate total estimated cost for a workflow with detailed breakdown per node
  */
-export function calculateWorkflowCostWithBreakdown(
+function calculateWorkflowCostWithBreakdown(
   nodes: Array<{ id?: string; type: string; data: Record<string, unknown> }>,
 ): CostBreakdown {
   let total = 0;

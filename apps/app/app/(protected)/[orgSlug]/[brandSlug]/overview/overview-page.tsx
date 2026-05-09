@@ -57,6 +57,9 @@ const OVERVIEW_SOCIAL_PLATFORMS: SocialPlatform[] = [
   'medium',
 ];
 
+const EMPTY_AGENT_RUNS: IAgentRun[] = [];
+const EMPTY_TIME_SERIES: PlatformTimeSeriesDataPoint[] = [];
+
 function isSocialPlatform(value: string): value is SocialPlatform {
   return OVERVIEW_SOCIAL_PLATFORMS.includes(value as SocialPlatform);
 }
@@ -65,9 +68,16 @@ function getChartPlatforms(
   series: PlatformTimeSeriesDataPoint[],
   activePlatforms?: string[],
 ): SocialPlatform[] {
-  const preferred = (activePlatforms ?? [])
-    .map((platform) => platform.toLowerCase())
-    .filter(isSocialPlatform);
+  const preferred = (activePlatforms ?? []).reduce<SocialPlatform[]>(
+    (platforms, platform) => {
+      const normalizedPlatform = platform.toLowerCase();
+      if (isSocialPlatform(normalizedPlatform)) {
+        platforms.push(normalizedPlatform);
+      }
+      return platforms;
+    },
+    [],
+  );
 
   if (preferred.length > 0) {
     return preferred;
@@ -250,12 +260,12 @@ interface OverviewPageContentProps {
 }
 
 export default function OverviewPageContent({
-  initialActiveRuns = [],
+  initialActiveRuns = EMPTY_AGENT_RUNS,
   initialAnalytics,
   initialReviewInbox,
-  initialRuns = [],
+  initialRuns = EMPTY_AGENT_RUNS,
   initialStats = null,
-  initialTimeSeriesData = [],
+  initialTimeSeriesData = EMPTY_TIME_SERIES,
 }: OverviewPageContentProps) {
   const {
     activeRuns,

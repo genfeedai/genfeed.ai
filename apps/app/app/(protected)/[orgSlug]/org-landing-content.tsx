@@ -12,6 +12,7 @@ import {
   HiOutlineGlobeAlt,
   HiPlus,
 } from 'react-icons/hi2';
+import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 
 function BrandCard({ brand, orgSlug }: { brand: Brand; orgSlug: string }) {
   const cardHref = `/${orgSlug}/${brand.slug}/workspace/overview`;
@@ -25,15 +26,15 @@ function BrandCard({ brand, orgSlug }: { brand: Brand; orgSlug: string }) {
         {brand.logoUrl ? (
           <Image
             alt={brand.label}
-            className="h-10 w-10 rounded-lg object-cover"
+            className="size-10 rounded-lg object-cover"
             height={40}
             src={brand.logoUrl}
             unoptimized
             width={40}
           />
         ) : (
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.04]">
-            <HiOutlineBuildingOffice2 className="h-5 w-5 text-white/40" />
+          <div className="flex size-10 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.04]">
+            <HiOutlineBuildingOffice2 className="size-5 text-white/40" />
           </div>
         )}
         <div className="min-w-0 flex-1">
@@ -49,13 +50,13 @@ function BrandCard({ brand, orgSlug }: { brand: Brand; orgSlug: string }) {
       <div className="flex items-center gap-4 text-xs text-white/30">
         {brand.totalCredentials > 0 ? (
           <span className="flex items-center gap-1">
-            <HiOutlineGlobeAlt className="h-3.5 w-3.5" />
+            <HiOutlineGlobeAlt className="size-3.5" />
             {brand.totalCredentials} platform
             {brand.totalCredentials === 1 ? '' : 's'}
           </span>
         ) : null}
         {brand.createdAt ? (
-          <span>{new Date(brand.createdAt).toLocaleDateString()}</span>
+          <ClientFormattedDate format="date" value={brand.createdAt} />
         ) : null}
       </div>
     </Link>
@@ -65,7 +66,7 @@ function BrandCard({ brand, orgSlug }: { brand: Brand; orgSlug: string }) {
 export default function OrgLandingContent() {
   const { brands, isReady } = useBrand();
   const { orgSlug, orgHref } = useOrgUrl();
-  const router = useRouter();
+  const { replace } = useRouter();
   const primaryBrandSlug = brands[0]?.slug ?? '';
 
   useEffect(() => {
@@ -74,16 +75,16 @@ export default function OrgLandingContent() {
     }
 
     if (brands.length <= 1 && primaryBrandSlug) {
-      router.replace(`/${orgSlug}/${primaryBrandSlug}/workspace/overview`);
+      replace(`/${orgSlug}/${primaryBrandSlug}/workspace/overview`);
     }
-  }, [brands.length, isReady, orgSlug, primaryBrandSlug, router]);
+  }, [brands.length, isReady, orgSlug, primaryBrandSlug, replace]);
 
   if (!isReady || brands.length <= 1) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <div
           aria-hidden="true"
-          className="h-6 w-6 animate-spin rounded-full border-2 border-white/20 border-t-white"
+          className="size-6 animate-spin rounded-full border-2 border-white/20 border-t-white"
         />
       </div>
     );
@@ -103,7 +104,7 @@ export default function OrgLandingContent() {
           href={orgHref('/settings/brands')}
           className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3.5 py-2 text-sm font-medium text-white/70 transition hover:border-white/15 hover:bg-white/[0.06] hover:text-white"
         >
-          <HiPlus className="h-4 w-4" />
+          <HiPlus className="size-4" />
           New Brand
         </Link>
       </div>

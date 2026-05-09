@@ -55,7 +55,7 @@ export default function AnalyticsHooks({
   );
   const [isLoading, setIsLoading] = useState(true);
   const [videos, setVideos] = useState<IViralHookVideo[]>([]);
-  const [analysisData, setAnalysisData] = useState<IViralHookAnalysis>(
+  const [analysisData, setAnalysisData] = useState<IViralHookAnalysis>(() =>
     createDefaultAnalysis(),
   );
 
@@ -336,7 +336,7 @@ export default function AnalyticsHooks({
                           return Icon ? (
                             <span
                               key={p.platform}
-                              className="flex h-6 w-6 items-center justify-center bg-background/60"
+                              className="flex size-6 items-center justify-center bg-background/60"
                               style={{ color: config.color }}
                             >
                               <Icon className="text-sm" />

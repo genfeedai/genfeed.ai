@@ -5,6 +5,7 @@ import type { IDarkroomAsset } from '@genfeedai/interfaces';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
+import Image from 'next/image';
 import { useCallback, useMemo, useState } from 'react';
 import {
   HiChevronLeft,
@@ -147,7 +148,7 @@ export default function ImageGrid({
                   className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded bg-error/10 text-error hover:bg-error/20 transition-colors"
                   onClick={() => onDelete(Array.from(selectedIds))}
                 >
-                  <HiOutlineTrash className="w-4 h-4" />
+                  <HiOutlineTrash className="size-4" />
                   Delete
                 </Button>
               )}
@@ -157,7 +158,7 @@ export default function ImageGrid({
                 className="flex items-center gap-1 px-2 py-1.5 text-sm text-foreground/60 hover:text-foreground"
                 onClick={handleClearSelection}
               >
-                <HiXMark className="w-4 h-4" />
+                <HiXMark className="size-4" />
                 Clear
               </Button>
             </div>
@@ -167,14 +168,14 @@ export default function ImageGrid({
 
       {/* Select All + Info Row */}
       <div className="flex items-center justify-between px-1">
-        <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+        <span className="flex items-center gap-2 text-sm cursor-pointer select-none">
           <Checkbox
             checked={allCurrentSelected}
             onCheckedChange={() => handleToggleAll()}
             aria-label="Select all images on the current page"
           />
           Select all on page
-        </label>
+        </span>
 
         <span className="text-sm text-foreground/50">
           Showing {startIndex + 1}-{endIndex} of {images.length}
@@ -196,12 +197,14 @@ export default function ImageGrid({
                   : 'transparent',
               }}
             >
-              {/* biome-ignore lint/performance/noImgElement: darkroom assets are user-selected preview images */}
-              <img
+              <Image
+                unoptimized
                 alt={asset.label || 'Darkroom asset'}
                 className="w-full h-full object-cover"
                 loading="lazy"
                 src={asset.url}
+                width={800}
+                height={600}
               />
             </Button>
 
@@ -209,7 +212,7 @@ export default function ImageGrid({
             <div className="absolute top-2 left-2">
               <Checkbox
                 checked={selectedIds.has(asset.id)}
-                className="h-5 w-5 border-white/60 bg-black/30"
+                className="size-5 border-white/60 bg-black/30"
                 onCheckedChange={() => handleToggle(asset.id)}
               />
             </div>
@@ -226,7 +229,7 @@ export default function ImageGrid({
             isDisabled={currentPage <= 1}
             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
           >
-            <HiChevronLeft className="w-5 h-5" />
+            <HiChevronLeft className="size-5" />
           </Button>
 
           <span className="text-sm text-foreground/70">
@@ -239,7 +242,7 @@ export default function ImageGrid({
             isDisabled={currentPage >= totalPages}
             onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
           >
-            <HiChevronRight className="w-5 h-5" />
+            <HiChevronRight className="size-5" />
           </Button>
         </div>
       )}
@@ -263,7 +266,7 @@ export default function ImageGrid({
             className="absolute top-4 right-4 p-2 text-white/80 hover:text-white transition-colors"
             onClick={() => setLightboxAsset(null)}
           >
-            <HiXMark className="w-8 h-8" />
+            <HiXMark className="size-8" />
           </Button>
 
           <div
@@ -272,11 +275,13 @@ export default function ImageGrid({
             role="document"
             tabIndex={-1}
           >
-            {/* biome-ignore lint/performance/noImgElement: lightbox displays the original image URL directly */}
-            <img
+            <Image
+              unoptimized
               alt={lightboxAsset.label || 'Darkroom asset'}
               className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg"
               src={lightboxAsset.url}
+              width={800}
+              height={600}
             />
           </div>
         </div>

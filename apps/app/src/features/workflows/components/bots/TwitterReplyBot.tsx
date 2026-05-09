@@ -15,7 +15,7 @@ export default function TwitterReplyBot(): JSX.Element {
     <BotToggle
       title="Twitter/X Reply Bot"
       description="Automatically reply to mentions and tweets"
-      icon={<SiX className="w-6 h-6" />}
+      icon={<SiX className="size-6" />}
       iconBgColor="bg-foreground/10"
       editorPath="/workflows/twitter-reply"
       enabledMessage="Bot is active and responding to mentions"

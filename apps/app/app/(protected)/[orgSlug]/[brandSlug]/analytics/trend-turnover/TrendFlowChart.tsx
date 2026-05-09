@@ -1,15 +1,33 @@
 'use client';
 
 import type { TrendTimelineEntry } from '@services/social/trends.service';
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
+import dynamic from 'next/dynamic';
+
+const Area = dynamic(() => import('recharts').then((module) => module.Area), {
+  ssr: false,
+});
+const AreaChart = dynamic(
+  () => import('recharts').then((module) => module.AreaChart),
+  { ssr: false },
+);
+const CartesianGrid = dynamic(
+  () => import('recharts').then((module) => module.CartesianGrid),
+  { ssr: false },
+);
+const ResponsiveContainer = dynamic(
+  () => import('recharts').then((module) => module.ResponsiveContainer),
+  { ssr: false },
+);
+const Tooltip = dynamic(
+  () => import('recharts').then((module) => module.Tooltip),
+  { ssr: false },
+);
+const XAxis = dynamic(() => import('recharts').then((module) => module.XAxis), {
+  ssr: false,
+});
+const YAxis = dynamic(() => import('recharts').then((module) => module.YAxis), {
+  ssr: false,
+});
 
 interface TrendFlowChartProps {
   data: TrendTimelineEntry[];

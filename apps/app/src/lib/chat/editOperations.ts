@@ -81,7 +81,7 @@ export function applyEditOperations(
       }
 
       case 'removeNode': {
-        const nodeExists = nodes.find((n) => n.id === operation.nodeId);
+        const nodeExists = nodes.some((n) => n.id === operation.nodeId);
         if (!nodeExists) {
           skipped.push(`removeNode: node "${operation.nodeId}" not found`);
           break;
@@ -96,8 +96,8 @@ export function applyEditOperations(
       }
 
       case 'updateNode': {
-        const nodeIndex = nodes.findIndex((n) => n.id === operation.nodeId);
-        if (nodeIndex === -1) {
+        const nodeExists = nodes.some((n) => n.id === operation.nodeId);
+        if (!nodeExists) {
           skipped.push(`updateNode: node "${operation.nodeId}" not found`);
           break;
         }
@@ -118,8 +118,8 @@ export function applyEditOperations(
       }
 
       case 'addEdge': {
-        const sourceExists = nodes.find((n) => n.id === operation.source);
-        const targetExists = nodes.find((n) => n.id === operation.target);
+        const sourceExists = nodes.some((n) => n.id === operation.source);
+        const targetExists = nodes.some((n) => n.id === operation.target);
 
         if (!sourceExists) {
           skipped.push(`addEdge: source node "${operation.source}" not found`);
@@ -149,7 +149,7 @@ export function applyEditOperations(
       }
 
       case 'removeEdge': {
-        const edgeExists = edges.find((e) => e.id === operation.edgeId);
+        const edgeExists = edges.some((e) => e.id === operation.edgeId);
         if (!edgeExists) {
           skipped.push(`removeEdge: edge "${operation.edgeId}" not found`);
           break;
@@ -173,7 +173,7 @@ export function applyEditOperations(
 /**
  * Generates a human-readable summary of what operations were applied.
  */
-export function narrateOperations(operations: EditOperation[]): string {
+function _narrateOperations(operations: EditOperation[]): string {
   const narratives = operations.map((op): string => {
     switch (op.type) {
       case 'addNode': {

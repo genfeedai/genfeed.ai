@@ -87,7 +87,7 @@ function PersonaContentPlanNodeComponent(props: NodeProps): React.JSX.Element {
       />
 
       <div className="flex items-center justify-between">
-        <label className="text-sm">Create drafts</label>
+        <span className="text-sm">Create drafts</span>
         <Toggle
           checked={data.createDrafts}
           onChange={handleCreateDraftsToggle}
@@ -104,7 +104,7 @@ function PersonaContentPlanNodeComponent(props: NodeProps): React.JSX.Element {
           </p>
           {data.resolvedPlanEntries.slice(0, 5).map((entry, index) => (
             <div
-              key={`plan-${index}`}
+              key={`${entry.format}-${entry.topic}`}
               className="p-2 border border-white/[0.08] bg-muted/30 text-xs"
             >
               <div className="flex items-center justify-between">
@@ -139,17 +139,16 @@ function PersonaContentPlanNodeComponent(props: NodeProps): React.JSX.Element {
 
 export const PersonaContentPlanNode = memo(PersonaContentPlanNodeComponent);
 
-export const personaContentPlanNodeDefaults: Partial<PersonaContentPlanNodeData> =
-  {
-    createDrafts: false,
-    credentialId: null,
-    days: 7,
-    label: 'Content Plan',
-    personaId: null,
-    resolvedDraftsCreated: 0,
-    resolvedPersonaId: null,
-    resolvedPersonaLabel: null,
-    resolvedPlanEntries: [],
-    status: 'idle',
-    type: 'personaContentPlan',
-  };
+const personaContentPlanNodeDefaults: Partial<PersonaContentPlanNodeData> = {
+  createDrafts: false,
+  credentialId: null,
+  days: 7,
+  label: 'Content Plan',
+  personaId: null,
+  resolvedDraftsCreated: 0,
+  resolvedPersonaId: null,
+  resolvedPersonaLabel: null,
+  resolvedPlanEntries: [],
+  status: 'idle',
+  type: 'personaContentPlan',
+};

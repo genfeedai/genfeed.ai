@@ -1,4 +1,2 @@
-export { ContextMenu, type ContextMenuItemConfig } from './ContextMenu';
-export { ContextMenuItem, type ContextMenuItemProps } from './ContextMenuItem';
-export { ContextMenuSeparator } from './ContextMenuSeparator';
+export type { ContextMenuItemConfig } from './context-menu-config';
 export * from './menus';

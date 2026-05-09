@@ -1,5 +1,5 @@
 import { ClerkProvider, useAuth } from '@clerk/chrome-extension';
-import { useEffect, useState } from 'react';
+import { type ReactElement, useEffect, useReducer } from 'react';
 
 import { ChatContainer } from '~components/chat/ChatContainer';
 import { CreatePanel } from '~components/create/CreatePanel';
@@ -16,22 +16,109 @@ import { useSettingsStore } from '~store/use-settings-store';
 import type { ExtensionMessage } from '~types/extension';
 import { logger } from '~utils/logger.util';
 
-import '~style.scss';
+import '~style.css';
 
 initializeErrorTracking('sidepanel');
 
+type AuthPanelState =
+  | { status: 'syncing'; error: null }
+  | { status: 'authenticated'; error: null }
+  | { status: 'blocked'; error: string };
+
+interface PanelState {
+  activeTab: ActiveTab;
+  pendingAuthor: string;
+  pendingContent: string;
+  pendingUrl: string;
+}
+
+type PanelAction =
+  | { type: 'openMode'; payload: ExtensionMessage }
+  | { type: 'setActiveTab'; activeTab: ActiveTab };
+
+function authReducer(_state: AuthPanelState, next: AuthPanelState) {
+  return next;
+}
+
+function panelReducer(state: PanelState, action: PanelAction): PanelState {
+  switch (action.type) {
+    case 'openMode': {
+      const { type, content, url } = action.payload;
+      const activeTabByMessage: Record<ExtensionMessage['type'], ActiveTab> = {
+        IDEA: 'idea',
+        REMIX: 'remix',
+        REPLY: 'reply',
+      };
+
+      return {
+        ...state,
+        activeTab: activeTabByMessage[type],
+        pendingContent: content ?? '',
+        pendingUrl: url ?? '',
+      };
+    }
+    case 'setActiveTab':
+      return { ...state, activeTab: action.activeTab };
+    default:
+      return state;
+  }
+}
+
+function SidePanelRoute({
+  activeTab,
+  pendingAuthor,
+  pendingContent,
+  pendingUrl,
+  onActiveTabChange,
+}: PanelState & {
+  onActiveTabChange: (activeTab: ActiveTab) => void;
+}): ReactElement {
+  switch (activeTab) {
+    case 'chat':
+      return <ChatContainer />;
+    case 'remix':
+      return (
+        <RemixPage initialContent={pendingContent} initialUrl={pendingUrl} />
+      );
+    case 'reply':
+      return (
+        <ReplyPage
+          initialContent={pendingContent}
+          initialUrl={pendingUrl}
+          initialAuthor={pendingAuthor}
+        />
+      );
+    case 'idea':
+      return (
+        <IdeaDraftPage
+          initialContent={pendingContent}
+          initialUrl={pendingUrl}
+        />
+      );
+    case 'history':
+      return <ThreadList onOpenThread={() => onActiveTabChange('chat')} />;
+    case 'create':
+      return <CreatePanel onStartChat={() => onActiveTabChange('chat')} />;
+    case 'settings':
+      return <SettingsPanel />;
+    default:
+      return <ChatContainer />;
+  }
+}
+
 function SidePanelContent() {
   const { isLoaded, isSignedIn, getToken } = useAuth();
-  const [isSyncing, setIsSyncing] = useState(true);
-  const [hasValidToken, setHasValidToken] = useState(false);
-  const [authError, setAuthError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<ActiveTab>('chat');
+  const [authState, dispatchAuthState] = useReducer(authReducer, {
+    error: null,
+    status: 'syncing',
+  });
+  const [panelState, dispatchPanel] = useReducer(panelReducer, {
+    activeTab: 'chat',
+    pendingAuthor: '',
+    pendingContent: '',
+    pendingUrl: '',
+  } satisfies PanelState);
   const loadSettings = useSettingsStore((s) => s.loadSettings);
-
-  // Pending data from keyboard shortcuts / context menu
-  const [pendingContent, setPendingContent] = useState('');
-  const [pendingUrl, setPendingUrl] = useState('');
-  const [pendingAuthor, _setPendingAuthor] = useState('');
 
   // Listen for OPEN_MODE messages from the background/content scripts
   useEffect(() => {
@@ -42,25 +129,7 @@ function SidePanelContent() {
       if (message.type !== 'OPEN_MODE' || !message.payload) {
         return;
       }
-
-      const { type, content, url, platform: _platform } = message.payload;
-
-      setPendingContent(content ?? '');
-      setPendingUrl(url ?? '');
-
-      switch (type) {
-        case 'REMIX':
-          setActiveTab('remix');
-          break;
-        case 'REPLY':
-          setActiveTab('reply');
-          break;
-        case 'IDEA':
-          setActiveTab('idea');
-          break;
-        default:
-          break;
-      }
+      dispatchPanel({ payload: message.payload, type: 'openMode' });
     }
 
     chrome.runtime.onMessage.addListener(handleMessage);
@@ -77,17 +146,21 @@ function SidePanelContent() {
       if (existingToken) {
         const context = await authService.getAuthContext();
         if (context?.organization?.id) {
-          setHasValidToken(true);
-          setAuthError(null);
+          dispatchAuthState({ error: null, status: 'authenticated' });
         } else {
-          setHasValidToken(false);
-          setAuthError(
-            'Organization context is missing. Complete account setup in the web app, then reopen the side panel.',
-          );
+          dispatchAuthState({
+            error:
+              'Organization context is missing. Complete account setup in the web app, then reopen the side panel.',
+            status: 'blocked',
+          });
         }
-        setIsSyncing(false);
         return;
       }
+
+      let nextAuthState: AuthPanelState = {
+        error: 'Sign in via the extension popup to get started.',
+        status: 'blocked',
+      };
 
       if (isSignedIn) {
         try {
@@ -96,37 +169,36 @@ function SidePanelContent() {
             await authService.setToken(token);
             const context = await authService.getAuthContext(true);
             if (context?.organization?.id) {
-              setHasValidToken(true);
-              setAuthError(null);
+              nextAuthState = { error: null, status: 'authenticated' };
             } else {
-              setHasValidToken(false);
-              setAuthError(
-                'Signed in, but organization context is unavailable. Open Genfeed web app to finish setup.',
-              );
+              nextAuthState = {
+                error:
+                  'Signed in, but organization context is unavailable. Open Genfeed web app to finish setup.',
+                status: 'blocked',
+              };
             }
           } else {
-            setHasValidToken(false);
-            setAuthError(
-              'No auth token found. Sign in from the extension popup.',
-            );
+            nextAuthState = {
+              error: 'No auth token found. Sign in from the extension popup.',
+              status: 'blocked',
+            };
           }
         } catch (error) {
           logger.error('Error getting JWT token', error);
-          setHasValidToken(false);
-          setAuthError('Failed to synchronize auth. Try signing in again.');
+          nextAuthState = {
+            error: 'Failed to synchronize auth. Try signing in again.',
+            status: 'blocked',
+          };
         }
-      } else {
-        setHasValidToken(false);
-        setAuthError('Sign in via the extension popup to get started.');
       }
-      setIsSyncing(false);
+      dispatchAuthState(nextAuthState);
     }
 
     syncAuth();
     loadSettings();
   }, [isLoaded, isSignedIn, getToken, loadSettings]);
 
-  if (!isLoaded || isSyncing) {
+  if (!isLoaded || authState.status === 'syncing') {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <LoadingSpinner size="md" className="text-primary" />
@@ -134,54 +206,25 @@ function SidePanelContent() {
     );
   }
 
-  if (!hasValidToken) {
+  if (authState.status !== 'authenticated') {
     return (
       <div className="flex h-screen flex-col items-center justify-center gap-3 bg-background p-6">
         <p className="text-sm text-muted-foreground">
-          {authError || 'Sign in via the extension popup to get started.'}
+          {authState.error || 'Sign in via the extension popup to get started.'}
         </p>
       </div>
     );
   }
 
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'chat':
-        return <ChatContainer />;
-      case 'remix':
-        return (
-          <RemixPage initialContent={pendingContent} initialUrl={pendingUrl} />
-        );
-      case 'reply':
-        return (
-          <ReplyPage
-            initialContent={pendingContent}
-            initialUrl={pendingUrl}
-            initialAuthor={pendingAuthor}
-          />
-        );
-      case 'idea':
-        return (
-          <IdeaDraftPage
-            initialContent={pendingContent}
-            initialUrl={pendingUrl}
-          />
-        );
-      case 'history':
-        return <ThreadList onOpenThread={() => setActiveTab('chat')} />;
-      case 'create':
-        return <CreatePanel onStartChat={() => setActiveTab('chat')} />;
-      case 'settings':
-        return <SettingsPanel />;
-      default:
-        return <ChatContainer />;
-    }
-  };
+  const setActiveTab = (activeTab: ActiveTab) =>
+    dispatchPanel({ activeTab, type: 'setActiveTab' });
 
   return (
     <div className="flex h-screen bg-background text-foreground">
-      <SidebarNav activeTab={activeTab} onTabChange={setActiveTab} />
-      <main className="flex-1 overflow-hidden">{renderContent()}</main>
+      <SidebarNav activeTab={panelState.activeTab} onTabChange={setActiveTab} />
+      <main className="flex-1 overflow-hidden">
+        <SidePanelRoute {...panelState} onActiveTabChange={setActiveTab} />
+      </main>
     </div>
   );
 }

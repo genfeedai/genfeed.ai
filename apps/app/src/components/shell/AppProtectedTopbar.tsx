@@ -10,11 +10,12 @@ import TopbarCreditsBar from '@ui/topbars/credits-bar/TopbarCreditsBar';
 import TopbarEnd from '@ui/topbars/end/TopbarEnd';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 import { HiBars3, HiOutlineCommandLine, HiXMark } from 'react-icons/hi2';
 import CloudSyncIndicator from '@/components/cloud-sync-indicator/CloudSyncIndicator';
 import { appendSearchParamsToHref } from '@/lib/navigation/operator-shell';
 
-export default function AppProtectedTopbar({
+function AppProtectedTopbarContent({
   isMenuOpen,
   onMenuToggle,
   currentApp,
@@ -23,11 +24,11 @@ export default function AppProtectedTopbar({
   isAgentCollapsed,
   onAgentToggle,
 }: TopbarProps = {}) {
-  const searchParams = useSearchParams();
+  const { get, toString: getSearchParamsString } = useSearchParams();
   const { href } = useOrgUrl();
 
-  const taskId = searchParams?.get('taskId');
-  const taskTitle = searchParams?.get('taskTitle');
+  const taskId = get('taskId');
+  const taskTitle = get('taskTitle');
   const ToggleIcon = isMenuOpen ? HiXMark : HiBars3;
   const backToTaskHref = taskId
     ? href(
@@ -46,14 +47,14 @@ export default function AppProtectedTopbar({
             <Button
               type="button"
               variant={ButtonVariant.UNSTYLED}
-              className="inline-flex h-7 w-7 items-center justify-center rounded border border-border bg-background-secondary transition-colors hover:border-border-strong hover:bg-background-tertiary md:hidden"
+              className="inline-flex size-7 items-center justify-center rounded border border-border bg-background-secondary transition-colors hover:border-border-strong hover:bg-background-tertiary md:hidden"
               data-active={isMenuOpen ? 'true' : 'false'}
               ariaLabel={
                 isMenuOpen ? 'Close navigation menu' : 'Open navigation menu'
               }
               onClick={onMenuToggle}
             >
-              <ToggleIcon className="h-5 w-5" />
+              <ToggleIcon className="size-5" />
             </Button>
           ) : null}
 
@@ -63,7 +64,7 @@ export default function AppProtectedTopbar({
                 currentApp={currentApp}
                 orgSlug={orgSlug}
                 brandSlug={brandSlug}
-                preservedSearch={searchParams?.toString()}
+                preservedSearch={getSearchParamsString()}
               />
             </div>
           ) : null}
@@ -101,14 +102,14 @@ export default function AppProtectedTopbar({
             <Button
               type="button"
               variant={ButtonVariant.UNSTYLED}
-              className="inline-flex h-7 w-7 items-center justify-center rounded border border-border bg-background-secondary transition-colors hover:border-border-strong hover:bg-background-tertiary"
+              className="inline-flex size-7 items-center justify-center rounded border border-border bg-background-secondary transition-colors hover:border-border-strong hover:bg-background-tertiary"
               data-active={isAgentCollapsed ? 'false' : 'true'}
               ariaLabel={
                 isAgentCollapsed ? 'Open terminal dock' : 'Close terminal dock'
               }
               onClick={onAgentToggle}
             >
-              <HiOutlineCommandLine className="h-4 w-4" />
+              <HiOutlineCommandLine className="size-4" />
             </Button>
           ) : null}
 
@@ -120,5 +121,15 @@ export default function AppProtectedTopbar({
         </div>
       </div>
     </header>
+  );
+}
+
+export default function AppProtectedTopbar(
+  props: Parameters<typeof AppProtectedTopbarContent>[0],
+) {
+  return (
+    <Suspense fallback={null}>
+      <AppProtectedTopbarContent {...props} />
+    </Suspense>
   );
 }

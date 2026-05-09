@@ -23,7 +23,7 @@ function formatFramesAsTime(frames: number, fps: number): string {
   return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${ms.toString().padStart(3, '0')}`;
 }
 
-export function EditorPropertiesPanel({
+function EditorPropertiesPanel({
   tracks,
   fps,
   selectedTrackId,
@@ -107,9 +107,9 @@ export function EditorPropertiesPanel({
         </div>
 
         <div>
-          <label className="text-xs text-muted-foreground block mb-1">
+          <span className="text-xs text-muted-foreground block mb-1">
             Track Name
-          </label>
+          </span>
           <Input
             type="text"
             value={selectedTrack.name}
@@ -126,17 +126,17 @@ export function EditorPropertiesPanel({
 
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="text-xs text-muted-foreground block mb-1">
+            <span className="text-xs text-muted-foreground block mb-1">
               Start
-            </label>
+            </span>
             <div className="text-sm font-mono bg-background border border-white/[0.08] rounded px-2 py-1">
               {formatFramesAsTime(selectedClip.startFrame, fps)}
             </div>
           </div>
           <div>
-            <label className="text-xs text-muted-foreground block mb-1">
+            <span className="text-xs text-muted-foreground block mb-1">
               Duration
-            </label>
+            </span>
             <div className="text-sm font-mono bg-background border border-white/[0.08] rounded px-2 py-1">
               {formatFramesAsTime(selectedClip.durationFrames, fps)}
             </div>
@@ -145,9 +145,9 @@ export function EditorPropertiesPanel({
 
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="text-xs text-muted-foreground block mb-1">
+            <span className="text-xs text-muted-foreground block mb-1">
               Start Frame
-            </label>
+            </span>
             <Input
               type="number"
               min={0}
@@ -161,9 +161,9 @@ export function EditorPropertiesPanel({
             />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground block mb-1">
+            <span className="text-xs text-muted-foreground block mb-1">
               Duration (frames)
-            </label>
+            </span>
             <Input
               type="number"
               min={1}

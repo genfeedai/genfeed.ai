@@ -74,6 +74,20 @@ interface DropdownOptions {
   postUrl?: string;
 }
 
+function collectText(selector: string, limit: number): string[] {
+  const items: string[] = [];
+  for (const element of document.querySelectorAll(selector)) {
+    const text = element.textContent?.trim();
+    if (text) {
+      items.push(text);
+    }
+    if (items.length >= limit) {
+      break;
+    }
+  }
+  return items;
+}
+
 // Helper to extract post content and author from the page
 function extractPostContext(): { content: string; author: string } {
   const hostname = window.location.hostname;
@@ -984,8 +998,7 @@ export function createGenFeedDropdown(
   const logoImg = document.createElement('img');
   logoImg.src = 'https://assets.genfeed.ai/branding/logo-white.png';
   logoImg.alt = 'Genfeed';
-  logoImg.style.width = '16px';
-  logoImg.style.height = '16px';
+  logoImg.style.cssText = 'width: 16px; height: 16px;';
   button.appendChild(logoImg);
 
   // Create dropdown menu
@@ -1032,25 +1045,15 @@ export function createGenFeedDropdown(
       )
       ?.textContent?.trim();
 
-    const highlights = Array.from(
-      document.querySelectorAll(
-        '[data-testid="marketplace_pdp_badge"], [data-testid="marketplace_pdp_feature"], [data-testid="marketplace_pdp_details"] li',
-      ),
-    )
-      .map((el) => el.textContent?.trim())
-      .filter((text): text is string => Boolean(text))
-      .slice(0, 3)
-      .join(', ');
+    const highlights = collectText(
+      '[data-testid="marketplace_pdp_badge"], [data-testid="marketplace_pdp_feature"], [data-testid="marketplace_pdp_details"] li',
+      3,
+    ).join(', ');
 
-    const similarAds = Array.from(
-      document.querySelectorAll(
-        '[data-testid="marketplace_pdp_similar_listing"] span, a[aria-label*="Marketplace listing"] span',
-      ),
-    )
-      .map((el) => el.textContent?.trim())
-      .filter((text): text is string => Boolean(text))
-      .slice(0, 2)
-      .join('; ');
+    const similarAds = collectText(
+      '[data-testid="marketplace_pdp_similar_listing"] span, a[aria-label*="Marketplace listing"] span',
+      2,
+    ).join('; ');
 
     const promptPieces = [
       title ? `Listing title: ${title}` : null,

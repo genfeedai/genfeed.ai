@@ -137,12 +137,17 @@ export default function ElementsLayout({ children }: LayoutProps) {
         label={currentElement.label}
         description={currentElement.description}
         icon={HiOutlineTag}
-        tabs={Object.keys(ELEMENT_LABELS)
-          .filter((type) => type !== 'font-families')
-          .map((type) => ({
-            href: `/configuration/elements/${type}`,
-            label: ELEMENT_LABELS[type].label,
-          }))}
+        tabs={Object.keys(ELEMENT_LABELS).reduce<
+          Array<{ href: string; label: string }>
+        >((tabs, type) => {
+          if (type !== 'font-families') {
+            tabs.push({
+              href: `/configuration/elements/${type}`,
+              label: ELEMENT_LABELS[type].label,
+            });
+          }
+          return tabs;
+        }, [])}
         right={
           <div className="flex items-center gap-2">
             <FiltersButton

@@ -54,10 +54,10 @@ const DEFAULT_LINE_RULES = [
 ];
 
 function splitLines(value: string): string[] {
-  return value
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean);
+  return value.split('\n').flatMap((line) => {
+    const trimmedLine = line.trim();
+    return trimmedLine ? [trimmedLine] : [];
+  });
 }
 
 function joinLines(value: string[] | undefined): string {

@@ -20,6 +20,7 @@ import {
   HiArrowTopRightOnSquare,
   HiExclamationTriangle,
 } from 'react-icons/hi2';
+import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 
 /** Reusable billing card section */
 function BillingCard({
@@ -68,7 +69,7 @@ function ByokUsageSection({
       <VStack gap={4}>
         {(isPastDue || isSuspended) && (
           <div className="flex items-start gap-3 p-4 bg-destructive/10 border border-destructive/20 rounded">
-            <HiExclamationTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+            <HiExclamationTriangle className="size-5 text-destructive shrink-0 mt-0.5" />
             <VStack gap={2}>
               <Text size="sm" weight="medium" color="destructive">
                 {isPastDue
@@ -166,7 +167,7 @@ export default function SettingsBillingPage() {
   if (!isReady || isLoading) {
     return (
       <div className="flex items-center justify-center min-h-form">
-        <span className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
+        <span className="animate-spin size-8 border-2 border-primary border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -200,14 +201,16 @@ export default function SettingsBillingPage() {
                   Current period ends
                 </Text>
                 <Text as="p" weight="medium">
-                  {new Date(subscription.currentPeriodEnd).toLocaleDateString(
-                    'en-US',
-                    {
+                  <ClientFormattedDate
+                    format="date"
+                    locales="en-US"
+                    options={{
                       day: 'numeric',
                       month: 'long',
                       year: 'numeric',
-                    },
-                  )}
+                    }}
+                    value={subscription.currentPeriodEnd}
+                  />
                 </Text>
               </div>
             )}
@@ -238,7 +241,7 @@ export default function SettingsBillingPage() {
             </Text>
             {isLowCredits && (
               <div className="flex items-start gap-3 p-3 bg-amber-500/10 border border-amber-500/20 rounded">
-                <HiExclamationTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                <HiExclamationTriangle className="size-4 text-amber-500 shrink-0 mt-0.5" />
                 <Text size="sm" color="muted">
                   Low credits warning: your organization is below 1,000 credits.
                 </Text>
@@ -256,7 +259,7 @@ export default function SettingsBillingPage() {
           through the Stripe billing portal.
         </Text>
         <Button variant={ButtonVariant.DEFAULT} onClick={openBillingPortal}>
-          <HiArrowTopRightOnSquare className="mr-2 h-4 w-4" />
+          <HiArrowTopRightOnSquare className="mr-2 size-4" />
           Open Billing Portal
         </Button>
       </BillingCard>

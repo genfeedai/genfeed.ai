@@ -104,8 +104,17 @@ function LeaderboardCard({ data, isLoading }: LeaderboardCardProps) {
       <div className="space-y-3">
         {isLoading ? (
           <div className="space-y-3">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="h-14 bg-foreground/5 animate-pulse" />
+            {[
+              'leaderboard-skeleton-1',
+              'leaderboard-skeleton-2',
+              'leaderboard-skeleton-3',
+              'leaderboard-skeleton-4',
+              'leaderboard-skeleton-5',
+            ].map((skeletonId) => (
+              <div
+                key={skeletonId}
+                className="h-14 bg-foreground/5 animate-pulse"
+              />
             ))}
           </div>
         ) : data.length === 0 ? (
@@ -128,8 +137,8 @@ function LeaderboardCard({ data, isLoading }: LeaderboardCardProps) {
                   {String(index + 1).padStart(2, '0')}
                 </span>
                 {/* Icon circle */}
-                <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
-                  <HiOutlineBuildingOffice2 className="w-5 h-5 text-white/60" />
+                <div className="size-10 rounded-full bg-white/10 flex items-center justify-center">
+                  <HiOutlineBuildingOffice2 className="size-5 text-white/60" />
                 </div>
                 {/* Name and metadata */}
                 <div>
@@ -238,7 +247,7 @@ function StatsGrid({ stats, isLoading }: StatsGridProps) {
               className="rounded border border-white/[0.08] bg-white/[0.02] p-4 transition-colors hover:bg-white/[0.04]"
             >
               <div className="text-white/30 mb-3">
-                <Icon className="w-5 h-5" />
+                <Icon className="size-5" />
               </div>
               <div className="text-2xl font-bold">
                 {isLoading ? (

@@ -1,0 +1,48 @@
+@import "./_masonry-base.css";
+
+/* Neural Noir hover dimming */
+.masonry-container.is-hovering .masonry-item[data-hovered="false"] {
+  opacity: 0.5;
+  filter: brightness(0.7);
+}
+
+.masonry-container.is-hovering
+  .masonry-item[data-masonry-media="image"][data-hovered="false"] {
+  opacity: 0.6;
+  filter: brightness(0.75);
+}
+
+.masonry-container.is-hovering .masonry-item[data-hovered="true"] {
+  opacity: 1;
+  filter: brightness(1);
+  z-index: 10;
+}
+
+.masonry-item .quick-actions-wrapper {
+  overflow: visible;
+}
+
+.menu-item {
+  overflow: visible;
+}
+
+/* Neural Noir Masonry Enhancements */
+.masonry-item {
+  &:hover {
+    box-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
+  }
+
+  &[data-selected="true"] {
+    box-shadow: 0 0 0 2px hsl(var(--primary));
+  }
+}
+
+/* Loading skeleton */
+.masonry-skeleton {
+  background: linear-gradient(
+    135deg,
+    hsl(var(--muted)) 0%,
+    hsl(var(--card)) 100%
+  );
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}

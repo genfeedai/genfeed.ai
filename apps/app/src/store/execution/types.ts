@@ -27,7 +27,7 @@ export interface Job {
   createdAt: string;
 }
 
-export interface NodeResult {
+interface NodeResult {
   nodeId: string;
   status: string;
   output?: Record<string, unknown>;
@@ -79,7 +79,7 @@ export interface NodeExecution {
 // STORE TYPES
 // =============================================================================
 
-export interface ExecutionState {
+interface ExecutionState {
   isRunning: boolean;
   executionId: string | null;
   currentNodeId: string | null;
@@ -97,7 +97,7 @@ export interface ExecutionState {
   activeNodeExecutions: Map<string, NodeExecution>;
 }
 
-export interface ExecutionActions {
+interface ExecutionActions {
   executeWorkflow: () => Promise<void>;
   executeSelectedNodes: () => Promise<void>;
   executeNode: (nodeId: string) => Promise<void>;
@@ -108,13 +108,13 @@ export interface ExecutionActions {
   clearValidationErrors: () => void;
 }
 
-export interface JobActions {
+interface JobActions {
   addJob: (nodeId: string, predictionId: string) => void;
   updateJob: (predictionId: string, updates: Partial<Job>) => void;
   getJobByNodeId: (nodeId: string) => Job | undefined;
 }
 
-export interface HelperActions {
+interface HelperActions {
   resetExecution: () => void;
   canResumeFromFailed: () => boolean;
   setEstimatedCost: (cost: number) => void;
@@ -132,7 +132,7 @@ export interface ExecutionStore
 // STATUS MAPPING
 // =============================================================================
 
-export const STATUS_MAP: Record<string, NodeStatus> = {
+const _STATUS_MAP: Record<string, NodeStatus> = {
   complete: 'complete',
   error: 'error',
   pending: 'idle',

@@ -1,6 +1,20 @@
 import type { HandleType, NodeType } from '@genfeedai/types';
 import { CONNECTION_RULES, NODE_DEFINITIONS } from '@genfeedai/types';
 
+const CONNECTION_RULE_LOOKUP = new Map(
+  Object.entries(CONNECTION_RULES).map(([sourceType, targetTypes]) => [
+    sourceType,
+    new Set(targetTypes),
+  ]),
+);
+
+function canConnectHandleTypes(
+  sourceType: string,
+  targetType: string,
+): boolean {
+  return CONNECTION_RULE_LOOKUP.get(sourceType)?.has(targetType) ?? false;
+}
+
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -72,7 +86,7 @@ function getHandleType(
 // JSON PARSING (3-strategy extraction)
 // =============================================================================
 
-export function parseJSONFromResponse(text: string): GeneratedWorkflow | null {
+function _parseJSONFromResponse(text: string): GeneratedWorkflow | null {
   const trimmed = text.trim();
 
   // Strategy 1: Direct parse
@@ -111,9 +125,7 @@ export function parseJSONFromResponse(text: string): GeneratedWorkflow | null {
 // VALIDATION
 // =============================================================================
 
-export function validateWorkflowJSON(
-  workflow: GeneratedWorkflow,
-): ValidationResult {
+function _validateWorkflowJSON(workflow: GeneratedWorkflow): ValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
 
@@ -161,6 +173,7 @@ export function validateWorkflowJSON(
 
   // --- Edge checks ---
   const edgeIds = new Set<string>();
+  const nodesById = new Map(workflow.nodes.map((node) => [node.id, node]));
   for (const edge of workflow.edges) {
     if (edgeIds.has(edge.id)) {
       errors.push(`Duplicate edge id: ${edge.id}`);
@@ -186,8 +199,8 @@ export function validateWorkflowJSON(
 
     // Handle type matching
     if (edge.source && edge.target && edge.sourceHandle && edge.targetHandle) {
-      const sourceNode = workflow.nodes.find((n) => n.id === edge.source);
-      const targetNode = workflow.nodes.find((n) => n.id === edge.target);
+      const sourceNode = nodesById.get(edge.source);
+      const targetNode = nodesById.get(edge.target);
       if (sourceNode && targetNode) {
         const sourceType = getHandleType(
           sourceNode.type,
@@ -200,8 +213,7 @@ export function validateWorkflowJSON(
           'inputs',
         );
         if (sourceType && targetType) {
-          const allowed = CONNECTION_RULES[sourceType];
-          if (!allowed?.includes(targetType)) {
+          if (!canConnectHandleTypes(sourceType, targetType)) {
             errors.push(
               `Edge ${edge.id}: incompatible types ${sourceType} → ${targetType} (${sourceNode.type}.${edge.sourceHandle} → ${targetNode.type}.${edge.targetHandle})`,
             );
@@ -289,6 +301,10 @@ export function repairWorkflowJSON(
   const validNodeIds = new Set(repaired.nodes.map((n) => n.id));
   const seenEdgeIds = new Set<string>();
 
+  const repairedNodesById = new Map(
+    repaired.nodes.map((node) => [node.id, node]),
+  );
+
   repaired.edges = repaired.edges.filter((edge) => {
     // Fix missing ID
     if (!edge.id || seenEdgeIds.has(edge.id)) {
@@ -304,8 +320,8 @@ export function repairWorkflowJSON(
     if (!edge.sourceHandle || !edge.targetHandle) return false;
 
     // Check handle type compatibility — remove incompatible edges
-    const sourceNode = repaired.nodes.find((n) => n.id === edge.source);
-    const targetNode = repaired.nodes.find((n) => n.id === edge.target);
+    const sourceNode = repairedNodesById.get(edge.source);
+    const targetNode = repairedNodesById.get(edge.target);
     if (sourceNode && targetNode) {
       const sourceType = getHandleType(
         sourceNode.type,
@@ -318,8 +334,7 @@ export function repairWorkflowJSON(
         'inputs',
       );
       if (sourceType && targetType) {
-        const allowed = CONNECTION_RULES[sourceType];
-        if (!allowed?.includes(targetType)) return false;
+        if (!canConnectHandleTypes(sourceType, targetType)) return false;
       }
     }
 

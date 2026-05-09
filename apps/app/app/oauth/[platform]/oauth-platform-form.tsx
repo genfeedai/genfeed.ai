@@ -4,7 +4,7 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { logger } from '@services/core/logger.service';
 import { ServicesService } from '@services/external/services.service';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { HiCheckCircle, HiXCircle } from 'react-icons/hi2';
 
 interface OAuthPlatformFormProps {
@@ -18,11 +18,9 @@ const OAUTH1_PLATFORMS: string[] = [];
 const REDIRECT_DELAY_MS = 3000;
 const DEFAULT_RETURN_PATH = '/settings/api-keys';
 
-export default function OAuthPlatformForm({
-  platform,
-}: OAuthPlatformFormProps) {
-  const searchParams = useSearchParams();
-  const router = useRouter();
+function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
+  const { get } = useSearchParams();
+  const { push } = useRouter();
   const [status, setStatus] = useState<VerifyStatus>('loading');
   const [errorMessage, setErrorMessage] = useState<string>('');
   const hasVerified = useRef(false);
@@ -46,12 +44,12 @@ export default function OAuthPlatformForm({
 
       const body = isOAuth1
         ? {
-            oauth_token: searchParams.get('oauth_token'),
-            oauth_verifier: searchParams.get('oauth_verifier'),
+            oauth_token: get('oauth_token'),
+            oauth_verifier: get('oauth_verifier'),
           }
         : {
-            code: searchParams.get('code'),
-            state: searchParams.get('state'),
+            code: get('code'),
+            state: get('state'),
           };
 
       await service.postVerify(body);
@@ -59,16 +57,16 @@ export default function OAuthPlatformForm({
       logger.info(`${url} success`);
       setStatus('success');
 
-      const returnTo = searchParams.get('return_to');
+      const returnTo = get('return_to');
       setTimeout(() => {
-        router.push(returnTo || DEFAULT_RETURN_PATH);
+        push(returnTo || DEFAULT_RETURN_PATH);
       }, REDIRECT_DELAY_MS);
     } catch (error) {
       logger.error(`${url} failed`, error);
       setStatus('error');
       setErrorMessage('Failed to verify your account. Please try again.');
     }
-  }, [getServicesService, platform, router, searchParams]);
+  }, [getServicesService, platform, push, get]);
 
   useEffect(() => {
     verify();
@@ -81,11 +79,11 @@ export default function OAuthPlatformForm({
       <div className="w-full max-w-md text-center">
         {status === 'loading' && (
           <div className="space-y-4">
-            <div className="mx-auto h-16 w-16">
-              <div className="h-16 w-16 animate-spin rounded-full border-b-2 border-primary" />
+            <div className="mx-auto size-16">
+              <div className="size-16 animate-spin rounded-full border-b-2 border-primary" />
             </div>
             <p className="text-sm text-muted-foreground">
-              Connecting your {platformLabel} account...
+              Connecting your {platformLabel} account…
             </p>
           </div>
         )}
@@ -95,7 +93,7 @@ export default function OAuthPlatformForm({
             <HiCheckCircle className="mx-auto text-5xl text-green-500" />
             <h2 className="text-lg font-semibold">{platformLabel} Connected</h2>
             <p className="text-sm text-muted-foreground">
-              Redirecting you back...
+              Redirecting you back…
             </p>
           </div>
         )}
@@ -106,7 +104,7 @@ export default function OAuthPlatformForm({
             <h2 className="text-lg font-semibold">Connection Failed</h2>
             <p className="text-sm text-muted-foreground">{errorMessage}</p>
             <a
-              href={searchParams.get('return_to') || DEFAULT_RETURN_PATH}
+              href={get('return_to') || DEFAULT_RETURN_PATH}
               className="inline-block text-sm text-primary underline"
             >
               Go back
@@ -115,5 +113,15 @@ export default function OAuthPlatformForm({
         )}
       </div>
     </div>
+  );
+}
+
+export default function OAuthPlatformForm(
+  props: Parameters<typeof OAuthPlatformFormContent>[0],
+) {
+  return (
+    <Suspense fallback={null}>
+      <OAuthPlatformFormContent {...props} />
+    </Suspense>
   );
 }

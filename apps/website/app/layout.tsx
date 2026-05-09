@@ -1,4 +1,4 @@
-import '@styles/globals.scss';
+import '@styles/globals.css';
 
 import { THEME_STORAGE_KEY } from '@genfeedai/constants';
 import { fontVariables } from '@genfeedai/fonts';

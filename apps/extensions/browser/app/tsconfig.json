@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "ignoreDeprecations": "6.0",
     "paths": {
       "@api-types/*": ["../../../../../packages/api-types/src/*"],
       "@genfeedai-types/*": ["../../../packages/types/src/*"],

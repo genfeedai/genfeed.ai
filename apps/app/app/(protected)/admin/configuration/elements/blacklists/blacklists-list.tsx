@@ -19,10 +19,17 @@ import { LazyModalBlacklist } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { HiPencil, HiTrash } from 'react-icons/hi2';
 
-export default function BlacklistsList({
+function BlacklistsListContent({
   scope = PageScope.BRAND,
   onLoadingChange,
   onRefreshingChange,
@@ -35,10 +42,10 @@ export default function BlacklistsList({
     useCallback((token: string) => BlacklistsService.getInstance(token), []),
   );
 
-  const router = useRouter();
+  const { replace } = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const searchParamsString = searchParams?.toString() ?? '';
+  const { get, toString: getSearchParamsString } = useSearchParams();
+  const searchParamsString = getSearchParamsString() ?? '';
   const parsedSearchParams = useMemo(
     () => new URLSearchParams(searchParamsString),
     [searchParamsString],
@@ -72,11 +79,11 @@ export default function BlacklistsList({
       params.delete('brand');
       params.delete('page');
       const queryString = params.toString();
-      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+      replace(queryString ? `${pathname}?${queryString}` : pathname, {
         scroll: false,
       });
     },
-    [pathname, router, searchParamsString],
+    [pathname, replace, searchParamsString],
   );
 
   const handleAdminBrandChange = useCallback(
@@ -90,11 +97,11 @@ export default function BlacklistsList({
       }
       params.delete('page');
       const queryString = params.toString();
-      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+      replace(queryString ? `${pathname}?${queryString}` : pathname, {
         scroll: false,
       });
     },
-    [pathname, router, searchParamsString],
+    [pathname, replace, searchParamsString],
   );
 
   // Use refs for callback props to prevent unnecessary re-renders
@@ -168,7 +175,7 @@ export default function BlacklistsList({
       : [];
 
   // Extract page from URL to use as dependency (triggers re-fetch when page changes)
-  const currentPage = Number(searchParams?.get('page')) || 1;
+  const currentPage = Number(get('page')) || 1;
 
   const findAllBlacklists = useCallback(
     async (isRefresh = false) => {
@@ -227,7 +234,7 @@ export default function BlacklistsList({
     ],
   );
 
-  // Fetch data on mount and when searchParams change
+  // Fetch data on mount and when get, getSearchParamsString change
   useEffect(() => {
     findAllBlacklists();
   }, [findAllBlacklists]);
@@ -321,5 +328,15 @@ export default function BlacklistsList({
         <AutoPagination showTotal totalLabel="blacklists" />
       </div>
     </>
+  );
+}
+
+export default function BlacklistsList(
+  props: Parameters<typeof BlacklistsListContent>[0],
+) {
+  return (
+    <Suspense fallback={null}>
+      <BlacklistsListContent {...props} />
+    </Suspense>
   );
 }

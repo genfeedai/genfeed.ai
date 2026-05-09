@@ -1,9 +1,6 @@
 'use client';
 
-import type {
-  IDesktopSession,
-  IGenfeedDesktopBridge,
-} from '@genfeedai/desktop-contracts';
+import type { IGenfeedDesktopBridge } from '@genfeedai/desktop-contracts';
 
 type DesktopWindow = Window &
   typeof globalThis & {
@@ -20,13 +17,4 @@ export function getDesktopBridge(): IGenfeedDesktopBridge | null {
   }
 
   return (window as DesktopWindow).genfeedDesktop ?? null;
-}
-
-export async function getDesktopSession(): Promise<IDesktopSession | null> {
-  const bridge = getDesktopBridge();
-  if (!bridge) {
-    return null;
-  }
-
-  return bridge.auth.getSession();
 }

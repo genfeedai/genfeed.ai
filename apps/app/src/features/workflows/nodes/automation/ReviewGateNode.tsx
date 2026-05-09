@@ -12,6 +12,7 @@ import {
 import { logger } from '@services/core/logger.service';
 import type { NodeProps } from '@xyflow/react';
 import { memo, useCallback } from 'react';
+import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import { NodeBadge } from '@/features/workflows/components/ui/badge';
 import {
   NodeButton,
@@ -51,22 +52,22 @@ function getStatusBadge(
     }
   > = {
     [ReviewGateStatus.APPROVED]: {
-      icon: <CheckIcon className="h-4 w-4" />,
+      icon: <CheckIcon className="size-4" />,
       label: 'Approved',
       variant: 'green' as const,
     },
     [ReviewGateStatus.PENDING]: {
-      icon: <ClockIcon className="h-4 w-4" />,
+      icon: <ClockIcon className="size-4" />,
       label: 'Pending',
       variant: 'orange' as const,
     },
     [ReviewGateStatus.REJECTED]: {
-      icon: <XIcon className="h-4 w-4" />,
+      icon: <XIcon className="size-4" />,
       label: 'Rejected',
       variant: 'red' as const,
     },
     [ReviewGateStatus.TIMEOUT]: {
-      icon: <ClockIcon className="h-4 w-4" />,
+      icon: <ClockIcon className="size-4" />,
       label: 'Timeout',
       variant: 'yellow' as const,
     },
@@ -85,15 +86,15 @@ const CHANNEL_CONFIG: Record<
   { icon: React.JSX.Element; label: string }
 > = {
   [NotificationChannel.EMAIL]: {
-    icon: <MailIcon className="h-4 w-4" />,
+    icon: <MailIcon className="size-4" />,
     label: 'Email',
   },
   [NotificationChannel.SLACK]: {
-    icon: <SlackIcon className="h-4 w-4" />,
+    icon: <SlackIcon className="size-4" />,
     label: 'Slack',
   },
   [NotificationChannel.WEBHOOK]: {
-    icon: <WebhookIcon className="h-4 w-4" />,
+    icon: <WebhookIcon className="size-4" />,
     label: 'Webhook',
   },
 };
@@ -230,7 +231,7 @@ function ReviewGateNodeComponent(props: NodeProps): React.JSX.Element {
   return (
     <NodeCard minWidth="300px">
       <NodeHeader
-        icon={<ShieldCheckIcon className="h-4 w-4" />}
+        icon={<ShieldCheckIcon className="size-4" />}
         title="Review Gate"
         badge={getStatusBadge(data.approvalStatus)}
       />
@@ -259,7 +260,7 @@ function ReviewGateNodeComponent(props: NodeProps): React.JSX.Element {
       {/* Notification Channels */}
       {isPending && (
         <div className="space-y-2">
-          <label className="text-xs text-muted-foreground">Notify via</label>
+          <span className="text-xs text-muted-foreground">Notify via</span>
           <div className="flex gap-2">
             {(
               Object.entries(CHANNEL_CONFIG) as [
@@ -311,7 +312,7 @@ function ReviewGateNodeComponent(props: NodeProps): React.JSX.Element {
       {isPending && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <label className="text-sm">Timeout (hours)</label>
+            <span className="text-sm">Timeout (hours)</span>
             <NodeInput
               type="number"
               value={data.timeoutHours}
@@ -322,7 +323,7 @@ function ReviewGateNodeComponent(props: NodeProps): React.JSX.Element {
             />
           </div>
           <div className="flex items-center justify-between">
-            <label className="text-sm">Auto-approve on timeout</label>
+            <span className="text-sm">Auto-approve on timeout</span>
             <Toggle
               checked={data.autoApproveIfNoResponse}
               onChange={handleAutoApproveToggle}
@@ -338,7 +339,7 @@ function ReviewGateNodeComponent(props: NodeProps): React.JSX.Element {
             variant="success"
             fullWidth
             onClick={handleApprove}
-            icon={<CheckIcon className="h-4 w-4" />}
+            icon={<CheckIcon className="size-4" />}
           >
             Approve
           </NodeButton>
@@ -346,7 +347,7 @@ function ReviewGateNodeComponent(props: NodeProps): React.JSX.Element {
             variant="danger"
             fullWidth
             onClick={handleReject}
-            icon={<XIcon className="h-4 w-4" />}
+            icon={<XIcon className="size-4" />}
           >
             Reject
           </NodeButton>
@@ -357,7 +358,7 @@ function ReviewGateNodeComponent(props: NodeProps): React.JSX.Element {
       {data.approvalStatus === ReviewGateStatus.APPROVED && data.approvedBy && (
         <div className="text-xs text-muted-foreground">
           Approved by {data.approvedBy} at{' '}
-          {data.approvedAt ? new Date(data.approvedAt).toLocaleString() : 'N/A'}
+          <ClientFormattedDate fallback="N/A" value={data.approvedAt} />
         </div>
       )}
 
@@ -368,12 +369,12 @@ function ReviewGateNodeComponent(props: NodeProps): React.JSX.Element {
       )}
 
       {isPending && !hasReviewInput && (
-        <HelpText>Waiting for content to review...</HelpText>
+        <HelpText>Waiting for content to review…</HelpText>
       )}
 
       {isPending && hasReviewInput && !data.approvalId && (
         <HelpText>
-          Waiting for the active execution to attach approval context...
+          Waiting for the active execution to attach approval context…
         </HelpText>
       )}
 
@@ -388,7 +389,7 @@ function ReviewGateNodeComponent(props: NodeProps): React.JSX.Element {
 
 export const ReviewGateNode = memo(ReviewGateNodeComponent);
 
-export const reviewGateNodeDefaults: Partial<ReviewGateNodeData> = {
+const reviewGateNodeDefaults: Partial<ReviewGateNodeData> = {
   approvalId: null,
   approvalStatus: ReviewGateStatus.PENDING,
   autoApproveIfNoResponse: false,

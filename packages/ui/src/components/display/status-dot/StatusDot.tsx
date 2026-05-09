@@ -22,7 +22,7 @@ const STATUS_CLASSES = {
 
 /**
  * StatusDot - A simple status indicator dot
- * Uses CSS classes from genfeed.scss for consistent theming
+ * Uses CSS classes from genfeed.css for consistent theming
  */
 const StatusDot = memo(function StatusDot({
   status,

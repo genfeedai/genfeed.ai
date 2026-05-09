@@ -71,7 +71,6 @@
     "electron-builder": "26.8.1",
     "esbuild": "0.28.0",
     "jsdom": "29.1.0",
-    "sass": "1.99.0",
     "typescript": "6.0.2",
     "vitest": "4.1.5"
   },
@@ -98,6 +97,7 @@
     "icon:mac": "bash ./scripts/generate-macos-icon.sh",
     "lint": "biome check src scripts package.json",
     "native:rebuild": "electron-builder install-app-deps",
+    "notarize": "node ./scripts/notarize.cjs",
     "pack:mac": "bun run electron:install-binary && bun run native:rebuild && bun run build:release && electron-builder --mac --dir --publish never",
     "prepare:release": "bun run icon:mac",
     "release:mac": "bun run electron:install-binary && bun run native:rebuild && bun run build:release && electron-builder --mac dmg zip --publish never",

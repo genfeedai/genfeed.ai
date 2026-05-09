@@ -12,7 +12,7 @@ import ProfileFooter from '@web-components/profile/ProfileFooter';
 import ProfileImages from '@web-components/profile/ProfileImages';
 import ProfileSocialLinks from '@web-components/profile/ProfileSocialLinks';
 import ProfileVideos from '@web-components/profile/ProfileVideos';
-import '@styles/masonry.scss';
+import '@styles/masonry.css';
 import Image from 'next/image';
 import type { PublicProfilePageData } from './profile-loader';
 
@@ -47,6 +47,7 @@ function ProfileContent({
               alt={`${brand.label} banner`}
               className="w-full h-full object-cover object-center"
               fill
+              sizes="(min-width: 768px) 28rem, 100vw"
               priority
             />
           </div>
@@ -55,7 +56,7 @@ function ProfileContent({
         {brand.logoUrl && (
           <div
             className={cn(
-              'w-24 h-24 rounded-full overflow-hidden flex-shrink-0 ring-4 ring-inv/50 bg-black',
+              'size-24 rounded-full overflow-hidden flex-shrink-0 ring-4 ring-inv/50 bg-zinc-950',
               brand.bannerUrl
                 ? 'absolute left-1/2 -translate-x-1/2 -bottom-12'
                 : 'mx-auto',
@@ -79,7 +80,7 @@ function ProfileContent({
           brand.bannerUrl && brand.logoUrl ? 'pt-14' : 'pt-4',
         )}
       >
-        <h1 className="text-xl font-bold mb-2 text-center text-surface">
+        <h1 className="text-xl font-semibold mb-2 text-center text-surface">
           @{handle}
         </h1>
 

@@ -112,7 +112,7 @@ export default function ReviewDetailPanel({
     return (
       <InsetSurface className="flex min-h-[720px] flex-col items-center justify-center p-8 text-center">
         <div className="rounded-full border border-white/10 bg-white/[0.03] p-5">
-          <HiCursorArrowRays className="h-8 w-8 text-foreground/50" />
+          <HiCursorArrowRays className="size-8 text-foreground/50" />
         </div>
         <h2 className="mt-5 text-xl font-semibold text-foreground">
           Select an item to review
@@ -139,7 +139,7 @@ export default function ReviewDetailPanel({
   );
   const isReady = isReadyToReview(item);
   const statusLabel = buildStatusLabel(item);
-  const reviewEvents = [...(item.reviewEvents ?? [])].sort((left, right) =>
+  const reviewEvents = (item.reviewEvents ?? []).toSorted((left, right) =>
     right.reviewedAt.localeCompare(left.reviewedAt),
   );
 
@@ -187,7 +187,7 @@ export default function ReviewDetailPanel({
             ) : (
               <div className="flex h-full flex-col items-center justify-center gap-3 text-foreground/45">
                 <div className="rounded-full border border-white/10 bg-white/[0.03] p-4">
-                  <HiPhoto className="h-8 w-8" />
+                  <HiPhoto className="size-8" />
                 </div>
                 <p className="text-sm">No media preview generated yet</p>
               </div>
@@ -196,7 +196,7 @@ export default function ReviewDetailPanel({
 
           <InsetSurface className="p-5" tone="contrast">
             <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-              <HiSparkles className="h-4 w-4 text-foreground/55" />
+              <HiSparkles className="size-4 text-foreground/55" />
               Caption
             </div>
             <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-foreground/85">
@@ -206,7 +206,7 @@ export default function ReviewDetailPanel({
 
           <InsetSurface className="p-5" tone="contrast">
             <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-              <HiOutlineClock className="h-4 w-4 text-foreground/55" />
+              <HiOutlineClock className="size-4 text-foreground/55" />
               Prompt
             </div>
             <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-foreground/70">
@@ -223,7 +223,7 @@ export default function ReviewDetailPanel({
             </p>
 
             <div className="mt-4 flex flex-col gap-3">
-              <label className="space-y-2">
+              <span className="space-y-2">
                 <span className="text-xs font-medium uppercase tracking-[0.18em] text-foreground/45">
                   Reviewer notes
                 </span>
@@ -233,7 +233,7 @@ export default function ReviewDetailPanel({
                   placeholder="Add revision guidance or rejection context"
                   className="min-h-28 w-full rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/35 focus:border-white/20"
                 />
-              </label>
+              </span>
 
               {isReady ? (
                 <>
@@ -244,7 +244,7 @@ export default function ReviewDetailPanel({
                     onClick={() => onApprove(item.id)}
                     className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500/15 px-4 py-3 text-sm font-medium text-emerald-400 transition-colors hover:bg-emerald-500/25 disabled:opacity-50"
                   >
-                    <HiCheck className="h-4 w-4" />
+                    <HiCheck className="size-4" />
                     {getApproveLabel(item)}
                   </Button>
                   <Button
@@ -254,7 +254,7 @@ export default function ReviewDetailPanel({
                     onClick={() => onRequestChanges(item.id, feedback)}
                     className="flex w-full items-center justify-center gap-2 rounded-xl bg-amber-500/15 px-4 py-3 text-sm font-medium text-amber-300 transition-colors hover:bg-amber-500/25 disabled:opacity-50"
                   >
-                    <HiSparkles className="h-4 w-4" />
+                    <HiSparkles className="size-4" />
                     Request changes
                   </Button>
                   <Button
@@ -264,7 +264,7 @@ export default function ReviewDetailPanel({
                     onClick={() => onReject(item.id, feedback)}
                     className="flex w-full items-center justify-center gap-2 rounded-xl bg-rose-500/15 px-4 py-3 text-sm font-medium text-rose-400 transition-colors hover:bg-rose-500/25 disabled:opacity-50"
                   >
-                    <HiXMark className="h-4 w-4" />
+                    <HiXMark className="size-4" />
                     Reject and remove
                   </Button>
                 </>
@@ -403,7 +403,7 @@ export default function ReviewDetailPanel({
             (item.gateReasons?.length ?? 0) > 0) && (
             <InsetSurface className="p-5" tone="contrast">
               <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                <HiOutlineLightBulb className="h-4 w-4 text-foreground/55" />
+                <HiOutlineLightBulb className="size-4 text-foreground/55" />
                 Publish Gate
               </div>
               <DefinitionList className="mt-4 text-sm">

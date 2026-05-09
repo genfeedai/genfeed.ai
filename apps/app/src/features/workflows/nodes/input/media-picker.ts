@@ -5,9 +5,9 @@ import { EnvironmentService } from '@services/core/environment.service';
 
 export type WorkflowMediaKind = 'image' | 'video';
 export type WorkflowMediaSource = 'library' | 'brand-references' | 'url';
-export type WorkflowMediaItemCategory = 'image' | 'reference' | 'video';
+type WorkflowMediaItemCategory = 'image' | 'reference' | 'video';
 
-export interface WorkflowMediaDimensions {
+interface WorkflowMediaDimensions {
   width: number;
   height: number;
 }

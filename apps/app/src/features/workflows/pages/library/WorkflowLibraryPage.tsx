@@ -10,6 +10,7 @@ import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Cloud, CloudUpload } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -22,6 +23,7 @@ import {
   HiOutlineSparkles,
   HiOutlineTrash,
 } from 'react-icons/hi2';
+import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import {
   createWorkflowApiService,
   type WorkflowSummary,
@@ -39,21 +41,6 @@ function isVideoUrl(url: string): boolean {
   const videoExtensions = ['.mp4', '.webm', '.mov', '.avi', '.mkv'];
   const lowerUrl = url.toLowerCase();
   return videoExtensions.some((ext) => lowerUrl.includes(ext));
-}
-
-function formatRelativeTime(dateStr: string): string {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 1) return 'Just now';
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-  return date.toLocaleDateString();
 }
 
 // ---------------------------------------------------------------------------
@@ -91,7 +78,8 @@ function WorkflowCardPreview({
           onError={() => setHasAssetError(true)}
         />
       ) : (
-        <img
+        <Image
+          unoptimized
           src={previewUrl}
           alt={
             previewUrl === DEFAULT_WORKFLOW_CARD_IMAGE
@@ -100,6 +88,8 @@ function WorkflowCardPreview({
           }
           className="h-full w-full object-cover object-center"
           onError={() => setHasAssetError(true)}
+          width={800}
+          height={600}
         />
       )}
     </div>
@@ -233,7 +223,7 @@ function EmptyWorkflowState() {
  */
 export default function WorkflowLibraryPage() {
   const { href } = useOrgUrl();
-  const router = useRouter();
+  const { push } = useRouter();
   const { isConnected, isCapable } = useCloudSession();
   const [workflows, setWorkflows] = useState<WorkflowSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -301,7 +291,7 @@ export default function WorkflowLibraryPage() {
       try {
         const service = await getService();
         const duplicated = await service.duplicate(id);
-        router.push(href(`/workflows/${duplicated._id}`));
+        push(href(`/workflows/${duplicated._id}`));
       } catch (err) {
         logger.error('Failed to duplicate workflow', {
           error: err,
@@ -309,7 +299,7 @@ export default function WorkflowLibraryPage() {
         });
       }
     },
-    [getService, router, href],
+    [getService, push, href],
   );
 
   const handleDelete = useCallback(
@@ -484,12 +474,12 @@ export default function WorkflowLibraryPage() {
                   <div className="flex items-center gap-2">
                     {isCapable && isConnected && workflow.cloudSync ? (
                       <span className="flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-400">
-                        <Cloud className="h-3 w-3" />
+                        <Cloud className="size-3" />
                         synced
                       </span>
                     ) : isCapable && isConnected && !workflow.cloudSync ? (
                       <span className="flex items-center gap-1 rounded-full bg-white/[0.06] px-2 py-0.5 text-xs text-muted-foreground">
-                        <CloudUpload className="h-3 w-3" />
+                        <CloudUpload className="size-3" />
                         local
                       </span>
                     ) : null}
@@ -515,11 +505,18 @@ export default function WorkflowLibraryPage() {
                   />
                   <div className="flex items-center justify-between text-xs text-foreground/50">
                     <span>
-                      Updated {formatRelativeTime(workflow.updatedAt)}
+                      Updated{' '}
+                      <ClientFormattedDate
+                        format="relative"
+                        value={workflow.updatedAt}
+                      />
                     </span>
                     <span>
                       Created{' '}
-                      {new Date(workflow.createdAt).toLocaleDateString()}
+                      <ClientFormattedDate
+                        format="date"
+                        value={workflow.createdAt}
+                      />
                     </span>
                   </div>
                 </div>

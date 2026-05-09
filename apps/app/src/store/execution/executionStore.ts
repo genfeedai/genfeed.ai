@@ -49,4 +49,4 @@ export const useExecutionStore = create<ExecutionStore>()((...args) => {
 });
 
 // Re-export types for convenience
-export type { ExecutionStore, Job } from './types';
+export type { ExecutionStore } from './types';

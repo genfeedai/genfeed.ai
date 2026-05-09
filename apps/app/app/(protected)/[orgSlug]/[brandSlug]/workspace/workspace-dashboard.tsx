@@ -20,18 +20,36 @@ import {
   TableHeader,
   TableRow,
 } from '@ui/primitives/table';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useMemo } from 'react';
 import { HiOutlineArrowRight, HiOutlineCpuChip } from 'react-icons/hi2';
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
+
+const Bar = dynamic(() => import('recharts').then((module) => module.Bar), {
+  ssr: false,
+});
+const BarChart = dynamic(
+  () => import('recharts').then((module) => module.BarChart),
+  { ssr: false },
+);
+const CartesianGrid = dynamic(
+  () => import('recharts').then((module) => module.CartesianGrid),
+  { ssr: false },
+);
+const ResponsiveContainer = dynamic(
+  () => import('recharts').then((module) => module.ResponsiveContainer),
+  { ssr: false },
+);
+const Tooltip = dynamic(
+  () => import('recharts').then((module) => module.Tooltip),
+  { ssr: false },
+);
+const XAxis = dynamic(() => import('recharts').then((module) => module.XAxis), {
+  ssr: false,
+});
+const YAxis = dynamic(() => import('recharts').then((module) => module.YAxis), {
+  ssr: false,
+});
 
 interface ReviewInboxSummary {
   approvedCount: number;
@@ -101,8 +119,8 @@ function AgentRunCard({ run }: { run: IAgentRun }) {
     <div className="group relative flex flex-col gap-2 rounded-md border border-border bg-background-secondary p-3 transition-colors hover:border-border-strong hover:bg-background-tertiary">
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-2">
-          <div className="flex h-6 w-6 items-center justify-center rounded border border-border bg-background-tertiary">
-            <HiOutlineCpuChip className="h-3.5 w-3.5 text-foreground/60" />
+          <div className="flex size-6 items-center justify-center rounded border border-border bg-background-tertiary">
+            <HiOutlineCpuChip className="size-3.5 text-foreground/60" />
           </div>
           <div>
             <p className="text-xs font-semibold text-foreground">
@@ -131,7 +149,7 @@ function AgentRunCard({ run }: { run: IAgentRun }) {
             href={`/orchestration/runs/${run.id}`}
             aria-label={`Open ${run.label}`}
           >
-            <HiOutlineArrowRight className="h-3.5 w-3.5" />
+            <HiOutlineArrowRight className="size-3.5" />
           </Link>
         </Button>
       </div>
@@ -586,8 +604,8 @@ export function DashboardRecentActivity({
 }) {
   const sortedTasks = useMemo(
     () =>
-      [...workspaceTasks]
-        .sort(
+      workspaceTasks
+        .toSorted(
           (a, b) =>
             new Date(b.updatedAt ?? b.createdAt ?? 0).getTime() -
             new Date(a.updatedAt ?? a.createdAt ?? 0).getTime(),
@@ -689,8 +707,8 @@ export function DashboardRecentTasks({
 }) {
   const sortedTasks = useMemo(
     () =>
-      [...workspaceTasks]
-        .sort(
+      workspaceTasks
+        .toSorted(
           (a, b) =>
             new Date(b.updatedAt ?? b.createdAt ?? 0).getTime() -
             new Date(a.updatedAt ?? a.createdAt ?? 0).getTime(),

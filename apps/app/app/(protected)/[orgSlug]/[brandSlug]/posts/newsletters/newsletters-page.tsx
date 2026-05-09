@@ -17,7 +17,7 @@ import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import {
   HiArchiveBox,
   HiCheckCircle,
@@ -93,10 +93,10 @@ function isEditorDirty(
   );
 }
 
-export default function NewslettersPage() {
-  const router = useRouter();
+function NewslettersPageContent() {
+  const { push } = useRouter();
   const { href } = useOrgUrl();
-  const searchParams = useSearchParams();
+  const { get } = useSearchParams();
   const notificationsService = NotificationsService.getInstance();
   const { brandId, isReady, organizationId, selectedBrand } = useBrand();
   const [instructions, setInstructions] = useState('');
@@ -110,7 +110,7 @@ export default function NewslettersPage() {
   const [selectedProposal, setSelectedProposal] =
     useState<TopicProposal | null>(null);
   const [proposals, setProposals] = useState<TopicProposal[]>([]);
-  const [editorState, setEditorState] = useState<NewsletterEditorState>(
+  const [editorState, setEditorState] = useState<NewsletterEditorState>(() =>
     createEditorState(null),
   );
   const [isGeneratingTopics, setIsGeneratingTopics] = useState(false);
@@ -190,7 +190,7 @@ export default function NewslettersPage() {
   );
 
   useEffect(() => {
-    const newsletterId = searchParams?.get('id');
+    const newsletterId = get('id');
     if (!newsletterId || selectedNewsletterId) {
       return;
     }
@@ -198,7 +198,7 @@ export default function NewslettersPage() {
     if (newsletters.some((item) => item.id === newsletterId)) {
       setSelectedNewsletterId(newsletterId);
     }
-  }, [newsletters, searchParams, selectedNewsletterId]);
+  }, [newsletters, get, selectedNewsletterId]);
 
   const selectedContextSet = useMemo(
     () => new Set(selectedContextIds),
@@ -500,9 +500,9 @@ export default function NewslettersPage() {
 
           <div className="grid gap-3 md:grid-cols-2">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">
+              <span className="text-sm font-medium text-foreground">
                 Manual topic
-              </label>
+              </span>
               <Input
                 placeholder="Enter a topic to bypass proposals"
                 value={manualTopic}
@@ -510,9 +510,9 @@ export default function NewslettersPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">
+              <span className="text-sm font-medium text-foreground">
                 Manual angle
-              </label>
+              </span>
               <Input
                 placeholder="Optional framing"
                 value={manualAngle}
@@ -533,7 +533,7 @@ export default function NewslettersPage() {
             ) : (
               <div className="grid gap-2">
                 {publishedNewsletters.map((newsletter) => (
-                  <label
+                  <span
                     key={newsletter.id}
                     className="flex items-start gap-3 rounded-lg border border-border p-3 text-sm"
                   >
@@ -555,7 +555,7 @@ export default function NewslettersPage() {
                         {newsletter.topic}
                       </span>
                     </span>
-                  </label>
+                  </span>
                 ))}
               </div>
             )}
@@ -663,7 +663,7 @@ export default function NewslettersPage() {
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <div className="relative">
-              <HiMagnifyingGlass className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <HiMagnifyingGlass className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 className="pl-9"
                 placeholder="Search newsletters"
@@ -701,7 +701,7 @@ export default function NewslettersPage() {
             description="Create or schedule newsletter workflows from Workflows, then review generated issues here."
             action={{
               label: 'Open Workflows',
-              onClick: () => router.push(href('/workflows')),
+              onClick: () => push(href('/workflows')),
               variant: ButtonVariant.SOFT,
             }}
           />
@@ -881,5 +881,13 @@ export default function NewslettersPage() {
         )}
       </Card>
     </div>
+  );
+}
+
+export default function NewslettersPage() {
+  return (
+    <Suspense fallback={null}>
+      <NewslettersPageContent />
+    </Suspense>
   );
 }

@@ -289,7 +289,7 @@ export const PLATFORM_CAPTION_LIMITS: Record<ExportPlatform, number> = {
 /**
  * Publish Node - publishes to social platforms via Blotato/Buffer
  */
-export interface PublishNodeData extends BaseNodeData {
+interface PublishNodeData extends BaseNodeData {
   // Inputs from connections
   inputMedia: string | null;
   inputCaption: string | null;
@@ -357,7 +357,7 @@ export interface ReviewGateNodeData extends BaseNodeData {
 /**
  * Schedule Trigger Node - triggers workflow on schedule
  */
-export interface ScheduleTriggerNodeData extends BaseNodeData {
+interface ScheduleTriggerNodeData extends BaseNodeData {
   // Config
   scheduleType: 'cron' | 'interval' | 'time';
   cronExpression?: string; // "0 9 * * 1-5" = 9am weekdays
@@ -466,24 +466,21 @@ export interface PlatformMultiplierNodeData extends BaseNodeData {
 // NODE DEFINITIONS
 // =============================================================================
 
-export type EffectsNodeType = 'colorGrade';
+type EffectsNodeType = 'colorGrade';
 
-export type DistributionNodeType = 'platformExport' | 'captionGen' | 'publish';
+type DistributionNodeType = 'platformExport' | 'captionGen' | 'publish';
 
-export type AutomationNodeType =
-  | 'reviewGate'
-  | 'scheduleTrigger'
-  | 'webhookTrigger';
+type AutomationNodeType = 'reviewGate' | 'scheduleTrigger' | 'webhookTrigger';
 
-export type RepurposingNodeType = 'clipSelector' | 'platformMultiplier';
+type RepurposingNodeType = 'clipSelector' | 'platformMultiplier';
 
-export type ExtendedNodeType =
+type ExtendedNodeType =
   | EffectsNodeType
   | DistributionNodeType
   | AutomationNodeType
   | RepurposingNodeType;
 
-export type ExtendedNodeData =
+type ExtendedNodeData =
   | ColorGradeNodeData
   | PlatformExportNodeData
   | CaptionGenNodeData

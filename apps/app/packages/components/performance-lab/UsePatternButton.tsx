@@ -9,20 +9,23 @@ import { useCallback } from 'react';
 import { HiOutlineSparkles } from 'react-icons/hi2';
 
 export default function UsePatternButton({ pattern }: UsePatternButtonProps) {
-  const router = useRouter();
+  const { push } = useRouter();
   const { href } = useOrgUrl();
 
-  const handleClick = useCallback(() => {
+  const createWorkflowFromPattern = useCallback(() => {
     const params = new URLSearchParams({
       formula: encodeURIComponent(pattern.formula),
       patternType: pattern.patternType,
     });
-    router.push(href(`/workflows/new?${params.toString()}`));
-  }, [pattern.formula, pattern.patternType, router, href]);
+    push(href(`/workflows/new?${params.toString()}`));
+  }, [pattern.formula, pattern.patternType, push, href]);
 
   return (
-    <Button variant={ButtonVariant.SECONDARY} onClick={handleClick}>
-      <HiOutlineSparkles className="w-3.5 h-3.5" />
+    <Button
+      variant={ButtonVariant.SECONDARY}
+      onClick={createWorkflowFromPattern}
+    >
+      <HiOutlineSparkles className="size-3.5" />
       Remix with this
     </Button>
   );

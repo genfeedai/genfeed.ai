@@ -262,9 +262,9 @@ export default function TrainingPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             {/* Character Selector */}
             <div>
-              <label className="block text-sm font-medium text-foreground/70 mb-1">
+              <span className="block text-sm font-medium text-foreground/70 mb-1">
                 Character
-              </label>
+              </span>
               <Select
                 onValueChange={(value) =>
                   setSelectedCharacter(
@@ -278,7 +278,7 @@ export default function TrainingPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={ALL_CHARACTERS_VALUE}>
-                    Select a character...
+                    Select a character…
                   </SelectItem>
                   {(characters || []).map((c) => (
                     <SelectItem key={c.id} value={c.slug}>
@@ -292,9 +292,9 @@ export default function TrainingPage() {
 
             {/* Base Model */}
             <div>
-              <label className="block text-sm font-medium text-foreground/70 mb-1">
+              <span className="block text-sm font-medium text-foreground/70 mb-1">
                 Base Model
-              </label>
+              </span>
               <Select onValueChange={setBaseModel} value={baseModel}>
                 <SelectTrigger className="w-full">
                   <SelectValue />
@@ -312,9 +312,9 @@ export default function TrainingPage() {
 
             {/* Steps */}
             <div>
-              <label className="block text-sm font-medium text-foreground/70 mb-1">
+              <span className="block text-sm font-medium text-foreground/70 mb-1">
                 Steps
-              </label>
+              </span>
               <Input
                 className="w-full"
                 min={100}
@@ -326,9 +326,9 @@ export default function TrainingPage() {
 
             {/* LoRA Rank */}
             <div>
-              <label className="block text-sm font-medium text-foreground/70 mb-1">
+              <span className="block text-sm font-medium text-foreground/70 mb-1">
                 LoRA Rank
-              </label>
+              </span>
               <Input
                 className="w-full"
                 min={1}
@@ -340,9 +340,9 @@ export default function TrainingPage() {
 
             {/* Learning Rate */}
             <div>
-              <label className="block text-sm font-medium text-foreground/70 mb-1">
+              <span className="block text-sm font-medium text-foreground/70 mb-1">
                 Learning Rate
-              </label>
+              </span>
               <Input
                 className="w-full"
                 onChange={(e) => setLearningRate(Number(e.target.value))}
@@ -368,7 +368,7 @@ export default function TrainingPage() {
             isDisabled={!selectedCharacter || isStarting}
             onClick={handleStartTraining}
           >
-            {isStarting ? 'Starting...' : 'Start Training'}
+            {isStarting ? 'Starting…' : 'Start Training'}
           </Button>
         </div>
       </WorkspaceSurface>

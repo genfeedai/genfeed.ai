@@ -31,7 +31,7 @@ import {
 import { Textarea } from '@ui/primitives/textarea';
 import { track } from '@vercel/analytics';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import {
   HiClipboardDocument,
   HiDocumentText,
@@ -214,15 +214,14 @@ function getCredentialLabel(credential: ICredential): string {
   return handle ? `${platform} ${handle}` : platform;
 }
 
-export default function PostsWritePage() {
-  const router = useRouter();
+function PostsWritePageContent() {
+  const { push } = useRouter();
   const { href } = useOrgUrl();
-  const searchParams = useSearchParams();
+  const { get } = useSearchParams();
   const { credentials = [] } = useBrand();
-  const preselectedIngredientId =
-    searchParams.get('ingredientId')?.trim() || '';
-  const prefilledDescription = searchParams.get('description')?.trim() || '';
-  const prefilledTitle = searchParams.get('title')?.trim() || '';
+  const preselectedIngredientId = get('ingredientId')?.trim() || '';
+  const prefilledDescription = get('description')?.trim() || '';
+  const prefilledTitle = get('title')?.trim() || '';
   const [selectedCredentialId, setSelectedCredentialId] = useState('');
   const [workingTitle, setWorkingTitle] = useState(prefilledTitle);
   const [prompt, setPrompt] = useState('');
@@ -330,7 +329,7 @@ export default function PostsWritePage() {
         hasPrefilledIngredient: Boolean(preselectedIngredientId),
         platform: selectedCredential.platform,
       });
-      router.push(href(`/posts/${createdPost.id}`));
+      push(href(`/posts/${createdPost.id}`));
     } catch {
       setError('Failed to create draft. Please try again.');
     } finally {
@@ -373,7 +372,7 @@ export default function PostsWritePage() {
           prompt: prompt.trim(),
           type: 'x-article',
         });
-        router.push(href(`/compose/article?${params.toString()}`));
+        push(href(`/compose/article?${params.toString()}`));
         return;
       }
 
@@ -470,7 +469,7 @@ export default function PostsWritePage() {
         platform: selectedCredential.platform,
         tone,
       });
-      router.push(href(`/posts/${rootPost.id}`));
+      push(href(`/posts/${rootPost.id}`));
     } catch {
       setError('Failed to generate content. Please try again.');
     } finally {
@@ -598,25 +597,25 @@ export default function PostsWritePage() {
             />
           </div>
 
-          <label className="grid gap-2 text-sm text-foreground/75">
+          <span className="grid gap-2 text-sm text-foreground/75">
             <span>Prompt</span>
             <Textarea
               value={prompt}
               onChange={(event) => setPrompt(event.target.value)}
               placeholder="Describe the post you want to generate..."
-              className="min-h-28 rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-sm text-foreground outline-none transition focus:border-white/20"
+              className="min-h-28 rounded-xl border border-white/10 bg-black/20 p-3 text-sm text-foreground outline-none transition focus:border-white/20"
             />
-          </label>
+          </span>
 
-          <label className="grid gap-2 text-sm text-foreground/75">
+          <span className="grid gap-2 text-sm text-foreground/75">
             <span>Draft content</span>
             <Textarea
               value={localContent}
               onChange={(event) => setLocalContent(event.target.value)}
               placeholder="Write the post here if you just want a clean composer and a copy button."
-              className="min-h-44 rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-sm text-foreground outline-none transition focus:border-white/20"
+              className="min-h-44 rounded-xl border border-white/10 bg-black/20 p-3 text-sm text-foreground outline-none transition focus:border-white/20"
             />
-          </label>
+          </span>
 
           <div className="grid gap-2 text-sm text-foreground/75">
             <span>Tone</span>
@@ -650,7 +649,7 @@ export default function PostsWritePage() {
               onClick={() => void handleCopyDraft()}
               className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-4 py-2.5 text-sm font-medium text-foreground transition hover:bg-white/[0.05]"
             >
-              <HiClipboardDocument className="h-4 w-4" />
+              <HiClipboardDocument className="size-4" />
               Copy content
             </Button>
             <Button
@@ -664,7 +663,7 @@ export default function PostsWritePage() {
               }
               className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-4 py-2.5 text-sm font-medium text-foreground transition hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <HiDocumentText className="h-4 w-4" />
+              <HiDocumentText className="size-4" />
               {isSubmitting ? 'Working...' : 'Save draft in Genfeed'}
             </Button>
             <Button
@@ -674,7 +673,7 @@ export default function PostsWritePage() {
               disabled={!canGenerate}
               className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <HiSparkles className="h-4 w-4" />
+              <HiSparkles className="size-4" />
               {isSubmitting
                 ? 'Working...'
                 : `${generatePostLabel} (${SOCIAL_FORMAT_LABELS[selectedFormat]})`}
@@ -715,5 +714,13 @@ export default function PostsWritePage() {
         </div>
       </Card>
     </section>
+  );
+}
+
+export default function PostsWritePage() {
+  return (
+    <Suspense fallback={null}>
+      <PostsWritePageContent />
+    </Suspense>
   );
 }

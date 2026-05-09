@@ -63,12 +63,12 @@ export function CloudCreditsIndicator() {
       title="Estimated workflow cost in credits"
       className="flex items-center gap-1.5 rounded border border-[var(--border)] px-2 py-1 text-sm text-[var(--muted-foreground)]"
     >
-      <HiOutlineCreditCard className="h-3.5 w-3.5" />
+      <HiOutlineCreditCard className="size-3.5" />
       <span className="font-mono text-xs">
         {formatNumberWithCommas(displayCredits)} credits
       </span>
       {isRunning && actualCostUsd > 0 && (
-        <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+        <span className="size-1.5 rounded-full bg-green-500" />
       )}
     </div>
   );

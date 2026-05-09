@@ -42,7 +42,7 @@ export default function RolesList() {
         role.primaryColor ? (
           <div className="flex items-center gap-2">
             <div
-              className="w-4 h-4 rounded-full border border-white/[0.08]"
+              className="size-4 rounded-full border border-white/[0.08]"
               style={{ backgroundColor: role.primaryColor }}
             />
             <span className="text-sm font-mono">{role.primaryColor}</span>

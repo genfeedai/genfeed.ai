@@ -77,7 +77,7 @@ export function useAsyncList<TData, TOptions = Record<string, unknown>>(
 
   const createSignal = useRequestSignal();
 
-  const fetch = useCallback(
+  const loadList = useCallback(
     async (isRefresh = false) => {
       const signal = createSignal();
 
@@ -124,9 +124,9 @@ export function useAsyncList<TData, TOptions = Record<string, unknown>>(
     [createSignal, enabled, fetchFn, getToken, resourceName],
   );
 
-  useEffect(() => void fetch(), [fetch]);
+  useEffect(() => void loadList(), [loadList]);
 
-  const refresh = useCallback(() => fetch(true), [fetch]);
+  const refresh = useCallback(() => loadList(true), [loadList]);
 
   return {
     data,
@@ -134,7 +134,7 @@ export function useAsyncList<TData, TOptions = Record<string, unknown>>(
     isLoading,
     isRefreshing,
     pagination,
-    refetch: fetch,
+    refetch: loadList,
     refresh,
   };
 }
@@ -151,7 +151,7 @@ export function useAsyncItem<TData>(
 
   const createSignal = useRequestSignal();
 
-  const fetch = useCallback(async () => {
+  const loadItem = useCallback(async () => {
     const signal = createSignal();
 
     if (!id) {
@@ -189,13 +189,13 @@ export function useAsyncItem<TData>(
     }
   }, [createSignal, fetchFn, getToken, id, resourceName]);
 
-  useEffect(() => void fetch(), [fetch]);
+  useEffect(() => void loadItem(), [loadItem]);
 
   return {
     data,
     error,
     isLoading,
-    refetch: fetch,
+    refetch: loadItem,
   };
 }
 

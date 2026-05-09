@@ -3,7 +3,7 @@ import type { EditOperation } from '@/lib/chat/editOperations';
 import type { WorkflowStore } from '../types';
 import type { SnapshotSlice } from './snapshotSlice';
 
-export interface ChatMessage {
+interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;

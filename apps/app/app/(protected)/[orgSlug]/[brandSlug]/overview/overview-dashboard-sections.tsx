@@ -136,7 +136,7 @@ export function OverviewTopStatStrip({
           bodyClassName="flex h-full flex-col justify-between gap-6 p-5"
         >
           <div className="space-y-2">
-            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-foreground/35">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground/35">
               {item.label}
             </p>
             <div className="text-3xl font-semibold tracking-[-0.04em] text-foreground">
@@ -163,8 +163,8 @@ export function OverviewOperationsSection({
 }) {
   const displayRuns = useMemo(
     () =>
-      [...runs]
-        .sort(
+      runs
+        .toSorted(
           (left, right) =>
             new Date(getRunTimestamp(right)).getTime() -
             new Date(getRunTimestamp(left)).getTime(),
@@ -239,7 +239,7 @@ export function OverviewOperationsSection({
       actions={
         <Button asChild variant={ButtonVariant.SECONDARY}>
           <Link href={runsHref}>
-            <HiOutlineArrowRight className="h-4 w-4" />
+            <HiOutlineArrowRight className="size-4" />
             View All
           </Link>
         </Button>
@@ -291,7 +291,7 @@ export function OverviewPerformanceChartSection({
       actions={
         <Button asChild variant={ButtonVariant.SECONDARY}>
           <Link href={analyticsHref}>
-            <HiOutlineArrowRight className="h-4 w-4" />
+            <HiOutlineArrowRight className="size-4" />
             View All
           </Link>
         </Button>
@@ -304,7 +304,7 @@ export function OverviewPerformanceChartSection({
         Last 14 days of synced analytics
       </div>
 
-      <div className="ship-ui gen-shell-surface overflow-hidden rounded-[1rem] border-white/[0.06] bg-background/52 px-4 py-4">
+      <div className="ship-ui gen-shell-surface overflow-hidden rounded-[1rem] border-white/[0.06] bg-background/52 p-4">
         <PlatformTimeSeriesChart
           data={data}
           platforms={platforms}
@@ -340,7 +340,7 @@ export function OverviewPublishingInboxSection({
       actions={
         <Button asChild variant={ButtonVariant.SECONDARY}>
           <Link href={inboxHref}>
-            <HiOutlineArrowRight className="h-4 w-4" />
+            <HiOutlineArrowRight className="size-4" />
             Open Queue
           </Link>
         </Button>
@@ -359,7 +359,7 @@ export function OverviewPublishingInboxSection({
           recentItems.map((item) => (
             <div
               key={item.id}
-              className="ship-ui gen-shell-surface rounded-[1rem] border-white/[0.06] bg-background/52 px-4 py-4"
+              className="ship-ui gen-shell-surface rounded-[1rem] border-white/[0.06] bg-background/52 p-4"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 space-y-1">

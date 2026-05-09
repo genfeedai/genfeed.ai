@@ -234,7 +234,7 @@ const InsightsOverview = memo(function InsightsOverview({
             <div className="prose prose-sm max-w-none">
               {criticalAlerts === 0 && warningAlerts === 0 ? (
                 <div className="flex items-center gap-3 text-success">
-                  <HiCheckCircle className="w-6 h-6 flex-shrink-0" />
+                  <HiCheckCircle className="size-6 flex-shrink-0" />
                   <p className="m-0">
                     <strong>Great news!</strong> Your content is performing well
                     with no critical issues detected. Keep up the good work!
@@ -288,7 +288,7 @@ const InsightsOverview = memo(function InsightsOverview({
                       activeInsightAction === AiActionType.CONTENT_SUGGEST ? (
                         <Spinner size={ComponentSize.XS} />
                       ) : (
-                        <HiSparkles className="w-3.5 h-3.5" />
+                        <HiSparkles className="size-3.5" />
                       )
                     }
                     variant={ButtonVariant.GHOST}
@@ -311,7 +311,7 @@ const InsightsOverview = memo(function InsightsOverview({
                       activeInsightAction === AiActionType.ANALYTICS_INSIGHT ? (
                         <Spinner size={ComponentSize.XS} />
                       ) : (
-                        <HiSparkles className="w-3.5 h-3.5" />
+                        <HiSparkles className="size-3.5" />
                       )
                     }
                     variant={ButtonVariant.GHOST}

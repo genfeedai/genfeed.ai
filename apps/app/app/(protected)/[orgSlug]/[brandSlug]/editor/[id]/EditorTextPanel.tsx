@@ -62,7 +62,7 @@ const PRESET_COLORS = [
   '#9933ff',
 ];
 
-export function EditorTextPanel({
+function EditorTextPanel({
   tracks,
   fps,
   totalFrames,
@@ -240,9 +240,9 @@ export function EditorTextPanel({
 
               {/* Text content */}
               <div>
-                <label className="text-xs text-muted-foreground block mb-1">
+                <span className="text-xs text-muted-foreground block mb-1">
                   Text
-                </label>
+                </span>
                 <Textarea
                   value={selectedTextClip.textOverlay.text}
                   onChange={(e) =>
@@ -255,9 +255,9 @@ export function EditorTextPanel({
 
               {/* Font family */}
               <div>
-                <label className="text-xs text-muted-foreground block mb-1">
+                <span className="text-xs text-muted-foreground block mb-1">
                   Font
-                </label>
+                </span>
                 <Select
                   value={selectedTextClip.textOverlay.fontFamily || 'Arial'}
                   onValueChange={(value) =>
@@ -297,9 +297,9 @@ export function EditorTextPanel({
 
               {/* Font weight */}
               <div>
-                <label className="text-xs text-muted-foreground block mb-1">
+                <span className="text-xs text-muted-foreground block mb-1">
                   Weight
-                </label>
+                </span>
                 <Select
                   value={String(selectedTextClip.textOverlay.fontWeight || 700)}
                   onValueChange={(value) =>
@@ -323,9 +323,9 @@ export function EditorTextPanel({
 
               {/* Text color */}
               <div>
-                <label className="text-xs text-muted-foreground block mb-1">
+                <span className="text-xs text-muted-foreground block mb-1">
                   Color
-                </label>
+                </span>
                 <div className="flex flex-wrap gap-1">
                   {PRESET_COLORS.map((color) => (
                     <Button
@@ -333,7 +333,7 @@ export function EditorTextPanel({
                       variant={ButtonVariant.UNSTYLED}
                       size={ButtonSize.XS}
                       key={color}
-                      className={`w-6 h-6 rounded border ${
+                      className={`size-6 rounded border ${
                         selectedTextClip.textOverlay?.color === color
                           ? 'border-primary ring-1 ring-primary'
                           : 'border-white/20'
@@ -349,7 +349,7 @@ export function EditorTextPanel({
                     onChange={(e) =>
                       handleUpdateTextOverlay({ color: e.target.value })
                     }
-                    className="h-6 w-6 rounded border-white/20 p-0"
+                    className="size-6 rounded border-white/20 p-0"
                     title="Custom color"
                   />
                 </div>
@@ -357,9 +357,9 @@ export function EditorTextPanel({
 
               {/* Background color */}
               <div>
-                <label className="text-xs text-muted-foreground block mb-1">
+                <span className="text-xs text-muted-foreground block mb-1">
                   Background
-                </label>
+                </span>
                 <div className="flex items-center gap-2">
                   <ColorInput
                     value={

@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "mobile.genfeed.ai",
+      "name": "@genfeedai/mobile",
       "dependencies": {
         "@clerk/clerk-expo": "^2.19.9",
         "@expo/vector-icons": "14.1.0",

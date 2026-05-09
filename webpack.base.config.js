@@ -51,6 +51,15 @@ module.exports = function createWebpackConfig({
     '@workflow-engine': path.resolve(cloudPackagesRoot, 'workflow-engine/src'),
     '@workflow-saas': path.resolve(cloudPackagesRoot, 'workflow-saas/src'),
   };
+  const nodePtyExternal = (() => {
+    try {
+      return `commonjs ${require.resolve('node-pty', {
+        paths: [appDir, nodeModulesDir],
+      })}`;
+    } catch {
+      return 'commonjs node-pty';
+    }
+  })();
 
   return {
     // Filesystem cache for faster rebuilds (50-80% faster)
@@ -118,6 +127,7 @@ module.exports = function createWebpackConfig({
         kafkajs: 'commonjs kafkajs',
         mqtt: 'commonjs mqtt',
         nats: 'commonjs nats',
+        'node-pty': nodePtyExternal,
       },
     ],
 

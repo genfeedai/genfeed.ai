@@ -246,7 +246,7 @@ function SelectCardButton({
 }
 
 export default function AgentWizardPage() {
-  const router = useRouter();
+  const { push } = useRouter();
   const notificationsService = NotificationsService.getInstance();
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<IAgentWizardFormData>(DEFAULT_FORM);
@@ -348,21 +348,21 @@ export default function AgentWizardPage() {
         platforms: form.platforms,
         runFrequency: form.runFrequency,
         topics: form.topics
-          ? form.topics
-              .split(',')
-              .map((t) => t.trim())
-              .filter(Boolean)
+          ? form.topics.split(',').flatMap((topic) => {
+              const trimmedTopic = topic.trim();
+              return trimmedTopic ? [trimmedTopic] : [];
+            })
           : [],
       });
       notificationsService.success('Agent created successfully');
-      router.push('/orchestration');
+      push('/orchestration');
     } catch (error) {
       logger.error('Failed to create agent', { error });
       notificationsService.error('Failed to create agent');
     } finally {
       setIsSubmitting(false);
     }
-  }, [form, getService, notificationsService, router]);
+  }, [form, getService, notificationsService, push]);
 
   return (
     <Container
@@ -420,9 +420,9 @@ export default function AgentWizardPage() {
 
             {brands.length > 0 ? (
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">
+                <span className="text-sm font-medium text-foreground">
                   Brand (optional)
-                </label>
+                </span>
                 <Select
                   value={form.brand}
                   onValueChange={(value) => handleBrandSelect(value)}
@@ -529,9 +529,9 @@ export default function AgentWizardPage() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">
+              <span className="text-sm font-medium text-foreground">
                 Run Frequency
-              </label>
+              </span>
               <Select
                 value={form.runFrequency}
                 onValueChange={(value) =>
@@ -575,9 +575,9 @@ export default function AgentWizardPage() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">
+              <span className="text-sm font-medium text-foreground">
                 Quality Tier
-              </label>
+              </span>
               <Select
                 value={form.qualityTier}
                 onValueChange={(value) =>
@@ -823,7 +823,7 @@ export default function AgentWizardPage() {
               ))}
             </div>
 
-            <label className="flex items-center gap-3 cursor-pointer">
+            <span className="flex items-center gap-3 cursor-pointer">
               <Checkbox
                 checked={form.startImmediately}
                 onCheckedChange={(checked) =>
@@ -835,7 +835,7 @@ export default function AgentWizardPage() {
                 aria-label="Start immediately after creation"
               />
               <span className="text-sm">Start immediately after creation</span>
-            </label>
+            </span>
 
             <div className="flex justify-between pt-2">
               <Button

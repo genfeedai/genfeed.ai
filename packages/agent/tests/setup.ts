@@ -169,7 +169,6 @@ vi.mock('@clerk/nextjs', () => ({
 
 // Mock CSS and static file imports
 vi.mock('*.css', () => ({}));
-vi.mock('*.scss', () => ({}));
 vi.mock('*.png', () => 'test-image.png');
 vi.mock('*.jpg', () => 'test-image.jpg');
 vi.mock('*.jpeg', () => 'test-image.jpeg');

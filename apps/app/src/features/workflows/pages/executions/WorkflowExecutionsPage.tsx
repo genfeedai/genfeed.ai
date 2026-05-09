@@ -15,6 +15,7 @@ import {
 } from '@ui/primitives/table';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
+import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import type { ExecutionResult } from '@/features/workflows/services/workflow-api';
 import { createWorkflowApiService } from '@/features/workflows/services/workflow-api';
 import { getExecutionEtaDisplayState } from '@/features/workflows/utils/eta-display';
@@ -155,7 +156,7 @@ export default function WorkflowExecutionsPage() {
       <header className="border-b border-white/[0.08] bg-card px-6 py-4">
         <div className="mx-auto flex max-w-7xl items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">Execution History</h1>
+            <h1 className="text-2xl font-semibold">Execution History</h1>
             <p className="text-sm text-muted-foreground">
               View past workflow executions and their results
             </p>
@@ -207,9 +208,6 @@ export default function WorkflowExecutionsPage() {
                 </TableHeader>
                 <TableBody className="divide-y divide-border">
                   {executions.map((execution) => {
-                    const startedAt = execution.startedAt
-                      ? new Date(execution.startedAt)
-                      : null;
                     const durationSec = execution.durationMs
                       ? Math.round(execution.durationMs / 1000)
                       : null;
@@ -267,13 +265,13 @@ export default function WorkflowExecutionsPage() {
                           </div>
                         </TableCell>
                         <TableCell className="px-4 py-3 text-sm">
-                          {startedAt
-                            ? startedAt.toLocaleString()
-                            : new Date(execution.createdAt).toLocaleString()}
+                          <ClientFormattedDate
+                            value={execution.startedAt ?? execution.createdAt}
+                          />
                         </TableCell>
                         <TableCell className="px-4 py-3 text-sm">
                           {etaDisplay.actualDurationLabel ??
-                            (durationSec !== null ? `${durationSec}s` : '—')}
+                            (durationSec !== null ? `${durationSec}s` : ':')}
                           {etaDisplay.etaLabel && (
                             <div className="text-xs text-muted-foreground">
                               {etaDisplay.etaLabel}

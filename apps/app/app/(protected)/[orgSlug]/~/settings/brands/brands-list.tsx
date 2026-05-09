@@ -19,17 +19,18 @@ import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagina
 import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
-import { useCallback, useMemo } from 'react';
+import { Suspense, useCallback, useMemo } from 'react';
 import {
   HiOutlineBuildingOffice2,
   HiPencil,
   HiPlus,
   HiTrash,
 } from 'react-icons/hi2';
+import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 
 const ITEMS_PER_PAGE = 20;
 
-export default function BrandsList() {
+function BrandsListContent() {
   const { organizationId } = useBrand();
   const { openBrandOverlay } = useBrandOverlay();
   const { openConfirm } = useConfirmModal();
@@ -104,15 +105,15 @@ export default function BrandsList() {
             {brand.logoUrl ? (
               <Image
                 alt={brand.label}
-                className="h-8 w-8 rounded-lg object-cover"
+                className="size-8 rounded-lg object-cover"
                 src={brand.logoUrl}
                 unoptimized
                 width={32}
                 height={32}
               />
             ) : (
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-                <HiOutlineBuildingOffice2 className="h-4 w-4 text-primary" />
+              <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10">
+                <HiOutlineBuildingOffice2 className="size-4 text-primary" />
               </div>
             )}
             <span className="font-medium">{brand.label}</span>
@@ -142,9 +143,11 @@ export default function BrandsList() {
         key: 'createdAt',
         render: (brand: Brand) => (
           <span className="text-sm text-foreground/70">
-            {brand.createdAt
-              ? new Date(brand.createdAt).toLocaleDateString()
-              : '-'}
+            <ClientFormattedDate
+              fallback="-"
+              format="date"
+              value={brand.createdAt}
+            />
           </span>
         ),
       },
@@ -206,5 +209,13 @@ export default function BrandsList() {
 
       <AutoPagination showTotal totalLabel="brands" />
     </Container>
+  );
+}
+
+export default function BrandsList() {
+  return (
+    <Suspense fallback={null}>
+      <BrandsListContent />
+    </Suspense>
   );
 }

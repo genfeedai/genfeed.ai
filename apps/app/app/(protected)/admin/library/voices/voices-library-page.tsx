@@ -173,11 +173,11 @@ export default function VoicesLibraryPage() {
         <div className="flex flex-col gap-4 p-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="grid flex-1 gap-4 md:grid-cols-[minmax(0,1fr)_220px]">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground/70">
+              <span className="text-sm font-medium text-foreground/70">
                 Search
-              </label>
+              </span>
               <div className="relative">
-                <HiMagnifyingGlass className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/40" />
+                <HiMagnifyingGlass className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-foreground/40" />
                 <Input
                   className="pl-9"
                   onChange={(event) => setSearch(event.target.value)}
@@ -188,9 +188,9 @@ export default function VoicesLibraryPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground/70">
+              <span className="text-sm font-medium text-foreground/70">
                 Provider
-              </label>
+              </span>
               <Select
                 onValueChange={(value) =>
                   setProviderFilter(value as ProviderFilter)
@@ -219,7 +219,7 @@ export default function VoicesLibraryPage() {
               variant={ButtonVariant.DEFAULT}
               withWrapper={false}
             >
-              <HiArrowPath className="mr-2 h-4 w-4" />
+              <HiArrowPath className="mr-2 size-4" />
               Sync All
             </Button>
             <Button
@@ -311,7 +311,7 @@ export default function VoicesLibraryPage() {
                           }
                           withWrapper={false}
                         >
-                          <HiSparkles className="mr-2 h-4 w-4" />
+                          <HiSparkles className="mr-2 size-4" />
                           {voice.isActive === false ? 'Activate' : 'Active'}
                         </Button>
 
@@ -350,7 +350,7 @@ export default function VoicesLibraryPage() {
                           }
                           withWrapper={false}
                         >
-                          <HiStar className="mr-2 h-4 w-4" />
+                          <HiStar className="mr-2 size-4" />
                           {voice.isFeatured ? 'Featured' : 'Mark featured'}
                         </Button>
                       </div>
