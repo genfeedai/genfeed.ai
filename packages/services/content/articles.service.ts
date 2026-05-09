@@ -12,6 +12,7 @@ export interface GenerateArticlesRequest {
   prompt: string;
   count?: number;
   category?: ArticleCategory;
+  credential?: string;
   keywords?: string[];
   type?: 'standard' | 'x-article';
   tone?: string;

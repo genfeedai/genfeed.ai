@@ -1,6 +1,8 @@
+import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { MemberEntity } from '@api/collections/members/entities/member.entity';
 import { MembersService } from '@api/collections/members/services/members.service';
+import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationEntity } from '@api/collections/organizations/entities/organization.entity';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
@@ -27,6 +29,37 @@ import {
 // Name of the shared organization for getshareable.app consumers
 const GETSHAREABLE_ORG_NAME = 'GetShareable';
 
+type ClerkWebhookRecord = Record<string, unknown>;
+
+const SUPPORTED_ORGANIZATION_EVENTS = new Set([
+  'organization.created',
+  'organization.updated',
+  'organization.deleted',
+  'organization.logo.updated',
+  'organization.logo.deleted',
+  'organization.metadata.updated',
+]);
+
+const SUPPORTED_MEMBERSHIP_EVENTS = new Set([
+  'organization_membership.created',
+  'organization_membership.updated',
+  'organization_membership.deleted',
+  'organization_membership.metadata.updated',
+  'organizationMembership.created',
+  'organizationMembership.updated',
+  'organizationMembership.deleted',
+  'organizationMembership.metadata.updated',
+]);
+
+const SUPPORTED_INVITATION_EVENTS = new Set([
+  'organizationInvitation.created',
+  'organizationInvitation.accepted',
+  'organizationInvitation.revoked',
+  'organization_invitation.created',
+  'organization_invitation.accepted',
+  'organization_invitation.revoked',
+]);
+
 @Injectable()
 export class ClerkWebhookService {
   constructor(
@@ -39,26 +72,332 @@ export class ClerkWebhookService {
     private readonly notificationsService: NotificationsService,
     private readonly rolesService: RolesService,
     private readonly settingsService: SettingsService,
+    private readonly organizationSettingsService: OrganizationSettingsService,
     @Optional() private readonly transactionUtil?: TransactionUtil,
+    @Optional() private readonly activitiesService?: ActivitiesService,
   ) {}
 
-  async handleWebhookEvent(event: WebhookEvent, url: string) {
-    const { data, type } = event;
+  private isRecord(value: unknown): value is ClerkWebhookRecord {
+    return value !== null && typeof value === 'object' && !Array.isArray(value);
+  }
 
-    // Only handle user.* events (user.created, user.updated, etc.)
-    // Reject all other event types (session.*, organization.*, etc.)
-    if (!type.startsWith('user.')) {
-      const detail = `Event type '${type}' is not supported. Only user.* events are handled by this webhook.`;
-      this.loggerService.warn(`${url} rejected`, { detail, type });
-
-      throw new HttpException(
-        {
-          detail,
-          title: 'Unsupported event type',
-        },
-        HttpStatus.BAD_REQUEST,
-      );
+  private readString(
+    record: ClerkWebhookRecord | null | undefined,
+    keys: string[],
+  ): string {
+    for (const key of keys) {
+      const value = record?.[key];
+      if (typeof value === 'string' && value.trim()) {
+        return value;
+      }
     }
+
+    return '';
+  }
+
+  private readRecord(
+    record: ClerkWebhookRecord | null | undefined,
+    keys: string[],
+  ): ClerkWebhookRecord | null {
+    for (const key of keys) {
+      const value = record?.[key];
+      if (this.isRecord(value)) {
+        return value;
+      }
+    }
+
+    return null;
+  }
+
+  private readPublicMetadata(
+    record: ClerkWebhookRecord | null | undefined,
+  ): ClerkWebhookRecord {
+    return this.readRecord(record, ['public_metadata', 'publicMetadata']) ?? {};
+  }
+
+  private getDocumentId(record: unknown): string {
+    if (!this.isRecord(record)) {
+      return '';
+    }
+
+    return this.readString(record, ['_id', 'id']);
+  }
+
+  private getClerkOrganizationIdFromMembership(
+    data: ClerkWebhookRecord,
+  ): string {
+    const organization = this.readRecord(data, [
+      'organization',
+      'organization_data',
+      'organizationData',
+    ]);
+
+    return (
+      this.readString(organization, ['id']) ||
+      this.readString(data, [
+        'organization_id',
+        'organizationId',
+        'org_id',
+        'orgId',
+      ])
+    );
+  }
+
+  private getClerkUserIdFromMembership(data: ClerkWebhookRecord): string {
+    const publicUserData = this.readRecord(data, [
+      'public_user_data',
+      'publicUserData',
+    ]);
+
+    return (
+      this.readString(publicUserData, ['user_id', 'userId', 'id']) ||
+      this.readString(data, ['user_id', 'userId'])
+    );
+  }
+
+  private async findUserProjection(
+    clerkUserId: string,
+    metadata: ClerkWebhookRecord = {},
+  ): Promise<UserDocument | null> {
+    const metadataUserId = this.readString(metadata, ['userId', 'user']);
+    if (metadataUserId) {
+      const user = await this.usersService.findOne({
+        _id: metadataUserId,
+        isDeleted: false,
+      });
+      if (user) {
+        return user;
+      }
+    }
+
+    return clerkUserId
+      ? await this.usersService.findOne({
+          clerkId: clerkUserId,
+          isDeleted: false,
+        })
+      : null;
+  }
+
+  private async getOrCreateUserProjection(
+    clerkUserId: string,
+    metadata: ClerkWebhookRecord = {},
+    publicUserData: ClerkWebhookRecord | null = null,
+  ): Promise<UserDocument | null> {
+    const existing = await this.findUserProjection(clerkUserId, metadata);
+    if (existing) {
+      return existing;
+    }
+
+    if (!clerkUserId) {
+      return null;
+    }
+
+    try {
+      const clerkUser = await this.clerkService.getUser(clerkUserId, {
+        skipCache: true,
+      });
+      const email =
+        clerkUser.emailAddresses?.[0]?.emailAddress ||
+        this.readString(publicUserData, ['identifier', 'email']);
+
+      return await this.usersService.create(
+        new UserEntity({
+          appSource: AppSource.GENFEED,
+          avatar: clerkUser.imageUrl || undefined,
+          clerkId: clerkUserId,
+          email: email || undefined,
+          firstName:
+            clerkUser.firstName ||
+            this.readString(publicUserData, ['first_name', 'firstName']) ||
+            undefined,
+          handle: generateLabel('user'),
+          lastName:
+            clerkUser.lastName ||
+            this.readString(publicUserData, ['last_name', 'lastName']) ||
+            undefined,
+        }) as Parameters<UsersService['create']>[0],
+      );
+    } catch (error: unknown) {
+      this.loggerService.warn(
+        `Unable to create local user projection for Clerk user ${clerkUserId}`,
+        { error: error instanceof Error ? error.message : error },
+      );
+      return null;
+    }
+  }
+
+  private async findOrganizationProjection(
+    clerkOrganizationId: string,
+    metadata: ClerkWebhookRecord = {},
+  ): Promise<OrganizationDocument | null> {
+    if (clerkOrganizationId) {
+      const organization = await this.organizationsService.findOne({
+        clerkOrganizationId,
+      });
+      if (organization) {
+        return organization;
+      }
+    }
+
+    const metadataOrganizationId = this.readString(metadata, [
+      'genfeedOrganizationId',
+      'organizationId',
+      'organization',
+    ]);
+    if (!metadataOrganizationId) {
+      return null;
+    }
+
+    return await this.organizationsService.findOne({
+      _id: metadataOrganizationId,
+    });
+  }
+
+  private async getOrCreateOrganizationSettings(
+    organizationId: string,
+  ): Promise<void> {
+    const existing = await this.organizationSettingsService.findOne({
+      isDeleted: false,
+      organization: organizationId,
+    });
+    if (existing) {
+      return;
+    }
+
+    const enabledModelIds =
+      await this.organizationSettingsService.getLatestMajorVersionModelIds();
+
+    await this.organizationSettingsService.create({
+      brandsLimit: 5,
+      enabledModels: enabledModelIds,
+      isAutoEvaluateEnabled: false,
+      isGenerateArticlesEnabled: false,
+      isGenerateImagesEnabled: true,
+      isGenerateMusicEnabled: true,
+      isGenerateVideosEnabled: true,
+      isNotificationsDiscordEnabled: false,
+      isNotificationsEmailEnabled: true,
+      isVerifyIngredientEnabled: true,
+      isVerifyScriptEnabled: true,
+      isVerifyVideoEnabled: true,
+      isVoiceControlEnabled: false,
+      isWatermarkEnabled: true,
+      isWebhookEnabled: false,
+      isWhitelabelEnabled: false,
+      organizationId,
+      seatsLimit: 3,
+      timezone: 'UTC',
+    } as unknown as Parameters<OrganizationSettingsService['create']>[0]);
+  }
+
+  private async getOrCreateDefaultBrand(
+    organizationId: string,
+    userId: string,
+    label: string,
+  ): Promise<string | undefined> {
+    const existing = await this.brandsService.findOne({
+      isDeleted: false,
+      organization: organizationId,
+    });
+    if (existing?._id) {
+      return existing._id.toString();
+    }
+
+    const brand = await this.brandsService.create({
+      backgroundColor: '#000000',
+      description: 'Default description. Use it as a pre-prompt',
+      fontFamily: 'montserrat-black',
+      isSelected: true,
+      label,
+      organizationId,
+      primaryColor: '#000000',
+      secondaryColor: '#FFFFFF',
+      slug: generateLabel('brand'),
+      userId,
+    } as unknown as Parameters<BrandsService['create']>[0]);
+
+    return brand?._id?.toString();
+  }
+
+  private getRoleLookupKeysForClerkRole(role: string): string[] {
+    const normalizedRole = role.replace(/^org:/, '').toLowerCase();
+    if (normalizedRole.includes('admin')) {
+      return ['admin', 'owner', 'member', 'user'];
+    }
+
+    return ['member', 'user', 'admin'];
+  }
+
+  private async recordClerkActivity(params: {
+    clerkOrganizationId?: string;
+    clerkMembershipId?: string;
+    eventType: string;
+    organizationId?: string;
+    role?: string;
+    userId?: string;
+  }): Promise<void> {
+    if (!this.activitiesService || !params.organizationId) {
+      return;
+    }
+
+    try {
+      await this.activitiesService.create({
+        data: {
+          clerkMembershipId: params.clerkMembershipId,
+          clerkOrganizationId: params.clerkOrganizationId,
+          eventType: params.eventType,
+          role: params.role,
+        },
+        key: params.eventType,
+        organizationId: params.organizationId,
+        source: 'clerk',
+        userId: params.userId,
+      });
+    } catch (error: unknown) {
+      this.loggerService.warn('Failed to record Clerk activity', {
+        error: error instanceof Error ? error.message : error,
+        eventType: params.eventType,
+      });
+    }
+  }
+
+  async handleWebhookEvent(event: WebhookEvent, url: string) {
+    const { type } = event;
+
+    if (type.startsWith('user.')) {
+      await this.handleUserWebhookEvent(event, url);
+      return;
+    }
+
+    if (SUPPORTED_ORGANIZATION_EVENTS.has(type)) {
+      await this.handleOrganizationWebhookEvent(event, url);
+      return;
+    }
+
+    if (SUPPORTED_MEMBERSHIP_EVENTS.has(type)) {
+      await this.handleMembershipWebhookEvent(event, url);
+      return;
+    }
+
+    if (SUPPORTED_INVITATION_EVENTS.has(type)) {
+      await this.handleInvitationWebhookEvent(event, url);
+      return;
+    }
+
+    const detail = `Event type '${type}' is not supported. Supported Clerk webhook events are user.*, organization.*, organizationMembership.*, organization_membership.*, organizationInvitation.*, and organization_invitation.*.`;
+    this.loggerService.warn(`${url} rejected`, { detail, type });
+
+    throw new HttpException(
+      {
+        detail,
+        title: 'Unsupported event type',
+      },
+      HttpStatus.BAD_REQUEST,
+    );
+  }
+
+  private async handleUserWebhookEvent(event: WebhookEvent, url: string) {
+    const { data, type } = event;
 
     // Extract user ID from webhook payload
     // For user.* events, data is UserJSON (created/updated) or UserDeletedJSON (deleted)
@@ -510,6 +849,383 @@ export class ClerkWebhookService {
       clerkUserId,
       organizationId: organizationId,
       userId: user._id,
+    });
+  }
+
+  private async handleOrganizationWebhookEvent(
+    event: WebhookEvent,
+    url: string,
+  ): Promise<void> {
+    const data = this.isRecord(event.data) ? event.data : {};
+    const clerkOrganizationId = this.readString(data, ['id']);
+
+    if (!clerkOrganizationId) {
+      const detail =
+        'No valid organization ID provided in Clerk webhook payload';
+      this.loggerService.error(`${url} failed`, {
+        data,
+        detail,
+        type: event.type,
+      });
+      throw new HttpException(
+        { detail, title: 'No organization ID' },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    if (event.type === 'organization.deleted') {
+      await this.softDeleteOrganizationProjection(data, event.type, url);
+      return;
+    }
+
+    const organization = await this.upsertOrganizationProjection(data, url);
+    const organizationId = this.getDocumentId(organization);
+
+    await this.recordClerkActivity({
+      clerkOrganizationId,
+      eventType: event.type,
+      organizationId,
+    });
+
+    this.loggerService.log(`${url} processed organization webhook`, {
+      clerkOrganizationId,
+      organizationId,
+      type: event.type,
+    });
+  }
+
+  private async upsertOrganizationProjection(
+    data: ClerkWebhookRecord,
+    url: string,
+    fallbackOwner?: UserDocument | null,
+  ): Promise<OrganizationDocument | null> {
+    const clerkOrganizationId = this.readString(data, ['id']);
+    const metadata = this.readPublicMetadata(data);
+    const existing = await this.findOrganizationProjection(
+      clerkOrganizationId,
+      metadata,
+    );
+    const existingId = this.getDocumentId(existing);
+    const label =
+      this.readString(data, ['name', 'label']) ||
+      (existing ? String(existing.label ?? '') : '') ||
+      'Untitled Organization';
+    const slugSource = this.readString(data, ['slug']) || label;
+    const slug = await this.organizationsService.generateUniqueSlug(
+      slugSource,
+      existingId || undefined,
+    );
+
+    const ownerClerkUserId = this.readString(data, [
+      'created_by',
+      'createdBy',
+      'created_by_user_id',
+      'createdByUserId',
+    ]);
+    const owner =
+      fallbackOwner ??
+      (await this.getOrCreateUserProjection(ownerClerkUserId, metadata));
+    const ownerId = this.getDocumentId(owner);
+
+    if (existingId) {
+      const patch: Record<string, unknown> = {
+        clerkOrganizationId,
+        isDeleted: false,
+        label,
+        slug,
+      };
+      if (ownerId) {
+        patch.userId = ownerId;
+      }
+
+      return await this.organizationsService.patch(existingId, patch);
+    }
+
+    if (!ownerId) {
+      this.loggerService.warn(
+        `${url} skipped Clerk organization projection without local owner`,
+        { clerkOrganizationId },
+      );
+      return null;
+    }
+
+    const organization = await this.organizationsService.create(
+      new OrganizationEntity({
+        category: OrganizationCategory.BUSINESS,
+        clerkOrganizationId,
+        isSelected: false,
+        label,
+        onboardingCompleted: true,
+        slug,
+        userId: ownerId,
+      }) as unknown as Parameters<OrganizationsService['create']>[0],
+    );
+    const organizationId = this.getDocumentId(organization);
+
+    await this.getOrCreateOrganizationSettings(organizationId);
+    await this.getOrCreateDefaultBrand(organizationId, ownerId, label);
+
+    return organization;
+  }
+
+  private async softDeleteOrganizationProjection(
+    data: ClerkWebhookRecord,
+    eventType: string,
+    url: string,
+  ): Promise<void> {
+    const clerkOrganizationId = this.readString(data, ['id']);
+    const organization = await this.findOrganizationProjection(
+      clerkOrganizationId,
+      this.readPublicMetadata(data),
+    );
+    const organizationId = this.getDocumentId(organization);
+
+    if (!organizationId) {
+      this.loggerService.warn(
+        `${url} skipped Clerk organization deletion for unknown organization`,
+        { clerkOrganizationId },
+      );
+      return;
+    }
+
+    await this.organizationsService.patch(organizationId, { isDeleted: true });
+    await this.membersService.patchAll(
+      { organizationId },
+      { isActive: false, isDeleted: true },
+    );
+
+    await this.recordClerkActivity({
+      clerkOrganizationId,
+      eventType,
+      organizationId,
+    });
+
+    this.loggerService.log(
+      `${url} soft-deleted Clerk organization projection`,
+      {
+        clerkOrganizationId,
+        organizationId,
+      },
+    );
+  }
+
+  private async handleMembershipWebhookEvent(
+    event: WebhookEvent,
+    url: string,
+  ): Promise<void> {
+    const eventType = String(event.type);
+    const data = this.isRecord(event.data) ? event.data : {};
+    const clerkMembershipId = this.readString(data, ['id']);
+
+    if (!clerkMembershipId) {
+      const detail =
+        'No valid organization membership ID provided in Clerk webhook payload';
+      this.loggerService.error(`${url} failed`, {
+        data,
+        detail,
+        type: event.type,
+      });
+      throw new HttpException(
+        { detail, title: 'No membership ID' },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    if (
+      eventType === 'organization_membership.deleted' ||
+      eventType === 'organizationMembership.deleted'
+    ) {
+      await this.softDeleteMembershipProjection(data, eventType, url);
+      return;
+    }
+
+    const publicUserData = this.readRecord(data, [
+      'public_user_data',
+      'publicUserData',
+    ]);
+    const metadata = this.readPublicMetadata(data);
+    const clerkUserId = this.getClerkUserIdFromMembership(data);
+    const user = await this.getOrCreateUserProjection(
+      clerkUserId,
+      metadata,
+      publicUserData,
+    );
+    const userId = this.getDocumentId(user);
+
+    if (!userId) {
+      this.loggerService.warn(
+        `${url} skipped Clerk membership projection without local user`,
+        { clerkMembershipId, clerkUserId },
+      );
+      return;
+    }
+
+    const organizationRecord = this.readRecord(data, [
+      'organization',
+      'organization_data',
+      'organizationData',
+    ]);
+    const clerkOrganizationId = this.getClerkOrganizationIdFromMembership(data);
+    let organization = await this.findOrganizationProjection(
+      clerkOrganizationId,
+      metadata,
+    );
+
+    if (!organization && organizationRecord) {
+      organization = await this.upsertOrganizationProjection(
+        organizationRecord,
+        url,
+        user,
+      );
+    }
+
+    const organizationId = this.getDocumentId(organization);
+    if (!organizationId) {
+      this.loggerService.warn(
+        `${url} skipped Clerk membership projection without local organization`,
+        { clerkMembershipId, clerkOrganizationId },
+      );
+      return;
+    }
+
+    const clerkRole =
+      this.readString(data, ['role', 'role_name', 'roleName']) || 'org:member';
+    const roleId = await this.resolveRoleId(
+      this.getRoleLookupKeysForClerkRole(clerkRole),
+    );
+    let member = await this.membersService.findOne({ clerkMembershipId });
+    if (!member) {
+      member = await this.membersService.findOne({
+        organization: organizationId,
+        user: userId,
+      });
+    }
+
+    if (member?._id) {
+      await this.membersService.patch(member._id, {
+        clerkMembershipId,
+        isActive: true,
+        isDeleted: false,
+        roleId,
+      });
+    } else {
+      member = await this.membersService.create(
+        new MemberEntity({
+          clerkMembershipId,
+          isActive: true,
+          organizationId,
+          roleId,
+          userId,
+        }),
+      );
+    }
+
+    await this.recordClerkActivity({
+      clerkMembershipId,
+      clerkOrganizationId,
+      eventType,
+      organizationId,
+      role: clerkRole,
+      userId,
+    });
+
+    this.loggerService.log(`${url} processed membership webhook`, {
+      clerkMembershipId,
+      clerkOrganizationId,
+      organizationId,
+      type: eventType,
+      userId,
+    });
+  }
+
+  private async softDeleteMembershipProjection(
+    data: ClerkWebhookRecord,
+    eventType: string,
+    url: string,
+  ): Promise<void> {
+    const clerkMembershipId = this.readString(data, ['id']);
+    let member = await this.membersService.findOne({ clerkMembershipId });
+
+    if (!member) {
+      const organization = await this.findOrganizationProjection(
+        this.getClerkOrganizationIdFromMembership(data),
+        this.readPublicMetadata(data),
+      );
+      const organizationId = this.getDocumentId(organization);
+      const user = await this.findUserProjection(
+        this.getClerkUserIdFromMembership(data),
+        this.readPublicMetadata(data),
+      );
+      const userId = this.getDocumentId(user);
+
+      if (organizationId && userId) {
+        member = await this.membersService.findOne({
+          organization: organizationId,
+          user: userId,
+        });
+      }
+    }
+
+    const memberId = this.getDocumentId(member);
+    if (!memberId) {
+      this.loggerService.warn(
+        `${url} skipped Clerk membership deletion for unknown membership`,
+        { clerkMembershipId },
+      );
+      return;
+    }
+
+    await this.membersService.patch(memberId, {
+      isActive: false,
+      isDeleted: true,
+    });
+
+    const memberRecord = member as unknown as ClerkWebhookRecord;
+    await this.recordClerkActivity({
+      clerkMembershipId,
+      eventType,
+      organizationId: this.readString(memberRecord, [
+        'organizationId',
+        'organization',
+      ]),
+      userId: this.readString(memberRecord, ['userId', 'user']),
+    });
+
+    this.loggerService.log(`${url} soft-deleted Clerk membership projection`, {
+      clerkMembershipId,
+      memberId,
+    });
+  }
+
+  private async handleInvitationWebhookEvent(
+    event: WebhookEvent,
+    url: string,
+  ): Promise<void> {
+    const eventType = String(event.type);
+    const data = this.isRecord(event.data) ? event.data : {};
+    const metadata = this.readPublicMetadata(data);
+    const organizationRecord = this.readRecord(data, ['organization']);
+    const clerkOrganizationId =
+      this.readString(organizationRecord, ['id']) ||
+      this.readString(data, ['organization_id', 'organizationId']);
+    const organization = await this.findOrganizationProjection(
+      clerkOrganizationId,
+      metadata,
+    );
+    const organizationId = this.getDocumentId(organization);
+
+    await this.recordClerkActivity({
+      clerkOrganizationId,
+      eventType,
+      organizationId,
+      userId: this.readString(metadata, ['invitedByUser', 'userId', 'user']),
+    });
+
+    this.loggerService.log(`${url} processed organization invitation webhook`, {
+      clerkOrganizationId,
+      invitationId: this.readString(data, ['id']),
+      organizationId,
+      type: eventType,
     });
   }
 

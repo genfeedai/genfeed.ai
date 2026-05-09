@@ -33,7 +33,6 @@ import { track } from '@vercel/analytics';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import {
-  HiArrowPathRoundedSquare,
   HiClipboardDocument,
   HiDocumentText,
   HiSparkles,
@@ -41,6 +40,7 @@ import {
 import { getDesktopBridge, isDesktopShell } from '@/lib/desktop/runtime';
 
 type Tone = 'professional' | 'casual' | 'viral' | 'educational' | 'humorous';
+type GenerationFormat = 'post' | 'thread' | 'x-article';
 
 const TONE_OPTIONS: Array<{ label: string; value: Tone }> = [
   { label: 'Professional', value: 'professional' },
@@ -76,6 +76,12 @@ const DESKTOP_PLATFORM_OPTIONS: Array<{
   { label: 'YouTube', value: 'youtube' },
 ];
 
+const SOCIAL_FORMAT_LABELS: Record<GenerationFormat, string> = {
+  post: 'Post',
+  thread: 'Thread',
+  'x-article': 'X Article',
+};
+
 function toDesktopPlatform(
   platform?: CredentialPlatform | string,
 ): DesktopContentPlatform {
@@ -88,6 +94,74 @@ function toDesktopPlatform(
 
 function getDesktopContentType(mode: 'post' | 'thread'): DesktopContentType {
   return mode === 'thread' ? 'thread' : 'caption';
+}
+
+function isXPlatform(platform?: CredentialPlatform | string): boolean {
+  return String(platform ?? '').toLowerCase() === CredentialPlatform.TWITTER;
+}
+
+function isThreadsPlatform(platform?: CredentialPlatform | string): boolean {
+  return String(platform ?? '').toLowerCase() === CredentialPlatform.THREADS;
+}
+
+function getFormatOptions(
+  credential: ICredential | undefined,
+  isDesktop: boolean,
+): Array<{ label: string; value: GenerationFormat }> {
+  if (!credential) {
+    return isDesktop
+      ? [
+          { label: SOCIAL_FORMAT_LABELS.post, value: 'post' },
+          { label: SOCIAL_FORMAT_LABELS.thread, value: 'thread' },
+        ]
+      : [{ label: SOCIAL_FORMAT_LABELS.post, value: 'post' }];
+  }
+
+  if (isXPlatform(credential.platform)) {
+    return [
+      { label: SOCIAL_FORMAT_LABELS.post, value: 'post' },
+      { label: SOCIAL_FORMAT_LABELS.thread, value: 'thread' },
+      { label: SOCIAL_FORMAT_LABELS['x-article'], value: 'x-article' },
+    ];
+  }
+
+  if (isThreadsPlatform(credential.platform)) {
+    return [
+      { label: SOCIAL_FORMAT_LABELS.post, value: 'post' },
+      { label: SOCIAL_FORMAT_LABELS.thread, value: 'thread' },
+    ];
+  }
+
+  return [{ label: SOCIAL_FORMAT_LABELS.post, value: 'post' }];
+}
+
+function getFormatConstraintLabel(
+  credential: ICredential | undefined,
+  format: GenerationFormat,
+): string {
+  const platform = credential?.platform;
+
+  if (isXPlatform(platform) && format === 'x-article') {
+    return 'Copy-only X Article export';
+  }
+
+  if (isXPlatform(platform)) {
+    return '280 weighted characters per post';
+  }
+
+  if (String(platform ?? '').toLowerCase() === CredentialPlatform.INSTAGRAM) {
+    return 'Caption-ready account context';
+  }
+
+  if (String(platform ?? '').toLowerCase() === CredentialPlatform.YOUTUBE) {
+    return 'Long-form platform copy context';
+  }
+
+  return 'Account-aware draft context';
+}
+
+function getFormatPublishabilityLabel(format: GenerationFormat): string {
+  return format === 'x-article' ? 'Copy only' : 'Publishable';
 }
 
 async function generateDesktopContent(params: {
@@ -155,6 +229,8 @@ export default function PostsWritePage() {
   const [localContent, setLocalContent] = useState(prefilledDescription);
   const [desktopPlatform, setDesktopPlatform] =
     useState<DesktopContentPlatform>('twitter');
+  const [selectedFormat, setSelectedFormat] =
+    useState<GenerationFormat>('post');
   const [tone, setTone] = useState<Tone>('professional');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -218,6 +294,17 @@ export default function PostsWritePage() {
     setDesktopPlatform(toDesktopPlatform(selectedCredential.platform));
   }, [selectedCredential?.platform]);
 
+  const formatOptions = useMemo(
+    () => getFormatOptions(selectedCredential, desktop),
+    [selectedCredential, desktop],
+  );
+
+  useEffect(() => {
+    if (!formatOptions.some((option) => option.value === selectedFormat)) {
+      setSelectedFormat(formatOptions[0]?.value ?? 'post');
+    }
+  }, [formatOptions, selectedFormat]);
+
   const handleStartBlankDraft = async () => {
     if (!selectedCredential) {
       return;
@@ -265,7 +352,7 @@ export default function PostsWritePage() {
     await clipboardService.copyToClipboard(payload);
   };
 
-  const handleGenerate = async (mode: 'post' | 'thread') => {
+  const handleGenerate = async (mode: GenerationFormat) => {
     const desktopBridge = desktop ? getDesktopBridge() : null;
 
     if ((!selectedCredential && !desktopBridge) || !prompt.trim()) {
@@ -276,6 +363,20 @@ export default function PostsWritePage() {
     setIsSubmitting(true);
 
     try {
+      if (mode === 'x-article') {
+        if (!selectedCredential) {
+          return;
+        }
+
+        const params = new URLSearchParams({
+          credentialId: selectedCredential.id,
+          prompt: prompt.trim(),
+          type: 'x-article',
+        });
+        router.push(href(`/compose/article?${params.toString()}`));
+        return;
+      }
+
       if (!selectedCredential && desktopBridge) {
         const generated = await generateDesktopContent({
           bridge: desktopBridge,
@@ -310,24 +411,19 @@ export default function PostsWritePage() {
         return;
       }
 
-      let generatedPosts: Awaited<ReturnType<PostsService['generateTweets']>>;
+      let generatedPosts: Awaited<
+        ReturnType<PostsService['generateAccountContent']>
+      >;
 
       try {
         const postsService = await getPostsService();
-        generatedPosts =
-          mode === 'thread'
-            ? await postsService.generateThread({
-                count: 5,
-                credential: selectedCredential.id,
-                tone,
-                topic: prompt.trim(),
-              })
-            : await postsService.generateTweets({
-                count: 1,
-                credential: selectedCredential.id,
-                tone,
-                topic: prompt.trim(),
-              });
+        generatedPosts = await postsService.generateAccountContent({
+          count: mode === 'thread' ? 5 : 1,
+          credential: selectedCredential.id,
+          format: mode,
+          tone,
+          topic: prompt.trim(),
+        });
       } catch (cloudError) {
         if (!desktopBridge) {
           throw cloudError;
@@ -388,13 +484,7 @@ export default function PostsWritePage() {
     prompt.trim() && !isSubmitting && (selectedCredential || desktop),
   );
   const generatePostLabel =
-    desktop && !selectedCredential
-      ? 'Generate post'
-      : 'Generate post in Genfeed';
-  const generateThreadLabel =
-    desktop && !selectedCredential
-      ? 'Generate thread'
-      : 'Generate thread in Genfeed';
+    desktop && !selectedCredential ? 'Generate' : 'Generate in Genfeed';
 
   return (
     <section className="grid gap-6 lg:grid-cols-[1.25fr_0.75fr]">
@@ -429,7 +519,7 @@ export default function PostsWritePage() {
                 value={selectedCredentialId}
                 onValueChange={setSelectedCredentialId}
               >
-                <SelectTrigger>
+                <SelectTrigger aria-label="Account">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -452,7 +542,7 @@ export default function PostsWritePage() {
                   setDesktopPlatform(value as DesktopContentPlatform)
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger aria-label="Platform">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -464,6 +554,39 @@ export default function PostsWritePage() {
                 </SelectContent>
               </Select>
             </div>
+          ) : null}
+
+          <div className="grid gap-2 text-sm text-foreground/75">
+            <span>Format</span>
+            <Select
+              value={selectedFormat}
+              onValueChange={(value) =>
+                setSelectedFormat(value as GenerationFormat)
+              }
+            >
+              <SelectTrigger aria-label="Format">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {formatOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {selectedCredential ? (
+            <InsetSurface
+              className="border-white/10 bg-black/10 text-sm text-foreground/70"
+              tone="contrast"
+            >
+              {getCredentialLabel(selectedCredential)} ·{' '}
+              {SOCIAL_FORMAT_LABELS[selectedFormat]} ·{' '}
+              {getFormatPublishabilityLabel(selectedFormat)} ·{' '}
+              {getFormatConstraintLabel(selectedCredential, selectedFormat)}
+            </InsetSurface>
           ) : null}
 
           <div className="grid gap-2 text-sm text-foreground/75">
@@ -501,7 +624,7 @@ export default function PostsWritePage() {
               value={tone}
               onValueChange={(value) => setTone(value as Tone)}
             >
-              <SelectTrigger>
+              <SelectTrigger aria-label="Tone">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -534,7 +657,11 @@ export default function PostsWritePage() {
               type="button"
               variant={ButtonVariant.UNSTYLED}
               onClick={handleStartBlankDraft}
-              disabled={!selectedCredential || isSubmitting}
+              disabled={
+                !selectedCredential ||
+                isSubmitting ||
+                selectedFormat === 'x-article'
+              }
               className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-4 py-2.5 text-sm font-medium text-foreground transition hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <HiDocumentText className="h-4 w-4" />
@@ -543,22 +670,14 @@ export default function PostsWritePage() {
             <Button
               type="button"
               variant={ButtonVariant.UNSTYLED}
-              onClick={() => void handleGenerate('post')}
+              onClick={() => void handleGenerate(selectedFormat)}
               disabled={!canGenerate}
               className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <HiSparkles className="h-4 w-4" />
-              {isSubmitting ? 'Working...' : generatePostLabel}
-            </Button>
-            <Button
-              type="button"
-              variant={ButtonVariant.UNSTYLED}
-              onClick={() => void handleGenerate('thread')}
-              disabled={!canGenerate}
-              className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-4 py-2.5 text-sm font-medium text-foreground transition hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <HiArrowPathRoundedSquare className="h-4 w-4" />
-              {isSubmitting ? 'Working...' : generateThreadLabel}
+              {isSubmitting
+                ? 'Working...'
+                : `${generatePostLabel} (${SOCIAL_FORMAT_LABELS[selectedFormat]})`}
             </Button>
           </div>
         </div>

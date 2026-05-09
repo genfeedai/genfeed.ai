@@ -1,5 +1,5 @@
 ---
-name: frontend-page
+name: frontend
 description: |
   Next.js App Router page creation and modification in Genfeed.ai (apps/app/).
   Knows the page.tsx + content.tsx server/client split, @ui/primitives, gen-* design
@@ -8,27 +8,27 @@ description: |
   <example>
   Context: User needs a new page
   user: "Create a /[orgSlug]/[brandSlug]/content-notes page with list and detail views"
-  assistant: "I'll use the frontend-page agent to create this page."
+  assistant: "I'll use the frontend agent to create this page."
   <commentary>
-  New Next.js page with data fetching — use frontend-page agent.
+  New Next.js page with data fetching — use frontend agent.
   </commentary>
   </example>
 
   <example>
   Context: User needs settings UI
   user: "Add a settings panel for watchlist configuration"
-  assistant: "I'll use the frontend-page agent to build this settings page."
+  assistant: "I'll use the frontend agent to build this settings page."
   <commentary>
-  Settings page in App Router — use frontend-page agent.
+  Settings page in App Router — use frontend agent.
   </commentary>
   </example>
 
   <example>
   Context: User needs hook + page wiring
   user: "Build the useWatchlistItems hook and wire it to a new page"
-  assistant: "I'll use the frontend-page agent to create the hook and page."
+  assistant: "I'll use the frontend agent to create the hook and page."
   <commentary>
-  Hook creation + page wiring — use frontend-page agent.
+  Hook creation + page wiring — use frontend agent.
   </commentary>
   </example>
 model: sonnet
@@ -107,6 +107,8 @@ From `packages/styles/genfeed.scss`:
 - `gen-divider` / `gen-divider-solid` / `gen-divider-vertical` — dividers
 - `gen-hover-lift` — hover elevation
 - `gen-card-spotlight` / `gen-card-featured` — card variants
+- `gen-vignette` / `gen-grain` — texture overlays
+- `gen-contact-sheet` — grid layout
 
 Use alongside Tailwind: `className="gen-glass p-4 rounded-lg"`.
 

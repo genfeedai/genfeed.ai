@@ -13,6 +13,14 @@ import {
 } from 'class-validator';
 
 export class CreateOrganizationDto {
+  @IsString()
+  @IsOptional()
+  @ApiProperty({
+    description: 'Clerk organization ID used to synchronize organization state',
+    required: false,
+  })
+  readonly clerkOrganizationId?: string | null;
+
   @IsEntityId()
   @ApiProperty({
     description: 'The user ID who owns this organization',

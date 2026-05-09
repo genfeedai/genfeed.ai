@@ -1,7 +1,8 @@
 import type { ArticleCategory, ArticleStatus } from '@genfeedai/enums';
 
 export interface ArticleEditorProps {
-  articleId: string;
+  articleId?: string;
+  credentialId?: string;
 }
 
 export interface ArticleFormState {

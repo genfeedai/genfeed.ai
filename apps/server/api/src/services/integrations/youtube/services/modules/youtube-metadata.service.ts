@@ -31,9 +31,12 @@ export class YoutubeMetadataService {
     this.youtubeAPI = google.youtube({ version: 'v3' });
 
     const apiKey = this.configService.get<string>('YOUTUBE_API_KEY');
+    const auth =
+      typeof apiKey === 'string' && apiKey.trim().length > 0
+        ? apiKey
+        : undefined;
     this.youtubeDataAPI = google.youtube({
-      // @ts-expect-error TS2339
-      auth: apiKey && apiKey.trim().length > 0 ? apiKey : undefined,
+      auth,
       version: 'v3',
     });
   }

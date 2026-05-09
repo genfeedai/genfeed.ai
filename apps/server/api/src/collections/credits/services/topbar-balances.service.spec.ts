@@ -110,4 +110,27 @@ describe('TopbarBalancesService', () => {
       ]),
     );
   });
+
+  it('treats a reachable Replicate account as connected when no balance is exposed', async () => {
+    byokService.resolveApiKey.mockImplementation(
+      async (_orgId: string, provider: ByokProvider) =>
+        provider === ByokProvider.REPLICATE
+          ? { apiKey: 'replicate-key' }
+          : undefined,
+    );
+    httpService.get.mockReturnValue(of({ data: { username: 'genfeed' } }));
+
+    const result = await service.getTopbarBalances('org_1');
+
+    expect(result.segments).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          balance: null,
+          label: 'Replicate',
+          provider: ByokProvider.REPLICATE,
+          status: 'available',
+        }),
+      ]),
+    );
+  });
 });

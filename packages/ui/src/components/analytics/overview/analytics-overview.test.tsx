@@ -1,6 +1,24 @@
 import { render, screen } from '@testing-library/react';
 import AnalyticsOverview from '@ui/analytics/overview/analytics-overview';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+vi.mock(
+  '@genfeedai/hooks/ui/use-animated-counter/use-animated-counter',
+  () => ({
+    useAnimatedCounter: ({
+      end,
+      suffix,
+      decimals,
+    }: {
+      end: number;
+      suffix: string;
+      decimals: number;
+    }) => ({
+      ref: { current: null },
+      value: `${end.toFixed(decimals)}${suffix}`,
+    }),
+  }),
+);
 
 const mockAnalytics = [
   {
@@ -23,7 +41,7 @@ const mockAnalytics = [
   },
 ];
 
-describe.skip('AnalyticsOverview', () => {
+describe('AnalyticsOverview', () => {
   describe('Basic Rendering', () => {
     it('renders the Analytics Overview title', () => {
       render(<AnalyticsOverview analytics={[]} />);
@@ -69,15 +87,15 @@ describe.skip('AnalyticsOverview', () => {
     it('shows Total Views with formatted number', () => {
       render(<AnalyticsOverview analytics={mockAnalytics} />);
       expect(screen.getByText('Total Views')).toBeInTheDocument();
-      // 30000 views formatted as 30K
-      expect(screen.getByText('30K')).toBeInTheDocument();
+      // 30000 views formatted as 30.0k
+      expect(screen.getByText('30.0k')).toBeInTheDocument();
     });
 
     it('shows Total Likes', () => {
       render(<AnalyticsOverview analytics={mockAnalytics} />);
       expect(screen.getByText('Total Likes')).toBeInTheDocument();
-      // 1500 likes formatted as 1.5K
-      expect(screen.getByText('1.5K')).toBeInTheDocument();
+      // 1500 likes formatted as 1.5k
+      expect(screen.getByText('1.5k')).toBeInTheDocument();
     });
 
     it('shows Comments count', () => {
@@ -125,8 +143,8 @@ describe.skip('AnalyticsOverview', () => {
         },
       ];
       render(<AnalyticsOverview analytics={analytics} />);
-      // 8000 views = 8K
-      expect(screen.getByText('8K')).toBeInTheDocument();
+      // 8000 views = 8.0k
+      expect(screen.getByText('8.0k')).toBeInTheDocument();
     });
 
     it('correctly calculates average engagement rate', () => {
@@ -168,7 +186,7 @@ describe.skip('AnalyticsOverview', () => {
         },
       ];
       render(<AnalyticsOverview analytics={analytics} />);
-      expect(screen.getByText('1K')).toBeInTheDocument();
+      expect(screen.getByText('1.0k')).toBeInTheDocument();
       expect(screen.getByText('10.50%')).toBeInTheDocument();
     });
 

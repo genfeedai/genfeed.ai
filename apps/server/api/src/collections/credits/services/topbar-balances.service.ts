@@ -123,12 +123,8 @@ export class TopbarBalancesService {
     );
     const balance = this.extractNumericBalance(response.data);
 
-    if (typeof balance !== 'number') {
-      throw new Error('Replicate account API did not expose a credit balance');
-    }
-
     return {
-      balance,
+      balance: typeof balance === 'number' ? balance : null,
       currencyOrUnit: 'USD',
       label: 'Replicate',
       lastSyncedAt: new Date().toISOString(),

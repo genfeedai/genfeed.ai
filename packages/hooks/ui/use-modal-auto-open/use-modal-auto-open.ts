@@ -20,6 +20,7 @@ export function useModalAutoOpen(
   const shouldAutoOpen = isOpen === true;
   const shouldAutoClose = isOpen === false;
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: openKey intentionally retriggers mounted modal opens.
   useEffect(() => {
     if (!shouldAutoOpen) {
       if (shouldAutoClose) {
@@ -45,5 +46,5 @@ export function useModalAutoOpen(
         cancelAnimationFrame(rafId2);
       }
     };
-  }, [modalId, shouldAutoOpen, shouldAutoClose]);
+  }, [modalId, openKey, shouldAutoOpen, shouldAutoClose]);
 }

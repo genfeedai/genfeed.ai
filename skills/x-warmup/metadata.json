@@ -1,7 +1,7 @@
 {
   "name": "x-warmup",
-  "version": "1.0.0",
-  "description": "Guide X/Twitter account warmup with engagement plans, reply strategies, warmup thread content, and post-warmup assessment frameworks for new accounts before posting promotional content",
+  "version": "1.2.0",
+  "description": "Guide evidence-backed X/Twitter account warmup and source-backed content hardening with engagement plans, reply strategies, warmup thread content, and post-warmup assessment frameworks for new accounts before posting promotional content",
   "author": "genfeedai",
   "license": "MIT",
   "triggers": [
@@ -31,10 +31,21 @@
     "first thread",
     "x shadowban",
     "twitter shadowban",
+    "x reach restriction",
+    "twitter reach restriction",
+    "x visibility restriction",
+    "twitter visibility restriction",
     "x warmup thread",
-    "twitter warmup thread"
+    "twitter warmup thread",
+    "harder x content",
+    "x content hardening",
+    "source backed x content",
+    "official x sources"
   ],
-  "references": {},
+  "references": {
+    "officialEvidence": "references/official-evidence.md",
+    "outputTemplates": "references/output-templates.md"
+  },
   "outputs": ["text"],
   "tags": [
     "x",
@@ -46,6 +57,8 @@
     "content-strategy",
     "thread",
     "reply-strategy",
-    "new-account"
+    "new-account",
+    "content-hardening",
+    "official-sources"
   ]
 }

@@ -45,7 +45,7 @@ export class CronYoutubeStatusService {
         limit: 100, // Check up to 100 posts per run
       };
 
-      const posts: unknown = await this.postsService.findAll(
+      const posts = (await this.postsService.findAll(
         {
           include: { credential: true },
           where: {
@@ -66,7 +66,7 @@ export class CronYoutubeStatusService {
           },
         },
         options,
-      );
+      )) as unknown as { docs?: PostEntity[] };
 
       const postsChecked = posts.docs?.length || 0;
 
@@ -117,7 +117,7 @@ export class CronYoutubeStatusService {
 
       // Update if status doesn't match
       if (targetStatus && post.status !== targetStatus) {
-        const updateData: unknown = {
+        const updateData: Record<string, unknown> = {
           status: targetStatus,
         };
 

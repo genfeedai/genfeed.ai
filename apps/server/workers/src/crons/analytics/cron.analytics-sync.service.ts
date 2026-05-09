@@ -39,15 +39,16 @@ export class CronAnalyticsSyncService {
 
       for (const org of docs) {
         const window = Math.floor(Date.now() / (6 * 60 * 60 * 1000));
+        const organizationId = String(org._id);
         const jobData: AnalyticsSyncJobData = {
           incremental: true,
-          organizationId: org._id.toString(),
+          organizationId,
         };
 
         await this.queueService.add(this.QUEUE_NAME, jobData, {
           attempts: 3,
           backoff: { delay: 5000, type: 'exponential' },
-          jobId: `analytics-sync-${org._id.toString()}-${window}`,
+          jobId: `analytics-sync-${organizationId}-${window}`,
         });
       }
 

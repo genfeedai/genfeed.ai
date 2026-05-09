@@ -49,6 +49,15 @@ type ProviderOutputPayload = {
 
 const toIso = (): string => new Date().toISOString();
 
+const isReplicatePendingStatus = (status: string): boolean =>
+  ['queued', 'processing', 'starting'].includes(status.toLowerCase());
+
+const isReplicateSucceededStatus = (status: string): boolean =>
+  status.toLowerCase() === 'succeeded';
+
+const isReplicateFailedStatus = (status: string): boolean =>
+  ['canceled', 'cancelled', 'failed'].includes(status.toLowerCase());
+
 const providerDisplayName = (
   config: IDesktopGenerationProviderConfig,
 ): string => {
@@ -502,14 +511,69 @@ export class DesktopGenerationService {
     }
 
     const payload = JSON.parse(responseText) as ProviderOutputPayload;
-    const status = typeof payload.status === 'string' ? payload.status : '';
-    if (status === 'failed' || payload.error) {
-      throw new Error(
-        `Replicate generation failed: ${String(payload.error ?? 'unknown error')}`,
-      );
+    return this.resolveReplicatePrediction(config, payload);
+  }
+
+  private async resolveReplicatePrediction(
+    config: IDesktopGenerationProviderConfig,
+    payload: ProviderOutputPayload,
+  ): Promise<string> {
+    let current = payload;
+
+    for (let attempt = 0; attempt < 30; attempt += 1) {
+      const status = typeof current.status === 'string' ? current.status : '';
+
+      if (current.error || isReplicateFailedStatus(status)) {
+        throw new Error(
+          `Replicate generation failed: ${String(current.error ?? current.detail ?? 'unknown error')}`,
+        );
+      }
+
+      if (!status || isReplicateSucceededStatus(status)) {
+        return extractProviderOutputText(current);
+      }
+
+      if (!isReplicatePendingStatus(status)) {
+        return extractProviderOutputText(current);
+      }
+
+      const statusUrl =
+        typeof current.urls?.get === 'string'
+          ? current.urls.get
+          : typeof current.id === 'string'
+            ? `${config.baseUrl}/predictions/${encodeURIComponent(current.id)}`
+            : undefined;
+
+      if (!statusUrl) {
+        throw new Error(
+          `Replicate generation is ${status} but did not return a status URL.`,
+        );
+      }
+
+      if (attempt > 0) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+
+      const statusResponse = await fetch(statusUrl, {
+        headers: {
+          Authorization: `Bearer ${config.apiKey}`,
+        },
+      });
+      const statusText = await statusResponse.text();
+      if (!statusResponse.ok) {
+        throw new Error(
+          `Replicate status request failed (${String(statusResponse.status)}): ${
+            statusText || statusResponse.statusText
+          }`,
+        );
+      }
+
+      current = JSON.parse(statusText) as ProviderOutputPayload;
     }
 
-    return extractProviderOutputText(payload);
+    throw new Error(
+      'Replicate generation timed out waiting for the prediction result.',
+    );
   }
 
   private async requestFalCompletion(

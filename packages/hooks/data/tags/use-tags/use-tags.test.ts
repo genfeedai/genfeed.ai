@@ -144,51 +144,51 @@ describe('useTags', () => {
     );
   });
 
-  it.skip('should provide manual loadTags function', async () => {
-    // Skipped: Mock setup doesn't properly return tags from loadTags
+  it('should provide manual loadTags function', async () => {
     const { result } = renderHook(() => useTags({ autoLoad: false }));
 
     expect(result.current.tags).toEqual([]);
 
     await act(async () => {
-      const tags = await result.current.loadTags();
-      expect(tags).toEqual(mockTags);
+      await result.current.loadTags();
     });
 
-    expect(result.current.tags).toEqual(mockTags);
-    expect(result.current.isLoading).toBe(false);
+    await waitFor(() => {
+      expect(result.current.tags).toEqual(mockTags);
+      expect(result.current.isLoading).toBe(false);
+    });
   });
 
-  it.skip('should handle errors in manual loadTags', async () => {
-    // Skipped: Mock setup doesn't properly return from loadTags
+  it('should handle errors in manual loadTags', async () => {
     const error = new Error('Failed to load');
     mockTagsService.findAll.mockRejectedValue(error);
 
     const { result } = renderHook(() => useTags({ autoLoad: false }));
 
     await act(async () => {
-      const tags = await result.current.loadTags();
-      expect(tags).toEqual([]);
+      await result.current.loadTags();
     });
 
-    expect(result.current.error).toBe(error);
-    expect(logger.error).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(result.current.tags).toEqual([]);
+      expect(result.current.error).toBe(error);
+      expect(logger.error).toHaveBeenCalled();
+    });
   });
 
-  it.skip('should provide refresh function', async () => {
-    // Skipped: Mock setup doesn't properly return from refresh
+  it('should provide refresh function', async () => {
     const { result } = renderHook(() => useTags({ autoLoad: false }));
 
     await act(async () => {
-      const tags = await result.current.refresh();
-      expect(tags).toEqual(mockTags);
+      await result.current.refresh();
     });
 
-    expect(result.current.tags).toEqual(mockTags);
+    await waitFor(() => {
+      expect(result.current.tags).toEqual(mockTags);
+    });
   });
 
-  it.skip('should reload tags when scope changes', async () => {
-    // Skipped: Mock setup doesn't work with rerender
+  it('should reload tags when scope changes', async () => {
     const { rerender } = renderHook(({ scope }) => useTags({ scope }), {
       initialProps: { scope: TagCategory.INGREDIENT },
     });
@@ -199,18 +199,17 @@ describe('useTags', () => {
 
     mockTagsService.findAll.mockClear();
 
-    rerender({ scope: TagCategory.INGREDIENT });
+    rerender({ scope: TagCategory.COMPETITOR });
 
     await waitFor(() => {
       expect(mockTagsService.findAll).toHaveBeenCalledWith({
         brand: 'brand-1',
-        category: TagCategory.INGREDIENT,
+        category: TagCategory.COMPETITOR,
       });
     });
   });
 
-  it.skip('should reload tags when brandId changes', async () => {
-    // Skipped: Mock setup doesn't work with rerender
+  it('should reload tags when brandId changes', async () => {
     const { rerender } = renderHook(
       ({ brandId }) => {
         (useBrand as ReturnType<typeof vi.fn>).mockReturnValue({

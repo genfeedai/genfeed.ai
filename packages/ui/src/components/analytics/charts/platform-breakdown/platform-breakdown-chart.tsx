@@ -37,10 +37,11 @@ export function PlatformBreakdownChart({
   height = 300,
   className = '',
 }: PlatformBreakdownChartProps) {
-  const isEmpty = !data || data.length === 0;
+  const chartData = data ?? [];
+  const isEmpty = chartData.length === 0;
 
   // Filter out platforms with zero values
-  const filteredData = data.filter((item) => item.value > 0);
+  const filteredData = chartData.filter((item) => item.value > 0);
 
   const getColor = (platform: string) => {
     return (

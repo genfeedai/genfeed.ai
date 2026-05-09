@@ -4,6 +4,7 @@ import { BaseEntity } from '@api/shared/entities/base/base.entity';
 export class OrganizationEntity extends BaseEntity implements Organization {
   declare readonly id: string;
   declare readonly mongoId: string | null;
+  declare readonly clerkOrganizationId: string | null;
   declare readonly userId: string;
   declare readonly user: string;
 

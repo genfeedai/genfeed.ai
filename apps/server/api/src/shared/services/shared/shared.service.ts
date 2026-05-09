@@ -17,7 +17,7 @@ import { ModuleRef } from '@nestjs/core';
 
 const toId = (value: unknown): string | undefined => {
   if (isEntityId(value)) {
-    return value;
+    return value.trim();
   }
   return undefined;
 };
@@ -135,7 +135,7 @@ export class SharedService {
     // TEST ALL CASES BEFORE MAKING IT MANDATORY
     promptId?: string,
   ) {
-    const validPromptId = isEntityId(promptId) ? promptId : undefined;
+    const validPromptId = toId(promptId);
 
     await this.metadataService.patch(metadataData._id, {
       prompt: validPromptId,

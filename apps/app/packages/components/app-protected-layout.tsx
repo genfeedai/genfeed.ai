@@ -637,7 +637,7 @@ function AppLayoutWithDynamicMenu({
         <AppSidebar
           items={workflowsMenuItems}
           logoHref={withTaskContextHref(
-            orgHref(WORKFLOWS_LOGO_HREF),
+            buildHref(WORKFLOWS_LOGO_HREF),
             taskContextSearchParams,
           )}
           sectionLabel="Workflows"

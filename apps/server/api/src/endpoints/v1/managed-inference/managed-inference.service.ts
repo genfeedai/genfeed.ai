@@ -95,7 +95,7 @@ export class ManagedInferenceService {
 
   private async executeProvider(
     dto: ManagedInferenceRequestDto,
-  ): Promise<Record<string, unknown> | string> {
+  ): Promise<unknown> {
     if (dto.provider === ManagedInferenceProvider.FAL) {
       return await this.falService.generateImage(dto.model, dto.input);
     }

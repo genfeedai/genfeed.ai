@@ -31,9 +31,9 @@ Provider discovery and provider execution are related but separate:
 
 | Concern                                 | Configuration                                                      | Used by                                                     |
 | --------------------------------------- | ------------------------------------------------------------------ | ----------------------------------------------------------- |
-| Server-level fal.ai discovery/execution | `FAL_KEY` or `FAL_API_KEY` depending on service path               | fal.ai provider registry and generation integrations        |
+| Server-level fal.ai discovery/execution | `FAL_API_KEY`                                                      | fal.ai provider registry and generation integrations        |
 | Server-level HuggingFace discovery      | `HUGGINGFACE_API_KEY`                                              | HuggingFace provider registry                               |
-| Server-level Replicate execution        | `REPLICATE_KEY` or `REPLICATE_API_TOKEN` depending on service path | Replicate generation integrations                           |
+| Server-level Replicate execution        | `REPLICATE_KEY`                                                    | Replicate generation integrations                           |
 | Organization BYOK execution             | Organization BYOK settings                                         | Runtime provider resolution in `ByokProviderFactoryService` |
 | Managed Cloud execution                 | `GENFEED_API_KEY`                                                  | Explicit Cloud-backed managed inference paths               |
 

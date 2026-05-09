@@ -258,6 +258,11 @@ describe('isAbortError', () => {
     expect(isAbortError(error)).toBe(true);
   });
 
+  it('detects Error instances with AbortError message', () => {
+    const error = new Error('AbortError');
+    expect(isAbortError(error)).toBe(true);
+  });
+
   it('returns false for other errors', () => {
     const error = new Error('Regular error');
     expect(isAbortError(error)).toBe(false);
@@ -338,13 +343,13 @@ describe('withAbortAndTimeout', () => {
     await expect(resultPromise).rejects.toThrow('Operation aborted');
   });
 
-  it.skip('rejects on timeout', async () => {
+  it('rejects on timeout', async () => {
     const promise = new Promise(() => {}); // Never resolves
     const controller = new AbortController();
 
     const resultPromise = withAbortAndTimeout(promise, controller.signal, 1000);
 
-    await act(async () => {
+    act(() => {
       vi.advanceTimersByTime(1000);
     });
 

@@ -1,3 +1,4 @@
+import process from 'node:process';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
@@ -17,6 +18,23 @@ interface TrendSummary {
   url?: string;
   usageCount?: number;
 }
+
+type TrendRecord = {
+  description?: string;
+  hashtag?: string;
+  platform?: string;
+  playCount?: number;
+  playUrl?: string;
+  postCount?: number;
+  soundName?: string;
+  title?: string;
+  usageCount?: number;
+  url?: string;
+  viralScore?: number;
+  viralityScore?: number;
+  viewCount?: number;
+  views?: number;
+};
 
 @Injectable()
 export class CronTrendSummaryNotificationsService {
@@ -197,7 +215,7 @@ export class CronTrendSummaryNotificationsService {
         payload: {
           minViralScore,
           trends: trends.slice(0, 10), // Top 10 for in-app
-        },
+        } as never,
         type: 'discord', // Uses general notification channel
         userId: setting.userId,
       });
@@ -211,7 +229,7 @@ export class CronTrendSummaryNotificationsService {
         minViralScore,
       });
 
-      return videos.map((video: unknown) => ({
+      return (videos as TrendRecord[]).map((video) => ({
         platform: video.platform || 'tiktok',
         topic: video.title || video.description || 'Trending Video',
         type: 'video' as const,
@@ -235,9 +253,10 @@ export class CronTrendSummaryNotificationsService {
 
       return hashtags
         .filter(
-          (hashtag: unknown) => (hashtag.viralityScore || 0) >= minViralScore,
+          (hashtag: TrendRecord) =>
+            (hashtag.viralityScore || 0) >= minViralScore,
         )
-        .map((hashtag: unknown) => ({
+        .map((hashtag: TrendRecord) => ({
           platform: hashtag.platform || 'tiktok',
           topic: `#${hashtag.hashtag}`,
           type: 'hashtag' as const,
@@ -257,11 +276,11 @@ export class CronTrendSummaryNotificationsService {
       });
 
       // Filter by minimum usage count after fetching
-      const filteredSounds = sounds.filter(
-        (sound: unknown) => (sound.usageCount || 0) >= 10000,
+      const filteredSounds = (sounds as TrendRecord[]).filter(
+        (sound) => (sound.usageCount || 0) >= 10000,
       );
 
-      return filteredSounds.slice(0, 5).map((sound: unknown) => ({
+      return filteredSounds.slice(0, 5).map((sound) => ({
         platform: 'tiktok',
         topic: sound.soundName || 'Trending Sound',
         type: 'sound' as const,

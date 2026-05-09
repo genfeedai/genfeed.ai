@@ -10,6 +10,7 @@ import { ArticlesService } from '@api/collections/articles/services/articles.ser
 import { ArticlesAnalyticsService } from '@api/collections/articles/services/articles-analytics.service';
 import { ArticlesContentService } from '@api/collections/articles/services/articles-content.service';
 import { BrandsModule } from '@api/collections/brands/brands.module';
+import { CredentialsModule } from '@api/collections/credentials/credentials.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { HarnessProfilesModule } from '@api/collections/harness-profiles/harness-profiles.module';
 import { ModelsModule } from '@api/collections/models/models.module';
@@ -44,6 +45,7 @@ import { forwardRef, Module } from '@nestjs/common';
     ByokModule,
     forwardRef(() => ConfigModule),
     forwardRef(() => CreditsModule),
+    forwardRef(() => CredentialsModule),
     forwardRef(() => ModelsModule),
     HarnessProfilesModule,
     forwardRef(() => NotificationsModule),

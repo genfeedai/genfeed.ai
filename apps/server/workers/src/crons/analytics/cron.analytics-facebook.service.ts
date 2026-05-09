@@ -75,6 +75,7 @@ export class CronAnalyticsFacebookService {
           posts: chunk.map((post: PostEntity) => ({
             _id: post._id.toString(),
             brand: post.brand.toString(),
+            credential: post.credential?.toString(),
             externalId: post.externalId!,
             organization: post.organization.toString(),
             platform: post.platform as CredentialPlatform,

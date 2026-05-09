@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { colors } from '@/constants';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -96,7 +97,7 @@ export class ErrorBoundary extends Component<
 const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
-    backgroundColor: '#020617',
+    backgroundColor: colors.bgPrimary,
     flex: 1,
     justifyContent: 'center',
     padding: 24,
@@ -107,7 +108,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   detailsContainer: {
-    backgroundColor: '#0f172a',
+    backgroundColor: colors.bgSecondary,
     borderRadius: 12,
     marginBottom: 24,
     maxHeight: 200,
@@ -115,18 +116,18 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   errorMessage: {
-    color: '#cbd5f5',
+    color: colors.textPrimary,
     fontSize: 13,
     marginBottom: 12,
   },
   errorName: {
-    color: '#ef4444',
+    color: colors.error,
     fontSize: 14,
     fontWeight: '600',
     marginBottom: 8,
   },
   retryButton: {
-    backgroundColor: '#6366f1',
+    backgroundColor: colors.indigo,
     borderRadius: 12,
     paddingHorizontal: 32,
     paddingVertical: 14,
@@ -135,24 +136,24 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   retryButtonText: {
-    color: 'white',
+    color: colors.white,
     fontSize: 16,
     fontWeight: '600',
   },
   stackTrace: {
-    color: '#64748b',
+    color: colors.textSubtle,
     fontFamily: 'monospace',
     fontSize: 11,
   },
   subtitle: {
-    color: '#94a3b8',
+    color: colors.textMuted,
     fontSize: 16,
     lineHeight: 24,
     marginBottom: 24,
     textAlign: 'center',
   },
   title: {
-    color: 'white',
+    color: colors.white,
     fontSize: 24,
     fontWeight: '600',
     marginBottom: 12,

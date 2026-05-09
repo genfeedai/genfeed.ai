@@ -8,6 +8,14 @@ import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
+type AnalyticsTwitterPost = {
+  _id: unknown;
+  brand: unknown;
+  credential: { _id: unknown };
+  externalId: string;
+  organization: unknown;
+};
+
 /**
  * Twitter Analytics Cron Service
  * Fetches analytics for Twitter posts every 30 minutes using batch API (up to 100 tweets per request)
@@ -32,7 +40,7 @@ export class CronAnalyticsTwitterService {
 
     try {
       // Find all published Twitter posts with external IDs
-      const posts: unknown = await this.postsService.findAll(
+      const posts = (await this.postsService.findAll(
         {
           include: { credential: true },
           orderBy: { publishedAt: 'desc' },
@@ -44,7 +52,7 @@ export class CronAnalyticsTwitterService {
           },
         },
         { customLabels, pagination: false },
-      );
+      )) as unknown as { docs: AnalyticsTwitterPost[] };
 
       if (!posts.docs || posts.docs.length === 0) {
         this.logger.log(`${url} no Twitter posts to track`);
@@ -59,7 +67,7 @@ export class CronAnalyticsTwitterService {
       const postsByCredential = new Map<string, typeof posts.docs>();
 
       for (const post of posts.docs) {
-        const credentialId = post.credential._id.toString();
+        const credentialId = String(post.credential._id);
         if (!postsByCredential.has(credentialId)) {
           postsByCredential.set(credentialId, []);
         }
@@ -87,11 +95,11 @@ export class CronAnalyticsTwitterService {
           const batch = batches[i];
           const jobData: TwitterAnalyticsJobData = {
             credentialId: credentialId,
-            posts: batch.map((post: unknown) => ({
-              _id: post._id.toString(),
-              brand: post.brand.toString(),
-              externalId: post.externalId!,
-              organization: post.organization.toString(),
+            posts: batch.map((post) => ({
+              _id: String(post._id),
+              brand: String(post.brand),
+              externalId: post.externalId,
+              organization: String(post.organization),
             })),
           };
 

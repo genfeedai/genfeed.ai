@@ -280,7 +280,7 @@ describe('useIngredientActions', () => {
   });
 
   describe('handleMarkArchived', () => {
-    it.skip('should archive ingredient successfully', async () => {
+    it('should archive ingredient successfully', async () => {
       const onRefresh = vi.fn();
       const { result } = renderHook(() => useIngredientActions({ onRefresh }));
 

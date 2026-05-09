@@ -202,7 +202,7 @@ interface AgentBrandsServiceLike {
     createDto: Record<string, unknown>,
   ) => Promise<Record<string, unknown>>;
   findAll: (
-    aggregate: Record<string, unknown>[],
+    aggregate: Record<string, unknown> | Record<string, unknown>[],
     options: Record<string, unknown>,
   ) => Promise<{ docs?: Record<string, unknown>[] }>;
   findOne: (
@@ -2004,7 +2004,7 @@ export class AgentToolExecutorService {
         .filter(Boolean);
     }
 
-    return { where: {} };
+    return [];
   }
 
   private async resolveTargetBrand(
@@ -2813,7 +2813,7 @@ export class AgentToolExecutorService {
 
   private normalizePlatforms(value: unknown): string[] {
     if (!Array.isArray(value)) {
-      return { where: {} };
+      return [];
     }
 
     return Array.from(
@@ -2849,7 +2849,7 @@ export class AgentToolExecutorService {
     platforms?: string[];
   }): Promise<Array<Record<string, unknown>>> {
     if (!this.credentialsService || !params.brandId) {
-      return { where: {} };
+      return [];
     }
 
     const filter: Record<string, unknown> = {

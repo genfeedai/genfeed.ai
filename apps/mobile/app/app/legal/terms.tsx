@@ -1,5 +1,6 @@
 import { Stack } from 'expo-router';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { colors } from '@/constants';
 
 export default function TermsOfService() {
   return (
@@ -128,7 +129,7 @@ export default function TermsOfService() {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#020617',
+    backgroundColor: colors.bgPrimary,
     flex: 1,
   },
   content: {
@@ -136,18 +137,18 @@ const styles = StyleSheet.create({
     paddingBottom: 64,
   },
   heading: {
-    color: 'white',
+    color: colors.white,
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 12,
   },
   lastUpdated: {
-    color: '#64748b',
+    color: colors.textSubtle,
     fontSize: 13,
     marginBottom: 24,
   },
   paragraph: {
-    color: '#cbd5f5',
+    color: colors.textPrimary,
     fontSize: 15,
     lineHeight: 24,
   },

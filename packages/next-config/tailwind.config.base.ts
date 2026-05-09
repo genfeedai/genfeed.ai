@@ -1,7 +1,7 @@
 import type { Config } from 'tailwindcss';
 
 /** Platform brand colors (kept in sync with packages/constants/src/platform-colors.ts) */
-const PLATFORM_COLORS = {
+export const PLATFORM_COLORS = {
   beehiiv: '#FCD34D',
   discord: '#5865F2',
   facebook: '#1877F2',
@@ -10,7 +10,7 @@ const PLATFORM_COLORS = {
   instagram: '#E1306C',
   linkedin: '#0A66C2',
   mastodon: '#6364FF',
-  medium: '#00ab6c',
+  medium: '#00AB6C',
   notion: '#000000',
   pinterest: '#E60023',
   reddit: '#FF4500',
@@ -28,17 +28,12 @@ const PLATFORM_COLORS = {
   youtube: '#FF0000',
 };
 
-const PLATFORM_TOKEN_COLORS = {
-  'platform-discord': 'var(--platform-discord)',
-  'platform-facebook': 'var(--platform-facebook)',
-  'platform-instagram': 'var(--platform-instagram)',
-  'platform-linkedin': 'var(--platform-linkedin)',
-  'platform-pinterest': 'var(--platform-pinterest)',
-  'platform-reddit': 'var(--platform-reddit)',
-  'platform-tiktok': 'var(--platform-tiktok)',
-  'platform-tiktok-cyan': 'var(--platform-tiktok-cyan)',
-  'platform-twitter': 'var(--platform-twitter)',
-};
+export const PLATFORM_TOKEN_COLORS = Object.fromEntries(
+  Object.keys(PLATFORM_COLORS).map((platform) => [
+    `platform-${platform}`,
+    `var(--platform-${platform})`,
+  ]),
+) as Record<`platform-${keyof typeof PLATFORM_COLORS}`, string>;
 
 /**
  * Base Tailwind config shared across all web apps.

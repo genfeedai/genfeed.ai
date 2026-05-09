@@ -156,6 +156,7 @@ export class ModelPricingService {
     // Step 1: Try to match existing model by same creator + category
     const sameCreatorModels = existingModels.filter(
       (m) =>
+        typeof m.key === 'string' &&
         m.key.startsWith(`${creator}/`) &&
         m.category === category &&
         !m.isDeleted,
@@ -163,37 +164,49 @@ export class ModelPricingService {
 
     if (sameCreatorModels.length > 0) {
       const referenceModel = sameCreatorModels[0];
+      const referenceCost = referenceModel.cost ?? tierConfig.standard;
+      const referenceCostPerUnit =
+        typeof referenceModel.costPerUnit === 'number'
+          ? referenceModel.costPerUnit
+          : tierConfig.defaultCostPerUnit;
+      const referenceMinCost =
+        typeof referenceModel.minCost === 'number'
+          ? referenceModel.minCost
+          : tierConfig.defaultMinCost;
+      const referencePricingType =
+        typeof referenceModel.pricingType === 'string'
+          ? (referenceModel.pricingType as PricingType)
+          : tierConfig.defaultPricingType;
 
       this.logger.log(
         `${context} matched existing model from same creator: ${referenceModel.key}`,
         {
           category,
           creator,
-          referenceCost: referenceModel.cost,
+          referenceCost,
         },
       );
 
       return {
-        cost: referenceModel.cost,
-        costPerUnit:
-          referenceModel.costPerUnit ?? tierConfig.defaultCostPerUnit,
-        minCost: Math.max(
-          referenceModel.minCost ?? tierConfig.defaultMinCost,
-          ABSOLUTE_MIN_COST,
-        ),
-        pricingType:
-          referenceModel.pricingType ?? tierConfig.defaultPricingType,
+        cost: referenceCost,
+        costPerUnit: referenceCostPerUnit,
+        minCost: Math.max(referenceMinCost, ABSOLUTE_MIN_COST),
+        pricingType: referencePricingType,
       };
     }
 
     // Step 2: Try category-wide average from existing models
     const sameCategoryModels = existingModels.filter(
-      (m) => m.category === category && !m.isDeleted && m.cost > 0,
+      (m) =>
+        m.category === category &&
+        !m.isDeleted &&
+        typeof m.cost === 'number' &&
+        m.cost > 0,
     );
 
     if (sameCategoryModels.length > 0) {
       const avgCost = Math.round(
-        sameCategoryModels.reduce((sum, m) => sum + m.cost, 0) /
+        sameCategoryModels.reduce((sum, m) => sum + (m.cost ?? 0), 0) /
           sameCategoryModels.length,
       );
 

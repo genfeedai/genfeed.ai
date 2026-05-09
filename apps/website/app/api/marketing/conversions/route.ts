@@ -1,3 +1,4 @@
+import { EnvironmentService } from '@services/core/environment.service';
 import { type NextRequest, NextResponse } from 'next/server';
 import {
   parseServerConversionRequest,
@@ -15,8 +16,38 @@ function getClientIp(request: NextRequest): string | undefined {
   );
 }
 
+function getAllowedConversionHosts(request: NextRequest): Set<string> {
+  const hosts = new Set<string>([request.nextUrl.host]);
+
+  try {
+    hosts.add(new URL(EnvironmentService.apps.website).host);
+  } catch {
+    // Keep the request host as the fallback provenance boundary.
+  }
+
+  return hosts;
+}
+
+function isSameSiteConversionRequest(request: NextRequest): boolean {
+  const source =
+    request.headers.get('origin') || request.headers.get('referer');
+  if (!source) {
+    return false;
+  }
+
+  try {
+    return getAllowedConversionHosts(request).has(new URL(source).host);
+  } catch {
+    return false;
+  }
+}
+
 export async function POST(request: NextRequest) {
   let body: unknown;
+
+  if (!isSameSiteConversionRequest(request)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
 
   try {
     body = await request.json();

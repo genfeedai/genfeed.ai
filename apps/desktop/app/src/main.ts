@@ -33,6 +33,7 @@ import { DesktopCloudService } from './main/cloud.service';
 import { DesktopConfigService } from './main/config.service';
 import { DesktopDatabaseService } from './main/database.service';
 import { DesktopDraftsService } from './main/drafts.service';
+import { buildExternalAppUrl } from './main/external-url.util';
 import { DesktopFilesService } from './main/files.service';
 import { DesktopGenerationService } from './main/generation.service';
 import { DesktopLocalService } from './main/local.service';
@@ -113,14 +114,6 @@ protocol.registerSchemesAsPrivileged([
     scheme: 'genfeed-asset',
   },
 ]);
-
-const buildExternalAppUrl = (pathname: string): string => {
-  if (!pathname.startsWith('/')) {
-    throw new Error('Desktop external app paths must start with /.');
-  }
-
-  return new URL(pathname, new URL(environment.authEndpoint).origin).toString();
-};
 
 const emitQuickGenerate = (): void => {
   mainWindow?.webContents.send(DESKTOP_IPC_CHANNELS.quickGenerate);
@@ -422,7 +415,9 @@ const registerIpcHandlers = (): void => {
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.appOpenExternalPath,
     async (_event: unknown, pathname: string) => {
-      await shell.openExternal(buildExternalAppUrl(pathname));
+      await shell.openExternal(
+        buildExternalAppUrl(pathname, environment.authEndpoint),
+      );
     },
   );
   ipcMain.handle(DESKTOP_IPC_CHANNELS.authGetSession, async () =>
