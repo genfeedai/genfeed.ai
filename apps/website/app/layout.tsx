@@ -119,6 +119,7 @@ export default async function RootLayout({ children }: LayoutProps) {
           EnvironmentService.marketing.linkedinPartnerId
         }
         marketingMetaPixelId={EnvironmentService.marketing.metaPixelId}
+        marketingXEventIds={EnvironmentService.marketing.xEventIds}
         marketingXPixelId={EnvironmentService.marketing.xPixelId}
       >
         {children}

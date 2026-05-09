@@ -41,6 +41,7 @@ export interface AppProvidersProps {
   marketingLinkedinConversionIds?: MarketingTrackingConfig['linkedinConversionIds'];
   marketingLinkedinPartnerId?: string;
   marketingMetaPixelId?: string;
+  marketingXEventIds?: MarketingTrackingConfig['xEventIds'];
   marketingXPixelId?: string;
   storageKey?: string;
 }
@@ -91,6 +92,7 @@ export default function AppProviders({
   marketingLinkedinConversionIds,
   marketingLinkedinPartnerId,
   marketingMetaPixelId,
+  marketingXEventIds,
   marketingXPixelId,
   storageKey = THEME_STORAGE_KEY,
 }: AppProvidersProps) {
@@ -101,6 +103,7 @@ export default function AppProviders({
       linkedinConversionIds: marketingLinkedinConversionIds,
       linkedinPartnerId: marketingLinkedinPartnerId,
       metaPixelId: marketingMetaPixelId,
+      xEventIds: marketingXEventIds,
       xPixelId: marketingXPixelId,
     }),
     [
@@ -109,6 +112,7 @@ export default function AppProviders({
       marketingLinkedinConversionIds,
       marketingLinkedinPartnerId,
       marketingMetaPixelId,
+      marketingXEventIds,
       marketingXPixelId,
     ],
   );

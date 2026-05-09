@@ -183,6 +183,14 @@ export const EnvironmentService = {
     },
     linkedinPartnerId: process.env.NEXT_PUBLIC_LINKEDIN_PARTNER_ID || '',
     metaPixelId: process.env.NEXT_PUBLIC_META_PIXEL_ID || '',
+    xEventIds: {
+      book_call: process.env.NEXT_PUBLIC_X_BOOK_CALL_EVENT_ID || '',
+      cta_click: process.env.NEXT_PUBLIC_X_CTA_CLICK_EVENT_ID || '',
+      lead_submit: process.env.NEXT_PUBLIC_X_LEAD_SUBMIT_EVENT_ID || '',
+      signup_complete: process.env.NEXT_PUBLIC_X_SIGNUP_COMPLETE_EVENT_ID || '',
+      start_signup: process.env.NEXT_PUBLIC_X_START_SIGNUP_EVENT_ID || '',
+      view_pricing: process.env.NEXT_PUBLIC_X_VIEW_PRICING_EVENT_ID || '',
+    },
     xPixelId: process.env.NEXT_PUBLIC_X_PIXEL_ID || '',
   },
 

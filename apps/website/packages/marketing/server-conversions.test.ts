@@ -48,6 +48,9 @@ describe('server conversions', () => {
         metaPixelId: 'meta-pixel',
         xApiEndpoint: 'https://ads-api.x.com/12/measurement/conversions/tag',
         xBearerToken: 'x-token',
+        xEventIds: {
+          book_call: 'tw-book-call',
+        },
       },
     );
 
@@ -60,6 +63,7 @@ describe('server conversions', () => {
       'https://ads-api.x.com/12/measurement/conversions/tag',
     );
     expect(fetchMock.mock.calls[1]?.[1]?.body).toContain('book_call:1');
+    expect(fetchMock.mock.calls[1]?.[1]?.body).toContain('tw-book-call');
   });
 
   it('reports configured providers as failed when the conversion request fails', async () => {

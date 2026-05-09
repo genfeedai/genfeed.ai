@@ -60,6 +60,7 @@ describe('website AppProviders', () => {
         marketingLinkedinConversionIds={{ book_call: 12345 }}
         marketingLinkedinPartnerId="li-123"
         marketingMetaPixelId="meta-123"
+        marketingXEventIds={{ book_call: 'tw-book-call' }}
         marketingXPixelId="x-123"
       >
         <div>Website child</div>
@@ -74,6 +75,7 @@ describe('website AppProviders', () => {
         linkedinConversionIds: { book_call: 12345 },
         linkedinPartnerId: 'li-123',
         metaPixelId: 'meta-123',
+        xEventIds: { book_call: 'tw-book-call' },
         xPixelId: 'x-123',
       },
       consentDefault: 'denied',
