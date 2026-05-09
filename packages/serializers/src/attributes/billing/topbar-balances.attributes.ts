@@ -1,6 +1,6 @@
 import { createEntityAttributes } from '@genfeedai/helpers';
 
-export const topbarBalancesAttributes = createEntityAttributes([
+export const topbarBalancesAttributes: string[] = createEntityAttributes([
   'generatedAt',
   'segments',
 ]);
