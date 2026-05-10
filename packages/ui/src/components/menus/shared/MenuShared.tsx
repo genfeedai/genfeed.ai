@@ -428,7 +428,7 @@ export default function MenuShared({
             )}
             aria-label={`Back to ${backLabel ?? 'previous page'}`}
           >
-            <HiOutlineArrowLeft className="h-4 w-4 text-foreground/42 transition-colors duration-200 group-hover:text-foreground/78" />
+            <HiOutlineArrowLeft className="size-4 text-foreground/42 transition-colors duration-200 group-hover:text-foreground/78" />
             <span className="text-[13px] font-medium tracking-[-0.01em] text-foreground/88">
               {backLabel ?? 'Back'}
             </span>
@@ -459,25 +459,25 @@ export default function MenuShared({
       variant={ButtonVariant.UNSTYLED}
       withWrapper={false}
       onClick={onToggleCollapse}
-      className="group flex h-7 w-7 flex-shrink-0 items-center justify-center rounded border border-border bg-background-secondary text-foreground/56 cursor-pointer transition-colors hover:border-border-strong hover:bg-background-tertiary"
+      className="group flex size-7 flex-shrink-0 items-center justify-center rounded border border-border bg-background-secondary text-foreground/56 cursor-pointer transition-colors hover:border-border-strong hover:bg-background-tertiary"
       ariaLabel={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
     >
-      <span className="relative flex h-4 w-4 items-center justify-center">
+      <span className="relative flex size-4 items-center justify-center">
         {logoUrl ? (
           <Image
             src={logoUrl}
             alt={EnvironmentService.LOGO_ALT}
-            className="h-4 w-4 object-contain dark:invert transition-opacity duration-200 group-hover:opacity-0"
+            className="size-4 object-contain dark:invert transition-opacity duration-200 group-hover:opacity-0"
             width={16}
             height={16}
             sizes="16px"
           />
         ) : isCollapsed ? (
-          <PiSidebarSimple className="h-4 w-4 transition-opacity duration-200 group-hover:opacity-0" />
+          <PiSidebarSimple className="size-4 transition-opacity duration-200 group-hover:opacity-0" />
         ) : (
-          <PiSidebarSimpleFill className="h-4 w-4 transition-opacity duration-200 group-hover:opacity-0" />
+          <PiSidebarSimpleFill className="size-4 transition-opacity duration-200 group-hover:opacity-0" />
         )}
-        <PiSidebarSimple className="absolute h-4 w-4 opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
+        <PiSidebarSimple className="absolute size-4 opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
       </span>
     </Button>
   ) : null;
@@ -568,11 +568,11 @@ export default function MenuShared({
                   {config.primaryAction.icon ? (
                     config.primaryAction.icon
                   ) : config.primaryAction.solid ? (
-                    <config.primaryAction.solid className="h-4 w-4" />
+                    <config.primaryAction.solid className="size-4" />
                   ) : config.primaryAction.outline ? (
-                    <config.primaryAction.outline className="h-4 w-4" />
+                    <config.primaryAction.outline className="size-4" />
                   ) : (
-                    <HiPlus className="h-4 w-4" />
+                    <HiPlus className="size-4" />
                   )}
                   <span className="flex-1">{config.primaryAction.label}</span>
                   <Kbd
@@ -598,11 +598,11 @@ export default function MenuShared({
                   {config.primaryAction.icon ? (
                     config.primaryAction.icon
                   ) : config.primaryAction.solid ? (
-                    <config.primaryAction.solid className="h-4 w-4" />
+                    <config.primaryAction.solid className="size-4" />
                   ) : config.primaryAction.outline ? (
-                    <config.primaryAction.outline className="h-4 w-4" />
+                    <config.primaryAction.outline className="size-4" />
                   ) : (
-                    <HiPlus className="h-4 w-4" />
+                    <HiPlus className="size-4" />
                   )}
                   <span className="flex-1">{config.primaryAction.label}</span>
                   <Kbd
@@ -711,7 +711,7 @@ export default function MenuShared({
                           href={orgHref('/chat/new')}
                           className="group flex h-8 w-full items-center gap-3 rounded px-3 py-1.5 text-left text-foreground/72 transition-colors duration-150 cursor-pointer hover:bg-white/[0.035] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
                         >
-                          <HiPlus className="h-4 w-4 text-foreground/42 group-hover:text-foreground/78" />
+                          <HiPlus className="size-4 text-foreground/42 group-hover:text-foreground/78" />
                           <span className="text-[13px] font-medium tracking-[-0.01em] text-foreground/88">
                             New Chat
                           </span>
@@ -762,14 +762,14 @@ function SidebarUserProfile({
 
   if (isCollapsed) {
     return (
-      <div className="border-t border-white/[0.06] px-3 py-3 flex justify-center">
+      <div className="border-t border-white/[0.06] p-3 flex justify-center">
         {isSignedIn ? <UserButton /> : null}
       </div>
     );
   }
 
   return (
-    <div className="border-t border-white/[0.06] px-3 py-3">
+    <div className="border-t border-white/[0.06] p-3">
       <div className="flex items-center gap-2.5">
         {isSignedIn ? <UserButton /> : null}
         <div className="min-w-0 flex-1">
@@ -872,7 +872,7 @@ function CollapsibleGroup({
     <div className={cn('mt-2', className)}>
       <div
         className={cn(
-          'group/collapsible flex w-full items-center px-1 py-1 text-white/30',
+          'group/collapsible flex w-full items-center p-1 text-white/30',
           headerClassName,
         )}
       >
@@ -884,7 +884,7 @@ function CollapsibleGroup({
         >
           <HiChevronDown
             className={cn(
-              'w-3 h-3 transition-transform duration-200',
+              'size-3 transition-transform duration-200',
               isCollapsed && '-rotate-90',
             )}
           />
@@ -952,7 +952,7 @@ function DrillDownGroupRow({
       {OutlineIcon && (
         <OutlineIcon
           className={cn(
-            'w-4 h-4 transition-colors duration-200',
+            'size-4 transition-colors duration-200',
             isActive ? 'text-primary' : 'text-white/80 group-hover:text-white',
           )}
         />
@@ -965,7 +965,7 @@ function DrillDownGroupRow({
       >
         {group.group}
       </span>
-      <HiChevronRight className="w-4 h-4 text-white/30" />
+      <HiChevronRight className="size-4 text-white/30" />
     </>
   );
 

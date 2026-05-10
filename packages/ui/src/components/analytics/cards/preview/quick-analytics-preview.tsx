@@ -53,7 +53,7 @@ export function QuickAnalyticsPreview({
     return (
       <div className={cardClassName}>
         <div className="flex items-center gap-2 mb-6">
-          <HiChartBarSquare className="w-4 h-4 text-purple-600" />
+          <HiChartBarSquare className="size-4 text-purple-600" />
           <h3 className="text-lg font-semibold text-foreground">{title}</h3>
         </div>
         <div className="text-center py-8">
@@ -65,7 +65,7 @@ export function QuickAnalyticsPreview({
             className="inline-flex items-center gap-2 rounded-md bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-700"
           >
             Go to Analytics
-            <HiArrowRight className="w-4 h-4" />
+            <HiArrowRight className="size-4" />
           </Link>
         </div>
       </div>
@@ -121,7 +121,7 @@ export function QuickAnalyticsPreview({
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
-          <HiChartBarSquare className="w-4 h-4 text-purple-600" />
+          <HiChartBarSquare className="size-4 text-purple-600" />
           <h3 className="text-lg font-semibold text-foreground">{title}</h3>
         </div>
         <span className="text-sm text-muted-foreground">Last 7 days</span>
@@ -135,7 +135,7 @@ export function QuickAnalyticsPreview({
             className="rounded-lg border border-border bg-muted p-4"
           >
             <div className="flex items-center gap-2 mb-2">
-              <stat.icon className={`w-4 h-4 ${stat.color}`} />
+              <stat.icon className={`size-4 ${stat.color}`} />
               <p className="text-xs text-muted-foreground">{stat.label}</p>
             </div>
             <p className="text-2xl font-bold text-foreground mb-1">
@@ -226,7 +226,7 @@ export function QuickAnalyticsPreview({
         className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-purple-600 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-purple-700"
       >
         View Detailed Analytics
-        <HiArrowRight className="w-4 h-4" />
+        <HiArrowRight className="size-4" />
       </Link>
     </div>
   );

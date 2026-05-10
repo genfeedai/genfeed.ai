@@ -226,7 +226,7 @@ export default function IngredientTabsMetadata({
       <Button
         icon={
           <HiArrowPath
-            className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`}
+            className={`size-4 ${isRefreshing ? 'animate-spin' : ''}`}
           />
         }
         tooltip="Refresh metadata"

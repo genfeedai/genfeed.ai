@@ -1,5 +1,3 @@
-'use server';
-
 import {
   DEFAULT_THEME,
   THEME_COOKIE_NAME,

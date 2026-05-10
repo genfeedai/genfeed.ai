@@ -1,40 +1,39 @@
 'use client';
 
 import { UserButton, useAuth } from '@clerk/nextjs';
-import { ButtonSize } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { Button } from '@ui/primitives/button';
 import TopbarPublic from '@ui/topbars/public/TopbarPublic';
 import {
   HiBuildingOffice2,
-  HiChartBar,
+  HiCloud,
   HiGlobeAlt,
   HiMegaphone,
-  HiShare,
+  HiServerStack,
   HiShoppingCart,
-  HiSparkles,
   HiStar,
   HiUserCircle,
 } from 'react-icons/hi2';
 
 const PRODUCT_LINKS = [
   {
-    description: 'Generate AI videos, images, avatars',
-    href: '/#studio',
-    icon: HiSparkles,
-    label: 'Studio',
+    description: '$8/mo platform access + PAYG output',
+    href: '/pricing',
+    icon: HiCloud,
+    label: 'Cloud App',
   },
   {
-    description: 'Schedule & post everywhere',
-    href: '/#publish',
-    icon: HiShare,
-    label: 'Publish',
+    description: 'Team workspaces, roles, approvals',
+    href: '/cloud',
+    icon: HiBuildingOffice2,
+    label: 'Cloud Teams',
   },
   {
-    description: 'Trends, analytics, ROI tracking',
-    href: '/#intelligence',
-    icon: HiChartBar,
-    label: 'Intelligence',
+    description: 'Run Genfeed on your infrastructure',
+    href: '/host',
+    icon: HiServerStack,
+    label: 'Self-Hosted Core',
   },
   {
     description: 'Connect every platform',
@@ -70,7 +69,7 @@ const USE_CASES_LINKS = [
     label: 'E-commerce',
   },
   {
-    description: 'Campaign content on autopilot',
+    description: 'Campaign content and reporting',
     href: '/use-cases/marketers',
     icon: HiMegaphone,
     label: 'Marketers',
@@ -81,6 +80,7 @@ const NAV_LINKS = [{ href: '/pricing', label: 'Pricing' }];
 
 export default function WebsiteTopbar() {
   const { isSignedIn } = useAuth();
+  const signUpHref = `${EnvironmentService.apps.app}/sign-up?plan=hosted`;
 
   return (
     <TopbarPublic
@@ -102,14 +102,24 @@ export default function WebsiteTopbar() {
               <Button
                 asChild
                 size={ButtonSize.PUBLIC}
-                className="h-9 px-5 text-sm uppercase"
+                variant={ButtonVariant.OUTLINE}
+                className="hidden h-9 px-5 text-sm uppercase xl:inline-flex"
               >
                 <a
-                  href={`${EnvironmentService.apps.app}/sign-up`}
+                  href={EnvironmentService.calendly}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  Get Started
+                  Book Demo
+                </a>
+              </Button>
+              <Button
+                asChild
+                size={ButtonSize.PUBLIC}
+                className="h-9 px-5 text-sm uppercase"
+              >
+                <a href={signUpHref} target="_blank" rel="noopener noreferrer">
+                  Start Cloud App
                 </a>
               </Button>
             </>

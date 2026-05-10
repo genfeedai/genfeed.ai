@@ -55,7 +55,7 @@ export default function StreakCard() {
           </p>
           <p className="text-lg font-semibold text-white">
             {isLoading
-              ? '...'
+              ? '…'
               : `${currentStreak} day${currentStreak === 1 ? '' : 's'}`}
           </p>
         </div>

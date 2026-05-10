@@ -76,7 +76,7 @@ export function SkeletonCard({
       {showImage && (
         <div className="relative h-48 w-full overflow-hidden">
           <div className="absolute inset-0">
-            <Skeleton variant="rounded" className="h-full w-full" />
+            <Skeleton variant="rounded" className="size-full" />
           </div>
         </div>
       )}

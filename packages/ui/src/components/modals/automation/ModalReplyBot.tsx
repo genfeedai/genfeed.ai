@@ -379,7 +379,7 @@ export default function ModalReplyBot({
               name="replyInstructions"
               control={form.control}
               onChange={handleChange}
-              placeholder="Instructions for AI to follow when generating replies..."
+              placeholder="Instructions for AI to follow when generating replies…"
               isDisabled={isSubmitting}
               onKeyDown={handleKeyDown}
               className="h-24"
@@ -551,7 +551,7 @@ export default function ModalReplyBot({
                       shouldValidate: true,
                     });
                   }}
-                  placeholder="What product are you selling? Describe your offer..."
+                  placeholder="What product are you selling? Describe your offer…"
                   isDisabled={isSubmitting}
                   onKeyDown={handleKeyDown}
                   className="h-20"

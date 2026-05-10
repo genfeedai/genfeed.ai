@@ -14,10 +14,10 @@ const spinnerVariants = cva(
     },
     variants: {
       size: {
-        [ComponentSize.LG]: 'h-6 w-6 border-2',
-        [ComponentSize.MD]: 'h-5 w-5 border-2',
-        [ComponentSize.SM]: 'h-4 w-4 border',
-        [ComponentSize.XS]: 'h-3 w-3 border',
+        [ComponentSize.LG]: 'size-6 border-2',
+        [ComponentSize.MD]: 'size-5 border-2',
+        [ComponentSize.SM]: 'size-4 border',
+        [ComponentSize.XS]: 'size-3 border',
       },
     },
   },

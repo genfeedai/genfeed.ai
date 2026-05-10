@@ -83,11 +83,11 @@ export default function ListRowSound({
     >
       <div className="flex min-w-0 items-center gap-3">
         {leading ?? (
-          <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.04] text-sm font-medium text-white/70">
+          <div className="flex size-10 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.04] text-sm font-medium text-white/70">
             {typeof index === 'number' ? (
               index + 1
             ) : (
-              <HiPlay className="h-4 w-4" />
+              <HiPlay className="size-4" />
             )}
           </div>
         )}

@@ -71,7 +71,7 @@ function PromptNodeComponent(props: NodeProps) {
         onClick={handleExpand}
         title="Expand editor"
       >
-        <Expand className="w-3.5 h-3.5" />
+        <Expand className="size-3.5" />
       </Button>
       <Button
         variant="ghost"
@@ -80,7 +80,7 @@ function PromptNodeComponent(props: NodeProps) {
         disabled={!nodeData.prompt}
         title="Save to library"
       >
-        <Save className="w-3.5 h-3.5" />
+        <Save className="size-3.5" />
       </Button>
     </>
   );

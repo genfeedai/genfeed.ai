@@ -60,7 +60,7 @@ const AudienceInsightsCard = memo(function AudienceInsightsCard({
         className={className}
       >
         <div className="flex flex-col items-center justify-center py-8 text-center">
-          <HiUserGroup className="w-12 h-12 text-foreground/30 mb-3" />
+          <HiUserGroup className="size-12 text-foreground/30 mb-3" />
           <p className="text-foreground/70 font-medium">
             No audience data available
           </p>
@@ -107,7 +107,7 @@ const AudienceInsightsCard = memo(function AudienceInsightsCard({
                 <div
                   className={cn('flex items-center gap-1 text-sm', growthColor)}
                 >
-                  <GrowthIcon className="w-4 h-4" />
+                  <GrowthIcon className="size-4" />
                   <span className="font-mono">
                     {formatPercentage(segment.growth)}
                   </span>
@@ -129,7 +129,7 @@ const AudienceInsightsCard = memo(function AudienceInsightsCard({
                 </div>
                 <div className="text-center p-2 bg-muted/50 col-span-2 md:col-span-1">
                   <div className="flex items-center justify-center gap-1">
-                    <HiClock className="w-4 h-4 text-foreground/50" />
+                    <HiClock className="size-4 text-foreground/50" />
                     <p className="text-lg font-bold">
                       {segment.peakHours.slice(0, 2).map(formatHour).join(', ')}
                     </p>
@@ -144,7 +144,7 @@ const AudienceInsightsCard = memo(function AudienceInsightsCard({
                   <div className="flex items-center gap-1">
                     {segment.platforms.map((platform) => (
                       <span key={platform}>
-                        {getPlatformIcon(platform, 'w-4 h-4')}
+                        {getPlatformIcon(platform, 'size-4')}
                       </span>
                     ))}
                   </div>

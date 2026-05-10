@@ -258,7 +258,7 @@ export default function ModalPostPlatformsTab({
                   <div className="flex items-center gap-2 flex-1">
                     {Icon && (
                       <Icon
-                        className={`w-4 h-4 ${hasCredential ? color : 'text-foreground/30'}`}
+                        className={`size-4 ${hasCredential ? color : 'text-foreground/30'}`}
                       />
                     )}
                     {hasCredential && (
@@ -321,7 +321,7 @@ export default function ModalPostPlatformsTab({
                       <div className="flex items-center gap-2">
                         {Icon && (
                           <Icon
-                            className={`w-4 h-4 ${
+                            className={`size-4 ${
                               hasCredential ? color : 'text-foreground/40'
                             }`}
                           />
@@ -447,10 +447,10 @@ export default function ModalPostPlatformsTab({
                             isLoading={
                               generatingTitleFor === config.credentialId
                             }
-                            icon={<HiSparkles className="w-3 h-3" />}
+                            icon={<HiSparkles className="size-3" />}
                             label={
                               generatingTitleFor === config.credentialId
-                                ? 'Generating...'
+                                ? 'Generating…'
                                 : 'Generate'
                             }
                           />
@@ -495,10 +495,10 @@ export default function ModalPostPlatformsTab({
                             generatingDescFor === config.credentialId
                           }
                           isLoading={generatingDescFor === config.credentialId}
-                          icon={<HiSparkles className="w-3 h-3" />}
+                          icon={<HiSparkles className="size-3" />}
                           label={
                             generatingDescFor === config.credentialId
-                              ? 'Generating...'
+                              ? 'Generating…'
                               : 'Generate'
                           }
                         />

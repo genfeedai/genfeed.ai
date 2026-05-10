@@ -50,7 +50,7 @@ export default function GallerySidebar({ onLinkClick }: GallerySidebarProps) {
             <Image
               src={logoUrl}
               alt={EnvironmentService.LOGO_ALT}
-              className="h-6 w-6 object-contain dark:invert"
+              className="size-6 object-contain dark:invert"
               width={24}
               height={24}
               sizes="24px"

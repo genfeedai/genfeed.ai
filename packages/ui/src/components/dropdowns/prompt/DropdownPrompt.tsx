@@ -132,7 +132,7 @@ export default function DropdownPrompt({
             ? { right: `${dropdownPosition.right}px` }
             : { left: `${dropdownPosition.left}px` }),
           transform: direction === 'up' ? 'translateY(-100%)' : 'none',
-          zIndex: 9999,
+          zIndex: 50,
         }}
         className={cn(BG_BLUR, BORDER_WHITE_30, 'w-80')}
       >
@@ -155,7 +155,7 @@ export default function DropdownPrompt({
                   setIsOpen(false);
                 }}
               >
-                <HiArrowPath className="w-4 h-4" />
+                <HiArrowPath className="size-4" />
               </Button>
             )}
 
@@ -169,7 +169,7 @@ export default function DropdownPrompt({
               tooltip="Copy prompt"
               tooltipPosition="top"
             >
-              <HiDocumentDuplicate className="w-4 h-4" />
+              <HiDocumentDuplicate className="size-4" />
             </Button>
           </div>
         </div>
@@ -203,7 +203,7 @@ export default function DropdownPrompt({
         tooltipPosition="top"
         ariaLabel="View prompt"
       >
-        <HiClipboardDocument className="w-4 h-4" />
+        <HiClipboardDocument className="size-4" />
       </Button>
 
       {/* Dropdown Menu rendered via portal */}

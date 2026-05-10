@@ -71,7 +71,7 @@ export default function Datepicker({
               className,
             )}
           >
-            <HiCalendarDays className="mr-2 h-4 w-4" />
+            <HiCalendarDays className="mr-2 size-4" />
             {selectedDate ? format(selectedDate, dateFormat) : placeholderText}
           </Button>
         </PopoverTrigger>

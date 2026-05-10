@@ -31,7 +31,7 @@ const ModelSelectorProviderSidebar = memo(
             tooltip="Favorites"
             color="#EAB308"
           >
-            <HiStar className="h-4 w-4" />
+            <HiStar className="size-4" />
           </SidebarButton>
         )}
 
@@ -41,7 +41,7 @@ const ModelSelectorProviderSidebar = memo(
           tooltip="All"
           color="#9CA3AF"
         >
-          <HiSquares2X2 className="h-4 w-4" />
+          <HiSquares2X2 className="size-4" />
         </SidebarButton>
 
         <div className="w-6 h-px bg-white/10 my-0.5" />
@@ -59,7 +59,7 @@ const ModelSelectorProviderSidebar = memo(
               color={brand.color}
             >
               {BrandIcon ? (
-                <BrandIcon className="h-3.5 w-3.5" />
+                <BrandIcon className="size-3.5" />
               ) : (
                 <span className="text-[10px] font-bold leading-none">
                   {brand.label.charAt(0)}
@@ -94,7 +94,7 @@ function SidebarButton({
       onClick={onClick}
       tooltip={tooltip}
       className={cn(
-        'w-8 h-8 rounded flex items-center justify-center transition-all relative',
+        'size-8 rounded flex items-center justify-center transition-all relative',
         isActive
           ? 'bg-white/10'
           : 'hover:bg-white/5 text-foreground/50 hover:text-foreground/80',

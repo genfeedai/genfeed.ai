@@ -27,12 +27,12 @@ import { track } from '@vercel/analytics';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { EditorEffectsPanel } from './EditorEffectsPanel';
-import { EditorPreview, type EditorPreviewRef } from './EditorPreview';
-import { EditorPropertiesPanel } from './EditorPropertiesPanel';
-import { EditorTextPanel } from './EditorTextPanel';
-import { EditorTimeline } from './EditorTimeline';
-import { EditorToolbar } from './EditorToolbar';
+import EditorEffectsPanel from './EditorEffectsPanel';
+import EditorPreview, { type EditorPreviewRef } from './EditorPreview';
+import EditorPropertiesPanel from './EditorPropertiesPanel';
+import EditorTextPanel from './EditorTextPanel';
+import EditorTimeline from './EditorTimeline';
+import EditorToolbar from './EditorToolbar';
 
 const DEFAULT_FPS = 30;
 const AUTO_SAVE_INTERVAL = 30000;

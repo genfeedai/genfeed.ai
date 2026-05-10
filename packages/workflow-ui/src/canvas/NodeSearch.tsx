@@ -54,11 +54,6 @@ export function NodeSearch() {
     });
   }, [nodes, search]);
 
-  // Reset selection when results change
-  useEffect(() => {
-    setSelectedIndex(0);
-  }, []);
-
   // Scroll selected item into view
   useEffect(() => {
     if (listRef.current) {
@@ -140,18 +135,18 @@ export function NodeSearch() {
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
           <div className="flex items-center gap-2">
-            <Search className="w-4 h-4 text-[var(--muted-foreground)]" />
+            <Search className="size-4 text-[var(--muted-foreground)]" />
             <span className="text-sm font-medium">Find Node</span>
           </div>
           <Button variant="ghost" size="icon-sm" onClick={handleClose}>
-            <X className="w-4 h-4" />
+            <X className="size-4" />
           </Button>
         </div>
 
         {/* Content */}
         <div role="listbox" className="p-4" onKeyDown={handleKeyDown}>
           <div className="relative mb-3">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
             <input
               ref={inputRef}
               type="text"
@@ -190,7 +185,7 @@ export function NodeSearch() {
                         : 'hover:bg-secondary/50 border border-transparent'
                     }`}
                   >
-                    <div className="flex-shrink-0 w-8 h-8 rounded bg-secondary flex items-center justify-center text-xs font-medium">
+                    <div className="flex-shrink-0 size-8 rounded bg-secondary flex items-center justify-center text-xs font-medium">
                       {nodeDef?.label?.charAt(0) || '?'}
                     </div>
                     <div className="flex-1 min-w-0">

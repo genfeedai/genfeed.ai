@@ -202,7 +202,7 @@ export default function ModalMonitoredAccount({
               name="avatarUrl"
               control={form.control}
               onChange={handleChange}
-              placeholder="https://... (optional)"
+              placeholder="https://… (optional)"
               isDisabled={isSubmitting}
             />
           </FormControl>

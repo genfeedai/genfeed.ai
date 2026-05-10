@@ -149,7 +149,7 @@ export default function FrameSequenceSelector({
               {frames.length >= 2 && (
                 <span className="ml-2">
                   Pairs: {frames.length - 1} transition
-                  {frames.length - 1 !== 1 ? 's' : ''} (1→2, 2→3, ...)
+                  {frames.length - 1 !== 1 ? 's' : ''} (1→2, 2→3, …)
                 </span>
               )}
             </p>

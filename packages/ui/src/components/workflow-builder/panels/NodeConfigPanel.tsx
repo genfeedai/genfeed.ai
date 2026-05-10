@@ -47,7 +47,7 @@ function ConfigField({
           }
         >
           <SelectTrigger className="h-8">
-            <SelectValue placeholder="Select variable..." />
+            <SelectValue placeholder="Select variable…" />
           </SelectTrigger>
           <SelectContent>
             {variables.map((v) => (
@@ -109,7 +109,7 @@ function ConfigField({
             onValueChange={(selectedValue) => onChange(fieldKey, selectedValue)}
           >
             <SelectTrigger className="h-8">
-              <SelectValue placeholder="Select..." />
+              <SelectValue placeholder="Select…" />
             </SelectTrigger>
             <SelectContent>
               {field.options?.map((opt) => (
@@ -177,7 +177,7 @@ function ConfigField({
             className={cn(useVariable && 'text-primary')}
             onClick={() => setUseVariable(!useVariable)}
             ariaLabel="Use variable"
-            icon={<HiOutlineVariable className="h-4 w-4" />}
+            icon={<HiOutlineVariable className="size-4" />}
           />
         )}
       </div>
@@ -229,7 +229,7 @@ export default function NodeConfigPanel({
           variant={ButtonVariant.GHOST}
           size={ButtonSize.SM}
           onClick={onClose}
-          icon={<HiOutlineXMark className="h-4 w-4" />}
+          icon={<HiOutlineXMark className="size-4" />}
         />
       </div>
 

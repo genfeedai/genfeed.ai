@@ -49,7 +49,7 @@ export function TrendingHashtags({
   if (filteredHashtags.length === 0) {
     return (
       <div className={`text-center py-12 ${className}`}>
-        <HiOutlineHashtag className="h-12 w-12 mx-auto mb-3 opacity-30" />
+        <HiOutlineHashtag className="size-12 mx-auto mb-3 opacity-30" />
         <p className="text-foreground/60">No trending hashtags found</p>
         <p className="text-sm text-foreground/40 mt-1">
           {selectedPlatform
@@ -95,7 +95,7 @@ export function TrendingHashtags({
                 <Button
                   key={platform.id}
                   label={platform.label}
-                  icon={<Icon className="h-3.5 w-3.5" />}
+                  icon={<Icon className="size-3.5" />}
                   onClick={() => onPlatformChange(platform.id)}
                   className={`px-3 py-1.5 text-sm transition-colors flex items-center gap-1.5 ${
                     selectedPlatform === platform.id
@@ -134,7 +134,7 @@ export function TrendingHashtags({
                 </span>
                 {Icon && (
                   <Icon
-                    className="h-4 w-4 flex-shrink-0 ml-2"
+                    className="size-4 flex-shrink-0 ml-2"
                     style={{ color: config?.color }}
                   />
                 )}
@@ -157,7 +157,7 @@ export function TrendingHashtags({
 
                 <div className="flex items-center justify-between pt-1">
                   <span className="text-foreground/60 flex items-center gap-1">
-                    <HiArrowTrendingUp className="h-3.5 w-3.5" />
+                    <HiArrowTrendingUp className="size-3.5" />
                     Growth
                   </span>
                   <span

@@ -59,10 +59,10 @@ export default function OverviewLayout({
                       <CardIcon
                         icon={card.icon}
                         className={cn(
-                          'gen-shell-surface flex h-11 w-11 items-center justify-center rounded-md border-white/[0.08]',
+                          'gen-shell-surface flex size-11 items-center justify-center rounded-md border-white/[0.08]',
                           card.color,
                         )}
-                        iconClassName="h-5 w-5"
+                        iconClassName="size-5"
                       />
                     </div>
                   </div>

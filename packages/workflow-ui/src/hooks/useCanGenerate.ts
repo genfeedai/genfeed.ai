@@ -110,9 +110,12 @@ export function useCanGenerate({
     // 2. Check connected nodes targeting required handles have actual data
     const connectedInputs = getConnectedInputs(nodeId);
     const nodeDef = NODE_DEFINITIONS[nodeType];
-    const requiredHandleIds = new Set(
-      nodeDef?.inputs.filter((h) => h.required).map((h) => h.id) ?? [],
-    );
+    const requiredHandleIds = new Set<string>();
+    for (const input of nodeDef?.inputs ?? []) {
+      if (input.required) {
+        requiredHandleIds.add(input.id);
+      }
+    }
     let hasRequiredData = true;
     let hasConnectedData = true;
 

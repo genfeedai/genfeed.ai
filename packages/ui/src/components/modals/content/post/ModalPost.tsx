@@ -270,7 +270,7 @@ export default function ModalPost({
     >
       <form ref={formRef} onSubmit={onSubmit} className="space-y-6">
         <div className="space-y-4">
-          <h2 className="text-2xl font-bold">{modalTitle}</h2>
+          <h2 className="text-2xl font-semibold">{modalTitle}</h2>
           <p className="text-foreground/70 text-sm">{modalDescription}</p>
         </div>
 
@@ -407,7 +407,7 @@ export default function ModalPost({
                 type="submit"
                 label={(() => {
                   if (isSubmitting) {
-                    return 'Saving...';
+                    return 'Saving…';
                   }
                   if (isEditMode) {
                     return 'Save';

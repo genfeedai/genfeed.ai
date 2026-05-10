@@ -64,14 +64,20 @@ function VideoFrameExtractNodeComponent(props: NodeProps) {
 
         {/* Selection Mode */}
         <div>
-          <label className="text-xs text-[var(--muted-foreground)] block mb-1">
+          <label
+            className="text-xs text-[var(--muted-foreground)] block mb-1"
+            htmlFor={`video-frame-selection-${id}`}
+          >
             Frame Selection
           </label>
           <Select
             value={nodeData.selectionMode}
             onValueChange={handleModeChange}
           >
-            <SelectTrigger className="nodrag h-8 w-full">
+            <SelectTrigger
+              id={`video-frame-selection-${id}`}
+              className="nodrag h-8 w-full"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -99,9 +105,9 @@ function VideoFrameExtractNodeComponent(props: NodeProps) {
               size="icon-sm"
               onClick={handleProcess}
               disabled={nodeData.status === 'processing'}
-              className="absolute top-1 right-1 h-6 w-6 bg-black/50 hover:bg-black/70"
+              className="absolute top-1 right-1 size-6 bg-black/50 hover:bg-black/70"
             >
-              <RefreshCw className="w-3 h-3" />
+              <RefreshCw className="size-3" />
             </Button>
           </div>
         )}
@@ -116,9 +122,9 @@ function VideoFrameExtractNodeComponent(props: NodeProps) {
             className="w-full"
           >
             {nodeData.status === 'processing' ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="size-4 animate-spin" />
             ) : (
-              <Film className="w-4 h-4" />
+              <Film className="size-4" />
             )}
             {nodeData.status === 'processing'
               ? 'Extracting...'

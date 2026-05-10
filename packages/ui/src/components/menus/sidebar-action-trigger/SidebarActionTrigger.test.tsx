@@ -7,7 +7,7 @@ describe('SidebarActionTrigger', () => {
   it('renders a menu-style action with a hover-only shortcut badge', () => {
     render(
       <SidebarActionTrigger
-        icon={<HiPlus className="h-4 w-4" />}
+        icon={<HiPlus className="size-4" />}
         label="New Task"
         onClick={vi.fn()}
         shortcut="⌘⇧N"

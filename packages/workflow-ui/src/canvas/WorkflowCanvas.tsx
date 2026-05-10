@@ -99,129 +99,32 @@ const edgeTypesMap: EdgeTypes = {
   reference: ReferenceEdge,
 };
 
-interface WorkflowCanvasProps {
-  /** Override default node types. Pass merged core + cloud nodeTypes here. */
-  nodeTypes?: NodeTypes;
-  /** Optional callback for download-as-ZIP of selected nodes */
-  onDownloadAsZip?: (nodes: WorkflowNode[]) => void;
+const MINIMAP_HIDE_DELAY = 1500;
+
+interface StyledWorkflowEdgesOptions {
+  activeNodeExecutions: ReturnType<
+    typeof useExecutionStore.getState
+  >['activeNodeExecutions'];
+  currentNodeId: string | null;
+  edges: WorkflowEdge[];
+  executingNodeIds: string[];
+  hasActiveNodeExecutions: boolean;
+  highlightedNodeIds: string[];
+  isRunning: boolean;
+  nodes: WorkflowNode[];
 }
 
-export function WorkflowCanvas({
-  nodeTypes: nodeTypesProp,
-  onDownloadAsZip,
-}: WorkflowCanvasProps = {}) {
-  const {
-    nodes,
-    edges,
-    onNodesChange,
-    onEdgesChange,
-    onConnect,
-    isValidConnection,
-    findCompatibleHandle,
-    addNode,
-    selectedNodeIds,
-    setSelectedNodeIds,
-    toggleNodeLock,
-    createGroup,
-    deleteGroup,
-    unlockAllNodes,
-    groups,
-    getConnectedNodeIds,
-  } = useWorkflowStore();
-
-  const {
-    selectNode,
-    selectEdge,
-    setHighlightedNodeIds,
-    highlightedNodeIds,
-    showPalette,
-    togglePalette,
-    openModal,
-    openConnectionDropMenu,
-  } = useUIStore();
-  const reactFlow = useReactFlow();
-  const { edgeStyle, showMinimap } = useSettingsStore();
-  const isRunning = useExecutionStore((state) => state.isRunning);
-  const currentNodeId = useExecutionStore((state) => state.currentNodeId);
-  const executingNodeIds = useExecutionStore((state) => state.executingNodeIds);
-  const activeNodeExecutions = useExecutionStore(
-    (state) => state.activeNodeExecutions,
-  );
-  const hasActiveNodeExecutions = useExecutionStore(
-    (state) => state.activeNodeExecutions.size > 0,
-  );
-
-  const [isMinimapVisible, setIsMinimapVisible] = useState(false);
-  const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
-  const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const MINIMAP_HIDE_DELAY = 1500; // ms after stopping movement
-
-  const {
-    isOpen: isContextMenuOpen,
-    position: contextMenuPosition,
-    menuItems: contextMenuItems,
-    openNodeMenu,
-    openEdgeMenu,
-    openPaneMenu,
-    openSelectionMenu,
-    close: closeContextMenu,
-  } = useContextMenu();
-
-  const openShortcutHelp = useCallback(
-    () => openModal('shortcutHelp'),
-    [openModal],
-  );
-  const openNodeSearch = useCallback(
-    () => openModal('nodeSearch'),
-    [openModal],
-  );
-
-  const deleteSelectedElements = useCallback(() => {
-    const selectedNodeIdLookup = createIdLookup(selectedNodeIds);
-    const nodesToDelete = filterItemsByIdLookup(nodes, selectedNodeIdLookup);
-    const edgesToDelete = edges.filter((e) => e.selected);
-    if (nodesToDelete.length > 0) {
-      onNodesChange(
-        nodesToDelete.map((n) => ({ id: n.id, type: 'remove' as const })),
-      );
-    }
-    if (edgesToDelete.length > 0) {
-      onEdgesChange(
-        edgesToDelete.map((e) => ({ id: e.id, type: 'remove' as const })),
-      );
-    }
-  }, [nodes, edges, selectedNodeIds, onNodesChange, onEdgesChange]);
-
-  useCanvasKeyboardShortcuts({
-    addNode,
-    createGroup,
-    deleteGroup,
-    deleteSelectedElements,
-    fitView: reactFlow.fitView,
-    groups,
-    nodes,
-    openNodeSearch,
-    openShortcutHelp,
-    selectedNodeIds,
-    toggleNodeLock,
-    togglePalette,
-    unlockAllNodes,
-  });
-
-  useEffect(() => {
-    if (selectedNodeIds.length === 0) {
-      setHighlightedNodeIds([]);
-    } else {
-      const connectedIds = getConnectedNodeIds(selectedNodeIds);
-      setHighlightedNodeIds(connectedIds);
-    }
-  }, [selectedNodeIds, getConnectedNodeIds, setHighlightedNodeIds]);
-
+function useStyledWorkflowEdges({
+  activeNodeExecutions,
+  currentNodeId,
+  edges,
+  executingNodeIds,
+  hasActiveNodeExecutions,
+  highlightedNodeIds,
+  isRunning,
+  nodes,
+}: StyledWorkflowEdgesOptions) {
   const nodeMap = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
-  const selectedNodeIdLookup = useMemo(
-    () => createIdLookup(selectedNodeIds),
-    [selectedNodeIds],
-  );
 
   const isEdgeTargetingDisabledInput = useCallback(
     (edge: WorkflowEdge): boolean => {
@@ -230,23 +133,15 @@ export function WorkflowCanvas({
 
       if (targetNode.type === 'imageGen' && edge.targetHandle === 'images') {
         const nodeData = targetNode.data as ImageGenNodeData;
-        const hasImageSupport = supportsImageInput(
-          nodeData?.selectedModel?.inputSchema,
-        );
-        return !hasImageSupport;
+        return !supportsImageInput(nodeData?.selectedModel?.inputSchema);
       }
 
-      if (targetNode.type === 'videoGen') {
-        if (
-          edge.targetHandle === 'image' ||
-          edge.targetHandle === 'lastFrame'
-        ) {
-          const nodeData = targetNode.data as VideoGenNodeData;
-          const hasImageSupport = supportsImageInput(
-            nodeData?.selectedModel?.inputSchema,
-          );
-          return !hasImageSupport;
-        }
+      if (
+        targetNode.type === 'videoGen' &&
+        (edge.targetHandle === 'image' || edge.targetHandle === 'lastFrame')
+      ) {
+        const nodeData = targetNode.data as VideoGenNodeData;
+        return !supportsImageInput(nodeData?.selectedModel?.inputSchema);
       }
 
       return false;
@@ -264,7 +159,6 @@ export function WorkflowCanvas({
       const dataType = getEdgeDataType(edge, nodeMap);
       const typeClass = dataType ? `edge-${dataType}` : '';
       const isDisabledTarget = isEdgeTargetingDisabledInput(edge);
-      // Enrich edge data with dataType for EditableEdge coloring
       const enrichedData = { ...edge.data, dataType };
 
       if (!isRunning && hasActiveNodeExecutions) {
@@ -355,6 +249,173 @@ export function WorkflowCanvas({
     isEdgeTargetingDisabledInput,
   ]);
 
+  return { nodeMap, styledEdges };
+}
+
+function useSelectionHighlight({
+  getConnectedNodeIds,
+  selectedNodeIds,
+  setHighlightedNodeIds,
+}: {
+  getConnectedNodeIds: (ids: string[]) => string[];
+  selectedNodeIds: string[];
+  setHighlightedNodeIds: (ids: string[]) => void;
+}) {
+  useEffect(() => {
+    if (selectedNodeIds.length === 0) {
+      setHighlightedNodeIds([]);
+      return;
+    }
+
+    setHighlightedNodeIds(getConnectedNodeIds(selectedNodeIds));
+  }, [selectedNodeIds, getConnectedNodeIds, setHighlightedNodeIds]);
+}
+
+function useMinimapVisibility(showMinimap: boolean) {
+  const [isMinimapVisible, setIsMinimapVisible] = useState(false);
+  const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleMoveStart = useCallback(() => {
+    if (!showMinimap) return;
+    if (hideTimeoutRef.current) {
+      clearTimeout(hideTimeoutRef.current);
+      hideTimeoutRef.current = null;
+    }
+    setIsMinimapVisible(true);
+  }, [showMinimap]);
+
+  const handleMoveEnd = useCallback(() => {
+    if (!showMinimap) return;
+    if (hideTimeoutRef.current) {
+      clearTimeout(hideTimeoutRef.current);
+    }
+    hideTimeoutRef.current = setTimeout(() => {
+      setIsMinimapVisible(false);
+      hideTimeoutRef.current = null;
+    }, MINIMAP_HIDE_DELAY);
+  }, [showMinimap]);
+
+  useEffect(() => {
+    return () => {
+      if (hideTimeoutRef.current) {
+        clearTimeout(hideTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  return { handleMoveEnd, handleMoveStart, isMinimapVisible };
+}
+
+interface WorkflowCanvasHandlersOptions {
+  addNode: ReturnType<typeof useWorkflowStore.getState>['addNode'];
+  createGroup: ReturnType<typeof useWorkflowStore.getState>['createGroup'];
+  deleteGroup: ReturnType<typeof useWorkflowStore.getState>['deleteGroup'];
+  edges: WorkflowEdge[];
+  findCompatibleHandle: (
+    sourceNodeId: string,
+    sourceHandleId: string,
+    targetNodeId: string,
+  ) => string | null;
+  groups: ReturnType<typeof useWorkflowStore.getState>['groups'];
+  isValidConnection: (connection: Connection) => boolean;
+  nodeMap: Map<string, WorkflowNode>;
+  nodes: WorkflowNode[];
+  onConnect: ReturnType<typeof useWorkflowStore.getState>['onConnect'];
+  onEdgesChange: ReturnType<typeof useWorkflowStore.getState>['onEdgesChange'];
+  onNodesChange: ReturnType<typeof useWorkflowStore.getState>['onNodesChange'];
+  openConnectionDropMenu: ReturnType<
+    typeof useUIStore.getState
+  >['openConnectionDropMenu'];
+  openEdgeMenu: (edgeId: string, x: number, y: number) => void;
+  openModal: ReturnType<typeof useUIStore.getState>['openModal'];
+  openNodeMenu: (nodeId: string, x: number, y: number) => void;
+  openPaneMenu: (x: number, y: number) => void;
+  openSelectionMenu: (nodeIds: string[], x: number, y: number) => void;
+  reactFlow: ReturnType<typeof useReactFlow>;
+  selectEdge: (id: string | null) => void;
+  selectedNodeIds: string[];
+  selectNode: (id: string | null) => void;
+  setDraggingNodeId: (id: string | null) => void;
+  setSelectedNodeIds: (ids: string[]) => void;
+  toggleNodeLock: (id: string) => void;
+  togglePalette: () => void;
+  unlockAllNodes: () => void;
+}
+
+function useWorkflowCanvasHandlers({
+  addNode,
+  createGroup,
+  deleteGroup,
+  edges,
+  findCompatibleHandle,
+  groups,
+  isValidConnection,
+  nodeMap,
+  nodes,
+  onConnect,
+  onEdgesChange,
+  onNodesChange,
+  openConnectionDropMenu,
+  openEdgeMenu,
+  openModal,
+  openNodeMenu,
+  openPaneMenu,
+  openSelectionMenu,
+  reactFlow,
+  selectEdge,
+  selectedNodeIds,
+  selectNode,
+  setDraggingNodeId,
+  setSelectedNodeIds,
+  toggleNodeLock,
+  togglePalette,
+  unlockAllNodes,
+}: WorkflowCanvasHandlersOptions) {
+  const selectedNodeIdLookup = useMemo(
+    () => createIdLookup(selectedNodeIds),
+    [selectedNodeIds],
+  );
+
+  const openShortcutHelp = useCallback(
+    () => openModal('shortcutHelp'),
+    [openModal],
+  );
+  const openNodeSearch = useCallback(
+    () => openModal('nodeSearch'),
+    [openModal],
+  );
+
+  const deleteSelectedElements = useCallback(() => {
+    const nodesToDelete = filterItemsByIdLookup(nodes, selectedNodeIdLookup);
+    const edgesToDelete = edges.filter((e) => e.selected);
+    if (nodesToDelete.length > 0) {
+      onNodesChange(
+        nodesToDelete.map((n) => ({ id: n.id, type: 'remove' as const })),
+      );
+    }
+    if (edgesToDelete.length > 0) {
+      onEdgesChange(
+        edgesToDelete.map((e) => ({ id: e.id, type: 'remove' as const })),
+      );
+    }
+  }, [nodes, edges, selectedNodeIdLookup, onNodesChange, onEdgesChange]);
+
+  useCanvasKeyboardShortcuts({
+    addNode,
+    createGroup,
+    deleteGroup,
+    deleteSelectedElements,
+    fitView: reactFlow.fitView,
+    groups,
+    nodes,
+    openNodeSearch,
+    openShortcutHelp,
+    selectedNodeIds,
+    toggleNodeLock,
+    togglePalette,
+    unlockAllNodes,
+  });
+
   const handleNodeClick = useCallback(
     (_event: React.MouseEvent, node: WorkflowNode) => {
       selectNode(node.id);
@@ -423,7 +484,6 @@ export function WorkflowCanvas({
     (event: React.DragEvent) => {
       event.preventDefault();
 
-      // Handle history image drops
       const historyData = event.dataTransfer.getData(
         'application/history-image',
       );
@@ -439,8 +499,9 @@ export function WorkflowCanvas({
           });
           const nodeId = addNode('imageInput' as NodeType, position);
           if (nodeId && parsed.image) {
-            const { updateNodeData } = useWorkflowStore.getState();
-            updateNodeData(nodeId, { outputImage: parsed.image });
+            useWorkflowStore
+              .getState()
+              .updateNodeData(nodeId, { outputImage: parsed.image });
           }
         } catch {
           // Invalid history data
@@ -470,23 +531,25 @@ export function WorkflowCanvas({
     (_event: React.MouseEvent, node: Node) => {
       setDraggingNodeId(node.id);
     },
-    [],
+    [setDraggingNodeId],
   );
 
-  const handleNodeDrag = useCallback((_event: React.MouseEvent, node: Node) => {
-    // Update dragging node ID to trigger helper lines recalculation
-    setDraggingNodeId(node.id);
-  }, []);
+  const handleNodeDrag = useCallback(
+    (_event: React.MouseEvent, node: Node) => {
+      setDraggingNodeId(node.id);
+    },
+    [setDraggingNodeId],
+  );
 
   const handleNodeDragStop = useCallback(() => {
     setDraggingNodeId(null);
-  }, []);
+  }, [setDraggingNodeId]);
 
   const handleConnectEnd = useCallback(
     (event: MouseEvent | TouchEvent, connectionState: unknown) => {
       const state = connectionState as {
-        fromNode?: { id: string } | null;
         fromHandle?: { id?: string | null } | null;
+        fromNode?: { id: string } | null;
       };
       const sourceNodeId = state.fromNode?.id;
       const sourceHandleId = state.fromHandle?.id;
@@ -496,7 +559,6 @@ export function WorkflowCanvas({
       const nodeElement = target.closest('.react-flow__node');
 
       if (!nodeElement) {
-        // Dropped on empty canvas — open connection drop menu
         const sourceNode = nodeMap.get(sourceNodeId);
         if (!sourceNode) return;
 
@@ -516,13 +578,8 @@ export function WorkflowCanvas({
             ? event.clientY
             : (event.touches?.[0]?.clientY ?? 0);
 
-        const flowPosition = reactFlow.screenToFlowPosition({
-          x: clientX,
-          y: clientY,
-        });
-
         openConnectionDropMenu({
-          position: flowPosition,
+          position: reactFlow.screenToFlowPosition({ x: clientX, y: clientY }),
           screenPosition: { x: clientX, y: clientY },
           sourceHandleId,
           sourceHandleType,
@@ -533,9 +590,7 @@ export function WorkflowCanvas({
 
       const targetNodeId = nodeElement.getAttribute('data-id');
       if (!targetNodeId || targetNodeId === sourceNodeId) return;
-
-      const droppedOnHandle = target.closest('.react-flow__handle');
-      if (droppedOnHandle) return;
+      if (target.closest('.react-flow__handle')) return;
 
       const compatibleHandle = findCompatibleHandle(
         sourceNodeId,
@@ -573,38 +628,160 @@ export function WorkflowCanvas({
     [isValidConnection],
   );
 
-  const handleMoveStart = useCallback(() => {
-    if (!showMinimap) return;
-    if (hideTimeoutRef.current) {
-      clearTimeout(hideTimeoutRef.current);
-      hideTimeoutRef.current = null;
-    }
-    setIsMinimapVisible(true);
-  }, [showMinimap]);
+  return {
+    checkValidConnection,
+    handleConnectEnd,
+    handleDragOver,
+    handleDrop,
+    handleEdgeClick,
+    handleEdgeContextMenu,
+    handleNodeClick,
+    handleNodeContextMenu,
+    handleNodeDrag,
+    handleNodeDragStart,
+    handleNodeDragStop,
+    handlePaneClick,
+    handlePaneContextMenu,
+    handleSelectionChange,
+    handleSelectionContextMenu,
+  };
+}
 
-  const handleMoveEnd = useCallback(() => {
-    if (!showMinimap) return;
-    if (hideTimeoutRef.current) {
-      clearTimeout(hideTimeoutRef.current);
-    }
-    hideTimeoutRef.current = setTimeout(() => {
-      setIsMinimapVisible(false);
-      hideTimeoutRef.current = null;
-    }, MINIMAP_HIDE_DELAY);
-  }, [showMinimap]);
+interface WorkflowCanvasProps {
+  /** Override default node types. Pass merged core + cloud nodeTypes here. */
+  nodeTypes?: NodeTypes;
+  /** Optional callback for download-as-ZIP of selected nodes */
+  onDownloadAsZip?: (nodes: WorkflowNode[]) => void;
+}
 
-  useEffect(() => {
-    return () => {
-      if (hideTimeoutRef.current) {
-        clearTimeout(hideTimeoutRef.current);
-      }
-    };
-  }, []);
+export function WorkflowCanvas({
+  nodeTypes: nodeTypesProp,
+  onDownloadAsZip,
+}: WorkflowCanvasProps = {}) {
+  const {
+    nodes,
+    edges,
+    onNodesChange,
+    onEdgesChange,
+    onConnect,
+    isValidConnection,
+    findCompatibleHandle,
+    addNode,
+    selectedNodeIds,
+    setSelectedNodeIds,
+    toggleNodeLock,
+    createGroup,
+    deleteGroup,
+    unlockAllNodes,
+    groups,
+    getConnectedNodeIds,
+  } = useWorkflowStore();
+
+  const {
+    selectNode,
+    selectEdge,
+    setHighlightedNodeIds,
+    highlightedNodeIds,
+    showPalette,
+    togglePalette,
+    openModal,
+    openConnectionDropMenu,
+  } = useUIStore();
+  const reactFlow = useReactFlow();
+  const { edgeStyle, showMinimap } = useSettingsStore();
+  const isRunning = useExecutionStore((state) => state.isRunning);
+  const currentNodeId = useExecutionStore((state) => state.currentNodeId);
+  const executingNodeIds = useExecutionStore((state) => state.executingNodeIds);
+  const activeNodeExecutions = useExecutionStore(
+    (state) => state.activeNodeExecutions,
+  );
+  const hasActiveNodeExecutions = useExecutionStore(
+    (state) => state.activeNodeExecutions.size > 0,
+  );
+
+  const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
+
+  const {
+    isOpen: isContextMenuOpen,
+    position: contextMenuPosition,
+    menuItems: contextMenuItems,
+    openNodeMenu,
+    openEdgeMenu,
+    openPaneMenu,
+    openSelectionMenu,
+    close: closeContextMenu,
+  } = useContextMenu();
+
+  useSelectionHighlight({
+    getConnectedNodeIds,
+    selectedNodeIds,
+    setHighlightedNodeIds,
+  });
+
+  const { nodeMap, styledEdges } = useStyledWorkflowEdges({
+    activeNodeExecutions,
+    currentNodeId,
+    edges,
+    executingNodeIds,
+    hasActiveNodeExecutions,
+    highlightedNodeIds,
+    isRunning,
+    nodes,
+  });
+
+  const { handleMoveEnd, handleMoveStart, isMinimapVisible } =
+    useMinimapVisibility(showMinimap);
+
+  const {
+    checkValidConnection,
+    handleConnectEnd,
+    handleDragOver,
+    handleDrop,
+    handleEdgeClick,
+    handleEdgeContextMenu,
+    handleNodeClick,
+    handleNodeContextMenu,
+    handleNodeDrag,
+    handleNodeDragStart,
+    handleNodeDragStop,
+    handlePaneClick,
+    handlePaneContextMenu,
+    handleSelectionChange,
+    handleSelectionContextMenu,
+  } = useWorkflowCanvasHandlers({
+    addNode,
+    createGroup,
+    deleteGroup,
+    edges,
+    findCompatibleHandle,
+    groups,
+    isValidConnection,
+    nodeMap,
+    nodes,
+    onConnect,
+    onEdgesChange,
+    onNodesChange,
+    openConnectionDropMenu,
+    openEdgeMenu,
+    openModal,
+    openNodeMenu,
+    openPaneMenu,
+    openSelectionMenu,
+    reactFlow,
+    selectEdge,
+    selectedNodeIds,
+    selectNode,
+    setDraggingNodeId,
+    setSelectedNodeIds,
+    toggleNodeLock,
+    togglePalette,
+    unlockAllNodes,
+  });
 
   return (
     <div
       role="application"
-      className="w-full h-full relative"
+      className="size-full relative"
       onDrop={handleDrop}
       onDragOver={handleDragOver}
     >
@@ -616,7 +793,7 @@ export function WorkflowCanvas({
           className="absolute top-3 left-3 z-10"
           title="Open sidebar (M)"
         >
-          <PanelLeft className="w-4 h-4 text-[var(--muted-foreground)] group-hover:text-[var(--foreground)]" />
+          <PanelLeft className="size-4 text-[var(--muted-foreground)] group-hover:text-[var(--foreground)]" />
         </Button>
       )}
       <ReactFlow<WorkflowNode, WorkflowEdge>

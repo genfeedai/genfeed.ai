@@ -82,7 +82,7 @@ export default function TopbarInbox() {
           data-testid="topbar-inbox-trigger"
           type="button"
         >
-          <HiBell aria-hidden="true" className="h-4 w-4 text-current" />
+          <HiBell aria-hidden="true" className="size-4 text-current" />
           <span className="text-sm font-medium text-current">Inbox</span>
 
           {actionableCount > 0 ? (
@@ -112,12 +112,12 @@ export default function TopbarInbox() {
                 size: ButtonSize.ICON,
                 variant: ButtonVariant.GHOST,
               }),
-              'h-8 w-8 text-foreground/60 hover:text-foreground/90',
+              'size-8 text-foreground/60 hover:text-foreground/90',
             )}
             onClick={() => void refresh()}
             type="button"
           >
-            <HiOutlineArrowPath className="h-4 w-4" />
+            <HiOutlineArrowPath className="size-4" />
           </PrimitiveButton>
         </div>
 
@@ -185,14 +185,14 @@ export default function TopbarInbox() {
 
                     <div className="flex items-center gap-2 text-xs text-foreground/45">
                       {item.reviewDecision === 'approved' ? (
-                        <HiCheckCircle className="h-4 w-4 text-emerald-300" />
+                        <HiCheckCircle className="size-4 text-emerald-300" />
                       ) : item.reviewDecision === 'request_changes' ? (
-                        <HiOutlineClipboardDocumentCheck className="h-4 w-4 text-amber-300" />
+                        <HiOutlineClipboardDocumentCheck className="size-4 text-amber-300" />
                       ) : item.reviewDecision === 'rejected' ||
                         item.status === 'failed' ? (
-                        <HiExclamationTriangle className="h-4 w-4 text-rose-300" />
+                        <HiExclamationTriangle className="size-4 text-rose-300" />
                       ) : (
-                        <HiOutlineInboxStack className="h-4 w-4 text-foreground/35" />
+                        <HiOutlineInboxStack className="size-4 text-foreground/35" />
                       )}
                       <span>{new Date(item.createdAt).toLocaleString()}</span>
                     </div>
@@ -203,7 +203,7 @@ export default function TopbarInbox() {
           ) : (
             <div className="px-4 py-6 text-sm text-foreground/55">
               {isLoading
-                ? 'Loading inbox...'
+                ? 'Loading inbox…'
                 : 'No actionable inbox items right now.'}
             </div>
           )}
@@ -231,7 +231,7 @@ export default function TopbarInbox() {
               className="inline-flex h-9 items-center justify-center gap-2 border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-sm font-semibold text-foreground transition-colors duration-150 hover:bg-white/[0.06]"
             >
               View Activity
-              <HiArrowTopRightOnSquare className="h-4 w-4" />
+              <HiArrowTopRightOnSquare className="size-4" />
             </Link>
           </div>
         </div>

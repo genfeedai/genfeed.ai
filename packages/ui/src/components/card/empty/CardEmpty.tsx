@@ -7,15 +7,15 @@ import { Button } from '@ui/primitives/button';
 
 const SIZE_CLASSES = {
   [CardEmptySize.DEFAULT]: {
-    icon: 'w-16 h-16',
+    icon: 'size-16',
     title: 'text-xl',
   },
   [CardEmptySize.LG]: {
-    icon: 'w-20 h-20',
+    icon: 'size-20',
     title: 'text-2xl',
   },
   [CardEmptySize.SM]: {
-    icon: 'w-12 h-12',
+    icon: 'size-12',
     title: 'text-lg',
   },
 };

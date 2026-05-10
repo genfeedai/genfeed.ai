@@ -87,7 +87,7 @@ export function getNodeMenuItems({
 }: NodeMenuOptions): ContextMenuItemConfig[] {
   const items: ContextMenuItemConfig[] = [
     {
-      icon: <Copy className="w-4 h-4" />,
+      icon: <Copy className="size-4" />,
       id: 'duplicate',
       label: 'Duplicate',
       onClick: () => onDuplicate(nodeId),
@@ -98,7 +98,7 @@ export function getNodeMenuItems({
   // Add "Set as Thumbnail" option for nodes with media output
   if (hasMediaOutput && onSetAsThumbnail) {
     items.push({
-      icon: <Image className="w-4 h-4" />,
+      icon: <Image className="size-4" />,
       id: 'setThumbnail',
       label: 'Set as Thumbnail',
       onClick: () => onSetAsThumbnail(nodeId),
@@ -114,7 +114,7 @@ export function getNodeMenuItems({
       return {
         icon: (
           <div
-            className="w-4 h-4 border border-border"
+            className="size-4 border border-border"
             style={{ backgroundColor: colorValue || 'transparent' }}
           />
         ),
@@ -125,7 +125,7 @@ export function getNodeMenuItems({
     });
 
     items.push({
-      icon: <Palette className="w-4 h-4" />,
+      icon: <Palette className="size-4" />,
       id: 'setColor',
       label: 'Set Color',
       submenu: colorSubmenu,
@@ -137,14 +137,14 @@ export function getNodeMenuItems({
   items.push(
     isLocked
       ? {
-          icon: <LockOpen className="w-4 h-4" />,
+          icon: <LockOpen className="size-4" />,
           id: 'unlock',
           label: 'Unlock Node',
           onClick: () => onUnlock(nodeId),
           shortcut: 'L',
         }
       : {
-          icon: <Lock className="w-4 h-4" />,
+          icon: <Lock className="size-4" />,
           id: 'lock',
           label: 'Lock Node',
           onClick: () => onLock(nodeId),
@@ -156,14 +156,14 @@ export function getNodeMenuItems({
 
   items.push(
     {
-      icon: <Scissors className="w-4 h-4" />,
+      icon: <Scissors className="size-4" />,
       id: 'cut',
       label: 'Cut',
       onClick: () => onCut(nodeId),
       shortcut: '⌘X',
     },
     {
-      icon: <Copy className="w-4 h-4" />,
+      icon: <Copy className="size-4" />,
       id: 'copy',
       label: 'Copy',
       onClick: () => onCopy(nodeId),
@@ -175,7 +175,7 @@ export function getNodeMenuItems({
 
   items.push({
     danger: true,
-    icon: <Trash2 className="w-4 h-4" />,
+    icon: <Trash2 className="size-4" />,
     id: 'delete',
     label: 'Delete',
     onClick: () => onDelete(nodeId),

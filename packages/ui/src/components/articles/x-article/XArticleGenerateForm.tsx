@@ -67,7 +67,7 @@ export default function XArticleGenerateForm({
             rows={4}
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Describe the article topic, angle, and key points to cover..."
+            placeholder="Describe the article topic, angle, and key points to cover…"
           />
         </FormControl>
 
@@ -93,7 +93,7 @@ export default function XArticleGenerateForm({
               step={500}
               value={targetWordCount}
               onChange={(e) => setTargetWordCount(Number(e.target.value))}
-              className="mt-2 h-1.5 w-full cursor-pointer appearance-none rounded-full border-0 bg-transparent px-0 py-0 shadow-none accent-primary focus-visible:ring-0"
+              className="mt-2 h-1.5 w-full cursor-pointer appearance-none rounded-full border-0 bg-transparent p-0 shadow-none accent-primary focus-visible:ring-0"
             />
             <div className="flex justify-between text-xs text-foreground/40">
               <span>2,500</span>
@@ -122,10 +122,10 @@ export default function XArticleGenerateForm({
         />
 
         <Button
-          label={isGenerating ? 'Generating...' : 'Generate X Article'}
+          label={isGenerating ? 'Generating…' : 'Generate X Article'}
           variant={ButtonVariant.DEFAULT}
           size={ButtonSize.DEFAULT}
-          icon={<HiSparkles className="h-4 w-4" />}
+          icon={<HiSparkles className="size-4" />}
           isLoading={isGenerating}
           isDisabled={!prompt.trim() || isGenerating}
           onClick={handleSubmit}

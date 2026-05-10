@@ -183,12 +183,12 @@ function TrendVideoInspirationNodeComponent({
       >
         {isProcessing ? (
           <>
-            <Loader2 className="w-4 h-4 animate-spin" />
-            Analyzing...
+            <Loader2 className="size-4 animate-spin" />
+            Analyzing…
           </>
         ) : (
           <>
-            <Sparkles className="w-4 h-4" />
+            <Sparkles className="size-4" />
             Generate Prompt
           </>
         )}
@@ -198,7 +198,7 @@ function TrendVideoInspirationNodeComponent({
       {data.sourceTrendTitle && (
         <div className="p-2 bg-background border border-white/[0.08]">
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <Video className="w-3 h-3" />
+            <Video className="size-3" />
             Source Video
           </div>
           <div className="text-sm text-foreground mt-1 line-clamp-2">
@@ -211,7 +211,7 @@ function TrendVideoInspirationNodeComponent({
               rel="noopener noreferrer"
               className="flex items-center gap-1 text-xs text-primary mt-1 hover:underline"
             >
-              <ExternalLink className="w-3 h-3" />
+              <ExternalLink className="size-3" />
               View Original
             </a>
           )}

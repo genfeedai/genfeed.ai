@@ -30,8 +30,7 @@ function PayloadCard({ payload }: PayloadCardProps) {
         // Clipboard access denied - fallback to execCommand
         const textArea = document.createElement('textarea');
         textArea.value = JSON.stringify(payload.input, null, 2);
-        textArea.style.position = 'fixed';
-        textArea.style.left = '-9999px';
+        textArea.style.cssText = 'position: fixed; left: -9999px;';
         document.body.appendChild(textArea);
         textArea.select();
         try {
@@ -58,9 +57,9 @@ function PayloadCard({ payload }: PayloadCardProps) {
         className="w-full flex items-center gap-2 p-3 text-left hover:bg-[var(--muted)]/50 h-auto"
       >
         {isExpanded ? (
-          <ChevronDown className="w-4 h-4 text-[var(--muted-foreground)] shrink-0" />
+          <ChevronDown className="size-4 text-[var(--muted-foreground)] shrink-0" />
         ) : (
-          <ChevronRight className="w-4 h-4 text-[var(--muted-foreground)] shrink-0" />
+          <ChevronRight className="size-4 text-[var(--muted-foreground)] shrink-0" />
         )}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
@@ -90,7 +89,7 @@ function PayloadCard({ payload }: PayloadCardProps) {
               onClick={handleCopy}
               className="flex items-center gap-1 text-[10px] text-[var(--primary)] h-auto p-0"
             >
-              <Copy className="w-3 h-3" />
+              <Copy className="size-3" />
               {copied ? 'Copied!' : 'Copy'}
             </Button>
           </div>
@@ -117,7 +116,7 @@ function DebugPanelComponent() {
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b border-[var(--border)]">
         <div className="flex items-center gap-2">
-          <Bug className="w-4 h-4 text-amber-500" />
+          <Bug className="size-4 text-amber-500" />
           <span className="font-medium text-sm">Debug Console</span>
           {debugPayloads.length > 0 && (
             <span className="text-[10px] px-1.5 py-0.5 bg-amber-500/10 text-amber-500 rounded-full">
@@ -133,11 +132,11 @@ function DebugPanelComponent() {
               onClick={clearDebugPayloads}
               title="Clear all payloads"
             >
-              <Trash2 className="w-4 h-4 text-[var(--muted-foreground)]" />
+              <Trash2 className="size-4 text-[var(--muted-foreground)]" />
             </Button>
           )}
           <Button variant="ghost" size="icon-sm" onClick={handleClose}>
-            <X className="w-4 h-4" />
+            <X className="size-4" />
           </Button>
         </div>
       </div>
@@ -146,7 +145,7 @@ function DebugPanelComponent() {
       <div className="flex-1 overflow-y-auto p-3 space-y-2">
         {debugPayloads.length === 0 ? (
           <div className="text-center py-8 text-[var(--muted-foreground)]">
-            <Bug className="w-12 h-12 mx-auto mb-3 opacity-50 text-amber-500/50" />
+            <Bug className="size-12 mx-auto mb-3 opacity-50 text-amber-500/50" />
             <p className="text-sm font-medium mb-2">No payloads captured</p>
             <p className="text-xs">
               Run a workflow with debug mode enabled to capture API payloads.

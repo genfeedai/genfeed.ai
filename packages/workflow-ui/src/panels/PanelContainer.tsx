@@ -1,9 +1,10 @@
 'use client';
 
-import { forwardRef, type HTMLAttributes, type ReactNode } from 'react';
+import type { HTMLAttributes, ReactNode, Ref, SyntheticEvent } from 'react';
 
 interface PanelContainerProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode;
+  ref?: Ref<HTMLDivElement>;
 }
 
 /**
@@ -13,26 +14,29 @@ interface PanelContainerProps extends HTMLAttributes<HTMLDivElement> {
  * Use this for any panel rendered alongside the WorkflowCanvas to prevent
  * double-click issues and event interference.
  */
-export const PanelContainer = forwardRef<HTMLDivElement, PanelContainerProps>(
-  ({ children, className, ...props }, ref) => {
-    const stopPropagation = (e: React.SyntheticEvent) => {
-      e.stopPropagation();
-    };
+export function PanelContainer({
+  children,
+  className,
+  ref,
+  ...props
+}: PanelContainerProps) {
+  const stopPropagation = (e: SyntheticEvent) => {
+    e.stopPropagation();
+  };
 
-    return (
-      <div
-        ref={ref}
-        className={className}
-        onClick={stopPropagation}
-        onMouseDown={stopPropagation}
-        onPointerDown={stopPropagation}
-        onDoubleClick={stopPropagation}
-        {...props}
-      >
-        {children}
-      </div>
-    );
-  },
-);
-
-PanelContainer.displayName = 'PanelContainer';
+  return (
+    <div
+      ref={ref}
+      className={className}
+      role="presentation"
+      onClick={stopPropagation}
+      onKeyDown={stopPropagation}
+      onMouseDown={stopPropagation}
+      onPointerDown={stopPropagation}
+      onDoubleClick={stopPropagation}
+      {...props}
+    >
+      {children}
+    </div>
+  );
+}

@@ -66,7 +66,7 @@ describe('PromptBarCollapsedView', () => {
     onSubmit: vi.fn(),
     onTextChange: vi.fn(),
     outputs: 1,
-    placeholder: 'Enter text...',
+    placeholder: 'Enter text…',
     referenceSource: null,
     references: [],
     selectedModelCost: 1,

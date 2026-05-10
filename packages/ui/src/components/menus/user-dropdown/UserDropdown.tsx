@@ -58,10 +58,10 @@ export default function UserDropdown({
         <Button
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}
-          className="w-8 h-8 rounded-lg flex items-center justify-center text-white/30 hover:text-white/60 hover:bg-white/[0.06] transition-colors flex-shrink-0 cursor-pointer"
+          className="size-8 rounded-lg flex items-center justify-center text-white/30 hover:text-white/60 hover:bg-white/[0.06] transition-colors flex-shrink-0 cursor-pointer"
           ariaLabel="Settings"
         >
-          <HiOutlineCog6Tooth className="w-4 h-4" />
+          <HiOutlineCog6Tooth className="size-4" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent side="top" align="end" className="w-56">
@@ -77,7 +77,7 @@ export default function UserDropdown({
         {dropdownItems.map((item) => (
           <DropdownMenuItem key={item.href} asChild>
             <Link href={item.href} className="cursor-pointer">
-              <item.icon className="w-4 h-4" />
+              <item.icon className="size-4" />
               {item.label}
             </Link>
           </DropdownMenuItem>

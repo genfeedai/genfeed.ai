@@ -44,7 +44,7 @@ export function ViralVideoLeaderboard({
   if (videos.length === 0) {
     return (
       <div className={`text-center py-12 ${className}`}>
-        <HiOutlineFire className="h-12 w-12 mx-auto mb-3 opacity-30" />
+        <HiOutlineFire className="size-12 mx-auto mb-3 opacity-30" />
         <p className="text-foreground/60">No viral videos found</p>
         <p className="text-sm text-foreground/40 mt-1">
           Check back later for trending content
@@ -113,11 +113,11 @@ export function ViralVideoLeaderboard({
                   <img
                     src={video.thumbnailUrl}
                     alt={video.title || 'Video thumbnail'}
-                    className="w-full h-full object-cover"
+                    className="size-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <HiOutlinePlay className="w-6 h-6 text-foreground/30" />
+                  <div className="size-full flex items-center justify-center">
+                    <HiOutlinePlay className="size-6 text-foreground/30" />
                   </div>
                 )}
               </div>
@@ -149,10 +149,7 @@ export function ViralVideoLeaderboard({
               return (
                 <div className="flex items-center gap-2">
                   {Icon && (
-                    <Icon
-                      className="h-4 w-4"
-                      style={{ color: config?.color }}
-                    />
+                    <Icon className="size-4" style={{ color: config?.color }} />
                   )}
                   <span className="font-medium text-sm">
                     {config?.label || video.platform}

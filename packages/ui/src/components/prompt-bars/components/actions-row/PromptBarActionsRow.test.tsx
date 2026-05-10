@@ -141,7 +141,7 @@ describe('PromptBarActionsRow', () => {
     handleSubmitForm: vi.fn(),
     hasAnyImagenModel: false,
     hasEndFrame: false,
-    iconButtonClass: 'h-10 w-10 p-0 flex items-center justify-center',
+    iconButtonClass: 'size-10 p-0 flex items-center justify-center',
     isAutoMode: false,
     isDisabledState: false,
     isEnhancing: false,

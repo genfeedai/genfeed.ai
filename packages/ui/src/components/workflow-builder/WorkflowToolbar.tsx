@@ -49,7 +49,7 @@ export default function WorkflowToolbar({
               size={ButtonSize.SM}
               onClick={onValidate}
               ariaLabel="Validate workflow"
-              icon={<HiOutlineCheck className="h-4 w-4" />}
+              icon={<HiOutlineCheck className="size-4" />}
               label="Validate"
             />
             <Button
@@ -58,7 +58,7 @@ export default function WorkflowToolbar({
               size={ButtonSize.SM}
               onClick={onSchedule}
               ariaLabel="Schedule workflow"
-              icon={<HiOutlineClock className="h-4 w-4" />}
+              icon={<HiOutlineClock className="size-4" />}
               label="Schedule"
             />
             <Button
@@ -67,7 +67,7 @@ export default function WorkflowToolbar({
               size={ButtonSize.SM}
               onClick={onHistory}
               ariaLabel="Execution history"
-              icon={<HiOutlineListBullet className="h-4 w-4" />}
+              icon={<HiOutlineListBullet className="size-4" />}
               label="History"
             />
             <Button
@@ -79,7 +79,7 @@ export default function WorkflowToolbar({
               isLoading={isSaving}
               icon={
                 !isSaving ? (
-                  <HiOutlineCloudArrowUp className="h-4 w-4" />
+                  <HiOutlineCloudArrowUp className="size-4" />
                 ) : undefined
               }
               label="Save"
@@ -93,7 +93,7 @@ export default function WorkflowToolbar({
             size={ButtonSize.SM}
             onClick={onExportComfyUI}
             ariaLabel="Export ComfyUI template"
-            icon={<HiOutlineArrowDownTray className="h-4 w-4" />}
+            icon={<HiOutlineArrowDownTray className="size-4" />}
             label="ComfyUI"
           />
         )}
@@ -104,7 +104,7 @@ export default function WorkflowToolbar({
           className="bg-success hover:bg-success/90"
           onClick={onRun}
           ariaLabel="Run workflow"
-          icon={<HiOutlinePlay className="h-4 w-4" />}
+          icon={<HiOutlinePlay className="size-4" />}
           label="Run"
         />
       </div>

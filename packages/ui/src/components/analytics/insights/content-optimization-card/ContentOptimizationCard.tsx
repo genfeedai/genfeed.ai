@@ -69,7 +69,7 @@ const ContentOptimizationCard = memo(function ContentOptimizationCard({
               key={i}
               className="animate-pulse flex items-start gap-4 p-4 bg-background"
             >
-              <div className="w-10 h-10 bg-muted" />
+              <div className="size-10 bg-muted" />
               <div className="flex-1 space-y-2">
                 <div className="h-4 bg-muted w-3/4" />
                 <div className="h-3 bg-muted w-full" />
@@ -91,7 +91,7 @@ const ContentOptimizationCard = memo(function ContentOptimizationCard({
         className={className}
       >
         <div className="flex flex-col items-center justify-center py-8 text-center">
-          <HiLightBulb className="w-12 h-12 text-foreground/30 mb-3" />
+          <HiLightBulb className="size-12 text-foreground/30 mb-3" />
           <p className="text-foreground/70 font-medium">
             No suggestions available
           </p>
@@ -122,7 +122,7 @@ const ContentOptimizationCard = memo(function ContentOptimizationCard({
               className="flex items-start gap-4 p-4 bg-background hover:bg-background/80 transition-colors"
             >
               <div className={cn('p-2.5', colorClass)}>
-                <Icon className="w-5 h-5" />
+                <Icon className="size-5" />
               </div>
 
               <div className="flex-1 min-w-0">

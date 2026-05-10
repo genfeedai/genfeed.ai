@@ -58,9 +58,6 @@
     "react": "19.2.5",
     "react-dom": "19.2.5"
   },
-  "optionalDependencies": {
-    "better-sqlite3": "^12.4.1"
-  },
   "description": "GenFeed — Electron native app for content creation",
   "devDependencies": {
     "@biomejs/biome": "2.4.13",

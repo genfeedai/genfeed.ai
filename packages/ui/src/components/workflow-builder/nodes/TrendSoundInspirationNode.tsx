@@ -69,7 +69,7 @@ function TrendSoundInspirationNodeComponent({
       {/* Min Usage Count */}
       <div>
         <label className="text-xs text-muted-foreground flex items-center gap-1">
-          <TrendingUp className="w-3 h-3" />
+          <TrendingUp className="size-3" />
           Min Usage Count
         </label>
         <Input
@@ -108,12 +108,12 @@ function TrendSoundInspirationNodeComponent({
       >
         {isProcessing ? (
           <>
-            <Loader2 className="w-4 h-4 animate-spin" />
-            Finding Sounds...
+            <Loader2 className="size-4 animate-spin" />
+            Finding Sounds…
           </>
         ) : (
           <>
-            <Music className="w-4 h-4" />
+            <Music className="size-4" />
             Get Trending Sound
           </>
         )}
@@ -125,11 +125,11 @@ function TrendSoundInspirationNodeComponent({
           <div className="flex items-start gap-3">
             {/* Cover Art */}
             {data.coverUrl && (
-              <div className="w-12 h-12 overflow-hidden flex-shrink-0">
+              <div className="size-12 overflow-hidden flex-shrink-0">
                 <img
                   src={data.coverUrl}
                   alt={data.soundName || 'Sound cover'}
-                  className="w-full h-full object-cover"
+                  className="size-full object-cover"
                 />
               </div>
             )}
@@ -165,8 +165,8 @@ function TrendSoundInspirationNodeComponent({
               variant={ButtonVariant.UNSTYLED}
               className="w-full mt-2 py-1.5 bg-background border border-white/[0.08] text-xs flex items-center justify-center gap-1 hover:bg-border transition"
             >
-              <Play className="w-3 h-3" />
-              {isPlaying ? 'Playing...' : 'Preview Sound'}
+              <Play className="size-3" />
+              {isPlaying ? 'Playing…' : 'Preview Sound'}
             </Button>
           )}
 

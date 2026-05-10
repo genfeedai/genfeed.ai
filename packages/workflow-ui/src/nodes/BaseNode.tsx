@@ -128,11 +128,11 @@ const HANDLE_COLORS: Record<string, string> = {
 function StatusIndicator({ status }: { status: NodeStatus }) {
   switch (status) {
     case 'processing':
-      return <Loader2 className="h-4 w-4 animate-spin text-primary" />;
+      return <Loader2 className="size-4 animate-spin text-primary" />;
     case 'complete':
-      return <CheckCircle2 className="h-4 w-4 text-chart-2" />;
+      return <CheckCircle2 className="size-4 text-chart-2" />;
     case 'error':
-      return <AlertCircle className="h-4 w-4 text-destructive" />;
+      return <AlertCircle className="size-4 text-destructive" />;
     default:
       return null;
   }
@@ -158,6 +158,230 @@ const NODE_RESIZER_MAX_WIDTH = 500;
 const DOWNLOAD_NODE_MIN_WIDTH = 200;
 const DOWNLOAD_NODE_MIN_HEIGHT = 280;
 const NODE_MIN_HEIGHT = 100;
+
+function BaseNodeResizer({
+  color,
+  state,
+  type,
+}: {
+  color: string;
+  state: { isLocked: boolean; isSelected: boolean };
+  type: string;
+}) {
+  return (
+    <NodeResizer
+      isVisible={state.isSelected && !state.isLocked}
+      minWidth={type === 'download' ? DOWNLOAD_NODE_MIN_WIDTH : NODE_MIN_WIDTH}
+      minHeight={
+        type === 'download' ? DOWNLOAD_NODE_MIN_HEIGHT : NODE_MIN_HEIGHT
+      }
+      maxWidth={NODE_RESIZER_MAX_WIDTH}
+      lineClassName="!border-transparent"
+      handleClassName="!w-2.5 !h-2.5 !border-0"
+      handleStyle={{ backgroundColor: color }}
+    />
+  );
+}
+
+function BaseNodeHandles({
+  disabledInputs,
+  outputs,
+  sortedInputs,
+}: {
+  disabledInputs?: string[];
+  outputs: HandleDefinition[];
+  sortedInputs: HandleDefinition[];
+}) {
+  return (
+    <>
+      {sortedInputs.map((input, index) => {
+        const isDisabled = disabledInputs?.includes(input.id);
+        return (
+          <Handle
+            key={input.id}
+            type="target"
+            position={Position.Left}
+            id={input.id}
+            isConnectableEnd={!isDisabled}
+            className={clsx('!w-3 !h-3', isDisabled && 'opacity-30')}
+            style={{
+              background: HANDLE_COLORS[input.type],
+              top: `${((index + 1) / (sortedInputs.length + 1)) * 100}%`,
+            }}
+          />
+        );
+      })}
+
+      {outputs.map((output, index) => (
+        <Handle
+          key={output.id}
+          type="source"
+          position={Position.Right}
+          id={output.id}
+          className="!w-3 !h-3 handle-output"
+          style={{
+            top: `${((index + 1) / (outputs.length + 1)) * 100}%`,
+          }}
+        />
+      ))}
+    </>
+  );
+}
+
+interface BaseNodeHeaderProps {
+  Icon: typeof Image;
+  headerActions: ReactNode;
+  nodeLabel?: string;
+  onLockToggle: (e: React.MouseEvent) => void;
+  onStopNode: (e: React.MouseEvent) => void;
+  state: {
+    hideStatusIndicator?: boolean;
+    isLocked: boolean;
+    isProcessing: boolean;
+    isRunning: boolean;
+    nodeExecuting: boolean;
+  };
+  status: NodeStatus;
+  title?: string;
+  titleElement?: ReactNode;
+}
+
+function BaseNodeHeader({
+  Icon,
+  headerActions,
+  nodeLabel,
+  onLockToggle,
+  onStopNode,
+  state,
+  status,
+  title,
+  titleElement,
+}: BaseNodeHeaderProps) {
+  const stopTitle = state.isRunning
+    ? 'Stop execution'
+    : state.nodeExecuting
+      ? 'Stop node'
+      : 'Reset node';
+
+  return (
+    <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border">
+      <Icon className="size-4 text-foreground" />
+      {titleElement ?? (
+        <span className="flex-1 truncate text-sm font-medium text-left text-foreground">
+          {title ?? nodeLabel}
+        </span>
+      )}
+      {!state.hideStatusIndicator &&
+        (state.isProcessing ? (
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={onStopNode}
+            className="text-destructive hover:bg-destructive/20 hover:text-destructive"
+            title={stopTitle}
+          >
+            <Square className="size-3.5 fill-current" />
+          </Button>
+        ) : (
+          <StatusIndicator status={status} />
+        ))}
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        onClick={onLockToggle}
+        className={state.isLocked ? 'text-chart-3' : 'text-muted-foreground'}
+        title={state.isLocked ? 'Unlock node (L)' : 'Lock node (L)'}
+      >
+        {state.isLocked ? (
+          <Lock className="size-4" />
+        ) : (
+          <Unlock className="size-4" />
+        )}
+      </Button>
+      {headerActions}
+    </div>
+  );
+}
+
+interface BaseNodeContentProps {
+  children: ReactNode;
+  nodeData: WorkflowNodeData;
+  nodeExecuting: boolean;
+  nodeId: string;
+  nodeType: string;
+  onCopyError: (e: React.MouseEvent) => void;
+  onRetry: (e: React.MouseEvent) => void;
+}
+
+function BaseNodeContent({
+  children,
+  nodeData,
+  nodeExecuting,
+  nodeId,
+  nodeType,
+  onCopyError,
+  onRetry,
+}: BaseNodeContentProps) {
+  return (
+    <div className="flex-1 flex flex-col p-3 min-h-0">
+      <NodeErrorBoundary nodeId={nodeId} nodeType={nodeType}>
+        {nodeData.error && (
+          <div className="mb-3 border border-destructive/30 bg-destructive/10 p-2">
+            <div className="flex items-start gap-1.5">
+              <p className="flex-1 text-xs text-destructive break-all">
+                {nodeData.error}
+              </p>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={onCopyError}
+                className="flex-shrink-0 size-5 text-destructive/70 hover:bg-destructive/20 hover:text-destructive"
+                title="Copy error"
+              >
+                <Copy className="size-3" />
+              </Button>
+            </div>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={onRetry}
+              disabled={nodeExecuting}
+              className="mt-2 w-full"
+            >
+              <RotateCcw className="size-3" />
+              Retry
+            </Button>
+          </div>
+        )}
+
+        {children}
+
+        {nodeData.status === 'processing' &&
+          nodeData.progress !== undefined && (
+            <div className="mt-3">
+              <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
+                <div
+                  className="h-full bg-primary transition-all duration-300"
+                  style={{ width: `${nodeData.progress}%` }}
+                />
+              </div>
+              <span className="mt-1 text-xs text-muted-foreground">
+                {nodeData.progress}%
+              </span>
+            </div>
+          )}
+      </NodeErrorBoundary>
+    </div>
+  );
+}
+
+function LockBadge() {
+  return (
+    <div className="absolute -right-2 -top-2 rounded bg-chart-3 px-1.5 py-0.5 text-[10px] font-bold text-background">
+      LOCKED
+    </div>
+  );
+}
 
 function BaseNodeComponent({
   id,
@@ -295,8 +519,7 @@ function BaseNodeComponent({
         } else {
           const textArea = document.createElement('textarea');
           textArea.value = nodeData.error;
-          textArea.style.position = 'fixed';
-          textArea.style.opacity = '0';
+          textArea.style.cssText = 'position: fixed; opacity: 0;';
           document.body.appendChild(textArea);
           textArea.select();
           document.execCommand('copy');
@@ -366,19 +589,10 @@ function BaseNodeComponent({
 
   return (
     <>
-      {/* Resizer - only shown when selected and not locked */}
-      <NodeResizer
-        isVisible={isSelected && !isLocked}
-        minWidth={
-          type === 'download' ? DOWNLOAD_NODE_MIN_WIDTH : NODE_MIN_WIDTH
-        }
-        minHeight={
-          type === 'download' ? DOWNLOAD_NODE_MIN_HEIGHT : NODE_MIN_HEIGHT
-        }
-        maxWidth={NODE_RESIZER_MAX_WIDTH}
-        lineClassName="!border-transparent"
-        handleClassName="!w-2.5 !h-2.5 !border-0"
-        handleStyle={{ backgroundColor: effectiveColor }}
+      <BaseNodeResizer
+        color={effectiveColor}
+        state={{ isLocked, isSelected }}
+        type={type}
       />
       <div
         ref={nodeRef}
@@ -414,38 +628,11 @@ function BaseNodeComponent({
         onPointerEnter={handleMouseEnter}
         onPointerLeave={handleMouseLeave}
       >
-        {/* Input Handles - positioned relative to outer wrapper (not flex) */}
-        {sortedInputs.map((input: HandleDefinition, index: number) => {
-          const isDisabled = disabledInputs?.includes(input.id);
-          return (
-            <Handle
-              key={input.id}
-              type="target"
-              position={Position.Left}
-              id={input.id}
-              isConnectableEnd={!isDisabled}
-              className={clsx('!w-3 !h-3', isDisabled && 'opacity-30')}
-              style={{
-                background: HANDLE_COLORS[input.type],
-                top: `${((index + 1) / (sortedInputs.length + 1)) * 100}%`,
-              }}
-            />
-          );
-        })}
-
-        {/* Output Handles - positioned relative to outer wrapper (not flex) */}
-        {nodeDef.outputs.map((output: HandleDefinition, index: number) => (
-          <Handle
-            key={output.id}
-            type="source"
-            position={Position.Right}
-            id={output.id}
-            className="!w-3 !h-3 handle-output"
-            style={{
-              top: `${((index + 1) / (nodeDef.outputs.length + 1)) * 100}%`,
-            }}
-          />
-        ))}
+        <BaseNodeHandles
+          disabledInputs={disabledInputs}
+          outputs={nodeDef.outputs}
+          sortedInputs={sortedInputs}
+        />
 
         {/* Content wrapper - flex column, scrolls when resized */}
         <div
@@ -454,111 +641,36 @@ function BaseNodeComponent({
             isResized && 'flex-1 min-h-0 overflow-auto',
           )}
         >
-          {/* Header */}
-          <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border">
-            <Icon className="h-4 w-4 text-foreground" />
-            {titleElement ?? (
-              <span className="flex-1 truncate text-sm font-medium text-left text-foreground">
-                {title ?? nodeData.label}
-              </span>
-            )}
-            {!hideStatusIndicator &&
-              (isProcessing ? (
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  onClick={handleStopNode}
-                  className="text-destructive hover:bg-destructive/20 hover:text-destructive"
-                  title={
-                    isRunning
-                      ? 'Stop execution'
-                      : nodeExecuting
-                        ? 'Stop node'
-                        : 'Reset node'
-                  }
-                >
-                  <Square className="h-3.5 w-3.5 fill-current" />
-                </Button>
-              ) : (
-                <StatusIndicator status={nodeData.status} />
-              ))}
-            {/* Lock Toggle Button - before headerActions so icon buttons are on the left */}
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={handleLockToggle}
-              className={isLocked ? 'text-chart-3' : 'text-muted-foreground'}
-              title={isLocked ? 'Unlock node (L)' : 'Lock node (L)'}
-            >
-              {isLocked ? (
-                <Lock className="h-4 w-4" />
-              ) : (
-                <Unlock className="h-4 w-4" />
-              )}
-            </Button>
-            {normalizedHeaderActions}
-          </div>
-
-          {/* Content - wrapped with error boundary to prevent crashes from taking down canvas */}
-          <div className="flex-1 flex flex-col p-3 min-h-0">
-            <NodeErrorBoundary nodeId={id} nodeType={type as string}>
-              {/* Error message - rendered BEFORE children so it appears at top */}
-              {nodeData.error && (
-                <div className="mb-3 border border-destructive/30 bg-destructive/10 p-2">
-                  <div className="flex items-start gap-1.5">
-                    <p className="flex-1 text-xs text-destructive break-all">
-                      {nodeData.error}
-                    </p>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={handleCopyError}
-                      className="flex-shrink-0 h-5 w-5 text-destructive/70 hover:bg-destructive/20 hover:text-destructive"
-                      title="Copy error"
-                    >
-                      <Copy className="h-3 w-3" />
-                    </Button>
-                  </div>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={handleRetry}
-                    disabled={nodeExecuting}
-                    className="mt-2 w-full"
-                  >
-                    <RotateCcw className="h-3 w-3" />
-                    Retry
-                  </Button>
-                </div>
-              )}
-
-              {normalizedChildren}
-
-              {/* Progress bar */}
-              {nodeData.status === 'processing' &&
-                nodeData.progress !== undefined && (
-                  <div className="mt-3">
-                    <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
-                      <div
-                        className="h-full bg-primary transition-all duration-300"
-                        style={{ width: `${nodeData.progress}%` }}
-                      />
-                    </div>
-                    <span className="mt-1 text-xs text-muted-foreground">
-                      {nodeData.progress}%
-                    </span>
-                  </div>
-                )}
-            </NodeErrorBoundary>
-          </div>
+          <BaseNodeHeader
+            Icon={Icon}
+            headerActions={normalizedHeaderActions}
+            nodeLabel={nodeData.label}
+            onLockToggle={handleLockToggle}
+            onStopNode={handleStopNode}
+            state={{
+              hideStatusIndicator,
+              isLocked,
+              isProcessing,
+              isRunning,
+              nodeExecuting,
+            }}
+            status={nodeData.status}
+            title={title}
+            titleElement={titleElement}
+          />
+          <BaseNodeContent
+            nodeData={nodeData}
+            nodeExecuting={nodeExecuting}
+            nodeId={id}
+            nodeType={type as string}
+            onCopyError={handleCopyError}
+            onRetry={handleRetry}
+          >
+            {normalizedChildren}
+          </BaseNodeContent>
         </div>
 
-        {/* Lock Badge */}
-        {isLocked && (
-          <div className="absolute -right-2 -top-2 rounded bg-chart-3 px-1.5 py-0.5 text-[10px] font-bold text-background">
-            LOCKED
-          </div>
-        )}
+        {isLocked && <LockBadge />}
       </div>
 
       {/* Preview Tooltip - shows on hover after delay */}

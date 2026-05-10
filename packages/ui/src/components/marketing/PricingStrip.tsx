@@ -106,7 +106,7 @@ export default function PricingStrip({
               : 'text-surface/40 hover:text-surface/60',
           )}
         >
-          View all plans <LuArrowRight className="h-3 w-3" />
+          View all plans <LuArrowRight className="size-3" />
         </Link>
       </div>
     </div>

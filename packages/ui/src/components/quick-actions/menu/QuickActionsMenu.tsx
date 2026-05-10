@@ -249,7 +249,7 @@ export default function QuickActionsMenu({
         )}
         ariaLabel="More"
       >
-        <HiEllipsisVertical className="w-4 h-4" />
+        <HiEllipsisVertical className="size-4" />
       </Button>
 
       {isMenuOpen &&

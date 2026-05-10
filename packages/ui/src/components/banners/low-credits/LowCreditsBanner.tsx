@@ -145,13 +145,13 @@ export default function LowCreditsBanner({
             <div
               className={cn(
                 'flex shrink-0 items-center justify-center border',
-                isInline ? 'h-9 w-9 rounded-lg' : 'h-10 w-10 rounded-xl',
+                isInline ? 'size-9 rounded-lg' : 'size-10 rounded-xl',
                 isCritical
                   ? 'border-red-400/25 bg-red-500/[0.12] text-red-300'
                   : 'border-amber-400/25 bg-amber-500/[0.12] text-amber-300',
               )}
             >
-              <HiExclamationTriangle className="h-5 w-5" />
+              <HiExclamationTriangle className="size-5" />
             </div>
 
             <div className="min-w-0">
@@ -207,13 +207,13 @@ export default function LowCreditsBanner({
               onClick={handleDismiss}
               className={cn(
                 'inline-flex items-center justify-center border transition-colors',
-                isInline ? 'h-9 w-9 rounded-lg' : 'h-10 w-10 rounded-xl',
+                isInline ? 'size-9 rounded-lg' : 'size-10 rounded-xl',
                 isCritical
                   ? 'border-red-400/15 text-red-200 hover:bg-red-500/[0.12]'
                   : 'border-amber-400/15 text-amber-200 hover:bg-amber-500/[0.12]',
               )}
               ariaLabel="Dismiss low credits banner"
-              icon={<HiXMark className="h-4 w-4" />}
+              icon={<HiXMark className="size-4" />}
             />
           </div>
         </div>

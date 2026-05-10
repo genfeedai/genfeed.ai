@@ -129,7 +129,7 @@ export default function PromptBarArticle({
               setPrompt(e.target.value)
             }
             onKeyDown={handleKeyDown}
-            placeholder="Describe how you want to enhance your content..."
+            placeholder="Describe how you want to enhance your content…"
             isDisabled={isEnhancing}
             className="bg-white/5 border border-white/15 focus:border-primary focus:outline-none text-sm h-10 flex-1 px-3"
           />
@@ -145,7 +145,7 @@ export default function PromptBarArticle({
               onClick={handleSubmit}
               tooltip="Enhance"
               size={ButtonSize.SM}
-              className="h-10 w-10 p-0"
+              className="size-10 p-0"
             />
 
             <Button
@@ -154,8 +154,8 @@ export default function PromptBarArticle({
               tooltipPosition="top"
               variant={ButtonVariant.SECONDARY}
               size={ButtonSize.SM}
-              className="h-10 w-10 p-0 flex-shrink-0"
-              icon={<HiChevronUp className="transition-transform w-4 h-4" />}
+              className="size-10 p-0 flex-shrink-0"
+              icon={<HiChevronUp className="transition-transform size-4" />}
             />
           </div>
         </div>
@@ -171,7 +171,7 @@ export default function PromptBarArticle({
               tooltip="Collapse"
               tooltipPosition="top"
               variant={ButtonVariant.SECONDARY}
-              className="h-10 w-10 p-0"
+              className="size-10 p-0"
               icon={
                 <HiChevronUp
                   className="transition-transform rotate-180"
@@ -186,7 +186,7 @@ export default function PromptBarArticle({
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Describe how you want to enhance your content..."
+              placeholder="Describe how you want to enhance your content…"
               disabled={isEnhancing}
               className="h-24 resize-none"
               rows={3}
@@ -199,11 +199,11 @@ export default function PromptBarArticle({
                     {isEnhancing ? (
                       <>
                         <Spinner size={ComponentSize.XS} />
-                        <span>Enhancing...</span>
+                        <span>Enhancing…</span>
                       </>
                     ) : (
                       <>
-                        <HiSparkles className="w-4 h-4" />
+                        <HiSparkles className="size-4" />
                         <span>Enhance</span>
                       </>
                     )}

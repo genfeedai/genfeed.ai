@@ -205,12 +205,12 @@ vi.mock('@ui-constants/media.constant', () => ({
   getConfigForCategoryType: () => ({
     buttons: { model: true, reference: true },
     defaultModel: 'test-model',
-    placeholder: 'Enter your prompt...',
+    placeholder: 'Enter your prompt…',
   }),
   getConfigForRoute: () => ({
     buttons: { model: true, reference: true },
     defaultModel: 'test-model',
-    placeholder: 'Enter your prompt...',
+    placeholder: 'Enter your prompt…',
   }),
 }));
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useStore as useReactFlowStore } from '@xyflow/react';
-import { memo, useCallback, useEffect, useState } from 'react';
+import { memo, useMemo } from 'react';
 import { useWorkflowStore } from '../stores/workflowStore';
 
 // Threshold for snapping (in pixels at zoom level 1)
@@ -19,135 +19,111 @@ interface HelperLinesProps {
 }
 
 function HelperLinesComponent({ draggingNodeId }: HelperLinesProps) {
-  const [lines, setLines] = useState<HelperLine[]>([]);
   const nodes = useWorkflowStore((state) => state.nodes);
   const transform = useReactFlowStore((state) => state.transform);
 
   // Calculate helper lines when a node is being dragged
-  const calculateHelperLines = useCallback(
-    (draggingId: string) => {
-      const draggingNode = nodes.find((n) => n.id === draggingId);
-      if (!draggingNode) {
-        setLines([]);
-        return;
-      }
+  const lines = useMemo(() => {
+    if (!draggingNodeId) return [];
 
-      const otherNodes = nodes.filter(
-        (n) => n.id !== draggingId && !n.selected,
-      );
-      if (otherNodes.length === 0) {
-        setLines([]);
-        return;
-      }
-
-      // Get dragging node bounds (using default size if not available)
-      const dragWidth =
-        draggingNode.measured?.width ?? draggingNode.width ?? 220;
-      const dragHeight =
-        draggingNode.measured?.height ?? draggingNode.height ?? 100;
-      const dragLeft = draggingNode.position.x;
-      const dragRight = dragLeft + dragWidth;
-      const dragTop = draggingNode.position.y;
-      const dragBottom = dragTop + dragHeight;
-      const dragCenterX = dragLeft + dragWidth / 2;
-      const dragCenterY = dragTop + dragHeight / 2;
-
-      const newLines: HelperLine[] = [];
-
-      for (const node of otherNodes) {
-        const nodeWidth = node.measured?.width ?? node.width ?? 220;
-        const nodeHeight = node.measured?.height ?? node.height ?? 100;
-        const nodeLeft = node.position.x;
-        const nodeRight = nodeLeft + nodeWidth;
-        const nodeTop = node.position.y;
-        const nodeBottom = nodeTop + nodeHeight;
-        const nodeCenterX = nodeLeft + nodeWidth / 2;
-        const nodeCenterY = nodeTop + nodeHeight / 2;
-
-        // Check vertical alignments (X positions)
-        const verticalChecks = [
-          { dragPos: dragLeft, label: 'left-left', nodePos: nodeLeft },
-          { dragPos: dragLeft, label: 'left-right', nodePos: nodeRight },
-          { dragPos: dragRight, label: 'right-left', nodePos: nodeLeft },
-          { dragPos: dragRight, label: 'right-right', nodePos: nodeRight },
-          {
-            dragPos: dragCenterX,
-            label: 'center-center-x',
-            nodePos: nodeCenterX,
-          },
-        ];
-
-        for (const check of verticalChecks) {
-          if (Math.abs(check.dragPos - check.nodePos) <= SNAP_THRESHOLD) {
-            newLines.push({
-              end: Math.max(dragBottom, nodeBottom) + 20,
-              position: check.nodePos,
-              start: Math.min(dragTop, nodeTop) - 20,
-              type: 'vertical',
-            });
-          }
-        }
-
-        // Check horizontal alignments (Y positions)
-        const horizontalChecks = [
-          { dragPos: dragTop, label: 'top-top', nodePos: nodeTop },
-          { dragPos: dragTop, label: 'top-bottom', nodePos: nodeBottom },
-          { dragPos: dragBottom, label: 'bottom-top', nodePos: nodeTop },
-          { dragPos: dragBottom, label: 'bottom-bottom', nodePos: nodeBottom },
-          {
-            dragPos: dragCenterY,
-            label: 'center-center-y',
-            nodePos: nodeCenterY,
-          },
-        ];
-
-        for (const check of horizontalChecks) {
-          if (Math.abs(check.dragPos - check.nodePos) <= SNAP_THRESHOLD) {
-            newLines.push({
-              end: Math.max(dragRight, nodeRight) + 20,
-              position: check.nodePos,
-              start: Math.min(dragLeft, nodeLeft) - 20,
-              type: 'horizontal',
-            });
-          }
-        }
-      }
-
-      // Deduplicate lines by position (keep unique lines)
-      const uniqueLines: HelperLine[] = [];
-      const seenPositions = new Set<string>();
-
-      for (const line of newLines) {
-        const key = `${line.type}-${Math.round(line.position)}`;
-        if (!seenPositions.has(key)) {
-          seenPositions.add(key);
-          // Extend line to cover all matching nodes
-          const existingLine = uniqueLines.find(
-            (l) =>
-              l.type === line.type && Math.abs(l.position - line.position) < 1,
-          );
-          if (existingLine) {
-            existingLine.start = Math.min(existingLine.start, line.start);
-            existingLine.end = Math.max(existingLine.end, line.end);
-          } else {
-            uniqueLines.push(line);
-          }
-        }
-      }
-
-      setLines(uniqueLines);
-    },
-    [nodes],
-  );
-
-  // Update helper lines when dragging node changes position
-  useEffect(() => {
-    if (draggingNodeId) {
-      calculateHelperLines(draggingNodeId);
-    } else {
-      setLines([]);
+    const draggingNode = nodes.find((n) => n.id === draggingNodeId);
+    if (!draggingNode) {
+      return [];
     }
-  }, [draggingNodeId, calculateHelperLines]);
+
+    const otherNodes = nodes.filter(
+      (n) => n.id !== draggingNodeId && !n.selected,
+    );
+    if (otherNodes.length === 0) {
+      return [];
+    }
+
+    // Get dragging node bounds (using default size if not available)
+    const dragWidth = draggingNode.measured?.width ?? draggingNode.width ?? 220;
+    const dragHeight =
+      draggingNode.measured?.height ?? draggingNode.height ?? 100;
+    const dragLeft = draggingNode.position.x;
+    const dragRight = dragLeft + dragWidth;
+    const dragTop = draggingNode.position.y;
+    const dragBottom = dragTop + dragHeight;
+    const dragCenterX = dragLeft + dragWidth / 2;
+    const dragCenterY = dragTop + dragHeight / 2;
+
+    const newLines: HelperLine[] = [];
+
+    for (const node of otherNodes) {
+      const nodeWidth = node.measured?.width ?? node.width ?? 220;
+      const nodeHeight = node.measured?.height ?? node.height ?? 100;
+      const nodeLeft = node.position.x;
+      const nodeRight = nodeLeft + nodeWidth;
+      const nodeTop = node.position.y;
+      const nodeBottom = nodeTop + nodeHeight;
+      const nodeCenterX = nodeLeft + nodeWidth / 2;
+      const nodeCenterY = nodeTop + nodeHeight / 2;
+
+      // Check vertical alignments (X positions)
+      const verticalChecks = [
+        { dragPos: dragLeft, label: 'left-left', nodePos: nodeLeft },
+        { dragPos: dragLeft, label: 'left-right', nodePos: nodeRight },
+        { dragPos: dragRight, label: 'right-left', nodePos: nodeLeft },
+        { dragPos: dragRight, label: 'right-right', nodePos: nodeRight },
+        {
+          dragPos: dragCenterX,
+          label: 'center-center-x',
+          nodePos: nodeCenterX,
+        },
+      ];
+
+      for (const check of verticalChecks) {
+        if (Math.abs(check.dragPos - check.nodePos) <= SNAP_THRESHOLD) {
+          newLines.push({
+            end: Math.max(dragBottom, nodeBottom) + 20,
+            position: check.nodePos,
+            start: Math.min(dragTop, nodeTop) - 20,
+            type: 'vertical',
+          });
+        }
+      }
+
+      // Check horizontal alignments (Y positions)
+      const horizontalChecks = [
+        { dragPos: dragTop, label: 'top-top', nodePos: nodeTop },
+        { dragPos: dragTop, label: 'top-bottom', nodePos: nodeBottom },
+        { dragPos: dragBottom, label: 'bottom-top', nodePos: nodeTop },
+        { dragPos: dragBottom, label: 'bottom-bottom', nodePos: nodeBottom },
+        {
+          dragPos: dragCenterY,
+          label: 'center-center-y',
+          nodePos: nodeCenterY,
+        },
+      ];
+
+      for (const check of horizontalChecks) {
+        if (Math.abs(check.dragPos - check.nodePos) <= SNAP_THRESHOLD) {
+          newLines.push({
+            end: Math.max(dragRight, nodeRight) + 20,
+            position: check.nodePos,
+            start: Math.min(dragLeft, nodeLeft) - 20,
+            type: 'horizontal',
+          });
+        }
+      }
+    }
+
+    // Deduplicate lines by position (keep unique lines)
+    const uniqueLines: HelperLine[] = [];
+    const seenPositions = new Set<string>();
+
+    for (const line of newLines) {
+      const key = `${line.type}-${Math.round(line.position)}`;
+      if (!seenPositions.has(key)) {
+        seenPositions.add(key);
+        uniqueLines.push(line);
+      }
+    }
+
+    return uniqueLines;
+  }, [draggingNodeId, nodes]);
 
   if (lines.length === 0) return null;
 
@@ -167,7 +143,7 @@ function HelperLinesComponent({ draggingNodeId }: HelperLinesProps) {
           const y2 = line.end * zoom + ty;
           return (
             <line
-              key={`v-${index}`}
+              key={`v-${Math.round(line.position)}-${Math.round(line.start)}-${Math.round(line.end)}`}
               x1={x}
               y1={y1}
               x2={x}
@@ -184,7 +160,7 @@ function HelperLinesComponent({ draggingNodeId }: HelperLinesProps) {
           const x2 = line.end * zoom + tx;
           return (
             <line
-              key={`h-${index}`}
+              key={`h-${Math.round(line.position)}-${Math.round(line.start)}-${Math.round(line.end)}`}
               x1={x1}
               y1={y}
               x2={x2}

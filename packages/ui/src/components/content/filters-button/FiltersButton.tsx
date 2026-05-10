@@ -275,7 +275,7 @@ export default function FiltersButton({
       <Button
         onClick={() => setIsOpen(!isOpen)}
         variant={ButtonVariant.GHOST}
-        icon={<HiOutlineFunnel className="h-4 w-4" />}
+        icon={<HiOutlineFunnel className="size-4" />}
         tooltip="Filters"
       />
 

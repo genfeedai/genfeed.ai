@@ -311,12 +311,12 @@ export default function TopbarCreditsBar() {
               <div className="mt-2 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-1.5">
-                    <div className="h-1.5 w-1.5 rounded-full bg-white/50" />
+                    <div className="size-1.5 rounded-full bg-white/50" />
                     <span className="text-[11px] text-foreground/40">Plan</span>
                   </div>
                   {extraBalance > 0 && (
                     <div className="flex items-center gap-1.5">
-                      <div className="h-1.5 w-1.5 rounded-full bg-primary/60" />
+                      <div className="size-1.5 rounded-full bg-primary/60" />
                       <span className="text-[11px] text-foreground/40">
                         Extra
                       </span>
@@ -396,7 +396,7 @@ export default function TopbarCreditsBar() {
             >
               <HiArrowPath
                 className={cn(
-                  'w-4 h-4 flex-shrink-0',
+                  'size-4 flex-shrink-0',
                   isLoading && 'animate-spin',
                 )}
               />
@@ -414,7 +414,7 @@ export default function TopbarCreditsBar() {
               onClick={() => setIsOpen(false)}
               title="Top Up Credits"
             >
-              <HiPlus className="w-4 h-4 flex-shrink-0" />
+              <HiPlus className="size-4 flex-shrink-0" />
               <span className="text-sm font-medium">Top Up</span>
             </Link>
           </div>

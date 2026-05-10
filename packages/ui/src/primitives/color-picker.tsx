@@ -118,7 +118,7 @@ export default function ColorPicker({
             aria-expanded={displayColorPicker}
           >
             <div
-              className="w-8 h-8 border border-white/[0.08]"
+              className="size-8 border border-white/[0.08]"
               style={{ backgroundColor: color }}
               aria-hidden="true"
             />

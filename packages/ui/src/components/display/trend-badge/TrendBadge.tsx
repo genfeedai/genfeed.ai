@@ -16,9 +16,9 @@ const SIZE_CLASSES = {
 } as const;
 
 const ICON_SIZE_CLASSES = {
-  lg: 'w-5 h-5',
-  md: 'w-4 h-4',
-  sm: 'w-3 h-3',
+  lg: 'size-5',
+  md: 'size-4',
+  sm: 'size-3',
 } as const;
 
 /**

@@ -248,9 +248,9 @@ const PromptBarFrameControls = memo(function PromptBarFrameControls({
       withWrapper={false}
       onClick={onClick}
       ariaLabel={title}
-      className="absolute top-0 right-0 w-4 h-4 bg-black/70 hover:bg-error rounded-bl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+      className="absolute top-0 right-0 size-4 bg-black/70 hover:bg-error rounded-bl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
       tooltip={title}
-      icon={<HiXMark className="w-3 h-3 text-white" />}
+      icon={<HiXMark className="size-3 text-white" />}
     />
   );
 
@@ -271,18 +271,18 @@ const PromptBarFrameControls = memo(function PromptBarFrameControls({
         data-testid="reference-button"
         icon={
           references.length > 0 ? (
-            <div className="relative w-10 h-10 group">
+            <div className="relative size-10 group">
               <Image
                 src={getImageUrl(references[0], referenceSource)}
                 alt={isVideoModel ? 'Start Frame' : 'Reference'}
-                className="w-full h-full object-cover"
+                className="size-full object-cover"
                 width={40}
                 height={40}
                 sizes="40px"
                 priority
               />
               {references.length > 1 && (
-                <div className="absolute bottom-0 right-0 bg-primary text-primary-foreground text-[10px] font-bold w-4 h-4 rounded-tl flex items-center justify-center">
+                <div className="absolute bottom-0 right-0 bg-primary text-primary-foreground text-[10px] font-bold size-4 rounded-tl flex items-center justify-center">
                   {references.length}
                 </div>
               )}
@@ -292,7 +292,7 @@ const PromptBarFrameControls = memo(function PromptBarFrameControls({
               )}
             </div>
           ) : (
-            <HiPhoto className="w-4 h-4" />
+            <HiPhoto className="size-4" />
           )
         }
       />
@@ -307,11 +307,11 @@ const PromptBarFrameControls = memo(function PromptBarFrameControls({
           data-testid="end-frame-button"
           icon={
             endFrame ? (
-              <div className="relative w-10 h-10 group">
+              <div className="relative size-10 group">
                 <Image
                   src={getImageUrl(endFrame, 'ingredient')}
                   alt="End Frame"
-                  className="w-full h-full object-cover"
+                  className="size-full object-cover"
                   width={40}
                   height={40}
                   sizes="40px"
@@ -320,7 +320,7 @@ const PromptBarFrameControls = memo(function PromptBarFrameControls({
                 {renderClearButton(clearEndFrame, 'Clear end frame')}
               </div>
             ) : (
-              <HiTv className="w-4 h-4" />
+              <HiTv className="size-4" />
             )
           }
         />
@@ -335,7 +335,7 @@ const PromptBarFrameControls = memo(function PromptBarFrameControls({
         }
         tooltipPosition="top"
         className={cn(iconButtonClass, 'opacity-80')}
-        icon={<HiArrowUpTray className="w-4 h-4" />}
+        icon={<HiArrowUpTray className="size-4" />}
         onClick={() => {
           openUpload({
             category: IngredientCategory.IMAGE,

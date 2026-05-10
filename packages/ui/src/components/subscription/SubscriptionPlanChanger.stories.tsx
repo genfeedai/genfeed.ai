@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/rules-of-hooks -- Storybook render functions are invoked as story components. */
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import SubscriptionPlanChanger from '@ui/subscription/SubscriptionPlanChanger';
 import { useState } from 'react';

@@ -197,7 +197,7 @@ export default function MasonryImage({
         tabIndex={0}
         data-testid={`masonry-ingredient-${image.id}`}
         className={cn(
-          'relative h-full w-full cursor-pointer overflow-hidden border border-white/[0.08] bg-card transition-[border-color,background-color] duration-200 hover:border-white/[0.14]',
+          'relative size-full cursor-pointer overflow-hidden border border-white/[0.08] bg-card transition-[border-color,background-color] duration-200 hover:border-white/[0.14]',
           isDarkroomLocked && 'cursor-not-allowed',
           MASONRY_TILE_RADIUS_CLASS,
         )}
@@ -234,7 +234,7 @@ export default function MasonryImage({
           width={metadata?.width || 1080}
           height={metadata?.height || 1920}
           className={cn(
-            'w-full h-full transition-opacity duration-300',
+            'size-full transition-opacity duration-300',
             (isProcessing || isDarkroomLocked) && 'blur-sm',
             isSquare ? 'object-cover object-center' : 'object-contain',
             isLoading ? 'opacity-0' : 'opacity-100',

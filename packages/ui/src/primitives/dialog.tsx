@@ -60,7 +60,7 @@ const DialogContent = forwardRef<
     {children}
     {showCloseButton && (
       <ShipDialogClose className="absolute right-4 top-4 rounded-md p-1 text-secondary transition-colors hover:bg-hover hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-border-strong focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none">
-        <X className="h-4 w-4" />
+        <X className="size-4" />
         <span className="sr-only">Close</span>
       </ShipDialogClose>
     )}

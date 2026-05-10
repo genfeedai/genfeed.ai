@@ -68,7 +68,7 @@ const SelectScrollUpButton = forwardRef<
     )}
     {...props}
   >
-    <ChevronUp className="h-4 w-4" aria-hidden="true" />
+    <ChevronUp className="size-4" aria-hidden="true" />
   </SelectPrimitive.ScrollUpButton>
 ));
 SelectScrollUpButton.displayName = SelectPrimitive.ScrollUpButton.displayName;
@@ -85,7 +85,7 @@ const SelectScrollDownButton = forwardRef<
     )}
     {...props}
   >
-    <ChevronDown className="h-4 w-4" aria-hidden="true" />
+    <ChevronDown className="size-4" aria-hidden="true" />
   </SelectPrimitive.ScrollDownButton>
 ));
 SelectScrollDownButton.displayName =

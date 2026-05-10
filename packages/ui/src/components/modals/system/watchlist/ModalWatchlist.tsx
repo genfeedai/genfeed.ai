@@ -170,7 +170,7 @@ export default function ModalWatchlist({
             name="notes"
             control={form.control}
             onChange={handleChange}
-            placeholder="Add notes about this creator..."
+            placeholder="Add notes about this creator…"
             isDisabled={isSubmitting}
           />
         </FormControl>

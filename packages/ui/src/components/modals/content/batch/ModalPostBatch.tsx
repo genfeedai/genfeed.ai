@@ -140,7 +140,7 @@ function ModalPostBatchEmptyState({
   if (!ingredient) {
     return (
       <div className="text-center py-8 px-4">
-        <h3 className="text-lg font-bold mb-4">No Content Selected</h3>
+        <h3 className="text-lg font-semibold mb-4">No Content Selected</h3>
         <p className="text-foreground/70 mb-6">
           Please select content to publish.
         </p>
@@ -170,7 +170,7 @@ function ModalPostBatchEmptyState({
 
     return (
       <div className="text-center py-8 px-4">
-        <h3 className="text-lg font-bold mb-4">{title}</h3>
+        <h3 className="text-lg font-semibold mb-4">{title}</h3>
         <p className="text-foreground/70 mb-6">{errorMessage}</p>
 
         <div className="flex gap-3 justify-center">
@@ -1107,7 +1107,7 @@ export default function ModalPostBatch({
                   <div className="w-full max-w-md space-y-6">
                     {/* Header */}
                     <div className="text-center">
-                      <h2 className="text-2xl font-bold mb-2">
+                      <h2 className="text-2xl font-semibold mb-2">
                         Submission Status
                       </h2>
 
@@ -1123,7 +1123,7 @@ export default function ModalPostBatch({
                           (r) =>
                             r.status === 'pending' || r.status === 'submitting',
                         )
-                          ? ' (in progress...)'
+                          ? ' (in progress…)'
                           : ' successfully'}
                       </p>
                     </div>
@@ -1169,7 +1169,7 @@ export default function ModalPostBatch({
                             case 'failed':
                               return <Badge status="error">Failed</Badge>;
                             case 'submitting':
-                              return <Badge status="info">Submitting...</Badge>;
+                              return <Badge status="info">Submitting…</Badge>;
                             default:
                               return <Badge variant="ghost">Pending</Badge>;
                           }
@@ -1182,7 +1182,7 @@ export default function ModalPostBatch({
                           >
                             {PlatformIcon && (
                               <PlatformIcon
-                                className={`h-5 w-5 ${getIconColor()}`}
+                                className={`size-5 ${getIconColor()}`}
                               />
                             )}
                             <div className="flex-1">

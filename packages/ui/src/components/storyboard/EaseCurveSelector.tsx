@@ -39,7 +39,7 @@ export default function EaseCurveSelector({
   value,
   onChange,
   label = 'Ease Curve',
-  placeholder = 'Select ease curve...',
+  placeholder = 'Select ease curve…',
   isDisabled = false,
   className,
   dropdownDirection = 'up',

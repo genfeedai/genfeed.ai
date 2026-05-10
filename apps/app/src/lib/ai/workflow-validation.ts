@@ -1,16 +1,16 @@
 import type { HandleType, NodeType } from '@genfeedai/types';
 import { CONNECTION_RULES, NODE_DEFINITIONS } from '@genfeedai/types';
 
-const CONNECTION_RULE_LOOKUP = new Map(
+const CONNECTION_RULE_LOOKUP = new Map<HandleType, Set<HandleType>>(
   Object.entries(CONNECTION_RULES).map(([sourceType, targetTypes]) => [
-    sourceType,
+    sourceType as HandleType,
     new Set(targetTypes),
   ]),
 );
 
 function canConnectHandleTypes(
-  sourceType: string,
-  targetType: string,
+  sourceType: HandleType,
+  targetType: HandleType,
 ): boolean {
   return CONNECTION_RULE_LOOKUP.get(sourceType)?.has(targetType) ?? false;
 }

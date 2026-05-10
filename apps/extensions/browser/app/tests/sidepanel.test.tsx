@@ -50,7 +50,7 @@ describe('SidePanel', () => {
       "import { ThreadList } from '~components/history/ThreadList';",
     );
     expect(source).toContain(
-      "return <ThreadList onOpenThread={() => setActiveTab('chat')} />;",
+      "return <ThreadList onOpenThread={() => onActiveTabChange('chat')} />;",
     );
   });
 });

@@ -95,7 +95,7 @@ export function VideoCompletionFunnel({
       <div className="relative" style={{ height }}>
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-card/50 z-10">
-            <span className="animate-pulse w-12 h-12 rounded-full bg-primary/30" />
+            <span className="animate-pulse size-12 rounded-full bg-primary/30" />
           </div>
         )}
 

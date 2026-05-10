@@ -63,7 +63,7 @@ export default function ModalTextOverlay({
         text: text.trim(),
       });
 
-      notificationsService.success('Adding text overlay...');
+      notificationsService.success('Adding text overlay…');
       closeModalTextOverlay();
       onConfirm?.();
       setIsSubmitting(false);

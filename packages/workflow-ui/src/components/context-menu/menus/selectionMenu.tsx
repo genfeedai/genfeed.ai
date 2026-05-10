@@ -34,14 +34,14 @@ export function getSelectionMenuItems({
 
   return [
     {
-      icon: <Group className="w-4 h-4" />,
+      icon: <Group className="size-4" />,
       id: 'group',
       label: 'Create Group',
       onClick: () => onGroup(nodeIds),
       shortcut: '⌘G',
     },
     {
-      icon: <Copy className="w-4 h-4" />,
+      icon: <Copy className="size-4" />,
       id: 'duplicate-all',
       label: `Duplicate ${count} Nodes`,
       onClick: () => onDuplicateAll(nodeIds),
@@ -49,27 +49,27 @@ export function getSelectionMenuItems({
     },
     createSeparator('separator-1'),
     {
-      icon: <Lock className="w-4 h-4" />,
+      icon: <Lock className="size-4" />,
       id: 'lock-all',
       label: 'Lock All',
       onClick: () => onLockAll(nodeIds),
       shortcut: 'L',
     },
     {
-      icon: <LockOpen className="w-4 h-4" />,
+      icon: <LockOpen className="size-4" />,
       id: 'unlock-all',
       label: 'Unlock All',
       onClick: () => onUnlockAll(nodeIds),
     },
     createSeparator('separator-2'),
     {
-      icon: <AlignHorizontalJustifyCenter className="w-4 h-4" />,
+      icon: <AlignHorizontalJustifyCenter className="size-4" />,
       id: 'align-horizontal',
       label: 'Align Horizontally',
       onClick: () => onAlignHorizontal(nodeIds),
     },
     {
-      icon: <AlignVerticalJustifyCenter className="w-4 h-4" />,
+      icon: <AlignVerticalJustifyCenter className="size-4" />,
       id: 'align-vertical',
       label: 'Align Vertically',
       onClick: () => onAlignVertical(nodeIds),
@@ -77,7 +77,7 @@ export function getSelectionMenuItems({
     createSeparator('separator-3'),
     {
       danger: true,
-      icon: <Trash2 className="w-4 h-4" />,
+      icon: <Trash2 className="size-4" />,
       id: 'delete-all',
       label: `Delete ${count} Nodes`,
       onClick: () => onDeleteAll(nodeIds),

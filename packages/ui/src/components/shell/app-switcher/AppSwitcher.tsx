@@ -145,10 +145,10 @@ export function AppSwitcher({
             type="button"
             variant={ButtonVariant.UNSTYLED}
             withWrapper={false}
-            className="inline-flex h-7 w-7 items-center justify-center rounded border border-border bg-background-secondary transition-colors hover:border-border-strong hover:bg-background-tertiary"
+            className="inline-flex size-7 items-center justify-center rounded border border-border bg-background-secondary transition-colors hover:border-border-strong hover:bg-background-tertiary"
             ariaLabel={`Current app: ${activeApp?.label ?? currentApp}. Click to switch apps.`}
           >
-            <ActiveIcon className="h-4 w-4" />
+            <ActiveIcon className="size-4" />
           </Button>
         </DropdownMenuTrigger>
       </SimpleTooltip>
@@ -175,7 +175,7 @@ export function AppSwitcher({
                   <Icon
                     aria-hidden="true"
                     className={cn(
-                      'h-4 w-4',
+                      'size-4',
                       isActive ? 'text-foreground' : 'text-foreground/55',
                     )}
                   />
@@ -210,7 +210,7 @@ export function AppSwitcher({
                   <Icon
                     aria-hidden="true"
                     className={cn(
-                      'h-4 w-4',
+                      'size-4',
                       isActive ? 'text-foreground' : 'text-foreground/55',
                     )}
                   />

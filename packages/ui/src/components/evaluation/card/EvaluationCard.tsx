@@ -199,7 +199,7 @@ export default function EvaluationCard({
           </div>
           <HiChevronDown
             className={cn(
-              'w-4 h-4 text-foreground/50 transition-transform',
+              'size-4 text-foreground/50 transition-transform',
               isCardCollapsed && '-rotate-90',
             )}
           />
@@ -247,7 +247,7 @@ export default function EvaluationCard({
             <Button
               variant={ButtonVariant.GENERATE}
               icon={<HiArrowUp />}
-              label={isEvaluating ? 'Running...' : 'Run'}
+              label={isEvaluating ? 'Running…' : 'Run'}
               onClick={onEvaluate}
               isLoading={isEvaluating}
               isDisabled={isEvaluating}
@@ -261,12 +261,12 @@ export default function EvaluationCard({
     if (evaluation.status === Status.PROCESSING || isEvaluating) {
       return (
         <div className="flex items-center gap-3">
-          <span className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full" />
+          <span className="animate-spin size-5 border-2 border-primary border-t-transparent rounded-full" />
           <div>
             <p className="text-sm font-medium">
               {evaluation?.scores
-                ? 'Re-evaluating content...'
-                : 'Analyzing content...'}
+                ? 'Re-evaluating content…'
+                : 'Analyzing content…'}
             </p>
 
             <p className="text-xs text-foreground/60">
@@ -290,7 +290,7 @@ export default function EvaluationCard({
             <Button
               variant={ButtonVariant.GENERATE}
               icon={<HiArrowUp />}
-              label={isEvaluating ? 'Running...' : 'Run'}
+              label={isEvaluating ? 'Running…' : 'Run'}
               onClick={onEvaluate}
               isLoading={isEvaluating}
               isDisabled={isEvaluating}
@@ -370,7 +370,7 @@ export default function EvaluationCard({
             </h4>
             <HiChevronDown
               className={cn(
-                'w-4 h-4 text-foreground/50 transition-transform',
+                'size-4 text-foreground/50 transition-transform',
                 isScoresCollapsed && '-rotate-90',
               )}
             />
@@ -414,7 +414,7 @@ export default function EvaluationCard({
             </h4>
             <HiChevronDown
               className={cn(
-                'w-4 h-4 text-foreground/50 transition-transform',
+                'size-4 text-foreground/50 transition-transform',
                 isAnalysisCollapsed && '-rotate-90',
               )}
             />
@@ -474,7 +474,7 @@ export default function EvaluationCard({
               </h4>
               <HiChevronDown
                 className={cn(
-                  'w-4 h-4 text-foreground/50 transition-transform',
+                  'size-4 text-foreground/50 transition-transform',
                   isSuggestionsCollapsed && '-rotate-90',
                 )}
               />

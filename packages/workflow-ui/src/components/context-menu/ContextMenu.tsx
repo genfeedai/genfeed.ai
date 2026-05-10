@@ -1,6 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useRef,
+  useState,
+} from 'react';
 import { ContextMenuItem } from './ContextMenuItem';
 import { ContextMenuSeparator } from './ContextMenuSeparator';
 
@@ -80,58 +86,64 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
   }, [onClose]);
 
   // Keyboard navigation
+  const handleMenuKeyDown = useEffectEvent((event: KeyboardEvent) => {
+    const selectableIndices: number[] = [];
+    for (const [index, item] of items.entries()) {
+      if (!item.separator && !item.disabled) {
+        selectableIndices.push(index);
+      }
+    }
+
+    switch (event.key) {
+      case 'Escape':
+        event.preventDefault();
+        onClose();
+        break;
+      case 'ArrowDown':
+        event.preventDefault();
+        if (selectableIndices.length > 0) {
+          const currentSelectableIndex =
+            selectableIndices.indexOf(selectedIndex);
+          const nextIndex =
+            currentSelectableIndex === -1
+              ? 0
+              : (currentSelectableIndex + 1) % selectableIndices.length;
+          setSelectedIndex(selectableIndices[nextIndex]);
+        }
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        if (selectableIndices.length > 0) {
+          const currentSelectableIndex =
+            selectableIndices.indexOf(selectedIndex);
+          const prevIndex =
+            currentSelectableIndex === -1
+              ? selectableIndices.length - 1
+              : (currentSelectableIndex - 1 + selectableIndices.length) %
+                selectableIndices.length;
+          setSelectedIndex(selectableIndices[prevIndex]);
+        }
+        break;
+      case 'Enter':
+        event.preventDefault();
+        if (selectedIndex >= 0 && selectedIndex < items.length) {
+          const item = items[selectedIndex];
+          if (!item.separator && !item.disabled && item.onClick) {
+            item.onClick();
+            onClose();
+          }
+        }
+        break;
+    }
+  });
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      const selectableIndices = items
-        .map((item, index) => (!item.separator && !item.disabled ? index : -1))
-        .filter((index) => index !== -1);
-
-      switch (event.key) {
-        case 'Escape':
-          event.preventDefault();
-          onClose();
-          break;
-        case 'ArrowDown':
-          event.preventDefault();
-          if (selectableIndices.length > 0) {
-            const currentSelectableIndex =
-              selectableIndices.indexOf(selectedIndex);
-            const nextIndex =
-              currentSelectableIndex === -1
-                ? 0
-                : (currentSelectableIndex + 1) % selectableIndices.length;
-            setSelectedIndex(selectableIndices[nextIndex]);
-          }
-          break;
-        case 'ArrowUp':
-          event.preventDefault();
-          if (selectableIndices.length > 0) {
-            const currentSelectableIndex =
-              selectableIndices.indexOf(selectedIndex);
-            const prevIndex =
-              currentSelectableIndex === -1
-                ? selectableIndices.length - 1
-                : (currentSelectableIndex - 1 + selectableIndices.length) %
-                  selectableIndices.length;
-            setSelectedIndex(selectableIndices[prevIndex]);
-          }
-          break;
-        case 'Enter':
-          event.preventDefault();
-          if (selectedIndex >= 0 && selectedIndex < items.length) {
-            const item = items[selectedIndex];
-            if (!item.separator && !item.disabled && item.onClick) {
-              item.onClick();
-              onClose();
-            }
-          }
-          break;
-      }
+      handleMenuKeyDown(event);
     };
-
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [items, selectedIndex, onClose]);
+  }, []);
 
   const handleItemClick = useCallback(
     (item: ContextMenuItemConfig) => {

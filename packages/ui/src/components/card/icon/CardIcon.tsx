@@ -10,7 +10,7 @@ export default function CardIcon({
 }: CardIconProps) {
   // When the wrapper supplies a text color, let the icon inherit it.
   // Explicit color classes in iconClassName still win because they merge later.
-  const defaultIconClassName = className ? 'w-4 h-4' : 'w-4 h-4 text-primary';
+  const defaultIconClassName = className ? 'size-4' : 'size-4 text-primary';
 
   // Handle both ReactNode (already rendered) and ComponentType (function)
   const iconElement = isValidElement(icon)

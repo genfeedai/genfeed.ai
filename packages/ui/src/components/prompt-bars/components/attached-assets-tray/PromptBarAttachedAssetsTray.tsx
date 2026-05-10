@@ -38,11 +38,11 @@ function getAssetRoleLabel(asset: PromptBarAttachedAsset): string {
 function getFallbackIcon(asset: PromptBarAttachedAsset) {
   switch (asset.kind) {
     case 'video':
-      return <HiTv className="h-4 w-4 text-white/70" />;
+      return <HiTv className="size-4 text-white/70" />;
     case 'audio':
-      return <HiMusicalNote className="h-4 w-4 text-white/70" />;
+      return <HiMusicalNote className="size-4 text-white/70" />;
     default:
-      return <HiPhoto className="h-4 w-4 text-white/70" />;
+      return <HiPhoto className="size-4 text-white/70" />;
   }
 }
 
@@ -75,7 +75,7 @@ const PromptBarAttachedAssetsTray = memo(function PromptBarAttachedAssetsTray({
             <div
               className={cn(
                 'flex shrink-0 items-center justify-center overflow-hidden border border-white/10 bg-black/20',
-                isCompact ? 'h-6.5 w-6.5' : 'h-7 w-7',
+                isCompact ? 'size-6.5' : 'size-7',
               )}
             >
               {asset.previewUrl ? (
@@ -84,7 +84,7 @@ const PromptBarAttachedAssetsTray = memo(function PromptBarAttachedAssetsTray({
                   alt={asset.name || getAssetRoleLabel(asset)}
                   width={isCompact ? 26 : 28}
                   height={isCompact ? 26 : 28}
-                  className="h-full w-full object-cover"
+                  className="size-full object-cover"
                   sizes={isCompact ? '26px' : '28px'}
                 />
               ) : (
@@ -111,8 +111,8 @@ const PromptBarAttachedAssetsTray = memo(function PromptBarAttachedAssetsTray({
             <Button
               type="button"
               variant={undefined}
-              className="h-7 w-7 shrink-0 border border-white/10 bg-transparent p-0 text-white/55 hover:bg-white/5 hover:text-white"
-              icon={<HiXMark className="h-3.5 w-3.5" />}
+              className="size-7 shrink-0 border border-white/10 bg-transparent p-0 text-white/55 hover:bg-white/5 hover:text-white"
+              icon={<HiXMark className="size-3.5" />}
               onClick={() => onRemoveAttachedAsset(asset.id)}
               isDisabled={isDisabled}
               ariaLabel={`Remove ${asset.name || getAssetRoleLabel(asset)}`}
@@ -127,7 +127,7 @@ const PromptBarAttachedAssetsTray = memo(function PromptBarAttachedAssetsTray({
             'border border-white/10 bg-transparent font-medium text-white/70 hover:bg-white/5 hover:text-white',
             isCompact ? 'h-9 px-2.5 text-[11px]' : 'h-10 px-3 text-[12px]',
           )}
-          icon={<HiOutlineFolderOpen className="h-3.5 w-3.5" />}
+          icon={<HiOutlineFolderOpen className="size-3.5" />}
           onClick={onBrowseAssets}
           isDisabled={isDisabled}
         >

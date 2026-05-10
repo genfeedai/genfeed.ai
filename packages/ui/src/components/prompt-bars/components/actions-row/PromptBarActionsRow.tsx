@@ -110,7 +110,7 @@ const PromptBarActionsRow = memo(function PromptBarActionsRow({
       return 'Stop recording';
     }
     if (isProcessing) {
-      return 'Processing...';
+      return 'Processing…';
     }
     return 'Voice input (Speak to transcribe)';
   }
@@ -178,7 +178,7 @@ const PromptBarActionsRow = memo(function PromptBarActionsRow({
               tooltip={getReferenceButtonTooltip()}
               icon={
                 references.length > 0 ? (
-                  <div className="relative w-8 h-8 overflow-hidden">
+                  <div className="relative size-8 overflow-hidden">
                     <Image
                       src={
                         referenceSource === 'brand'
@@ -186,7 +186,7 @@ const PromptBarActionsRow = memo(function PromptBarActionsRow({
                           : `${EnvironmentService.ingredientsEndpoint}/images/${references[0].id}`
                       }
                       alt="Reference"
-                      className="w-full h-full object-cover"
+                      className="size-full object-cover"
                       width={32}
                       height={32}
                       sizes="32px"
@@ -199,7 +199,7 @@ const PromptBarActionsRow = memo(function PromptBarActionsRow({
                     )}
                   </div>
                 ) : (
-                  <HiTv className="w-4 h-4" />
+                  <HiTv className="size-4" />
                 )
               }
             />
@@ -236,18 +236,18 @@ const PromptBarActionsRow = memo(function PromptBarActionsRow({
                   className={iconButtonClass}
                   icon={
                     endFrame ? (
-                      <div className="relative w-8 h-8 overflow-hidden">
+                      <div className="relative size-8 overflow-hidden">
                         <Image
                           src={`${EnvironmentService.ingredientsEndpoint}/images/${endFrame.id}`}
                           alt="End Frame"
-                          className="w-full h-full object-cover"
+                          className="size-full object-cover"
                           width={32}
                           height={32}
                           sizes="32px"
                         />
                       </div>
                     ) : (
-                      <HiTv className="w-4 h-4" />
+                      <HiTv className="size-4" />
                     )
                   }
                 />
@@ -263,7 +263,7 @@ const PromptBarActionsRow = memo(function PromptBarActionsRow({
                     tooltipPosition="top"
                     className={iconButtonClass}
                     tooltip="Clear end frame"
-                    icon={<HiNoSymbol className="w-4 h-4" />}
+                    icon={<HiNoSymbol className="size-4" />}
                   />
                 )}
               </>
@@ -302,9 +302,9 @@ const PromptBarActionsRow = memo(function PromptBarActionsRow({
             tooltipPosition="top"
             icon={
               isRecording ? (
-                <HiMicrophone className="w-4 h-4" color="red" />
+                <HiMicrophone className="size-4" color="red" />
               ) : (
-                <HiMicrophone className="w-4 h-4" />
+                <HiMicrophone className="size-4" />
               )
             }
           />
@@ -316,7 +316,7 @@ const PromptBarActionsRow = memo(function PromptBarActionsRow({
           tooltip="Copy prompt"
           tooltipPosition="top"
           className={iconButtonClass}
-          icon={<HiDocumentDuplicate className="w-4 h-4" />}
+          icon={<HiDocumentDuplicate className="size-4" />}
         />
 
         <Button
@@ -329,7 +329,7 @@ const PromptBarActionsRow = memo(function PromptBarActionsRow({
             isEnhancing ? (
               <Spinner size={ComponentSize.XS} />
             ) : (
-              <HiSparkles className="w-4 h-4" />
+              <HiSparkles className="size-4" />
             )
           }
         />
@@ -362,7 +362,7 @@ const PromptBarActionsRow = memo(function PromptBarActionsRow({
               : generateLabel
           }
           className={cn(
-            'h-10 w-10 p-0 transition-all duration-300',
+            'size-10 p-0 transition-all duration-300',
             activeGenerationsCount > 0 && 'bg-yellow-500 hover:bg-yellow-600',
           )}
         />

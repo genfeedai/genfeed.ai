@@ -225,7 +225,7 @@ export default function ModalArticle({
                 name="prompt"
                 control={form.control}
                 onChange={handleChange}
-                placeholder="Describe what you want to write about... (e.g., 'AI in healthcare', 'Latest trends in web development')"
+                placeholder="Describe what you want to write about… (e.g., 'AI in healthcare', 'Latest trends in web development')"
                 isRequired={true}
                 isDisabled={isSubmitting}
                 onKeyDown={handleKeyDown}
@@ -266,7 +266,7 @@ export default function ModalArticle({
                 name="content"
                 control={form.control}
                 onChange={handleChange}
-                placeholder="Start writing your article..."
+                placeholder="Start writing your article…"
                 isRequired={true}
                 isDisabled={isSubmitting}
                 onKeyDown={handleKeyDown}
@@ -298,11 +298,11 @@ export default function ModalArticle({
               isSubmitting ? (
                 <span className="inline-flex items-center gap-2">
                   <Spinner size={ComponentSize.XS} />
-                  <span>{useAI ? 'Generating...' : 'Creating...'}</span>
+                  <span>{useAI ? 'Generating…' : 'Creating…'}</span>
                 </span>
               ) : useAI ? (
                 <span className="inline-flex items-center gap-2">
-                  <HiSparkles className="w-4 h-4" />
+                  <HiSparkles className="size-4" />
                   <span>
                     Generate {countNumber} Article{countNumber > 1 ? 's' : ''}
                   </span>

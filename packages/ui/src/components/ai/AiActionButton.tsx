@@ -77,7 +77,7 @@ export default function AiActionButton({
           isLoading ? (
             <Spinner size={ComponentSize.XS} />
           ) : (
-            <HiSparkles className="w-3.5 h-3.5" />
+            <HiSparkles className="size-3.5" />
           )
         }
         variant={variant}
@@ -91,7 +91,7 @@ export default function AiActionButton({
 
       {showUndo && previousValue !== null && !isLoading && (
         <Button
-          icon={<HiArrowUturnLeft className="w-3 h-3" />}
+          icon={<HiArrowUturnLeft className="size-3" />}
           variant={ButtonVariant.GHOST}
           size={ButtonSize.XS}
           tooltip="Undo"

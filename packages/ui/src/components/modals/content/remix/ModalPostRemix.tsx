@@ -77,7 +77,7 @@ export default function ModalPostRemix({
     >
       <div className="space-y-4">
         <div className="flex items-center gap-2 text-sm text-foreground/70 bg-background/50 p-3">
-          <HiDocumentDuplicate className="w-5 h-5 text-primary" />
+          <HiDocumentDuplicate className="size-5 text-primary" />
           <span>
             Create a variant of this post with different wording. The original
             post&apos;s media, platform, and settings will be copied.
@@ -105,7 +105,7 @@ export default function ModalPostRemix({
             value={description}
             onChange={setDescription}
             minHeight={{ desktop: 200, mobile: 150 }}
-            placeholder="Enter new description/caption..."
+            placeholder="Enter new description/caption…"
           />
         </FormControl>
 

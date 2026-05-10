@@ -36,7 +36,7 @@ export default function SwitcherDropdown({
   minWidth = 220,
   className,
   hasSearch = false,
-  searchPlaceholder = 'Search...',
+  searchPlaceholder = 'Search…',
 }: SwitcherDropdownProps) {
   const [isMounted, setIsMounted] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -145,7 +145,7 @@ export default function SwitcherDropdown({
         {hasSearch && (
           <div className="px-2 pt-1.5 pb-1">
             <div className="relative">
-              <HiMagnifyingGlass className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/40" />
+              <HiMagnifyingGlass className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-white/40" />
               <Input
                 ref={searchInputRef}
                 type="text"
@@ -165,7 +165,7 @@ export default function SwitcherDropdown({
               <SwitcherItem key={item.id} item={item} onSelect={handleSelect} />
             ))
           ) : (
-            <div className="px-3 py-3 text-xs text-white/40 text-center">
+            <div className="p-3 text-xs text-white/40 text-center">
               {items.length === 0 ? 'Loading…' : 'No results'}
             </div>
           )}
@@ -189,9 +189,9 @@ export default function SwitcherDropdown({
                   className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-white/60 hover:text-white hover:bg-white/[0.06] transition-colors duration-150 cursor-pointer"
                 >
                   {ActionIcon ? (
-                    <ActionIcon className="w-3.5 h-3.5 flex-shrink-0" />
+                    <ActionIcon className="size-3.5 flex-shrink-0" />
                   ) : (
-                    <HiPlus className="w-3.5 h-3.5 flex-shrink-0" />
+                    <HiPlus className="size-3.5 flex-shrink-0" />
                   )}
                   <span>{action.label}</span>
                 </Button>
@@ -226,7 +226,7 @@ function SwitcherItem({
     >
       {/* Avatar */}
       {item.imageUrl ? (
-        <div className="w-5 h-5 rounded-full overflow-hidden bg-background flex items-center justify-center flex-shrink-0">
+        <div className="size-5 rounded-full overflow-hidden bg-background flex items-center justify-center flex-shrink-0">
           <Image
             src={item.imageUrl}
             alt={item.label}
@@ -240,7 +240,7 @@ function SwitcherItem({
       ) : (
         <div
           className={cn(
-            'w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold flex-shrink-0',
+            'size-5 rounded flex items-center justify-center text-[10px] font-bold flex-shrink-0',
             item.isActive
               ? 'bg-primary/30 text-primary'
               : 'bg-white/10 text-white/60',
@@ -253,7 +253,7 @@ function SwitcherItem({
       <span className="flex-1 truncate text-left">{item.label}</span>
 
       {item.isActive && (
-        <HiCheck className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+        <HiCheck className="size-3.5 text-primary flex-shrink-0" />
       )}
     </Button>
   );

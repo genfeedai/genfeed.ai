@@ -10,7 +10,7 @@ export default function ArticleTypeSelector({
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-8 text-center">
-        <h2 className="text-2xl font-bold">Create New Article</h2>
+        <h2 className="text-2xl font-semibold">Create New Article</h2>
         <p className="mt-2 text-sm text-foreground/60">
           Choose the type of article you want to create
         </p>

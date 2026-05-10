@@ -107,7 +107,7 @@ export default function MenuTooltip({ label, children }: MenuTooltipProps) {
     return (
       <Portal>
         <div
-          className="pointer-events-none fixed z-[9999]"
+          className="pointer-events-none fixed z-50"
           style={{
             left: position.left,
             top: position.top,

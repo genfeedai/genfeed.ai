@@ -126,7 +126,7 @@ export default function DateRangePicker({
               !dateRange && 'text-muted-foreground',
             )}
           >
-            <HiCalendarDays className="mr-2 h-4 w-4" />
+            <HiCalendarDays className="mr-2 size-4" />
             {formatSelectedDateRange(dateRange)}
           </Button>
         </PopoverTrigger>

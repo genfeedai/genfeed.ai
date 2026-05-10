@@ -1,7 +1,8 @@
 'use client';
 
-import { ButtonSize } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
+import { EnvironmentService } from '@services/core/environment.service';
 import { Button } from '@ui/primitives/button';
 import {
   Table,
@@ -19,7 +20,6 @@ import {
 } from '@web-components/content/NeuralGrid';
 import PageLayout from '@web-components/PageLayout';
 import Image from 'next/image';
-import Link from 'next/link';
 import {
   HiCheck,
   HiCloud,
@@ -101,6 +101,10 @@ const TEAMS = [
   },
 ];
 
+const CALENDLY_URL =
+  process.env.NEXT_PUBLIC_CALENDLY_URL ||
+  'https://calendly.com/vincent-genfeed/30min';
+
 function ComparisonValue({ value }: { value: boolean | string }) {
   if (typeof value === 'boolean') {
     return value ? (
@@ -114,6 +118,7 @@ function ComparisonValue({ value }: { value: boolean | string }) {
 
 export default function CloudContent() {
   const containerRef = useMarketingEntrance();
+  const signUpHref = `${EnvironmentService.apps.app}/sign-up?plan=hosted`;
 
   return (
     <div ref={containerRef}>
@@ -122,10 +127,10 @@ export default function CloudContent() {
         badgeIcon={HiCloud}
         title={
           <>
-            Genfeed <span className="italic font-light">Cloud</span>
+            Genfeed <span className="italic font-light">Cloud App</span>
           </>
         }
-        description="Focus on content, not servers. Managed AI platform for teams."
+        description="The managed path for creating, approving, publishing, and paying as you go for output."
       >
         {/* Benefits */}
         <WebSection maxWidth="xl">
@@ -274,14 +279,23 @@ export default function CloudContent() {
 
         {/* Pricing CTA */}
         <CtaSection
-          title="Ready to Get Started?"
-          description="Start with Core for free, use Hosted for individual managed access, and move to Cloud when collaboration is the bottleneck."
+          title="Start with the cloud app."
+          description="Book a demo when collaboration, multi-brand rollout, or enterprise terms need design first."
         >
           <Button size={ButtonSize.PUBLIC} asChild>
-            <Link href="/pricing">
-              View Pricing
+            <a href={signUpHref} target="_blank" rel="noopener noreferrer">
+              Start Cloud App
               <LuArrowRight className="h-4 w-4" />
-            </Link>
+            </a>
+          </Button>
+          <Button
+            size={ButtonSize.PUBLIC}
+            variant={ButtonVariant.SECONDARY}
+            asChild
+          >
+            <a href={CALENDLY_URL} target="_blank" rel="noopener noreferrer">
+              Book a Demo
+            </a>
           </Button>
         </CtaSection>
       </PageLayout>

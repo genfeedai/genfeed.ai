@@ -98,7 +98,7 @@ const SmartAlertsPanel = memo(function SmartAlertsPanel({
               key={i}
               className="animate-pulse flex items-start gap-3 p-3 bg-background"
             >
-              <div className="w-8 h-8 bg-muted rounded-full" />
+              <div className="size-8 bg-muted rounded-full" />
               <div className="flex-1 space-y-2">
                 <div className="h-4 bg-muted w-3/4" />
                 <div className="h-3 bg-muted w-full" />
@@ -119,7 +119,7 @@ const SmartAlertsPanel = memo(function SmartAlertsPanel({
         className={className}
       >
         <div className="flex flex-col items-center justify-center py-8 text-center">
-          <HiCheckCircle className="w-12 h-12 text-success mb-3" />
+          <HiCheckCircle className="size-12 text-success mb-3" />
           <p className="text-foreground/70 font-medium">All caught up!</p>
           <p className="text-sm text-foreground/50">
             No alerts require your attention
@@ -159,7 +159,7 @@ const SmartAlertsPanel = memo(function SmartAlertsPanel({
               onClick={() => !alert.isRead && onMarkRead?.(alert.id)}
             >
               <div className={cn('mt-0.5', styles.text)}>
-                <SeverityIcon className="w-5 h-5" />
+                <SeverityIcon className="size-5" />
               </div>
 
               <div className="flex-1 min-w-0">
@@ -173,9 +173,9 @@ const SmartAlertsPanel = memo(function SmartAlertsPanel({
                   >
                     {alert.title}
                   </span>
-                  <TypeIcon className="w-3.5 h-3.5 text-foreground/40" />
+                  <TypeIcon className="size-3.5 text-foreground/40" />
                   {!alert.isRead && (
-                    <span className="w-2 h-2 rounded-full bg-primary" />
+                    <span className="size-2 rounded-full bg-primary" />
                   )}
                 </div>
 
@@ -210,7 +210,7 @@ const SmartAlertsPanel = memo(function SmartAlertsPanel({
                       )}
                     >
                       {alert.actionLabel}
-                      <HiArrowRight className="w-3 h-3" />
+                      <HiArrowRight className="size-3" />
                     </Button>
                   )}
                 </div>
@@ -227,7 +227,7 @@ const SmartAlertsPanel = memo(function SmartAlertsPanel({
                   className="p-1 rounded-full hover:bg-muted/50 transition-colors"
                   ariaLabel="Dismiss alert"
                 >
-                  <HiXMark className="w-4 h-4 text-foreground/40" />
+                  <HiXMark className="size-4 text-foreground/40" />
                 </Button>
               )}
             </div>

@@ -103,7 +103,7 @@ function VideoInputNodeComponent(props: NodeProps) {
             onClick={handleExpand}
             title="Expand preview"
           >
-            <Expand className="h-3.5 w-3.5" />
+            <Expand className="size-3.5" />
           </Button>
         )}
         <Button
@@ -112,7 +112,7 @@ function VideoInputNodeComponent(props: NodeProps) {
           onClick={() => fileInputRef.current?.click()}
           title="Upload video"
         >
-          <Upload className="h-3.5 w-3.5" />
+          <Upload className="size-3.5" />
         </Button>
         <Button
           variant="ghost"
@@ -120,7 +120,7 @@ function VideoInputNodeComponent(props: NodeProps) {
           onClick={() => setShowUrlInput(!showUrlInput)}
           title="Paste URL"
         >
-          <Link className="h-3.5 w-3.5" />
+          <Link className="size-3.5" />
         </Button>
       </div>
     ),
@@ -173,9 +173,9 @@ function VideoInputNodeComponent(props: NodeProps) {
             variant="secondary"
             size="icon-sm"
             onClick={handleRemove}
-            className="absolute right-1.5 top-1.5 h-5 w-5"
+            className="absolute right-1.5 top-1.5 size-5"
           >
-            <X className="h-3 w-3" />
+            <X className="size-3" />
           </Button>
           <div className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px]">
             {nodeData.dimensions &&
@@ -192,14 +192,14 @@ function VideoInputNodeComponent(props: NodeProps) {
         >
           {isUploading ? (
             <>
-              <Loader2 className="h-5 w-5 text-muted-foreground/50 animate-spin" />
+              <Loader2 className="size-5 text-muted-foreground/50 animate-spin" />
               <span className="text-[10px] text-muted-foreground/70">
-                Uploading...
+                Uploading…
               </span>
             </>
           ) : (
             <>
-              <Video className="h-5 w-5 text-muted-foreground/50" />
+              <Video className="size-5 text-muted-foreground/50" />
               <span className="text-[10px] text-muted-foreground/70">
                 Drop or click
               </span>

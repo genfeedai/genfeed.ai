@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/rules-of-hooks -- Storybook render functions are invoked as story components. */
 import { PLATFORM_COLORS } from '@genfeedai/constants';
 import type { ITag } from '@genfeedai/interfaces';
 import type { Meta, StoryObj } from '@storybook/nextjs';
@@ -60,7 +61,7 @@ export const Default: Story = {
     onRemoveTag: () => {
       // Tag removed
     },
-    placeholder: 'Add tags...',
+    placeholder: 'Add tags…',
     tags: [],
   },
 };
@@ -77,7 +78,7 @@ export const WithTags: Story = {
     onRemoveTag: () => {
       // Tag removed
     },
-    placeholder: 'Add tags...',
+    placeholder: 'Add tags…',
     tags: [
       {
         backgroundColor: PLATFORM_COLORS.youtube.base,
@@ -113,7 +114,7 @@ export const Disabled: Story = {
     onRemoveTag: () => {
       // Tag removed
     },
-    placeholder: 'Add tags...',
+    placeholder: 'Add tags…',
     tags: [
       {
         backgroundColor: PLATFORM_COLORS.youtube.base,
@@ -143,7 +144,7 @@ export const CustomPlaceholder: Story = {
     onRemoveTag: () => {
       // Tag removed
     },
-    placeholder: 'Enter tags and press Enter...',
+    placeholder: 'Enter tags and press Enter…',
     tags: [],
   },
 };
@@ -190,7 +191,7 @@ export const Interactive: Story = {
       <div className="w-full max-w-md p-8">
         <TagInput
           tags={tags}
-          placeholder="Add tags..."
+          placeholder="Add tags…"
           onAddTag={handleAddTag}
           onRemoveTag={handleRemoveTag}
         />
@@ -211,7 +212,7 @@ export const ManyTags: Story = {
     onRemoveTag: () => {
       // Tag removed
     },
-    placeholder: 'Add tags...',
+    placeholder: 'Add tags…',
     tags: [
       {
         backgroundColor: PLATFORM_COLORS.youtube.base,

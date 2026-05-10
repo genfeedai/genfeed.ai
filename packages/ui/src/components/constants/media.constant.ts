@@ -51,7 +51,7 @@ export const MEDIA_TYPE_CONFIGS: Partial<
     defaultModel: EnvironmentService.MODELS_DEFAULT
       .image as MediaConfig['defaultModel'],
     generateLabel: 'Generate Image',
-    placeholder: 'Describe the image you want to create...',
+    placeholder: 'Describe the image you want to create…',
     presetType: ModelCategory.IMAGE,
   },
   [IngredientCategory.MUSIC]: {
@@ -70,7 +70,7 @@ export const MEDIA_TYPE_CONFIGS: Partial<
     },
     defaultModel:
       MODEL_KEYS.REPLICATE_META_MUSICGEN as MediaConfig['defaultModel'],
-    placeholder: 'Describe the music you want to create...',
+    placeholder: 'Describe the music you want to create…',
     presetType: ModelCategory.MUSIC,
   },
   [IngredientCategory.TEXT]: {
@@ -126,7 +126,7 @@ const ROUTE_OVERRIDES: Record<string, Partial<MediaConfig>> = {
       tags: false,
       upload: false,
     },
-    placeholder: 'Describe your avatar...',
+    placeholder: 'Describe your avatar…',
   },
   '/lip-sync': {
     buttons: {
@@ -142,7 +142,7 @@ const ROUTE_OVERRIDES: Record<string, Partial<MediaConfig>> = {
       tags: false,
       upload: false,
     },
-    placeholder: 'Enter the dialogue for lip-sync...',
+    placeholder: 'Enter the dialogue for lip-sync…',
   },
   '/multi-image-to-video': {
     buttons: {
@@ -155,7 +155,7 @@ const ROUTE_OVERRIDES: Record<string, Partial<MediaConfig>> = {
       tags: false,
       upload: false,
     },
-    placeholder: 'Describe how to combine these images into a video...',
+    placeholder: 'Describe how to combine these images into a video…',
   },
   '/upscale': {
     buttons: {
@@ -170,7 +170,7 @@ const ROUTE_OVERRIDES: Record<string, Partial<MediaConfig>> = {
       tags: false,
       upload: false,
     },
-    placeholder: 'Describe enhancement preferences...',
+    placeholder: 'Describe enhancement preferences…',
   },
 };
 

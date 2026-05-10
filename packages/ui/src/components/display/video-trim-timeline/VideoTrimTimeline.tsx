@@ -48,7 +48,7 @@ export default function VideoTrimTimeline({
         {isGeneratingThumbnails ? (
           <div className="flex items-center justify-center h-full">
             <Spinner size={ComponentSize.SM} />
-            <span className="ml-2 text-sm">Generating timeline...</span>
+            <span className="ml-2 text-sm">Generating timeline…</span>
           </div>
         ) : thumbnails.length > 0 ? (
           <div className="flex h-full">

@@ -31,7 +31,7 @@ export default function TextareaLabelActions({
 
       <div className="flex items-center gap-2">
         <Button
-          icon={<HiDocumentDuplicate className="w-3.5 h-3.5" />}
+          icon={<HiDocumentDuplicate className="size-3.5" />}
           variant={ButtonVariant.GHOST}
           size={ButtonSize.XS}
           className="h-6 min-h-6 px-1.5"
@@ -46,7 +46,7 @@ export default function TextareaLabelActions({
             isEnhancing ? (
               <Spinner size={ComponentSize.XS} />
             ) : (
-              <HiSparkles className="w-3.5 h-3.5" />
+              <HiSparkles className="size-3.5" />
             )
           }
           variant={ButtonVariant.GHOST}
@@ -60,7 +60,7 @@ export default function TextareaLabelActions({
 
         {showUndo && onUndo && (
           <Button
-            icon={<HiArrowUturnLeft className="w-3.5 h-3.5" />}
+            icon={<HiArrowUturnLeft className="size-3.5" />}
             variant={ButtonVariant.GHOST}
             size={ButtonSize.XS}
             className="h-6 min-h-6 px-1.5 text-warning"

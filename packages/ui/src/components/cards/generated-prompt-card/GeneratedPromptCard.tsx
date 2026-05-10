@@ -78,7 +78,7 @@ const GeneratedPromptCard = memo(function GeneratedPromptCard({
           'opacity-0 group-hover:opacity-100',
         )}
         ariaLabel="Dismiss prompt"
-        icon={<HiXMark className="w-4 h-4" />}
+        icon={<HiXMark className="size-4" />}
       />
 
       <div className="p-5 space-y-4">
@@ -93,31 +93,31 @@ const GeneratedPromptCard = memo(function GeneratedPromptCard({
         <div className="flex flex-wrap gap-2">
           {prompt.style && (
             <MetadataTag
-              icon={<HiOutlinePaintBrush className="w-3 h-3" />}
+              icon={<HiOutlinePaintBrush className="size-3" />}
               label={prompt.style}
             />
           )}
           {prompt.mood && (
             <MetadataTag
-              icon={<HiOutlineLightBulb className="w-3 h-3" />}
+              icon={<HiOutlineLightBulb className="size-3" />}
               label={prompt.mood}
             />
           )}
           {prompt.camera && (
             <MetadataTag
-              icon={<HiOutlineCamera className="w-3 h-3" />}
+              icon={<HiOutlineCamera className="size-3" />}
               label={prompt.camera}
             />
           )}
           {prompt.lighting && (
             <MetadataTag
-              icon={<HiOutlineSun className="w-3 h-3" />}
+              icon={<HiOutlineSun className="size-3" />}
               label={prompt.lighting}
             />
           )}
           {prompt.cameraMovement && (
             <MetadataTag
-              icon={<HiOutlineFilm className="w-3 h-3" />}
+              icon={<HiOutlineFilm className="size-3" />}
               label={prompt.cameraMovement}
             />
           )}
@@ -128,7 +128,7 @@ const GeneratedPromptCard = memo(function GeneratedPromptCard({
           <Button
             variant={ButtonVariant.DEFAULT}
             size={ButtonSize.SM}
-            icon={<HiOutlineBolt className="w-4 h-4" />}
+            icon={<HiOutlineBolt className="size-4" />}
             onClick={handleQuickGenerate}
             isLoading={isCurrentlyGenerating && generatingType === targetMedia}
             isDisabled={isCurrentlyGenerating}
@@ -140,7 +140,7 @@ const GeneratedPromptCard = memo(function GeneratedPromptCard({
           <Button
             variant={ButtonVariant.OUTLINE}
             size={ButtonSize.SM}
-            icon={<HiOutlineAdjustmentsHorizontal className="w-4 h-4" />}
+            icon={<HiOutlineAdjustmentsHorizontal className="size-4" />}
             onClick={handleCustomize}
             isDisabled={isCurrentlyGenerating}
             className="flex-1"
@@ -151,7 +151,7 @@ const GeneratedPromptCard = memo(function GeneratedPromptCard({
 
         {/* Media type indicator */}
         <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-          <MediaIcon className="w-3 h-3" />
+          <MediaIcon className="size-3" />
           <span className="capitalize">{targetMedia}</span>
           <span className="text-white/20">|</span>
           <span className="capitalize">{prompt.format}</span>

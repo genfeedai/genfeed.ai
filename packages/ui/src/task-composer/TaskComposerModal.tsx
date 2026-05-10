@@ -76,10 +76,10 @@ export function TaskComposerModal({
           <div className="space-y-4">
             {/* Title */}
             <Input
-              className="h-auto rounded-none border-0 bg-transparent px-0 py-0 text-base font-medium shadow-none focus-visible:ring-0"
+              className="h-auto rounded-none border-0 bg-transparent p-0 text-base font-medium shadow-none focus-visible:ring-0"
               onChange={(e) => setTitle(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Task title..."
+              placeholder="Task title…"
               value={title}
             />
 
@@ -98,7 +98,7 @@ export function TaskComposerModal({
               className="min-h-32 w-full resize-none bg-transparent text-sm outline-none placeholder:text-muted-foreground"
               onChange={(e) => setPrompt(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Describe what to generate..."
+              placeholder="Describe what to generate…"
               rows={5}
               value={prompt}
             />
@@ -121,7 +121,7 @@ export function TaskComposerModal({
             onClick={handleSubmit}
           >
             {isSubmitting
-              ? 'Creating...'
+              ? 'Creating…'
               : prompt.trim()
                 ? 'Create & Generate'
                 : 'Create Task'}

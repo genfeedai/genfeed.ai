@@ -46,7 +46,7 @@ export default function ModalGalleryItemReference({
         />
 
         {isSelected && (
-          <div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold z-10">
+          <div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full size-6 flex items-center justify-center text-xs font-bold z-10">
             ✓
           </div>
         )}

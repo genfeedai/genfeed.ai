@@ -116,6 +116,81 @@ function persistTerminalCwd(cwd: string): void {
   }
 }
 
+function attachTerminalSocketHandlers({
+  fitAndSyncSize,
+  sessionRef,
+  setStatus,
+  socket,
+  startSession,
+  terminal,
+}: {
+  fitAndSyncSize: () => void;
+  sessionRef: { current: TerminalSession | null };
+  setStatus: (status: string) => void;
+  socket: Socket;
+  startSession: (kind: TerminalSessionKind) => void;
+  terminal: XtermTerminal;
+}): () => void {
+  const handleConnect = () => {
+    setStatus('connected');
+    startSession('shell');
+  };
+
+  const handleConnectError = (error: Error) => {
+    setStatus('local terminal unavailable');
+    terminal.writeln(
+      `Could not connect to the local terminal gateway: ${error.message}`,
+    );
+  };
+
+  const handleTerminalCreated = (nextSession: TerminalSession) => {
+    sessionRef.current = nextSession;
+    setStatus(`${nextSession.command} - ${nextSession.cwd}`);
+    fitAndSyncSize();
+    terminal.focus();
+  };
+
+  const handleTerminalData = (payload: TerminalDataPayload) => {
+    if (payload.sessionId !== sessionRef.current?.id) {
+      return;
+    }
+
+    terminal.write(payload.data);
+  };
+
+  const handleTerminalError = (payload: { message?: string }) => {
+    const message = payload.message || 'Local terminal error.';
+    setStatus(message);
+    terminal.writeln(message);
+  };
+
+  const handleTerminalExit = (payload: TerminalExitPayload) => {
+    if (payload.sessionId !== sessionRef.current?.id) {
+      return;
+    }
+
+    setStatus(`exited with code ${payload.exitCode ?? 0}`);
+    terminal.writeln(`\r\n[process exited: ${payload.exitCode ?? 0}]`);
+    sessionRef.current = null;
+  };
+
+  socket.on('connect', handleConnect);
+  socket.on('connect_error', handleConnectError);
+  socket.on('terminal:created', handleTerminalCreated);
+  socket.on('terminal:data', handleTerminalData);
+  socket.on('terminal:error', handleTerminalError);
+  socket.on('terminal:exit', handleTerminalExit);
+
+  return () => {
+    socket.off('connect', handleConnect);
+    socket.off('connect_error', handleConnectError);
+    socket.off('terminal:created', handleTerminalCreated);
+    socket.off('terminal:data', handleTerminalData);
+    socket.off('terminal:error', handleTerminalError);
+    socket.off('terminal:exit', handleTerminalExit);
+  };
+}
+
 export function AgentCliTerminal({
   apiService: _apiService,
 }: AgentCliTerminalProps): ReactElement {
@@ -207,6 +282,7 @@ export function AgentCliTerminal({
     }
 
     let disposed = false;
+    let detachSocketHandlers: (() => void) | null = null;
 
     async function bootTerminal(): Promise<void> {
       const [{ Terminal }, { FitAddon }] = await Promise.all([
@@ -291,48 +367,13 @@ export function AgentCliTerminal({
         transports: ['websocket'],
       });
       socketRef.current = socket;
-
-      socket.on('connect', () => {
-        setStatus('connected');
-        startSession('shell');
-      });
-
-      socket.on('connect_error', (error) => {
-        setStatus('local terminal unavailable');
-        terminal.writeln(
-          `Could not connect to the local terminal gateway: ${error.message}`,
-        );
-      });
-
-      socket.on('terminal:created', (nextSession: TerminalSession) => {
-        sessionRef.current = nextSession;
-        setStatus(`${nextSession.command} - ${nextSession.cwd}`);
-        fitAndSyncSize();
-        terminal.focus();
-      });
-
-      socket.on('terminal:data', (payload: TerminalDataPayload) => {
-        if (payload.sessionId !== sessionRef.current?.id) {
-          return;
-        }
-
-        terminal.write(payload.data);
-      });
-
-      socket.on('terminal:error', (payload: { message?: string }) => {
-        const message = payload.message || 'Local terminal error.';
-        setStatus(message);
-        terminal.writeln(message);
-      });
-
-      socket.on('terminal:exit', (payload: TerminalExitPayload) => {
-        if (payload.sessionId !== sessionRef.current?.id) {
-          return;
-        }
-
-        setStatus(`exited with code ${payload.exitCode ?? 0}`);
-        terminal.writeln(`\r\n[process exited: ${payload.exitCode ?? 0}]`);
-        sessionRef.current = null;
+      detachSocketHandlers = attachTerminalSocketHandlers({
+        fitAndSyncSize,
+        sessionRef,
+        setStatus,
+        socket,
+        startSession,
+        terminal,
       });
     }
 
@@ -352,6 +393,7 @@ export function AgentCliTerminal({
       }
 
       resizeObserverRef.current?.disconnect();
+      detachSocketHandlers?.();
       dataDisposableRef.current?.dispose();
       terminalRef.current?.dispose();
       socket?.disconnect();

@@ -294,7 +294,7 @@ describe('ModelSelectorPopover', () => {
     await user.click(screen.getByRole('button', { name: /auto/i }));
 
     expect(
-      screen.queryByPlaceholderText('Search models...'),
+      screen.queryByPlaceholderText('Search models…'),
     ).not.toBeInTheDocument();
     expect(screen.queryByText('Nano Banana')).not.toBeInTheDocument();
     expect(screen.getByText('Priority')).toBeInTheDocument();
@@ -388,7 +388,7 @@ describe('ModelSelectorPopover', () => {
     );
 
     await user.click(screen.getByRole('button', { name: /select models/i }));
-    await user.type(screen.getByPlaceholderText('Search models...'), '3.1');
+    await user.type(screen.getByPlaceholderText('Search models…'), '3.1');
 
     expect(screen.getByText('Veo')).toBeInTheDocument();
     expect(screen.getByText('3.1 Fast')).toBeInTheDocument();

@@ -830,22 +830,22 @@ function PromptBar({
   const formatIcon = useMemo(() => {
     switch (watchedFormat) {
       case IngredientFormat.LANDSCAPE:
-        return <MdOutlineCropLandscape className="w-4 h-4" />;
+        return <MdOutlineCropLandscape className="size-4" />;
       case IngredientFormat.SQUARE:
-        return <MdOutlineCropSquare className="w-4 h-4" />;
+        return <MdOutlineCropSquare className="size-4" />;
       default:
-        return <MdOutlineCropPortrait className="w-4 h-4" />;
+        return <MdOutlineCropPortrait className="size-4" />;
     }
   }, [watchedFormat]);
 
   const controlClass =
     'h-9 px-2.5 gap-1.5 text-sm flex-shrink-0 !border-transparent !bg-transparent !shadow-none text-white/70 hover:!bg-white/5 hover:!text-white';
   const iconButtonClass =
-    'h-9 w-9 p-0 flex items-center justify-center !border-transparent !bg-transparent !shadow-none text-white/70 hover:!bg-white/5 hover:!text-white';
+    'size-9 p-0 flex items-center justify-center !border-transparent !bg-transparent !shadow-none text-white/70 hover:!bg-white/5 hover:!text-white';
   const textareaRegister = form.register('text');
 
   return (
-    <div className="w-full h-full flex flex-col min-h-0 relative">
+    <div className="size-full flex flex-col min-h-0 relative">
       <form
         onSubmit={handleSubmitForm}
         className="flex-1 flex flex-col min-h-0"

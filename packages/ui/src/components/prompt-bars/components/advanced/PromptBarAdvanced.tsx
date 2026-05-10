@@ -108,7 +108,7 @@ const PromptBarAdvanced = memo(function PromptBarAdvanced({
           {filteredSounds.length > 0 && (
             <DropdownMultiSelect
               name="sounds"
-              icon={<HiMusicalNote className="w-4 h-4" />}
+              icon={<HiMusicalNote className="size-4" />}
               placeholder="Sounds"
               className={controlClass}
               direction={DropdownDirection.DOWN}
@@ -133,7 +133,7 @@ const PromptBarAdvanced = memo(function PromptBarAdvanced({
           {filteredBlacklists.length > 0 && (
             <DropdownMultiSelect
               name="blacklist"
-              icon={<HiNoSymbol className="w-4 h-4" />}
+              icon={<HiNoSymbol className="size-4" />}
               placeholder="Blacklist"
               className={controlClass}
               direction={DropdownDirection.DOWN}

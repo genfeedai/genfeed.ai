@@ -441,7 +441,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
             <Command className="bg-transparent" shouldFilter={false}>
               {shouldShowManualCatalog && (
                 <CommandInput
-                  placeholder="Search models..."
+                  placeholder="Search models…"
                   value={searchTerm}
                   onValueChange={setSearchTerm}
                 />
@@ -479,16 +479,16 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
                         >
                           <div
                             className={cn(
-                              'flex h-4 w-4 items-center justify-center rounded-sm border transition-colors',
+                              'flex size-4 items-center justify-center rounded-sm border transition-colors',
                               isAutoSelected
                                 ? 'border-blue-500 bg-blue-500 text-white'
                                 : 'border-white/20 bg-transparent text-transparent',
                             )}
                           >
-                            <HiCheck className="h-3 w-3" />
+                            <HiCheck className="size-3" />
                           </div>
-                          <div className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center text-primary">
-                            <HiSparkles className="h-4 w-4" />
+                          <div className="mt-0.5 flex size-4 shrink-0 items-center justify-center text-primary">
+                            <HiSparkles className="size-4" />
                           </div>
                           <div className="min-w-0 flex-1">
                             <div className="text-sm font-medium text-foreground">

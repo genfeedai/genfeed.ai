@@ -24,9 +24,9 @@ export default function MenuLabel({
 
     if (OutlineIcon && SolidIcon) {
       return isActive ? (
-        <SolidIcon className="w-4 h-4" />
+        <SolidIcon className="size-4" />
       ) : (
-        <OutlineIcon className="w-4 h-4 group-hover:text-primary transition" />
+        <OutlineIcon className="size-4 group-hover:text-primary transition" />
       );
     }
 
@@ -50,7 +50,7 @@ export default function MenuLabel({
           <span>{label}</span>
         </div>
         {chevronIcon && (
-          <div className="w-4 h-4 transition-transform">{chevronIcon}</div>
+          <div className="size-4 transition-transform">{chevronIcon}</div>
         )}
       </div>
     </li>

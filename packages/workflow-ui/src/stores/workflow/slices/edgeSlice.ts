@@ -59,13 +59,14 @@ export const createEdgeSlice: StateCreator<WorkflowStore, [], [], EdgeSlice> = (
     const existingTargetHandles = new Set(
       (edgesByTarget.get(targetNodeId) ?? []).map((edge) => edge.targetHandle),
     );
+    const compatibleTargetTypes = new Set(CONNECTION_RULES[sourceType] ?? []);
 
     for (const input of targetDef.inputs) {
       // Skip handles that already have connections, unless they support multiple connections
       const hasExistingConnection = existingTargetHandles.has(input.id);
       if (hasExistingConnection && !input.multiple) continue;
 
-      if (CONNECTION_RULES[sourceType]?.includes(input.type)) {
+      if (compatibleTargetTypes.has(input.type)) {
         return input.id;
       }
     }

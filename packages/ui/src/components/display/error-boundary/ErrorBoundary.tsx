@@ -112,7 +112,7 @@ class ErrorBoundary extends Component<
       return (
         <div className="fixed inset-0 flex items-center justify-center bg-card z-40">
           <div className="flex flex-col items-center justify-center p-8 max-w-2xl mx-auto">
-            <h1 className="text-2xl font-bold mb-4 text-center">
+            <h1 className="text-2xl font-semibold mb-4 text-center">
               Something went wrong
             </h1>
 

@@ -586,7 +586,7 @@ export default function ModalTrainingNew({ onSuccess }: ModalTrainingNewProps) {
               >
                 <FormDropdown
                   name="category"
-                  icon={<HiTag className="w-4 h-4" />}
+                  icon={<HiTag className="size-4" />}
                   label="Category"
                   value={form.watch('category')}
                   className="h-10 px-3 gap-2 text-sm flex-shrink-0 bg-secondary text-secondary-foreground"
@@ -614,7 +614,7 @@ export default function ModalTrainingNew({ onSuccess }: ModalTrainingNewProps) {
               >
                 <FormDropdown
                   name="steps"
-                  icon={<HiAdjustmentsHorizontal className="w-4 h-4" />}
+                  icon={<HiAdjustmentsHorizontal className="size-4" />}
                   label="Steps"
                   value={form.watch('steps')}
                   className="h-10 px-3 gap-2 text-sm flex-shrink-0 bg-secondary text-secondary-foreground"
@@ -652,7 +652,7 @@ export default function ModalTrainingNew({ onSuccess }: ModalTrainingNewProps) {
                 <div className="flex flex-col items-center gap-2">
                   <HiPhoto className="text-4xl opacity-50" />
                   {isDragActive ? (
-                    <p className="text-sm">Drop the images here...</p>
+                    <p className="text-sm">Drop the images here…</p>
                   ) : (
                     <>
                       <p className="text-sm font-medium">
@@ -781,7 +781,7 @@ export default function ModalTrainingNew({ onSuccess }: ModalTrainingNewProps) {
           <Button
             variant={ButtonVariant.GENERATE}
             icon={<HiArrowUp />}
-            label={isSubmitting ? 'Training...' : 'Start Training'}
+            label={isSubmitting ? 'Training…' : 'Start Training'}
             tooltipPosition="left"
             type="submit"
             size={ButtonSize.LG}

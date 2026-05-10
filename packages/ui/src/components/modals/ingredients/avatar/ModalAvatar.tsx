@@ -109,7 +109,7 @@ export default function ModalAvatar({
               alt="Avatar"
               width={1024}
               height={1024}
-              className="w-full h-full object-cover object-center"
+              className="size-full object-cover object-center"
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               priority
             />

@@ -26,7 +26,7 @@ export default function StatsCards({
         {Array.from({ length: 4 }).map((_, index) => (
           <Card key={`loading-${index}`} index={index} bodyClassName="p-4">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-muted animate-pulse w-12 h-12" />
+              <div className="p-3 bg-muted animate-pulse size-12" />
               <div className="flex-1 space-y-2">
                 <div className="h-5 bg-muted animate-pulse w-24" />
                 <div className="h-4 bg-muted animate-pulse w-32" />

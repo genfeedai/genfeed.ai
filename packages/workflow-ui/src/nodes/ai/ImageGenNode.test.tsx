@@ -30,7 +30,7 @@ vi.mock('../BaseNode', () => ({
 // Mock Next.js Image
 vi.mock('next/image', () => ({
   default: ({ src, alt }: { src: string; alt: string }) => (
-    <img src={src} alt={alt} data-testid="next-image" />
+    <span aria-label={alt} data-src={src} data-testid="next-image" role="img" />
   ),
 }));
 
@@ -309,7 +309,9 @@ describe('ImageGenNode', () => {
       );
 
       expect(screen.getByTestId('next-image')).toBeInTheDocument();
-      expect(screen.getByAltText('Generated image')).toBeInTheDocument();
+      expect(
+        screen.getByRole('img', { name: 'Generated image' }),
+      ).toBeInTheDocument();
     });
 
     it('should show expand button when output image exists', () => {

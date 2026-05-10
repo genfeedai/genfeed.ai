@@ -53,10 +53,10 @@ export default function TagBadge({
           <HiXMark
             className={
               size === ComponentSize.SM
-                ? 'w-3 h-3'
+                ? 'size-3'
                 : size === ComponentSize.MD
-                  ? 'w-3.5 h-3.5'
-                  : 'w-4 h-4'
+                  ? 'size-3.5'
+                  : 'size-4'
             }
           />
         </Button>

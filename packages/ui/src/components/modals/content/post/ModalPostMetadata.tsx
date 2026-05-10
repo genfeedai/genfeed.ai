@@ -160,7 +160,7 @@ export default function PostMetadataOverlay({
           <Button
             type="submit"
             form={formId}
-            label={isSubmitting ? 'Saving...' : 'Save'}
+            label={isSubmitting ? 'Saving…' : 'Save'}
             variant={ButtonVariant.DEFAULT}
             isDisabled={isSubmitting}
           />

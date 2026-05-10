@@ -41,7 +41,7 @@ export function SkeletonLoadingFallback({
                 {Array.from({ length: 5 }).map((_, i) => (
                   <div
                     key={i}
-                    className="h-10 w-10 bg-background animate-pulse"
+                    className="size-10 bg-background animate-pulse"
                   ></div>
                 ))}
               </div>

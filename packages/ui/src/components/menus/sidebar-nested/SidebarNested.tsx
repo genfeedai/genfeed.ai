@@ -171,7 +171,7 @@ export default function SidebarNested({
     [isActive, routeScope],
   );
   return (
-    <div className="flex flex-col h-full w-full bg-background">
+    <div className="flex flex-col size-full bg-background">
       {/* Back button — styled as a menu row */}
       <div className="px-3 pt-2 pb-1 flex-shrink-0">
         <Button
@@ -185,7 +185,7 @@ export default function SidebarNested({
           )}
           ariaLabel={`Back to ${backLabel ?? groupLabel}`}
         >
-          <HiArrowLeft className="w-4 h-4 text-white/60 group-hover:text-white transition-colors duration-200" />
+          <HiArrowLeft className="size-4 text-white/60 group-hover:text-white transition-colors duration-200" />
           <span className="text-sm font-medium text-white/90">
             {backLabel ?? groupLabel}
           </span>

@@ -131,7 +131,7 @@ export function ShortcutHelpModal() {
         variant="ghost"
         size="icon-sm"
         onClick={handleClose}
-        className="fixed inset-0 z-50 h-full w-full p-0 opacity-0"
+        className="fixed inset-0 z-50 size-full p-0 opacity-0"
         aria-label="Close keyboard shortcuts"
       />
       <div
@@ -146,18 +146,18 @@ export function ShortcutHelpModal() {
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
             <div className="flex items-center gap-2">
-              <Keyboard className="w-4 h-4 text-[var(--muted-foreground)]" />
+              <Keyboard className="size-4 text-[var(--muted-foreground)]" />
               <span className="text-sm font-medium">Keyboard Shortcuts</span>
             </div>
             <Button variant="ghost" size="icon-sm" onClick={handleClose}>
-              <X className="w-4 h-4" />
+              <X className="size-4" />
             </Button>
           </div>
 
           {/* Content */}
           <div className="p-4">
             <div className="relative mb-4">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
               <input
                 type="text"
                 placeholder="Search shortcuts..."

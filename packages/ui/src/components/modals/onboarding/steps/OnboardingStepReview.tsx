@@ -25,7 +25,7 @@ function ReviewSection({
   return (
     <div className="p-4 border border-white/[0.08]">
       <HStack gap={2} className="mb-3">
-        {Icon && <Icon className="w-5 h-5 text-primary" />}
+        {Icon && <Icon className="size-5 text-primary" />}
         <Text weight="medium">{title}</Text>
       </HStack>
       {children}
@@ -102,7 +102,7 @@ export default function OnboardingStepReview({
               {data.primaryColor && (
                 <HStack gap={2}>
                   <div
-                    className="w-8 h-8 border border-white/[0.08]"
+                    className="size-8 border border-white/[0.08]"
                     style={{ backgroundColor: data.primaryColor }}
                   />
                   <div>
@@ -118,7 +118,7 @@ export default function OnboardingStepReview({
               {data.secondaryColor && (
                 <HStack gap={2}>
                   <div
-                    className="w-8 h-8 border border-white/[0.08]"
+                    className="size-8 border border-white/[0.08]"
                     style={{ backgroundColor: data.secondaryColor }}
                   />
                   <div>

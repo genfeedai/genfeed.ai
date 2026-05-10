@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/rules-of-hooks -- Storybook render functions are invoked as story components. */
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import Badge from '@ui/display/badge/Badge';
 import Tabs from '@ui/navigation/tabs/Tabs';
@@ -200,19 +201,19 @@ export const WithContentPanels: Story = {
         <div className=" border border-white/[0.08] bg-background p-6">
           {activeTab === 'home' && (
             <div>
-              <h3 className="font-bold text-lg mb-2">Home Content</h3>
+              <h3 className="font-semibold text-lg mb-2">Home Content</h3>
               <p>Welcome to your home dashboard!</p>
             </div>
           )}
           {activeTab === 'profile' && (
             <div>
-              <h3 className="font-bold text-lg mb-2">Profile Content</h3>
+              <h3 className="font-semibold text-lg mb-2">Profile Content</h3>
               <p>Manage your profile settings here.</p>
             </div>
           )}
           {activeTab === 'settings' && (
             <div>
-              <h3 className="font-bold text-lg mb-2">Settings Content</h3>
+              <h3 className="font-semibold text-lg mb-2">Settings Content</h3>
               <p>Configure your application settings.</p>
             </div>
           )}

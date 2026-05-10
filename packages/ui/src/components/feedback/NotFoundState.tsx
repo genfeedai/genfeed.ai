@@ -22,7 +22,7 @@ export default function NotFoundState({
   return (
     <div className={containerClassName}>
       <div className={cn('mx-auto max-w-4xl py-20 text-center', className)}>
-        <h1 className="mb-4 text-4xl font-bold">{title}</h1>
+        <h1 className="mb-4 text-4xl font-semibold">{title}</h1>
         <p className="mb-8 text-muted-foreground">{message}</p>
 
         <Button asChild>

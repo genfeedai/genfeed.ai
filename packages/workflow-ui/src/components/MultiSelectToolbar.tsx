@@ -80,7 +80,7 @@ function MultiSelectToolbarComponent({
 
   const stackHorizontal = useCallback(() => {
     if (selectedNodes.length < 2) return;
-    const sorted = [...selectedNodes].sort(
+    const sorted = selectedNodes.toSorted(
       (a, b) => a.position.x - b.position.x,
     );
     const baseY = sorted[0].position.y;
@@ -99,7 +99,7 @@ function MultiSelectToolbarComponent({
 
   const stackVertical = useCallback(() => {
     if (selectedNodes.length < 2) return;
-    const sorted = [...selectedNodes].sort(
+    const sorted = selectedNodes.toSorted(
       (a, b) => a.position.y - b.position.y,
     );
     const baseX = sorted[0].position.x;
@@ -121,7 +121,7 @@ function MultiSelectToolbarComponent({
     const cols = Math.ceil(Math.sqrt(selectedNodes.length));
 
     // Sort nodes top-to-bottom, left-to-right
-    const sorted = [...selectedNodes].sort((a, b) => {
+    const sorted = selectedNodes.toSorted((a, b) => {
       const rowDiff =
         Math.floor(a.position.y / EST_NODE_HEIGHT) -
         Math.floor(b.position.y / EST_NODE_HEIGHT);
@@ -184,7 +184,7 @@ function MultiSelectToolbarComponent({
         onClick={stackHorizontal}
         title="Stack horizontal"
       >
-        <AlignHorizontalSpaceAround className="h-3.5 w-3.5" />
+        <AlignHorizontalSpaceAround className="size-3.5" />
       </Button>
 
       {/* Stack Vertical */}
@@ -194,7 +194,7 @@ function MultiSelectToolbarComponent({
         onClick={stackVertical}
         title="Stack vertical"
       >
-        <AlignVerticalSpaceAround className="h-3.5 w-3.5" />
+        <AlignVerticalSpaceAround className="size-3.5" />
       </Button>
 
       {/* Grid */}
@@ -204,7 +204,7 @@ function MultiSelectToolbarComponent({
         onClick={arrangeGrid}
         title="Arrange as grid"
       >
-        <Grid3X3 className="h-3.5 w-3.5" />
+        <Grid3X3 className="size-3.5" />
       </Button>
 
       {onDownloadAsZip && (
@@ -216,7 +216,7 @@ function MultiSelectToolbarComponent({
             onClick={handleDownloadAsZip}
             title="Download selected nodes as ZIP"
           >
-            <Download className="h-3.5 w-3.5" />
+            <Download className="size-3.5" />
           </Button>
         </>
       )}
@@ -231,7 +231,7 @@ function MultiSelectToolbarComponent({
           onClick={handleUngroup}
           title="Ungroup"
         >
-          <Ungroup className="h-3.5 w-3.5" />
+          <Ungroup className="size-3.5" />
         </Button>
       ) : (
         <Button
@@ -240,7 +240,7 @@ function MultiSelectToolbarComponent({
           onClick={handleGroup}
           title="Group"
         >
-          <Group className="h-3.5 w-3.5" />
+          <Group className="size-3.5" />
         </Button>
       )}
     </div>

@@ -20,12 +20,12 @@ export default function XArticleSectionCard({
             label="Copy"
             variant={ButtonVariant.GHOST}
             size={ButtonSize.SM}
-            icon={<HiClipboard className="h-4 w-4" />}
+            icon={<HiClipboard className="size-4" />}
             onClick={() => onCopy(section.id)}
           />
         </div>
 
-        <h2 className="pr-20 text-xl font-bold">{section.heading}</h2>
+        <h2 className="pr-20 text-xl font-semibold">{section.heading}</h2>
 
         <div
           className="prose prose-sm max-w-none mt-3 text-foreground/80"

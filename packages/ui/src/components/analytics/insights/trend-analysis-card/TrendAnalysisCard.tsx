@@ -81,7 +81,7 @@ const TrendAnalysisCard = memo(function TrendAnalysisCard({
         className={className}
       >
         <div className="flex flex-col items-center justify-center py-8 text-center">
-          <HiChartBar className="w-12 h-12 text-foreground/30 mb-3" />
+          <HiChartBar className="size-12 text-foreground/30 mb-3" />
           <p className="text-foreground/70 font-medium">
             No trend data available
           </p>
@@ -143,7 +143,7 @@ const TrendItem = memo(function TrendItem({ trend }: TrendItemProps) {
           )}
         </div>
         <div className={cn('flex items-center gap-1', styles.text)}>
-          <DirectionIcon className="w-5 h-5" />
+          <DirectionIcon className="size-5" />
           <span className="font-mono font-medium">
             {formatPercentage(trend.changePercent)}
           </span>

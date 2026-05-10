@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/rules-of-hooks -- Storybook render functions are invoked as story components. */
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import { useState } from 'react';
@@ -88,7 +89,7 @@ export const Interactive: Story = {
 
         <div className="text-sm text-foreground/70">
           {isRefreshing
-            ? 'Refreshing...'
+            ? 'Refreshing…'
             : lastRefresh
               ? `Last refreshed: ${lastRefresh.toLocaleTimeString()}`
               : 'Click to refresh'}
@@ -132,7 +133,7 @@ export const DataRefresh: Story = {
           <ul className="space-y-2">
             {data.map((item, index) => (
               <li key={index} className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-primary"></span>
+                <span className="size-2 rounded-full bg-primary"></span>
                 {item}
               </li>
             ))}
@@ -141,7 +142,7 @@ export const DataRefresh: Story = {
 
         {isRefreshing && (
           <div className="text-sm text-foreground/70 text-center">
-            Loading new data...
+            Loading new data…
           </div>
         )}
       </div>
@@ -205,7 +206,7 @@ export const AutoRefresh: Story = {
         <label className="flex items-center gap-2 justify-center cursor-pointer">
           <input
             type="checkbox"
-            className="h-4 w-4 border-white/[0.08] text-primary focus:ring-primary"
+            className="size-4 border-white/[0.08] text-primary focus:ring-primary"
             checked={autoRefresh}
             onChange={(e) => setAutoRefresh(e.target.checked)}
           />
@@ -319,7 +320,7 @@ export const WithErrorHandling: Story = {
 
         <div className="bg-background p-4 min-h-24 flex items-center justify-center">
           {isRefreshing ? (
-            <span className="text-foreground/70">Loading...</span>
+            <span className="text-foreground/70">Loading…</span>
           ) : error ? (
             <div className="text-error text-sm text-center">
               <div className="font-semibold">Error!</div>
@@ -333,7 +334,7 @@ export const WithErrorHandling: Story = {
         <label className="flex items-center gap-2 justify-center cursor-pointer">
           <input
             type="checkbox"
-            className="h-4 w-4 border-white/[0.08] text-destructive focus:ring-destructive"
+            className="size-4 border-white/[0.08] text-destructive focus:ring-destructive"
             checked={shouldFail}
             onChange={(e) => setShouldFail(e.target.checked)}
           />

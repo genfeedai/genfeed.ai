@@ -180,7 +180,7 @@ export default function TopbarPublic({
                         {dropdown.label}
                         <HiChevronDown
                           className={cn(
-                            'h-4 w-4 transition-transform duration-200',
+                            'size-4 transition-transform duration-200',
                             isOpen && 'rotate-180',
                           )}
                         />
@@ -223,13 +223,13 @@ export default function TopbarPublic({
                 type="button"
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 variant={ButtonVariant.UNSTYLED}
-                className="inline-flex h-10 w-10 items-center justify-center transition-colors hover:bg-white/5"
+                className="inline-flex size-10 items-center justify-center transition-colors hover:bg-white/5"
                 ariaLabel={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
               >
                 {isMobileMenuOpen ? (
-                  <HiXMark className="h-6 w-6" />
+                  <HiXMark className="size-6" />
                 ) : (
-                  <HiBars3 className="h-6 w-6" />
+                  <HiBars3 className="size-6" />
                 )}
               </Button>
             </div>
@@ -249,7 +249,7 @@ export default function TopbarPublic({
               left: dropdownPosition.left,
               paddingTop: 8,
               top: dropdownPosition.top - 8,
-              zIndex: 99999,
+              zIndex: 50,
             }}
             onMouseEnter={() => handleDropdownOpen(openDropdown)}
             onMouseLeave={handleDropdownClose}
@@ -275,7 +275,7 @@ export default function TopbarPublic({
                       onClick={handleDropdownClose}
                     >
                       {Icon && (
-                        <Icon className="h-5 w-5 flex-shrink-0 mt-0.5 text-white/60" />
+                        <Icon className="size-5 flex-shrink-0 mt-0.5 text-white/60" />
                       )}
                       <div className="flex flex-col">
                         <span className="font-medium text-sm">
@@ -300,7 +300,7 @@ export default function TopbarPublic({
       {mounted &&
         isMobileMenuOpen &&
         createPortal(
-          <div className="lg:hidden fixed inset-0 z-[9999]">
+          <div className="lg:hidden fixed inset-0 z-50">
             {/* Backdrop */}
             <Button
               type="button"
@@ -315,7 +315,7 @@ export default function TopbarPublic({
               className="relative z-10 w-full max-h-[80vh] overflow-y-auto mt-20 border-b border-white/10"
               style={{ backgroundColor: '#09090b' }}
             >
-              <nav className="container mx-auto px-6 py-6">
+              <nav className="container mx-auto p-6">
                 <ul className="space-y-6">
                   {/* Mobile Dropdowns */}
                   {dropdowns.map((dropdown) => (
@@ -341,7 +341,7 @@ export default function TopbarPublic({
                                 onClick={() => setIsMobileMenuOpen(false)}
                               >
                                 {Icon && (
-                                  <Icon className="h-5 w-5 text-white/50" />
+                                  <Icon className="size-5 text-white/50" />
                                 )}
                                 <span className="font-medium">
                                   {item.label}

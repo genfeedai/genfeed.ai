@@ -21,11 +21,11 @@ const SIZE_CLASSES: Record<ComponentSize, string> = {
 };
 
 const ICON_SIZES: Record<ComponentSize, string> = {
-  [ComponentSize.LG]: 'w-6 h-6',
-  [ComponentSize.MD]: 'w-4 h-4',
-  [ComponentSize.SM]: 'w-4 h-4',
-  [ComponentSize.XS]: 'w-3 h-3',
-  [ComponentSize.XL]: 'w-7 h-7',
+  [ComponentSize.LG]: 'size-6',
+  [ComponentSize.MD]: 'size-4',
+  [ComponentSize.SM]: 'size-4',
+  [ComponentSize.XS]: 'size-3',
+  [ComponentSize.XL]: 'size-7',
 };
 
 export interface SearchbarProps {
@@ -52,7 +52,7 @@ export interface SearchbarProps {
 export default function Searchbar({
   value,
   onChange,
-  placeholder = 'Search...',
+  placeholder = 'Search…',
   className = '',
   inputClassName = '',
   onClear,

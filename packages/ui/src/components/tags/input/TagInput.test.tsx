@@ -8,13 +8,13 @@ describe('TagInput', () => {
       <TagInput tags={[]} onAddTag={vi.fn()} onRemoveTag={vi.fn()} />,
     );
     expect(container.firstChild).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Add tags...')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Add tags…')).toBeInTheDocument();
   });
 
   it('should handle user interactions correctly', async () => {
     const onAddTag = vi.fn().mockResolvedValue(undefined);
     render(<TagInput tags={[]} onAddTag={onAddTag} onRemoveTag={vi.fn()} />);
-    const input = screen.getByPlaceholderText('Add tags...');
+    const input = screen.getByPlaceholderText('Add tags…');
     await act(async () => {
       fireEvent.change(input, { target: { value: 'New Tag' } });
       fireEvent.keyDown(input, { key: 'Enter' });

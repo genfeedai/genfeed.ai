@@ -31,25 +31,25 @@ const PREVIEW_PLATFORMS: {
 }[] = [
   {
     forPlatforms: [CredentialPlatform.INSTAGRAM],
-    icon: <FaInstagram className="h-3.5 w-3.5" />,
+    icon: <FaInstagram className="size-3.5" />,
     key: 'instagram',
     label: 'Instagram',
   },
   {
     forPlatforms: [CredentialPlatform.TWITTER],
-    icon: <FaXTwitter className="h-3.5 w-3.5" />,
+    icon: <FaXTwitter className="size-3.5" />,
     key: 'twitter',
     label: 'X / Twitter',
   },
   {
     forPlatforms: [CredentialPlatform.FACEBOOK],
-    icon: <FaFacebook className="h-3.5 w-3.5" />,
+    icon: <FaFacebook className="size-3.5" />,
     key: 'facebook',
     label: 'Facebook',
   },
   {
     forPlatforms: [CredentialPlatform.LINKEDIN],
-    icon: <FaLinkedin className="h-3.5 w-3.5" />,
+    icon: <FaLinkedin className="size-3.5" />,
     key: 'linkedin',
     label: 'LinkedIn',
   },
@@ -74,7 +74,7 @@ function TwitterPreview({
   return (
     <InsetSurface density="compact" tone="muted">
       <div className="flex gap-2">
-        <div className="h-10 w-10 rounded-full bg-muted shrink-0" />
+        <div className="size-10 rounded-full bg-muted shrink-0" />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1">
             <span className="font-bold text-sm">{accountName}</span>
@@ -97,10 +97,10 @@ function TwitterPreview({
             </div>
           )}
           <div className="flex justify-between mt-3 text-muted-foreground">
-            <HiChatBubbleOvalLeft className="h-4 w-4" />
-            <HiArrowPath className="h-4 w-4" />
-            <HiHeart className="h-4 w-4" />
-            <HiBookmark className="h-4 w-4" />
+            <HiChatBubbleOvalLeft className="size-4" />
+            <HiArrowPath className="size-4" />
+            <HiHeart className="size-4" />
+            <HiBookmark className="size-4" />
           </div>
         </div>
       </div>
@@ -119,7 +119,7 @@ function InstagramPreview({
   return (
     <InsetSurface className="overflow-hidden" density="compact" tone="muted">
       <div className="flex items-center gap-2 p-3">
-        <div className="h-8 w-8 rounded-full bg-muted" />
+        <div className="size-8 rounded-full bg-muted" />
         <span className="font-semibold text-sm">{accountName}</span>
       </div>
       {ingredient?.ingredientUrl && (
@@ -138,10 +138,10 @@ function InstagramPreview({
       )}
       <div className="p-3">
         <div className="flex gap-4 mb-2">
-          <HiHeart className="h-5 w-5" />
-          <HiChatBubbleOvalLeft className="h-5 w-5" />
-          <HiPaperAirplane className="h-5 w-5" />
-          <HiBookmark className="h-5 w-5 ml-auto" />
+          <HiHeart className="size-5" />
+          <HiChatBubbleOvalLeft className="size-5" />
+          <HiPaperAirplane className="size-5" />
+          <HiBookmark className="size-5 ml-auto" />
         </div>
         <p className="text-sm">
           <span className="font-semibold">{accountName}</span>{' '}

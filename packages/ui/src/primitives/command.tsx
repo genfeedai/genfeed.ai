@@ -46,7 +46,7 @@ const CommandInput = forwardRef<
     className="ship-ui flex items-center border-b border-border px-3"
     cmdk-input-wrapper=""
   >
-    <Search className="mr-2 h-4 w-4 shrink-0 text-muted" />
+    <Search className="mr-2 size-4 shrink-0 text-muted" />
     <CommandPrimitive.Input
       ref={ref}
       className={cn(

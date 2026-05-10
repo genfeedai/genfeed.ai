@@ -273,17 +273,32 @@ export const createPersistenceSlice: StateCreator<
       }
     };
 
+    const nodesById = new Map(nodes.map((node) => [node.id, node]));
+    const incomingEdgesByTarget = new Map<string, typeof edges>();
+    for (const edge of edges) {
+      const incomingEdges = incomingEdgesByTarget.get(edge.target) ?? [];
+      incomingEdges.push(edge);
+      incomingEdgesByTarget.set(edge.target, incomingEdges);
+    }
+
     for (const node of nodes) {
       const nodeDef = NODE_DEFINITIONS[node.type as NodeType];
       if (!nodeDef) continue;
 
-      const incomingEdges = edges.filter((e) => e.target === node.id);
+      const incomingEdges = incomingEdgesByTarget.get(node.id) ?? [];
+      const incomingEdgesByHandle = new Map<
+        string | null | undefined,
+        (typeof incomingEdges)[number]
+      >();
+      for (const edge of incomingEdges) {
+        if (!incomingEdgesByHandle.has(edge.targetHandle)) {
+          incomingEdgesByHandle.set(edge.targetHandle, edge);
+        }
+      }
 
       for (const input of nodeDef.inputs) {
         if (input.required) {
-          const connectionEdge = incomingEdges.find(
-            (e) => e.targetHandle === input.id,
-          );
+          const connectionEdge = incomingEdgesByHandle.get(input.id);
           if (!connectionEdge) {
             errors.push({
               message: `Missing required input: ${input.label}`,
@@ -291,9 +306,7 @@ export const createPersistenceSlice: StateCreator<
               severity: 'error',
             });
           } else {
-            const sourceNode = nodes.find(
-              (n) => n.id === connectionEdge.source,
-            );
+            const sourceNode = nodesById.get(connectionEdge.source);
             if (sourceNode && !hasNodeOutput(sourceNode)) {
               errors.push({
                 message: `${(sourceNode.data as WorkflowNodeData).label} is empty`,

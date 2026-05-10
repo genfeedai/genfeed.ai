@@ -100,9 +100,9 @@ const PromptBarQuickOptions = memo(function PromptBarQuickOptions({
           className="flex items-center gap-1.5 text-xs font-medium text-foreground/50 hover:text-foreground/70 self-start"
           icon={
             expanded ? (
-              <HiChevronUp className="w-3.5 h-3.5" />
+              <HiChevronUp className="size-3.5" />
             ) : (
-              <HiChevronDown className="w-3.5 h-3.5" />
+              <HiChevronDown className="size-3.5" />
             )
           }
         >
@@ -314,7 +314,7 @@ const PromptBarQuickOptions = memo(function PromptBarQuickOptions({
 
             <FormDropdown
               name="musicVolume"
-              icon={<HiMusicalNote className="w-4 h-4" />}
+              icon={<HiMusicalNote className="size-4" />}
               label="Volume"
               value={(form.getValues('musicVolume') ?? 30).toString()}
               isNoneEnabled={false}

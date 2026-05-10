@@ -33,13 +33,13 @@ export default function StreakCelebrationBurst({
         <span
           key={`${position}-${index}`}
           className={cn(
-            'absolute h-2.5 w-2.5 rounded-full bg-orange-300/80 opacity-0',
+            'absolute size-2.5 rounded-full bg-orange-300/80 opacity-0',
             position,
             isVisible && 'animate-ping',
           )}
           style={{
             animationDelay: `${index * 90}ms`,
-            animationDuration: '1100ms',
+            animationDuration: '900ms',
           }}
         />
       ))}

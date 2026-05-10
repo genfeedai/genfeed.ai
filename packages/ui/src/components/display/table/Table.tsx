@@ -131,7 +131,7 @@ export default function AppTable<T>({
           >
             <tr className="border-b border-white/[0.08] transition-colors">
               {selectable && (
-                <th className="h-12 w-12 px-4 text-left align-middle font-medium text-muted-foreground">
+                <th className="size-12 px-4 text-left align-middle font-medium text-muted-foreground">
                   <Checkbox
                     name="selectAll"
                     isChecked={

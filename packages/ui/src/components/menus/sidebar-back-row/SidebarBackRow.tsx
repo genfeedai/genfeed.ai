@@ -21,7 +21,7 @@ export default function SidebarBackRow({ label, href }: SidebarBackRowProps) {
         )}
         aria-label={`Back to ${label}`}
       >
-        <HiArrowLeft className="w-4 h-4 text-white/60 group-hover:text-white transition-colors duration-200" />
+        <HiArrowLeft className="size-4 text-white/60 group-hover:text-white transition-colors duration-200" />
         <span className="text-sm font-medium text-white/90">{label}</span>
       </Link>
     </div>

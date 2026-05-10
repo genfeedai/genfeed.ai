@@ -133,7 +133,7 @@ function SocialPublishNodeComponent({
           type="text"
           value={data.title}
           onChange={handleTitleChange}
-          placeholder="Video title..."
+          placeholder="Video title…"
           className="mt-1"
         />
       </div>
@@ -144,7 +144,7 @@ function SocialPublishNodeComponent({
         <Textarea
           value={data.description}
           onChange={handleDescriptionChange}
-          placeholder="Video description..."
+          placeholder="Video description…"
           className="w-full h-16 px-2 py-1.5 text-sm bg-background border border-white/[0.08] resize-none focus:outline-none focus:ring-1 focus:ring-primary"
         />
       </div>
@@ -193,7 +193,7 @@ function SocialPublishNodeComponent({
           rel="noopener noreferrer"
           className="flex items-center gap-2 p-2 bg-green-500/10 border border-green-500/20 text-green-400 text-sm hover:bg-green-500/20 transition"
         >
-          <ExternalLink className="w-4 h-4" />
+          <ExternalLink className="size-4" />
           View Published Video
         </a>
       )}
@@ -207,7 +207,7 @@ function SocialPublishNodeComponent({
           variant={ButtonVariant.UNSTYLED}
           className="w-full py-2 bg-primary text-white text-sm font-medium hover:opacity-90 transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <Share2 className="w-4 h-4" />
+          <Share2 className="size-4" />
           Publish to {PLATFORMS.find((p) => p.value === data.platform)?.label}
         </Button>
       )}

@@ -41,7 +41,7 @@ function ConnectionDropMenuComponent() {
     if (!connectionDropMenu) return [];
 
     const sourceType = connectionDropMenu.sourceHandleType;
-    const compatibleTargetTypes = CONNECTION_RULES[sourceType] ?? [];
+    const compatibleTargetTypes = new Set(CONNECTION_RULES[sourceType] ?? []);
 
     const nodesByCategory = getNodesByCategory();
     const result: Array<{
@@ -55,7 +55,7 @@ function ConnectionDropMenuComponent() {
       for (const def of defs) {
         // Check if any of this node's inputs accept a compatible type
         const hasCompatibleInput = def.inputs.some((input) =>
-          compatibleTargetTypes.includes(input.type),
+          compatibleTargetTypes.has(input.type),
         );
         if (hasCompatibleInput) {
           result.push({
@@ -96,14 +96,12 @@ function ConnectionDropMenuComponent() {
     if (isOpen) {
       setSearch('');
       setSelectedIndex(0);
-      setTimeout(() => inputRef.current?.focus(), 0);
+      const timer = window.setTimeout(() => inputRef.current?.focus(), 0);
+      return () => window.clearTimeout(timer);
     }
-  }, [isOpen]);
 
-  // Reset selection when search changes
-  useEffect(() => {
-    setSelectedIndex(0);
-  }, []);
+    return undefined;
+  }, [isOpen]);
 
   // Scroll selected item into view
   useEffect(() => {
@@ -194,7 +192,7 @@ function ConnectionDropMenuComponent() {
         type="button"
         variant="ghost"
         size="icon-sm"
-        className="fixed inset-0 z-40 h-full w-full p-0 opacity-0"
+        className="fixed inset-0 z-40 size-full p-0 opacity-0"
         onClick={closeConnectionDropMenu}
         aria-label="Close add node menu"
       />
@@ -207,14 +205,14 @@ function ConnectionDropMenuComponent() {
       >
         {/* Header */}
         <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--border)]">
-          <Plus className="w-3.5 h-3.5 text-[var(--muted-foreground)]" />
+          <Plus className="size-3.5 text-[var(--muted-foreground)]" />
           <span className="text-xs font-medium">Add Connected Node</span>
         </div>
 
         {/* Search */}
         <div className="px-3 py-2">
           <div className="relative">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--muted-foreground)]" />
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3.5 text-[var(--muted-foreground)]" />
             <input
               ref={inputRef}
               type="text"

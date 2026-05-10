@@ -42,7 +42,7 @@ export function ActivityRow({
         <span className="ml-1 text-muted-foreground">{verb} </span>
         {entityName && <span className="font-medium">{entityName}</span>}
         {entityTitle && (
-          <span className="ml-1 text-muted-foreground">— {entityTitle}</span>
+          <span className="ml-1 text-muted-foreground">({entityTitle})</span>
         )}
       </p>
       <span className="shrink-0 pt-0.5 text-xs text-muted-foreground">

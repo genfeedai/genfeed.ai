@@ -84,7 +84,7 @@ export default function Modal({
 
             {error && (
               <div className="flex items-center gap-3 rounded border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive mt-4">
-                <HiExclamationTriangle className="h-5 w-5 shrink-0" />
+                <HiExclamationTriangle className="size-5 shrink-0" />
                 <span>{error}</span>
               </div>
             )}

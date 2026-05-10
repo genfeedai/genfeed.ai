@@ -832,7 +832,7 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
                         e.target.value,
                       )
                     }
-                    placeholder="https://hooks.slack.com/services/..."
+                    placeholder="https://hooks.slack.com/services/…"
                     isDisabled={isSubmitting}
                   />
                 </FormControl>
@@ -904,7 +904,7 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
                       )
                     }
                     onKeyDown={handleKeyDown}
-                    placeholder="Generate a tweet about..."
+                    placeholder="Generate a tweet about…"
                     isDisabled={isSubmitting}
                     className="h-24"
                   />

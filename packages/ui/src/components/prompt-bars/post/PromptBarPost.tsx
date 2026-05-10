@@ -25,7 +25,7 @@ import {
 const CONTROL_CLASS =
   'h-9 px-3 gap-2 text-sm flex-shrink-0 !border-white/10 !bg-white/[0.03] text-white/80 hover:!bg-white/[0.06] hover:text-white';
 const COLLAPSE_BUTTON_CLASS =
-  'h-8 w-8 border border-white/10 bg-black/20 p-0 text-white/70 backdrop-blur-sm hover:bg-black/30 hover:text-white';
+  'size-8 border border-white/10 bg-black/20 p-0 text-white/70 backdrop-blur-sm hover:bg-black/30 hover:text-white';
 
 function PromptBarPost({
   onSubmit,
@@ -72,56 +72,52 @@ function PromptBarPost({
 
   const promptPlaceholder = useMemo(() => {
     if (!showCountDropdown) {
-      return 'Describe how you want to enhance your post...';
+      return 'Describe how you want to enhance your post…';
     }
 
     const platformPlaceholders: Record<Platform | 'all', string> = {
-      all: 'e.g., AI productivity tips, startup advice, tech trends...',
+      all: 'e.g., AI productivity tips, startup advice, tech trends…',
       [Platform.TWITTER]:
-        'e.g., viral tweet ideas, trending topics, quick tips...',
+        'e.g., viral tweet ideas, trending topics, quick tips…',
       [Platform.INSTAGRAM]:
-        'e.g., visual content ideas, story concepts, captions...',
-      [Platform.YOUTUBE]:
-        'e.g., video topics, tutorial ideas, content series...',
+        'e.g., visual content ideas, story concepts, captions…',
+      [Platform.YOUTUBE]: 'e.g., video topics, tutorial ideas, content series…',
       [Platform.TIKTOK]:
-        'e.g., trending challenges, short-form content, viral ideas...',
+        'e.g., trending challenges, short-form content, viral ideas…',
       [Platform.FACEBOOK]:
-        'e.g., community posts, engagement content, updates...',
+        'e.g., community posts, engagement content, updates…',
       [Platform.LINKEDIN]:
-        'e.g., professional insights, industry thoughts, career tips...',
+        'e.g., professional insights, industry thoughts, career tips…',
       [Platform.PINTEREST]:
-        'e.g., pin ideas, visual inspiration, DIY projects...',
+        'e.g., pin ideas, visual inspiration, DIY projects…',
       [Platform.REDDIT]:
-        'e.g., discussion topics, AMA questions, community posts...',
-      [Platform.DISCORD]:
-        'e.g., community announcements, discussion prompts...',
-      [Platform.TELEGRAM]: 'e.g., channel updates, news sharing, tips...',
+        'e.g., discussion topics, AMA questions, community posts…',
+      [Platform.DISCORD]: 'e.g., community announcements, discussion prompts…',
+      [Platform.TELEGRAM]: 'e.g., channel updates, news sharing, tips…',
       [Platform.THREADS]:
-        'e.g., conversational threads, community discussions...',
+        'e.g., conversational threads, community discussions…',
       [Platform.TWITCH]:
-        'e.g., stream topics, gaming content, community engagement...',
+        'e.g., stream topics, gaming content, community engagement…',
       [Platform.MEDIUM]:
-        'e.g., article topics, deep dives, thought leadership...',
+        'e.g., article topics, deep dives, thought leadership…',
       [Platform.FANVUE]:
-        'e.g., exclusive creator content, fan engagement, premium posts...',
+        'e.g., exclusive creator content, fan engagement, premium posts…',
       [Platform.SLACK]:
-        'e.g., team updates, announcements, workspace discussions...',
-      [Platform.WORDPRESS]:
-        'e.g., blog posts, tutorials, long-form articles...',
-      [Platform.SNAPCHAT]:
-        'e.g., snap stories, visual content, quick updates...',
+        'e.g., team updates, announcements, workspace discussions…',
+      [Platform.WORDPRESS]: 'e.g., blog posts, tutorials, long-form articles…',
+      [Platform.SNAPCHAT]: 'e.g., snap stories, visual content, quick updates…',
       [Platform.WHATSAPP]:
-        'e.g., broadcast messages, status updates, group content...',
+        'e.g., broadcast messages, status updates, group content…',
       [Platform.MASTODON]:
-        'e.g., community posts, federated discussions, toots...',
+        'e.g., community posts, federated discussions, toots…',
       [Platform.GHOST]:
-        'e.g., newsletter content, blog articles, member posts...',
+        'e.g., newsletter content, blog articles, member posts…',
       [Platform.SHOPIFY]:
-        'e.g., product descriptions, store updates, promotions...',
+        'e.g., product descriptions, store updates, promotions…',
       [Platform.BEEHIIV]:
-        'e.g., newsletter topics, subscriber updates, curated content...',
+        'e.g., newsletter topics, subscriber updates, curated content…',
       [Platform.GOOGLE_ADS]:
-        'e.g., ad copy, campaign ideas, keyword strategies...',
+        'e.g., ad copy, campaign ideas, keyword strategies…',
     };
 
     return (
@@ -240,7 +236,7 @@ function PromptBarPost({
                     className="h-9 px-3"
                     tooltip="Outputs"
                     tooltipPosition="left"
-                    icon={<HiSquaresPlus className="w-4 h-4" />}
+                    icon={<HiSquaresPlus className="size-4" />}
                     onClick={() => {
                       const countCycle: Record<number, number> = {
                         1: 2,
@@ -262,8 +258,8 @@ function PromptBarPost({
                     variant={
                       isThread ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY
                     }
-                    className="h-9 w-9 p-0"
-                    icon={<HiQueueList className="w-4 h-4" />}
+                    className="size-9 p-0"
+                    icon={<HiQueueList className="size-4" />}
                     isDisabled={isEnhancing}
                   />
                 )}
@@ -290,7 +286,7 @@ function PromptBarPost({
               tooltipPosition="top"
               variant={ButtonVariant.GHOST}
               className={COLLAPSE_BUTTON_CLASS}
-              icon={<HiChevronUp className="w-4 h-4" />}
+              icon={<HiChevronUp className="size-4" />}
             />
           </div>
         </div>
@@ -365,7 +361,7 @@ function PromptBarPost({
               onKeyDown={handleKeyDown}
               placeholder={promptPlaceholder}
               isDisabled={isEnhancing}
-              className="min-h-[96px] w-full resize-none border border-white/10 bg-transparent px-2 py-2 text-sm text-white/90 shadow-none focus:border-transparent focus-visible:ring-0"
+              className="min-h-[96px] w-full resize-none border border-white/10 bg-transparent p-2 text-sm text-white/90 shadow-none focus:border-transparent focus-visible:ring-0"
             />
 
             <div className="flex flex-wrap items-center justify-end gap-2 border-t border-white/8 pt-2">
@@ -405,7 +401,7 @@ function PromptBarPost({
                     isThread ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY
                   }
                   className="h-9 px-3 text-sm"
-                  icon={<HiQueueList className="w-4 h-4" />}
+                  icon={<HiQueueList className="size-4" />}
                   isDisabled={isEnhancing}
                 >
                   Thread

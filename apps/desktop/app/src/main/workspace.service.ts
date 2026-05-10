@@ -122,11 +122,13 @@ export class DesktopWorkspaceService {
     id: string;
     indexingState: string;
     lastOpenedAt: string;
+    linkedBrandId: string | null;
     linkedProjectId: string | null;
     localDraftCount: number;
     name: string;
     path: string;
     pendingSyncCount: number;
+    syncPolicy: string;
     updatedAt: string;
   }): IDesktopWorkspace {
     return {

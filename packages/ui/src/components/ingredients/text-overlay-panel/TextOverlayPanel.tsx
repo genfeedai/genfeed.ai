@@ -49,7 +49,7 @@ export default function TextOverlayPanel({
         text: text.trim(),
       });
 
-      notificationsService.success('Adding text overlay...');
+      notificationsService.success('Adding text overlay…');
       handleClose();
       onSuccess?.();
       setIsSubmitting(false);
@@ -80,7 +80,7 @@ export default function TextOverlayPanel({
       />
 
       {/* Slide-over panel */}
-      <div className="fixed right-0 top-0 h-full w-full max-w-md bg-card shadow-xl z-50 transform transition-transform duration-300">
+      <div className="fixed right-0 top-0 size-full max-w-md bg-card shadow-xl z-50 transform transition-transform duration-300">
         <div className="flex flex-col h-full">
           {/* Panel header - title and close button */}
           <div className="flex items-center justify-between p-6 border-b border-white/[0.08]">

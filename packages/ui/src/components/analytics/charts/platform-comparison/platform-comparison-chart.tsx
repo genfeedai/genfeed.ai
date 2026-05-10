@@ -88,7 +88,7 @@ export function PlatformComparisonChart({
               } ${isLoading || isEmpty ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <span
-                className="inline-block w-3 h-3 rounded-full mr-2"
+                className="inline-block size-3 rounded-full mr-2"
                 style={{ backgroundColor: METRIC_COLORS[metric] }}
               />
               {metric}
@@ -101,7 +101,7 @@ export function PlatformComparisonChart({
       <div className="relative" style={{ height }}>
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-card/50 z-10">
-            <span className="animate-pulse w-12 h-12 rounded-full bg-primary/30" />
+            <span className="animate-pulse size-12 rounded-full bg-primary/30" />
           </div>
         )}
 

@@ -159,9 +159,9 @@ const PromptBarPrimaryControlsRow = memo(function PromptBarPrimaryControlsRow({
         tooltipPosition="top"
         variant={ButtonVariant.GHOST}
         size={ButtonSize.SM}
-        className="h-10 w-10 p-0"
+        className="size-10 p-0"
         icon={
-          <HiChevronUp className="transition-transform rotate-180 w-4 h-4" />
+          <HiChevronUp className="transition-transform rotate-180 size-4" />
         }
       />
     </div>

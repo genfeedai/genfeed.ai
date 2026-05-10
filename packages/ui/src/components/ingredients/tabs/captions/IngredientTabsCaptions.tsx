@@ -129,7 +129,7 @@ export default function IngredientTabsCaptions({
         selectedCaption.id,
       );
 
-      notificationsService.success('Video with captions is being generated...');
+      notificationsService.success('Video with captions is being generated…');
 
       logger.info('Video generated', data);
 

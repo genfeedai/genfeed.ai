@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/rules-of-hooks -- Storybook render functions are invoked as story components. */
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import { useState } from 'react';
@@ -182,7 +183,9 @@ export const WithContent: Story = {
     return (
       <div className="space-y-6 w-full max-w-2xl">
         <div className=" border border-white/[0.08] bg-background p-6">
-          <h3 className="font-bold text-lg mb-4">Page {currentPage} Content</h3>
+          <h3 className="font-semibold text-lg mb-4">
+            Page {currentPage} Content
+          </h3>
           <p className="text-foreground/70">
             This is the content for page {currentPage}.
           </p>
@@ -260,7 +263,7 @@ export const Interactive: Story = {
         </div>
 
         <div className=" border border-white/[0.08] bg-background p-6 min-h-96">
-          <h3 className="font-bold text-lg mb-4">
+          <h3 className="font-semibold text-lg mb-4">
             Page {currentPage} of {totalPages}
           </h3>
           <div className="space-y-2">

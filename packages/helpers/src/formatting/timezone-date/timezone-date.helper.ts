@@ -8,6 +8,26 @@ const DEFAULT_DATE_FORMAT: Intl.DateTimeFormatOptions = {
   month: 'short',
 };
 
+const timezoneDateFormatters = new Map<string, Intl.DateTimeFormat>();
+
+function getTimezoneDateFormatter(
+  timezone: string,
+  format: Intl.DateTimeFormatOptions,
+): Intl.DateTimeFormat {
+  const cacheKey = `${timezone}:${JSON.stringify(format)}`;
+  const cached = timezoneDateFormatters.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  const formatter = Intl.DateTimeFormat('en-US', {
+    ...format,
+    timeZone: timezone,
+  });
+  timezoneDateFormatters.set(cacheKey, formatter);
+  return formatter;
+}
+
 export function formatDateInTimezone(
   date: Date | string | null | undefined,
   timezone: string = 'UTC',
@@ -24,10 +44,7 @@ export function formatDateInTimezone(
       return '';
     }
 
-    return new Intl.DateTimeFormat('en-US', {
-      ...format,
-      timeZone: timezone,
-    }).format(dateObj);
+    return getTimezoneDateFormatter(timezone, format).format(dateObj);
   } catch (_error) {
     return baseFormatDate(date);
   }

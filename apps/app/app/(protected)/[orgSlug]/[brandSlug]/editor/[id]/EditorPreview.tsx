@@ -7,6 +7,7 @@ import { Player, type PlayerRef } from '@remotion/player';
 import {
   type ComponentProps,
   type ComponentType,
+  forwardRef,
   type Ref,
   useCallback,
   useEffect,

@@ -125,8 +125,8 @@ export default function PostDetailSidebar({
             }
 
             return (
-              <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-background">
-                <PlatformIcon className="h-6 w-6" />
+              <span className="inline-flex size-12 items-center justify-center rounded-full bg-background">
+                <PlatformIcon className="size-6" />
               </span>
             );
           })()}
@@ -157,7 +157,7 @@ export default function PostDetailSidebar({
             rel="noopener noreferrer"
             className="inline-flex items-center justify-center gap-2 border border-input bg-secondary/50 px-4 py-2 text-sm font-medium ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 w-full"
           >
-            <HiArrowTopRightOnSquare className="w-4 h-4" />
+            <HiArrowTopRightOnSquare className="size-4" />
             <span>Open on platform</span>
           </Link>
         )}
@@ -330,7 +330,7 @@ export default function PostDetailSidebar({
           />
 
           <Button
-            label={isSavingSchedule ? 'Saving...' : 'Schedule'}
+            label={isSavingSchedule ? 'Saving…' : 'Schedule'}
             variant={ButtonVariant.DEFAULT}
             className="w-full"
             isLoading={isSavingSchedule}
@@ -354,7 +354,7 @@ export default function PostDetailSidebar({
       {isPublished && post.ingredients?.length > 0 && (
         <Card>
           <div className="flex items-center gap-2">
-            <HiBolt className="w-4 h-4 text-warning" />
+            <HiBolt className="size-4 text-warning" />
             <h3 className="font-semibold text-lg">
               Ingredients ({post.ingredients?.length || 0})
             </h3>

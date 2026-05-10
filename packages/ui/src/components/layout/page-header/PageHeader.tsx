@@ -46,14 +46,14 @@ export default function PageHeader({
             <Link href={backRoute}>
               <Button
                 label={backLabel}
-                icon={<HiArrowLeft className="h-4 w-4" />}
+                icon={<HiArrowLeft className="size-4" />}
                 variant={ButtonVariant.GHOST}
               />
             </Link>
           ) : (
             <Button
               label={backLabel}
-              icon={<HiArrowLeft className="h-4 w-4" />}
+              icon={<HiArrowLeft className="size-4" />}
               variant={ButtonVariant.GHOST}
               onClick={handleBack}
             />

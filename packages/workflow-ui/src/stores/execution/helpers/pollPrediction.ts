@@ -23,7 +23,15 @@ export async function pollPrediction(
   const pollInterval = 5000; // 5 seconds
   const workflowId = workflowStore.workflowId;
 
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+  async function pollAttempt(attempt: number): Promise<void> {
+    if (attempt >= maxAttempts) {
+      workflowStore.updateNodeData(nodeId, {
+        error: 'Job timed out',
+        status: NodeStatusEnum.ERROR,
+      });
+      return;
+    }
+
     // Check if aborted before making request
     if (signal?.aborted) return;
 
@@ -96,10 +104,8 @@ export async function pollPrediction(
 
     // Check again after delay
     if (signal?.aborted) return;
+    return pollAttempt(attempt + 1);
   }
 
-  workflowStore.updateNodeData(nodeId, {
-    error: 'Job timed out',
-    status: NodeStatusEnum.ERROR,
-  });
+  return pollAttempt(0);
 }

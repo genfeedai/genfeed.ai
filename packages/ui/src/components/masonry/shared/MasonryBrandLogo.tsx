@@ -47,7 +47,7 @@ export default function MasonryBrandLogo({
     <Button
       withWrapper={false}
       variant={ButtonVariant.UNSTYLED}
-      className="cursor-pointer absolute top-0 left-0 m-1 w-6 h-6 rounded-full overflow-hidden shadow-lg z-10"
+      className="cursor-pointer absolute top-0 left-0 m-1 size-6 rounded-full overflow-hidden shadow-lg z-10"
       onClick={handleClick}
       ariaLabel="View brand"
     >
@@ -56,7 +56,7 @@ export default function MasonryBrandLogo({
         alt="Brand logo"
         width={24}
         height={24}
-        className="h-auto w-auto object-cover object-center"
+        className="size-auto object-cover object-center"
         sizes="24px"
         loading="lazy"
       />

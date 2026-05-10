@@ -115,25 +115,29 @@ function formatServerError(status: number, body: string): string {
 }
 
 function getDesktopCallbackUrl(
-  key: string,
+  code: string,
   user: DesktopIdentity | null,
   callbackTarget: string | null,
+  state: string | null,
 ): string {
   const target = callbackTarget || DESKTOP_CALLBACK_TARGET;
   const url = new URL(target);
-  url.get.set('key', key);
+  url.searchParams.set('code', code);
+  if (state) {
+    url.searchParams.set('state', state);
+  }
 
   const email = user?.primaryEmailAddress?.emailAddress;
   const name = [user?.firstName, user?.lastName].filter(Boolean).join(' ');
 
   if (user?.id) {
-    url.get.set('userId', user.id);
+    url.searchParams.set('userId', user.id);
   }
   if (email) {
-    url.get.set('email', email);
+    url.searchParams.set('email', email);
   }
   if (name) {
-    url.get.set('name', name);
+    url.searchParams.set('name', name);
   }
 
   return url.toString();
@@ -155,7 +159,7 @@ function isDesktopCallbackTargetValid(value: string | null): boolean {
 }
 
 function CliAuthPageContent() {
-  const { get } = useSearchParams();
+  const searchParams = useSearchParams();
   const { isSignedIn, isLoaded, getToken } = useAuth();
   const { user } = useUser();
   const [flowState, setFlowState] = useState<FlowState>({
@@ -165,9 +169,10 @@ function CliAuthPageContent() {
   const [copied, setCopied] = useState(false);
   const tokenRequestedRef = useRef(false);
 
-  const portParam = get('port');
-  const isDesktopMode = get('desktop') === '1';
-  const desktopReturnTo = get('return_to');
+  const portParam = searchParams.get('port');
+  const isDesktopMode = searchParams.get('desktop') === '1';
+  const desktopReturnTo = searchParams.get('return_to');
+  const desktopState = searchParams.get('state');
   const hasValidDesktopReturnTarget =
     isDesktopCallbackTargetValid(desktopReturnTo);
   const port = validatePort(portParam);
@@ -220,8 +225,10 @@ function CliAuthPageContent() {
 
         const data = await response.json();
         const key = data.key || data.apiKey || data.token;
+        const desktopCode = isDesktopMode ? data.code : null;
+        const credential = desktopCode || key;
 
-        if (!key) {
+        if (!credential) {
           setFlowState({
             error: 'Server did not return an API key. Please try again.',
             step: 'error',
@@ -229,11 +236,16 @@ function CliAuthPageContent() {
           return;
         }
 
-        setFlowState({ apiKey: key, error: null, step: 'redirecting' });
+        setFlowState({ apiKey: credential, error: null, step: 'redirecting' });
 
         const callbackUrl = isDesktopMode
-          ? getDesktopCallbackUrl(key, user ?? null, desktopReturnTo)
-          : `http://127.0.0.1:${port ?? 0}/callback?key=${encodeURIComponent(key)}`;
+          ? getDesktopCallbackUrl(
+              credential,
+              user ?? null,
+              desktopReturnTo,
+              desktopState,
+            )
+          : `http://127.0.0.1:${port ?? 0}/callback?key=${encodeURIComponent(credential)}`;
 
         await new Promise((resolve) => setTimeout(resolve, 500));
 
@@ -264,7 +276,7 @@ function CliAuthPageContent() {
 
             handoffCompleted = true;
             cleanup();
-            setFlowState({ apiKey: key, error: null, step: 'success' });
+            setFlowState({ apiKey: credential, error: null, step: 'success' });
           };
 
           const handlePageHide = () => {
@@ -285,7 +297,7 @@ function CliAuthPageContent() {
           } catch (error) {
             cleanup();
             setFlowState({
-              apiKey: key,
+              apiKey: credential,
               error:
                 error instanceof Error
                   ? error.message
@@ -302,7 +314,7 @@ function CliAuthPageContent() {
 
             cleanup();
             setFlowState({
-              apiKey: key,
+              apiKey: credential,
               error:
                 'Genfeed Desktop did not open automatically. Make sure the app is installed, then try again or copy the key below.',
               step: 'error',
@@ -316,7 +328,7 @@ function CliAuthPageContent() {
 
         setTimeout(() => {
           if (!signal.aborted) {
-            setFlowState({ apiKey: key, error: null, step: 'success' });
+            setFlowState({ apiKey: credential, error: null, step: 'success' });
           }
         }, 2000);
       } catch (err: unknown) {
@@ -329,7 +341,7 @@ function CliAuthPageContent() {
         setFlowState({ error: message, step: 'error' });
       }
     },
-    [desktopReturnTo, getToken, isDesktopMode, port, user],
+    [desktopReturnTo, desktopState, getToken, isDesktopMode, port, user],
   );
 
   useEffect(() => {

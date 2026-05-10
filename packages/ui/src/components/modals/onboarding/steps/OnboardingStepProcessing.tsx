@@ -53,8 +53,8 @@ export default function OnboardingStepProcessing({
   return (
     <div className="py-8">
       <div className="text-center mb-8">
-        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center animate-pulse">
-          <HiOutlineSparkles className="w-8 h-8 text-primary" />
+        <div className="size-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center animate-pulse">
+          <HiOutlineSparkles className="size-8 text-primary" />
         </div>
         <h2 className="text-2xl font-semibold mb-2">Analyzing your brand</h2>
         <p className="text-muted-foreground text-sm truncate max-w-xs mx-auto">
@@ -93,7 +93,7 @@ export default function OnboardingStepProcessing({
               }`}
             >
               <div
-                className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${
+                className={`size-6 rounded-full flex items-center justify-center transition-colors ${
                   isComplete
                     ? 'bg-green-500 text-white'
                     : isCurrent
@@ -102,11 +102,11 @@ export default function OnboardingStepProcessing({
                 }`}
               >
                 {isComplete ? (
-                  <HiCheck className="w-4 h-4" />
+                  <HiCheck className="size-4" />
                 ) : isCurrent ? (
-                  <span className="w-2 h-2 bg-current rounded-full animate-pulse" />
+                  <span className="size-2 bg-current rounded-full animate-pulse" />
                 ) : (
-                  <span className="w-2 h-2 bg-muted-foreground/30 rounded-full" />
+                  <span className="size-2 bg-muted-foreground/30 rounded-full" />
                 )}
               </div>
               <span
@@ -115,7 +115,7 @@ export default function OnboardingStepProcessing({
                 }`}
               >
                 {step.label}
-                {isCurrent && '...'}
+                {isCurrent && '…'}
               </span>
             </div>
           );

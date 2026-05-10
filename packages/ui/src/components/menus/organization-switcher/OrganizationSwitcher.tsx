@@ -127,7 +127,7 @@ export default function OrganizationSwitcher() {
               isOpen && 'bg-white/[0.06]',
             )}
           >
-            <div className="w-6 h-6 rounded bg-white/20 flex items-center justify-center text-xs font-semibold text-white flex-shrink-0">
+            <div className="size-6 rounded bg-white/20 flex items-center justify-center text-xs font-semibold text-white flex-shrink-0">
               {displayLabel.charAt(0).toUpperCase()}
             </div>
             <span
@@ -140,7 +140,7 @@ export default function OrganizationSwitcher() {
             </span>
             <HiChevronDown
               className={cn(
-                'w-3.5 h-3.5 text-white/40 transition-transform duration-200 flex-shrink-0',
+                'size-3.5 text-white/40 transition-transform duration-200 flex-shrink-0',
                 isOpen && 'rotate-180',
               )}
             />

@@ -50,11 +50,11 @@ export function GrowthTrendsCard({
   const getTrendIcon = (direction: TrendDirection) => {
     switch (direction) {
       case TrendDirection.UP:
-        return <HiArrowTrendingUp className="w-4 h-4 text-green-500" />;
+        return <HiArrowTrendingUp className="size-4 text-green-500" />;
       case TrendDirection.DOWN:
-        return <HiArrowTrendingDown className="w-4 h-4 text-red-500" />;
+        return <HiArrowTrendingDown className="size-4 text-red-500" />;
       default:
-        return <HiMinus className="w-4 h-4 text-muted-foreground" />;
+        return <HiMinus className="size-4 text-muted-foreground" />;
     }
   };
 

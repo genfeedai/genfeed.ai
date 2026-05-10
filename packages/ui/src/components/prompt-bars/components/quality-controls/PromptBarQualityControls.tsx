@@ -34,7 +34,7 @@ function buildQualityOptions(subscriptionTier?: SubscriptionTier) {
       badgeVariant: isLocked ? ('warning' as const) : undefined,
       description: isLocked ? 'Requires a higher plan' : option.description,
       icon: isLocked ? (
-        <HiLockClosed className="w-4 h-4 text-foreground/30" />
+        <HiLockClosed className="size-4 text-foreground/30" />
       ) : undefined,
       key: option.value,
       label: option.label,
@@ -74,7 +74,7 @@ const PromptBarQualityControls = memo(function PromptBarQualityControls({
   return (
     <FormDropdown
       name="quality"
-      icon={<HiSparkles className="w-4 h-4" />}
+      icon={<HiSparkles className="size-4" />}
       label="Quality"
       triggerDisplay="icon-only"
       value={watchedQuality ?? DEFAULT_QUALITY_TIER}

@@ -112,7 +112,7 @@ describe('DesktopSessionService', () => {
   });
 
   it('exchanges browser auth codes with the stored PKCE verifier', async () => {
-    const service = createSessionService(database);
+    const service = createSessionService(kvService);
     const loginUrl = new URL(service.getLoginUrl());
     const state = loginUrl.searchParams.get('state');
 
@@ -162,7 +162,7 @@ describe('DesktopSessionService', () => {
       userId: 'user-123',
       userName: 'Desktop User',
     });
-    expect(database.values.get('desktop.session')).toContain('gf_desktop_key');
+    expect(kvService.values.get('desktop.session')).toContain('gf_desktop_key');
   });
 
   it('validates and refreshes an existing desktop session on startup', async () => {

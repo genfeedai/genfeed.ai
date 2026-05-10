@@ -59,7 +59,7 @@ function AnnotationNodeComponent(props: NodeProps) {
           onClick={handleExpand}
           title="Expand preview"
         >
-          <Expand className="h-3 w-3" />
+          <Expand className="size-3" />
         </Button>
       ) : null,
     [inputImage, handleExpand],
@@ -81,14 +81,14 @@ function AnnotationNodeComponent(props: NodeProps) {
             />
             {nodeData.hasAnnotations && (
               <div className="absolute left-2 top-2 flex items-center gap-1 rounded bg-primary/90 px-2 py-0.5 text-xs font-medium text-primary-foreground">
-                <Shapes className="h-3 w-3" />
+                <Shapes className="size-3" />
                 {nodeData.annotations?.length ?? 0}
               </div>
             )}
           </div>
         ) : (
           <div className="flex h-32 flex-col items-center justify-center border-2 border-dashed border-border text-muted-foreground">
-            <Pencil className="mb-2 h-8 w-8 opacity-50" />
+            <Pencil className="mb-2 size-8 opacity-50" />
             <p className="text-xs">Connect an image</p>
           </div>
         )}
@@ -100,7 +100,7 @@ function AnnotationNodeComponent(props: NodeProps) {
           className="w-full"
           variant={nodeData.hasAnnotations ? 'default' : 'outline'}
         >
-          <Pencil className="mr-2 h-4 w-4" />
+          <Pencil className="mr-2 size-4" />
           {nodeData.hasAnnotations ? 'Edit Annotations' : 'Add Annotations'}
         </Button>
 

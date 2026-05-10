@@ -92,7 +92,7 @@ export default function ContentPreviewSidebar({
                 >
                   <div className="flex items-start gap-3">
                     <div
-                      className={`mt-1 flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
+                      className={`mt-1 flex size-6 items-center justify-center rounded-full text-xs font-semibold ${
                         isActive
                           ? 'bg-primary text-primary-foreground'
                           : 'bg-muted text-foreground/60'

@@ -16,7 +16,7 @@ export default function TopbarLogo({ logoHref }: TopbarLogoProps) {
           <Image
             src={logoUrl}
             alt={EnvironmentService.LOGO_ALT}
-            className="h-8 w-8 object-contain dark:invert"
+            className="size-8 object-contain dark:invert"
             width={32}
             height={32}
             sizes="32px"

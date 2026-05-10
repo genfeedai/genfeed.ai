@@ -106,14 +106,14 @@ function getStatusConfig(status: string): IBadgeStatusConfig {
     case 'active':
     case 'success':
       return {
-        icon: <HiCheckCircle className="h-3 w-3" />,
+        icon: <HiCheckCircle className="size-3" />,
         label: 'Completed',
         variant: 'success',
       };
 
     case 'scheduled':
       return {
-        icon: <HiCalendar className="h-3 w-3" />,
+        icon: <HiCalendar className="size-3" />,
         label: 'Scheduled',
         shouldSpin: false,
         variant: 'info',
@@ -123,7 +123,7 @@ function getStatusConfig(status: string): IBadgeStatusConfig {
     case 'running':
     case 'uploading':
       return {
-        icon: <HiArrowPath className="h-3 w-3" />,
+        icon: <HiArrowPath className="size-3" />,
         label: 'Processing',
         shouldSpin: true,
         variant: 'accent',
@@ -134,7 +134,7 @@ function getStatusConfig(status: string): IBadgeStatusConfig {
     case 'inactive':
     case 'warning':
       return {
-        icon: <HiClock className="h-3 w-3" />,
+        icon: <HiClock className="size-3" />,
         label: 'Pending',
         variant: 'secondary',
       };
@@ -144,7 +144,7 @@ function getStatusConfig(status: string): IBadgeStatusConfig {
     case 'cancelled':
     case 'canceled':
       return {
-        icon: <HiXCircle className="h-3 w-3" />,
+        icon: <HiXCircle className="size-3" />,
         label: 'Failed',
         variant: 'error',
       };
@@ -154,7 +154,7 @@ function getStatusConfig(status: string): IBadgeStatusConfig {
     case 'unlisted':
     case 'skipped':
       return {
-        icon: <HiClock className="h-3 w-3" />,
+        icon: <HiClock className="size-3" />,
         label: 'Draft',
         variant: 'ghost',
       };
@@ -190,7 +190,7 @@ function getStatusConfig(status: string): IBadgeStatusConfig {
     case 'validated':
     case 'operational':
       return {
-        icon: <HiCheckCircle className="h-3 w-3" />,
+        icon: <HiCheckCircle className="size-3" />,
         label: 'Operational',
         variant: 'validated',
       };

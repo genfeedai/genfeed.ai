@@ -8,14 +8,14 @@ import Container from '@ui/layout/container/Container';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type { ReactNode } from 'react';
-import { useCallback, useMemo, useState } from 'react';
+import { Suspense, useCallback, useMemo, useState } from 'react';
 import { HiOutlineNewspaper } from 'react-icons/hi2';
 
 function PostsLayoutContent({ children }: { children: ReactNode }) {
   const { push, refresh } = useRouter();
   const pathname = usePathname();
-  const { toString: getSearchParamsString } = useSearchParams();
-  const searchParamsString = getSearchParamsString() ?? '';
+  const searchParams = useSearchParams();
+  const searchParamsString = searchParams.toString() ?? '';
   const parsedSearchParams = useMemo(
     () => new URLSearchParams(searchParamsString),
     [searchParamsString],

@@ -17,7 +17,7 @@ export interface TagsEditableProps {
 export default function TagsEditable({
   label,
   value = [],
-  placeholder = 'Add a tag...',
+  placeholder = 'Add a tag…',
   onSave,
   isDisabled = false,
   maxTags = 10,
@@ -84,7 +84,7 @@ export default function TagsEditable({
             className="h-6 px-2 inline-flex items-center justify-center hover:bg-accent hover:text-accent-foreground"
             ariaLabel="Edit tags"
           >
-            <HiPencil className="w-3 h-3" />
+            <HiPencil className="size-3" />
           </Button>
         )}
       </div>
@@ -102,7 +102,7 @@ export default function TagsEditable({
                   className="hover:text-error"
                   ariaLabel={`Remove ${tag}`}
                 >
-                  <HiXMark className="w-3 h-3" />
+                  <HiXMark className="size-3" />
                 </Button>
               </Badge>
             ))}
@@ -153,7 +153,7 @@ export default function TagsEditable({
               isDisabled={isDisabled}
               ariaLabel="Save tags"
             >
-              <HiCheck className="w-3 h-3" />
+              <HiCheck className="size-3" />
               Save
             </Button>
           </div>

@@ -50,9 +50,9 @@ function ErrorSection({
           className="flex w-full items-center gap-2 text-left text-red-50"
         >
           {isExpanded ? (
-            <HiChevronDown className="h-4 w-4 shrink-0" />
+            <HiChevronDown className="size-4 shrink-0" />
           ) : (
-            <HiChevronRight className="h-4 w-4 shrink-0" />
+            <HiChevronRight className="size-4 shrink-0" />
           )}
           <h3 className="font-semibold">{title}</h3>
         </Button>

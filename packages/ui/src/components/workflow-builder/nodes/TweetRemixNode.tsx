@@ -135,14 +135,14 @@ function TweetRemixNodeComponent({
             >
               <div className="flex items-start gap-2">
                 <div
-                  className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 mt-0.5 ${
+                  className={`size-4 rounded-full border flex items-center justify-center shrink-0 mt-0.5 ${
                     data.selectedIndex === index
                       ? 'border-primary bg-primary'
                       : 'border-white/[0.08]'
                   }`}
                 >
                   {data.selectedIndex === index && (
-                    <Check className="w-2.5 h-2.5 text-white" />
+                    <Check className="size-2.5 text-white" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -169,12 +169,12 @@ function TweetRemixNodeComponent({
         >
           {data.variations.length > 0 ? (
             <>
-              <RefreshCw className="w-4 h-4" />
+              <RefreshCw className="size-4" />
               Regenerate
             </>
           ) : (
             <>
-              <Sparkles className="w-4 h-4" />
+              <Sparkles className="size-4" />
               Generate Variations
             </>
           )}

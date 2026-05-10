@@ -80,11 +80,11 @@ export default function KPICard({
         {Icon && (
           <div
             className={cn(
-              'w-10 h-10 rounded-lg bg-white/5 text-foreground/60 flex items-center justify-center',
+              'size-10 rounded-lg bg-white/5 text-foreground/60 flex items-center justify-center',
               iconClassName,
             )}
           >
-            <Icon className="w-5 h-5" />
+            <Icon className="size-5" />
           </div>
         )}
 
@@ -97,7 +97,7 @@ export default function KPICard({
                 : 'bg-red-500/20 text-red-400',
             )}
           >
-            <TrendIcon className="w-3 h-3" />
+            <TrendIcon className="size-3" />
             {Math.abs(trend)}%
             {trendLabel && <span className="ml-0.5">{trendLabel}</span>}
           </span>

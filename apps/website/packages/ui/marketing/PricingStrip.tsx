@@ -8,9 +8,9 @@ import { LuArrowRight } from 'react-icons/lu';
 const PILLAR_COLUMNS = [
   {
     href: '/pricing',
-    label: 'Hosted',
+    label: 'Cloud App',
     price: '$8/mo + PAYG',
-    subtitle: 'Creators',
+    subtitle: 'Default',
   },
   {
     href: '/pricing',
@@ -40,7 +40,7 @@ export default function PricingStrip({
     >
       <div className="grid grid-cols-1 gap-px md:grid-cols-3">
         {PILLAR_COLUMNS.map((column) => {
-          const isFeatured = column.label === 'Cloud Teams';
+          const isFeatured = column.label === 'Cloud App';
 
           return (
             <div
