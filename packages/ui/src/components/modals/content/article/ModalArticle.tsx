@@ -90,7 +90,7 @@ export default function ModalArticle({
     }
   };
 
-  const handleSubmit = async () => {
+  const submitModalArticle = async () => {
     try {
       const service = await getArticlesService();
       const formData = form.getValues();
@@ -181,19 +181,21 @@ export default function ModalArticle({
   };
 
   const { isSubmitting, onSubmit } = useFormSubmitWithState(() =>
-    handleSubmit(),
+    submitModalArticle(),
   );
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const processKeyDownModalArticle = (
+    e: React.KeyboardEvent<HTMLTextAreaElement>,
+  ) => {
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
       if (!isSubmitting) {
-        handleSubmit();
+        submitModalArticle();
       }
     }
   };
 
-  const handleChange = (
+  const updateModalArticle = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = e.target;
@@ -210,8 +212,8 @@ export default function ModalArticle({
         {hasFormErrors(form.formState.errors) && (
           <Alert type={AlertCategory.ERROR} className="mb-4">
             <div className="space-y-1">
-              {parseFormErrors(form.formState.errors).map((error, index) => (
-                <div key={index}>{error}</div>
+              {parseFormErrors(form.formState.errors).map((error) => (
+                <div key={error}>{error}</div>
               ))}
             </div>
           </Alert>
@@ -224,11 +226,11 @@ export default function ModalArticle({
               <Textarea
                 name="prompt"
                 control={form.control}
-                onChange={handleChange}
+                onChange={updateModalArticle}
                 placeholder="Describe what you want to write about… (e.g., 'AI in healthcare', 'Latest trends in web development')"
                 isRequired={true}
                 isDisabled={isSubmitting}
-                onKeyDown={handleKeyDown}
+                onKeyDown={processKeyDownModalArticle}
               />
             </FormControl>
 
@@ -254,7 +256,7 @@ export default function ModalArticle({
                 type="text"
                 name="label"
                 control={form.control}
-                onChange={handleChange}
+                onChange={updateModalArticle}
                 placeholder="Enter article title"
                 isRequired={true}
                 isDisabled={isSubmitting}
@@ -265,11 +267,11 @@ export default function ModalArticle({
               <Textarea
                 name="content"
                 control={form.control}
-                onChange={handleChange}
+                onChange={updateModalArticle}
                 placeholder="Start writing your article…"
                 isRequired={true}
                 isDisabled={isSubmitting}
-                onKeyDown={handleKeyDown}
+                onKeyDown={processKeyDownModalArticle}
               />
             </FormControl>
           </>

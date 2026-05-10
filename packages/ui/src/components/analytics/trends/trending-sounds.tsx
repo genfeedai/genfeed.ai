@@ -25,8 +25,11 @@ export function TrendingSounds({
       <div className={`space-y-4 ${className}`}>
         <div className="animate-pulse h-6 bg-background w-40" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="animate-pulse h-28 bg-background" />
+          {[1, 2, 3, 4, 5, 6].map((placeholderId) => (
+            <div
+              key={placeholderId}
+              className="animate-pulse h-28 bg-background"
+            />
           ))}
         </div>
       </div>
@@ -97,10 +100,13 @@ export function TrendingSounds({
                   isDisabled={!onPlaySound}
                 >
                   {sound.coverUrl ? (
-                    <img
+                    <Image
                       src={sound.coverUrl}
                       alt={sound.soundName}
+                      fill
+                      sizes="64px"
                       className="size-full object-cover"
+                      unoptimized
                     />
                   ) : (
                     <HiOutlineMusicalNote className="size-8 text-white" />

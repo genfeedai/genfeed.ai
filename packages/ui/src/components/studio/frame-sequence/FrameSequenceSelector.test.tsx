@@ -24,7 +24,15 @@ vi.mock('next/image', () => ({
     alt: string;
     fill?: boolean;
     className?: string;
-  }) => <img src={src} alt={alt} className={className} data-fill={fill} />,
+  }) => (
+    <input
+      type="image"
+      src={src}
+      alt={alt}
+      className={className}
+      data-fill={fill}
+    />
+  ),
 }));
 
 const mockFrames = [

@@ -18,7 +18,7 @@ export default function TopbarBrandSwitcher() {
   const { brands, brandId } = useBrand();
   const { user } = useUser();
   const { openBrandOverlay } = useBrandOverlay();
-  const router = useRouter();
+  const { push, refresh } = useRouter();
   const { href, orgSlug, orgHref } = useOrgUrl();
 
   const getUsersService = useAuthedService((token: string) =>
@@ -30,10 +30,8 @@ export default function TopbarBrandSwitcher() {
   const selectedBrand = brands.find((b) => b.id === brandId);
 
   const handleOpenBrandSettings = useCallback(() => {
-    router.push(
-      selectedBrand ? href('/settings') : orgHref('/settings/brands'),
-    );
-  }, [router, selectedBrand, href, orgHref]);
+    push(selectedBrand ? href('/settings') : orgHref('/settings/brands'));
+  }, [selectedBrand, href, orgHref, push]);
 
   const handleSelect = useCallback(
     async (id: string) => {
@@ -47,9 +45,9 @@ export default function TopbarBrandSwitcher() {
 
         const newBrand = brands.find((b) => b.id === id);
         if (newBrand?.slug) {
-          router.push(`/${orgSlug}/${newBrand.slug}/workspace/overview`);
+          push(`/${orgSlug}/${newBrand.slug}/workspace/overview`);
         } else {
-          router.refresh();
+          refresh();
         }
 
         setIsUpdatingBrand(false);
@@ -58,7 +56,7 @@ export default function TopbarBrandSwitcher() {
         setIsUpdatingBrand(false);
       }
     },
-    [getUsersService, user, brands, router, orgSlug],
+    [getUsersService, user, brands, orgSlug, refresh, push],
   );
 
   if (brands.length === 0) {

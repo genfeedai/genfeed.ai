@@ -41,6 +41,8 @@ import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { HiOutlineFilm } from 'react-icons/hi2';
 
+const EMPTY_ARRAY: never[] = [];
+
 type VideoDetailTab =
   | 'info'
   | 'posts'
@@ -56,8 +58,8 @@ export default function IngredientDetailVideo({
   video,
   videoRef,
   onReload,
-  childIngredients = [],
-  // credentials = [],
+  childIngredients = EMPTY_ARRAY,
+  // credentials = EMPTY_ARRAY,
   onConvertToGif,
   // onVoteIngredient,
   onReverseVideo,

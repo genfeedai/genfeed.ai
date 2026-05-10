@@ -19,6 +19,8 @@ import { Button } from './button';
 import { Input } from './input';
 import { SimpleTooltip } from './tooltip';
 
+const EMPTY_ARRAY: never[] = [];
+
 export interface DropdownFieldOption {
   key: string | number;
   label: string;
@@ -108,7 +110,7 @@ export default function DropdownField({
   variant = ButtonVariant.GHOST,
   size,
   dropdownDirection = 'down',
-  options = [],
+  options = EMPTY_ARRAY,
   tabs,
   defaultTab = 'all',
   onChange = () => {},

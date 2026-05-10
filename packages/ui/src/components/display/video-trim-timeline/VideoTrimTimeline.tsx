@@ -52,9 +52,9 @@ export default function VideoTrimTimeline({
           </div>
         ) : thumbnails.length > 0 ? (
           <div className="flex h-full">
-            {thumbnails.map((thumbnail, index) => (
+            {thumbnails.map((thumbnail) => (
               <div
-                key={index}
+                key={thumbnail.dataUrl}
                 className="flex-1 h-full bg-cover bg-center border-r border-white/[0.08] last:border-r-0"
                 style={{
                   backgroundImage: `url(${thumbnail.dataUrl})`,

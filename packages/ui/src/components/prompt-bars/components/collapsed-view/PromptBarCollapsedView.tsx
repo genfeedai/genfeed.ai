@@ -72,7 +72,7 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
     [watchedText],
   );
 
-  const handleChange = useCallback(
+  const updatePromptBarCollapsedView = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
       const value = event.target.value;
       const cursorPos = event.target.selectionStart ?? value.length;
@@ -156,7 +156,7 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
             type="text"
             inputRef={collapsedInputRef}
             value={form.getValues('text')}
-            onChange={handleChange}
+            onChange={updatePromptBarCollapsedView}
             placeholder={placeholder}
             isDisabled={isDisabled}
             className="h-10 w-full border-0 bg-transparent pl-3 pr-12 text-sm shadow-none focus:border-transparent focus:outline-none focus-visible:ring-0"

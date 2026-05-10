@@ -5,6 +5,7 @@ import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import type { TrendSoundInspirationNodeData } from '@ui/workflow-builder/types/workflow-saas.types';
 import { Loader2, Music, Play, TrendingUp } from 'lucide-react';
+import Image from 'next/image';
 import { memo, useCallback, useState } from 'react';
 
 export type { TrendSoundInspirationNodeData };
@@ -125,11 +126,14 @@ function TrendSoundInspirationNodeComponent({
           <div className="flex items-start gap-3">
             {/* Cover Art */}
             {data.coverUrl && (
-              <div className="size-12 overflow-hidden flex-shrink-0">
-                <img
+              <div className="relative size-12 overflow-hidden flex-shrink-0">
+                <Image
                   src={data.coverUrl}
                   alt={data.soundName || 'Sound cover'}
+                  fill
+                  sizes="48px"
                   className="size-full object-cover"
+                  unoptimized
                 />
               </div>
             )}

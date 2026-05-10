@@ -55,7 +55,7 @@ export default function IngredientOverlay({
   onClose,
 }: IngredientOverlayProps) {
   const { isSignedIn } = useAuth();
-  const router = useRouter();
+  const { push } = useRouter();
   const { href } = useOrgUrl();
   const { credentials } = useBrand();
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -140,7 +140,7 @@ export default function IngredientOverlay({
       } else {
         closeModal(ModalEnum.INGREDIENT);
         const routeType = `${ingredient.category.toLowerCase()}s`;
-        router.push(href(`/${routeType}/${ingredient.id}`));
+        push(href(`/${routeType}/${ingredient.id}`));
       }
     },
     onShare: async (ingredient: IIngredient) => {
@@ -284,9 +284,9 @@ export default function IngredientOverlay({
       }
 
       closeModal(ModalEnum.INGREDIENT);
-      router.push(href(`/studio/image?referenceImageId=${image.id}`));
+      push(href(`/studio/image?referenceImageId=${image.id}`));
     },
-    [router, notificationsService],
+    [notificationsService, push, href],
   );
 
   // Handle using prompt from ingredient - navigate to Studio with full config pre-filled
@@ -309,11 +309,11 @@ export default function IngredientOverlay({
         ({ buildUsePromptUrl }) => {
           const url = buildUsePromptUrl(ingredientToUse, targetRoute);
           closeModal(ModalEnum.INGREDIENT);
-          router.push(href(url));
+          push(href(url));
         },
       );
     },
-    [router, notificationsService],
+    [notificationsService, push, href],
   );
 
   // Helper to get the appropriate service for the ingredient type

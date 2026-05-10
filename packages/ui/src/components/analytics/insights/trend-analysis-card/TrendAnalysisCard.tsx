@@ -58,8 +58,11 @@ const TrendAnalysisCard = memo(function TrendAnalysisCard({
         className={className}
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="animate-pulse p-4 bg-background">
+          {[1, 2, 3, 4].map((placeholderId) => (
+            <div
+              key={placeholderId}
+              className="animate-pulse p-4 bg-background"
+            >
               <div className="flex items-center justify-between mb-3">
                 <div className="h-4 bg-muted w-24" />
                 <div className="h-6 bg-muted w-16" />

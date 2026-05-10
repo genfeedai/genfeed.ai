@@ -38,8 +38,11 @@ export function TrendingHashtags({
           <div className="animate-pulse h-8 bg-background w-48" />
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-          {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-            <div key={i} className="animate-pulse h-24 bg-background" />
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((placeholderId) => (
+            <div
+              key={placeholderId}
+              className="animate-pulse h-24 bg-background"
+            />
           ))}
         </div>
       </div>

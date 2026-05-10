@@ -6,6 +6,7 @@ import {
   ButtonVariant,
   ComponentSize,
 } from '@genfeedai/enums';
+import ClientDateTime from '@ui/components/time/ClientDateTime';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';
@@ -105,9 +106,14 @@ function ExecutionItem({
                 {execution.status}
               </Badge>
               <span className="text-xs opacity-60">
-                {formatDistanceToNow(new Date(execution.createdAt), {
-                  addSuffix: true,
-                })}
+                <ClientDateTime
+                  value={execution.createdAt}
+                  format={(date) =>
+                    formatDistanceToNow(date, {
+                      addSuffix: true,
+                    })
+                  }
+                />
               </span>
             </div>
             {execution.durationMs && (

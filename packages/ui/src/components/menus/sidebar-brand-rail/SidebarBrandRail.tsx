@@ -101,7 +101,7 @@ export default function SidebarBrandRail() {
   const { brands, brandId } = useBrand();
   const { user } = useUser();
   const { openBrandOverlay } = useBrandOverlay();
-  const router = useRouter();
+  const { push, refresh } = useRouter();
   const { orgSlug } = useOrgUrl();
   const getUsersService = useAuthedService((token: string) =>
     UsersService.getInstance(token),
@@ -122,9 +122,9 @@ export default function SidebarBrandRail() {
 
         const newBrand = brands.find((b) => b.id === id);
         if (newBrand?.slug) {
-          router.push(`/${orgSlug}/${newBrand.slug}/workspace/overview`);
+          push(`/${orgSlug}/${newBrand.slug}/workspace/overview`);
         } else {
-          router.refresh();
+          refresh();
         }
       } catch (error) {
         logger.error(`${url} failed`, error);
@@ -132,7 +132,7 @@ export default function SidebarBrandRail() {
         setIsUpdatingBrand(false);
       }
     },
-    [getUsersService, brands, router, user, orgSlug],
+    [getUsersService, brands, user, orgSlug, refresh, push],
   );
 
   return (

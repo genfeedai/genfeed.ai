@@ -33,8 +33,8 @@ export function ViralVideoLeaderboard({
           <div className="animate-pulse h-8 bg-background w-32" />
         </div>
         <div className="animate-pulse space-y-3">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="h-16 bg-background" />
+          {[1, 2, 3, 4, 5].map((placeholderId) => (
+            <div key={placeholderId} className="h-16 bg-background" />
           ))}
         </div>
       </div>
@@ -110,10 +110,13 @@ export function ViralVideoLeaderboard({
             render: (video) => (
               <div className="relative w-16 h-10 overflow-hidden bg-background flex-shrink-0">
                 {video.thumbnailUrl ? (
-                  <img
+                  <Image
                     src={video.thumbnailUrl}
                     alt={video.title || 'Video thumbnail'}
+                    fill
+                    sizes="64px"
                     className="size-full object-cover"
+                    unoptimized
                   />
                 ) : (
                   <div className="size-full flex items-center justify-center">

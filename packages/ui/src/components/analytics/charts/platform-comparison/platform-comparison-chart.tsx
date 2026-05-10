@@ -56,13 +56,15 @@ export function PlatformComparisonChart({
   const isEmpty = !data || data.length === 0;
 
   const toggleMetric = (metric: PlatformComparisonMetricType) => {
-    if (activeMetrics.includes(metric)) {
-      if (activeMetrics.length > 1) {
-        setActiveMetrics(activeMetrics.filter((m) => m !== metric));
+    setActiveMetrics((previousMetrics) => {
+      if (!previousMetrics.includes(metric)) {
+        return [...previousMetrics, metric];
       }
-    } else {
-      setActiveMetrics([...activeMetrics, metric]);
-    }
+
+      return previousMetrics.length > 1
+        ? previousMetrics.filter((m) => m !== metric)
+        : previousMetrics;
+    });
   };
 
   const getPlatformLabel = (platform: string) => {

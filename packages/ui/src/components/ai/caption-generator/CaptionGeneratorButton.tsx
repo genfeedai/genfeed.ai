@@ -147,9 +147,9 @@ export default function CaptionGeneratorButton({
                   Changes
                 </p>
                 <ul className="space-y-1">
-                  {result.changes.map((change, idx) => (
+                  {result.changes.map((change) => (
                     <li
-                      key={`change-${idx}`}
+                      key={change}
                       className="text-xs text-foreground/60 flex items-start gap-1.5"
                     >
                       <span className="text-primary mt-0.5 flex-shrink-0">

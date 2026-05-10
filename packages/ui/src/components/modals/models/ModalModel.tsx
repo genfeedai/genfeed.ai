@@ -121,7 +121,7 @@ export default function ModalModel({
     form.setValue(field as any, value, { shouldValidate: true });
   };
 
-  const handleChange = (
+  const updateModalModel = (
     event: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value } = event.target;
@@ -159,7 +159,7 @@ export default function ModalModel({
   };
 
   // Called when Close/Cancel button is clicked - initiates the close
-  const handleCancel = isViewMode
+  const cancelModalModel = isViewMode
     ? () => {
         closeModalHelper(ModalEnum.MODEL);
         onClose?.();
@@ -264,9 +264,9 @@ export default function ModalModel({
                   Recommended For
                 </h4>
                 <div className="flex flex-wrap gap-2">
-                  {model.recommendedFor.map((item, index) => (
+                  {model.recommendedFor.map((item) => (
                     <span
-                      key={index}
+                      key={item}
                       className="px-3 py-1 bg-background rounded-full text-sm"
                     >
                       {item}
@@ -283,9 +283,9 @@ export default function ModalModel({
                   Capabilities
                 </h4>
                 <div className="flex flex-wrap gap-2">
-                  {model.capabilities.map((capability, index) => (
+                  {model.capabilities.map((capability) => (
                     <Badge
-                      key={index}
+                      key={capability}
                       variant="outline"
                       size={ComponentSize.SM}
                     >
@@ -303,9 +303,9 @@ export default function ModalModel({
                   Supported Features
                 </h4>
                 <div className="flex flex-wrap gap-2">
-                  {model.supportsFeatures.map((feature, index) => (
+                  {model.supportsFeatures.map((feature) => (
                     <Badge
-                      key={index}
+                      key={feature}
                       variant="outline"
                       size={ComponentSize.SM}
                     >
@@ -350,7 +350,7 @@ export default function ModalModel({
             <Button
               label="Close"
               variant={ButtonVariant.DEFAULT}
-              onClick={handleCancel}
+              onClick={cancelModalModel}
             />
           </ModalActions>
         </>
@@ -360,8 +360,8 @@ export default function ModalModel({
           {hasFormErrors(form.formState.errors) && (
             <Alert type={AlertCategory.ERROR} className="mb-4">
               <div className="space-y-1">
-                {parseFormErrors(form.formState.errors).map((error, index) => (
-                  <div key={index}>{error}</div>
+                {parseFormErrors(form.formState.errors).map((error) => (
+                  <div key={error}>{error}</div>
                 ))}
               </div>
             </Alert>
@@ -371,7 +371,7 @@ export default function ModalModel({
               type="text"
               name="label"
               control={form.control}
-              onChange={handleChange}
+              onChange={updateModalModel}
               placeholder="Enter model label"
               isRequired={true}
               isDisabled={isSubmitting}
@@ -382,7 +382,7 @@ export default function ModalModel({
               type="text"
               name="description"
               control={form.control}
-              onChange={handleChange}
+              onChange={updateModalModel}
               placeholder="Enter model description"
               isDisabled={isSubmitting}
             />
@@ -392,7 +392,7 @@ export default function ModalModel({
               type="text"
               name="key"
               control={form.control}
-              onChange={handleChange}
+              onChange={updateModalModel}
               placeholder="Enter model key"
               isRequired={true}
               isDisabled={isSubmitting}
@@ -402,7 +402,7 @@ export default function ModalModel({
             <SelectField
               name="provider"
               control={form.control}
-              onChange={handleChange}
+              onChange={updateModalModel}
               isDisabled={isSubmitting}
             >
               {modelProviders.map((provider) => (
@@ -415,7 +415,7 @@ export default function ModalModel({
             <SelectField
               name="category"
               control={form.control}
-              onChange={handleChange}
+              onChange={updateModalModel}
               isDisabled={isSubmitting}
             >
               {modelCategories.map((category) => (
@@ -430,7 +430,7 @@ export default function ModalModel({
               type="number"
               name="cost"
               control={form.control}
-              onChange={handleChange}
+              onChange={updateModalModel}
               placeholder="Enter model cost"
               isRequired={true}
               isDisabled={isSubmitting}
@@ -440,7 +440,7 @@ export default function ModalModel({
             <Button
               label="Cancel"
               variant={ButtonVariant.SECONDARY}
-              onClick={handleCancel}
+              onClick={cancelModalModel}
               isLoading={isSubmitting}
             />
 

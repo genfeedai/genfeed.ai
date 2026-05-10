@@ -54,9 +54,13 @@ export default function TopPostsSection({
         <div className="animate-pulse space-y-4">
           <div className="h-48 bg-muted" />
           <div className="grid grid-cols-3 gap-2">
-            {[...Array(9)].map((_, i) => (
-              <div key={i} className="aspect-square bg-muted" />
-            ))}
+            {Array.from({ length: 9 }, (_, placeholderIndex) => {
+              const placeholderId = `top-post-placeholder-${placeholderIndex}`;
+
+              return (
+                <div key={placeholderId} className="aspect-square bg-muted" />
+              );
+            })}
           </div>
         </div>
       </Card>
@@ -112,6 +116,7 @@ export default function TopPostsSection({
                 }
                 alt={featuredPost.label || 'Top post'}
                 fill
+                sizes="(max-width: 768px) 100vw, 50vw"
                 className="object-cover group-hover:scale-105 transition-transform duration-300"
               />
             )}
@@ -169,6 +174,7 @@ export default function TopPostsSection({
                     }
                     alt={post.label || `Post ${index + 2}`}
                     fill
+                    sizes="(max-width: 768px) 33vw, 160px"
                     className="object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                   {/* Rank badge */}

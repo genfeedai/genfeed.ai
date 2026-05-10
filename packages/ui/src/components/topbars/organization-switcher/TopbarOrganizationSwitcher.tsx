@@ -22,7 +22,7 @@ type OrganizationEntry = {
 };
 
 export default function TopbarOrganizationSwitcher() {
-  const router = useRouter();
+  const { push } = useRouter();
   const { orgHref } = useOrgUrl();
   const getOrganizationsService = useAuthedService((token: string) =>
     OrganizationsService.getInstance(token),
@@ -95,8 +95,8 @@ export default function TopbarOrganizationSwitcher() {
   );
 
   const handleOpenOrganizationSettings = useCallback(() => {
-    router.push(orgHref('/settings'));
-  }, [router, orgHref]);
+    push(orgHref('/settings'));
+  }, [orgHref, push]);
 
   const handleCreateOrganization = useCallback(async () => {
     const trimmedLabel = newOrganizationLabel.trim();

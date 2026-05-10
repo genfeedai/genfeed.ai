@@ -4,6 +4,7 @@ import { useBackgroundTaskContext } from '@genfeedai/contexts/ui/background-task
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useOverviewBootstrap } from '@genfeedai/hooks/data/overview/use-overview-bootstrap';
+import ClientDateTime from '@ui/components/time/ClientDateTime';
 import Badge from '@ui/display/badge/Badge';
 import {
   buttonVariants,
@@ -194,7 +195,9 @@ export default function TopbarInbox() {
                       ) : (
                         <HiOutlineInboxStack className="size-4 text-foreground/35" />
                       )}
-                      <span>{new Date(item.createdAt).toLocaleString()}</span>
+                      <span>
+                        <ClientDateTime value={item.createdAt} />
+                      </span>
                     </div>
                   </div>
                 );

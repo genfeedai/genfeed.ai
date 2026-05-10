@@ -3,6 +3,7 @@
 import type { ModalGalleryItemReferenceProps } from '@genfeedai/props/modals/modal-gallery.props';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import Image from 'next/image';
+import type { KeyboardEvent } from 'react';
 
 export default function ModalGalleryItemReference({
   reference,
@@ -12,7 +13,7 @@ export default function ModalGalleryItemReference({
   selectionLimit,
   selectedItems,
 }: ModalGalleryItemReferenceProps) {
-  const handleClick = () => {
+  const activateModalGalleryItemReference = () => {
     if (selectedItems.includes(reference.id)) {
       // Remove from selection
       const newSelected = selectedItems.filter((id) => id !== reference.id);
@@ -27,12 +28,25 @@ export default function ModalGalleryItemReference({
       }
     }
   };
+  const activateModalGalleryItemReferenceFromKeyboard = (
+    event: KeyboardEvent<HTMLDivElement>,
+  ) => {
+    if (event.key !== 'Enter' && event.key !== ' ') {
+      return;
+    }
+
+    event.preventDefault();
+    activateModalGalleryItemReference();
+  };
 
   return (
     <div
       key={reference.id}
+      role="button"
+      tabIndex={0}
       className="cursor-pointer group"
-      onClick={handleClick}
+      onClick={activateModalGalleryItemReference}
+      onKeyDown={activateModalGalleryItemReferenceFromKeyboard}
     >
       <div
         className={`relative w-full pb-[100%] bg-background overflow-hidden shadow-md ${isSelected ? 'ring-4 ring-primary' : ''}`}

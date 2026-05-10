@@ -61,6 +61,8 @@ import {
   MdOutlineCropSquare,
 } from 'react-icons/md';
 
+const EMPTY_ARRAY: never[] = [];
+
 function getAspectRatioFromFormat(format: IngredientFormat): string {
   switch (format) {
     case IngredientFormat.PORTRAIT:
@@ -147,23 +149,23 @@ function normalizeUploadedReference(
 
 function PromptBar({
   isDisabled = false,
-  models = [],
-  trainings = [],
-  presets = [],
-  folders = [],
-  profiles = [],
-  moods = [],
-  styles = [],
-  cameras = [],
-  scenes = [],
-  fontFamilies = [],
-  blacklists = [],
-  sounds = [],
-  lightings = [],
-  lenses = [],
-  cameraMovements = [],
-  avatars = [],
-  voices = [],
+  models = EMPTY_ARRAY,
+  trainings = EMPTY_ARRAY,
+  presets = EMPTY_ARRAY,
+  folders = EMPTY_ARRAY,
+  profiles = EMPTY_ARRAY,
+  moods = EMPTY_ARRAY,
+  styles = EMPTY_ARRAY,
+  cameras = EMPTY_ARRAY,
+  scenes = EMPTY_ARRAY,
+  fontFamilies = EMPTY_ARRAY,
+  blacklists = EMPTY_ARRAY,
+  sounds = EMPTY_ARRAY,
+  lightings = EMPTY_ARRAY,
+  lenses = EMPTY_ARRAY,
+  cameraMovements = EMPTY_ARRAY,
+  avatars = EMPTY_ARRAY,
+  voices = EMPTY_ARRAY,
   categoryType,
   onDatasetChange = () => {},
   onSubmit,
@@ -187,7 +189,7 @@ function PromptBar({
   const useSplitState = promptText !== undefined && promptConfig !== undefined;
   const isUnifiedShell = shellMode === 'studio-unified';
   const pathname = usePathname();
-  const router = useRouter();
+  const { push } = useRouter();
 
   const clipboardService = useMemo(() => ClipboardService.getInstance(), []);
   const notificationsService = useMemo(
@@ -1009,7 +1011,7 @@ function PromptBar({
                         return;
                       }
                       const format = watchedFormat || IngredientFormat.PORTRAIT;
-                      router.push(
+                      push(
                         buildHref(
                           `/studio/image?referenceImageId=${reference.id}&format=${format}`,
                         ),
@@ -1022,13 +1024,11 @@ function PromptBar({
                 categoryType === IngredientCategory.VIDEO
                   ? (nextFormat) => {
                       if (categoryType === IngredientCategory.IMAGE) {
-                        router.push(
-                          buildHref(`/studio/image?format=${nextFormat}`),
-                        );
+                        push(buildHref(`/studio/image?format=${nextFormat}`));
                       } else if (categoryType === IngredientCategory.VIDEO) {
                         const aspectRatio =
                           getAspectRatioFromFormat(nextFormat);
-                        router.push(
+                        push(
                           buildHref(`/studio/video?aspectRatio=${aspectRatio}`),
                         );
                       }

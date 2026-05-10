@@ -52,7 +52,7 @@ const PromptBarQualityControls = memo(function PromptBarQualityControls({
 }: PromptBarQualityControlsProps): React.ReactElement {
   const qualityOptions = buildQualityOptions(subscriptionTier);
 
-  const handleChange = useCallback(
+  const updatePromptBarQualityControls = useCallback(
     (event: ChangeEvent<HTMLSelectElement>) => {
       const value = event.target.value as QualityTier;
 
@@ -83,7 +83,7 @@ const PromptBarQualityControls = memo(function PromptBarQualityControls({
       className={controlClass}
       dropdownDirection="up"
       options={qualityOptions}
-      onChange={handleChange}
+      onChange={updatePromptBarQualityControls}
       isDisabled={isDisabled}
     />
   );

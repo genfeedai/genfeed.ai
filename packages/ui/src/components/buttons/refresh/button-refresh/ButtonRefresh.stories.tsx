@@ -131,8 +131,8 @@ export const DataRefresh: Story = {
 
         <div className="bg-background p-4 min-h-52">
           <ul className="space-y-2">
-            {data.map((item, index) => (
-              <li key={index} className="flex items-center gap-2">
+            {data.map((item) => (
+              <li key={item} className="flex items-center gap-2">
                 <span className="size-2 rounded-full bg-primary"></span>
                 {item}
               </li>

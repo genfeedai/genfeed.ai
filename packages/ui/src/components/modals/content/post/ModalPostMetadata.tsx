@@ -177,8 +177,8 @@ export default function PostMetadataOverlay({
         {hasFormErrors(form.formState.errors) && (
           <Alert type={AlertCategory.ERROR}>
             <div className="space-y-1">
-              {parseFormErrors(form.formState.errors).map((error, index) => (
-                <div key={index}>{error}</div>
+              {parseFormErrors(form.formState.errors).map((error) => (
+                <div key={error}>{error}</div>
               ))}
             </div>
           </Alert>

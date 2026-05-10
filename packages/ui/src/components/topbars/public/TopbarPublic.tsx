@@ -11,6 +11,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { HiBars3, HiChevronDown, HiXMark } from 'react-icons/hi2';
 
+const EMPTY_ARRAY: never[] = [];
+
 interface NavLink {
   href: string;
   label: string;
@@ -52,8 +54,8 @@ function isLinkActive(pathname: string | null, href: string): boolean {
 }
 
 export default function TopbarPublic({
-  navLinks = [],
-  dropdowns = [],
+  navLinks = EMPTY_ARRAY,
+  dropdowns = EMPTY_ARRAY,
   rightContent,
   megaMenu = false,
 }: TopbarPublicProps): React.ReactElement {
@@ -80,6 +82,17 @@ export default function TopbarPublic({
   }, []);
 
   // Lock body scroll when mobile menu is open
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    function handleScroll() {
+      setIsScrolled(window.scrollY > 20);
+    }
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   useEffect(() => {
     if (isMobileMenuOpen) {
       document.body.style.overflow = 'hidden';
@@ -129,12 +142,23 @@ export default function TopbarPublic({
   return (
     <>
       <header
-        className="fixed inset-x-0 top-0 z-50 w-full border-b border-white/10"
-        style={{
-          backdropFilter: 'blur(24px)',
-          backgroundColor: 'rgba(9, 9, 11, 0.6)',
-          WebkitBackdropFilter: 'blur(24px)',
-        }}
+        className={cn(
+          'fixed inset-x-0 top-0 z-50 w-full transition-all duration-300',
+          isScrolled
+            ? 'border-b border-white/10'
+            : 'border-b border-transparent',
+        )}
+        style={
+          isScrolled
+            ? {
+                backdropFilter: 'blur(24px)',
+                backgroundColor: 'rgba(9, 9, 11, 0.6)',
+                WebkitBackdropFilter: 'blur(24px)',
+              }
+            : {
+                backgroundColor: 'transparent',
+              }
+        }
       >
         <div className="container mx-auto flex items-center justify-between h-20 px-6">
           {/* Left: Logo + Nav */}

@@ -26,7 +26,7 @@ export default function MenuBrandSwitcher({
 
   const { user } = useUser();
   const { openBrandOverlay } = useBrandOverlay();
-  const router = useRouter();
+  const { push } = useRouter();
   const { href, orgHref } = useOrgUrl();
   const [isUpdatingBrand, setIsUpdatingBrand] = useState(false);
 
@@ -34,10 +34,8 @@ export default function MenuBrandSwitcher({
   const selectedBrand = brands.find((b) => b.id === brandId);
 
   const handleOpenBrandSettings = useCallback(() => {
-    router.push(
-      selectedBrand ? href('/settings') : orgHref('/settings/brands'),
-    );
-  }, [router, selectedBrand, href, orgHref]);
+    push(selectedBrand ? href('/settings') : orgHref('/settings/brands'));
+  }, [selectedBrand, href, orgHref, push]);
 
   const handleSelect = useCallback(
     async (id: string) => {

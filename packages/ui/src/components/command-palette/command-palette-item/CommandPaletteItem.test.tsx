@@ -66,16 +66,16 @@ describe('CommandPaletteItem', () => {
   });
 
   it('calls onClick when clicked', () => {
-    const handleClick = vi.fn();
+    const activateCommandPaletteItem = vi.fn();
     render(
       <CommandPaletteItem
         command={baseCommand}
         isSelected={false}
-        onClick={handleClick}
+        onClick={activateCommandPaletteItem}
       />,
     );
 
     fireEvent.click(screen.getByRole('button'));
-    expect(handleClick).toHaveBeenCalledTimes(1);
+    expect(activateCommandPaletteItem).toHaveBeenCalledTimes(1);
   });
 });

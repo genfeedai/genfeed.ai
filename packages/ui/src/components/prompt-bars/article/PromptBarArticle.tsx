@@ -22,10 +22,12 @@ import {
   HiSparkles,
 } from 'react-icons/hi2';
 
+const EMPTY_ARRAY: never[] = [];
+
 export default function PromptBarArticle({
   onSubmit,
   isEnhancing,
-  presets = [],
+  presets = EMPTY_ARRAY,
 }: PromptBarContentProps) {
   const [prompt, setPrompt] = useState('');
   const [isCollapsed, setIsCollapsed] = useState(false);

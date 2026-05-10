@@ -18,11 +18,13 @@ import WorkflowToolbar from '@ui/workflow-builder/WorkflowToolbar';
 import { ReactFlowProvider } from '@xyflow/react';
 import { useCallback, useState } from 'react';
 
+const EMPTY_ARRAY: never[] = [];
+
 export default function WorkflowBuilder({
   workflowId,
-  initialNodes = [],
-  initialEdges = [],
-  initialVariables = [],
+  initialNodes = EMPTY_ARRAY,
+  initialEdges = EMPTY_ARRAY,
+  initialVariables = EMPTY_ARRAY,
   onSave,
   isReadOnly = false,
 }: WorkflowBuilderProps) {

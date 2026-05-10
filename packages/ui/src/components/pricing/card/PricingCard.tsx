@@ -83,12 +83,12 @@ export default function PricingCard({
 
           {plan.features && plan.features.length > 0 && (
             <ul className="text-sm text-muted-foreground mb-6 space-y-2 text-left">
-              {plan.features.map((feature: string, index: number) => {
+              {plan.features.map((feature: string) => {
                 const isEverythingIn = feature.startsWith('Everything in');
 
                 if (isEverythingIn) {
                   return (
-                    <li key={index} className="mt-4 mb-1">
+                    <li key={feature} className="mt-4 mb-1">
                       <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                         {feature}
                       </span>
@@ -97,7 +97,7 @@ export default function PricingCard({
                 }
 
                 return (
-                  <li key={index} className="flex items-start">
+                  <li key={feature} className="flex items-start">
                     <FaCheck className="size-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
                     <span>{feature}</span>
                   </li>

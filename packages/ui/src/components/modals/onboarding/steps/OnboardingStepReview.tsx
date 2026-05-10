@@ -165,8 +165,8 @@ export default function OnboardingStepReview({
                   Brand Values
                 </Text>
                 <div className="flex flex-wrap gap-2">
-                  {data.brandVoice.values.map((value, index) => (
-                    <Badge key={index} variant="primary">
+                  {data.brandVoice.values.map((value) => (
+                    <Badge key={value} variant="primary">
                       {value}
                     </Badge>
                   ))}
@@ -181,8 +181,8 @@ export default function OnboardingStepReview({
                     Suggested Hashtags
                   </Text>
                   <div className="flex flex-wrap gap-2">
-                    {data.brandVoice.hashtags.map((hashtag, index) => (
-                      <Badge key={index} variant="ghost">
+                    {data.brandVoice.hashtags.map((hashtag) => (
+                      <Badge key={hashtag} variant="ghost">
                         #{hashtag}
                       </Badge>
                     ))}

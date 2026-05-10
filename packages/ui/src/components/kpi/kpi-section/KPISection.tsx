@@ -80,8 +80,8 @@ export default function KPISection({
 
     return (
       <div className={gridColsClass}>
-        {items.map((item, index) => (
-          <KPICard key={index} {...item} isLoading={isLoading} />
+        {items.map((item) => (
+          <KPICard key={item.label} {...item} isLoading={isLoading} />
         ))}
       </div>
     );

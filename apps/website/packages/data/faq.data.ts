@@ -27,7 +27,7 @@ export const FAQ_ITEMS_CORE: FAQItem[] = [
   },
   {
     answer:
-      'Start with the Cloud App for $8/mo plus pay-as-you-go output. Self-host Core for free when you want to run your own infrastructure.',
+      'Start with the Cloud App for $49/mo plus pay-as-you-go output. Self-host Core for free when you want to run your own infrastructure.',
     question: 'How do I get started?',
   },
   {
@@ -61,7 +61,7 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
       },
       {
         answer:
-          'Start with the Cloud App for $8/mo plus pay-as-you-go output. Self-host Core for free when you want to run your own infrastructure.',
+          'Start with the Cloud App for $49/mo plus pay-as-you-go output. Self-host Core for free when you want to run your own infrastructure.',
         question: 'How do I get started?',
       },
     ],
@@ -71,17 +71,17 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
     questions: [
       {
         answer:
-          'Genfeed separates platform access from output usage. Cloud App starts at $8/mo plus pay-as-you-go output. Cloud Teams is higher-entry B2B for collaboration, multi-org, and multi-brand workflows. Core remains free to self-host with your own AI keys.',
+          'Genfeed separates platform access from output usage. Cloud App starts at $49/mo plus pay-as-you-go output. Cloud Teams is higher-entry B2B for collaboration, multi-org, and multi-brand workflows. Core remains free to self-host with your own AI keys.',
         question: 'How does pricing work?',
       },
       {
         answer:
-          'Cloud App is $8/month plus pay-as-you-go output. Cloud Teams starts at $499/month for collaboration, multi-org, and multi-brand use cases. Enterprise is custom. Self-hosted Core is free.',
+          'Cloud App is $49/month plus pay-as-you-go output. Cloud Teams starts at $499/month for collaboration, multi-org, and multi-brand use cases. Enterprise is custom. Self-hosted Core is free.',
         question: 'What are the pricing tiers?',
       },
       {
         answer:
-          'Yes. Self-host Core on your own infrastructure for free when you want control. The default managed path is Cloud App at $8/mo plus usage.',
+          'Yes. Self-host Core on your own infrastructure for free when you want control. The default managed path is Cloud App at $49/mo plus usage.',
         question: 'Is there a free option?',
       },
       {

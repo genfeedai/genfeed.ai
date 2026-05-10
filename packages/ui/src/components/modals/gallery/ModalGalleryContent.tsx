@@ -25,6 +25,8 @@ import {
   HiVideoCamera,
 } from 'react-icons/hi2';
 
+const EMPTY_ARRAY: never[] = [];
+
 export default function ModalGalleryContent({
   category,
   activeTab,
@@ -32,9 +34,9 @@ export default function ModalGalleryContent({
   isLoadingReferences = false,
   isLoadingCreations = false,
   items,
-  uploads = [],
-  references = [],
-  creations = [],
+  uploads = EMPTY_ARRAY,
+  references = EMPTY_ARRAY,
+  creations = EMPTY_ARRAY,
   selectedItems,
   selectedItem,
   playingId,

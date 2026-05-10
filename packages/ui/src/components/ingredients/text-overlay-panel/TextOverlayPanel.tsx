@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
-import { useState } from 'react';
+import { type KeyboardEvent, useState } from 'react';
 import { HiXMark } from 'react-icons/hi2';
 
 export default function TextOverlayPanel({
@@ -75,8 +75,19 @@ export default function TextOverlayPanel({
     <>
       {/* Backdrop */}
       <div
+        role="button"
+        tabIndex={0}
+        aria-label="Close text overlay panel"
         className="fixed inset-0 bg-black/50 z-40 transition-opacity"
         onClick={handleClose}
+        onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => {
+          if (event.key !== 'Enter' && event.key !== ' ') {
+            return;
+          }
+
+          event.preventDefault();
+          handleClose();
+        }}
       />
 
       {/* Slide-over panel */}

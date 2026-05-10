@@ -242,9 +242,9 @@ export const WithContent: Story = {
             <div>
               <h4 className="font-semibold mb-4">List View</h4>
               <div className="space-y-2">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="p-3 bg-card">
-                    Post #{i}
+                {[1, 2, 3, 4, 5].map((placeholderId) => (
+                  <div key={placeholderId} className="p-3 bg-card">
+                    Post #{placeholderId}
                   </div>
                 ))}
               </div>
@@ -262,9 +262,9 @@ export const WithContent: Story = {
             <div>
               <h4 className="font-semibold mb-4">Grid View</h4>
               <div className="grid grid-cols-3 gap-4">
-                {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <div key={i} className="p-6 bg-card text-center">
-                    Post #{i}
+                {[1, 2, 3, 4, 5, 6].map((placeholderId) => (
+                  <div key={placeholderId} className="p-6 bg-card text-center">
+                    Post #{placeholderId}
                   </div>
                 ))}
               </div>

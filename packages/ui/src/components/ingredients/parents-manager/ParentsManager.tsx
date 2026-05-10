@@ -16,7 +16,7 @@ import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import Loading from '@ui/loading/default/Loading';
 import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
-import { useCallback, useEffect, useState } from 'react';
+import { type KeyboardEvent, useCallback, useEffect, useState } from 'react';
 import { HiPhoto, HiVideoCamera, HiXMark } from 'react-icons/hi2';
 
 export default function ParentsManager({
@@ -196,8 +196,18 @@ export default function ParentsManager({
                 {availableIngredients.map((ing: IIngredient) => (
                   <div
                     key={ing.id}
+                    role="button"
+                    tabIndex={0}
                     className="relative group cursor-pointer transition-all"
                     onClick={() => handleAddParent(ing.id)}
+                    onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => {
+                      if (event.key !== 'Enter' && event.key !== ' ') {
+                        return;
+                      }
+
+                      event.preventDefault();
+                      handleAddParent(ing.id);
+                    }}
                     title={
                       (ing.metadata as IMetadata)?.label ||
                       `${ing.category} - ${ing.id.slice(0, 8)}`

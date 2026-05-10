@@ -102,7 +102,10 @@ export default function ModalTextOverlay({
             onChange={(e) => {
               setText(e.target.value);
               if (errors.text) {
-                setErrors({ ...errors, text: undefined });
+                setErrors((previousErrors) => ({
+                  ...previousErrors,
+                  text: undefined,
+                }));
               }
             }}
           />

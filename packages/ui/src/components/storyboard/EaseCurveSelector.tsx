@@ -45,7 +45,7 @@ export default function EaseCurveSelector({
   dropdownDirection = 'up',
   isFullWidth = false,
 }: EaseCurveSelectorProps) {
-  const handleChange = (e: ChangeEvent<HTMLSelectElement>) => {
+  const updateEaseCurveSelector = (e: ChangeEvent<HTMLSelectElement>) => {
     const selectedValue = e.target.value;
     onChange(selectedValue ? (selectedValue as VideoEaseCurve) : undefined);
   };
@@ -63,7 +63,7 @@ export default function EaseCurveSelector({
       className={className}
       dropdownDirection={dropdownDirection}
       options={EASE_CURVE_OPTIONS}
-      onChange={handleChange}
+      onChange={updateEaseCurveSelector}
     />
   );
 }

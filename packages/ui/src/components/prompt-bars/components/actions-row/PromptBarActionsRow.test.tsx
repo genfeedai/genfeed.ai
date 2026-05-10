@@ -13,7 +13,7 @@ vi.mock('next/image', () => ({
     ...props
   }: {
     alt: string;
-  }) => <img alt={alt} {...props} data-testid="next-image" />,
+  }) => <input type="image" alt={alt} {...props} data-testid="next-image" />,
 }));
 
 // Mock the environment service

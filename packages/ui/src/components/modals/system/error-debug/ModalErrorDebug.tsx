@@ -74,7 +74,7 @@ export default function ModalErrorDebug() {
   const [isResponseExpanded, setIsResponseExpanded] = useState(false);
   const [isStackExpanded, setIsStackExpanded] = useState(false);
   const [isContextExpanded, setIsContextExpanded] = useState(false);
-  const router = useRouter();
+  const { refresh } = useRouter();
 
   useEffect(() => {
     const existing = getErrorDebugInfo();
@@ -226,7 +226,7 @@ export default function ModalErrorDebug() {
               className="border-destructive/30 bg-destructive/10 text-red-50 hover:bg-destructive/20 md:h-9 md:px-4 md:py-2"
               onClick={() => {
                 handleCancel();
-                router.refresh();
+                refresh();
               }}
             />
           </ModalActions>

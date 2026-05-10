@@ -161,7 +161,7 @@ function buildLlmsIndex(): string {
   lines.push('# Genfeed.ai');
   lines.push('');
   lines.push(
-    '> AI-first content creation platform. Generate videos, images, voice, and articles at scale with 50+ AI models including Google Veo 3, Imagen 4, and OpenAI Sora 2. Start with Cloud App from $8/month plus PAYG output, or self-host Core for free.',
+    '> AI-first content creation platform. Generate videos, images, voice, and articles at scale with 50+ AI models including Google Veo 3, Imagen 4, and OpenAI Sora 2. Start with Cloud App from $49/month plus PAYG output, or self-host Core for free.',
   );
   lines.push('');
 
@@ -197,7 +197,7 @@ function buildLlmsIndex(): string {
   lines.push('## Resources');
   lines.push('');
   lines.push(
-    `- [Pricing](${BASE_URL}/pricing): Cloud App ($8/mo + PAYG output), Cloud Teams (from $499/mo + PAYG output), Enterprise (custom), Core (free self-hosted)`,
+    `- [Pricing](${BASE_URL}/pricing): Cloud App ($49/mo + PAYG output), Cloud Teams (from $499/mo + PAYG output), Enterprise (custom), Core (free self-hosted)`,
   );
   lines.push(
     `- [FAQ](${BASE_URL}/faq): Frequently asked questions about the platform`,
@@ -237,7 +237,7 @@ function buildLlmsFull(): string {
   s.push('# Genfeed.ai');
   s.push('');
   s.push(
-    '> AI-first content creation platform. Generate videos, images, voice, and articles at scale with 50+ AI models including Google Veo 3, Imagen 4, and OpenAI Sora 2. Start with Cloud App from $8/month plus PAYG output, or self-host Core for free.',
+    '> AI-first content creation platform. Generate videos, images, voice, and articles at scale with 50+ AI models including Google Veo 3, Imagen 4, and OpenAI Sora 2. Start with Cloud App from $49/month plus PAYG output, or self-host Core for free.',
   );
   s.push('');
 
@@ -305,7 +305,7 @@ function buildLlmsFull(): string {
   s.push('## Pricing');
   s.push('');
   s.push(
-    'Genfeed separates platform access from output usage. Cloud App starts at $8/month plus pay-as-you-go output. Cloud Teams is higher-entry B2B for collaboration, multi-org, and multi-brand use cases. Core remains free to self-host with your own AI keys.',
+    'Genfeed separates platform access from output usage. Cloud App starts at $49/month plus pay-as-you-go output. Cloud Teams is higher-entry B2B for collaboration, multi-org, and multi-brand use cases. Core remains free to self-host with your own AI keys.',
   );
   s.push('');
 

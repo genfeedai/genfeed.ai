@@ -78,7 +78,7 @@ export default function ModalTraining({
     }
   }, [training, form]);
 
-  const handleChange = (
+  const updateModalTraining = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
@@ -97,8 +97,8 @@ export default function ModalTraining({
         {hasFormErrors(form.formState.errors) && (
           <Alert type={AlertCategory.ERROR} className="mb-4">
             <div className="space-y-1">
-              {parseFormErrors(form.formState.errors).map((error, index) => (
-                <div key={index}>{error}</div>
+              {parseFormErrors(form.formState.errors).map((error) => (
+                <div key={error}>{error}</div>
               ))}
             </div>
           </Alert>
@@ -114,7 +114,7 @@ export default function ModalTraining({
               type="text"
               name="label"
               control={form.control}
-              onChange={handleChange}
+              onChange={updateModalTraining}
               placeholder="Enter training name"
               isRequired={true}
               isDisabled={isSubmitting}
@@ -129,7 +129,7 @@ export default function ModalTraining({
               type="text"
               name="description"
               control={form.control}
-              onChange={handleChange}
+              onChange={updateModalTraining}
               placeholder="Enter training description"
               isDisabled={isSubmitting}
             />
@@ -142,7 +142,7 @@ export default function ModalTraining({
             <SelectField
               name="brand"
               control={form.control}
-              onChange={handleChange}
+              onChange={updateModalTraining}
               isDisabled={isSubmitting}
             >
               <option value="">None</option>

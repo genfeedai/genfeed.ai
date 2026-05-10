@@ -41,10 +41,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
 import { HiPlus, HiTrash } from 'react-icons/hi2';
 
+const EMPTY_ARRAY: never[] = [];
+
 export default function ModalCreateThread({
   ingredient,
   credential,
-  credentials = [],
+  credentials = EMPTY_ARRAY,
   onConfirm,
   onClose,
 }: ModalCreateThreadProps) {
@@ -187,8 +189,8 @@ export default function ModalCreateThread({
         {hasFormErrors(form.formState.errors) && (
           <Alert type={AlertCategory.ERROR}>
             <div className="space-y-1">
-              {parseFormErrors(form.formState.errors).map((error, index) => (
-                <div key={index}>{error}</div>
+              {parseFormErrors(form.formState.errors).map((error) => (
+                <div key={error}>{error}</div>
               ))}
             </div>
           </Alert>

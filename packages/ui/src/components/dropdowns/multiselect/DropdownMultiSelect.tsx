@@ -33,9 +33,11 @@ import {
 } from 'react';
 import { HiChevronDown } from 'react-icons/hi2';
 
+const EMPTY_ARRAY: never[] = [];
+
 export default function MultiSelectDropdown({
   name,
-  values = [],
+  values = EMPTY_ARRAY,
   options,
   onChange,
   placeholder = 'Select…',

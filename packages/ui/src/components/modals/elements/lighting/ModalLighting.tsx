@@ -36,7 +36,7 @@ export default function ModalLighting({
     serviceFactory: (token) => LightingsService.getInstance(token),
   });
 
-  const handleChange = (
+  const updateModalLighting = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = e.target;
@@ -64,7 +64,7 @@ export default function ModalLighting({
             type="text"
             name="label"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalLighting}
             placeholder="Enter display label"
             isRequired={true}
             isDisabled={isSubmitting}
@@ -76,7 +76,7 @@ export default function ModalLighting({
             type="text"
             name="key"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalLighting}
             placeholder="lowercase-with-hyphens"
             isRequired={true}
             isDisabled={isSubmitting}
@@ -90,7 +90,7 @@ export default function ModalLighting({
           <Input
             name="description"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalLighting}
             placeholder="Enter description (optional)"
             isDisabled={isSubmitting}
           />

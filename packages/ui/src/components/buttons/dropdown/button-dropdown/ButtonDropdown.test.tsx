@@ -64,14 +64,14 @@ describe('ButtonDropdown', () => {
   });
 
   it('selects an option from the dropdown menu', async () => {
-    const handleChange = vi.fn();
+    const updateButtonDropdown = vi.fn();
 
     render(
       <ButtonDropdown
         name="test"
         value="a"
         options={mockOptions}
-        onChange={handleChange}
+        onChange={updateButtonDropdown}
       />,
     );
 
@@ -81,6 +81,6 @@ describe('ButtonDropdown', () => {
     });
     fireEvent.click(await screen.findByText('Option C'));
 
-    expect(handleChange).toHaveBeenCalledWith('test', 'c');
+    expect(updateButtonDropdown).toHaveBeenCalledWith('test', 'c');
   });
 });

@@ -4,6 +4,7 @@ import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import Card from '@ui/card/Card';
+import ClientDateTime from '@ui/components/time/ClientDateTime';
 import { Button } from '@ui/primitives';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -93,8 +94,7 @@ export default function SiteFooter({
               alt="Genfeed"
               width={120}
               height={20}
-              className="h-5 invert mb-10"
-              style={{ width: 'auto' }}
+              className="h-5 w-auto invert mb-10"
             />
 
             <p className="text-white/30 max-w-sm mb-12 leading-relaxed font-medium">
@@ -217,9 +217,9 @@ export default function SiteFooter({
         justify-between items-center text-xs text-white/20 font-black py-10"
         >
           <p>
-            <span suppressHydrationWarning>
-              &copy; {new Date().getFullYear()} GENFEED.AI. ALL RIGHTS RESERVED.
-            </span>
+            &copy;{' '}
+            <ClientDateTime format={(date) => date.getFullYear().toString()} />{' '}
+            GENFEED.AI. ALL RIGHTS RESERVED.
           </p>
 
           <div className="flex flex-wrap justify-center gap-10">

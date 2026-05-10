@@ -3,7 +3,7 @@ import PricingContent from '@public/pricing/pricing-content';
 
 export const generateMetadata = createPageMetadataWithCanonical(
   'Pricing',
-  'Cloud app access from $8/mo plus pay-as-you-go output. Book a demo for team rollout, or self-host Core when you need full control.',
+  'Cloud app access from $49/mo plus pay-as-you-go output. Book a demo for team rollout, or self-host Core when you need full control.',
   '/pricing',
 );
 
@@ -11,7 +11,7 @@ const saasJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'WebPage',
   description:
-    'Genfeed Cloud App pricing starts at $8/month plus pay-as-you-go output. Cloud Teams adds B2B collaboration, and Core remains free to self-host.',
+    'Genfeed Cloud App pricing starts at $49/month plus pay-as-you-go output. Cloud Teams adds B2B collaboration, and Core remains free to self-host.',
   mainEntity: {
     '@type': 'Product',
     brand: { '@type': 'Organization', name: 'Genfeed' },

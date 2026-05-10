@@ -16,7 +16,7 @@ export default function ButtonTracked({
   onClick,
   ...props
 }: ButtonTrackedProps) {
-  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+  const activateButtonTracked = (e: React.MouseEvent<HTMLButtonElement>) => {
     track(trackingName, trackingData);
 
     if (typeof window !== 'undefined') {
@@ -33,5 +33,5 @@ export default function ButtonTracked({
     onClick?.(e);
   };
 
-  return <Button onClick={handleClick} {...props} />;
+  return <Button onClick={activateButtonTracked} {...props} />;
 }

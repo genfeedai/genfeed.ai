@@ -1,6 +1,8 @@
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { ReactNode } from 'react';
 
+const EMPTY_ARRAY: never[] = [];
+
 export interface EditorialPosterItem {
   label: string;
   value: ReactNode;
@@ -22,7 +24,7 @@ export default function EditorialPoster({
   detail,
   eyebrow,
   footer,
-  items = [],
+  items = EMPTY_ARRAY,
   subtitle,
   testId,
   title,

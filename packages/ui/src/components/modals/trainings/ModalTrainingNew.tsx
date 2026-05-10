@@ -506,8 +506,8 @@ export default function ModalTrainingNew({ onSuccess }: ModalTrainingNewProps) {
         {hasFormErrors(form.formState.errors) && (
           <Alert type={AlertCategory.ERROR} className="mb-4">
             <div className="space-y-1">
-              {parseFormErrors(form.formState.errors).map((error, index) => (
-                <div key={index}>{error}</div>
+              {parseFormErrors(form.formState.errors).map((error) => (
+                <div key={error}>{error}</div>
               ))}
             </div>
           </Alert>
@@ -707,13 +707,16 @@ export default function ModalTrainingNew({ onSuccess }: ModalTrainingNewProps) {
               </div>
             ) : (
               <ul className="space-y-2 overflow-y-auto max-h-96">
-                {files.map((f, idx) => {
+                {files.map((f) => {
                   const fileStatus = Array.from(fileStatuses.values()).find(
                     (status) => status.file.name === f.name,
                   );
 
                   return (
-                    <li key={idx} className="space-y-1 p-2 bg-background/50">
+                    <li
+                      key={`${f.name}-${f.size}-${f.lastModified}`}
+                      className="space-y-1 p-2 bg-background/50"
+                    >
                       <div className="flex items-center justify-between gap-2">
                         <span
                           className="truncate max-w-56 text-sm"

@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/enums';
+import ClientDateTime from '@ui/components/time/ClientDateTime';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import {
@@ -230,7 +231,7 @@ function TrendTriggerNodeComponent({
             {data.lastTrendTopic || 'Unknown topic'}
           </div>
           <div className="text-xs text-muted-foreground mt-1">
-            {new Date(data.lastTriggeredAt).toLocaleString()}
+            <ClientDateTime value={data.lastTriggeredAt} />
           </div>
         </div>
       )}

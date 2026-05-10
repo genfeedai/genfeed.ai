@@ -9,11 +9,13 @@ import Container from '@ui/layout/container/Container';
 import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
 import Link from 'next/link';
 
+const EMPTY_ARRAY: never[] = [];
+
 export default function OverviewLayout({
   label,
   description,
   icon,
-  cards = [],
+  cards = EMPTY_ARRAY,
   actionsTitle = 'Quick Actions',
   header,
   children,

@@ -28,18 +28,24 @@ export default function ModalCredential({
   isOpen,
   openKey,
 }: ModalCredentialProps) {
-  const { form, formRef, isSubmitting, onSubmit, closeModal, handleDelete } =
-    useCrudModal<ICredential, CredentialSchema>({
-      defaultValues: {
-        description: '',
-        label: '',
-      },
-      entity: credential || null,
-      modalId: ModalEnum.CREDENTIAL,
-      onConfirm,
-      schema: credentialSchema,
-      serviceFactory: (token) => CredentialsService.getInstance(token),
-    });
+  const {
+    form,
+    formRef,
+    isSubmitting,
+    onSubmit,
+    closeModal,
+    handleDelete: deleteModalCredential,
+  } = useCrudModal<ICredential, CredentialSchema>({
+    defaultValues: {
+      description: '',
+      label: '',
+    },
+    entity: credential || null,
+    modalId: ModalEnum.CREDENTIAL,
+    onConfirm,
+    schema: credentialSchema,
+    serviceFactory: (token) => CredentialsService.getInstance(token),
+  });
 
   const shouldAutoOpen = isOpen ?? Boolean(credential);
   useModalAutoOpen(ModalEnum.CREDENTIAL, {
@@ -55,7 +61,7 @@ export default function ModalCredential({
     }
   }, [credential, form]);
 
-  const handleChange = (
+  const updateModalCredential = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = e.target;
@@ -71,8 +77,8 @@ export default function ModalCredential({
         {hasFormErrors(form.formState.errors) && (
           <Alert type={AlertCategory.ERROR} className="mb-4">
             <div className="space-y-1">
-              {parseFormErrors(form.formState.errors).map((error, index) => (
-                <div key={index}>{error}</div>
+              {parseFormErrors(form.formState.errors).map((error) => (
+                <div key={error}>{error}</div>
               ))}
             </div>
           </Alert>
@@ -83,7 +89,7 @@ export default function ModalCredential({
             type="text"
             name="label"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalCredential}
             placeholder="Enter credential label"
             isRequired={true}
             isDisabled={isSubmitting}
@@ -94,7 +100,7 @@ export default function ModalCredential({
           <Textarea
             name="description"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalCredential}
             placeholder="Enter description (optional)"
             isDisabled={isSubmitting}
           />
@@ -108,11 +114,11 @@ export default function ModalCredential({
             isLoading={isSubmitting}
           />
 
-          {credential && handleDelete && (
+          {credential && deleteModalCredential && (
             <Button
               label={<HiTrash />}
               variant={ButtonVariant.DESTRUCTIVE}
-              onClick={handleDelete}
+              onClick={deleteModalCredential}
               isLoading={isSubmitting}
             />
           )}

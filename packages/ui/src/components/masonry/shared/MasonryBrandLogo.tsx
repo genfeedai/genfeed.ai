@@ -21,7 +21,7 @@ export default function MasonryBrandLogo({
   isPublicGallery = false,
   isPublicProfile = false,
 }: MasonryBrandLogoProps) {
-  const router = useRouter();
+  const { push } = useRouter();
 
   // Only show in public galleries, not on profile pages
   if (!isPublicGallery || isPublicProfile) {
@@ -32,14 +32,14 @@ export default function MasonryBrandLogo({
     return null;
   }
 
-  const handleClick = (e: React.MouseEvent) => {
+  const activateMasonryBrandLogo = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (ingredient.brand) {
       const brandId =
         typeof ingredient.brand === 'string'
           ? ingredient.brand
           : ingredient.brand.id;
-      router.push(`/brands/${brandId}`);
+      push(`/brands/${brandId}`);
     }
   };
 
@@ -48,7 +48,7 @@ export default function MasonryBrandLogo({
       withWrapper={false}
       variant={ButtonVariant.UNSTYLED}
       className="cursor-pointer absolute top-0 left-0 m-1 size-6 rounded-full overflow-hidden shadow-lg z-10"
-      onClick={handleClick}
+      onClick={activateMasonryBrandLogo}
       ariaLabel="View brand"
     >
       <Image

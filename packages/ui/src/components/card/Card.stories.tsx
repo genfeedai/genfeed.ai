@@ -270,7 +270,7 @@ export const MultipleCards: Story = {
         { color: 'text-success', icon: FiTrendingUp, label: 'Analytics' },
       ].map((item, index) => (
         <Card
-          key={index}
+          key={item.label}
           index={index}
           icon={item.icon}
           iconClassName={item.color}

@@ -99,13 +99,15 @@ export function TimeSeriesChart({
   }
 
   const toggleMetric = (metric: TimeSeriesMetric) => {
-    if (activeMetrics.includes(metric)) {
-      if (activeMetrics.length > 1) {
-        setActiveMetrics(activeMetrics.filter((m) => m !== metric));
+    setActiveMetrics((previousMetrics) => {
+      if (!previousMetrics.includes(metric)) {
+        return [...previousMetrics, metric];
       }
-    } else {
-      setActiveMetrics([...activeMetrics, metric]);
-    }
+
+      return previousMetrics.length > 1
+        ? previousMetrics.filter((m) => m !== metric)
+        : previousMetrics;
+    });
   };
 
   const formatValue = (value: number, metric: TimeSeriesMetric) => {

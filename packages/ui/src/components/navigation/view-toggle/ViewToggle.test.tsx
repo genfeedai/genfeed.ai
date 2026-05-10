@@ -23,12 +23,12 @@ describe('ViewToggle', () => {
   ];
 
   it('renders all view options', () => {
-    const handleChange = vi.fn();
+    const updateViewToggle = vi.fn();
     render(
       <ViewToggle
         options={mockOptions}
         activeView={ViewType.LIST}
-        onChange={handleChange}
+        onChange={updateViewToggle}
       />,
     );
 
@@ -38,12 +38,12 @@ describe('ViewToggle', () => {
   });
 
   it('highlights active view', () => {
-    const handleChange = vi.fn();
+    const updateViewToggle = vi.fn();
     render(
       <ViewToggle
         options={mockOptions}
         activeView={ViewType.CALENDAR}
-        onChange={handleChange}
+        onChange={updateViewToggle}
       />,
     );
 
@@ -55,12 +55,12 @@ describe('ViewToggle', () => {
   });
 
   it('calls onChange when view is clicked', () => {
-    const handleChange = vi.fn();
+    const updateViewToggle = vi.fn();
     render(
       <ViewToggle
         options={mockOptions}
         activeView={ViewType.LIST}
-        onChange={handleChange}
+        onChange={updateViewToggle}
       />,
     );
 
@@ -69,16 +69,16 @@ describe('ViewToggle', () => {
       .closest('button');
     fireEvent.click(calendarButton!);
 
-    expect(handleChange).toHaveBeenCalledWith(ViewType.CALENDAR);
+    expect(updateViewToggle).toHaveBeenCalledWith(ViewType.CALENDAR);
   });
 
   it('applies inline-flex class for button group', () => {
-    const handleChange = vi.fn();
+    const updateViewToggle = vi.fn();
     const { container } = render(
       <ViewToggle
         options={mockOptions}
         activeView={ViewType.LIST}
-        onChange={handleChange}
+        onChange={updateViewToggle}
       />,
     );
 
@@ -87,12 +87,12 @@ describe('ViewToggle', () => {
   });
 
   it('applies custom className', () => {
-    const handleChange = vi.fn();
+    const updateViewToggle = vi.fn();
     const { container } = render(
       <ViewToggle
         options={mockOptions}
         activeView={ViewType.LIST}
-        onChange={handleChange}
+        onChange={updateViewToggle}
         className="custom-class"
       />,
     );
@@ -102,12 +102,12 @@ describe('ViewToggle', () => {
   });
 
   it('renders buttons for each option', () => {
-    const handleChange = vi.fn();
+    const updateViewToggle = vi.fn();
     render(
       <ViewToggle
         options={mockOptions}
         activeView={ViewType.LIST}
-        onChange={handleChange}
+        onChange={updateViewToggle}
       />,
     );
 
@@ -128,12 +128,12 @@ describe('ViewToggle', () => {
   });
 
   it('sets aria-label for accessibility', () => {
-    const handleChange = vi.fn();
+    const updateViewToggle = vi.fn();
     render(
       <ViewToggle
         options={mockOptions}
         activeView={ViewType.LIST}
-        onChange={handleChange}
+        onChange={updateViewToggle}
       />,
     );
 
@@ -142,7 +142,7 @@ describe('ViewToggle', () => {
   });
 
   it('uses custom ariaLabel when provided', () => {
-    const handleChange = vi.fn();
+    const updateViewToggle = vi.fn();
     const optionsWithAriaLabel = [
       {
         ariaLabel: 'Switch to list view',
@@ -156,7 +156,7 @@ describe('ViewToggle', () => {
       <ViewToggle
         options={optionsWithAriaLabel}
         activeView={ViewType.LIST}
-        onChange={handleChange}
+        onChange={updateViewToggle}
       />,
     );
 
@@ -165,12 +165,12 @@ describe('ViewToggle', () => {
   });
 
   it('applies correct button classes - ghost for all, elevated state for active', () => {
-    const handleChange = vi.fn();
+    const updateViewToggle = vi.fn();
     render(
       <ViewToggle
         options={mockOptions}
         activeView={ViewType.LIST}
-        onChange={handleChange}
+        onChange={updateViewToggle}
       />,
     );
 
@@ -197,14 +197,14 @@ describe('ViewToggle', () => {
   });
 
   it('handles single option', () => {
-    const handleChange = vi.fn();
+    const updateViewToggle = vi.fn();
     const singleOption = [mockOptions[0]];
 
     render(
       <ViewToggle
         options={singleOption}
         activeView={ViewType.LIST}
-        onChange={handleChange}
+        onChange={updateViewToggle}
       />,
     );
 
@@ -213,7 +213,7 @@ describe('ViewToggle', () => {
   });
 
   it('handles many options', () => {
-    const handleChange = vi.fn();
+    const updateViewToggle = vi.fn();
     const manyOptions = [
       ...mockOptions,
       {
@@ -232,7 +232,7 @@ describe('ViewToggle', () => {
       <ViewToggle
         options={manyOptions}
         activeView={ViewType.LIST}
-        onChange={handleChange}
+        onChange={updateViewToggle}
       />,
     );
 

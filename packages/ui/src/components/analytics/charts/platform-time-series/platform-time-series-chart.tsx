@@ -68,13 +68,15 @@ export function PlatformTimeSeriesChart({
   const isEmpty = !data || data.length === 0;
 
   const togglePlatform = (platform: keyof typeof PLATFORM_COLORS) => {
-    if (activePlatforms.includes(platform)) {
-      if (activePlatforms.length > 1) {
-        setActivePlatforms(activePlatforms.filter((p) => p !== platform));
+    setActivePlatforms((previousPlatforms) => {
+      if (!previousPlatforms.includes(platform)) {
+        return [...previousPlatforms, platform];
       }
-    } else {
-      setActivePlatforms([...activePlatforms, platform]);
-    }
+
+      return previousPlatforms.length > 1
+        ? previousPlatforms.filter((p) => p !== platform)
+        : previousPlatforms;
+    });
   };
 
   return (

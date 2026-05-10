@@ -10,16 +10,18 @@ import { Button } from '@ui/primitives/button';
 import dynamic from 'next/dynamic';
 import { useCallback, useRef } from 'react';
 
+const EMPTY_ARRAY: never[] = [];
+
 const Checkbox = dynamic(
   () => import('@ui/primitives/checkbox').then((mod) => mod.Checkbox),
   { ssr: false },
 );
 
 export default function AppTable<T>({
-  items = [],
+  items = EMPTY_ARRAY,
   isLoading = false,
   columns,
-  actions = [],
+  actions = EMPTY_ARRAY,
 
   getRowKey,
   getRowClassName,
@@ -27,7 +29,7 @@ export default function AppTable<T>({
   emptyState,
 
   selectable = false,
-  selectedIds = [],
+  selectedIds = EMPTY_ARRAY,
   onSelectionChange,
   getItemId,
   onRowClick,

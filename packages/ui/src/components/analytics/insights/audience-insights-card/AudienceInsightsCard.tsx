@@ -33,8 +33,11 @@ const AudienceInsightsCard = memo(function AudienceInsightsCard({
         className={className}
       >
         <div className="space-y-4">
-          {[1, 2].map((i) => (
-            <div key={i} className="animate-pulse p-4 bg-background space-y-3">
+          {[1, 2].map((placeholderId) => (
+            <div
+              key={placeholderId}
+              className="animate-pulse p-4 bg-background space-y-3"
+            >
               <div className="flex items-center justify-between">
                 <div className="h-5 bg-muted w-32" />
                 <div className="h-4 bg-muted w-20" />

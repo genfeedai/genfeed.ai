@@ -1,11 +1,10 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { websitePlans } from '@helpers/business/pricing/pricing.helper';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { EnvironmentService } from '@services/core/environment.service';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
-import Card from '@ui/card/Card';
 import { HStack, VStack } from '@ui/layout/stack';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
@@ -71,7 +70,7 @@ export default function HomePricing(): React.ReactElement {
             </Text>
           </VStack>
 
-          <div className="border border-edge/5 bg-fill/[0.02] p-5">
+          <div className="border border-edge/5 p-5">
             <VStack className="gap-4">
               {PAYG_EXPLAINERS.map((item) => (
                 <HStack key={item} className="items-start gap-3">
@@ -85,7 +84,7 @@ export default function HomePricing(): React.ReactElement {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-1.5 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-px bg-edge/5 lg:grid-cols-3">
           {PLAN_ORDER.map((label) => {
             const plan = getPlan(label);
             const isCloudApp = plan.label === 'Hosted';
@@ -102,113 +101,69 @@ export default function HomePricing(): React.ReactElement {
             const ctaLabel = isCloudApp ? 'Start Cloud App' : plan.cta;
 
             return (
-              <Card
+              <div
                 key={plan.label}
-                bodyClassName="gap-0 p-6"
                 className={cn(
-                  '!rounded-none transition-all',
-                  isCloudApp
-                    ? 'gen-card-featured shadow-[var(--shadow-glow-md)]'
-                    : 'bg-fill/[0.02] gen-border hover:border-[var(--gen-accent-hover)]',
+                  'flex flex-col gap-5 bg-background p-6',
+                  isCloudApp && 'bg-white/[0.04]',
                 )}
-                variant={isCloudApp ? CardVariant.WHITE : CardVariant.DEFAULT}
               >
-                <VStack className="h-full gap-5">
-                  <VStack className="gap-2">
-                    <HStack
-                      className={cn(
-                        'items-center gap-2 text-xs font-bold uppercase tracking-widest',
-                        isCloudApp ? 'text-inv-fg/60' : 'gen-text-muted',
-                      )}
-                    >
-                      {isTeamCloud ? (
-                        <HiServerStack className="h-4 w-4" />
-                      ) : (
-                        <HiCloud className="h-4 w-4" />
-                      )}
-                      <Text>{isCloudApp ? 'Cloud App' : plan.label}</Text>
-                    </HStack>
-
-                    <Heading
-                      as="h3"
-                      className={cn(
-                        'text-3xl font-black',
-                        isCloudApp ? 'text-inv-fg' : 'text-surface',
-                      )}
-                    >
-                      {formatPlanPrice(plan.price)}
-                    </Heading>
-                    <Text
-                      className={cn(
-                        'text-xs leading-5',
-                        isCloudApp ? 'text-inv-fg/65' : 'text-surface/50',
-                      )}
-                    >
-                      {priceQualifier}
-                    </Text>
-                  </VStack>
-
-                  <Text
+                <VStack className="gap-2">
+                  <HStack
                     className={cn(
-                      'text-sm leading-6',
-                      isCloudApp ? 'text-inv-fg/75' : 'text-surface/60',
+                      'items-center gap-2 text-xs font-bold uppercase tracking-widest',
+                      isCloudApp ? 'text-surface/60' : 'text-surface/35',
                     )}
                   >
-                    {isCloudApp
-                      ? 'Managed Genfeed for founders and creators who want the app without operating infrastructure.'
-                      : plan.valueProposition || plan.description}
+                    {isTeamCloud ? (
+                      <HiServerStack className="h-4 w-4" />
+                    ) : (
+                      <HiCloud className="h-4 w-4" />
+                    )}
+                    <Text>{isCloudApp ? 'Cloud App' : plan.label}</Text>
+                  </HStack>
+
+                  <Heading as="h3" className="text-3xl font-black text-surface">
+                    {formatPlanPrice(plan.price)}
+                  </Heading>
+                  <Text className="text-xs leading-5 text-surface/45">
+                    {priceQualifier}
                   </Text>
-
-                  <div
-                    className="gen-divider-accent"
-                    style={
-                      isCloudApp
-                        ? {
-                            background:
-                              'linear-gradient(to right, transparent, rgba(0,0,0,0.2), transparent)',
-                          }
-                        : undefined
-                    }
-                  />
-
-                  <ul className="flex-1 space-y-2">
-                    {plan.features.slice(0, 4).map((feature) => (
-                      <li key={feature} className="flex items-start gap-2">
-                        <LuCheck
-                          className={cn(
-                            'mt-0.5 h-3.5 w-3.5 shrink-0',
-                            isCloudApp ? 'text-inv-fg/35' : 'text-surface/40',
-                          )}
-                        />
-                        <Text
-                          className={cn(
-                            'text-xs leading-5',
-                            isCloudApp ? 'text-inv-fg/65' : 'text-surface/50',
-                          )}
-                        >
-                          {feature}
-                        </Text>
-                      </li>
-                    ))}
-                  </ul>
-
-                  <ButtonTracked
-                    asChild
-                    className="w-full justify-center"
-                    size={ButtonSize.PUBLIC}
-                    trackingData={{ plan: plan.label.toLowerCase() }}
-                    trackingName="pricing_plan_click"
-                    variant={
-                      isCloudApp ? ButtonVariant.BLACK : ButtonVariant.OUTLINE
-                    }
-                  >
-                    <a href={ctaHref} rel="noopener noreferrer" target="_blank">
-                      {ctaLabel}
-                      <LuArrowRight className="h-3 w-3" />
-                    </a>
-                  </ButtonTracked>
                 </VStack>
-              </Card>
+
+                <Text className="text-sm leading-6 text-surface/55">
+                  {isCloudApp
+                    ? 'Managed Genfeed for founders and creators who want the app without operating infrastructure.'
+                    : plan.valueProposition || plan.description}
+                </Text>
+
+                <div className="h-px bg-edge/5" />
+
+                <ul className="flex-1 space-y-2">
+                  {plan.features.slice(0, 4).map((feature) => (
+                    <li key={feature} className="flex items-start gap-2">
+                      <LuCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-surface/30" />
+                      <Text className="text-xs leading-5 text-surface/50">
+                        {feature}
+                      </Text>
+                    </li>
+                  ))}
+                </ul>
+
+                <ButtonTracked
+                  asChild
+                  className="w-full justify-center"
+                  size={ButtonSize.PUBLIC}
+                  trackingData={{ plan: plan.label.toLowerCase() }}
+                  trackingName="pricing_plan_click"
+                  variant={ButtonVariant.OUTLINE}
+                >
+                  <a href={ctaHref} rel="noopener noreferrer" target="_blank">
+                    {ctaLabel}
+                    <LuArrowRight className="h-3 w-3" />
+                  </a>
+                </ButtonTracked>
+              </div>
             );
           })}
         </div>
@@ -230,7 +185,7 @@ export default function HomePricing(): React.ReactElement {
             size={ButtonSize.PUBLIC}
             trackingData={{ action: 'book_demo_pricing' }}
             trackingName="pricing_demo_click"
-            variant={ButtonVariant.GHOST}
+            variant={ButtonVariant.OUTLINE}
           >
             <a href={CALENDLY_URL} rel="noopener noreferrer" target="_blank">
               Book a Demo

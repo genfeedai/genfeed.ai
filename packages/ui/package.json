@@ -23,7 +23,8 @@
     "@tiptap/extension-placeholder": "3.22.5",
     "@tiptap/extension-strike": "3.22.5",
     "@tiptap/react": "3.22.5",
-    "@tiptap/starter-kit": "3.22.5"
+    "@tiptap/starter-kit": "3.22.5",
+    "html-react-parser": "6.0.1"
   },
   "description": "Shared design tokens and UI primitives for Genfeed web, mobile, and extension surfaces",
   "devDependencies": {

@@ -25,7 +25,7 @@ export default function OrganizationSwitcher() {
   const getOrgsService = useAuthedService((token: string) =>
     OrganizationsService.getInstance(token),
   );
-  const router = useRouter();
+  const { push } = useRouter();
   const { orgHref } = useOrgUrl();
 
   const [isSwitching, setIsSwitching] = useState(false);
@@ -106,8 +106,8 @@ export default function OrganizationSwitcher() {
   const activeOrg = orgs.find((o) => o.isActive);
   const displayLabel = error ?? activeOrg?.label ?? 'Organization';
   const handleOpenOrganizationSettings = useCallback(() => {
-    router.push(orgHref('/settings'));
-  }, [router, orgHref]);
+    push(orgHref('/settings'));
+  }, [orgHref, push]);
 
   return (
     <>

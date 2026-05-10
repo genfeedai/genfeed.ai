@@ -6,6 +6,7 @@ import type {
   RssInputNodeData,
   RssInputNodeProps,
 } from '@genfeedai/props/workflow/nodes.props';
+import ClientDateTime from '@ui/components/time/ClientDateTime';
 import Textarea from '@ui/inputs/textarea/Textarea';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
@@ -229,7 +230,10 @@ function RssInputNodeComponent({ id, data, onUpdate }: RssInputNodeProps) {
               </div>
               {selectedItem.pubDate && (
                 <div className="text-xs text-muted-foreground">
-                  {new Date(selectedItem.pubDate).toLocaleDateString()}
+                  <ClientDateTime
+                    value={selectedItem.pubDate}
+                    format={(date) => date.toLocaleDateString()}
+                  />
                 </div>
               )}
             </div>

@@ -4,6 +4,8 @@ import { HiCheck, HiPencil, HiPlus, HiXMark } from 'react-icons/hi2';
 import { Badge } from './badge';
 import { Button } from './button';
 
+const EMPTY_ARRAY: never[] = [];
+
 export interface TagsEditableProps {
   label: string;
   value?: string[];
@@ -16,7 +18,7 @@ export interface TagsEditableProps {
 
 export default function TagsEditable({
   label,
-  value = [],
+  value = EMPTY_ARRAY,
   placeholder = 'Add a tag…',
   onSave,
   isDisabled = false,
@@ -54,13 +56,15 @@ export default function TagsEditable({
   const handleAddTag = () => {
     const trimmedValue = inputValue.trim();
     if (trimmedValue && !tags.includes(trimmedValue) && tags.length < maxTags) {
-      setTags([...tags, trimmedValue]);
+      setTags((previousTags) => [...previousTags, trimmedValue]);
       setInputValue('');
     }
   };
 
   const handleRemoveTag = (tagToRemove: string) => {
-    setTags(tags.filter((tag) => tag !== tagToRemove));
+    setTags((previousTags) =>
+      previousTags.filter((tag) => tag !== tagToRemove),
+    );
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {

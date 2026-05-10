@@ -9,7 +9,7 @@ const PILLAR_COLUMNS = [
   {
     href: '/pricing',
     label: 'Cloud App',
-    price: '$8/mo + PAYG',
+    price: '$49/mo + PAYG',
     subtitle: 'Default',
   },
   {

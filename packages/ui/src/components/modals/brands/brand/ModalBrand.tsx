@@ -250,8 +250,8 @@ function BrandEditorForm({
       {hasFormErrors(form.formState.errors) ? (
         <Alert type={AlertCategory.ERROR}>
           <div className="space-y-1">
-            {parseFormErrors(form.formState.errors).map((formError, index) => (
-              <div key={index}>{formError}</div>
+            {parseFormErrors(form.formState.errors).map((formError) => (
+              <div key={formError}>{formError}</div>
             ))}
           </div>
         </Alert>
@@ -524,7 +524,7 @@ export default function BrandOverlay({
   initialView = 'edit',
 }: BrandOverlayProps) {
   const { organizationId } = useBrand();
-  const router = useRouter();
+  const { push } = useRouter();
   const { orgSlug } = useOrgUrl();
   const { settings } = useOrganization();
   const clipboardService = ClipboardService.getInstance();
@@ -771,7 +771,7 @@ export default function BrandOverlay({
     }
   }, [form, getPromptsService, listenForSocket, organizationId]);
 
-  const handleChange = useCallback(
+  const updateModalBrand = useCallback(
     (
       event: ChangeEvent<
         HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
@@ -790,7 +790,7 @@ export default function BrandOverlay({
     closeModal(ModalEnum.BRAND);
   }, []);
 
-  const handleClose = useCallback(() => {
+  const closeModalBrand = useCallback(() => {
     setError(null);
     setSelectedLink(null);
     setGenerateModalType(null);
@@ -986,7 +986,7 @@ export default function BrandOverlay({
     onConfirm?.(true);
   }, [onConfirm, refreshBrand]);
 
-  const handleSubmit = useCallback(async () => {
+  const submitModalBrand = useCallback(async () => {
     try {
       const service = await getBrandsService();
       const formData = {
@@ -1034,7 +1034,7 @@ export default function BrandOverlay({
   ]);
 
   const { isSubmitting, onSubmit } = useFormSubmitWithState(() =>
-    handleSubmit(),
+    submitModalBrand(),
   );
 
   const socialConnections = useMemo(
@@ -1094,10 +1094,10 @@ export default function BrandOverlay({
         description={overlayDescription}
         width={activeBrand ? '2xl' : 'xl'}
         surface="flat"
-        onClose={handleClose}
+        onClose={closeModalBrand}
         onOpenDetail={
           activeBrand?.slug
-            ? () => router.push(`/${orgSlug}/${activeBrand.slug}/settings`)
+            ? () => push(`/${orgSlug}/${activeBrand.slug}/settings`)
             : undefined
         }
         badges={
@@ -1168,7 +1168,7 @@ export default function BrandOverlay({
 
                   handleDismiss();
                 }}
-                onChange={handleChange}
+                onChange={updateModalBrand}
                 onEnhanceDescription={enhanceDescription}
                 onSubmit={onSubmit}
                 onTabChange={setEditorTab}

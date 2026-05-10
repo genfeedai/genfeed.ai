@@ -11,7 +11,7 @@ vi.mock('next/image', () => ({
     priority: _priority,
     ...props
   }: Record<string, unknown>) => (
-    <img src={src as string} alt={alt as string} {...props} />
+    <input type="image" src={src as string} alt={alt as string} {...props} />
   ),
 }));
 

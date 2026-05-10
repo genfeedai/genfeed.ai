@@ -6,6 +6,7 @@ import {
   formatPercentage,
 } from '@genfeedai/helpers/formatting/format/format.helper';
 import type { GrowthTrendsCardProps } from '@genfeedai/props/analytics/analytics.props';
+import ClientDateTime from '@ui/components/time/ClientDateTime';
 import {
   HiArrowTrendingDown,
   HiArrowTrendingUp,
@@ -192,11 +193,16 @@ export function GrowthTrendsCard({
               Best Performing Day
             </p>
             <p className="text-lg font-bold text-purple-600 dark:text-purple-400">
-              {new Date(growthData.bestDay.date).toLocaleDateString('en-US', {
-                day: 'numeric',
-                month: 'short',
-                year: 'numeric',
-              })}
+              <ClientDateTime
+                value={growthData.bestDay.date}
+                format={(date) =>
+                  date.toLocaleDateString('en-US', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric',
+                  })
+                }
+              />
             </p>
           </div>
           <div className="text-right">

@@ -80,6 +80,11 @@ export function useGsapEntrance<T extends HTMLElement = HTMLDivElement>(
 
         ctx = gsap.context(() => {
           for (const anim of animations) {
+            const elements = containerRef.current?.querySelectorAll(
+              anim.selector,
+            );
+            if (!elements || elements.length === 0) continue;
+
             const fromVars: Record<string, unknown> = { ...anim.from };
             const toVars: Record<string, unknown> = {
               duration: anim.duration ?? 0.8,
@@ -163,6 +168,11 @@ export function useGsapTimeline<T extends HTMLElement = HTMLDivElement>(
           const tl = gsap.timeline();
 
           for (const step of steps) {
+            const elements = containerRef.current?.querySelectorAll(
+              step.selector,
+            );
+            if (!elements || elements.length === 0) continue;
+
             const fromVars: Record<string, unknown> = { ...step.from };
             const toVars: Record<string, unknown> = {
               duration: step.duration ?? 0.8,

@@ -73,29 +73,35 @@ export default function ModalMonitoredAccount({
   onConfirm,
   onClose,
 }: ModalMonitoredAccountProps) {
-  const { form, formRef, isSubmitting, onSubmit, closeModal, handleDelete } =
-    useCrudModal<IMonitoredAccount, MonitoredAccountSchema>({
-      defaultValues: {
-        avatarUrl: '',
-        bio: '',
-        displayName: '',
-        followersCount: 0,
-        isActive: true,
-        platform: ReplyBotPlatform.TWITTER,
-        platformUserId: '',
-        username: '',
-      },
-      entity: account || null,
-      modalId: ModalEnum.MONITORED_ACCOUNT,
-      onClose,
-      onConfirm,
-      schema: monitoredAccountSchema,
-      serviceFactory: (token) => MonitoredAccountsService.getInstance(token),
-      transformSubmitData: (data) => ({
-        ...data,
-        replyBotConfig: replyBotConfigId,
-      }),
-    });
+  const {
+    form,
+    formRef,
+    isSubmitting,
+    onSubmit,
+    closeModal,
+    handleDelete: deleteModalMonitoredAccount,
+  } = useCrudModal<IMonitoredAccount, MonitoredAccountSchema>({
+    defaultValues: {
+      avatarUrl: '',
+      bio: '',
+      displayName: '',
+      followersCount: 0,
+      isActive: true,
+      platform: ReplyBotPlatform.TWITTER,
+      platformUserId: '',
+      username: '',
+    },
+    entity: account || null,
+    modalId: ModalEnum.MONITORED_ACCOUNT,
+    onClose,
+    onConfirm,
+    schema: monitoredAccountSchema,
+    serviceFactory: (token) => MonitoredAccountsService.getInstance(token),
+    transformSubmitData: (data) => ({
+      ...data,
+      replyBotConfig: replyBotConfigId,
+    }),
+  });
 
   useEffect(() => {
     if (account) {
@@ -110,7 +116,7 @@ export default function ModalMonitoredAccount({
     }
   }, [account, form]);
 
-  const handleChange = (
+  const updateModalMonitoredAccount = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
@@ -126,8 +132,8 @@ export default function ModalMonitoredAccount({
         {hasFormErrors(form.formState.errors) && (
           <Alert type={AlertCategory.ERROR} className="mb-4">
             <div className="space-y-1">
-              {parseFormErrors(form.formState.errors).map((error, index) => (
-                <div key={index}>{error}</div>
+              {parseFormErrors(form.formState.errors).map((error) => (
+                <div key={error}>{error}</div>
               ))}
             </div>
           </Alert>
@@ -166,7 +172,7 @@ export default function ModalMonitoredAccount({
               type="text"
               name="username"
               control={form.control}
-              onChange={handleChange}
+              onChange={updateModalMonitoredAccount}
               placeholder="@username (without the @)"
               isRequired={true}
               isDisabled={isSubmitting}
@@ -178,7 +184,7 @@ export default function ModalMonitoredAccount({
               type="text"
               name="platformUserId"
               control={form.control}
-              onChange={handleChange}
+              onChange={updateModalMonitoredAccount}
               placeholder="Platform-specific user ID"
               isRequired={true}
               isDisabled={isSubmitting}
@@ -190,7 +196,7 @@ export default function ModalMonitoredAccount({
               type="text"
               name="displayName"
               control={form.control}
-              onChange={handleChange}
+              onChange={updateModalMonitoredAccount}
               placeholder="Display name (optional)"
               isDisabled={isSubmitting}
             />
@@ -201,7 +207,7 @@ export default function ModalMonitoredAccount({
               type="text"
               name="avatarUrl"
               control={form.control}
-              onChange={handleChange}
+              onChange={updateModalMonitoredAccount}
               placeholder="https://… (optional)"
               isDisabled={isSubmitting}
             />
@@ -212,7 +218,7 @@ export default function ModalMonitoredAccount({
               type="text"
               name="bio"
               control={form.control}
-              onChange={handleChange}
+              onChange={updateModalMonitoredAccount}
               placeholder="Account bio (optional)"
               isDisabled={isSubmitting}
             />
@@ -255,11 +261,11 @@ export default function ModalMonitoredAccount({
             isLoading={isSubmitting}
           />
 
-          {account && handleDelete && (
+          {account && deleteModalMonitoredAccount && (
             <Button
               label={<HiTrash />}
               variant={ButtonVariant.DESTRUCTIVE}
-              onClick={handleDelete}
+              onClick={deleteModalMonitoredAccount}
               isLoading={isSubmitting}
             />
           )}

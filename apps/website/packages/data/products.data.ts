@@ -577,7 +577,7 @@ export const products: Product[] = [
     name: 'Studio',
     pricing: {
       recommended: 'Hosted',
-      why: '$8/month platform access plus PAYG output is the entry managed path for creators posting daily.',
+      why: '$49/month platform access plus PAYG output is the entry managed path for creators posting daily.',
     },
     relatedProducts: ['publisher', 'workflows', 'intelligence'],
     slug: 'studio',

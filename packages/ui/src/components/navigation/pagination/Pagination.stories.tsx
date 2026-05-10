@@ -196,7 +196,7 @@ export const WithContent: Story = {
                 return null;
               }
               return (
-                <div key={i} className="p-2 bg-card">
+                <div key={itemNumber} className="p-2 bg-card">
                   Item #{itemNumber}
                 </div>
               );
@@ -273,7 +273,10 @@ export const Interactive: Story = {
                 return null;
               }
               return (
-                <div key={i} className="p-3 bg-card flex justify-between">
+                <div
+                  key={itemNumber}
+                  className="p-3 bg-card flex justify-between"
+                >
                   <span>Item #{itemNumber}</span>
                   <span className="text-foreground/70">Page {currentPage}</span>
                 </div>

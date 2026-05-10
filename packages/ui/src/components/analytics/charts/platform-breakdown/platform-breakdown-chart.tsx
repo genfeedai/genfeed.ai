@@ -106,8 +106,8 @@ export function PlatformBreakdownChart({
                 fill="hsl(var(--muted-foreground))"
                 dataKey="value"
               >
-                {dataWithTotal.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={getColor(entry.platform)} />
+                {dataWithTotal.map((entry) => (
+                  <Cell key={entry.platform} fill={getColor(entry.platform)} />
                 ))}
               </Pie>
 

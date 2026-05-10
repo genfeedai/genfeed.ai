@@ -22,7 +22,7 @@ export default function SubscriptionGuard({
 }: SubscriptionGuardProps) {
   const isBillingEnabled = Boolean(process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY);
   const { user, isLoaded } = useUser();
-  const router = useRouter();
+  const { replace } = useRouter();
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
@@ -49,12 +49,12 @@ export default function SubscriptionGuard({
       status === SubscriptionStatus.TRIALING;
 
     if (!isActive) {
-      router.replace('/onboarding/providers');
+      replace('/onboarding/providers');
       return;
     }
 
     setChecked(true);
-  }, [isBillingEnabled, isLoaded, user, router]);
+  }, [isBillingEnabled, isLoaded, user, replace]);
 
   // Show nothing while checking (prevents flash of protected content)
   if (!isLoaded || !checked) {

@@ -11,7 +11,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { HiExclamationTriangle, HiXMark } from 'react-icons/hi2';
 
 const LOW_CREDITS_THRESHOLD = 1000;
-const DISMISS_KEY = 'genfeed:low-credits-dismissed';
+const DISMISS_KEY = 'genfeed:low-credits-dismissed:v1';
 const DISMISS_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 interface DismissState {

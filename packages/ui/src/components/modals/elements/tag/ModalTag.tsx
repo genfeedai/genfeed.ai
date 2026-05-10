@@ -109,7 +109,7 @@ export default function ModalTag({
   });
 
   // Called when Cancel button is clicked - initiates the close
-  const handleCancel = useCallback(() => {
+  const cancelModalTag = useCallback(() => {
     closeModal();
   }, [closeModal]);
 
@@ -149,7 +149,7 @@ export default function ModalTag({
     item,
   ]);
 
-  const handleChange = useCallback(
+  const updateModalTag = useCallback(
     (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       const { name, value } = e.target;
       form.setValue(name as keyof TagSchema, value, { shouldValidate: true });
@@ -176,8 +176,8 @@ export default function ModalTag({
         {hasFormErrors(form.formState.errors) && (
           <Alert type={AlertCategory.ERROR} className="mb-4">
             <div className="space-y-1">
-              {parseFormErrors(form.formState.errors).map((error, index) => (
-                <div key={index}>{error}</div>
+              {parseFormErrors(form.formState.errors).map((error) => (
+                <div key={error}>{error}</div>
               ))}
             </div>
           </Alert>
@@ -188,7 +188,7 @@ export default function ModalTag({
             type="text"
             name="label"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalTag}
             isDisabled={isSubmitting}
           />
         </FormControl>
@@ -205,7 +205,7 @@ export default function ModalTag({
                 .replace(/\s+/g, '-') // Replace spaces with hyphens
                 .replace(/[^a-z0-9-]/g, ''); // Remove invalid characters
               e.target.value = value;
-              handleChange(e);
+              updateModalTag(e);
             }}
             isDisabled={isSubmitting}
             placeholder="lowercase-with-hyphens"
@@ -234,7 +234,7 @@ export default function ModalTag({
           <Textarea
             name="description"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalTag}
             isDisabled={isSubmitting}
             placeholder="Enter tag description (optional)"
           />
@@ -246,7 +246,7 @@ export default function ModalTag({
               type="color"
               name="backgroundColor"
               control={form.control}
-              onChange={handleChange}
+              onChange={updateModalTag}
               isDisabled={isSubmitting}
             />
           </FormControl>
@@ -256,7 +256,7 @@ export default function ModalTag({
               type="color"
               name="textColor"
               control={form.control}
-              onChange={handleChange}
+              onChange={updateModalTag}
               isDisabled={isSubmitting}
             />
           </FormControl>
@@ -266,7 +266,7 @@ export default function ModalTag({
           <Button
             label="Cancel"
             variant={ButtonVariant.SECONDARY}
-            onClick={handleCancel}
+            onClick={cancelModalTag}
             isLoading={isSubmitting}
           />
 

@@ -54,7 +54,7 @@ export default function AiActionButton({
   const resolvedLabel = label ?? AI_ACTION_LABELS[action];
   const resolvedTooltip = tooltip ?? AI_ACTION_DESCRIPTIONS[action];
 
-  const handleClick = useCallback(async () => {
+  const activateAiActionButton = useCallback(async () => {
     const result = await execute(content, context);
     if (result) {
       onResult(result);
@@ -86,7 +86,7 @@ export default function AiActionButton({
         isDisabled={isDisabled || isLoading || !content}
         tooltip={resolvedTooltip}
         tooltipPosition="top"
-        onClick={handleClick}
+        onClick={activateAiActionButton}
       />
 
       {showUndo && previousValue !== null && !isLoading && (

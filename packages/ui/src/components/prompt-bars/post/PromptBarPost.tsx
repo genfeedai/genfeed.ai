@@ -22,6 +22,8 @@ import {
   HiSquaresPlus,
 } from 'react-icons/hi2';
 
+const EMPTY_ARRAY: never[] = [];
+
 const CONTROL_CLASS =
   'h-9 px-3 gap-2 text-sm flex-shrink-0 !border-white/10 !bg-white/[0.03] text-white/80 hover:!bg-white/[0.06] hover:text-white';
 const COLLAPSE_BUTTON_CLASS =
@@ -41,7 +43,7 @@ function PromptBarPost({
     Platform.TWITTER,
     Platform.TIKTOK,
   ],
-  presets = [],
+  presets = EMPTY_ARRAY,
 }: PromptBarContentProps) {
   const [prompt, setPrompt] = useState('');
   const [count, setCount] = useState(3);

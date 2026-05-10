@@ -39,8 +39,8 @@ vi.mock('recharts', () => ({
     children: React.ReactNode;
   }) => (
     <div data-testid="pie">
-      {data?.map((item, i) => (
-        <span key={i} data-testid={`pie-segment-${item.platform}`}>
+      {data?.map((item) => (
+        <span key={item.platform} data-testid={`pie-segment-${item.platform}`}>
           {item.platform}: {item.value}
         </span>
       ))}

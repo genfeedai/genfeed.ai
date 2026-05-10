@@ -38,11 +38,13 @@ import {
 } from '@ui-constants/platform-char-limit.constant';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 
+const EMPTY_ARRAY: never[] = [];
+
 export default function ModalPost({
   post,
   ingredient,
   credential,
-  credentials = [],
+  credentials = EMPTY_ARRAY,
   parentPost,
   onConfirm,
   onClose,
@@ -277,8 +279,8 @@ export default function ModalPost({
         {hasFormErrors(form.formState.errors) && (
           <Alert type={AlertCategory.ERROR}>
             <div className="space-y-1">
-              {parseFormErrors(form.formState.errors).map((error, index) => (
-                <div key={index}>{error}</div>
+              {parseFormErrors(form.formState.errors).map((error) => (
+                <div key={error}>{error}</div>
               ))}
             </div>
           </Alert>

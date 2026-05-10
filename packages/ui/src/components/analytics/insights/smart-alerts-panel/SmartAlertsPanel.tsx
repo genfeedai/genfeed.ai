@@ -4,9 +4,10 @@ import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { SmartAlertsPanelProps } from '@genfeedai/props/analytics/insights.props';
 import Card from '@ui/card/Card';
+import ClientDateTime from '@ui/components/time/ClientDateTime';
 import { Button } from '@ui/primitives/button';
 import { formatDistanceToNow } from 'date-fns';
-import { memo, useMemo } from 'react';
+import { type KeyboardEvent, memo, useMemo } from 'react';
 import {
   HiArrowRight,
   HiBell,
@@ -93,9 +94,9 @@ const SmartAlertsPanel = memo(function SmartAlertsPanel({
         className={className}
       >
         <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
+          {[1, 2, 3].map((placeholderId) => (
             <div
-              key={i}
+              key={placeholderId}
               className="animate-pulse flex items-start gap-3 p-3 bg-background"
             >
               <div className="size-8 bg-muted rounded-full" />
@@ -146,17 +147,28 @@ const SmartAlertsPanel = memo(function SmartAlertsPanel({
           const styles = getSeverityStyles(alert.severity);
           const TypeIcon = getTypeIcon(alert.type);
           const SeverityIcon = styles.icon;
+          const markAlertRead = () => !alert.isRead && onMarkRead?.(alert.id);
 
           return (
             <div
               key={alert.id}
+              role="button"
+              tabIndex={alert.isRead ? -1 : 0}
               className={cn(
                 'relative flex items-start gap-3 p-3 border transition-all',
                 styles.bg,
                 styles.border,
                 !alert.isRead && 'ring-2 ring-offset-2 ring-primary/20',
               )}
-              onClick={() => !alert.isRead && onMarkRead?.(alert.id)}
+              onClick={markAlertRead}
+              onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => {
+                if (event.key !== 'Enter' && event.key !== ' ') {
+                  return;
+                }
+
+                event.preventDefault();
+                markAlertRead();
+              }}
             >
               <div className={cn('mt-0.5', styles.text)}>
                 <SeverityIcon className="size-5" />
@@ -190,9 +202,14 @@ const SmartAlertsPanel = memo(function SmartAlertsPanel({
 
                 <div className="flex items-center gap-3 mt-2">
                   <span className="text-xs text-foreground/40">
-                    {formatDistanceToNow(new Date(alert.createdAt), {
-                      addSuffix: true,
-                    })}
+                    <ClientDateTime
+                      value={alert.createdAt}
+                      format={(date) =>
+                        formatDistanceToNow(date, {
+                          addSuffix: true,
+                        })
+                      }
+                    />
                   </span>
 
                   {alert.actionUrl && alert.actionLabel && onAction && (

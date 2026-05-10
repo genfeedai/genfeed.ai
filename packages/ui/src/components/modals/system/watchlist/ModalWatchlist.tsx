@@ -36,24 +36,30 @@ export default function ModalWatchlist({
 }: ModalWatchlistProps) {
   const { brands, brandId } = useBrand();
 
-  const { form, formRef, isSubmitting, onSubmit, closeModal, handleDelete } =
-    useCrudModal<IWatchlist, WatchlistSchema>({
-      defaultValues: {
-        brand: scope === PageScope.BRAND ? propBrandId || brandId : '',
-        category: '',
-        handle: '',
-        name: '',
-        notes: '',
-        platform: Platform.INSTAGRAM,
-      },
-      entity: item || null,
-      modalId: ModalEnum.WATCHLIST,
-      onConfirm: (isRefreshing) => {
-        onConfirm(isRefreshing || false);
-      },
-      schema: watchlistSchema,
-      serviceFactory: (token) => WatchlistService.getInstance(token),
-    });
+  const {
+    form,
+    formRef,
+    isSubmitting,
+    onSubmit,
+    closeModal,
+    handleDelete: deleteModalWatchlist,
+  } = useCrudModal<IWatchlist, WatchlistSchema>({
+    defaultValues: {
+      brand: scope === PageScope.BRAND ? propBrandId || brandId : '',
+      category: '',
+      handle: '',
+      name: '',
+      notes: '',
+      platform: Platform.INSTAGRAM,
+    },
+    entity: item || null,
+    modalId: ModalEnum.WATCHLIST,
+    onConfirm: (isRefreshing) => {
+      onConfirm(isRefreshing || false);
+    },
+    schema: watchlistSchema,
+    serviceFactory: (token) => WatchlistService.getInstance(token),
+  });
 
   // Populate form when editing
   useEffect(() => {
@@ -75,7 +81,7 @@ export default function ModalWatchlist({
     }
   }, [item, form, scope, brandId]);
 
-  const handleChange = (
+  const updateModalWatchlist = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
@@ -92,7 +98,7 @@ export default function ModalWatchlist({
     }
   };
 
-  const handleCancel = () => {
+  const cancelModalWatchlist = () => {
     closeModal();
   };
 
@@ -105,8 +111,8 @@ export default function ModalWatchlist({
         {hasFormErrors(form.formState.errors) && (
           <Alert type={AlertCategory.ERROR} className="mb-4">
             <div className="space-y-1">
-              {parseFormErrors(form.formState.errors).map((error, index) => (
-                <div key={index}>{error}</div>
+              {parseFormErrors(form.formState.errors).map((error) => (
+                <div key={error}>{error}</div>
               ))}
             </div>
           </Alert>
@@ -117,7 +123,7 @@ export default function ModalWatchlist({
             type="text"
             name="name"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalWatchlist}
             placeholder="Enter name (e.g., MrBeast, Nike)"
             isRequired={true}
             isDisabled={isSubmitting}
@@ -128,7 +134,7 @@ export default function ModalWatchlist({
           <SelectField
             name="platform"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalWatchlist}
             isRequired={true}
             isDisabled={isSubmitting}
           >
@@ -144,7 +150,7 @@ export default function ModalWatchlist({
             type="text"
             name="handle"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalWatchlist}
             placeholder="username (without @)"
             isRequired={true}
             isDisabled={isSubmitting}
@@ -159,7 +165,7 @@ export default function ModalWatchlist({
             type="text"
             name="category"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalWatchlist}
             placeholder="e.g., Direct Competitor, Inspiration, Industry Leader"
             isDisabled={isSubmitting}
           />
@@ -169,7 +175,7 @@ export default function ModalWatchlist({
           <Textarea
             name="notes"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalWatchlist}
             placeholder="Add notes about this creator…"
             isDisabled={isSubmitting}
           />
@@ -180,7 +186,7 @@ export default function ModalWatchlist({
             <SelectField
               name="brand"
               control={form.control}
-              onChange={handleChange}
+              onChange={updateModalWatchlist}
               isDisabled={isSubmitting}
             >
               <option value="">Select a brand</option>
@@ -197,7 +203,7 @@ export default function ModalWatchlist({
           <Button
             label="Cancel"
             variant={ButtonVariant.SECONDARY}
-            onClick={handleCancel}
+            onClick={cancelModalWatchlist}
             isLoading={isSubmitting}
           />
 
@@ -205,7 +211,7 @@ export default function ModalWatchlist({
             <Button
               label="Delete"
               variant={ButtonVariant.DESTRUCTIVE}
-              onClick={handleDelete}
+              onClick={deleteModalWatchlist}
               isLoading={isSubmitting}
             />
           )}

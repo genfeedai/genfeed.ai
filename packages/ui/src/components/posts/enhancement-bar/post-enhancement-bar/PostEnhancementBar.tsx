@@ -33,6 +33,8 @@ import {
   HiTrash,
 } from 'react-icons/hi2';
 
+const EMPTY_ARRAY: never[] = [];
+
 const _DEFAULT_TEXT_MODEL_COST = EnvironmentService.TEXT_MODEL_DEFAULT_COST;
 
 export const QUICK_ACTIONS = [
@@ -88,7 +90,7 @@ export default function PostEnhancementBar({
   className = '',
   onSelectMedia,
   onGenerateIllustration,
-  selectedMedia = [],
+  selectedMedia = EMPTY_ARRAY,
   isSavingMedia = false,
   onSave,
   isDirty = false,

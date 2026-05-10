@@ -78,7 +78,7 @@ type ModalPostBatchEmptyStateProps = {
   hasAvailableCredentials: boolean;
   hasInvalidCredentials: boolean;
   onClose: () => void;
-  router: ReturnType<typeof useRouter>;
+  onOpenCredentials: () => void;
 };
 
 // All supported platforms
@@ -135,7 +135,7 @@ function ModalPostBatchEmptyState({
   hasAvailableCredentials,
   hasInvalidCredentials,
   onClose,
-  router,
+  onOpenCredentials,
 }: ModalPostBatchEmptyStateProps) {
   if (!ingredient) {
     return (
@@ -185,7 +185,7 @@ function ModalPostBatchEmptyState({
             variant={ButtonVariant.DEFAULT}
             onClick={() => {
               onClose();
-              router.push(`${EnvironmentService.apps.app}/credentials`);
+              onOpenCredentials();
             }}
           />
         </div>
@@ -206,7 +206,7 @@ export default function ModalPostBatch({
   openKey,
 }: ModalPostProps) {
   const { organizationId, refreshBrands } = useBrand();
-  const router = useRouter();
+  const { push } = useRouter();
   const [error, setError] = useState<string | null>(null);
 
   // Refs for callbacks to prevent re-renders
@@ -366,6 +366,10 @@ export default function ModalPostBatch({
       onCloseRef.current?.();
     }, 300);
   }, [form]);
+
+  const openCredentials = useCallback(() => {
+    push(`${EnvironmentService.apps.app}/credentials`);
+  }, [push]);
 
   const handleSubmit = useCallback(async () => {
     setError(null); // Clear any previous errors
@@ -1012,7 +1016,7 @@ export default function ModalPostBatch({
           hasAvailableCredentials={hasAvailableCredentials}
           hasInvalidCredentials={hasInvalidCredentials}
           onClose={closeModalPost}
-          router={router}
+          onOpenCredentials={openCredentials}
         />
 
         {ingredient &&
@@ -1130,7 +1134,7 @@ export default function ModalPostBatch({
 
                     {/* Platform statuses */}
                     <div className="space-y-2">
-                      {platformStatuses.map((status, index) => {
+                      {platformStatuses.map((status) => {
                         const PlatformIcon =
                           PLATFORM_ICONS[
                             status.platform as keyof typeof PLATFORM_ICONS
@@ -1177,7 +1181,7 @@ export default function ModalPostBatch({
 
                         return (
                           <div
-                            key={index}
+                            key={status.credentialId}
                             className={`flex items-center gap-3 p-4 border transition-all ${getStatusColor()}`}
                           >
                             {PlatformIcon && (
@@ -1247,7 +1251,7 @@ export default function ModalPostBatch({
                               label="View Scheduled Posts"
                               variant={ButtonVariant.DEFAULT}
                               onClick={() => {
-                                router.push(
+                                push(
                                   `${EnvironmentService.apps.app}${getPublisherPostsHref(
                                     {
                                       status: PostStatus.SCHEDULED,
@@ -1271,11 +1275,9 @@ export default function ModalPostBatch({
                   {hasFormErrors(form.formState.errors) && (
                     <Alert type={AlertCategory.ERROR} className="mb-4">
                       <div className="space-y-1">
-                        {parseFormErrors(form.formState.errors).map(
-                          (error, index) => (
-                            <div key={index}>{error}</div>
-                          ),
-                        )}
+                        {parseFormErrors(form.formState.errors).map((error) => (
+                          <div key={error}>{error}</div>
+                        ))}
                       </div>
                     </Alert>
                   )}
@@ -1298,9 +1300,7 @@ export default function ModalPostBatch({
                           variant={ButtonVariant.OUTLINE}
                           onClick={() => {
                             closeModalPost();
-                            router.push(
-                              `${EnvironmentService.apps.app}/credentials`,
-                            );
+                            push(`${EnvironmentService.apps.app}/credentials`);
                           }}
                         />
                       </div>

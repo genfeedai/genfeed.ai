@@ -96,21 +96,22 @@ export default function FrameSequenceSelector({
       <div className="space-y-4">
         {/* Frame Grid */}
         <div className={cn('grid gap-3', gridClass)}>
-          {frames.map((frame, index) => (
+          {frames.map((frame, frameIndex) => (
             <div
-              key={`${frame.id}-${index}`}
+              key={frame.id}
               className="group relative bg-background overflow-hidden"
             >
               <div className={cn(aspectClass, 'relative')}>
                 <Image
                   src={frame.ingredientUrl || ''}
-                  alt={`Frame ${index + 1}`}
+                  alt={`Frame ${frameIndex + 1}`}
                   fill
+                  sizes="(max-width: 768px) 50vw, 220px"
                   className="object-cover"
                 />
                 {/* Frame Number Badge */}
                 <div className="absolute top-1 left-1 bg-primary text-primary-foreground px-1.5 py-0.5 text-xs font-semibold z-10">
-                  {index + 1}
+                  {frameIndex + 1}
                 </div>
                 {/* Remove Button */}
                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">

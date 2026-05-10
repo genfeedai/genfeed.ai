@@ -27,7 +27,7 @@ vi.mock('@ui/prompt-bars/components/divider/PromptBarDivider', () => ({
 }));
 
 vi.mock('next/image', () => ({
-  default: ({ src, alt }: any) => <img src={src} alt={alt} />,
+  default: ({ src, alt }: any) => <input type="image" src={src} alt={alt} />,
 }));
 
 vi.mock('@genfeedai/services/core/environment.service', () => ({

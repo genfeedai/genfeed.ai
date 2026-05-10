@@ -15,6 +15,7 @@ import {
   isVideoIngredient,
 } from '@genfeedai/utils/media/ingredient-type.util';
 import Card from '@ui/card/Card';
+import ClientDateTime from '@ui/components/time/ClientDateTime';
 import Badge from '@ui/display/badge/Badge';
 import EvaluationCard from '@ui/evaluation/card/EvaluationCard';
 import {
@@ -266,12 +267,18 @@ export default function PostDetailSidebar({
                 <div className="flex items-start justify-between gap-4">
                   <span className="text-foreground/60">Reviewed</span>
                   <span className="text-right">
-                    {reviewSummary?.reviewedAt
-                      ? new Date(reviewSummary.reviewedAt).toLocaleString(
-                          undefined,
-                          { timeZone: browserTimezone },
-                        )
-                      : 'Not reviewed'}
+                    {reviewSummary?.reviewedAt ? (
+                      <ClientDateTime
+                        value={reviewSummary.reviewedAt}
+                        format={(date) =>
+                          date.toLocaleString(undefined, {
+                            timeZone: browserTimezone,
+                          })
+                        }
+                      />
+                    ) : (
+                      'Not reviewed'
+                    )}
                   </span>
                 </div>
               </div>
@@ -283,9 +290,9 @@ export default function PostDetailSidebar({
 
               {reviewEvents.length > 0 && (
                 <div className="mt-4 space-y-3">
-                  {reviewEvents.map((event, index) => (
+                  {reviewEvents.map((event) => (
                     <div
-                      key={`${event.reviewedAt}-${event.decision}-${index}`}
+                      key={`${event.reviewedAt}-${event.decision}`}
                       className="rounded-lg border border-border bg-background/40 p-3 text-sm"
                     >
                       <div className="flex items-start justify-between gap-4">
@@ -293,12 +300,14 @@ export default function PostDetailSidebar({
                           {formatReviewDecision(event.decision)}
                         </span>
                         <span className="text-right text-foreground/60">
-                          {new Date(event.reviewedAt).toLocaleString(
-                            undefined,
-                            {
-                              timeZone: browserTimezone,
-                            },
-                          )}
+                          <ClientDateTime
+                            value={event.reviewedAt}
+                            format={(date) =>
+                              date.toLocaleString(undefined, {
+                                timeZone: browserTimezone,
+                              })
+                            }
+                          />
                         </span>
                       </div>
                       {event.feedback && (

@@ -53,7 +53,7 @@ export default function TopbarWorkspaceSwitcher({
 } = {}) {
   const logoUrl = useThemeLogo();
   const pathname = usePathname();
-  const router = useRouter();
+  const { push, refresh } = useRouter();
   const { user } = useUser();
   const { brandId, brands } = useBrand();
   const { orgHref, orgSlug } = useOrgUrl();
@@ -178,9 +178,9 @@ export default function TopbarWorkspaceSwitcher({
 
         if (isIngredientsDetailRoute) {
           const [, , type] = pathname?.split('/') ?? [];
-          router.push(`/ingredients/${type}`);
+          push(`/ingredients/${type}`);
         } else {
-          router.refresh();
+          refresh();
         }
 
         setIsUpdatingBrand(false);
@@ -189,7 +189,7 @@ export default function TopbarWorkspaceSwitcher({
         setIsUpdatingBrand(false);
       }
     },
-    [getUsersService, isBusy, pathname, router, user],
+    [getUsersService, isBusy, pathname, user, refresh, push],
   );
 
   const handleClearBrandSelection = useCallback(async () => {
@@ -204,14 +204,14 @@ export default function TopbarWorkspaceSwitcher({
       logger.info('DELETE /users/me/brand-selection success');
       await user?.reload();
       setIsOpen(false);
-      router.push(orgHref('/overview'));
-      router.refresh();
+      push(orgHref('/overview'));
+      refresh();
       setIsUpdatingBrand(false);
     } catch (error) {
       logger.error('DELETE /users/me/brand-selection failed', error);
       setIsUpdatingBrand(false);
     }
-  }, [brandId, getUsersService, isBusy, orgHref, router, user]);
+  }, [brandId, getUsersService, isBusy, orgHref, user, refresh, push]);
 
   const handleCreateOrganization = useCallback(async () => {
     const trimmedLabel = newOrganizationLabel.trim();

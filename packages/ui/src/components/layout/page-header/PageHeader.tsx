@@ -19,13 +19,13 @@ export default function PageHeader({
   actions,
   className,
 }: PageHeaderProps) {
-  const router = useRouter();
+  const { push } = useRouter();
 
   const handleBack = () => {
     if (onBack) {
       onBack();
     } else if (backRoute) {
-      router.push(backRoute);
+      push(backRoute);
     }
   };
 

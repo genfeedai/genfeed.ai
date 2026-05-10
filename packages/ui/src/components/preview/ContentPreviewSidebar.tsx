@@ -105,7 +105,7 @@ export default function ContentPreviewSidebar({
                         {item.content.trim() ||
                           'Draft tweet — start typing to see it here.'}
                       </p>
-                      {showCharacterCount && (
+                      {showCharacterCount === true && (
                         <div className="flex flex-wrap items-center gap-2 text-xs text-foreground/60">
                           <span>
                             {item.content.length}/{contentMaxLength}
@@ -129,7 +129,7 @@ export default function ContentPreviewSidebar({
             emptyMessage ||
             'Your tweet preview will appear here as you write.'}
         </p>
-        {showCharacterCount && (
+        {showCharacterCount === true && (
           <div className="mt-2 text-xs text-foreground/60 text-right">
             {content.length}/{contentMaxLength}
           </div>
@@ -149,7 +149,7 @@ export default function ContentPreviewSidebar({
             emptyMessage ||
             'Your LinkedIn post preview will appear here as you write.'}
         </p>
-        {showCharacterCount && (
+        {showCharacterCount === true && (
           <div className="mt-2 text-xs text-foreground/60 text-right">
             {content.length} characters
           </div>

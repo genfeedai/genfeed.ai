@@ -27,6 +27,7 @@ import type { IGenerationItem } from '@genfeedai/interfaces/components/generatio
 import type { UnifiedActivityItem } from '@genfeedai/interfaces/components/topbar-activities.interface';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
+import ClientDateTime from '@ui/components/time/ClientDateTime';
 import Badge from '@ui/display/badge/Badge';
 import {
   Button,
@@ -363,7 +364,7 @@ export default function TopbarActivities() {
     autoLoad: true, // Load activities on mount to show badge count
   });
 
-  const router = useRouter();
+  const { push } = useRouter();
   const { href } = useOrgUrl();
   const { openIngredientOverlay } = useIngredientOverlay();
   const notificationsService = NotificationsService.getInstance();
@@ -585,12 +586,12 @@ export default function TopbarActivities() {
 
   const navigateToStudio = () => {
     setIsOpen(false);
-    router.push(href('/studio'));
+    push(href('/studio'));
   };
 
   const navigateToActivities = () => {
     setIsOpen(false);
-    router.push(href('/overview/activities'));
+    push(href('/overview/activities'));
   };
 
   const navigateToPublisherArticles = useCallback(
@@ -633,7 +634,7 @@ export default function TopbarActivities() {
       const activityHref = parsed?.href as string | undefined;
       if (activityHref) {
         setIsOpen(false);
-        router.push(href(activityHref));
+        push(href(activityHref));
         return;
       }
 
@@ -644,14 +645,14 @@ export default function TopbarActivities() {
       // For posts, navigate to posts page instead of opening modal
       if (taskType === 'post') {
         setIsOpen(false);
-        router.push(href(getPublisherPostsHref()));
+        push(href(getPublisherPostsHref()));
         return;
       }
 
       // For training, navigate to training/models page
       if (taskType === 'training') {
         setIsOpen(false);
-        router.push(href('/studio/models'));
+        push(href('/studio/models'));
         return;
       }
 
@@ -688,8 +689,8 @@ export default function TopbarActivities() {
       notificationsService,
       openIngredientOverlay,
       navigateToPublisherArticles,
-      router,
       href,
+      push,
     ],
   );
 
@@ -860,10 +861,15 @@ export default function TopbarActivities() {
             <div className="flex items-center justify-between gap-2">
               {statusBadge}
               <span className="text-xs text-foreground/50 shrink-0">
-                {new Date(activity.createdAt).toLocaleTimeString([], {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
+                <ClientDateTime
+                  value={activity.createdAt}
+                  format={(date) =>
+                    date.toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })
+                  }
+                />
               </span>
             </div>
           </div>
@@ -922,7 +928,10 @@ export default function TopbarActivities() {
             </span>
 
             <span className="text-xs text-foreground/60">
-              {new Date(activity.createdAt).toLocaleDateString()}
+              <ClientDateTime
+                value={activity.createdAt}
+                format={(date) => date.toLocaleDateString()}
+              />
             </span>
           </Button>
         </div>
@@ -946,18 +955,18 @@ export default function TopbarActivities() {
       removeTask(task.id);
 
       if (task.resultType === 'WORKFLOW') {
-        router.push(href(`/workflows/executions/${task.resultId ?? task.id}`));
+        push(href(`/workflows/executions/${task.resultId ?? task.id}`));
         return;
       }
 
       if (task.resultType) {
-        router.push(href('/studio'));
+        push(href('/studio'));
         return;
       }
 
-      router.push(href('/overview/activities'));
+      push(href('/overview/activities'));
     },
-    [notificationsService, removeTask, router, href],
+    [notificationsService, removeTask, href, push],
   );
 
   const renderRealtimeTask = (task: IBackgroundTask) => {
@@ -1049,10 +1058,15 @@ export default function TopbarActivities() {
                   : 'Failed'}
           </Badge>
           <span className="text-xs text-foreground/50 shrink-0">
-            {new Date(task.createdAt).toLocaleTimeString([], {
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
+            <ClientDateTime
+              value={task.createdAt}
+              format={(date) =>
+                date.toLocaleTimeString([], {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })
+              }
+            />
           </span>
         </div>
       </Button>
@@ -1198,9 +1212,7 @@ export default function TopbarActivities() {
                 {realtimeTasks
                   .slice()
                   .sort(
-                    (a, b) =>
-                      new Date(b.createdAt).getTime() -
-                      new Date(a.createdAt).getTime(),
+                    (a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt),
                   )
                   .map((task) => renderRealtimeTask(task))}
                 <div className="border-t border-white/[0.08] my-1" />

@@ -32,7 +32,7 @@ const FEATURED_TIER = 'Hosted';
 const FAQ_ITEMS = [
   {
     answer:
-      'Genfeed separates platform access from output usage. Start with the Cloud App at $8/month, then pay as you go for videos, images, and voice output.',
+      'Genfeed separates platform access from output usage. Start with the Cloud App at $49/month, then pay as you go for videos, images, and voice output.',
     question: 'How does pricing work?',
   },
   {
@@ -64,7 +64,7 @@ const FAQ_ITEMS = [
 
 const PAYG_RULES = [
   'Cloud app first',
-  '$8/month platform access',
+  '$49/month platform access',
   'Pay-as-you-go output',
   'Book a demo for team rollout',
 ] as const;
@@ -108,7 +108,7 @@ function getPlanSummary(plan: (typeof websitePlans)[number]): string {
 }
 
 export default function PricingContent() {
-  const containerRef = useMarketingEntrance();
+  const containerRef = useMarketingEntrance({ hero: false, sections: false });
   const signUpHref = `${EnvironmentService.apps.app}/sign-up?plan=hosted`;
 
   return (
@@ -144,7 +144,7 @@ export default function PricingContent() {
             className="[&_h2]:text-5xl mb-4"
           />
 
-          <NeuralGrid columns={4}>
+          <NeuralGrid columns={4} className="gsap-grid">
             {getOrderedPlans().map((plan, index) => {
               const isFeatured = plan.label === FEATURED_TIER;
               const isSelfHosted = plan.type === 'byok';
@@ -165,7 +165,7 @@ export default function PricingContent() {
                   inverted={isFeatured}
                   padding="lg"
                   className={cn(
-                    'relative gsap-card !rounded-none',
+                    'relative gsap-card',
                     !isFeatured && 'bg-fill/[0.02]',
                   )}
                   tierLabel={`${String(index + 1).padStart(2, '0')} / ${getDisplayName(plan.label)}`}

@@ -103,7 +103,7 @@ export default function MenuShared({
 }: MenuSharedProps) {
   const logoUrl = useThemeLogo();
   const rawPathname = usePathname();
-  const router = useRouter();
+  const { push } = useRouter();
   const { href, orgHref, orgSlug, brandSlug } = useOrgUrl();
   const [isConversationsCollapsed, setIsConversationsCollapsed] =
     useState(false);
@@ -379,14 +379,15 @@ export default function MenuShared({
       return;
     }
 
-    const handleKeyDown = (e: KeyboardEvent) => {
+    const processKeyDownMenuShared = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         exitNestedGroup();
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener('keydown', processKeyDownMenuShared);
+    return () =>
+      document.removeEventListener('keydown', processKeyDownMenuShared);
   }, [nestedGroupId, exitNestedGroup]);
 
   const secondaryNavigationContent =
@@ -661,7 +662,7 @@ export default function MenuShared({
                 items={nestedGroup.items}
                 onBack={() => {
                   exitNestedGroup();
-                  router.push(href('/workspace/overview'));
+                  push(href('/workspace/overview'));
                 }}
                 onItemClick={handleLinkClick}
               />
@@ -844,7 +845,7 @@ function CollapsibleGroup({
     onCollapsedChange?.(isCollapsed);
   }, [isCollapsed, onCollapsedChange]);
 
-  const handleToggle = useCallback(() => {
+  const toggleMenuShared = useCallback(() => {
     setIsCollapsed((prev) => {
       const next = !prev;
       const groups = getCollapsedGroups();
@@ -879,7 +880,7 @@ function CollapsibleGroup({
         <Button
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}
-          onClick={handleToggle}
+          onClick={toggleMenuShared}
           className="flex items-center gap-1.5 hover:text-white/50 transition-colors duration-150 cursor-pointer"
         >
           <HiChevronDown
@@ -911,17 +912,17 @@ function DrillDownGroupRow({
   defaultHref?: string;
   onEnter: () => void;
 }) {
-  const router = useRouter();
+  const _router = useRouter();
   const firstItem = group.items[0];
   const OutlineIcon =
     DRILL_DOWN_GROUP_ICON_OVERRIDES[
       group.group as keyof typeof DRILL_DOWN_GROUP_ICON_OVERRIDES
     ] ?? firstItem?.outline;
 
-  const handleClick = () => {
+  const activateMenuShared = () => {
     onEnter();
     if (defaultHref) {
-      router.push(defaultHref);
+      push(defaultHref);
     }
   };
 
@@ -981,7 +982,7 @@ function DrillDownGroupRow({
     <Button
       variant={ButtonVariant.UNSTYLED}
       withWrapper={false}
-      onClick={handleClick}
+      onClick={activateMenuShared}
       className={cn(rowClasses, 'cursor-pointer')}
     >
       {content}

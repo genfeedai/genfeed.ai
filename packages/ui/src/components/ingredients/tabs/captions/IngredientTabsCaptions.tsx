@@ -18,6 +18,7 @@ import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { VideosService } from '@genfeedai/services/ingredients/videos.service';
 import Card from '@ui/card/Card';
+import ClientDateTime from '@ui/components/time/ClientDateTime';
 import Alert from '@ui/feedback/alert/Alert';
 import Loading from '@ui/loading/default/Loading';
 import { Button } from '@ui/primitives/button';
@@ -45,7 +46,7 @@ export default function IngredientTabsCaptions({
   // onReload,
 }: IngredientTabsCaptionsProps) {
   const { isSignedIn } = useAuth();
-  const router = useRouter();
+  const { push } = useRouter();
   const { href } = useOrgUrl();
   const notificationsService = useMemo(
     () => NotificationsService.getInstance(),
@@ -134,7 +135,7 @@ export default function IngredientTabsCaptions({
       logger.info('Video generated', data);
 
       // Redirect to videos page
-      router.push(href(`/videos/${data.id}`));
+      push(href(`/videos/${data.id}`));
     } catch (error) {
       logger.error('Failed to generate video with captions', error);
       notificationsService.error('Failed to generate video with captions');
@@ -239,7 +240,11 @@ export default function IngredientTabsCaptions({
                     </p>
 
                     <p className="text-sm text-foreground/60">
-                      Created {new Date(caption.createdAt).toLocaleDateString()}
+                      <ClientDateTime
+                        value={caption.createdAt}
+                        prefix="Created "
+                        format={(date) => date.toLocaleDateString()}
+                      />
                     </p>
                   </div>
                   <Button

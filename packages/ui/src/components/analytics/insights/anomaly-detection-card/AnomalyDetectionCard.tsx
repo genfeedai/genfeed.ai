@@ -59,9 +59,9 @@ const AnomalyDetectionCard = memo(function AnomalyDetectionCard({
         className={className}
       >
         <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
+          {[1, 2, 3].map((placeholderId) => (
             <div
-              key={i}
+              key={placeholderId}
               className="animate-pulse flex items-center gap-4 p-4 bg-background"
             >
               <div className="size-10 bg-muted rounded-full" />

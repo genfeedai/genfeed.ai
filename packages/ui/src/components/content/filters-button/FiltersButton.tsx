@@ -210,7 +210,7 @@ export default function FiltersButton({
     return () => clearTimeout(timer);
   }, [searchValue, filters, notifyFilterChange]);
 
-  const handleChange = (
+  const updateFiltersButton = (
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
@@ -298,7 +298,7 @@ export default function FiltersButton({
                 <div className="w-full">
                   <FormSearchbar
                     value={searchValue}
-                    onChange={handleChange}
+                    onChange={updateFiltersButton}
                     placeholder="Search label, description, or tags"
                     size={ComponentSize.SM}
                   />

@@ -72,7 +72,7 @@ vi.mock('next/navigation', () => ({
 
 vi.mock('next/image', () => ({
   default: (props: ImgHTMLAttributes<HTMLImageElement>) => (
-    <img alt={props.alt ?? ''} {...props} />
+    <input type="image" alt={props.alt ?? ''} {...props} />
   ),
 }));
 

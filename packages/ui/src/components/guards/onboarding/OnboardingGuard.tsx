@@ -35,7 +35,7 @@ function OnboardingGuardInner({ children }: OnboardingGuardProps) {
     isSuperAdmin,
     needsOnboarding,
   } = useAccessState();
-  const router = useRouter();
+  const { replace } = useRouter();
   const pathname = usePathname();
   const isOnboardingRoute = pathname.startsWith('/onboarding');
   const isBillingEnabled = Boolean(process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY);
@@ -120,9 +120,9 @@ function OnboardingGuardInner({ children }: OnboardingGuardProps) {
 
   useEffect(() => {
     if (redirectTarget) {
-      router.replace(redirectTarget);
+      replace(redirectTarget);
     }
-  }, [redirectTarget, router]);
+  }, [redirectTarget, replace]);
 
   if (
     !effectiveIsAuthLoaded ||

@@ -5,7 +5,7 @@ import SelectedAvatarPreview from './SelectedAvatarPreview';
 
 vi.mock('next/image', () => ({
   default: ({ alt, src }: { alt: string; src: string }) => (
-    <img alt={alt} src={src} />
+    <input type="image" alt={alt} src={src} />
   ),
 }));
 

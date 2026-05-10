@@ -10,6 +10,7 @@ import {
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { EvaluationCardProps } from '@genfeedai/props/components/evaluation-card.props';
 import Card from '@ui/card/Card';
+import ClientDateTime from '@ui/components/time/ClientDateTime';
 import { Button } from '@ui/primitives/button';
 import { useState } from 'react';
 import { HiArrowUp, HiChevronDown } from 'react-icons/hi2';
@@ -428,9 +429,9 @@ export default function EvaluationCard({
                     Strengths
                   </h4>
                   <ul className="space-y-1.5">
-                    {analysis?.strengths?.slice(0, 3).map((s, i) => (
+                    {analysis?.strengths?.slice(0, 3).map((s) => (
                       <li
-                        key={i}
+                        key={s}
                         className="text-xs text-foreground/70 pl-3 border-l-2 border-success/30"
                       >
                         {s}
@@ -445,9 +446,9 @@ export default function EvaluationCard({
                     Weaknesses
                   </h4>
                   <ul className="space-y-1.5">
-                    {analysis?.weaknesses?.slice(0, 3).map((w, i) => (
+                    {analysis?.weaknesses?.slice(0, 3).map((w) => (
                       <li
-                        key={i}
+                        key={w}
                         className="text-xs text-foreground/70 pl-3 border-l-2 border-error/30"
                       >
                         {w}
@@ -481,9 +482,9 @@ export default function EvaluationCard({
             </Button>
             {!isSuggestionsCollapsed && (
               <div className="space-y-2">
-                {analysis?.suggestions?.map((suggestion, i) => (
+                {analysis?.suggestions?.map((suggestion) => (
                   <div
-                    key={i}
+                    key={suggestion}
                     className="text-xs p-2 bg-primary/5 border border-primary/20"
                   >
                     {suggestion}
@@ -497,7 +498,7 @@ export default function EvaluationCard({
         {/* Last evaluated */}
         {evaluation.updatedAt && (
           <div className="text-xs text-foreground/50 text-right">
-            Evaluated {new Date(evaluation.updatedAt).toLocaleString()}
+            <ClientDateTime value={evaluation.updatedAt} prefix="Evaluated " />
           </div>
         )}
       </div>
