@@ -223,36 +223,31 @@ export class ByokService {
     expiresAt: number,
   ): Promise<void> {
     try {
-      await this.prisma.$transaction(
-        async (tx) => {
-          const existing = await tx.organizationSetting.findFirst({
-            where: { organizationId: orgId },
-          });
+      const existing = await this.prisma.organizationSetting.findFirst({
+        where: { isDeleted: false, organizationId: orgId },
+      });
 
-          if (!existing) {
-            return;
-          }
+      if (!existing) {
+        return;
+      }
 
-          const byokKeys = this.getByokKeys(existing);
-          const entry = byokKeys[provider] ?? ({} as IByokKeyEntry);
+      const byokKeys = this.getByokKeys(existing);
+      const entry = byokKeys[provider] ?? ({} as IByokKeyEntry);
 
-          byokKeys[provider] = {
-            ...entry,
-            apiKey: EncryptionUtil.encrypt(accessToken),
-            apiSecret: refreshToken
-              ? EncryptionUtil.encrypt(refreshToken)
-              : entry.apiSecret,
-            expiresAt,
-            lastValidatedAt: new Date(),
-          };
+      byokKeys[provider] = {
+        ...entry,
+        apiKey: EncryptionUtil.encrypt(accessToken),
+        apiSecret: refreshToken
+          ? EncryptionUtil.encrypt(refreshToken)
+          : entry.apiSecret,
+        expiresAt,
+        lastValidatedAt: new Date(),
+      };
 
-          await tx.organizationSetting.update({
-            data: { byokKeys: byokKeys as never },
-            where: { id: existing.id },
-          });
-        },
-        { isolationLevel: 'Serializable' },
-      );
+      await this.prisma.organizationSetting.update({
+        data: { byokKeys: byokKeys as never },
+        where: { id: existing.id },
+      });
     } catch (error: unknown) {
       this.logger.error('Failed to update OAuth tokens', {
         error,
@@ -269,31 +264,26 @@ export class ByokService {
    */
   async removeKey(orgId: string, provider: ByokProvider): Promise<void> {
     try {
-      await this.prisma.$transaction(
-        async (tx) => {
-          const existing = await tx.organizationSetting.findFirst({
-            where: { organizationId: orgId },
-          });
+      const existing = await this.prisma.organizationSetting.findFirst({
+        where: { isDeleted: false, organizationId: orgId },
+      });
 
-          if (!existing) {
-            return;
-          }
+      if (!existing) {
+        return;
+      }
 
-          const byokKeys = this.getByokKeys(existing);
-          delete byokKeys[provider];
+      const byokKeys = this.getByokKeys(existing);
+      delete byokKeys[provider];
 
-          const hasRemainingKeys = Object.keys(byokKeys).length > 0;
+      const hasRemainingKeys = Object.keys(byokKeys).length > 0;
 
-          await tx.organizationSetting.update({
-            data: {
-              byokKeys: byokKeys as never,
-              isByokEnabled: hasRemainingKeys,
-            },
-            where: { id: existing.id },
-          });
+      await this.prisma.organizationSetting.update({
+        data: {
+          byokKeys: byokKeys as never,
+          isByokEnabled: hasRemainingKeys,
         },
-        { isolationLevel: 'Serializable' },
-      );
+        where: { id: existing.id },
+      });
 
       this.logger.log('BYOK key removed', { orgId, provider });
     } catch (error: unknown) {
@@ -311,34 +301,29 @@ export class ByokService {
    */
   async incrementUsage(organizationId: string, keyId: string): Promise<void> {
     try {
-      await this.prisma.$transaction(
-        async (tx) => {
-          const existing = await tx.organizationSetting.findFirst({
-            where: { organizationId },
-          });
+      const existing = await this.prisma.organizationSetting.findFirst({
+        where: { isDeleted: false, organizationId },
+      });
 
-          if (!existing) {
-            return;
-          }
+      if (!existing) {
+        return;
+      }
 
-          const byokKeys = this.getByokKeys(existing);
-          const entry = byokKeys[keyId as ByokProvider];
+      const byokKeys = this.getByokKeys(existing);
+      const entry = byokKeys[keyId as ByokProvider];
 
-          if (entry) {
-            byokKeys[keyId as ByokProvider] = {
-              ...entry,
-              lastUsedAt: new Date(),
-              totalRequests: (entry.totalRequests ?? 0) + 1,
-            };
+      if (entry) {
+        byokKeys[keyId as ByokProvider] = {
+          ...entry,
+          lastUsedAt: new Date(),
+          totalRequests: (entry.totalRequests ?? 0) + 1,
+        };
 
-            await tx.organizationSetting.update({
-              data: { byokKeys: byokKeys as never },
-              where: { id: existing.id },
-            });
-          }
-        },
-        { isolationLevel: 'Serializable' },
-      );
+        await this.prisma.organizationSetting.update({
+          data: { byokKeys: byokKeys as never },
+          where: { id: existing.id },
+        });
+      }
     } catch (error: unknown) {
       this.logger.error('Failed to increment BYOK usage', {
         error,
@@ -453,29 +438,24 @@ export class ByokService {
     entry: IByokKeyEntry,
     enableByok: boolean,
   ): Promise<void> {
-    await this.prisma.$transaction(
-      async (tx) => {
-        const existing = await tx.organizationSetting.findFirst({
-          where: { organizationId: orgId },
-        });
+    const existing = await this.prisma.organizationSetting.findFirst({
+      where: { isDeleted: false, organizationId: orgId },
+    });
 
-        if (!existing) {
-          return;
-        }
+    if (!existing) {
+      return;
+    }
 
-        const byokKeys = this.getByokKeys(existing);
-        byokKeys[provider] = entry;
+    const byokKeys = this.getByokKeys(existing);
+    byokKeys[provider] = entry;
 
-        await tx.organizationSetting.update({
-          data: {
-            byokKeys: byokKeys as never,
-            ...(enableByok && { isByokEnabled: true }),
-          },
-          where: { id: existing.id },
-        });
+    await this.prisma.organizationSetting.update({
+      data: {
+        byokKeys: byokKeys as never,
+        ...(enableByok && { isByokEnabled: true }),
       },
-      { isolationLevel: 'Serializable' },
-    );
+      where: { id: existing.id },
+    });
   }
 
   private async validateAnthropic(

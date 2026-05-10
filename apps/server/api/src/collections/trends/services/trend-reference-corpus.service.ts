@@ -7,7 +7,7 @@ import type {
 } from '@api/collections/trends/interfaces/trend.interfaces';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 interface SyncTrendInput {
   id: string;
@@ -293,22 +293,23 @@ export class TrendReferenceCorpusService {
       return;
     }
 
-    // Verify that all referenced trend IDs belong to the caller's org or are global
-    let verifiedTrendIds = trendIds;
+    // Validate that all trendIds belong to the caller's organization before
+    // connecting them to remix lineage records.
     if (trendIds.length > 0) {
       const ownedTrends = await this.prisma.trend.findMany({
         select: { id: true },
         where: {
           id: { in: trendIds },
           isDeleted: false,
-          OR: [
-            { organizationId: payload.organizationId },
-            { organizationId: null },
-          ],
+          organizationId: payload.organizationId,
         },
       });
-      const ownedTrendIdSet = new Set(ownedTrends.map((t) => t.id));
-      verifiedTrendIds = trendIds.filter((id) => ownedTrendIdSet.has(id));
+
+      if (ownedTrends.length !== trendIds.length) {
+        throw new BadRequestException(
+          'One or more trend IDs do not belong to this organization',
+        );
+      }
     }
 
     // Find existing lineage record
@@ -337,7 +338,7 @@ export class TrendReferenceCorpusService {
             set: sourceReferenceIds.map((id) => ({ id })),
           },
           trends: {
-            set: verifiedTrendIds.map((id) => ({ id })),
+            set: trendIds.map((id) => ({ id })),
           },
         } as never,
         where: { id: existing.id },
@@ -357,7 +358,7 @@ export class TrendReferenceCorpusService {
             connect: sourceReferenceIds.map((id) => ({ id })),
           },
           trends: {
-            connect: verifiedTrendIds.map((id) => ({ id })),
+            connect: trendIds.map((id) => ({ id })),
           },
         } as never,
       });
@@ -427,6 +428,26 @@ export class TrendReferenceCorpusService {
 
     let sourceReferenceIds: string[] | undefined;
     if (options.trendId) {
+      // Verify the trend is visible to the caller before fetching its references.
+      // Trends with a matching organizationId are org-owned; if organizationId is
+      // undefined the caller is in an unauthenticated/internal path (allow all).
+      if (organizationId) {
+        const trend = await this.prisma.trend.findFirst({
+          select: { id: true },
+          where: {
+            id: options.trendId,
+            isDeleted: false,
+            organizationId,
+          },
+        });
+
+        if (!trend) {
+          // Return empty corpus rather than leaking references linked to another
+          // org's trend.
+          return { items: [], totalReferences: 0 };
+        }
+      }
+
       const links = await this.prisma.trendSourceReferenceLink.findMany({
         where: {
           isDeleted: false,

@@ -54,15 +54,16 @@ export class EditorProjectsService extends BaseService<
   /**
    * Atomic CAS: only transitions DRAFT/COMPLETED/FAILED -> RENDERING.
    *
-   * Uses a conditional updateMany with a JSON path filter so that only one
-   * concurrent caller wins the race. If the project is already RENDERING the
-   * count will be 0 and we throw ConflictException without a separate read.
+   * Uses `updateMany` with a status-not-RENDERING filter so that two
+   * concurrent callers cannot both succeed — the second write will match
+   * zero rows and be treated as a conflict.
    */
   async markAsRendering(
     id: string,
     organizationId: string,
   ): Promise<EditorProjectDocument> {
-    // Verify the project exists first (needed for a meaningful NotFoundException)
+    // Verify the project exists and belongs to this organisation first so we
+    // can return a meaningful NotFoundException vs. a generic ConflictException.
     const existing = await this.prisma.editorProject.findFirst({
       where: { id, isDeleted: false, organizationId },
     });
@@ -71,10 +72,10 @@ export class EditorProjectsService extends BaseService<
       throw new NotFoundException('Project not found');
     }
 
-    // Atomic conditional update — only succeeds when status != RENDERING.
-    // The JSON path filter prevents a second concurrent caller from also
-    // transitioning to RENDERING (eliminates the read-check-write race).
-    const result = await this.prisma.editorProject.updateMany({
+    // Atomic conditional update: only succeeds when the embedded status field
+    // is NOT already RENDERING.  If two requests race, exactly one will update
+    // count === 1; the other will get count === 0 → ConflictException.
+    const updated = await this.prisma.editorProject.updateMany({
       data: {
         config: this.mergeProjectStatus(
           existing,
@@ -86,6 +87,9 @@ export class EditorProjectsService extends BaseService<
         id,
         isDeleted: false,
         organizationId,
+        // The JSON path filter below prevents the update when the embedded
+        // config.status is already RENDERING.  Prisma exposes JSON-path
+        // filtering via `path`+`equals` on JsonFilter.
         NOT: {
           config: {
             path: ['status'],
@@ -95,16 +99,15 @@ export class EditorProjectsService extends BaseService<
       },
     });
 
-    if (result.count === 0) {
+    if (updated.count === 0) {
       throw new ConflictException('Project is already rendering');
     }
 
-    // Re-fetch to return the updated document
-    const updated = await this.prisma.editorProject.findFirst({
-      where: { id, isDeleted: false, organizationId },
+    const project = await this.prisma.editorProject.findUniqueOrThrow({
+      where: { id },
     });
 
-    return updated as unknown as EditorProjectDocument;
+    return project as unknown as EditorProjectDocument;
   }
 
   /**

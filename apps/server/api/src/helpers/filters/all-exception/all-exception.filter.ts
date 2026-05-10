@@ -23,6 +23,7 @@ export class AllExceptionFilter implements ExceptionFilter {
   public readonly SENTRY_ENVIRONMENT: string;
   public readonly SENTRY_DSN: string;
   public readonly JSONAPIError = jsonAPI.Error;
+  protected readonly isProduction: boolean;
 
   constructor(
     public readonly loggerService: LoggerService,
@@ -31,6 +32,7 @@ export class AllExceptionFilter implements ExceptionFilter {
     this.SENTRY_ENVIRONMENT =
       this.configService.get('SENTRY_ENVIRONMENT') ?? '';
     this.SENTRY_DSN = this.configService.get('SENTRY_DSN') ?? '';
+    this.isProduction = this.configService.get('NODE_ENV') === 'production';
   }
 
   public catch(exception: unknown, host: ArgumentsHost) {
@@ -62,18 +64,30 @@ export class AllExceptionFilter implements ExceptionFilter {
         title = (exceptionObj.name as string) || title;
       }
     } else if (exceptionObj.errmsg || exceptionObj.codeName) {
-      // Legacy database driver errors
+      // Legacy database driver errors — never expose raw DB messages in production
       status = HttpStatus.BAD_REQUEST;
-      detail = (exceptionObj.errmsg as string) || detail;
-      title = (exceptionObj.codeName as string) || 'Database Error';
+      detail = this.isProduction
+        ? 'A database error occurred'
+        : (exceptionObj.errmsg as string) || detail;
+      title = this.isProduction
+        ? 'Database Error'
+        : (exceptionObj.codeName as string) || 'Database Error';
     } else if (exceptionObj.message) {
-      // Generic errors
-      detail = exceptionObj.message as string;
-      title = (exceptionObj.name as string) || 'Application Error';
+      // Generic errors — only expose raw message in development
+      detail = this.isProduction
+        ? 'An unexpected error occurred'
+        : (exceptionObj.message as string);
+      title = this.isProduction
+        ? 'Internal Server Error'
+        : (exceptionObj.name as string) || 'Application Error';
     }
 
+    // Log the real error detail internally regardless of production mode — the
+    // redaction only applies to what we send back to the API client.
+    const internalDetail =
+      (exceptionObj.message as string | undefined) ?? detail;
     this.loggerService.error(
-      `${req.method} ${req.originalUrl} ${status} — ${detail}`,
+      `${req.method} ${req.originalUrl} ${status} — ${internalDetail}`,
       {
         operation: 'catch',
         service: this.constructorName,

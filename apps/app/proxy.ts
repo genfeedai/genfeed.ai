@@ -83,11 +83,30 @@ function canonicalizeFlatProtectedPath(pathname: string): string {
   return FLAT_PATH_REDIRECTS.get(pathname) ?? pathname;
 }
 
+/** Slug segments must be alphanumeric + hyphens only (no dots, slashes, etc.). */
+const SLUG_RE = /^[a-zA-Z0-9-]+$/;
+
+/**
+ * Validate that a slug coming from the API / cookie cannot be used as a
+ * cross-origin redirect vector (e.g. `//attacker.example`).
+ */
+function assertSafeSlug(slug: string, label: string): void {
+  if (!SLUG_RE.test(slug)) {
+    throw new Error(`Invalid ${label} slug: "${slug}"`);
+  }
+}
+
 function redirectPreservingSearch(req: NextRequest, pathname: string) {
-  const sanitized = pathname.replace(/^\/\/+/, '/');
-  const url = new URL(sanitized, req.url);
+  const url = new URL(pathname, req.url);
+  // Guard: the resolved URL must share the same origin as the incoming request.
+  // This prevents slugs like `//attacker.example` from becoming cross-origin
+  // redirects via the `new URL(pathname, base)` constructor.
   if (url.origin !== req.nextUrl.origin) {
-    return NextResponse.redirect(new URL('/', req.url));
+    // Fall back to the workspace home rather than redirecting off-origin.
+    const safe = new URL(SEEDED_WORKSPACE_PATH, req.url);
+    const search = req.nextUrl.search;
+    if (search) safe.search = search;
+    return NextResponse.redirect(safe);
   }
   const search = req.nextUrl.search;
   if (search) {
@@ -369,8 +388,10 @@ async function resolveActiveWorkspaceSlugs(
     return null;
   }
 
-  // Validate slugs to prevent open redirect via malformed slug values
-  if (!isValidSlug(orgSlug) || !isValidSlug(brandSlug)) {
+  // Validate slugs before caching and using them in redirect paths.
+  // This prevents an attacker-controlled API response from injecting a slug
+  // like `//attacker.example` and causing a cross-origin redirect.
+  if (!SLUG_RE.test(orgSlug) || !SLUG_RE.test(brandSlug)) {
     return null;
   }
 

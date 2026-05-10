@@ -278,9 +278,28 @@ export class ModelsService extends BaseService<
     const dbWhere: Record<string, unknown> = {};
     const configWhere: Record<string, unknown> = {};
 
+    // Collect _id expansion and caller OR/AND separately so they don't overwrite
+    // each other. Both are merged under a top-level AND clause at the end.
+    let idOrClause: Array<Record<string, unknown>> | undefined;
+    let callerOrClause: unknown;
+    let callerAndClause: unknown;
+
     for (const [key, value] of Object.entries(where)) {
-      if (key === 'OR' || key === 'AND') {
-        dbWhere[key] = Array.isArray(value)
+      if (key === 'OR') {
+        callerOrClause = Array.isArray(value)
+          ? value
+              .map((entry) =>
+                this.isModelRecord(entry)
+                  ? this.normalizeWhereForModel(entry).dbWhere
+                  : {},
+              )
+              .filter((entry) => Object.keys(entry).length > 0)
+          : value;
+        continue;
+      }
+
+      if (key === 'AND') {
+        callerAndClause = Array.isArray(value)
           ? value
               .map((entry) =>
                 this.isModelRecord(entry)
@@ -293,37 +312,13 @@ export class ModelsService extends BaseService<
       }
 
       if (key === '_id') {
-        const idOr = [{ id: value }, { mongoId: value }];
-        // If the caller already set an OR (e.g. for tenant isolation), combine
-        // both under AND so neither is silently overwritten.
-        if (Array.isArray(dbWhere.OR)) {
-          const callerOr = dbWhere.OR as unknown[];
-          delete dbWhere.OR;
-          dbWhere.AND = [
-            ...(Array.isArray(dbWhere.AND)
-              ? (dbWhere.AND as unknown[])
-              : dbWhere.AND
-                ? [dbWhere.AND]
-                : []),
-            { OR: idOr },
-            { OR: callerOr },
-          ];
-        } else {
-          dbWhere.OR = [
-            ...(Array.isArray(dbWhere.OR) ? dbWhere.OR : []),
-            ...idOr,
-          ];
-        }
+        idOrClause = [{ id: value }, { mongoId: value }];
         continue;
       }
 
       if (key === 'organization') {
-        // Map both string values and explicit null
-        if (typeof value === 'string') {
-          dbWhere.organizationId = value;
-        } else if (value === null) {
-          dbWhere.organizationId = null;
-        }
+        // Map both string values and explicit null to organizationId
+        dbWhere.organizationId = typeof value === 'string' ? value : null;
         continue;
       }
 
@@ -345,6 +340,34 @@ export class ModelsService extends BaseService<
       if (MODEL_CONFIG_FIELDS.has(key)) {
         configWhere[key] = value;
       }
+    }
+
+    // Combine _id OR-expansion and caller OR/AND under AND so neither overwrites
+    // the other. If there is only one constraint, hoist it to avoid unnecessary
+    // nesting.
+    const andClauses: Array<Record<string, unknown>> = [];
+
+    if (idOrClause) {
+      andClauses.push({ OR: idOrClause });
+    }
+
+    if (callerOrClause !== undefined) {
+      andClauses.push({ OR: callerOrClause as never });
+    }
+
+    if (callerAndClause !== undefined) {
+      andClauses.push({ AND: callerAndClause as never });
+    }
+
+    if (andClauses.length === 1) {
+      const [single] = andClauses;
+      Object.assign(dbWhere, single);
+    } else if (andClauses.length > 1) {
+      const existingAnd = Array.isArray(dbWhere.AND) ? dbWhere.AND : [];
+      dbWhere.AND = [
+        ...(existingAnd as Array<Record<string, unknown>>),
+        ...andClauses,
+      ];
     }
 
     return { configWhere, dbWhere };
@@ -447,16 +470,42 @@ export class ModelsService extends BaseService<
   /**
    * Find a single model by filter.
    * Supports querying by id, key, isDeleted, isActive, and organizationId.
-   * Always enforces isDeleted: false unless the caller explicitly sets it.
+   *
+   * Security: always enforces isDeleted: false unless the caller explicitly
+   * passes a different value. When organizationId is supplied the result is
+   * restricted to models that belong to that org OR are global (null org).
    */
   override async findOne(
     params: Record<string, unknown>,
   ): Promise<ModelDocument | null> {
-    // Enforce isDeleted: false for single-record lookups unless explicitly overridden
-    const normalized: Record<string, unknown> =
-      'isDeleted' in params ? params : { ...params, isDeleted: false };
+    const scopedParams: Record<string, unknown> = {
+      isDeleted: false,
+      ...params,
+    };
 
-    const { configWhere, dbWhere } = this.normalizeWhereForModel(normalized);
+    // When an organizationId is supplied, restrict to org-owned or global models
+    // to prevent cross-tenant reads.
+    const organizationId = scopedParams.organizationId;
+    if (organizationId !== undefined && organizationId !== null) {
+      delete scopedParams.organizationId;
+      const existingOr = Array.isArray(scopedParams.OR)
+        ? (scopedParams.OR as Array<Record<string, unknown>>)
+        : undefined;
+
+      const orgVisibilityOr: Array<Record<string, unknown>> = [
+        { organizationId },
+        { organizationId: null },
+      ];
+
+      if (existingOr) {
+        scopedParams.AND = [{ OR: existingOr }, { OR: orgVisibilityOr }];
+        delete scopedParams.OR;
+      } else {
+        scopedParams.OR = orgVisibilityOr;
+      }
+    }
+
+    const { configWhere, dbWhere } = this.normalizeWhereForModel(scopedParams);
 
     const models = await this.prisma.model.findMany({
       where: dbWhere as never,

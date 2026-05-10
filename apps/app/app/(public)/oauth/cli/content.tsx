@@ -170,6 +170,19 @@ function isDesktopCallbackTargetValid(value: string | null): boolean {
   }
 }
 
+/**
+ * Generate a cryptographically random state token (hex string, 32 bytes).
+ * Used to bind the page load to the eventual callback redirect so a malicious
+ * process cannot hijack the flow by racing for the localhost listener.
+ */
+function generateStateToken(): string {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
 function CliAuthPageContent() {
   const searchParams = useSearchParams();
   const { isSignedIn, isLoaded, getToken } = useAuth();
@@ -180,6 +193,10 @@ function CliAuthPageContent() {
   });
   const [copied, setCopied] = useState(false);
   const tokenRequestedRef = useRef(false);
+  // State token generated once per page load and sent in the callback URL.
+  // The CLI listener must echo it back so we can verify the request originated
+  // from this page and not from a racing process on the same machine.
+  const stateTokenRef = useRef<string>(generateStateToken());
 
   const portParam = searchParams.get('port');
   const isDesktopMode = searchParams.get('desktop') === '1';
@@ -453,9 +470,12 @@ function CliAuthPageContent() {
 
         setFlowState({ apiKey: credential, error: null, step: 'redirecting' });
 
-        const legacyCallbackUrl = `http://127.0.0.1:${port ?? 0}/callback?key=${encodeURIComponent(credential)}`;
+        const state = stateTokenRef.current;
+        const callbackUrl = isDesktopMode
+          ? getDesktopCallbackUrl(key, user ?? null, desktopReturnTo)
+          : `http://127.0.0.1:${port ?? 0}/callback?key=${encodeURIComponent(key)}&state=${encodeURIComponent(state)}`;
 
-        redirectToCallback(legacyCallbackUrl);
+        redirectToCallback(callbackUrl);
 
         setTimeout(() => {
           if (!signal.aborted) {
@@ -472,17 +492,8 @@ function CliAuthPageContent() {
         setFlowState({ error: message, step: 'error' });
       }
     },
-    [
-      codeChallenge,
-      codeChallengeMethod,
-      desktopReturnTo,
-      desktopState,
-      getToken,
-      hasPkce,
-      isDesktopMode,
-      port,
-      user,
-    ],
+    // stateTokenRef is a stable ref — no need to list it as a dependency
+    [desktopReturnTo, getToken, isDesktopMode, port, user],
   );
 
   useEffect(() => {

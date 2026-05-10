@@ -15,7 +15,11 @@ import { ReplicateService } from '@api/services/integrations/replicate/replicate
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { CredentialPlatform, PublishStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 
 const PLATFORM_MAP: Record<string, CredentialPlatform> = {
   instagram: CredentialPlatform.INSTAGRAM,
@@ -36,6 +40,26 @@ export class ContextsService {
 
   private isPlainObject(value: unknown): value is Record<string, unknown> {
     return value !== null && typeof value === 'object' && !Array.isArray(value);
+  }
+
+  /**
+   * Throws BadRequestException when the supplied brandId does not belong to
+   * the given organizationId. Used to prevent cross-tenant brand linking.
+   */
+  private async assertBrandOwnership(
+    brandId: string,
+    organizationId: string,
+  ): Promise<void> {
+    const brand = await this.prisma.brand.findFirst({
+      select: { id: true },
+      where: { id: brandId, isDeleted: false, organizationId },
+    });
+
+    if (!brand) {
+      throw new BadRequestException(
+        `Brand ${brandId} does not belong to this organization`,
+      );
+    }
   }
 
   private getDataRecord(value: unknown): Record<string, unknown> {
@@ -169,18 +193,10 @@ export class ContextsService {
       type: dto.type,
     });
 
-    // Verify that sourceBrand belongs to the caller's organization
+    // Validate that the supplied sourceBrand belongs to the caller's org to
+    // prevent cross-tenant brand linking.
     if (dto.sourceBrand) {
-      const brand = await this.prisma.brand.findFirst({
-        where: {
-          id: dto.sourceBrand,
-          isDeleted: false,
-          organizationId,
-        },
-      });
-      if (!brand) {
-        throw new NotFoundException('Brand not found');
-      }
+      await this.assertBrandOwnership(dto.sourceBrand, organizationId);
     }
 
     const contextBase = await this.prisma.contextBase.create({
@@ -272,18 +288,10 @@ export class ContextsService {
       throw new NotFoundException('Context base not found');
     }
 
-    // Verify that the new sourceBrand belongs to the caller's organization
-    if (dto.sourceBrand !== undefined && dto.sourceBrand !== null) {
-      const brand = await this.prisma.brand.findFirst({
-        where: {
-          id: dto.sourceBrand,
-          isDeleted: false,
-          organizationId,
-        },
-      });
-      if (!brand) {
-        throw new NotFoundException('Brand not found');
-      }
+    // Validate that the supplied sourceBrand belongs to the caller's org to
+    // prevent cross-tenant brand linking on update.
+    if (dto.sourceBrand) {
+      await this.assertBrandOwnership(dto.sourceBrand, organizationId);
     }
 
     const contextBase = await this.prisma.contextBase.update({

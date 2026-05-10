@@ -24,7 +24,11 @@ import type {
 } from '@genfeedai/interfaces';
 import type { Batch } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 
 interface BatchItem {
   format: ContentFormat;
@@ -278,6 +282,29 @@ export class BatchGenerationService {
       throw new NotFoundException(`Brand ${dto.brandId} not found`);
     }
 
+    // Validate that all supplied ingredientIds belong to the caller's org
+    const ingredientIds = dto.items
+      .map((item) => item.ingredientId)
+      .filter((id): id is string => typeof id === 'string' && id.length > 0);
+
+    if (ingredientIds.length > 0) {
+      const uniqueIngredientIds = Array.from(new Set(ingredientIds));
+      const ownedIngredients = await this.prisma.ingredient.findMany({
+        select: { id: true },
+        where: {
+          id: { in: uniqueIngredientIds },
+          isDeleted: false,
+          organizationId: orgId,
+        },
+      });
+
+      if (ownedIngredients.length !== uniqueIngredientIds.length) {
+        throw new BadRequestException(
+          'One or more ingredient IDs do not belong to this organization',
+        );
+      }
+    }
+
     const items: ManualReviewBatchItem[] = [];
     const batchItems: BatchItemFull[] = [];
 
@@ -508,6 +535,33 @@ export class BatchGenerationService {
     orgId: string,
     options?: BatchProcessOptions,
   ): Promise<IBatchSummary> {
+    // Idempotency guard: atomically transition PENDING → GENERATING.
+    // If two concurrent calls race, exactly one updateMany will match (count=1);
+    // the other gets count=0 and exits early, preventing duplicate processing.
+    const claimed = await this.prisma.batch.updateMany({
+      data: { status: BatchStatus.GENERATING as never },
+      where: {
+        id: batchId,
+        isDeleted: false,
+        organizationId: orgId,
+        status: BatchStatus.PENDING as never,
+      },
+    });
+
+    if (claimed.count === 0) {
+      // Either the batch doesn't exist for this org, or it's already being processed.
+      const existing = await this.prisma.batch.findFirst({
+        where: { id: batchId, isDeleted: false, organizationId: orgId },
+      });
+      if (!existing) {
+        throw new NotFoundException(`Batch ${batchId} not found`);
+      }
+      // Already generating or completed — return early without re-processing.
+      throw new BadRequestException(
+        `Batch ${batchId} is already being processed (status: ${String(existing.status)})`,
+      );
+    }
+
     const batchRecord = await this.prisma.batch.findFirst({
       where: { id: batchId, isDeleted: false, organizationId: orgId },
     });
@@ -518,12 +572,6 @@ export class BatchGenerationService {
 
     const batchConfig = (batchRecord.config ?? {}) as BatchConfig;
     const batchItems = this.cloneBatchItems(batchRecord.items);
-
-    // Mark as generating
-    await this.prisma.batch.update({
-      data: { status: BatchStatus.GENERATING as never },
-      where: { id: batchId },
-    });
 
     await options?.onBatchStarted?.({
       batchId,
