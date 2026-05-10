@@ -299,9 +299,9 @@ describe('FanvueService', () => {
       expect(credentialsService.patch).toHaveBeenCalledWith(
         mockCredential._id,
         expect.objectContaining({
-          accessToken: 'new-access-token',
+          accessToken: 'encrypted_new-access-token',
           isConnected: true,
-          refreshToken: 'new-refresh-token',
+          refreshToken: 'encrypted_new-refresh-token',
         }),
       );
     });
@@ -391,7 +391,7 @@ describe('FanvueService', () => {
       expect(credentialsService.patch).toHaveBeenCalledWith(
         mockCredential._id,
         expect.objectContaining({
-          refreshToken: 'decrypted_encrypted-old-refresh',
+          refreshToken: 'encrypted_decrypted_encrypted-old-refresh',
         }),
       );
     });

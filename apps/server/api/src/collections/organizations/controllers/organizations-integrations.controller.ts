@@ -112,4 +112,15 @@ export class OrganizationsIntegrationsController {
     this.assertOrgAccess(user, organizationId);
     return this.integrationsService.remove(organizationId, id);
   }
+
+  /**
+   * Verify the authenticated user's organization matches the requested organizationId.
+   * Prevents cross-tenant access via URL parameter manipulation.
+   */
+  private assertOrgAccess(user: User, organizationId: string): void {
+    const { organization } = getPublicMetadata(user);
+    if (String(organization) !== organizationId) {
+      throw new ForbiddenException('Access denied: organization mismatch');
+    }
+  }
 }

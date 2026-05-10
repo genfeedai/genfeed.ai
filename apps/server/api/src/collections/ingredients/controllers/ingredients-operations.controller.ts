@@ -123,14 +123,12 @@ export class IngredientsOperationsController {
   ): Promise<JsonApiSingleResponse> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const publicMetadata = getPublicMetadata(user);
+    const callerOrganizationId = publicMetadata.organization.toString();
 
     const ingredient = await this.ingredientsService.findOne(
       {
         _id: ingredientId,
-        OR: [
-          { user: publicMetadata.user },
-          { organization: publicMetadata.organization },
-        ],
+        organization: callerOrganizationId,
         isDeleted: false,
       },
       [PopulatePatterns.metadataFull],
@@ -142,7 +140,7 @@ export class IngredientsOperationsController {
 
     const metadata = (ingredient.metadata ?? {}) as IngredientMetadataDocument;
 
-    // Create ingredient with PROCESSING status
+    // Create ingredient with PROCESSING status under the caller's organization
     const { metadataData, ingredientData } =
       await this.getSharedService().saveDocuments(user, {
         brand: publicMetadata.brand,
@@ -151,7 +149,7 @@ export class IngredientsOperationsController {
         extension: metadata.extension,
         height: metadata.height,
         model: metadata.model,
-        organization: publicMetadata.organization,
+        organization: callerOrganizationId,
         parent: ingredientId,
         prompt: metadata.prompt,
         result: metadata.result,

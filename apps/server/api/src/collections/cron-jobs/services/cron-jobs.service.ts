@@ -19,6 +19,10 @@ import { OpenRouterService } from '@api/services/integrations/openrouter/service
 import { SubstackService } from '@api/services/integrations/substack/services/substack.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
+  assertSafeWebhookHeaders,
+  assertSafeWebhookUrl,
+} from '@api/shared/utils/webhook-validator/webhook-validator.util';
+import {
   AgentAutonomyMode,
   AgentExecutionTrigger,
   AgentType,
@@ -773,6 +777,14 @@ export class CronJobsService {
     payload: NewsletterPayload,
     job: CronJobDocument,
   ): Promise<Record<string, unknown>> {
+    // SSRF guard: validate webhook URL and headers before any processing begins.
+    // assertSafeWebhookUrl / assertSafeWebhookHeaders throw BadRequestException
+    // on any violation; that propagates as a job failure via executeJob's catch block.
+    if (payload.webhookUrl) {
+      await assertSafeWebhookUrl(payload.webhookUrl);
+    }
+    assertSafeWebhookHeaders(payload.webhookHeaders);
+
     const jobId = (job as Record<string, unknown>).id as string;
     const topic = payload.topic ?? 'Genfeed.ai weekly update';
     const publicationName = payload.publicationName ?? 'Genfeed.ai Newsletter';

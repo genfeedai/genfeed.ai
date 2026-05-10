@@ -171,7 +171,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       case IngredientCategory.VIDEO: {
         if (!this.videosService) throw new Error('VideosService not available');
         const video = await this.videosService.findOne(
-          { _id: contentId, organization: organizationId, isDeleted: false },
+          { _id: contentId, organizationId, isDeleted: false },
           [{ path: 'metadata' }],
         );
         if (!video) throw new NotFoundException(`Video ${contentId} not found`);
@@ -183,7 +183,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       case IngredientCategory.IMAGE: {
         if (!this.imagesService) throw new Error('ImagesService not available');
         const image = await this.imagesService.findOne(
-          { _id: contentId, organization: organizationId, isDeleted: false },
+          { _id: contentId, organizationId, isDeleted: false },
           [{ path: 'metadata' }],
         );
         if (!image) throw new NotFoundException(`Image ${contentId} not found`);
@@ -197,7 +197,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
           throw new Error('ArticlesService not available');
         const article = await this.articlesService.findOne({
           _id: contentId,
-          organization: organizationId,
+          organizationId,
           isDeleted: false,
         });
         if (!article)
@@ -210,7 +210,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
         if (!this.postsService) throw new Error('PostsService not available');
         const post = await this.postsService.findOne({
           _id: contentId,
-          organization: organizationId,
+          organizationId,
           isDeleted: false,
         });
         if (!post) throw new NotFoundException(`Post ${contentId} not found`);

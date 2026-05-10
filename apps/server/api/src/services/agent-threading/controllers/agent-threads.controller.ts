@@ -91,6 +91,7 @@ export class AgentThreadsController {
           organizationId,
           userId,
           afterSequence ? Number.parseInt(afterSequence, 10) : undefined,
+          userId,
         ),
       );
 
@@ -273,12 +274,14 @@ export class AgentThreadsController {
     organizationId: string,
     userId: string,
     afterSequence?: number,
+    userId?: string,
   ) {
     return this.agentThreadEngineService.listEventsEffect(
       threadId,
       organizationId,
       userId,
       afterSequence,
+      userId,
     );
   }
 

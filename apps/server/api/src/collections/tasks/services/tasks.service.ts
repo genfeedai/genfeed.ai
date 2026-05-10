@@ -154,7 +154,12 @@ export class TasksService extends BaseService<
   override async findOne(
     params: Record<string, unknown>,
   ): Promise<TaskDocument | null> {
-    return super.findOne(params);
+    // Always require isDeleted: false unless caller explicitly opts in (admin paths).
+    const scopedParams: Record<string, unknown> = {
+      isDeleted: false,
+      ...params,
+    };
+    return super.findOne(scopedParams);
   }
 
   override async patch(
@@ -181,13 +186,13 @@ export class TasksService extends BaseService<
 
   async findByIdentifier(
     identifier: string,
-    organizationId: string,
+    organizationId?: string,
   ): Promise<TaskDocument | null> {
-    return this.findOne({
-      identifier,
-      isDeleted: false,
-      organizationId,
-    });
+    const filter: Record<string, unknown> = { identifier, isDeleted: false };
+    if (organizationId) {
+      filter.organizationId = organizationId;
+    }
+    return this.findOne(filter);
   }
 
   async findChildren(
@@ -231,14 +236,20 @@ export class TasksService extends BaseService<
 
     if (!existing) return null;
 
-    return (await this.delegate.update({
+    // Use updateMany so organizationId is atomically enforced in the write predicate
+    // (defense-in-depth beyond the findFirst guard above).
+    await this.delegate.updateMany({
       data: {
         checkedOutAt: new Date(),
         checkoutAgentId: agentId,
         checkoutRunId: runId,
         status: 'in_progress',
       },
-      where: { id: taskId },
+      where: { id: taskId, organizationId, isDeleted: false },
+    });
+
+    return (await this.delegate.findFirst({
+      where: { id: taskId, organizationId, isDeleted: false },
     })) as unknown as TaskDocument;
   }
 
@@ -260,13 +271,18 @@ export class TasksService extends BaseService<
       throw new NotFoundException('Task', taskId);
     }
 
-    return (await this.delegate.update({
+    // Use updateMany so organizationId is atomically enforced in the write predicate.
+    await this.delegate.updateMany({
       data: {
         checkedOutAt: null,
         checkoutAgentId: null,
         checkoutRunId: null,
       },
-      where: { id: taskId },
+      where: { id: taskId, organizationId, isDeleted: false },
+    });
+
+    return (await this.delegate.findFirst({
+      where: { id: taskId, organizationId, isDeleted: false },
     })) as unknown as TaskDocument;
   }
 

@@ -225,6 +225,8 @@ export class FanvueService {
         expiresIn: expires_in,
       });
 
+      const newRefreshToken = refresh_token || decryptedRefreshToken;
+
       const updatedCredential = await this.credentialsService.patch(
         credential._id,
         {
@@ -233,13 +235,12 @@ export class FanvueService {
             ? new Date(Date.now() + expires_in * 1000)
             : undefined,
           isConnected: true,
-          refreshToken: EncryptionUtil.encrypt(
-            refresh_token || decryptedRefreshToken,
-          ),
+          refreshToken: EncryptionUtil.encrypt(newRefreshToken),
         },
       );
 
       return {
+        // Return the plaintext token for immediate use in this request
         accessToken: access_token,
         credential: updatedCredential,
       };
