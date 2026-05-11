@@ -5,6 +5,15 @@ import type { LinkClickDocument } from '@api/collections/tracked-links/schemas/l
 import type { TrackedLinkDocument } from '@api/collections/tracked-links/schemas/tracked-link.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+
+/** Fields a caller is allowed to mutate on an existing tracked link. */
+type TrackedLinkUpdatePayload = {
+  isActive?: boolean;
+  originalUrl?: string;
+  title?: string;
+};
+
+import process from 'node:process';
 import { nanoid } from 'nanoid';
 
 type TrackedLink = TrackedLinkDocument;
@@ -479,12 +488,12 @@ export class TrackedLinksService {
   }
 
   /**
-   * Update tracked link
+   * Update tracked link — only whitelisted mutable fields are applied.
    */
   async update(
     linkId: string,
     organizationId: string,
-    updates: Partial<TrackedLink>,
+    updates: TrackedLinkUpdatePayload,
   ): Promise<TrackedLink> {
     const existing = await this.prisma.trackedLink.findFirst({
       where: { id: linkId, isDeleted: false, organizationId },
@@ -494,29 +503,16 @@ export class TrackedLinksService {
       throw new NotFoundException(`Tracked link not found: ${linkId}`);
     }
 
-    // Strict allowlist — only Prisma columns that callers may legitimately update
-    const safeUpdates: Record<string, unknown> = {};
-    const u = updates as Record<string, unknown>;
-    const allowed: Array<keyof typeof u> = [
-      'campaignName',
-      'contentId',
-      'contentType',
-      'customSlug',
-      'expiresAt',
-      'isActive',
-      'platform',
-      'shortUrl',
-      'stats',
-      'utm',
-    ];
-    for (const key of allowed) {
-      if (key in u && u[key] !== undefined) {
-        safeUpdates[key] = u[key];
-      }
-    }
+    // Allowlist: only safe, user-editable fields are forwarded to the DB.
+    // shortCode, organizationId, stats, etc. must never be mutated via this path.
+    const safeData: TrackedLinkUpdatePayload = {};
+    if (updates.isActive !== undefined) safeData.isActive = updates.isActive;
+    if (updates.originalUrl !== undefined)
+      safeData.originalUrl = updates.originalUrl;
+    if (updates.title !== undefined) safeData.title = updates.title;
 
     const result = await this.prisma.trackedLink.update({
-      data: safeUpdates as never,
+      data: safeData as never,
       where: { id: linkId },
     });
 

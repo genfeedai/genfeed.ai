@@ -19,6 +19,10 @@ import { OpenRouterService } from '@api/services/integrations/openrouter/service
 import { SubstackService } from '@api/services/integrations/substack/services/substack.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
+  assertSafeWebhookHeaders,
+  assertSafeWebhookUrl,
+} from '@api/shared/utils/webhook-validator/webhook-validator.util';
+import {
   AgentAutonomyMode,
   AgentExecutionTrigger,
   AgentType,
@@ -30,6 +34,9 @@ import type {
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { CronJob as CronParser } from 'cron';
+
+/** Minimum credits required before executing a paid AI cron job type. */
+const MIN_CREDITS_FOR_AI_JOB = 10;
 
 interface NewsletterPayload {
   topic?: string;
@@ -86,21 +93,15 @@ export class CronJobsService {
     private readonly logger: LoggerService,
   ) {}
 
-  private maskCronPayload(
-    payload: Record<string, unknown>,
-  ): Record<string, unknown> {
-    const masked = { ...payload };
-    if ('webhookSecret' in masked) {
-      masked.webhookSecret = '***';
-    }
-    if ('webhookHeaders' in masked && masked.webhookHeaders !== undefined) {
-      masked.webhookHeaders = '***';
-    }
-    return masked;
-  }
-
-  private toCronJobDocument(job: PrismaCronJob): CronJobDocument {
+  private toCronJobDocument(
+    job: PrismaCronJob,
+    options: { redactSecrets?: boolean } = { redactSecrets: true },
+  ): CronJobDocument {
     const config = this.asRecord(job.config);
+    const rawPayload = this.asRecord(config.payload);
+    const payload = options.redactSecrets
+      ? this.redactWebhookSecrets(rawPayload)
+      : rawPayload;
 
     return {
       ...job,
@@ -112,11 +113,53 @@ export class CronJobsService {
       lastStatus: this.asCronJobLastStatus(config.lastStatus),
       name: this.asString(config.name) ?? job.label ?? 'Untitled cron job',
       organization: job.organizationId,
-      payload: this.maskCronPayload(this.asRecord(config.payload)),
+      payload,
       schedule: this.asString(config.schedule) ?? job.expression ?? '* * * * *',
       timezone: this.asString(config.timezone) ?? 'UTC',
       user: job.userId,
     };
+  }
+
+  /**
+   * Redact sensitive webhook fields from a payload before returning it to clients.
+   * - webhookSecret is replaced with a masked placeholder when present.
+   * - webhookHeaders has any Authorization / X-* auth-style header values masked.
+   * The original values are preserved only in the internal DB record and are
+   * read directly from the DB (not from the serialized document) during execution.
+   */
+  private redactWebhookSecrets(
+    payload: Record<string, unknown>,
+  ): Record<string, unknown> {
+    const redacted = { ...payload };
+
+    if (redacted.webhookSecret !== undefined) {
+      redacted.webhookSecret = '[REDACTED]';
+    }
+
+    if (
+      redacted.webhookHeaders !== null &&
+      typeof redacted.webhookHeaders === 'object' &&
+      !Array.isArray(redacted.webhookHeaders)
+    ) {
+      const headers = {
+        ...(redacted.webhookHeaders as Record<string, string>),
+      };
+      for (const key of Object.keys(headers)) {
+        const lower = key.toLowerCase();
+        if (
+          lower === 'authorization' ||
+          lower.startsWith('x-') ||
+          lower.includes('token') ||
+          lower.includes('secret') ||
+          lower.includes('api-key')
+        ) {
+          headers[key] = '[REDACTED]';
+        }
+      }
+      redacted.webhookHeaders = headers;
+    }
+
+    return redacted;
   }
 
   private toCronRunDocument(run: PrismaCronRun): CronRunDocument {
@@ -340,10 +383,15 @@ export class CronJobsService {
     organizationId: string,
     dto: UpdateCronJobDto,
   ): Promise<CronJobDocument | null> {
-    const current = await this.findOne(id, organizationId);
-    if (!current) {
+    // Read with raw (unredacted) payload so we don't accidentally persist '[REDACTED]'
+    // back into the DB when the caller omits the payload field.
+    const dbJob = await this.prisma.cronJob.findFirst({
+      where: { id, isDeleted: false, organizationId },
+    });
+    if (!dbJob) {
       return null;
     }
+    const current = this.toCronJobDocument(dbJob, { redactSecrets: false });
 
     const schedule = dto.schedule ?? current.schedule;
     const timezone = dto.timezone ?? current.timezone;
@@ -374,6 +422,7 @@ export class CronJobsService {
       where: { id },
     });
 
+    // Return the redacted version to the API caller.
     return this.toCronJobDocument(updated);
   }
 
@@ -482,11 +531,15 @@ export class CronJobsService {
     id: string,
     organizationId: string,
   ): Promise<CronRunDocument | null> {
-    const job = await this.findOne(id, organizationId);
-    if (!job) {
+    const dbJob = await this.prisma.cronJob.findFirst({
+      where: { id, isDeleted: false, organizationId },
+    });
+    if (!dbJob) {
       return null;
     }
 
+    // Use unredacted document for execution so webhook secrets are available.
+    const job = this.toCronJobDocument(dbJob, { redactSecrets: false });
     return await this.executeJob(job, 'manual');
   }
 
@@ -501,7 +554,9 @@ export class CronJobsService {
           status: 'ACTIVE',
         },
       })
-    ).map((job) => this.toCronJobDocument(job));
+    )
+      // Use unredacted documents for execution so webhook secrets are available.
+      .map((job) => this.toCronJobDocument(job, { redactSecrets: false }));
 
     let processed = 0;
 
@@ -662,6 +717,27 @@ export class CronJobsService {
     payload: Record<string, unknown>,
     job: CronJobDocument,
   ): Promise<Record<string, unknown>> {
+    // Credit guard: agent and newsletter jobs invoke paid AI models.
+    // Refuse to execute if the organisation has insufficient credits.
+    const isPaidAiJob =
+      jobType === 'agent_strategy_execution' ||
+      jobType === 'newsletter_substack';
+
+    if (isPaidAiJob) {
+      const orgId = (job as Record<string, unknown>).organizationId as string;
+      const hasCredits =
+        await this.creditsUtilsService.checkOrganizationCreditsAvailable(
+          orgId,
+          MIN_CREDITS_FOR_AI_JOB,
+        );
+
+      if (!hasCredits) {
+        throw new BadRequestException(
+          `Insufficient credits to execute cron job type "${jobType}"`,
+        );
+      }
+    }
+
     switch (jobType) {
       case 'workflow_execution': {
         const workflowId = String(payload.workflowId ?? '');
@@ -773,6 +849,14 @@ export class CronJobsService {
     payload: NewsletterPayload,
     job: CronJobDocument,
   ): Promise<Record<string, unknown>> {
+    // SSRF guard: validate webhook URL and headers before any processing begins.
+    // assertSafeWebhookUrl / assertSafeWebhookHeaders throw BadRequestException
+    // on any violation; that propagates as a job failure via executeJob's catch block.
+    if (payload.webhookUrl) {
+      await assertSafeWebhookUrl(payload.webhookUrl);
+    }
+    assertSafeWebhookHeaders(payload.webhookHeaders);
+
     const jobId = (job as Record<string, unknown>).id as string;
     const topic = payload.topic ?? 'Genfeed.ai weekly update';
     const publicationName = payload.publicationName ?? 'Genfeed.ai Newsletter';

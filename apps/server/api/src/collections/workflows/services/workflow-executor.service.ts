@@ -311,10 +311,16 @@ export class WorkflowExecutorService {
     const execution = await this.executionsService.findOne({
       _id: executionId,
       isDeleted: false,
-      organizationId,
+      organization: organizationId,
     });
 
     if (!execution) {
+      throw new NotFoundException(`Execution ${executionId} not found`);
+    }
+
+    // Verify the execution belongs to the supplied workflow (prevents cross-workflow approval)
+    const executionWorkflowId = execution.workflowId?.toString();
+    if (executionWorkflowId !== workflowId) {
       throw new NotFoundException(`Execution ${executionId} not found`);
     }
 

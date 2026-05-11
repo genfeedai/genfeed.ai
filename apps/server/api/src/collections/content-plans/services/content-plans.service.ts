@@ -132,7 +132,7 @@ export class ContentPlansService extends BaseService<
         id,
         isDeleted: false,
         ...(organizationId ? { organizationId } : {}),
-        ...(brandId ? { brandId } : {}),
+        ...(updateDto.brandId ? { brandId: updateDto.brandId } : {}),
       },
     })) as PrismaContentPlan | null;
 

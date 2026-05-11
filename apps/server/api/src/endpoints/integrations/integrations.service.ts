@@ -78,8 +78,8 @@ export class IntegrationsService {
 
     return integrations.map((integration) => ({
       ...integration,
-      config: this.maskSensitiveConfig(
-        (integration.config as Record<string, unknown>) ?? {},
+      config: this.maskSecretConfig(
+        integration.config as Record<string, unknown>,
       ),
       encryptedToken: '***MASKED***', // Never expose tokens
     }));
@@ -103,8 +103,8 @@ export class IntegrationsService {
 
     return {
       ...integration,
-      config: this.maskSensitiveConfig(
-        (integration.config as Record<string, unknown>) ?? {},
+      config: this.maskSecretConfig(
+        integration.config as Record<string, unknown>,
       ),
       encryptedToken: '***MASKED***',
     };
@@ -203,9 +203,7 @@ export class IntegrationsService {
 
     return {
       ...updated,
-      config: this.maskSensitiveConfig(
-        (updated.config as Record<string, unknown>) ?? {},
-      ),
+      config: this.maskSecretConfig(updated.config as Record<string, unknown>),
       encryptedToken: '***MASKED***',
     };
   }
@@ -236,23 +234,43 @@ export class IntegrationsService {
     });
   }
 
-  private maskSensitiveConfig(
-    config: Record<string, unknown>,
+  /**
+   * Redact sensitive config fields before returning integration data to clients.
+   * Keeps non-secret fields intact for UI display purposes.
+   */
+  private maskSecretConfig(
+    config: Record<string, unknown> | null | undefined,
   ): Record<string, unknown> {
-    const sensitiveKeys = new Set([
+    if (!config || typeof config !== 'object') {
+      return {};
+    }
+
+    const secretKeys = new Set([
       'appToken',
-      'signingSecret',
-      'clientSecret',
-      'webhookSecret',
       'apiKey',
       'apiSecret',
+      'secret',
+      'secretKey',
+      'accessToken',
+      'refreshToken',
+      'clientSecret',
+      'webhookSecret',
+      'signingSecret',
+      'privateKey',
+      'password',
+      'token',
     ]);
-    const masked = { ...config };
-    for (const key of Object.keys(masked)) {
-      if (sensitiveKeys.has(key) && typeof masked[key] === 'string') {
+
+    const masked: Record<string, unknown> = {};
+
+    for (const [key, value] of Object.entries(config)) {
+      if (secretKeys.has(key)) {
         masked[key] = '***MASKED***';
+      } else {
+        masked[key] = value;
       }
     }
+
     return masked;
   }
 

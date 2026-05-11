@@ -17,6 +17,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => WorkflowsModule),
     forwardRef(() => AgentRunsModule),
     forwardRef(() => QueuesModule),
+    forwardRef(() => CreditsModule),
     CacheModule,
     OpenRouterModule,
     SubstackModule,

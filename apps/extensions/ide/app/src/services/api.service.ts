@@ -1,6 +1,6 @@
 import { AuthService } from '@services/auth.service';
 import { captureExtensionError } from '@services/error-tracking.service';
-import * as vscode from 'vscode';
+import { getValidatedApiEndpoint } from '@services/trusted-origins';
 import type {
   ApiError,
   ApiResponse,
@@ -21,41 +21,8 @@ export class ApiService {
   private static instance: ApiService;
   private baseUrl: string;
 
-  private static readonly TRUSTED_HOSTS = new Set([
-    'api.genfeed.ai',
-    'staging-api.genfeed.ai',
-    'localhost',
-    '127.0.0.1',
-  ]);
-
   private constructor() {
-    const config = vscode.workspace.getConfiguration('genfeed');
-    const endpoint = config.get<string>(
-      'apiEndpoint',
-      'https://api.genfeed.ai',
-    );
-    this.baseUrl = this.validateEndpoint(endpoint);
-  }
-
-  private validateEndpoint(endpoint: string): string {
-    try {
-      const parsed = new URL(endpoint);
-      if (
-        !ApiService.TRUSTED_HOSTS.has(parsed.hostname) &&
-        parsed.hostname !== 'localhost' &&
-        !parsed.hostname.endsWith('.genfeed.ai')
-      ) {
-        throw new Error(
-          `Untrusted API endpoint: ${parsed.hostname}. Only *.genfeed.ai and localhost are allowed for authenticated requests.`,
-        );
-      }
-      return endpoint;
-    } catch (error) {
-      if (error instanceof Error && error.message.startsWith('Untrusted')) {
-        throw error;
-      }
-      throw new Error(`Invalid API endpoint URL: ${endpoint}`);
-    }
+    this.baseUrl = getValidatedApiEndpoint();
   }
 
   static getInstance(): ApiService {

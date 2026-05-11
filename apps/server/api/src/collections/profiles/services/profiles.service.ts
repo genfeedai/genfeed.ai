@@ -110,10 +110,19 @@ export class ProfilesService {
       ...safeData
     } = data as Record<string, unknown>;
 
+    // Spread user-supplied data first, then canonical DB fields win — prevents
+    // an attacker from injecting id, organizationId, or other system fields via
+    // the stored data blob.
     return {
       ...record,
       ...safeData,
       _id: record.mongoId ?? record.id,
+      id: record.id,
+      organizationId: record.organizationId,
+      createdById: record.createdById,
+      isDeleted: record.isDeleted,
+      createdAt: record.createdAt,
+      updatedAt: record.updatedAt,
     };
   }
 
@@ -337,21 +346,22 @@ export class ProfilesService {
         onBilling,
       );
 
-      // Track usage
+      // Track usage — scope write predicate to org + soft-delete to prevent IDOR
       const nextUsageCount = (this.readNumber(profile.usageCount) ?? 0) + 1;
-      await this.prisma.profile.update({
+      const profileDoc = profile as unknown as ProfileDocument;
+      await this.prisma.profile.updateMany({
         data: {
           data: this.serializeProfileData({
-            ...this.readObjectRecord(
-              (profile as unknown as ProfileDocument).data,
-            ),
+            ...this.readObjectRecord(profileDoc.data),
             ...profile,
             usageCount: nextUsageCount,
           }) as never,
         },
         where: {
           id: profile.id,
-        },
+          organizationId,
+          isDeleted: false,
+        } as never,
       });
 
       return {

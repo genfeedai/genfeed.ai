@@ -19,8 +19,10 @@ export class DatabaseValidationExceptionFilter extends AllExceptionFilter {
     const req = ctx.getRequest<ExpressRequest>();
     const status: HttpStatus = HttpStatus.BAD_REQUEST;
 
-    const detail = exception.message;
-    const title = exception.name;
+    // Never expose raw validation error messages in production — they can leak
+    // schema column names and internal constraint details.
+    const detail = this.isProduction ? 'Validation failed' : exception.message;
+    const title = this.isProduction ? 'Validation Error' : exception.name;
 
     if (this.SENTRY_ENVIRONMENT !== 'development') {
       Sentry.captureException(exception, {

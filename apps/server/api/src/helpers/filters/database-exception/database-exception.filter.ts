@@ -79,13 +79,17 @@ export class DatabaseExceptionFilter extends AllExceptionFilter {
         };
       default:
         return {
-          detail:
-            typeof exception.message === 'string'
+          // Never expose raw Prisma/DB error messages in production — they can contain
+          // schema details, table names, and constraint names.
+          detail: this.isProduction
+            ? 'Database operation failed'
+            : typeof exception.message === 'string'
               ? exception.message
               : 'Database operation failed',
           status: HttpStatus.BAD_REQUEST,
-          title:
-            typeof exception.name === 'string'
+          title: this.isProduction
+            ? 'Database Error'
+            : typeof exception.name === 'string'
               ? exception.name
               : 'Database Error',
         };

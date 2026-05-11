@@ -141,21 +141,24 @@ export class BatchWorkflowService {
       throw new BadRequestException('Maximum 100 items per batch');
     }
 
-    const validIngredients = await this.prisma.ingredient.findMany({
+    // Verify every ingredientId belongs to the caller's organization and is not deleted.
+    // This prevents cross-tenant IDOR where an attacker submits IDs owned by another org.
+    const ownedCount = await this.prisma.ingredient.count({
       where: {
         id: { in: ingredientIds },
-        isDeleted: false,
         organizationId,
-      },
-      select: { id: true },
+        isDeleted: false,
+      } as never,
     });
 
-    const validIds = new Set(validIngredients.map((i) => i.id));
-    const invalidIds = ingredientIds.filter((id) => !validIds.has(id));
-
-    if (invalidIds.length > 0) {
+    if (ownedCount !== ingredientIds.length) {
+      this.logger.warn(`${this.logContext} ingredient ownership check failed`, {
+        expected: ingredientIds.length,
+        found: ownedCount,
+        organizationId,
+      });
       throw new BadRequestException(
-        `Ingredients not found or not accessible: ${invalidIds.join(', ')}`,
+        'One or more ingredient IDs are invalid or do not belong to your organization',
       );
     }
 

@@ -63,6 +63,28 @@ export class AgentRunsController extends BaseCRUDController<
     ]);
   }
 
+  /**
+   * Override enrichCreateDto to ensure organizationId is always derived from the
+   * authenticated user's token — never from the request body. This prevents an
+   * attacker from submitting a different org's ID to create records in another tenant.
+   */
+  public override enrichCreateDto(
+    createDto: Partial<CreateAgentRunDto>,
+    user: User,
+  ): CreateAgentRunDto {
+    const publicMetadata = getPublicMetadata(user);
+    const dto = createDto as Record<string, unknown>;
+
+    // Strip any organization/organizationId supplied in the request body.
+    delete dto.organization;
+    delete dto.organizationId;
+
+    return {
+      ...createDto,
+      organizationId: publicMetadata.organization,
+    } as CreateAgentRunDto;
+  }
+
   public buildFindAllQuery(user: User, query: AgentRunsQueryDto) {
     const publicMetadata = getPublicMetadata(user);
     const match: Record<string, unknown> = {

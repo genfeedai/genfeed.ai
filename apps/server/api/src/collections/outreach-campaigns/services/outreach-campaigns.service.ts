@@ -382,71 +382,84 @@ export class OutreachCampaignsService {
   }
 
   /**
-   * Increment reply counters after a successful reply
+   * Increment reply counters after a successful reply.
+   * Also bumps the hourly and daily rate-limit counters so `canReply` correctly
+   * enforces the configured limits.
    */
   async incrementReplyCounters(id: string): Promise<void> {
-    const row = await this.prisma.outreachCampaign.findFirst({
-      where: { id },
+    const campaign = await this.prisma.outreachCampaign.findFirst({
+      where: { id, isDeleted: false },
     });
-    if (!row) return;
-    const cfg = parseConfig((row as unknown as Record<string, unknown>).config);
-    await this.prisma.outreachCampaign.update({
-      data: {
-        config: {
-          ...cfg,
-          totalReplies: ((cfg.totalReplies as number) ?? 0) + 1,
-          totalSuccessful: ((cfg.totalSuccessful as number) ?? 0) + 1,
-        } as never,
-        updatedAt: new Date(),
-      } as never,
-      where: { id },
-    });
+
+    if (!campaign) return;
+
+    const doc = campaign as unknown as OutreachCampaignDocument;
+    const rateLimits = this.normalizeRateLimits(doc.rateLimits);
+    const now = new Date();
+    const nextHour = new Date(now.getTime() + 3600 * 1000);
+    const nextDay = new Date(now.getTime() + 86400 * 1000);
+
+    const updatedRateLimits: CampaignRateLimits = {
+      ...rateLimits,
+      currentDayCount: rateLimits.currentDayCount + 1,
+      currentHourCount: rateLimits.currentHourCount + 1,
+      dayResetAt: rateLimits.dayResetAt ?? nextDay,
+      hourResetAt: rateLimits.hourResetAt ?? nextHour,
+    };
+
+    await this.patch(id, {
+      rateLimits: updatedRateLimits,
+      totalReplies: (doc.totalReplies ?? 0) + 1,
+      totalSuccessful: (doc.totalSuccessful ?? 0) + 1,
+    } as UpdateOutreachCampaignDto);
   }
 
   /**
    * Increment failed counter
    */
   async incrementFailedCounter(id: string): Promise<void> {
-    const row = await this.prisma.outreachCampaign.findFirst({
-      where: { id },
+    const campaign = await this.prisma.outreachCampaign.findFirst({
+      where: { id, isDeleted: false },
     });
-    if (!row) return;
-    const cfg = parseConfig((row as unknown as Record<string, unknown>).config);
-    await this.prisma.outreachCampaign.update({
-      data: {
-        config: {
-          ...cfg,
-          totalFailed: ((cfg.totalFailed as number) ?? 0) + 1,
-        } as never,
-        updatedAt: new Date(),
-      } as never,
-      where: { id },
-    });
+    if (!campaign) return;
+    // No rate-limit counters need incrementing for failures — only log the bump.
+    const doc = campaign as unknown as OutreachCampaignDocument;
+    await this.patch(id, {
+      totalFailed: (doc.totalFailed ?? 0) + 1,
+    } as UpdateOutreachCampaignDto);
   }
 
   /**
    * Increment DM sent counter
    */
   async incrementDmCounter(id: string): Promise<void> {
-    const row = await this.prisma.outreachCampaign.findFirst({
-      where: { id },
+    const campaign = await this.prisma.outreachCampaign.findFirst({
+      where: { id, isDeleted: false },
     });
-    if (!row) return;
-    const cfg = parseConfig((row as unknown as Record<string, unknown>).config);
-    await this.prisma.outreachCampaign.update({
-      data: {
-        config: {
-          ...cfg,
-          totalDmsSent: ((cfg.totalDmsSent as number) ?? 0) + 1,
-        } as never,
-        updatedAt: new Date(),
-      } as never,
-      where: { id },
-    });
+
+    if (!campaign) return;
+
+    const doc = campaign as unknown as OutreachCampaignDocument;
+    const rateLimits = this.normalizeRateLimits(doc.rateLimits);
+    const now = new Date();
+    const nextHour = new Date(now.getTime() + 3600 * 1000);
+    const nextDay = new Date(now.getTime() + 86400 * 1000);
+
+    const updatedRateLimits: CampaignRateLimits = {
+      ...rateLimits,
+      currentDayCount: rateLimits.currentDayCount + 1,
+      currentHourCount: rateLimits.currentHourCount + 1,
+      dayResetAt: rateLimits.dayResetAt ?? nextDay,
+      hourResetAt: rateLimits.hourResetAt ?? nextHour,
+    };
+
+    await this.patch(id, {
+      rateLimits: updatedRateLimits,
+    } as UpdateOutreachCampaignDto);
   }
 
   /**
-   * Increment skipped counter
+   * Increment skipped counter — does not count toward rate limits.
    */
   async incrementSkippedCounter(id: string): Promise<void> {
     const row = await this.prisma.outreachCampaign.findFirst({
@@ -488,56 +501,51 @@ export class OutreachCampaignsService {
   }
 
   /**
-   * Reset hourly rate limit counter
+   * Reset hourly rate limit counter and set the next reset window.
    */
   private async resetHourlyCounter(id: string): Promise<void> {
-    const row = await this.prisma.outreachCampaign.findFirst({
-      where: { id },
+    const now = new Date();
+    const nextHour = new Date(now.getTime() + 3600 * 1000);
+
+    const campaign = await this.prisma.outreachCampaign.findFirst({
+      where: { id, isDeleted: false },
     });
-    if (!row) return;
-    const cfg = parseConfig((row as unknown as Record<string, unknown>).config);
-    const rateLimits = this.normalizeRateLimits(
-      cfg.rateLimits as CampaignRateLimits | undefined,
-    );
-    const hourResetAt = new Date();
-    hourResetAt.setHours(hourResetAt.getHours() + 1);
-    await this.prisma.outreachCampaign.update({
-      data: {
-        config: {
-          ...cfg,
-          rateLimits: { ...rateLimits, currentHourCount: 0, hourResetAt },
-        } as never,
-        updatedAt: new Date(),
-      } as never,
-      where: { id },
-    });
+    if (!campaign) return;
+
+    const doc = campaign as unknown as OutreachCampaignDocument;
+    const rateLimits = this.normalizeRateLimits(doc.rateLimits);
+
+    await this.patch(id, {
+      rateLimits: {
+        ...rateLimits,
+        currentHourCount: 0,
+        hourResetAt: nextHour,
+      },
+    } as UpdateOutreachCampaignDto);
   }
 
   /**
-   * Reset daily rate limit counter
+   * Reset daily rate limit counter and set the next reset window.
    */
   private async resetDailyCounter(id: string): Promise<void> {
-    const row = await this.prisma.outreachCampaign.findFirst({
-      where: { id },
+    const now = new Date();
+    const nextDay = new Date(now.getTime() + 86400 * 1000);
+
+    const campaign = await this.prisma.outreachCampaign.findFirst({
+      where: { id, isDeleted: false },
     });
-    if (!row) return;
-    const cfg = parseConfig((row as unknown as Record<string, unknown>).config);
-    const rateLimits = this.normalizeRateLimits(
-      cfg.rateLimits as CampaignRateLimits | undefined,
-    );
-    const dayResetAt = new Date();
-    dayResetAt.setDate(dayResetAt.getDate() + 1);
-    dayResetAt.setHours(0, 0, 0, 0);
-    await this.prisma.outreachCampaign.update({
-      data: {
-        config: {
-          ...cfg,
-          rateLimits: { ...rateLimits, currentDayCount: 0, dayResetAt },
-        } as never,
-        updatedAt: new Date(),
-      } as never,
-      where: { id },
-    });
+    if (!campaign) return;
+
+    const doc = campaign as unknown as OutreachCampaignDocument;
+    const rateLimits = this.normalizeRateLimits(doc.rateLimits);
+
+    await this.patch(id, {
+      rateLimits: {
+        ...rateLimits,
+        currentDayCount: 0,
+        dayResetAt: nextDay,
+      },
+    } as UpdateOutreachCampaignDto);
   }
 
   /**

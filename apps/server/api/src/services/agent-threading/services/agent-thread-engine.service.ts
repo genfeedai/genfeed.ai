@@ -322,8 +322,8 @@ export class AgentThreadEngineService {
   listEventsEffect(
     threadId: string,
     organizationId: string,
-    userId: string,
     afterSequence?: number,
+    userId?: string,
   ): Effect.Effect<AgentThreadEventDocument[], unknown> {
     return fromPromiseEffect(async () => {
       await this.ensureThreadAccess(threadId, organizationId, userId);
@@ -349,18 +349,18 @@ export class AgentThreadEngineService {
   async listEvents(
     threadId: string,
     organizationId: string,
-    userId: string,
     afterSequence?: number,
+    userId?: string,
   ): Promise<AgentThreadEventDocument[]> {
     return runEffectPromise(
-      this.listEventsEffect(threadId, organizationId, userId, afterSequence),
+      this.listEventsEffect(threadId, organizationId, afterSequence, userId),
     );
   }
 
   getSnapshotEffect(
     threadId: string,
     organizationId: string,
-    userId: string,
+    userId?: string,
   ): Effect.Effect<AgentThreadSnapshotDocument, unknown> {
     return fromPromiseEffect(async () => {
       const thread = await this.ensureThreadAccess(
@@ -413,7 +413,7 @@ export class AgentThreadEngineService {
   async getSnapshot(
     threadId: string,
     organizationId: string,
-    userId: string,
+    userId?: string,
   ): Promise<AgentThreadSnapshotDocument> {
     return runEffectPromise(
       this.getSnapshotEffect(threadId, organizationId, userId),
@@ -662,7 +662,7 @@ export class AgentThreadEngineService {
   private async ensureThreadAccess(
     threadId: string,
     organizationId: string,
-    userId: string,
+    userId?: string,
   ): Promise<{
     id: string;
     source?: string;
@@ -676,12 +676,20 @@ export class AgentThreadEngineService {
       throw new BadRequestException('Invalid organizationId');
     }
 
-    const thread = await this.agentThreadsService.findOne({
+    const query: Record<string, unknown> = {
       _id: threadId,
       isDeleted: false,
       organization: organizationId,
-      user: userId,
-    });
+    };
+
+    if (userId) {
+      if (!ObjectIdUtil.isValid(userId)) {
+        throw new BadRequestException('Invalid userId');
+      }
+      query.user = userId;
+    }
+
+    const thread = await this.agentThreadsService.findOne(query);
 
     if (!thread) {
       throw new NotFoundException(`Thread "${threadId}" not found`);

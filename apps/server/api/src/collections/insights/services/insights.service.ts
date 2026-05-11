@@ -331,6 +331,8 @@ export class InsightsService {
     }
   }
 
+  private static readonly MAX_VIRAL_CONTENT_LENGTH = 50_000;
+
   async predictViral(
     dto: PredictViralDto,
     organizationId: string,
@@ -342,10 +344,12 @@ export class InsightsService {
     factors: Array<{ factor: string; impact: number; description: string }>;
     recommendations: string[];
   }> {
-    const MAX_CONTENT_LENGTH = 50_000;
-    if (dto.content && dto.content.length > MAX_CONTENT_LENGTH) {
+    if (
+      dto.content &&
+      dto.content.length > InsightsService.MAX_VIRAL_CONTENT_LENGTH
+    ) {
       throw new BadRequestException(
-        `Content exceeds maximum length of ${MAX_CONTENT_LENGTH} characters`,
+        `Content exceeds maximum allowed length of ${InsightsService.MAX_VIRAL_CONTENT_LENGTH} characters`,
       );
     }
 

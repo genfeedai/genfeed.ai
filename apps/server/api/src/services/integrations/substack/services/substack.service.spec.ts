@@ -1,11 +1,13 @@
-import {
-  isAllowedWebhookUrl,
-  SubstackService,
-} from '@api/services/integrations/substack/services/substack.service';
+import { BadRequestException } from '@nestjs/common';
 import { of } from 'rxjs';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { SubstackService } from './substack.service';
 
 describe('SubstackService', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('returns explicit fallback for draft creation', async () => {
     const service = new SubstackService(
       { post: vi.fn() } as never,
@@ -35,6 +37,13 @@ describe('SubstackService', () => {
   });
 
   it('delivers webhook when url is valid', async () => {
+    // Stub DNS lookup to resolve to a public address so no real DNS call is made.
+    vi.spyOn(await import('node:dns/promises'), 'lookup').mockResolvedValue({
+      address: '93.184.216.34',
+      family: 4,
+      hostname: '',
+    } as never);
+
     const post = vi.fn().mockReturnValue(of({ status: 202 }));
     const service = new SubstackService(
       { post } as never,
@@ -51,9 +60,87 @@ describe('SubstackService', () => {
     expect(post).toHaveBeenCalledTimes(1);
   });
 
-  it('blocks localhost webhook urls', () => {
-    expect(isAllowedWebhookUrl('http://localhost:3000/hook')).toBe(false);
-    expect(isAllowedWebhookUrl('http://127.0.0.1:8080/hook')).toBe(false);
-    expect(isAllowedWebhookUrl('https://hooks.example.com/hook')).toBe(true);
+  it('throws BadRequestException for http:// webhook urls', async () => {
+    const service = new SubstackService(
+      { post: vi.fn() } as never,
+      { error: vi.fn() } as never,
+    );
+
+    await expect(
+      service.deliverDraftWebhook({
+        payload: { event: 'newsletter.draft.ready' },
+        webhookUrl: 'http://hooks.example.com/hook',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('throws BadRequestException for private IPv4 webhook urls', async () => {
+    const service = new SubstackService(
+      { post: vi.fn() } as never,
+      { error: vi.fn() } as never,
+    );
+
+    await expect(
+      service.deliverDraftWebhook({
+        payload: { event: 'newsletter.draft.ready' },
+        webhookUrl: 'https://127.0.0.1:3000/hook',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('throws BadRequestException for AWS metadata endpoint 169.254.169.254', async () => {
+    const service = new SubstackService(
+      { post: vi.fn() } as never,
+      { error: vi.fn() } as never,
+    );
+
+    await expect(
+      service.deliverDraftWebhook({
+        payload: { event: 'newsletter.draft.ready' },
+        webhookUrl: 'https://169.254.169.254/latest/meta-data/',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('throws BadRequestException when Authorization header is supplied', async () => {
+    vi.spyOn(await import('node:dns/promises'), 'lookup').mockResolvedValue({
+      address: '93.184.216.34',
+      family: 4,
+      hostname: '',
+    } as never);
+
+    const service = new SubstackService(
+      { post: vi.fn() } as never,
+      { error: vi.fn() } as never,
+    );
+
+    await expect(
+      service.deliverDraftWebhook({
+        payload: { event: 'newsletter.draft.ready' },
+        webhookHeaders: { Authorization: 'Bearer token' },
+        webhookUrl: 'https://hooks.example.com/hook',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('throws BadRequestException for header value with CRLF injection', async () => {
+    vi.spyOn(await import('node:dns/promises'), 'lookup').mockResolvedValue({
+      address: '93.184.216.34',
+      family: 4,
+      hostname: '',
+    } as never);
+
+    const service = new SubstackService(
+      { post: vi.fn() } as never,
+      { error: vi.fn() } as never,
+    );
+
+    await expect(
+      service.deliverDraftWebhook({
+        payload: { event: 'newsletter.draft.ready' },
+        webhookHeaders: { 'X-Custom': 'value\r\nX-Injected: evil' },
+        webhookUrl: 'https://hooks.example.com/hook',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 });
