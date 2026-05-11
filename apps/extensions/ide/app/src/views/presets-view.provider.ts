@@ -244,10 +244,10 @@ export class PresetsViewProvider implements vscode.WebviewViewProvider {
     <div id="auth-view" class="auth-container" style="display: none;">
       <h3>Welcome to Genfeed.ai</h3>
       <p>Sign in to access your image presets and generate AI images.</p>
-      <button class="btn btn-primary btn-block" onclick="authenticate()">
+      <button class="btn btn-primary btn-block" data-action="authenticate">
         Sign In with Genfeed
       </button>
-      <button class="btn btn-secondary btn-block" onclick="setApiKey()">
+      <button class="btn btn-secondary btn-block" data-action="setApiKey">
         Use API Key
       </button>
     </div>
@@ -261,7 +261,7 @@ export class PresetsViewProvider implements vscode.WebviewViewProvider {
           <label for="quick-prompt">Prompt</label>
           <textarea id="quick-prompt" placeholder="Describe the image you want to generate..."></textarea>
         </div>
-        <button class="btn btn-primary btn-block" onclick="quickGenerate()">
+        <button class="btn btn-primary btn-block" data-action="quickGenerate">
           Generate Image
         </button>
       </div>
@@ -271,7 +271,7 @@ export class PresetsViewProvider implements vscode.WebviewViewProvider {
       <div class="section">
         <div class="section-header">
           <span class="section-title">Presets</span>
-          <button class="btn btn-secondary btn-small" onclick="toggleCreateForm()">+ New</button>
+          <button class="btn btn-secondary btn-small" data-action="toggleCreateForm">+ New</button>
         </div>
 
         <div id="create-form" class="create-form">
@@ -301,8 +301,8 @@ export class PresetsViewProvider implements vscode.WebviewViewProvider {
               <input type="text" id="preset-style" placeholder="e.g., cinematic, minimalist">
             </div>
             <div class="card-footer">
-              <button class="btn btn-primary" onclick="createPreset()">Create</button>
-              <button class="btn btn-secondary" onclick="toggleCreateForm()">Cancel</button>
+              <button class="btn btn-primary" data-action="createPreset">Create</button>
+              <button class="btn btn-secondary" data-action="toggleCreateForm">Cancel</button>
             </div>
           </div>
         </div>
@@ -368,10 +368,10 @@ export class PresetsViewProvider implements vscode.WebviewViewProvider {
             </div>
           \` : ''}
           <div class="card-footer">
-            <button class="btn btn-primary btn-sm" onclick="generateFromPreset('\${preset.id}')">
+            <button class="btn btn-primary btn-sm" data-action="generateFromPreset" data-id="\${escapeAttr(preset.id)}">
               Generate
             </button>
-            <button class="btn btn-destructive btn-sm" onclick="deletePreset('\${preset.id}')">
+            <button class="btn btn-destructive btn-sm" data-action="deletePreset" data-id="\${escapeAttr(preset.id)}">
               Delete
             </button>
           </div>
@@ -458,6 +458,22 @@ export class PresetsViewProvider implements vscode.WebviewViewProvider {
     function deletePreset(id) {
       vscode.postMessage({ command: 'deletePreset', id });
     }
+
+    document.addEventListener('click', (e) => {
+      const target = e.target.closest('[data-action]');
+      if (!target) return;
+      const action = target.dataset.action;
+      const id = target.dataset.id;
+      switch (action) {
+        case 'authenticate': authenticate(); break;
+        case 'setApiKey': setApiKey(); break;
+        case 'quickGenerate': quickGenerate(); break;
+        case 'toggleCreateForm': toggleCreateForm(); break;
+        case 'createPreset': createPreset(); break;
+        case 'generateFromPreset': if (id) generateFromPreset(id); break;
+        case 'deletePreset': if (id) deletePreset(id); break;
+      }
+    });
 
     // Request initial data
     vscode.postMessage({ command: 'refresh' });

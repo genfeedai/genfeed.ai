@@ -211,75 +211,82 @@ export class AgentThreadEngineService {
         );
       }
 
-      // Upsert snapshot to increment sequence (atomic increment via update-then-create)
-      let snapshotRow = await this.prisma.agentThreadSnapshot.findFirst({
-        where: {
-          isDeleted: false,
-          organizationId: params.organizationId,
-          threadId: params.threadId,
-        },
-      });
-
-      if (snapshotRow) {
-        const existingData =
-          (snapshotRow.data as Record<string, unknown>) ?? {};
-        const lastSequence = ((existingData.lastSequence as number) ?? 0) + 1;
-        snapshotRow = await this.prisma.agentThreadSnapshot.update({
-          where: { id: snapshotRow.id },
-          data: {
-            data: { ...existingData, lastSequence },
-            updatedAt: new Date(),
-          },
-        });
-      } else {
-        snapshotRow = await this.prisma.agentThreadSnapshot.create({
-          data: {
-            organizationId: params.organizationId,
-            threadId: params.threadId,
-            isDeleted: false,
-            data: {
-              lastSequence: 1,
-              memorySummaryRefs: [],
-              pendingApprovals: [],
-              pendingInputRequests: [],
-              source: thread.source,
-              threadStatus: thread.status,
-              timeline: [],
-              title: thread.title,
+      // Allocate sequence + create event inside a serializable transaction
+      // to prevent concurrent appends from reading the same lastSequence.
+      const { snapshotRow, createdRow } = await this.prisma.$transaction(
+        async (tx) => {
+          let snap = await tx.agentThreadSnapshot.findFirst({
+            where: {
+              isDeleted: false,
+              organizationId: params.organizationId,
+              threadId: params.threadId,
             },
-          },
-        });
-      }
+          });
 
-      if (!snapshotRow) {
-        throw new NotFoundException('Unable to allocate thread snapshot');
-      }
+          if (snap) {
+            const existingData = (snap.data as Record<string, unknown>) ?? {};
+            const lastSequence =
+              ((existingData.lastSequence as number) ?? 0) + 1;
+            snap = await tx.agentThreadSnapshot.update({
+              where: { id: snap.id },
+              data: {
+                data: { ...existingData, lastSequence },
+                updatedAt: new Date(),
+              },
+            });
+          } else {
+            snap = await tx.agentThreadSnapshot.create({
+              data: {
+                organizationId: params.organizationId,
+                threadId: params.threadId,
+                isDeleted: false,
+                data: {
+                  lastSequence: 1,
+                  memorySummaryRefs: [],
+                  pendingApprovals: [],
+                  pendingInputRequests: [],
+                  source: thread.source,
+                  threadStatus: thread.status,
+                  timeline: [],
+                  title: thread.title,
+                },
+              },
+            });
+          }
 
-      const snapshotData = (snapshotRow.data as Record<string, unknown>) ?? {};
-      const sequence = (snapshotData.lastSequence as number) ?? 1;
+          if (!snap) {
+            throw new NotFoundException('Unable to allocate thread snapshot');
+          }
 
-      // Store all per-event fields in data Json; top-level columns are commandId, runId, type
-      const eventDataPayload: Record<string, unknown> = {
-        occurredAt: params.occurredAt ?? new Date().toISOString(),
-      };
-      if (params.payload) eventDataPayload.payload = params.payload;
-      if (params.metadata) eventDataPayload.metadata = params.metadata;
-      if (params.eventId) eventDataPayload.eventId = params.eventId;
-      if (params.userId) eventDataPayload.userId = params.userId;
-      if (params.runId) eventDataPayload.runId = params.runId;
+          const snapData = (snap.data as Record<string, unknown>) ?? {};
+          const sequence = (snapData.lastSequence as number) ?? 1;
 
-      const createdRow = await this.prisma.agentThreadEvent.create({
-        data: {
-          commandId: params.commandId,
-          isDeleted: false,
-          organizationId: params.organizationId,
-          runId: params.runId,
-          sequence,
-          threadId: params.threadId,
-          type: params.type,
-          data: this.serializeJsonRecord(eventDataPayload) as never,
+          const eventDataPayload: Record<string, unknown> = {
+            occurredAt: params.occurredAt ?? new Date().toISOString(),
+          };
+          if (params.payload) eventDataPayload.payload = params.payload;
+          if (params.metadata) eventDataPayload.metadata = params.metadata;
+          if (params.eventId) eventDataPayload.eventId = params.eventId;
+          if (params.userId) eventDataPayload.userId = params.userId;
+          if (params.runId) eventDataPayload.runId = params.runId;
+
+          const event = await tx.agentThreadEvent.create({
+            data: {
+              commandId: params.commandId,
+              isDeleted: false,
+              organizationId: params.organizationId,
+              runId: params.runId,
+              sequence,
+              threadId: params.threadId,
+              type: params.type,
+              data: this.serializeJsonRecord(eventDataPayload) as never,
+            },
+          });
+
+          return { snapshotRow: snap, createdRow: event };
         },
-      });
+        { isolationLevel: 'Serializable' },
+      );
 
       const event = toPrismaEventDocument(
         createdRow as unknown as Record<string, unknown>,

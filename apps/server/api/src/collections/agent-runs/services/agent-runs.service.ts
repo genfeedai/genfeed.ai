@@ -471,12 +471,12 @@ export class AgentRunsService extends BaseService<
       }),
       this.prisma.post.groupBy({
         by: ['agentRunId'],
-        where: { agentRunId: { in: ids }, isDeleted: false },
+        where: { agentRunId: { in: ids }, isDeleted: false, organizationId },
         _count: true,
       }),
       this.prisma.ingredient.groupBy({
         by: ['agentRunId'],
-        where: { agentRunId: { in: ids }, isDeleted: false },
+        where: { agentRunId: { in: ids }, isDeleted: false, organizationId },
         _count: true,
       }),
     ]);

@@ -452,10 +452,10 @@ export class GalleryViewProvider implements vscode.WebviewViewProvider {
     <div id="auth-view" class="auth-container" style="display: none;">
       <h3>View Your Gallery</h3>
       <p>Sign in to view your generated images and videos.</p>
-      <button class="btn btn-primary btn-block" onclick="authenticate()">
+      <button class="btn btn-primary btn-block" data-action="authenticate">
         Sign In with Genfeed
       </button>
-      <button class="btn btn-secondary btn-block" onclick="setApiKey()">
+      <button class="btn btn-secondary btn-block" data-action="setApiKey">
         Use API Key
       </button>
     </div>
@@ -467,19 +467,19 @@ export class GalleryViewProvider implements vscode.WebviewViewProvider {
 
     <div id="error-view" class="error-state" style="display: none;">
       <p id="error-message">Failed to load gallery</p>
-      <button class="btn btn-secondary btn-small" onclick="refresh()">Try Again</button>
+      <button class="btn btn-secondary btn-small" data-action="refresh">Try Again</button>
     </div>
 
     <div id="main-view" style="display: none;">
       <div class="header">
         <span class="header-title">Gallery</span>
-        <button class="btn btn-secondary btn-small" onclick="refresh()">Refresh</button>
+        <button class="btn btn-secondary btn-small" data-action="refresh">Refresh</button>
       </div>
 
       <div class="tabs-list">
-        <button class="tabs-trigger active" data-tab="all" onclick="setTab('all')">All</button>
-        <button class="tabs-trigger" data-tab="images" onclick="setTab('images')">Images</button>
-        <button class="tabs-trigger" data-tab="videos" onclick="setTab('videos')">Videos</button>
+        <button class="tabs-trigger active" data-tab="all" data-action="setTab" data-id="all">All</button>
+        <button class="tabs-trigger" data-tab="images" data-action="setTab" data-id="images">Images</button>
+        <button class="tabs-trigger" data-tab="videos" data-action="setTab" data-id="videos">Videos</button>
       </div>
 
       <div id="gallery-grid" class="gallery-grid"></div>
@@ -491,17 +491,17 @@ export class GalleryViewProvider implements vscode.WebviewViewProvider {
     </div>
   </div>
 
-  <div id="preview-modal" class="preview-modal" onclick="closePreviewOnBackdrop(event)">
-    <button class="preview-close" onclick="closePreview()">×</button>
-    <button class="preview-nav prev" onclick="navigatePreview(-1)">‹</button>
-    <button class="preview-nav next" onclick="navigatePreview(1)">›</button>
-    <div class="preview-content" onclick="event.stopPropagation()">
+  <div id="preview-modal" class="preview-modal" data-action="closePreviewOnBackdrop">
+    <button class="preview-close" data-action="closePreview">×</button>
+    <button class="preview-nav prev" data-action="navigatePrev">‹</button>
+    <button class="preview-nav next" data-action="navigateNext">›</button>
+    <div class="preview-content" data-action="stopPropagation">
       <img id="preview-image" class="preview-media" style="display: none;" />
       <video id="preview-video" class="preview-video" controls style="display: none;"></video>
       <div id="preview-metadata" class="preview-metadata"></div>
       <div class="preview-actions">
-        <button class="btn btn-small" onclick="copyCurrentUrl()">Copy URL</button>
-        <button class="btn btn-small" onclick="openCurrentInBrowser()">Open in Browser</button>
+        <button class="btn btn-small" data-action="copyCurrentUrl">Copy URL</button>
+        <button class="btn btn-small" data-action="openCurrentInBrowser">Open in Browser</button>
       </div>
     </div>
   </div>
@@ -594,7 +594,7 @@ export class GalleryViewProvider implements vscode.WebviewViewProvider {
         const thumbnail = item.thumbnailUrl || item.url;
         const isVideo = item.mediaType === 'video';
         return \`
-          <div class="media-card" onclick="openPreview(\${index})">
+          <div class="media-card" data-action="openPreview" data-id="\${index}">
             <img src="\${escapeAttr(thumbnail)}" class="media-thumbnail" loading="lazy" alt="Generated \${isVideo ? 'video' : 'image'}" />
             <span class="media-type-badge \${isVideo ? 'video' : ''}">\${isVideo ? 'Video' : 'Image'}</span>
             <div class="media-overlay">
@@ -750,6 +750,29 @@ export class GalleryViewProvider implements vscode.WebviewViewProvider {
         return dateStr;
       }
     }
+
+    document.addEventListener('click', (e) => {
+      const target = e.target.closest('[data-action]');
+      if (!target) return;
+      const action = target.dataset.action;
+      const id = target.dataset.id;
+      switch (action) {
+        case 'authenticate': authenticate(); break;
+        case 'setApiKey': setApiKey(); break;
+        case 'refresh': refresh(); break;
+        case 'setTab': if (id) setTab(id); break;
+        case 'openPreview': if (id !== undefined) openPreview(Number(id)); break;
+        case 'closePreview': closePreview(); break;
+        case 'closePreviewOnBackdrop':
+          if (e.target === target) closePreview();
+          break;
+        case 'stopPropagation': e.stopPropagation(); break;
+        case 'navigatePrev': navigatePreview(-1); break;
+        case 'navigateNext': navigatePreview(1); break;
+        case 'copyCurrentUrl': copyCurrentUrl(); break;
+        case 'openCurrentInBrowser': openCurrentInBrowser(); break;
+      }
+    });
 
     // Request initial data
     vscode.postMessage({ command: 'loadMedia' });

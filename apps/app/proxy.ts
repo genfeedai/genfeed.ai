@@ -84,7 +84,11 @@ function canonicalizeFlatProtectedPath(pathname: string): string {
 }
 
 function redirectPreservingSearch(req: NextRequest, pathname: string) {
-  const url = new URL(pathname, req.url);
+  const sanitized = pathname.replace(/^\/\/+/, '/');
+  const url = new URL(sanitized, req.url);
+  if (url.origin !== req.nextUrl.origin) {
+    return NextResponse.redirect(new URL('/', req.url));
+  }
   const search = req.nextUrl.search;
   if (search) {
     url.search = search;
@@ -95,6 +99,18 @@ function redirectPreservingSearch(req: NextRequest, pathname: string) {
 function getTopLevelSegment(pathname: string): string | null {
   const [segment] = pathname.split('/').filter(Boolean);
   return segment ?? null;
+}
+
+/**
+ * Validate a workspace slug to prevent open redirects.
+ * Slugs must start with a lowercase letter or digit and consist only of
+ * lowercase letters, digits, and hyphens. A slug starting with "/" or
+ * containing "//" could create cross-origin redirect vectors.
+ */
+const SLUG_PATTERN = /^[a-z0-9][a-z0-9-]*$/;
+
+function isValidSlug(slug: string | undefined): slug is string {
+  return typeof slug === 'string' && SLUG_PATTERN.test(slug);
 }
 
 function isBareProtectedPath(pathname: string): boolean {
@@ -206,6 +222,8 @@ async function decodeSlugCookie(value: string): Promise<WorkspaceSlugs | null> {
     };
     if (parsed.e <= Date.now()) return null;
     if (!parsed.s?.orgSlug || !parsed.s?.brandSlug) return null;
+    if (!isValidSlug(parsed.s.orgSlug) || !isValidSlug(parsed.s.brandSlug))
+      return null;
     return parsed.s;
   } catch {
     return null;
@@ -348,6 +366,11 @@ async function resolveActiveWorkspaceSlugs(
   }
 
   if (!orgSlug || !brandSlug) {
+    return null;
+  }
+
+  // Validate slugs to prevent open redirect via malformed slug values
+  if (!isValidSlug(orgSlug) || !isValidSlug(brandSlug)) {
     return null;
   }
 

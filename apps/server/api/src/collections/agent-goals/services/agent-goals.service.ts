@@ -31,9 +31,17 @@ export class AgentGoalsService {
   ): Promise<Record<string, unknown>> {
     this.validateMetricTarget(dto.metric, dto.targetValue);
 
+    // Map dto.brand -> brandId; move non-Prisma domain fields into config
+    const brandId = dto.brand ?? undefined;
+    const config = this.buildGoalConfig(dto);
+
     const goal = await this.prisma.agentGoal.create({
       data: {
-        ...dto,
+        brandId: brandId ?? null,
+        config,
+        description: dto.description,
+        isDeleted: false,
+        label: dto.label,
         organizationId,
         userId,
       } as never,
@@ -69,15 +77,39 @@ export class AgentGoalsService {
       throw new NotFoundException(`Agent goal ${goalId} not found`);
     }
 
-    this.validateMetricTarget(
-      (dto.metric ??
-        (goal as Record<string, unknown>).metric) as AgentGoalMetric,
-      (dto.targetValue ??
-        (goal as Record<string, unknown>).targetValue) as number,
+    const existingConfig = this.readConfig(goal);
+
+    // Resolve effective metric/targetValue (dto overrides existing config)
+    const effectiveMetric = (dto.metric ??
+      existingConfig.metric) as AgentGoalMetric;
+    const effectiveTargetValue = (dto.targetValue ??
+      existingConfig.targetValue) as number;
+
+    this.validateMetricTarget(effectiveMetric, effectiveTargetValue);
+
+    const patchConfig = this.buildGoalConfig(
+      dto as Partial<CreateAgentGoalDto>,
     );
+    const mergedConfig: Record<string, unknown> = { ...existingConfig };
+    for (const [key, value] of Object.entries(patchConfig)) {
+      if (value !== undefined) {
+        mergedConfig[key] = value;
+      }
+    }
+
+    const prismaData: Record<string, unknown> = { config: mergedConfig };
+    if (dto.label !== undefined) {
+      prismaData.label = dto.label;
+    }
+    if (dto.description !== undefined) {
+      prismaData.description = dto.description;
+    }
+    if ((dto as Record<string, unknown>).brand !== undefined) {
+      prismaData.brandId = (dto as Record<string, unknown>).brand ?? null;
+    }
 
     await this.prisma.agentGoal.update({
-      data: dto as never,
+      data: prismaData as never,
       where: { id: goalId },
     });
     return this.refreshProgress(goalId, organizationId);
@@ -95,31 +127,25 @@ export class AgentGoalsService {
       throw new NotFoundException(`Agent goal ${goalId} not found`);
     }
 
-    const g = goal as Record<string, unknown>;
+    // Domain fields live in config
+    const config = this.readConfig(goal);
 
     const overview = (await this.analyticsService.getOverview(
-      (g.startDate as Date | undefined)?.toISOString(),
-      (g.endDate as Date | undefined)?.toISOString(),
-      g.brandId as string | undefined,
+      config.startDate as string | undefined,
+      config.endDate as string | undefined,
+      (goal as Record<string, unknown>).brandId as string | undefined,
       organizationId,
     )) as AnalyticsOverview;
 
     const currentValue = this.resolveMetricValue(
-      g.metric as AgentGoalMetric,
+      config.metric as AgentGoalMetric,
       overview,
     );
-    const targetValue = g.targetValue as number;
+    const targetValue = config.targetValue as number;
     const progressPercent =
       targetValue > 0
         ? Math.min(100, Number(((currentValue / targetValue) * 100).toFixed(2)))
         : 0;
-
-    const config =
-      goal.config &&
-      typeof goal.config === 'object' &&
-      !Array.isArray(goal.config)
-        ? (goal.config as Record<string, unknown>)
-        : {};
 
     await this.prisma.agentGoal.update({
       data: {
@@ -142,7 +168,9 @@ export class AgentGoalsService {
       );
     }
 
-    return updatedGoal;
+    // Merge config fields into the returned record for callers
+    const updatedConfig = this.readConfig(updatedGoal);
+    return { ...(updatedGoal as Record<string, unknown>), ...updatedConfig };
   }
 
   async getGoalSummary(
@@ -150,8 +178,8 @@ export class AgentGoalsService {
     organizationId: string,
   ): Promise<string> {
     const goal = await this.refreshProgress(goalId, organizationId);
-    const g = goal as Record<string, unknown>;
-    return `Goal "${g.label as string}": ${g.currentValue as number}/${g.targetValue as number} ${g.metric as string} (${g.progressPercent as number}% complete).`;
+    // Fields now available at top level (merged from config in refreshProgress)
+    return `Goal "${goal.label as string}": ${goal.currentValue as number}/${goal.targetValue as number} ${goal.metric as string} (${goal.progressPercent as number}% complete).`;
   }
 
   private resolveMetricValue(
@@ -180,5 +208,32 @@ export class AgentGoalsService {
         `Target value for ${metric} must be a non-negative number`,
       );
     }
+  }
+
+  /**
+   * Extract non-Prisma domain fields from a DTO into the config JSON column.
+   */
+  private buildGoalConfig(
+    dto: Partial<CreateAgentGoalDto>,
+  ): Record<string, unknown> {
+    return {
+      endDate:
+        dto.endDate?.toISOString() ??
+        (dto.endDate as unknown as string | undefined),
+      isActive: dto.isActive,
+      metric: dto.metric,
+      startDate:
+        dto.startDate?.toISOString() ??
+        (dto.startDate as unknown as string | undefined),
+      targetValue: dto.targetValue,
+    };
+  }
+
+  private readConfig(row: unknown): Record<string, unknown> {
+    const r = row as Record<string, unknown>;
+    if (r.config && typeof r.config === 'object' && !Array.isArray(r.config)) {
+      return r.config as Record<string, unknown>;
+    }
+    return {};
   }
 }

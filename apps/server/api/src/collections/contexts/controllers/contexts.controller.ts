@@ -72,8 +72,8 @@ export class ContextsController {
     @Body() dto: CreateContextDto,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
-    const data = await this.contextsService.create(dto, organization, user.id);
+    const { organization, user: dbUserId } = getPublicMetadata(user);
+    const data = await this.contextsService.create(dto, organization, dbUserId);
     return serializeSingle(req, ContextBaseSerializer, data);
   }
 

@@ -201,8 +201,8 @@ export class RunQueueViewProvider implements vscode.WebviewViewProvider {
     <div id="auth-view" class="auth-container" style="display: none;">
       <h3>Run Queue</h3>
       <p>Sign in to view and control your run queue.</p>
-      <button class="btn btn-primary btn-block" onclick="authenticate()">Sign In</button>
-      <button class="btn btn-secondary btn-block" onclick="setApiKey()">Use API Key</button>
+      <button class="btn btn-primary btn-block" data-action="authenticate">Sign In</button>
+      <button class="btn btn-secondary btn-block" data-action="setApiKey">Use API Key</button>
     </div>
 
     <div id="loading-view" style="display: none;">
@@ -215,13 +215,13 @@ export class RunQueueViewProvider implements vscode.WebviewViewProvider {
     <div id="main-view" style="display: none;">
       <div class="header">
         <span class="section-title">Run Queue</span>
-        <button class="btn btn-secondary btn-sm" onclick="refresh()">Refresh</button>
+        <button class="btn btn-secondary btn-sm" data-action="refresh">Refresh</button>
       </div>
       <div class="actions">
-        <button class="btn btn-secondary btn-sm" onclick="runAction('generate')">Generate</button>
-        <button class="btn btn-secondary btn-sm" onclick="runAction('post')">Post</button>
-        <button class="btn btn-secondary btn-sm" onclick="runAction('analytics')">Analytics</button>
-        <button class="btn btn-primary btn-sm" onclick="runAction('composite')">Full Loop</button>
+        <button class="btn btn-secondary btn-sm" data-action="runAction" data-id="generate">Generate</button>
+        <button class="btn btn-secondary btn-sm" data-action="runAction" data-id="post">Post</button>
+        <button class="btn btn-secondary btn-sm" data-action="runAction" data-id="analytics">Analytics</button>
+        <button class="btn btn-primary btn-sm" data-action="runAction" data-id="composite">Full Loop</button>
       </div>
       <div id="run-list" class="run-list"></div>
       <div id="empty" class="empty-state" style="display:none;">
@@ -231,7 +231,7 @@ export class RunQueueViewProvider implements vscode.WebviewViewProvider {
 
     <div id="error-view" style="display: none;" class="empty-state">
       <p id="error-message"></p>
-      <button class="btn btn-secondary btn-sm" onclick="refresh()">Retry</button>
+      <button class="btn btn-secondary btn-sm" data-action="refresh">Retry</button>
     </div>
   </div>
 
@@ -303,9 +303,9 @@ export class RunQueueViewProvider implements vscode.WebviewViewProvider {
               <span>\${formatDate(run.updatedAt || run.createdAt)}</span>
             </div>
             <div class="row">
-              <button class="btn btn-secondary btn-sm" onclick="status('\${escapeAttr(runId)}')">Status</button>
-              <button class="btn btn-secondary btn-sm" onclick="copyRunId('\${escapeAttr(runId)}')">Copy ID</button>
-              <button class="btn btn-secondary btn-sm" onclick="exportArtifacts('\${escapeAttr(runId)}')">Artifacts</button>
+              <button class="btn btn-secondary btn-sm" data-action="status" data-id="\${escapeAttr(runId)}">Status</button>
+              <button class="btn btn-secondary btn-sm" data-action="copyRunId" data-id="\${escapeAttr(runId)}">Copy ID</button>
+              <button class="btn btn-secondary btn-sm" data-action="exportArtifacts" data-id="\${escapeAttr(runId)}">Artifacts</button>
             </div>
           </div>
         \`;
@@ -363,6 +363,22 @@ export class RunQueueViewProvider implements vscode.WebviewViewProvider {
     function escapeAttr(value) {
       return escapeHtml(value);
     }
+
+    document.addEventListener('click', (e) => {
+      const target = e.target.closest('[data-action]');
+      if (!target) return;
+      const action = target.dataset.action;
+      const id = target.dataset.id;
+      switch (action) {
+        case 'authenticate': authenticate(); break;
+        case 'setApiKey': setApiKey(); break;
+        case 'refresh': refresh(); break;
+        case 'runAction': if (id) runAction(id); break;
+        case 'status': if (id) status(id); break;
+        case 'copyRunId': if (id) copyRunId(id); break;
+        case 'exportArtifacts': if (id) exportArtifacts(id); break;
+      }
+    });
 
     refresh();
   </script>

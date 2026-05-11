@@ -11,6 +11,24 @@ import type { PopulateOption } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
 
+// ---------------------------------------------------------------------------
+// Helper: defensively parse the `config` JSON column
+// ---------------------------------------------------------------------------
+function parseConfigJson(raw: unknown): Record<string, unknown> {
+  if (!raw) return {};
+  if (typeof raw === 'string') {
+    try {
+      return JSON.parse(raw) as Record<string, unknown>;
+    } catch {
+      return {};
+    }
+  }
+  if (typeof raw === 'object' && !Array.isArray(raw)) {
+    return { ...(raw as Record<string, unknown>) };
+  }
+  return {};
+}
+
 @Injectable()
 export class ReplyBotConfigsService extends BaseService<
   ReplyBotConfigDocument,
@@ -45,34 +63,54 @@ export class ReplyBotConfigsService extends BaseService<
 
   create(
     createDto: CreateReplyBotConfigDto,
-    populate: (string | PopulateOption)[] = [
-      { path: 'organization' },
-      { path: 'brand' },
-      { path: 'credential' },
-      { path: 'monitoredAccounts' },
-    ],
+    populate: (string | PopulateOption)[] = [],
   ): Promise<ReplyBotConfigDocument> {
-    // Set default rate limits if not provided
-    const rateLimits = createDto.rateLimits || {
-      currentDayCount: 0,
-      currentHourCount: 0,
-      maxRepliesPerAccountPerDay: 5,
-      maxRepliesPerDay: 50,
-      maxRepliesPerHour: 10,
+    const rateLimits = this.normalizeRateLimits(
+      (createDto as Record<string, unknown>).rateLimits as
+        | ReplyBotRateLimits
+        | undefined,
+    );
+
+    // Extract Prisma scalar columns from DTO; pack domain fields into `config`.
+    const {
+      organization,
+      organizationId,
+      brand,
+      brandId,
+      user,
+      userId,
+      ...domainFields
+    } = createDto as CreateReplyBotConfigDto & Record<string, unknown>;
+
+    const config: Record<string, unknown> = {
+      ...domainFields,
+      lastActivityAt: null,
+      rateLimits,
+      totalDmsSent: 0,
+      totalFailed: 0,
+      totalRepliesSent: 0,
+      totalSkipped: 0,
     };
 
-    return super.create({ ...createDto, rateLimits }, populate);
+    const prismaDto = {
+      ...(brandId || brand ? { brandId: (brandId || brand) as string } : {}),
+      ...(organizationId || organization
+        ? { organizationId: (organizationId || organization) as string }
+        : {}),
+      ...(userId || user ? { userId: (userId || user) as string } : {}),
+      config,
+    };
+
+    return super.create(
+      prismaDto as unknown as CreateReplyBotConfigDto,
+      populate,
+    );
   }
 
   patch(
     id: string,
     updateDto: UpdateReplyBotConfigDto,
-    populate: (string | PopulateOption)[] = [
-      { path: 'organization' },
-      { path: 'brand' },
-      { path: 'credential' },
-      { path: 'monitoredAccounts' },
-    ],
+    populate: (string | PopulateOption)[] = [],
   ): Promise<ReplyBotConfigDocument> {
     return super.patch(id, updateDto, populate);
   }
@@ -192,58 +230,78 @@ export class ReplyBotConfigsService extends BaseService<
   /**
    * Increment reply counters after a successful reply
    */
+  private async readConfig(
+    id: string,
+  ): Promise<Record<string, unknown> | null> {
+    const row = await this.prisma.replyBotConfig.findFirst({
+      where: { id },
+    });
+    if (!row) return null;
+    return parseConfigJson((row as unknown as Record<string, unknown>).config);
+  }
+
   async incrementReplyCounters(id: string): Promise<void> {
-    const config = await this.prisma.replyBotConfig.findFirst({
-      where: { id },
-    });
-    if (!config) return;
-    const normalizedConfig = this.normalizeDocument(
-      config,
-    ) as ReplyBotConfigDocument;
-    const rateLimits = this.normalizeRateLimits(normalizedConfig.rateLimits);
+    const cfg = await this.readConfig(id);
+    if (!cfg) return;
+    const rateLimits = this.normalizeRateLimits(
+      cfg.rateLimits as ReplyBotRateLimits | undefined,
+    );
     await this.prisma.replyBotConfig.update({
       data: {
-        lastActivityAt: new Date(),
-        rateLimits: {
-          ...rateLimits,
-          currentDayCount: ((rateLimits.currentDayCount as number) ?? 0) + 1,
-          currentHourCount: ((rateLimits.currentHourCount as number) ?? 0) + 1,
-        } as never,
-        totalRepliesSent: { increment: 1 },
-      } as never,
+        config: {
+          ...cfg,
+          lastActivityAt: new Date().toISOString(),
+          rateLimits: {
+            ...rateLimits,
+            currentDayCount: (rateLimits.currentDayCount ?? 0) + 1,
+            currentHourCount: (rateLimits.currentHourCount ?? 0) + 1,
+          },
+          totalRepliesSent: ((cfg.totalRepliesSent as number) ?? 0) + 1,
+        },
+      },
       where: { id },
     });
   }
 
-  /**
-   * Increment DM counter
-   */
   async incrementDmCounter(id: string): Promise<void> {
+    const cfg = await this.readConfig(id);
+    if (!cfg) return;
     await this.prisma.replyBotConfig.update({
       data: {
-        lastActivityAt: new Date(),
-        totalDmsSent: { increment: 1 },
-      } as never,
+        config: {
+          ...cfg,
+          lastActivityAt: new Date().toISOString(),
+          totalDmsSent: ((cfg.totalDmsSent as number) ?? 0) + 1,
+        },
+      },
       where: { id },
     });
   }
 
-  /**
-   * Increment skipped counter
-   */
   async incrementSkippedCounter(id: string): Promise<void> {
+    const cfg = await this.readConfig(id);
+    if (!cfg) return;
     await this.prisma.replyBotConfig.update({
-      data: { totalSkipped: { increment: 1 } } as never,
+      data: {
+        config: {
+          ...cfg,
+          totalSkipped: ((cfg.totalSkipped as number) ?? 0) + 1,
+        },
+      },
       where: { id },
     });
   }
 
-  /**
-   * Increment failed counter
-   */
   async incrementFailedCounter(id: string): Promise<void> {
+    const cfg = await this.readConfig(id);
+    if (!cfg) return;
     await this.prisma.replyBotConfig.update({
-      data: { totalFailed: { increment: 1 } } as never,
+      data: {
+        config: {
+          ...cfg,
+          totalFailed: ((cfg.totalFailed as number) ?? 0) + 1,
+        },
+      },
       where: { id },
     });
   }
@@ -255,109 +313,127 @@ export class ReplyBotConfigsService extends BaseService<
     const hourResetAt = new Date();
     hourResetAt.setHours(hourResetAt.getHours() + 1);
 
-    const config = await this.prisma.replyBotConfig.findFirst({
-      where: { id },
-    });
-    if (!config) return;
-    const normalizedConfig = this.normalizeDocument(
-      config,
-    ) as ReplyBotConfigDocument;
-    const rateLimits = this.normalizeRateLimits(normalizedConfig.rateLimits);
+    const cfg = await this.readConfig(id);
+    if (!cfg) return;
+    const rateLimits = this.normalizeRateLimits(
+      cfg.rateLimits as ReplyBotRateLimits | undefined,
+    );
 
     await this.prisma.replyBotConfig.update({
       data: {
-        rateLimits: {
-          ...rateLimits,
-          currentHourCount: 0,
-          hourResetAt,
-        } as never,
-      } as never,
+        config: {
+          ...cfg,
+          rateLimits: {
+            ...rateLimits,
+            currentHourCount: 0,
+            hourResetAt: hourResetAt.toISOString(),
+          },
+        },
+      },
       where: { id },
     });
   }
 
-  /**
-   * Reset daily rate limit counter
-   */
   private async resetDailyCounter(id: string): Promise<void> {
     const dayResetAt = new Date();
     dayResetAt.setDate(dayResetAt.getDate() + 1);
     dayResetAt.setHours(0, 0, 0, 0);
 
-    const config = await this.prisma.replyBotConfig.findFirst({
-      where: { id },
-    });
-    if (!config) return;
-    const normalizedConfig = this.normalizeDocument(
-      config,
-    ) as ReplyBotConfigDocument;
-    const rateLimits = this.normalizeRateLimits(normalizedConfig.rateLimits);
+    const cfg = await this.readConfig(id);
+    if (!cfg) return;
+    const rateLimits = this.normalizeRateLimits(
+      cfg.rateLimits as ReplyBotRateLimits | undefined,
+    );
 
     await this.prisma.replyBotConfig.update({
       data: {
-        rateLimits: {
-          ...rateLimits,
-          currentDayCount: 0,
-          dayResetAt,
-        } as never,
-      } as never,
+        config: {
+          ...cfg,
+          rateLimits: {
+            ...rateLimits,
+            currentDayCount: 0,
+            dayResetAt: dayResetAt.toISOString(),
+          },
+        },
+      },
       where: { id },
     });
   }
 
   /**
-   * Add a monitored account to the config
+   * Add a monitored account to the config.
+   * monitoredAccounts lives inside the `config` JSON column.
    */
   async addMonitoredAccount(
     configId: string,
     accountId: string,
     organizationId: string,
   ): Promise<ReplyBotConfigDocument> {
-    const config = await this.findOne({
+    const existing = await this.findOne({
       id: configId,
       isDeleted: false,
       organizationId,
     });
 
-    if (!config) {
+    if (!existing) {
       throw new NotFoundException(`Reply bot config ${configId} not found`);
     }
 
-    const monitoredAccounts: string[] = config.monitoredAccounts ?? [];
-
+    const monitoredAccounts: string[] = existing.monitoredAccounts ?? [];
     if (!monitoredAccounts.includes(accountId)) {
       monitoredAccounts.push(accountId);
     }
 
-    return this.patch(configId, {
-      monitoredAccounts,
-    } as UpdateReplyBotConfigDto);
+    const cfg = await this.readConfig(configId);
+    if (!cfg) {
+      throw new NotFoundException(`Reply bot config ${configId} not found`);
+    }
+
+    const updated = await this.prisma.replyBotConfig.update({
+      data: {
+        config: { ...cfg, monitoredAccounts } as never,
+      } as never,
+      where: { id: configId },
+    });
+
+    return this.normalizeDocument(updated) as ReplyBotConfigDocument;
   }
 
   /**
-   * Remove a monitored account from the config
+   * Remove a monitored account from the config.
+   * monitoredAccounts lives inside the `config` JSON column.
    */
   async removeMonitoredAccount(
     configId: string,
     accountId: string,
     organizationId: string,
   ): Promise<ReplyBotConfigDocument> {
-    const config = await this.findOne({
+    const existing = await this.findOne({
       id: configId,
       isDeleted: false,
       organizationId,
     });
 
-    if (!config) {
+    if (!existing) {
       throw new NotFoundException(`Reply bot config ${configId} not found`);
     }
 
-    const monitoredAccounts = (config.monitoredAccounts ?? []).filter(
+    const monitoredAccounts = (existing.monitoredAccounts ?? []).filter(
       (id: string) => id !== accountId,
     );
 
-    return this.patch(configId, {
-      monitoredAccounts,
-    } as UpdateReplyBotConfigDto);
+    const cfg = await this.readConfig(configId);
+    if (!cfg) {
+      throw new NotFoundException(`Reply bot config ${configId} not found`);
+    }
+
+    const updated = await this.prisma.replyBotConfig.update({
+      data: {
+        config: { ...cfg, monitoredAccounts } as never,
+      } as never,
+      where: { id: configId },
+    });
+
+    return this.normalizeDocument(updated) as ReplyBotConfigDocument;
   }
 }

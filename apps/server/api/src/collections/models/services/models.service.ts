@@ -293,16 +293,37 @@ export class ModelsService extends BaseService<
       }
 
       if (key === '_id') {
-        dbWhere.OR = [
-          ...(Array.isArray(dbWhere.OR) ? dbWhere.OR : []),
-          { id: value },
-          { mongoId: value },
-        ];
+        const idOr = [{ id: value }, { mongoId: value }];
+        // If the caller already set an OR (e.g. for tenant isolation), combine
+        // both under AND so neither is silently overwritten.
+        if (Array.isArray(dbWhere.OR)) {
+          const callerOr = dbWhere.OR as unknown[];
+          delete dbWhere.OR;
+          dbWhere.AND = [
+            ...(Array.isArray(dbWhere.AND)
+              ? (dbWhere.AND as unknown[])
+              : dbWhere.AND
+                ? [dbWhere.AND]
+                : []),
+            { OR: idOr },
+            { OR: callerOr },
+          ];
+        } else {
+          dbWhere.OR = [
+            ...(Array.isArray(dbWhere.OR) ? dbWhere.OR : []),
+            ...idOr,
+          ];
+        }
         continue;
       }
 
-      if (key === 'organization' && typeof value === 'string') {
-        dbWhere.organizationId = value;
+      if (key === 'organization') {
+        // Map both string values and explicit null
+        if (typeof value === 'string') {
+          dbWhere.organizationId = value;
+        } else if (value === null) {
+          dbWhere.organizationId = null;
+        }
         continue;
       }
 
@@ -426,11 +447,16 @@ export class ModelsService extends BaseService<
   /**
    * Find a single model by filter.
    * Supports querying by id, key, isDeleted, isActive, and organizationId.
+   * Always enforces isDeleted: false unless the caller explicitly sets it.
    */
   override async findOne(
     params: Record<string, unknown>,
   ): Promise<ModelDocument | null> {
-    const { configWhere, dbWhere } = this.normalizeWhereForModel(params);
+    // Enforce isDeleted: false for single-record lookups unless explicitly overridden
+    const normalized: Record<string, unknown> =
+      'isDeleted' in params ? params : { ...params, isDeleted: false };
+
+    const { configWhere, dbWhere } = this.normalizeWhereForModel(normalized);
 
     const models = await this.prisma.model.findMany({
       where: dbWhere as never,
