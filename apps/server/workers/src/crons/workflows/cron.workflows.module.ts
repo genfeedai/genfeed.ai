@@ -1,3 +1,4 @@
+import { CreditsModule } from '@api/collections/credits/credits.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { ElevenLabsModule } from '@api/services/integrations/elevenlabs/elevenlabs.module';
@@ -21,6 +22,7 @@ import { GenerateVideoTask } from '@workers/crons/workflows/task-types/generate-
   exports: [CronWorkflowsService],
   imports: [
     ByokModule,
+    CreditsModule,
     ElevenLabsModule,
     FalModule,
     FleetModule,

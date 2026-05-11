@@ -2,10 +2,15 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
+import {
+  assertIdempotent,
+  releaseIdempotencyKey,
+} from '@api/helpers/utils/idempotency/idempotency.util';
 import { ReviewBatchItemFormat } from '@api/services/batch-generation/constants/review-batch-item-format.constant';
 import { CreateBatchDto } from '@api/services/batch-generation/dto/create-batch.dto';
 import { CreateManualReviewBatchDto } from '@api/services/batch-generation/dto/create-manual-review-batch.dto';
 import type { ContentMixConfig } from '@api/services/batch-generation/schemas/batch.schema';
+import { CacheService } from '@api/services/cache/services/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   BatchItemStatus,
@@ -138,6 +143,7 @@ export class BatchGenerationService {
     private readonly brandsService: BrandsService,
     private readonly postsService: PostsService,
     private readonly contentGeneratorService: ContentGeneratorService,
+    private readonly cacheService: CacheService,
   ) {}
 
   private cloneBatchItems(items: Batch['items']): BatchItemFull[] {
@@ -148,6 +154,26 @@ export class BatchGenerationService {
 
   @HandleErrors('create batch', 'batch-generation')
   async createBatch(
+    dto: CreateBatchDto,
+    userId: string,
+    orgId: string,
+    idempotencyKey?: string,
+  ): Promise<IBatchSummary> {
+    if (idempotencyKey) {
+      await assertIdempotent(this.cacheService, idempotencyKey);
+    }
+
+    try {
+      return await this.doCreateBatch(dto, userId, orgId);
+    } catch (error: unknown) {
+      if (idempotencyKey) {
+        await releaseIdempotencyKey(this.cacheService, idempotencyKey);
+      }
+      throw error;
+    }
+  }
+
+  private async doCreateBatch(
     dto: CreateBatchDto,
     userId: string,
     orgId: string,
@@ -218,6 +244,26 @@ export class BatchGenerationService {
 
   @HandleErrors('create manual review batch', 'batch-generation')
   async createManualReviewBatch(
+    dto: CreateManualReviewBatchDto,
+    userId: string,
+    orgId: string,
+    idempotencyKey?: string,
+  ): Promise<IBatchSummary> {
+    if (idempotencyKey) {
+      await assertIdempotent(this.cacheService, idempotencyKey);
+    }
+
+    try {
+      return await this.doCreateManualReviewBatch(dto, userId, orgId);
+    } catch (error: unknown) {
+      if (idempotencyKey) {
+        await releaseIdempotencyKey(this.cacheService, idempotencyKey);
+      }
+      throw error;
+    }
+  }
+
+  private async doCreateManualReviewBatch(
     dto: CreateManualReviewBatchDto,
     userId: string,
     orgId: string,

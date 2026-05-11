@@ -1,5 +1,6 @@
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
 import type { AgentStrategyDocument } from '@api/collections/agent-strategies/schemas/agent-strategy.schema';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { CreateCronJobDto } from '@api/collections/cron-jobs/dto/create-cron-job.dto';
 import { UpdateCronJobDto } from '@api/collections/cron-jobs/dto/update-cron-job.dto';
 import type {
@@ -67,6 +68,12 @@ export function computeNextRunAtOrThrow(
 
 @Injectable()
 export class CronJobsService {
+  private static readonly CRON_JOB_BASE_CREDIT_COST: Record<string, number> = {
+    agent_strategy_execution: 5,
+    newsletter_substack: 3,
+    workflow_execution: 5,
+  };
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly workflowsService: WorkflowsService,
@@ -75,6 +82,7 @@ export class CronJobsService {
     private readonly openRouterService: OpenRouterService,
     private readonly substackService: SubstackService,
     private readonly cacheService: CacheService,
+    private readonly creditsUtilsService: CreditsUtilsService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -516,12 +524,42 @@ export class CronJobsService {
     return processed;
   }
 
+  private async assertCreditBalance(
+    organizationId: string,
+    jobType: string,
+  ): Promise<void> {
+    const requiredCredits =
+      CronJobsService.CRON_JOB_BASE_CREDIT_COST[jobType] ?? 5;
+
+    const hasCredits =
+      await this.creditsUtilsService.checkOrganizationCreditsAvailable(
+        organizationId,
+        requiredCredits,
+      );
+
+    if (!hasCredits) {
+      this.logger.warn('Cron job skipped: insufficient credits', {
+        jobType,
+        organizationId,
+        requiredCredits,
+      });
+      throw new Error(
+        `Insufficient credits for cron job execution (${requiredCredits} required)`,
+      );
+    }
+  }
+
   private async executeJob(
     job: CronJobDocument,
     trigger: CronRunTrigger,
   ): Promise<CronRunDocument> {
     const start = new Date();
     const jobId = job.id;
+
+    await this.assertCreditBalance(
+      (job as Record<string, unknown>).organizationId as string,
+      job.jobType,
+    );
 
     const run = await this.prisma.cronRun.create({
       data: {

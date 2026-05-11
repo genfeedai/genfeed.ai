@@ -1,11 +1,10 @@
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { MusicsService } from '@api/collections/musics/services/musics.service';
-import { ValidationConfigService } from '@api/config/services/validation.config';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { InputValidationUtil } from '@api/helpers/utils/input-validation/input-validation.util';
+import { UploadValidationPipe } from '@api/helpers/pipes/upload-validation';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
@@ -21,8 +20,6 @@ import { IngredientUploadSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Controller,
-  HttpException,
-  HttpStatus,
   Post,
   Req,
   UploadedFile,
@@ -42,7 +39,6 @@ export class MusicsUploadController {
     readonly _metadataService: MetadataService,
     readonly _musicsService: MusicsService,
     private readonly sharedService: SharedService,
-    private readonly validationConfigService: ValidationConfigService,
   ) {}
 
   @Post('upload')
@@ -57,37 +53,34 @@ export class MusicsUploadController {
   async createUpload(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile(
+      new UploadValidationPipe({
+        allowedExtensions: ['mp3', 'wav', 'aac', 'flac', 'ogg', 'webm'],
+        allowedMimeTypes: [
+          'audio/mpeg',
+          'audio/mp3',
+          'audio/wav',
+          'audio/aac',
+          'audio/flac',
+          'audio/ogg',
+          'audio/webm',
+        ],
+        maxSizeBytes: 50 * 1024 * 1024,
+      }),
+    )
+    file: Express.Multer.File,
   ) {
-    const validatedFile = InputValidationUtil.validateFileUpload(file, 'file', {
-      allowedExtensions:
-        this.validationConfigService.getAllowedAudioExtensions(),
-      allowedMimeTypes: this.validationConfigService.getAllowedAudioMimeTypes(),
-      required: true,
-      validationConfig: this.validationConfigService,
-    });
-
-    if (!validatedFile) {
-      throw new HttpException(
-        {
-          detail: 'Music file is required',
-          title: 'File validation failed',
-        },
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-
     const { ingredientData } = await this.sharedService.saveDocuments(user, {
       category: IngredientCategory.MUSIC,
       extension: MetadataExtension.MP3,
-      label: validatedFile.originalname,
+      label: file.originalname,
       scope: AssetScope.USER,
       status: IngredientStatus.UPLOADED,
     });
 
     await this.filesClientService.uploadToS3(ingredientData._id, `musics`, {
-      contentType: validatedFile.mimetype || 'audio/mpeg',
-      data: validatedFile.buffer,
+      contentType: file.mimetype || 'audio/mpeg',
+      data: file.buffer,
       type: FileInputType.BUFFER,
     });
 

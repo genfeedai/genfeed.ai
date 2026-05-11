@@ -26,6 +26,7 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { UploadValidationPipe } from '@api/helpers/pipes/upload-validation';
 import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
 import { InputValidationUtil } from '@api/helpers/utils/input-validation/input-validation.util';
 import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
@@ -64,13 +65,6 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Request } from 'express';
-
-interface UploadedBinaryFile {
-  buffer: Buffer;
-  mimetype: string;
-  originalname: string;
-  size: number;
-}
 
 @AutoSwagger()
 @Controller('assets')
@@ -293,31 +287,26 @@ export class AssetsOperationsController {
   async createUpload(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @UploadedFile() file: UploadedBinaryFile,
+    @UploadedFile(
+      new UploadValidationPipe({
+        allowedExtensions: ['jpg', 'jpeg', 'png', 'webp', 'gif'],
+        allowedMimeTypes: [
+          'image/jpeg',
+          'image/jpg',
+          'image/png',
+          'image/webp',
+          'image/gif',
+        ],
+        maxSizeBytes: 50 * 1024 * 1024,
+      }),
+    )
+    file: Express.Multer.File,
     @Body() uploadDto: CreateAssetDto,
   ): Promise<JsonApiSingleResponse> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${url} started`, { category: uploadDto.category });
 
-    // Validate file upload
-    const validatedFile = InputValidationUtil.validateFileUpload(
-      file as Express.Multer.File,
-      'file',
-      {
-        allowedExtensions:
-          this.validationConfigService.getAllowedImageExtensions(),
-        allowedMimeTypes:
-          this.validationConfigService.getAllowedImageMimeTypes(),
-        required: true,
-        validationConfig: this.validationConfigService,
-      },
-    );
-
-    if (!validatedFile) {
-      throw new ValidationException('File is required');
-    }
-
-    const contentType = validatedFile.mimetype;
+    const contentType = file.mimetype;
     const publicMetadata = getPublicMetadata(user);
 
     try {

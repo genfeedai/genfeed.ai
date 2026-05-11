@@ -1,7 +1,6 @@
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { VideosUploadController } from '@api/collections/videos/controllers/upload/videos-upload.controller';
-import { ValidationConfigService } from '@api/config/services/validation.config';
 import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
@@ -86,11 +85,6 @@ describe('VideosUploadController', () => {
         },
       }),
     },
-    validationConfigService: {
-      getAllowedVideoExtensions: vi.fn().mockReturnValue(['mp4']),
-      getAllowedVideoMimeTypes: vi.fn().mockReturnValue(['video/mp4']),
-      getMaxFileSize: vi.fn().mockReturnValue(100 * 1024 * 1024),
-    },
     websocketService: {
       publishIngredientStatus: vi.fn(),
     },
@@ -111,10 +105,6 @@ describe('VideosUploadController', () => {
         { provide: LoggerService, useValue: mockServices.loggerService },
         { provide: MetadataService, useValue: mockServices.metadataService },
         { provide: SharedService, useValue: mockServices.sharedService },
-        {
-          provide: ValidationConfigService,
-          useValue: mockServices.validationConfigService,
-        },
         {
           provide: NotificationsPublisherService,
           useValue: mockServices.websocketService,
