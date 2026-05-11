@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockUseTrendContent = vi.fn();
-const mockUseResource = vi.fn();
+const mockUseQuery = vi.fn();
 const mockUsePathname = vi.fn(() => '/research/socials');
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -16,8 +16,8 @@ vi.mock('@hooks/data/trends/use-trend-content/use-trend-content', () => ({
   useTrendContent: (...args: unknown[]) => mockUseTrendContent(...args),
 }));
 
-vi.mock('@hooks/data/resource/use-resource/use-resource', () => ({
-  useResource: (...args: unknown[]) => mockUseResource(...args),
+vi.mock('@tanstack/react-query', () => ({
+  useQuery: (...args: unknown[]) => mockUseQuery(...args),
 }));
 
 vi.mock('@services/social/trends.service', () => ({
@@ -130,7 +130,7 @@ describe('TrendsList', () => {
       },
     });
 
-    mockUseResource.mockReturnValue({
+    mockUseQuery.mockReturnValue({
       data: [
         {
           creatorHandle: 'creator',
@@ -143,7 +143,7 @@ describe('TrendsList', () => {
       ],
       error: null,
       isLoading: false,
-      refresh: vi.fn(),
+      refetch: vi.fn(),
     });
   });
 

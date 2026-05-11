@@ -16,11 +16,14 @@ vi.mock('next/navigation', () => ({
   })),
 }));
 
-vi.mock('@hooks/data/resource/use-resource/use-resource', () => ({
-  useResource: vi.fn(() => ({
+vi.mock('@tanstack/react-query', () => ({
+  useQuery: vi.fn(() => ({
     data: null,
     isLoading: false,
-    refresh: vi.fn(),
+    refetch: vi.fn(),
+  })),
+  useQueryClient: vi.fn(() => ({
+    setQueryData: vi.fn(),
   })),
 }));
 
