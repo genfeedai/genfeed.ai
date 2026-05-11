@@ -3,9 +3,9 @@
 import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
 import type { IDarkroomCharacter } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import { AdminDarkroomService } from '@services/admin/darkroom.service';
 import { logger } from '@services/core/logger.service';
+import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
@@ -13,6 +13,7 @@ import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import Container from '@ui/layout/container/Container';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useEffect } from 'react';
 import { HiOutlineUserCircle } from 'react-icons/hi2';
 
 const LORA_STATUS_COLORS = {
@@ -30,19 +31,24 @@ export default function CharactersList() {
   const {
     data: characters,
     isLoading,
-    isRefreshing,
-    refresh,
-  } = useResource<IDarkroomCharacter[]>(
-    async () => {
+    isFetching,
+    error: charactersError,
+    refetch: refresh,
+  } = useQuery<IDarkroomCharacter[]>({
+    queryKey: ['darkroom-characters'],
+    queryFn: async () => {
       const service = await getDarkroomService();
       return service.getCharacters();
     },
-    {
-      onError: (error: unknown) => {
-        logger.error('GET /admin/darkroom/characters failed', error);
-      },
-    },
-  );
+  });
+
+  const isRefreshing = isFetching && !isLoading;
+
+  useEffect(() => {
+    if (charactersError) {
+      logger.error('GET /admin/darkroom/characters failed', charactersError);
+    }
+  }, [charactersError]);
 
   if (isLoading) {
     return (

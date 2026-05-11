@@ -8,7 +8,6 @@ import {
   CaptionFormat,
 } from '@genfeedai/enums';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@genfeedai/hooks/data/resource/use-resource/use-resource';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import type { ICaption, IFieldOption, IMetadata } from '@genfeedai/interfaces';
 import type { Caption } from '@genfeedai/models/content/caption.model';
@@ -17,6 +16,7 @@ import { CaptionsService } from '@genfeedai/services/content/captions.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { VideosService } from '@genfeedai/services/ingredients/videos.service';
+import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import ClientDateTime from '@ui/components/time/ClientDateTime';
 import Alert from '@ui/feedback/alert/Alert';
@@ -67,22 +67,18 @@ export default function IngredientTabsCaptions({
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
   const [selectedCaption, setSelectedCaption] = useState<ICaption | null>(null);
 
-  // Load captions using useResource (handles AbortController cleanup properly)
   const {
-    data: captions,
+    data: captions = [],
     isLoading,
-    refresh: refreshCaptions,
-  } = useResource(
-    async () => {
+    refetch: refreshCaptions,
+  } = useQuery({
+    queryKey: ['ingredient-captions', ingredient.id],
+    queryFn: async () => {
       const service = await getVideosService();
       return service.findCaptions(ingredient.id);
     },
-    {
-      defaultValue: [] as Caption[],
-      dependencies: [ingredient.id],
-      enabled: !!isSignedIn,
-    },
-  );
+    enabled: !!isSignedIn,
+  });
 
   // Set selectedCaption when captions load
   useEffect(() => {

@@ -4,15 +4,16 @@ import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefr
 import KpiCard from '@components/cards/KpiCard';
 import type { IPipelineCampaign, IPipelineStats } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { AdminDarkroomService } from '@services/admin/darkroom.service';
 import { logger } from '@services/core/logger.service';
+import { useQuery } from '@tanstack/react-query';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
+import { useEffect } from 'react';
 import {
   HiOutlineChartBar,
   HiOutlineClock,
@@ -33,35 +34,48 @@ export default function PipelinePage() {
     AdminDarkroomService.getInstance(token),
   );
 
-  const { data: stats, isLoading: isLoadingStats } =
-    useResource<IPipelineStats>(
-      async () => {
-        const service = await getDarkroomService();
-        return service.getPipelineStats();
-      },
-      {
-        onError: (error: unknown) => {
-          logger.error('GET /admin/darkroom/pipeline/stats failed', error);
-        },
-      },
-    );
+  const {
+    data: stats,
+    isLoading: isLoadingStats,
+    error: statsError,
+  } = useQuery<IPipelineStats>({
+    queryKey: ['darkroom-pipeline-stats'],
+    queryFn: async () => {
+      const service = await getDarkroomService();
+      return service.getPipelineStats();
+    },
+  });
 
   const {
     data: campaigns,
     isLoading: isLoadingCampaigns,
-    isRefreshing,
-    refresh,
-  } = useResource<IPipelineCampaign[]>(
-    async () => {
+    isFetching: isFetchingCampaigns,
+    error: campaignsError,
+    refetch: refresh,
+  } = useQuery<IPipelineCampaign[]>({
+    queryKey: ['darkroom-pipeline-campaigns'],
+    queryFn: async () => {
       const service = await getDarkroomService();
       return service.getCampaigns();
     },
-    {
-      onError: (error: unknown) => {
-        logger.error('GET /admin/darkroom/pipeline/campaigns failed', error);
-      },
-    },
-  );
+  });
+
+  const isRefreshing = isFetchingCampaigns && !isLoadingCampaigns;
+
+  useEffect(() => {
+    if (statsError) {
+      logger.error('GET /admin/darkroom/pipeline/stats failed', statsError);
+    }
+  }, [statsError]);
+
+  useEffect(() => {
+    if (campaignsError) {
+      logger.error(
+        'GET /admin/darkroom/pipeline/campaigns failed',
+        campaignsError,
+      );
+    }
+  }, [campaignsError]);
 
   const columns: TableColumn<IPipelineCampaign>[] = [
     { header: 'Campaign Name', key: 'name' },

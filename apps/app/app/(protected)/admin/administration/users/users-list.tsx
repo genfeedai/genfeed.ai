@@ -3,12 +3,13 @@
 import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
 import type { IUser } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { logger } from '@services/core/logger.service';
 import { UsersService } from '@services/organization/users.service';
+import { useQuery } from '@tanstack/react-query';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
+import { useEffect } from 'react';
 import { HiOutlineUserGroup } from 'react-icons/hi2';
 
 export default function UsersList() {
@@ -19,19 +20,28 @@ export default function UsersList() {
   const {
     data: users,
     isLoading,
-    isRefreshing,
-    refresh,
-  } = useResource<IUser[]>(
-    async () => {
+    isFetching,
+    error: usersError,
+    refetch,
+  } = useQuery<IUser[]>({
+    queryKey: ['admin-users'],
+    queryFn: async () => {
       const service = await getUsersService();
       return service.findAll();
     },
-    {
-      onError: (error: unknown) => {
-        logger.error('GET /users failed', error);
-      },
-    },
-  );
+  });
+
+  const isRefreshing = isFetching && !isLoading;
+
+  useEffect(() => {
+    if (usersError) {
+      logger.error('GET /users failed', usersError);
+    }
+  }, [usersError]);
+
+  const refresh = () => {
+    refetch();
+  };
 
   const columns: TableColumn<IUser>[] = [
     {

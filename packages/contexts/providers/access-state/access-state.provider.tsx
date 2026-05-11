@@ -5,13 +5,13 @@ import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/enums';
 import { getPlaywrightAuthState } from '@genfeedai/helpers/auth/clerk.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@genfeedai/hooks/data/resource/use-resource/use-resource';
 import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
 import {
   type AccessBootstrapState,
   AuthService,
 } from '@genfeedai/services/auth/auth.service';
 import { loadClientProtectedBootstrap } from '@providers/protected-bootstrap/client-protected-bootstrap';
+import { useQuery } from '@tanstack/react-query';
 import { createContext, useContext, useMemo } from 'react';
 
 export interface AccessStateContextValue {
@@ -57,10 +57,6 @@ export function AccessStateProvider({
     effectiveIsSignedIn &&
     !!effectiveUserId &&
     !!organizationId;
-  const accessStateCacheKey =
-    shouldFetch && effectiveUserId
-      ? `access-state:${organizationId}:${brandId || 'no-brand'}:${effectiveUserId}`
-      : undefined;
   const effectiveOrgId = orgId ?? playwrightAuth?.orgId ?? organizationId;
   const clientBootstrapCacheKey =
     shouldFetch && effectiveUserId
@@ -70,9 +66,12 @@ export function AccessStateProvider({
   const {
     data: accessState = null,
     isLoading,
-    refresh,
-  } = useResource<AccessBootstrapState | null>(
-    async () => {
+    refetch,
+  } = useQuery<AccessBootstrapState | null>({
+    enabled: shouldFetch,
+    initialData: initialAccessState ?? undefined,
+    initialDataUpdatedAt: initialAccessState != null ? 0 : undefined,
+    queryFn: async () => {
       if (!shouldFetch) {
         return null;
       }
@@ -84,15 +83,15 @@ export function AccessStateProvider({
 
       return bootstrap?.accessState ?? null;
     },
-    {
-      cacheKey: accessStateCacheKey,
-      cacheTimeMs: ACCESS_STATE_CACHE_TTL_MS,
-      dependencies: [brandId, organizationId, effectiveUserId, effectiveOrgId],
-      enabled: shouldFetch,
-      initialData: initialAccessState,
-      revalidateOnMount: initialAccessState == null,
-    },
-  );
+    queryKey: [
+      'access-state',
+      brandId,
+      organizationId,
+      effectiveUserId,
+      effectiveOrgId,
+    ],
+    staleTime: ACCESS_STATE_CACHE_TTL_MS,
+  });
 
   const isSuperAdmin = accessState?.isSuperAdmin === true;
   const isSubscribed =
@@ -115,7 +114,7 @@ export function AccessStateProvider({
       isSubscribed,
       isSuperAdmin,
       needsOnboarding,
-      refreshAccessState: refresh,
+      refreshAccessState: refetch,
     }),
     [
       accessState,
@@ -126,7 +125,7 @@ export function AccessStateProvider({
       isSubscribed,
       isSuperAdmin,
       needsOnboarding,
-      refresh,
+      refetch,
     ],
   );
 

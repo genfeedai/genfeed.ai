@@ -32,40 +32,18 @@ const mockOrganizationsService = {
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn((factory: (token: string) => unknown) => {
-    return async () => {
-      const serviceName = factory.toString();
-      if (serviceName.includes('SubscriptionsService')) {
-        return mockSubscriptionsService;
-      }
-      if (serviceName.includes('StripeService')) {
-        return mockStripeService;
-      }
-      if (serviceName.includes('OrganizationsService')) {
-        return mockOrganizationsService;
-      }
-      return {};
-    };
+    const factoryStr = factory.toString();
+    if (factoryStr.includes('SubscriptionsService')) {
+      return async () => mockSubscriptionsService;
+    }
+    if (factoryStr.includes('StripeService')) {
+      return async () => mockStripeService;
+    }
+    if (factoryStr.includes('OrganizationsService')) {
+      return async () => mockOrganizationsService;
+    }
+    return async () => ({});
   }),
-}));
-
-// Mock useResource
-vi.mock('@hooks/data/resource/use-resource/use-resource', () => ({
-  useResource: vi.fn(
-    (
-      _fetcher: () => Promise<unknown>,
-      options?: { dependencies?: unknown[] },
-    ) => {
-      const deps = options?.dependencies || [];
-      const hasDeps = deps.some((d) => d !== undefined);
-
-      return {
-        data: hasDeps ? { status: 'active' } : null,
-        error: null,
-        isLoading: false,
-        refresh: vi.fn(),
-      };
-    },
-  ),
 }));
 
 // Mock services
@@ -110,10 +88,19 @@ vi.mock('@genfeedai/services/core/notifications.service', () => ({
 import { useUser } from '@clerk/nextjs';
 
 import { useSubscription } from '@hooks/data/subscription/use-subscription/use-subscription';
+import { createQueryWrapper } from '@hooks/tests/query-wrapper';
 
 describe('useSubscription', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockOrganizationsService.findOrganizationSubscription.mockResolvedValue({
+      status: 'active',
+    });
+    mockSubscriptionsService.getCreditsBreakdown.mockResolvedValue({
+      available: 100,
+      total: 200,
+      used: 100,
+    });
   });
 
   afterEach(() => {
@@ -121,58 +108,100 @@ describe('useSubscription', () => {
   });
 
   describe('initialization', () => {
-    it('should return subscription data', () => {
-      const { result } = renderHook(() => useSubscription());
+    it('should return subscription data', async () => {
+      const { result } = renderHook(() => useSubscription(), {
+        wrapper: createQueryWrapper(),
+      });
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
 
       expect(result.current).toBeDefined();
       expect(result.current.subscription).toBeDefined();
     });
 
     it('should return loading state', () => {
-      const { result } = renderHook(() => useSubscription());
+      const { result } = renderHook(() => useSubscription(), {
+        wrapper: createQueryWrapper(),
+      });
 
       expect(typeof result.current.isLoading).toBe('boolean');
     });
 
-    it('should return creditsBreakdown', () => {
-      const { result } = renderHook(() => useSubscription());
+    it('should return creditsBreakdown', async () => {
+      const { result } = renderHook(() => useSubscription(), {
+        wrapper: createQueryWrapper(),
+      });
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
 
       expect(result.current.creditsBreakdown).toBeDefined();
     });
 
-    it('should return error state', () => {
-      const { result } = renderHook(() => useSubscription());
+    it('should return error state', async () => {
+      const { result } = renderHook(() => useSubscription(), {
+        wrapper: createQueryWrapper(),
+      });
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
 
       expect(result.current.error).toBeNull();
     });
 
-    it('should return isSubscriptionActive', () => {
-      const { result } = renderHook(() => useSubscription());
+    it('should return isSubscriptionActive', async () => {
+      const { result } = renderHook(() => useSubscription(), {
+        wrapper: createQueryWrapper(),
+      });
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
 
       expect(typeof result.current.isSubscriptionActive).toBe('boolean');
     });
   });
 
   describe('subscription status', () => {
-    it('should set isSubscriptionActive to true when subscription is active', () => {
-      const { result } = renderHook(() => useSubscription());
+    it('should set isSubscriptionActive to true when subscription is active', async () => {
+      const { result } = renderHook(() => useSubscription(), {
+        wrapper: createQueryWrapper(),
+      });
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
 
       expect(result.current.isSubscriptionActive).toBe(true);
     });
 
-    it('should set isSubscriptionActive to false when no user', () => {
-      vi.mocked(useUser).mockReturnValueOnce({ user: null } as any);
+    it('should set isSubscriptionActive to false when no user', async () => {
+      vi.mocked(useUser).mockReturnValueOnce({ user: null } as ReturnType<
+        typeof useUser
+      >);
 
-      const { result } = renderHook(() => useSubscription());
+      const { result } = renderHook(() => useSubscription(), {
+        wrapper: createQueryWrapper(),
+      });
 
-      // With no user, organization ID won't be set
-      expect(result.current.subscription).toBeDefined();
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      // With no user, organization ID won't be set — subscription stays null
+      expect(result.current.subscription).toBeNull();
     });
   });
 
   describe('openBillingPortal', () => {
     it('should be a function', () => {
-      const { result } = renderHook(() => useSubscription());
+      const { result } = renderHook(() => useSubscription(), {
+        wrapper: createQueryWrapper(),
+      });
 
       expect(typeof result.current.openBillingPortal).toBe('function');
     });
@@ -183,7 +212,9 @@ describe('useSubscription', () => {
 
       const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
 
-      const { result } = renderHook(() => useSubscription());
+      const { result } = renderHook(() => useSubscription(), {
+        wrapper: createQueryWrapper(),
+      });
       await result.current.openBillingPortal();
 
       await waitFor(() => {
@@ -196,7 +227,9 @@ describe('useSubscription', () => {
     it('should show error notification on failure', async () => {
       mockStripeService.getPortalUrl.mockRejectedValue(new Error('Failed'));
 
-      const { result } = renderHook(() => useSubscription());
+      const { result } = renderHook(() => useSubscription(), {
+        wrapper: createQueryWrapper(),
+      });
       await result.current.openBillingPortal();
 
       await waitFor(() => {
@@ -209,7 +242,9 @@ describe('useSubscription', () => {
 
   describe('changeSubscriptionPlan', () => {
     it('should be a function', () => {
-      const { result } = renderHook(() => useSubscription());
+      const { result } = renderHook(() => useSubscription(), {
+        wrapper: createQueryWrapper(),
+      });
 
       expect(typeof result.current.changeSubscriptionPlan).toBe('function');
     });
@@ -218,7 +253,9 @@ describe('useSubscription', () => {
       const newPriceId = 'price_123';
       mockSubscriptionsService.changeSubscriptionPlan.mockResolvedValue({});
 
-      const { result } = renderHook(() => useSubscription());
+      const { result } = renderHook(() => useSubscription(), {
+        wrapper: createQueryWrapper(),
+      });
       await result.current.changeSubscriptionPlan(newPriceId);
 
       await waitFor(() => {
@@ -232,7 +269,9 @@ describe('useSubscription', () => {
       const newPriceId = 'price_123';
       mockSubscriptionsService.changeSubscriptionPlan.mockResolvedValue({});
 
-      const { result } = renderHook(() => useSubscription());
+      const { result } = renderHook(() => useSubscription(), {
+        wrapper: createQueryWrapper(),
+      });
       await result.current.changeSubscriptionPlan(newPriceId);
 
       await waitFor(() => {
@@ -248,7 +287,9 @@ describe('useSubscription', () => {
         new Error('Failed'),
       );
 
-      const { result } = renderHook(() => useSubscription());
+      const { result } = renderHook(() => useSubscription(), {
+        wrapper: createQueryWrapper(),
+      });
 
       await expect(
         result.current.changeSubscriptionPlan(newPriceId),
@@ -264,13 +305,17 @@ describe('useSubscription', () => {
 
   describe('refresh functions', () => {
     it('should have refreshSubscription function', () => {
-      const { result } = renderHook(() => useSubscription());
+      const { result } = renderHook(() => useSubscription(), {
+        wrapper: createQueryWrapper(),
+      });
 
       expect(typeof result.current.refreshSubscription).toBe('function');
     });
 
     it('should have refreshCreditsBreakdown function', () => {
-      const { result } = renderHook(() => useSubscription());
+      const { result } = renderHook(() => useSubscription(), {
+        wrapper: createQueryWrapper(),
+      });
 
       expect(typeof result.current.refreshCreditsBreakdown).toBe('function');
     });
@@ -278,7 +323,9 @@ describe('useSubscription', () => {
 
   describe('return value structure', () => {
     it('should return all expected properties', () => {
-      const { result } = renderHook(() => useSubscription());
+      const { result } = renderHook(() => useSubscription(), {
+        wrapper: createQueryWrapper(),
+      });
 
       expect(result.current).toHaveProperty('changeSubscriptionPlan');
       expect(result.current).toHaveProperty('creditsBreakdown');

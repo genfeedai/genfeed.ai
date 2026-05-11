@@ -4,8 +4,8 @@ import { useAuth } from '@clerk/nextjs';
 import type { IAgentRun } from '@genfeedai/interfaces';
 import { AgentRunsService } from '@genfeedai/services/ai/agent-runs.service';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useEffect, useRef, useState } from 'react';
 
 export interface UseActiveAgentRunsReturn {
   activeRuns: IAgentRun[];
@@ -31,38 +31,34 @@ export function useActiveAgentRuns(
     options.initialActiveRuns ?? [],
   );
 
-  const fetchActive = useCallback(
-    async (_signal: AbortSignal) => {
+  const shouldRevalidateOnMount =
+    options.revalidateOnMount ?? options.initialActiveRuns == null;
+
+  const {
+    data: runs = [] as IAgentRun[],
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey: ['active-agent-runs'],
+    queryFn: async () => {
       const token = await resolveClerkToken(getToken);
       if (!token) return [];
 
       const service = AgentRunsService.getInstance(token);
       return service.getActive();
     },
-    [getToken],
-  );
-
-  const {
-    data: runs,
-    isLoading,
-    refresh,
-  } = useResource(fetchActive, {
-    defaultValue: [] as IAgentRun[],
     initialData: options.initialActiveRuns ?? undefined,
-    revalidateOnMount:
-      options.revalidateOnMount ?? options.initialActiveRuns == null,
+    staleTime: shouldRevalidateOnMount ? 0 : Number.POSITIVE_INFINITY,
   });
 
-  // Update local state when runs change
   useEffect(() => {
     setActiveRuns(runs);
   }, [runs]);
 
-  // Poll when there are active runs
   useEffect(() => {
     if (activeRuns.length > 0) {
       intervalRef.current = setInterval(() => {
-        refresh();
+        void refetch();
       }, 5000);
     }
 
@@ -72,11 +68,13 @@ export function useActiveAgentRuns(
         intervalRef.current = null;
       }
     };
-  }, [activeRuns.length, refresh]);
+  }, [activeRuns.length, refetch]);
 
   return {
     activeRuns,
     isLoading,
-    refresh,
+    refresh: async () => {
+      await refetch();
+    },
   };
 }

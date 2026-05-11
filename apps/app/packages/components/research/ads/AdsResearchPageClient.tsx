@@ -23,12 +23,12 @@ import type {
 } from '@genfeedai/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import {
   AdsResearchService,
   type UnifiedAdAccountOption,
 } from '@services/ads/ads-research.service';
+import { useQuery } from '@tanstack/react-query';
 import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
@@ -916,24 +916,30 @@ export default function AdsResearchPageClient({
   );
 
   const {
-    data: results,
+    data: results = EMPTY_RESPONSE,
     error: resultsError,
     isLoading,
-    refresh,
-  } = useResource(
-    async () => {
+    refetch,
+  } = useQuery({
+    queryKey: ['ads-research', filters, isReady],
+    queryFn: async () => {
       const service = await getAdsResearchService();
       return await service.list(filters);
     },
-    {
-      defaultValue: EMPTY_RESPONSE,
-      dependencies: [filters, isReady],
-      enabled: isReady,
-    },
-  );
+    enabled: isReady,
+  });
 
-  const { data: adAccounts, error: accountsError } = useResource(
-    async () => {
+  const {
+    data: adAccounts = [] as UnifiedAdAccountOption[],
+    error: accountsError,
+  } = useQuery({
+    queryKey: [
+      'ads-ad-accounts',
+      credentialId,
+      effectivePlatform,
+      loginCustomerId,
+    ],
+    queryFn: async () => {
       const service = await getAdsResearchService();
       return await service.listAdAccounts({
         credentialId,
@@ -941,19 +947,16 @@ export default function AdsResearchPageClient({
         platform: effectivePlatform as AdsResearchPlatform,
       });
     },
-    {
-      defaultValue: [] as UnifiedAdAccountOption[],
-      dependencies: [credentialId, effectivePlatform, loginCustomerId],
-      enabled: !!credentialId && effectivePlatform !== 'all',
-    },
-  );
+    enabled: !!credentialId && effectivePlatform !== 'all',
+  });
 
   const {
     data: detail,
     error: detailError,
     isLoading: detailLoading,
-  } = useResource(
-    async () => {
+  } = useQuery({
+    queryKey: ['ads-research-detail', selectedAd],
+    queryFn: async () => {
       if (!selectedAd) {
         return null;
       }
@@ -961,11 +964,8 @@ export default function AdsResearchPageClient({
       const service = await getAdsResearchService();
       return await service.getDetail(selectedAd);
     },
-    {
-      dependencies: [selectedAd],
-      enabled: !!selectedAd,
-    },
-  );
+    enabled: !!selectedAd,
+  });
 
   // Combine all ads into a single flat list
   const allAds = useMemo(() => {
@@ -1233,7 +1233,7 @@ export default function AdsResearchPageClient({
           <Button
             variant={ButtonVariant.SECONDARY}
             size={ButtonSize.SM}
-            onClick={() => refresh()}
+            onClick={() => refetch()}
           >
             Refresh
           </Button>

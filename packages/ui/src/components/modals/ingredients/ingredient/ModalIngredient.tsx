@@ -18,7 +18,6 @@ import {
 import { formatNumberWithCommas } from '@genfeedai/helpers/formatting/format/format.helper';
 import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@genfeedai/hooks/data/resource/use-resource/use-resource';
 import { stopAndResetVideo } from '@genfeedai/hooks/media/video-utils/video.utils';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { useIngredientActions } from '@genfeedai/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
@@ -37,6 +36,7 @@ import {
   isImageIngredient,
   isVideoIngredient,
 } from '@genfeedai/utils/media/ingredient-type.util';
+import { useQuery } from '@tanstack/react-query';
 import Alert from '@ui/feedback/alert/Alert';
 import IngredientDetailImage from '@ui/ingredients/detail-image/IngredientDetailImage';
 import IngredientDetailVideo from '@ui/ingredients/detail-video/IngredientDetailVideo';
@@ -333,10 +333,16 @@ export default function IngredientOverlay({
     [getImagesService, getVideosService, getGifsService],
   );
 
-  // Load child ingredients using useResource (handles AbortController cleanup properly)
-  const { data: childIngredients, refresh: refreshChildIngredients } =
-    useResource(
-      async (): Promise<IIngredient[]> => {
+  const ingredientChildrenKey = [
+    'ingredient-children',
+    ingredient?.id,
+    ingredient?.category,
+  ];
+
+  const { data: childIngredients = [], refetch: refreshChildIngredients } =
+    useQuery({
+      queryKey: ingredientChildrenKey,
+      queryFn: async (): Promise<IIngredient[]> => {
         const type = ingredient?.category;
         if (!type || !ingredient?.id) {
           return [];
@@ -351,19 +357,11 @@ export default function IngredientOverlay({
           ingredient.id,
         )) as unknown as IIngredient[];
       },
-      {
-        defaultValue: [] as IIngredient[],
-        dependencies: [ingredient?.id, ingredient?.category],
-        enabled: !!isSignedIn && !!ingredient?.id,
-        onError: (error) => {
-          logger.error('Failed to load child ingredients', error);
-        },
-      },
-    );
+      enabled: !!isSignedIn && !!ingredient?.id,
+    });
 
   const findAllIngredientChildren = useCallback(
     async (_parentId: string) => {
-      // Just refresh the useResource data
       await refreshChildIngredients();
     },
     [refreshChildIngredients],

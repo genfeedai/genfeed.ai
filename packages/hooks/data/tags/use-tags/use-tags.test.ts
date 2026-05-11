@@ -3,6 +3,7 @@ import { TagCategory } from '@genfeedai/enums';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useTags } from '@hooks/data/tags/use-tags/use-tags';
+import { createQueryWrapper } from '@hooks/tests/query-wrapper';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -63,16 +64,18 @@ describe('useTags', () => {
     vi.clearAllMocks();
   });
 
-  it('should initialize with empty tags and loading state', () => {
-    const { result } = renderHook(() => useTags());
+  it('should initialize with loading state', () => {
+    const { result } = renderHook(() => useTags(), {
+      wrapper: createQueryWrapper(),
+    });
 
-    expect(result.current.tags).toEqual([]);
     expect(result.current.isLoading).toBe(true);
-    expect(result.current.error).toBeNull();
   });
 
   it('should auto-load tags on mount by default', async () => {
-    const { result } = renderHook(() => useTags());
+    const { result } = renderHook(() => useTags(), {
+      wrapper: createQueryWrapper(),
+    });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -87,14 +90,17 @@ describe('useTags', () => {
   });
 
   it('should not auto-load when autoLoad is false', () => {
-    renderHook(() => useTags({ autoLoad: false }));
+    renderHook(() => useTags({ autoLoad: false }), {
+      wrapper: createQueryWrapper(),
+    });
 
     expect(mockGetTagsService).not.toHaveBeenCalled();
   });
 
   it('should load tags with scope when provided', async () => {
-    const { result } = renderHook(() =>
-      useTags({ scope: TagCategory.INGREDIENT }),
+    const { result } = renderHook(
+      () => useTags({ scope: TagCategory.INGREDIENT }),
+      { wrapper: createQueryWrapper() },
     );
 
     await waitFor(() => {
@@ -113,7 +119,9 @@ describe('useTags', () => {
       brandId: null,
     });
 
-    const { result } = renderHook(() => useTags());
+    const { result } = renderHook(() => useTags(), {
+      wrapper: createQueryWrapper(),
+    });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -127,7 +135,9 @@ describe('useTags', () => {
     const error = new Error('Failed to load tags');
     mockTagsService.findAll.mockRejectedValue(error);
 
-    const { result } = renderHook(() => useTags());
+    const { result } = renderHook(() => useTags(), {
+      wrapper: createQueryWrapper(),
+    });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -135,17 +145,12 @@ describe('useTags', () => {
 
     expect(result.current.error).toBe(error);
     expect(result.current.tags).toEqual([]);
-    expect(logger.error).toHaveBeenCalledWith(
-      'useResource: fetch failed - Failed to load tags',
-      {
-        error,
-        reportToSentry: false,
-      },
-    );
   });
 
   it('should provide manual loadTags function', async () => {
-    const { result } = renderHook(() => useTags({ autoLoad: false }));
+    const { result } = renderHook(() => useTags({ autoLoad: false }), {
+      wrapper: createQueryWrapper(),
+    });
 
     expect(result.current.tags).toEqual([]);
 
@@ -163,7 +168,9 @@ describe('useTags', () => {
     const error = new Error('Failed to load');
     mockTagsService.findAll.mockRejectedValue(error);
 
-    const { result } = renderHook(() => useTags({ autoLoad: false }));
+    const { result } = renderHook(() => useTags({ autoLoad: false }), {
+      wrapper: createQueryWrapper(),
+    });
 
     await act(async () => {
       await result.current.loadTags();
@@ -172,12 +179,13 @@ describe('useTags', () => {
     await waitFor(() => {
       expect(result.current.tags).toEqual([]);
       expect(result.current.error).toBe(error);
-      expect(logger.error).toHaveBeenCalled();
     });
   });
 
   it('should provide refresh function', async () => {
-    const { result } = renderHook(() => useTags({ autoLoad: false }));
+    const { result } = renderHook(() => useTags({ autoLoad: false }), {
+      wrapper: createQueryWrapper(),
+    });
 
     await act(async () => {
       await result.current.refresh();
@@ -191,6 +199,7 @@ describe('useTags', () => {
   it('should reload tags when scope changes', async () => {
     const { rerender } = renderHook(({ scope }) => useTags({ scope }), {
       initialProps: { scope: TagCategory.INGREDIENT },
+      wrapper: createQueryWrapper(),
     });
 
     await waitFor(() => {
@@ -217,7 +226,7 @@ describe('useTags', () => {
         });
         return useTags();
       },
-      { initialProps: { brandId: 'brand-1' } },
+      { initialProps: { brandId: 'brand-1' }, wrapper: createQueryWrapper() },
     );
 
     await waitFor(() => {

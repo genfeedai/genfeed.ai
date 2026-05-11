@@ -7,13 +7,13 @@ import type { IElementCamera, IQueryParams } from '@genfeedai/interfaces';
 import type { IElementContentProps } from '@genfeedai/interfaces/ui/elements-content.interface';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import type { ElementCamera } from '@models/elements/camera.model';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { CamerasService } from '@services/elements/cameras.service';
+import { useQuery } from '@tanstack/react-query';
 import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalCamera } from '@ui/lazy/modal/LazyModal';
@@ -115,17 +115,17 @@ function CamerasListContent({
   // Extract page from URL to use as dependency (triggers re-fetch when page changes)
   const currentPage = Number(get('page')) || 1;
 
-  // Load cameras using useResource (handles AbortController cleanup properly)
   const {
-    data: cameras,
+    data: cameras = [] as ElementCamera[],
     isLoading,
-    isRefreshing,
-    refresh: refreshCameras,
-  } = useResource(
-    async () => {
+    isFetching,
+    error: camerasError,
+    refetch: refreshCameras,
+  } = useQuery({
+    queryKey: ['cameras', currentPage, scope, adminOrg, adminBrand],
+    queryFn: async () => {
       const service = await getCamerasService();
 
-      // Build API query
       const query: IQueryParams = {
         limit: ITEMS_PER_PAGE,
         page: currentPage,
@@ -144,16 +144,17 @@ function CamerasListContent({
       logger.info('GET /cameras success', data);
       return data;
     },
-    {
-      defaultValue: [] as ElementCamera[],
-      dependencies: [currentPage, scope, adminOrg, adminBrand],
-      enabled: !!isSignedIn,
-      onError: (error) => {
-        logger.error('GET /cameras failed', error);
-        notificationsService.error('Failed to load cameras');
-      },
-    },
-  );
+    enabled: !!isSignedIn,
+  });
+
+  const isRefreshing = isFetching && !isLoading;
+
+  useEffect(() => {
+    if (camerasError) {
+      logger.error('GET /cameras failed', camerasError);
+      notificationsService.error('Failed to load cameras');
+    }
+  }, [camerasError, notificationsService]);
 
   // Notify parent of loading state changes
   useEffect(() => {

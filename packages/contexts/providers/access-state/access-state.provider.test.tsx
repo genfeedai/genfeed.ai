@@ -5,13 +5,14 @@ import {
   AccessStateProvider,
   useAccessState,
 } from '@providers/access-state/access-state.provider';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const useAuthMock = vi.fn();
 const useBrandMock = vi.fn();
 const useAuthedServiceMock = vi.fn();
-const useResourceMock = vi.fn();
 
 vi.mock('@clerk/nextjs', () => ({
   useAuth: () => useAuthMock(),
@@ -25,12 +26,29 @@ vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => useAuthedServiceMock,
 }));
 
-vi.mock('@genfeedai/hooks/data/resource/use-resource/use-resource', () => ({
-  useResource: (...args: unknown[]) => useResourceMock(...args),
+vi.mock('@genfeedai/helpers/auth/clerk.helper', () => ({
+  getPlaywrightAuthState: vi.fn(() => null),
 }));
 
+vi.mock('@providers/protected-bootstrap/client-protected-bootstrap', () => ({
+  loadClientProtectedBootstrap: vi.fn().mockResolvedValue(null),
+}));
+
+function createWrapper() {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { gcTime: 0, retry: false, staleTime: 0 },
+    },
+  });
+
+  return function Wrapper({ children }: { children: ReactNode }) {
+    return (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+  };
+}
+
 describe('AccessStateProvider', () => {
-  const refreshMock = vi.fn().mockResolvedValue(undefined);
   const initialAccessState = {
     brandId: 'brand_123',
     creditsBalance: 100,
@@ -48,19 +66,13 @@ describe('AccessStateProvider', () => {
     useAuthMock.mockReturnValue({
       isLoaded: true,
       isSignedIn: true,
+      orgId: 'org_123',
       userId: 'clerk_123',
     });
     useBrandMock.mockReturnValue({
       brandId: 'brand_123',
       organizationId: 'org_123',
     });
-    useResourceMock.mockImplementation(
-      (_fetcher: unknown, options?: Record<string, unknown>) => ({
-        data: options?.initialData ?? null,
-        isLoading: false,
-        refresh: refreshMock,
-      }),
-    );
   });
 
   it('derives access flags from bootstrap state', () => {
@@ -84,10 +96,14 @@ describe('AccessStateProvider', () => {
       );
     }
 
+    const Wrapper = createWrapper();
+
     render(
-      <AccessStateProvider initialAccessState={initialAccessState}>
-        <Consumer />
-      </AccessStateProvider>,
+      <Wrapper>
+        <AccessStateProvider initialAccessState={initialAccessState}>
+          <Consumer />
+        </AccessStateProvider>
+      </Wrapper>,
     );
 
     expect(screen.getByTestId('subscribed')).toHaveTextContent('false');
@@ -97,23 +113,28 @@ describe('AccessStateProvider', () => {
     expect(screen.getByTestId('needs-onboarding')).toHaveTextContent('true');
   });
 
-  it('uses bootstrap state instead of forcing a fresh auth bootstrap fetch', () => {
+  it('uses bootstrap state without forcing a fresh fetch on mount', () => {
+    function Consumer() {
+      const { accessState } = useAccessState();
+
+      return (
+        <div>
+          <span data-testid="user-id">{accessState?.userId}</span>
+        </div>
+      );
+    }
+
+    const Wrapper = createWrapper();
+
     render(
-      <AccessStateProvider initialAccessState={initialAccessState}>
-        <div>child</div>
-      </AccessStateProvider>,
+      <Wrapper>
+        <AccessStateProvider initialAccessState={initialAccessState}>
+          <Consumer />
+        </AccessStateProvider>
+      </Wrapper>,
     );
 
-    expect(useResourceMock).toHaveBeenCalledWith(
-      expect.any(Function),
-      expect.objectContaining({
-        enabled: true,
-        cacheKey: 'access-state:org_123:brand_123:clerk_123',
-        cacheTimeMs: 60_000,
-        initialData: initialAccessState,
-        revalidateOnMount: false,
-      }),
-    );
+    expect(screen.getByTestId('user-id')).toHaveTextContent('user_123');
     expect(useAuthedServiceMock).not.toHaveBeenCalled();
   });
 });

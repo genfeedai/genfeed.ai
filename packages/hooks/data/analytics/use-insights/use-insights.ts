@@ -22,7 +22,7 @@ import {
 } from '@genfeedai/services/analytics/insights.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo, useState } from 'react';
 
 interface UseInsightsOptions {
@@ -55,11 +55,20 @@ type ContentInsightsData = {
   alerts: SmartAlert[];
 };
 
+const defaultContentInsights: ContentInsightsData = {
+  alerts: [],
+  anomalies: [],
+  audiences: [],
+  suggestions: [],
+  trends: [],
+};
+
 export function useInsights({
   brandId,
   enabled = true,
 }: UseInsightsOptions = {}): UseInsightsReturn {
   const { dateRange, refreshTrigger } = useAnalyticsContext();
+  const queryClient = useQueryClient();
 
   const getInsightsService = useAuthedService((token: string) =>
     InsightsService.getInstance(token),
@@ -71,34 +80,38 @@ export function useInsights({
 
   const [localAlerts, setLocalAlerts] = useState<SmartAlert[]>([]);
 
-  // Fetch AI-generated insights
+  const insightsQueryKey = ['insights', brandId, refreshTrigger];
+  const contentQueryKey = [
+    'insights-content',
+    brandId,
+    dateRange,
+    refreshTrigger,
+  ];
+
   const {
-    data: insights,
+    data: insights = [],
     isLoading: insightsLoading,
-    isRefreshing: insightsRefreshing,
+    isFetching: insightsFetching,
     error: insightsError,
-    refresh: refreshInsights,
-  } = useResource<Insight[]>(
-    async () => {
+    refetch: refetchInsights,
+  } = useQuery<Insight[]>({
+    queryKey: insightsQueryKey,
+    queryFn: async () => {
       const service = await getInsightsService();
       return service.getInsights();
     },
-    {
-      defaultValue: [],
-      dependencies: [brandId, refreshTrigger],
-      enabled,
-    },
-  );
+    enabled,
+  });
 
-  // Fetch content insights from predictive analytics
   const {
-    data: contentInsightsData,
+    data: contentInsightsData = defaultContentInsights,
     isLoading: contentLoading,
-    isRefreshing: contentRefreshing,
+    isFetching: contentFetching,
     error: contentError,
-    refresh: refreshContent,
-  } = useResource<ContentInsightsData>(
-    async () => {
+    refetch: refetchContent,
+  } = useQuery<ContentInsightsData>({
+    queryKey: contentQueryKey,
+    queryFn: async () => {
       const service = await getPredictiveService();
       const range =
         dateRange.startDate && dateRange.endDate
@@ -115,62 +128,48 @@ export function useInsights({
         logger.warn('Predictive analytics not available, using mock data', {
           error,
         });
-        // Return mock data for demo purposes when API is not available
         return getMockInsightsData();
       }
     },
-    {
-      defaultValue: {
-        alerts: [],
-        anomalies: [],
-        audiences: [],
-        suggestions: [],
-        trends: [],
-      },
-      dependencies: [brandId, dateRange, refreshTrigger],
-      enabled,
-    },
-  );
+    enabled,
+  });
 
-  // Combine all loading states
   const isLoading = insightsLoading || contentLoading;
-  const isRefreshing = insightsRefreshing || contentRefreshing;
+  const isRefreshing =
+    (insightsFetching && !insightsLoading) ||
+    (contentFetching && !contentLoading);
   const error = insightsError || contentError;
 
-  // Refresh all data
   const refresh = useCallback(async () => {
-    await Promise.all([refreshInsights(), refreshContent()]);
-  }, [refreshInsights, refreshContent]);
+    await Promise.all([refetchInsights(), refetchContent()]);
+  }, [refetchInsights, refetchContent]);
 
-  // Mark insight as read
   const markInsightRead = useCallback(
     async (id: string) => {
       try {
         const service = await getInsightsService();
         await service.markAsRead(id);
-        await refreshInsights();
+        await refetchInsights();
       } catch (err) {
         logger.error('Failed to mark insight as read', { error: err, id });
       }
     },
-    [getInsightsService, refreshInsights],
+    [getInsightsService, refetchInsights],
   );
 
-  // Dismiss insight
   const dismissInsight = useCallback(
     async (id: string) => {
       try {
         const service = await getInsightsService();
         await service.markAsDismissed(id);
-        await refreshInsights();
+        await refetchInsights();
       } catch (err) {
         logger.error('Failed to dismiss insight', { error: err, id });
       }
     },
-    [getInsightsService, refreshInsights],
+    [getInsightsService, refetchInsights],
   );
 
-  // Local alert management
   const markAlertRead = useCallback((id: string) => {
     setLocalAlerts((prev) =>
       prev.map((alert) =>
@@ -187,7 +186,6 @@ export function useInsights({
     );
   }, []);
 
-  // Merge server and local alerts
   const alerts = useMemo(() => {
     const serverAlerts = contentInsightsData.alerts || [];
 
@@ -222,7 +220,6 @@ export function useInsights({
   };
 }
 
-// Mock data for demonstration when API is not available
 function getMockInsightsData(): ContentInsightsData {
   return {
     alerts: [

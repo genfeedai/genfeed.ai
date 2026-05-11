@@ -15,7 +15,7 @@ import {
   createLocalStorageCache,
 } from '@helpers/data/cache/cache.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
+import { useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 const ANALYTICS_CACHE_TTL_MS = 15 * 60 * 1000;
@@ -40,7 +40,6 @@ export function useAnalytics({
 }: UseAnalyticsOptions): AnalyticsScopedReturn {
   const { brandId, organizationId } = useBrand();
 
-  // Determine the actual scopeId based on scope and context
   const actualScopeId = useMemo(() => {
     if (providedScopeId) {
       return providedScopeId;
@@ -58,7 +57,6 @@ export function useAnalytics({
     }
   }, [providedScopeId, scope, organizationId, brandId]);
 
-  // State for selected scope (for dropdown selection in superadmin view)
   const [selectedScope, setSelectedScope] = useState<ContentScope>(scope);
 
   const [selectedScopeId, setSelectedScopeId] = useState<string | undefined>(
@@ -88,7 +86,6 @@ export function useAnalytics({
     AnalyticsService.getInstance(token),
   );
 
-  // Default analytics structure
   const defaultAnalytics: Partial<IAnalytics> = useMemo(
     () => ({
       activePlatforms: [],
@@ -128,15 +125,25 @@ export function useAnalytics({
     });
   }, []);
 
-  // Fetch analytics using useResource
+  const skipInitialFetch =
+    (revalidateOnMount ?? initialData == null) === false && !!initialData;
+
   const {
     data: analyticsData,
     error,
     isLoading,
-    isRefreshing,
-    refresh,
-  } = useResource(
-    async (_signal: AbortSignal) => {
+    isFetching,
+    refetch,
+  } = useQuery({
+    queryKey: [
+      'analytics',
+      autoLoad,
+      selectedScope,
+      selectedScopeId,
+      startDate,
+      endDate,
+    ],
+    queryFn: async () => {
       if (!autoLoad) {
         if (isMountedRef.current) {
           setIsUsingCache(false);
@@ -145,7 +152,6 @@ export function useAnalytics({
         return defaultAnalytics;
       }
 
-      // Validate scope requirements - return early if scopeId not ready yet
       if (selectedScope !== PageScope.SUPERADMIN && !selectedScopeId) {
         if (isMountedRef.current) {
           setIsUsingCache(false);
@@ -207,7 +213,7 @@ export function useAnalytics({
           setIsUsingCache(false);
           setCachedAt(null);
         }
-      } catch (error) {
+      } catch (fetchError) {
         if (analyticsCache) {
           const cached = analyticsCache.get(cacheKey);
           if (cached?.data) {
@@ -219,23 +225,15 @@ export function useAnalytics({
           }
         }
 
-        throw error;
+        throw fetchError;
       }
 
       return data;
     },
-    {
-      dependencies: [
-        autoLoad,
-        selectedScope,
-        selectedScopeId,
-        startDate,
-        endDate,
-      ],
-      initialData,
-      revalidateOnMount: revalidateOnMount ?? initialData == null,
-    },
-  );
+    enabled: autoLoad,
+    initialData,
+    staleTime: skipInitialFetch ? Number.POSITIVE_INFINITY : 0,
+  });
 
   const analytics = useMemo(
     () => analyticsData ?? defaultAnalytics,
@@ -247,9 +245,11 @@ export function useAnalytics({
     cachedAt,
     error,
     isLoading,
-    isRefreshing,
+    isRefreshing: isFetching && !isLoading,
     isUsingCache,
-    refresh,
+    refresh: async () => {
+      await refetch();
+    },
     scope,
     scopeId: actualScopeId,
     selectedScope,

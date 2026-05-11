@@ -3,10 +3,10 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { IDarkroomCharacter } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import { AdminDarkroomService } from '@services/admin/darkroom.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import Container from '@ui/layout/container/Container';
@@ -21,7 +21,7 @@ import {
 } from '@ui/primitives/select';
 import { Slider } from '@ui/primitives/slider';
 import { Textarea } from '@ui/primitives/textarea';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { HiOutlineSpeakerWave } from 'react-icons/hi2';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 
@@ -56,31 +56,39 @@ export default function VoicesPage() {
   const [generatedAudios, setGeneratedAudios] = useState<GeneratedAudio[]>([]);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const { data: characters } = useResource<IDarkroomCharacter[]>(
-    async () => {
+  const { data: characters, error: charactersError } = useQuery<
+    IDarkroomCharacter[]
+  >({
+    queryKey: ['darkroom-characters'],
+    queryFn: async () => {
       const service = await getDarkroomService();
       return service.getCharacters();
     },
-    {
-      onError: (error: unknown) => {
-        logger.error('GET /admin/darkroom/characters failed', error);
-      },
-    },
-  );
+  });
 
-  const { data: voices, isLoading: isLoadingVoices } = useResource<
-    VoiceOption[]
-  >(
-    async () => {
+  const {
+    data: voices,
+    isLoading: isLoadingVoices,
+    error: voicesError,
+  } = useQuery<VoiceOption[]>({
+    queryKey: ['darkroom-voices'],
+    queryFn: async () => {
       const service = await getDarkroomService();
       return service.getVoices();
     },
-    {
-      onError: (error: unknown) => {
-        logger.error('GET /admin/darkroom/voices failed', error);
-      },
-    },
-  );
+  });
+
+  useEffect(() => {
+    if (charactersError) {
+      logger.error('GET /admin/darkroom/characters failed', charactersError);
+    }
+  }, [charactersError]);
+
+  useEffect(() => {
+    if (voicesError) {
+      logger.error('GET /admin/darkroom/voices failed', voicesError);
+    }
+  }, [voicesError]);
 
   const handleGenerate = useCallback(async () => {
     if (!text.trim() || !selectedVoiceId) {

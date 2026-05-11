@@ -8,7 +8,6 @@ import type {
   ITrendVideo,
 } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import { useTrendContent } from '@hooks/data/trends/use-trend-content/use-trend-content';
 import {
   SocialsNavigation,
@@ -21,6 +20,7 @@ import {
   type TrendPlatform,
 } from '@pages/trends/shared/trends-platforms';
 import { TrendsService } from '@services/social/trends.service';
+import { useQuery } from '@tanstack/react-query';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
@@ -90,52 +90,58 @@ export default function TrendsPlatformDetail({
   );
 
   const {
-    data: viralVideos,
+    data: viralVideos = [],
     isLoading: isLoadingVideos,
-    refresh: refreshVideos,
-  } = useResource<ITrendVideo[]>(
-    async () => {
+    refetch: refetchVideos,
+  } = useQuery<ITrendVideo[]>({
+    enabled: relatedContent.videos,
+    queryFn: async () => {
       const service = await getTrendsService();
       return service.getViralVideos({ limit: 12, platform });
     },
-    {
-      defaultValue: [],
-      dependencies: [brandId, platform, relatedContent.videos],
-      enabled: relatedContent.videos,
-    },
-  );
+    queryKey: [
+      'trends-platform-viral-videos',
+      brandId,
+      platform,
+      relatedContent.videos,
+    ],
+  });
 
   const {
-    data: hashtags,
+    data: hashtags = [],
     isLoading: isLoadingHashtags,
-    refresh: refreshHashtags,
-  } = useResource<ITrendHashtag[]>(
-    async () => {
+    refetch: refetchHashtags,
+  } = useQuery<ITrendHashtag[]>({
+    enabled: relatedContent.hashtags,
+    queryFn: async () => {
       const service = await getTrendsService();
       return service.getTrendingHashtags({ limit: 12, platform });
     },
-    {
-      defaultValue: [],
-      dependencies: [brandId, platform, relatedContent.hashtags],
-      enabled: relatedContent.hashtags,
-    },
-  );
+    queryKey: [
+      'trends-platform-hashtags',
+      brandId,
+      platform,
+      relatedContent.hashtags,
+    ],
+  });
 
   const {
-    data: sounds,
+    data: sounds = [],
     isLoading: isLoadingSounds,
-    refresh: refreshSounds,
-  } = useResource<ITrendSound[]>(
-    async () => {
+    refetch: refetchSounds,
+  } = useQuery<ITrendSound[]>({
+    enabled: relatedContent.sounds,
+    queryFn: async () => {
       const service = await getTrendsService();
       return service.getTrendingSounds({ limit: 12 });
     },
-    {
-      defaultValue: [],
-      dependencies: [brandId, platform, relatedContent.sounds],
-      enabled: relatedContent.sounds,
-    },
-  );
+    queryKey: [
+      'trends-platform-sounds',
+      brandId,
+      platform,
+      relatedContent.sounds,
+    ],
+  });
 
   const feedModeLabel = useMemo(() => {
     if (platform === Platform.LINKEDIN) {
@@ -154,13 +160,13 @@ export default function TrendsPlatformDetail({
 
     const refreshJobs: Array<Promise<unknown>> = [];
     if (relatedContent.videos) {
-      refreshJobs.push(refreshVideos());
+      refreshJobs.push(refetchVideos());
     }
     if (relatedContent.hashtags) {
-      refreshJobs.push(refreshHashtags());
+      refreshJobs.push(refetchHashtags());
     }
     if (relatedContent.sounds) {
-      refreshJobs.push(refreshSounds());
+      refreshJobs.push(refetchSounds());
     }
 
     await Promise.all(refreshJobs);
@@ -291,7 +297,7 @@ export default function TrendsPlatformDetail({
                 </div>
               ) : viralVideos.length > 0 ? (
                 <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-                  {viralVideos.map((video) => (
+                  {viralVideos.map((video: ITrendVideo) => (
                     <RelatedMetricCard
                       badgeValue={video.viralScore}
                       detail={
@@ -324,7 +330,7 @@ export default function TrendsPlatformDetail({
                 </div>
               ) : hashtags.length > 0 ? (
                 <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-                  {hashtags.map((hashtag) => (
+                  {hashtags.map((hashtag: ITrendHashtag) => (
                     <RelatedMetricCard
                       badgeValue={hashtag.viralityScore}
                       detail={
@@ -357,7 +363,7 @@ export default function TrendsPlatformDetail({
                 </div>
               ) : sounds.length > 0 ? (
                 <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-                  {sounds.map((sound) => (
+                  {sounds.map((sound: ITrendSound) => (
                     <RelatedMetricCard
                       badgeValue={sound.viralityScore}
                       detail={

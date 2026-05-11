@@ -14,14 +14,16 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
     }),
 }));
 
-vi.mock('@hooks/data/resource/use-resource/use-resource', () => ({
-  useResource: () => ({
+vi.mock('@tanstack/react-query', () => ({
+  useQuery: () => ({
     data: null,
     error: null,
+    isFetching: false,
     isLoading: true,
-    isRefreshing: false,
-    mutate: vi.fn(),
-    refresh: vi.fn(),
+    refetch: vi.fn(),
+  }),
+  useQueryClient: () => ({
+    setQueryData: vi.fn(),
   }),
 }));
 

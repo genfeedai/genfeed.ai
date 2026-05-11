@@ -7,8 +7,7 @@ import {
   AgentCampaignsService,
 } from '@genfeedai/services/automation/agent-campaigns.service';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
-import { useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 
 export interface UseAgentCampaignsOptions {
   status?: string;
@@ -26,28 +25,28 @@ export function useAgentCampaigns(
   const { getToken } = useAuth();
   const brandId = useBrandId();
 
-  const fetchCampaigns = useCallback(async () => {
-    const token = await resolveClerkToken(getToken);
-    if (!token) return [];
-
-    const service = AgentCampaignsService.getInstance(token);
-    return service.list({
-      status: options.status,
-    });
-  }, [getToken, options.status]);
-
   const {
-    data: campaigns,
+    data: campaigns = [] as AgentCampaign[],
     isLoading,
-    refresh,
-  } = useResource(fetchCampaigns, {
-    defaultValue: [] as AgentCampaign[],
-    dependencies: [brandId, options.status],
+    refetch,
+  } = useQuery({
+    queryKey: ['agent-campaigns', brandId, options.status],
+    queryFn: async () => {
+      const token = await resolveClerkToken(getToken);
+      if (!token) return [];
+
+      const service = AgentCampaignsService.getInstance(token);
+      return service.list({
+        status: options.status,
+      });
+    },
   });
 
   return {
     campaigns,
     isLoading,
-    refresh,
+    refresh: async () => {
+      await refetch();
+    },
   };
 }

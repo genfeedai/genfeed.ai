@@ -11,20 +11,27 @@ import {
 import type { IQueryParams, ITag } from '@genfeedai/interfaces';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import type { TagsListProps } from '@props/tags/tags-list.props';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
 import { TagsService } from '@services/content/tags.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalTag } from '@ui/lazy/modal/LazyModal';
 import { Switch } from '@ui/primitives/switch';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useCallback, useMemo, useState } from 'react';
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { HiPencil, HiTrash } from 'react-icons/hi2';
 
 function isGlobalTag(tag: ITag): boolean {
@@ -120,15 +127,45 @@ function TagsListContent({
     type: '',
   };
 
-  // Fetch tags using useResource
+  const tagsQueryKey = useMemo(
+    () => [
+      'tags',
+      organizationId,
+      brandId,
+      scope,
+      refreshTrigger,
+      filter,
+      filters.sort,
+      filters.search,
+      filters.type,
+      adminOrg,
+      adminBrand,
+    ],
+    [
+      organizationId,
+      brandId,
+      scope,
+      refreshTrigger,
+      filter,
+      filters.sort,
+      filters.search,
+      filters.type,
+      adminOrg,
+      adminBrand,
+    ],
+  );
+
+  const queryClient = useQueryClient();
+
   const {
     data: tags,
     isLoading,
-    isRefreshing,
-    refresh,
-    mutate,
-  } = useResource(
-    async () => {
+    isFetching,
+    error: tagsError,
+    refetch: refresh,
+  } = useQuery<ITag[]>({
+    queryKey: tagsQueryKey,
+    queryFn: async () => {
       if (scope === PageScope.ORGANIZATION && !organizationId) {
         return [];
       }
@@ -140,26 +177,20 @@ function TagsListContent({
 
       const query: IQueryParams = {};
 
-      // Only filter by isActive if not showing inactive tags
       query.isActive = true;
 
-      // Add search parameter to API query
       if (filters.search) {
         query.search = filters.search;
       }
 
-      // Add category filter if type is provided (type maps to category)
       if (filters.type) {
         query.category = filters.type;
       }
 
-      // Add sort parameter to API query
       if (filters.sort) {
-        // Convert frontend sort format to API format
-        // API expects "field: direction" (e.g., "createdAt: -1", "label: 1")
-        let sortDirection = '1'; // Default ascending
+        let sortDirection = '1';
         if (filters.sort === 'createdAt') {
-          sortDirection = '-1'; // Descending for createdAt (newest first)
+          sortDirection = '-1';
         }
         query.sort = `${filters.sort}: ${sortDirection}`;
       }
@@ -188,33 +219,26 @@ function TagsListContent({
       logger.info(`${url} success`, data);
       return data;
     },
-    {
-      dependencies: [
-        organizationId,
-        brandId,
-        scope,
-        refreshTrigger,
-        filter,
-        filters.sort,
-        filters.search,
-        filters.type,
-        adminOrg,
-        adminBrand,
-      ],
-      enabled:
-        scope === PageScope.SUPERADMIN ||
-        (scope === PageScope.ORGANIZATION && !!organizationId),
-      onError: (error: unknown) => {
-        logger.error('Failed to load tags', error);
-        notificationsService.error('Failed to load tags');
-      },
-      onSuccess: () => {
-        if (isRefreshing) {
-          notificationsService.success('Tags refreshed');
-        }
-      },
-    },
-  );
+    enabled:
+      scope === PageScope.SUPERADMIN ||
+      (scope === PageScope.ORGANIZATION && !!organizationId),
+  });
+
+  const wasFetchingRef = useRef(false);
+
+  useEffect(() => {
+    if (wasFetchingRef.current && !isFetching && !isLoading) {
+      notificationsService.success('Tags refreshed');
+    }
+    wasFetchingRef.current = isFetching;
+  }, [isFetching, isLoading, notificationsService]);
+
+  useEffect(() => {
+    if (tagsError) {
+      logger.error('Failed to load tags', tagsError);
+      notificationsService.error('Failed to load tags');
+    }
+  }, [tagsError, notificationsService]);
 
   // Filter tags by scope only (search and other filters are done by API)
   const filteredAndSortedTags = (tags || []).filter((t) => {
@@ -259,7 +283,8 @@ function TagsListContent({
         );
 
         if (tags) {
-          mutate(
+          queryClient.setQueryData(
+            tagsQueryKey,
             tags.map((t) =>
               t.id === tag.id ? { ...t, isActive: newValue } : t,
             ),
@@ -270,7 +295,7 @@ function TagsListContent({
         notificationsService.error('Failed to update tag status');
       }
     },
-    [getTagsService, notificationsService, tags, mutate],
+    [getTagsService, notificationsService, tags, queryClient, tagsQueryKey],
   );
 
   // Build columns dynamically based on scopeFilter - memoized to prevent re-renders

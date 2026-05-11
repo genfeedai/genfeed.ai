@@ -1,9 +1,10 @@
 import { useKPIMetrics } from '@hooks/data/analytics/use-kpi-metrics/use-kpi-metrics';
-import { renderHook } from '@testing-library/react';
+import { createQueryWrapper } from '@hooks/tests/query-wrapper';
+import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockGetToken = vi.fn();
-const mockUseResource = vi.fn();
+const mockResolveClerkToken = vi.fn();
 
 vi.mock('@clerk/nextjs', () => ({
   useAuth: () => ({
@@ -11,74 +12,86 @@ vi.mock('@clerk/nextjs', () => ({
   }),
 }));
 
-vi.mock('@hooks/data/resource/use-resource/use-resource', () => ({
-  useResource: (...args: unknown[]) => mockUseResource(...args),
+vi.mock('@helpers/auth/clerk.helper', () => ({
+  resolveClerkToken: (...args: unknown[]) => mockResolveClerkToken(...args),
 }));
 
 describe('useKPIMetrics', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseResource.mockReturnValue({
-      data: null,
-      error: null,
-      isLoading: false,
-      refresh: vi.fn(),
-    });
+    mockResolveClerkToken.mockResolvedValue('mock-token');
   });
 
-  it('returns data from useResource', () => {
-    const refresh = vi.fn();
-    mockUseResource.mockReturnValue({
-      data: { total: 42 },
-      error: null,
-      isLoading: true,
-      refresh,
+  it('returns data from the fetcher', async () => {
+    const fetcher = vi.fn().mockResolvedValue({ total: 42 });
+
+    const { result } = renderHook(() => useKPIMetrics({ fetcher }), {
+      wrapper: createQueryWrapper(),
     });
 
-    const { result } = renderHook(() =>
-      useKPIMetrics({
-        fetcher: vi.fn().mockResolvedValue({ total: 42 }),
-      }),
-    );
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
 
     expect(result.current.data).toEqual({ total: 42 });
-    expect(result.current.isLoading).toBe(true);
     expect(result.current.error).toBeNull();
-    expect(result.current.refresh).toBe(refresh);
+    expect(typeof result.current.refresh).toBe('function');
   });
 
-  it('calls fetcher with auth token', async () => {
+  it('calls fetcher with resolved auth token', async () => {
     const fetcher = vi.fn().mockResolvedValue({ total: 10 });
-    mockGetToken.mockResolvedValue('token-123');
+    mockResolveClerkToken.mockResolvedValue('token-123');
 
-    renderHook(() =>
-      useKPIMetrics({
-        fetcher,
-      }),
-    );
+    const { result } = renderHook(() => useKPIMetrics({ fetcher }), {
+      wrapper: createQueryWrapper(),
+    });
 
-    const resourceFetcher = mockUseResource.mock
-      .calls[0]?.[0] as () => Promise<unknown>;
-    await resourceFetcher();
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
 
     expect(fetcher).toHaveBeenCalledWith('token-123');
   });
 
-  it('throws when token is missing', async () => {
+  it('returns error when token is missing', async () => {
     const fetcher = vi.fn();
-    mockGetToken.mockResolvedValue(null);
+    mockResolveClerkToken.mockResolvedValue(null);
 
-    renderHook(() =>
-      useKPIMetrics({
-        fetcher,
-      }),
-    );
+    const { result } = renderHook(() => useKPIMetrics({ fetcher }), {
+      wrapper: createQueryWrapper(),
+    });
 
-    const resourceFetcher = mockUseResource.mock
-      .calls[0]?.[0] as () => Promise<unknown>;
+    await waitFor(() => {
+      expect(result.current.error).not.toBeNull();
+    });
 
-    await expect(resourceFetcher()).rejects.toThrow(
+    expect(result.current.error?.message).toBe(
       'No authentication token available',
     );
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it('returns null data before fetch completes', () => {
+    // Keep the promise pending so isLoading stays true
+    mockResolveClerkToken.mockReturnValue(new Promise(() => {}));
+    const fetcher = vi.fn();
+
+    const { result } = renderHook(() => useKPIMetrics({ fetcher }), {
+      wrapper: createQueryWrapper(),
+    });
+
+    expect(result.current.isLoading).toBe(true);
+    expect(result.current.data).toBeNull();
+  });
+
+  it('does not fetch when enabled is false', () => {
+    const fetcher = vi.fn();
+
+    renderHook(() => useKPIMetrics({ enabled: false, fetcher }), {
+      wrapper: createQueryWrapper(),
+    });
+
+    expect(fetcher).not.toHaveBeenCalled();
+    expect(mockResolveClerkToken).not.toHaveBeenCalled();
   });
 });

@@ -1,7 +1,19 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import AnalyticsTrends from './analytics-trends';
+
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { retry: false } },
+});
+
+function Wrapper({ children }: { children: ReactNode }) {
+  return (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  );
+}
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: vi.fn(() => ({
@@ -30,6 +42,10 @@ vi.mock('@services/social/trends.service', () => ({
   },
 }));
 
+vi.mock('@pages/trends/list/components/HookRemixModal', () => ({
+  default: () => null,
+}));
+
 vi.mock('next/navigation', () => ({
   useRouter: vi.fn(() => ({
     push: vi.fn(),
@@ -40,7 +56,7 @@ vi.mock('next/navigation', () => ({
 
 describe('AnalyticsTrends', () => {
   it('should render without crashing', () => {
-    const { container } = render(<AnalyticsTrends />);
+    const { container } = render(<AnalyticsTrends />, { wrapper: Wrapper });
     expect(container.firstChild).toBeInTheDocument();
   });
 

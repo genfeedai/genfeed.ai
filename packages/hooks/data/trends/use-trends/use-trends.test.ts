@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 
-import { act, renderHook } from '@testing-library/react';
+import { createQueryWrapper } from '@hooks/tests/query-wrapper';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockGetTrendsService = vi.fn();
-const mockUseResource = vi.fn();
 const mockUseBrandId = vi.fn(() => 'brand-1');
 
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
@@ -15,42 +15,39 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(() => mockGetTrendsService),
 }));
 
-vi.mock('@hooks/data/resource/use-resource/use-resource', () => ({
-  useResource: (...args: unknown[]) => mockUseResource(...args),
-}));
-
 vi.mock('@genfeedai/services/social/trends.service', () => ({
   TrendsService: {
     getInstance: vi.fn(),
   },
 }));
 
-describe('useTrends', () => {
-  const mockRefresh = vi.fn();
-  const mockMutate = vi.fn();
+const emptyResponse = {
+  summary: {
+    connectedPlatforms: [],
+    lockedPlatforms: [],
+    totalTrends: 0,
+  },
+  trends: [],
+};
 
+describe('useTrends', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseResource.mockReturnValue({
-      data: {
-        summary: {
-          connectedPlatforms: [],
-          lockedPlatforms: [],
-          totalTrends: 0,
-        },
-        trends: [],
-      },
-      error: null,
-      isLoading: false,
-      isRefreshing: false,
-      mutate: mockMutate,
-      refresh: mockRefresh,
+    // Default: service returns empty discovery data
+    mockGetTrendsService.mockResolvedValue({
+      getTrendsDiscovery: vi.fn().mockResolvedValue(emptyResponse),
+      refreshTrends: vi
+        .fn()
+        .mockResolvedValue({ count: 0, message: 'ok', success: true }),
     });
   });
 
   it('returns required fields', async () => {
     const { useTrends } = await import('./use-trends');
-    const { result } = renderHook(() => useTrends());
+    const { result } = renderHook(() => useTrends(), {
+      wrapper: createQueryWrapper(),
+    });
+
     expect(result.current).toHaveProperty('trends');
     expect(result.current).toHaveProperty('summary');
     expect(result.current).toHaveProperty('selectedPlatform');
@@ -62,105 +59,137 @@ describe('useTrends', () => {
 
   it('initializes selectedPlatform as "all"', async () => {
     const { useTrends } = await import('./use-trends');
-    const { result } = renderHook(() => useTrends());
+    const { result } = renderHook(() => useTrends(), {
+      wrapper: createQueryWrapper(),
+    });
+
     expect(result.current.selectedPlatform).toBe('all');
   });
 
   it('initializes selectedPlatform from the provided platform', async () => {
     const { useTrends } = await import('./use-trends');
-    const { result } = renderHook(() => useTrends('youtube'));
+    const { result } = renderHook(() => useTrends('youtube'), {
+      wrapper: createQueryWrapper(),
+    });
+
     expect(result.current.selectedPlatform).toBe('youtube');
   });
 
   it('setSelectedPlatform updates the platform', async () => {
     const { useTrends } = await import('./use-trends');
-    const { result } = renderHook(() => useTrends());
+    const { result } = renderHook(() => useTrends(), {
+      wrapper: createQueryWrapper(),
+    });
+
     act(() => {
       result.current.setSelectedPlatform('youtube');
     });
+
     expect(result.current.selectedPlatform).toBe('youtube');
   });
 
   it('returns empty trends array from response', async () => {
     const { useTrends } = await import('./use-trends');
-    const { result } = renderHook(() => useTrends());
+    const { result } = renderHook(() => useTrends(), {
+      wrapper: createQueryWrapper(),
+    });
+
+    // initialData provides empty arrays synchronously
     expect(Array.isArray(result.current.trends)).toBe(true);
     expect(result.current.trends).toHaveLength(0);
   });
 
   it('returns summary from response', async () => {
     const { useTrends } = await import('./use-trends');
-    const { result } = renderHook(() => useTrends());
+    const { result } = renderHook(() => useTrends(), {
+      wrapper: createQueryWrapper(),
+    });
+
     expect(result.current.summary).toHaveProperty('totalTrends');
     expect(result.current.summary.totalTrends).toBe(0);
   });
 
-  it('returns trends from response data', async () => {
-    const { useTrends } = await import('./use-trends');
+  it('returns trends from fetched response data', async () => {
     const mockTrends = [{ id: '1', title: 'Trend 1' }];
-    mockUseResource.mockReturnValue({
-      data: {
+    mockGetTrendsService.mockResolvedValue({
+      getTrendsDiscovery: vi.fn().mockResolvedValue({
         summary: {
           connectedPlatforms: ['youtube'],
           lockedPlatforms: [],
           totalTrends: 1,
         },
         trends: mockTrends,
-      },
-      error: null,
-      isLoading: false,
-      isRefreshing: false,
-      mutate: mockMutate,
-      refresh: mockRefresh,
+      }),
+      refreshTrends: vi
+        .fn()
+        .mockResolvedValue({ count: 1, message: 'ok', success: true }),
     });
-    const { result } = renderHook(() => useTrends());
-    expect(result.current.trends).toHaveLength(1);
+
+    const { useTrends } = await import('./use-trends');
+    const { result } = renderHook(() => useTrends(), {
+      wrapper: createQueryWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.trends).toHaveLength(1);
+    });
+
     expect(result.current.trends[0]).toEqual({ id: '1', title: 'Trend 1' });
   });
 
-  it('passes discovery endpoint dependencies into useResource', async () => {
-    const { useTrends } = await import('./use-trends');
-    renderHook(() => useTrends());
+  it('calls discovery without a platform filter when "all" is selected', async () => {
+    const mockGetDiscovery = vi.fn().mockResolvedValue(emptyResponse);
+    mockGetTrendsService.mockResolvedValue({
+      getTrendsDiscovery: mockGetDiscovery,
+      refreshTrends: vi.fn(),
+    });
 
-    expect(mockUseResource).toHaveBeenCalledWith(
-      expect.any(Function),
-      expect.objectContaining({
-        defaultValue: {
-          summary: {
-            connectedPlatforms: [],
-            lockedPlatforms: [],
-            totalTrends: 0,
-          },
-          trends: [],
-        },
-        dependencies: [undefined, 'brand-1'],
-      }),
-    );
+    const { useTrends } = await import('./use-trends');
+    renderHook(() => useTrends(), {
+      wrapper: createQueryWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(mockGetTrendsService).toHaveBeenCalled();
+    });
+
+    expect(mockGetDiscovery).toHaveBeenCalledWith({ platform: undefined });
   });
 
-  it('passes the provided platform into useResource dependencies', async () => {
-    const { useTrends } = await import('./use-trends');
-    renderHook(() => useTrends('youtube'));
+  it('calls discovery with the provided platform when hook is scoped', async () => {
+    const mockGetDiscovery = vi.fn().mockResolvedValue(emptyResponse);
+    mockGetTrendsService.mockResolvedValue({
+      getTrendsDiscovery: mockGetDiscovery,
+      refreshTrends: vi.fn(),
+    });
 
-    expect(mockUseResource).toHaveBeenCalledWith(
-      expect.any(Function),
-      expect.objectContaining({
-        dependencies: ['youtube', 'brand-1'],
-      }),
-    );
+    const { useTrends } = await import('./use-trends');
+    renderHook(() => useTrends('youtube'), {
+      wrapper: createQueryWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(mockGetTrendsService).toHaveBeenCalled();
+    });
+
+    expect(mockGetDiscovery).toHaveBeenCalledWith({ platform: 'youtube' });
   });
 
-  it('refreshTrends refreshes backend data and mutates with the fresh response', async () => {
-    const { useTrends } = await import('./use-trends');
+  it('refreshTrends refreshes backend data and updates query cache with fresh response', async () => {
+    const freshData = {
+      summary: {
+        connectedPlatforms: ['twitter'],
+        lockedPlatforms: [],
+        totalTrends: 1,
+      },
+      trends: [{ id: 'trend-1', topic: 'AI' }],
+    };
+
     const mockService = {
-      getTrendsDiscovery: vi.fn().mockResolvedValue({
-        summary: {
-          connectedPlatforms: ['twitter'],
-          lockedPlatforms: [],
-          totalTrends: 1,
-        },
-        trends: [{ id: 'trend-1', topic: 'AI' }],
-      }),
+      getTrendsDiscovery: vi
+        .fn()
+        .mockResolvedValueOnce(emptyResponse) // initial fetch
+        .mockResolvedValueOnce(freshData), // after refresh
       refreshTrends: vi.fn().mockResolvedValue({
         count: 1,
         message: 'ok',
@@ -170,7 +199,14 @@ describe('useTrends', () => {
 
     mockGetTrendsService.mockResolvedValue(mockService);
 
-    const { result } = renderHook(() => useTrends());
+    const { useTrends } = await import('./use-trends');
+    const { result } = renderHook(() => useTrends(), {
+      wrapper: createQueryWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
 
     await act(async () => {
       await result.current.refreshTrends();
@@ -180,18 +216,15 @@ describe('useTrends', () => {
     expect(mockService.getTrendsDiscovery).toHaveBeenCalledWith({
       platform: undefined,
     });
-    expect(mockMutate).toHaveBeenCalledWith({
-      summary: {
-        connectedPlatforms: ['twitter'],
-        lockedPlatforms: [],
-        totalTrends: 1,
-      },
-      trends: [{ id: 'trend-1', topic: 'AI' }],
+
+    await waitFor(() => {
+      expect(result.current.trends).toHaveLength(1);
     });
+
+    expect(result.current.trends[0]).toEqual({ id: 'trend-1', topic: 'AI' });
   });
 
   it('refreshTrends uses the provided platform when the hook is scoped', async () => {
-    const { useTrends } = await import('./use-trends');
     const mockService = {
       getTrendsDiscovery: vi.fn().mockResolvedValue({
         summary: {
@@ -210,12 +243,20 @@ describe('useTrends', () => {
 
     mockGetTrendsService.mockResolvedValue(mockService);
 
-    const { result } = renderHook(() => useTrends('youtube'));
+    const { useTrends } = await import('./use-trends');
+    const { result } = renderHook(() => useTrends('youtube'), {
+      wrapper: createQueryWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
 
     await act(async () => {
       await result.current.refreshTrends();
     });
 
+    // The second call (inside refreshTrends) should use 'youtube'
     expect(mockService.getTrendsDiscovery).toHaveBeenCalledWith({
       platform: 'youtube',
     });

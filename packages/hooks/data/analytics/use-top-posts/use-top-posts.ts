@@ -6,7 +6,7 @@ import {
   createLocalStorageCache,
 } from '@helpers/data/cache/cache.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
+import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -110,11 +110,24 @@ export function useTopPosts(options: UseTopPostsOptions = {}) {
     });
   }, []);
 
-  const resource = useResource(
-    async (_signal: AbortSignal) => {
+  const skipInitialFetch =
+    (revalidateOnMount ?? initialData == null) === false && !!initialData;
+
+  const { data, error, isLoading, refetch } = useQuery({
+    queryKey: [
+      'top-posts',
+      startDateKey,
+      endDateKey,
+      limit,
+      metric,
+      brandId,
+      platform,
+      refreshTrigger,
+    ],
+    queryFn: async () => {
       try {
         const service = await getAnalyticsService();
-        const data = (await service.getTopContent({
+        const fetchedData = (await service.getTopContent({
           endDate: endDateKey!,
           limit,
           metric,
@@ -124,7 +137,11 @@ export function useTopPosts(options: UseTopPostsOptions = {}) {
         })) as TopPostData[];
 
         if (topPostsCache && topPostsCacheMeta) {
-          topPostsCache.set(cacheKey, data || [], TOP_POSTS_CACHE_TTL_MS);
+          topPostsCache.set(
+            cacheKey,
+            fetchedData || [],
+            TOP_POSTS_CACHE_TTL_MS,
+          );
           topPostsCacheMeta.set(
             cacheKey,
             new Date().toISOString(),
@@ -137,8 +154,8 @@ export function useTopPosts(options: UseTopPostsOptions = {}) {
           setCachedAt(null);
         }
 
-        return data || [];
-      } catch (error) {
+        return fetchedData || [];
+      } catch (fetchError) {
         if (topPostsCache) {
           const cached = topPostsCache.get(cacheKey);
           if (cached && cached.length > 0) {
@@ -150,32 +167,22 @@ export function useTopPosts(options: UseTopPostsOptions = {}) {
           }
         }
 
-        throw error;
+        throw fetchError;
       }
     },
-    {
-      defaultValue: [] as TopPostData[],
-      dependencies: [
-        startDateKey,
-        endDateKey,
-        limit,
-        metric,
-        brandId,
-        platform,
-        refreshTrigger,
-      ],
-      enabled: Boolean(startDateKey && endDateKey),
-      initialData,
-      revalidateOnMount: revalidateOnMount ?? initialData == null,
-    },
-  );
+    enabled: Boolean(startDateKey && endDateKey),
+    initialData,
+    staleTime: skipInitialFetch ? Number.POSITIVE_INFINITY : 0,
+  });
 
   return {
     cachedAt,
-    error: resource.error,
-    isLoading: resource.isLoading,
+    error,
+    isLoading,
     isUsingCache,
-    refetch: resource.refresh,
-    topPosts: resource.data,
+    refetch: async () => {
+      await refetch();
+    },
+    topPosts: data ?? [],
   };
 }

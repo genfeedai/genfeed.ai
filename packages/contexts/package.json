@@ -6,7 +6,8 @@
     "@genfeedai/interfaces": "workspace:*",
     "@genfeedai/models": "workspace:*",
     "@genfeedai/props": "workspace:*",
-    "@genfeedai/services": "workspace:*"
+    "@genfeedai/services": "workspace:*",
+    "@tanstack/react-query": "^5.100.9"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "6.9.1",
