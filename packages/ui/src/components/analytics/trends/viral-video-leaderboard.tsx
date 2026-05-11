@@ -9,6 +9,7 @@ import Badge from '@ui/display/badge/Badge';
 import Table from '@ui/display/table/Table';
 import { Button } from '@ui/primitives/button';
 import { PLATFORM_CONFIGS } from '@ui-constants/platform.constant';
+import Image from 'next/image';
 import { HiOutlineFire, HiOutlinePlay } from 'react-icons/hi2';
 
 const TIMEFRAME_OPTIONS = [

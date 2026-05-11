@@ -6,6 +6,7 @@ import type { TrendingSoundsProps } from '@genfeedai/props/analytics/trends.prop
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
+import Image from 'next/image';
 import { FaTiktok } from 'react-icons/fa6';
 import {
   HiArrowTrendingUp,

@@ -29,7 +29,7 @@ export default function StreakCelebrationBurst({
       )}
       aria-hidden="true"
     >
-      {PARTICLES.map((position) => (
+      {PARTICLES.map((position, index) => (
         <span
           key={position}
           className={cn(

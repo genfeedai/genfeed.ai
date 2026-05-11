@@ -912,7 +912,7 @@ function DrillDownGroupRow({
   defaultHref?: string;
   onEnter: () => void;
 }) {
-  const _router = useRouter();
+  const { push } = useRouter();
   const firstItem = group.items[0];
   const OutlineIcon =
     DRILL_DOWN_GROUP_ICON_OVERRIDES[

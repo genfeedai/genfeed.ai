@@ -70,7 +70,7 @@ export default function ListRowSound({
     }
     onRowClick?.();
   };
-  const activateRowFromKeyboard = (event: KeyboardEvent<HTMLLIElement>) => {
+  const activateRowFromKeyboard = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key !== 'Enter' && event.key !== ' ') {
       return;
     }
