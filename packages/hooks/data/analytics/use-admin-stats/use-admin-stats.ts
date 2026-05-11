@@ -53,11 +53,11 @@ export function useAdminStats(): UseAdminStatsReturn {
     isFetching: isFetchingStats,
     refetch: refetchStats,
   } = useQuery({
+    queryKey: ['admin-stats'],
     queryFn: async () => {
       const service = await getAnalyticsService();
       return await service.findAll();
     },
-    queryKey: ['admin-stats'],
   });
 
   const {
@@ -66,6 +66,7 @@ export function useAdminStats(): UseAdminStatsReturn {
     isFetching: isFetchingLeaderboard,
     refetch: refetchLeaderboard,
   } = useQuery({
+    queryKey: ['admin-leaderboard'],
     queryFn: async () => {
       const service = await getAnalyticsService();
       return await service.getOrganizationsLeaderboard({
@@ -73,7 +74,6 @@ export function useAdminStats(): UseAdminStatsReturn {
         sort: AnalyticsMetric.POSTS,
       });
     },
-    queryKey: ['admin-leaderboard'],
   });
 
   const {
@@ -82,6 +82,7 @@ export function useAdminStats(): UseAdminStatsReturn {
     isFetching: isFetchingTimeseries,
     refetch: refetchTimeseries,
   } = useQuery({
+    queryKey: ['admin-timeseries'],
     queryFn: async () => {
       const service = await getAnalyticsService();
       const endDate = new Date();
@@ -93,7 +94,6 @@ export function useAdminStats(): UseAdminStatsReturn {
         startDate: startDate.toISOString().split('T')[0],
       });
     },
-    queryKey: ['admin-timeseries'],
   });
 
   const stats = useMemo(
@@ -124,7 +124,7 @@ export function useAdminStats(): UseAdminStatsReturn {
       let totalViews = 0;
       let totalLikes = 0;
 
-      for (const platform of platforms) {
+      platforms.forEach((platform) => {
         const platformData = item[platform] as
           | { views?: number; likes?: number }
           | undefined;
@@ -132,7 +132,7 @@ export function useAdminStats(): UseAdminStatsReturn {
           totalViews += platformData.views || 0;
           totalLikes += platformData.likes || 0;
         }
-      }
+      });
 
       return {
         credits: totalLikes,

@@ -22,24 +22,23 @@ export function useAgentStrategy(id: string): UseAgentStrategyReturn {
     isLoading,
     refetch,
   } = useQuery({
-    enabled: !!id,
+    queryKey: ['agent-strategy', id],
     queryFn: async () => {
+      if (!id) return null;
       const token = await resolveClerkToken(getToken);
       if (!token) return null;
 
       const service = AgentStrategiesService.getInstance(token);
       return service.getById(id);
     },
-    queryKey: ['agent-strategy', id],
+    enabled: !!id,
   });
-
-  const refresh = async () => {
-    await refetch();
-  };
 
   return {
     isLoading,
-    refresh,
+    refresh: async () => {
+      await refetch();
+    },
     strategy,
   };
 }

@@ -16,7 +16,7 @@ import {
 } from '@helpers/data/cache/cache.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useQuery } from '@tanstack/react-query';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 const ANALYTICS_CACHE_TTL_MS = 15 * 60 * 1000;
 
@@ -66,6 +66,13 @@ export function useAnalytics({
   const [cachedAt, setCachedAt] = useState<string | null>(initialCachedAt);
   const [isUsingCache, setIsUsingCache] = useState(false);
   const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const getOrganizationsService = useAuthedService((token: string) =>
     OrganizationsService.getInstance(token),
@@ -118,8 +125,8 @@ export function useAnalytics({
     });
   }, []);
 
-  const shouldFetch =
-    autoLoad && (selectedScope === PageScope.SUPERADMIN || !!selectedScopeId);
+  const skipInitialFetch =
+    (revalidateOnMount ?? initialData == null) === false && !!initialData;
 
   const {
     data: analyticsData,
@@ -128,11 +135,31 @@ export function useAnalytics({
     isFetching,
     refetch,
   } = useQuery({
-    enabled: shouldFetch,
-    initialData: initialData ?? undefined,
-    initialDataUpdatedAt:
-      revalidateOnMount === false && initialData ? Date.now() : 0,
+    queryKey: [
+      'analytics',
+      autoLoad,
+      selectedScope,
+      selectedScopeId,
+      startDate,
+      endDate,
+    ],
     queryFn: async () => {
+      if (!autoLoad) {
+        if (isMountedRef.current) {
+          setIsUsingCache(false);
+          setCachedAt(null);
+        }
+        return defaultAnalytics;
+      }
+
+      if (selectedScope !== PageScope.SUPERADMIN && !selectedScopeId) {
+        if (isMountedRef.current) {
+          setIsUsingCache(false);
+          setCachedAt(null);
+        }
+        return defaultAnalytics;
+      }
+
       let data: Partial<IAnalytics> = {};
       const scopedQuery =
         startDate || endDate
@@ -203,30 +230,26 @@ export function useAnalytics({
 
       return data;
     },
-    queryKey: ['analytics', selectedScope, selectedScopeId, startDate, endDate],
-    staleTime:
-      revalidateOnMount === false && initialData ? Number.POSITIVE_INFINITY : 0,
+    enabled: autoLoad,
+    initialData,
+    staleTime: skipInitialFetch ? Number.POSITIVE_INFINITY : 0,
   });
-
-  const isRefreshing = isFetching && !isLoading;
 
   const analytics = useMemo(
     () => analyticsData ?? defaultAnalytics,
     [analyticsData, defaultAnalytics],
   );
 
-  const refresh = async () => {
-    await refetch();
-  };
-
   return {
     analytics,
     cachedAt,
     error,
     isLoading,
-    isRefreshing,
+    isRefreshing: isFetching && !isLoading,
     isUsingCache,
-    refresh,
+    refresh: async () => {
+      await refetch();
+    },
     scope,
     scopeId: actualScopeId,
     selectedScope,

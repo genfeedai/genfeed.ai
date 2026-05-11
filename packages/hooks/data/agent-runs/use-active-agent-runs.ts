@@ -5,6 +5,7 @@ import type { IAgentRun } from '@genfeedai/interfaces';
 import { AgentRunsService } from '@genfeedai/services/ai/agent-runs.service';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
 import { useQuery } from '@tanstack/react-query';
+import { useEffect, useRef, useState } from 'react';
 
 export interface UseActiveAgentRunsReturn {
   activeRuns: IAgentRun[];
@@ -17,18 +18,28 @@ export interface UseActiveAgentRunsOptions {
   revalidateOnMount?: boolean;
 }
 
+/**
+ * Hook for active agent runs with polling for live updates.
+ * Polls every 5 seconds when there are active runs.
+ */
 export function useActiveAgentRuns(
   options: UseActiveAgentRunsOptions = {},
 ): UseActiveAgentRunsReturn {
-  const { getToken, orgId, userId } = useAuth();
+  const { getToken } = useAuth();
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [activeRuns, setActiveRuns] = useState<IAgentRun[]>(
+    options.initialActiveRuns ?? [],
+  );
+
+  const shouldRevalidateOnMount =
+    options.revalidateOnMount ?? options.initialActiveRuns == null;
 
   const {
-    data: activeRuns = [] as IAgentRun[],
+    data: runs = [] as IAgentRun[],
     isLoading,
     refetch,
   } = useQuery({
-    initialData: options.initialActiveRuns ?? undefined,
-    initialDataUpdatedAt: options.initialActiveRuns ? 0 : undefined,
+    queryKey: ['active-agent-runs'],
     queryFn: async () => {
       const token = await resolveClerkToken(getToken);
       if (!token) return [];
@@ -36,20 +47,34 @@ export function useActiveAgentRuns(
       const service = AgentRunsService.getInstance(token);
       return service.getActive();
     },
-    queryKey: ['active-agent-runs', userId ?? 'anonymous', orgId ?? 'no-org'],
-    refetchInterval: (query) => {
-      const data = query.state.data;
-      return data && data.length > 0 ? 5000 : false;
-    },
+    initialData: options.initialActiveRuns ?? undefined,
+    staleTime: shouldRevalidateOnMount ? 0 : Number.POSITIVE_INFINITY,
   });
 
-  const refresh = async () => {
-    await refetch();
-  };
+  useEffect(() => {
+    setActiveRuns(runs);
+  }, [runs]);
+
+  useEffect(() => {
+    if (activeRuns.length > 0) {
+      intervalRef.current = setInterval(() => {
+        void refetch();
+      }, 5000);
+    }
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, [activeRuns.length, refetch]);
 
   return {
     activeRuns,
     isLoading,
-    refresh,
+    refresh: async () => {
+      await refetch();
+    },
   };
 }

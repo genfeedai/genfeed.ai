@@ -61,7 +61,6 @@ import Card from '@ui/card/Card';
 import TextareaLabelActions from '@ui/content/textarea-label-actions/TextareaLabelActions';
 import Alert from '@ui/feedback/alert/Alert';
 import { LazyModalBrandGenerate } from '@ui/lazy/modal/LazyModal';
-import { Modal } from '@ui/modals/compound/Modal';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import EntityOverlayShell from '@ui/overlays/entity/EntityOverlayShell';
 import { Button } from '@ui/primitives/button';
@@ -590,10 +589,7 @@ export default function BrandOverlay({
   });
 
   const queryClient = useQueryClient();
-  const brandModalKey = useMemo(
-    () => ['brand-modal', overlayBrandId],
-    [overlayBrandId],
-  );
+  const brandModalKey = ['brand-modal', overlayBrandId];
 
   const {
     data: loadedBrand,
@@ -612,19 +608,15 @@ export default function BrandOverlay({
     enabled: !!overlayBrandId,
   });
 
-  const mutateBrand = useCallback(
-    (data: BrandOverlayRecord) => {
-      queryClient.setQueryData(brandModalKey, data);
-    },
-    [brandModalKey, queryClient],
-  );
+  const mutateBrand = (data: BrandOverlayRecord) => {
+    queryClient.setQueryData(brandModalKey, data);
+  };
 
   const activeBrand: BrandOverlayRecord | null =
     loadedBrand ??
     (overlayBrandId && initialBrand?.id === overlayBrandId
       ? initialBrand
       : null);
-  const isCreateBrandFlow = !brand;
 
   useEffect(() => {
     setOverlayBrandId(brand?.id ?? null);
@@ -808,23 +800,6 @@ export default function BrandOverlay({
     setGenerateModalType(null);
     onClose?.();
   }, [onClose]);
-
-  const closeCreateBrandModal = useCallback(() => {
-    closeModal(ModalEnum.BRAND);
-    closeModalBrand();
-  }, [closeModalBrand]);
-
-  const handleCreateBrandModalOpenChange = useCallback(
-    (open: boolean) => {
-      if (open) {
-        openModal(ModalEnum.BRAND);
-        return;
-      }
-
-      closeCreateBrandModal();
-    },
-    [closeCreateBrandModal],
-  );
 
   const handleOpenUploadModal = useCallback(
     (category: AssetCategory) => {
@@ -1034,17 +1009,11 @@ export default function BrandOverlay({
         const createdBrand = await service.post(
           new Brand(formData as Partial<IBrand>),
         );
-        onConfirm?.(true, createdBrand.id);
-
-        if (isCreateBrandFlow) {
-          closeCreateBrandModal();
-          return;
-        }
-
         const createdBrandDetail = await service.findOne(createdBrand.id);
 
         setOverlayBrandId(createdBrand.id);
         mutateBrand(createdBrandDetail as BrandOverlayRecord);
+        onConfirm?.(true, createdBrand.id);
         setOverlayView('overview');
       }
     } catch (submitError) {
@@ -1062,8 +1031,6 @@ export default function BrandOverlay({
   }, [
     form,
     getBrandsService,
-    closeCreateBrandModal,
-    isCreateBrandFlow,
     mutateBrand,
     onConfirm,
     overlayBrandId,
@@ -1122,52 +1089,6 @@ export default function BrandOverlay({
     }),
     [organizationSettingsDefaults],
   );
-
-  if (isCreateBrandFlow) {
-    return (
-      <Modal.Root
-        open={shouldAutoOpen}
-        onOpenChange={handleCreateBrandModalOpenChange}
-      >
-        <Modal.Content
-          aria-describedby="create-brand-description"
-          className="flex max-h-[min(42rem,calc(100vh-4rem))] flex-col overflow-hidden p-0"
-          size="xl"
-        >
-          <Modal.Header className="border-b border-white/8 px-6 pb-5 pt-6">
-            <Modal.Title>Create brand</Modal.Title>
-            <Modal.Description id="create-brand-description">
-              Create a new brand without leaving the current page.
-            </Modal.Description>
-          </Modal.Header>
-
-          <Modal.Body scrollable className="px-6 py-5">
-            <BrandEditorForm
-              activeBrand={null}
-              editorTab={editorTab}
-              error={error}
-              fontFamilies={fontFamilies}
-              form={form}
-              imageModels={imageModels}
-              isGenerating={isGenerating}
-              isSubmitting={isSubmitting}
-              musicModels={musicModels}
-              onCancel={closeCreateBrandModal}
-              onChange={updateModalBrand}
-              onEnhanceDescription={enhanceDescription}
-              onSubmit={onSubmit}
-              onTabChange={setEditorTab}
-              onUndo={handleUndo}
-              onCopyPrompt={handleCopyPrompt}
-              organizationDefaults={organizationDefaults}
-              previousPrompt={previousPrompt}
-              videoModels={videoModels}
-            />
-          </Modal.Body>
-        </Modal.Content>
-      </Modal.Root>
-    );
-  }
 
   return (
     <>

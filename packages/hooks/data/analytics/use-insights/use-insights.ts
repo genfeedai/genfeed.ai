@@ -22,7 +22,7 @@ import {
 } from '@genfeedai/services/analytics/insights.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo, useState } from 'react';
 
 interface UseInsightsOptions {
@@ -55,11 +55,20 @@ type ContentInsightsData = {
   alerts: SmartAlert[];
 };
 
+const defaultContentInsights: ContentInsightsData = {
+  alerts: [],
+  anomalies: [],
+  audiences: [],
+  suggestions: [],
+  trends: [],
+};
+
 export function useInsights({
   brandId,
   enabled = true,
 }: UseInsightsOptions = {}): UseInsightsReturn {
   const { dateRange, refreshTrigger } = useAnalyticsContext();
+  const queryClient = useQueryClient();
 
   const getInsightsService = useAuthedService((token: string) =>
     InsightsService.getInstance(token),
@@ -71,28 +80,28 @@ export function useInsights({
 
   const [localAlerts, setLocalAlerts] = useState<SmartAlert[]>([]);
 
+  const insightsQueryKey = ['insights', brandId, refreshTrigger];
+  const contentQueryKey = [
+    'insights-content',
+    brandId,
+    dateRange,
+    refreshTrigger,
+  ];
+
   const {
-    data: insights = [] as Insight[],
+    data: insights = [],
     isLoading: insightsLoading,
     isFetching: insightsFetching,
     error: insightsError,
     refetch: refetchInsights,
   } = useQuery<Insight[]>({
-    enabled,
+    queryKey: insightsQueryKey,
     queryFn: async () => {
       const service = await getInsightsService();
       return service.getInsights();
     },
-    queryKey: ['insights', brandId, refreshTrigger],
+    enabled,
   });
-
-  const defaultContentInsights: ContentInsightsData = {
-    alerts: [],
-    anomalies: [],
-    audiences: [],
-    suggestions: [],
-    trends: [],
-  };
 
   const {
     data: contentInsightsData = defaultContentInsights,
@@ -101,7 +110,7 @@ export function useInsights({
     error: contentError,
     refetch: refetchContent,
   } = useQuery<ContentInsightsData>({
-    enabled,
+    queryKey: contentQueryKey,
     queryFn: async () => {
       const service = await getPredictiveService();
       const range =
@@ -122,7 +131,7 @@ export function useInsights({
         return getMockInsightsData();
       }
     },
-    queryKey: ['content-insights', brandId, dateRange, refreshTrigger],
+    enabled,
   });
 
   const isLoading = insightsLoading || contentLoading;
