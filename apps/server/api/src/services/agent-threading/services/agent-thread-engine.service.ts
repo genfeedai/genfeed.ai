@@ -183,9 +183,15 @@ export class AgentThreadEngineService {
     params: AppendAgentThreadEventParams,
   ): Effect.Effect<AgentThreadEventDocument, unknown> {
     return fromPromiseEffect(async () => {
+      if (!params.userId) {
+        throw new BadRequestException(
+          'userId is required to append thread events',
+        );
+      }
       const thread = await this.ensureThreadAccess(
         params.threadId,
         params.organizationId,
+        params.userId,
       );
 
       // Check idempotency — do not create duplicate events for the same commandId+type
@@ -309,10 +315,11 @@ export class AgentThreadEngineService {
   listEventsEffect(
     threadId: string,
     organizationId: string,
+    userId: string,
     afterSequence?: number,
   ): Effect.Effect<AgentThreadEventDocument[], unknown> {
     return fromPromiseEffect(async () => {
-      await this.ensureThreadAccess(threadId, organizationId);
+      await this.ensureThreadAccess(threadId, organizationId, userId);
 
       const rows = await this.prisma.agentThreadEvent.findMany({
         where: {
@@ -335,19 +342,25 @@ export class AgentThreadEngineService {
   async listEvents(
     threadId: string,
     organizationId: string,
+    userId: string,
     afterSequence?: number,
   ): Promise<AgentThreadEventDocument[]> {
     return runEffectPromise(
-      this.listEventsEffect(threadId, organizationId, afterSequence),
+      this.listEventsEffect(threadId, organizationId, userId, afterSequence),
     );
   }
 
   getSnapshotEffect(
     threadId: string,
     organizationId: string,
+    userId: string,
   ): Effect.Effect<AgentThreadSnapshotDocument, unknown> {
     return fromPromiseEffect(async () => {
-      const thread = await this.ensureThreadAccess(threadId, organizationId);
+      const thread = await this.ensureThreadAccess(
+        threadId,
+        organizationId,
+        userId,
+      );
       let snapshotRow = await this.prisma.agentThreadSnapshot.findFirst({
         where: {
           isDeleted: false,
@@ -393,8 +406,11 @@ export class AgentThreadEngineService {
   async getSnapshot(
     threadId: string,
     organizationId: string,
+    userId: string,
   ): Promise<AgentThreadSnapshotDocument> {
-    return runEffectPromise(this.getSnapshotEffect(threadId, organizationId));
+    return runEffectPromise(
+      this.getSnapshotEffect(threadId, organizationId, userId),
+    );
   }
 
   resolveInputRequestEffect(
@@ -402,7 +418,11 @@ export class AgentThreadEngineService {
   ): Effect.Effect<AgentInputRequestDocument, unknown> {
     return Effect.gen(this, function* () {
       yield* fromPromiseEffect(() =>
-        this.ensureThreadAccess(params.threadId, params.organizationId),
+        this.ensureThreadAccess(
+          params.threadId,
+          params.organizationId,
+          params.userId,
+        ),
       );
 
       // Input requests are stored inside snapshot.data.inputRequests[]
@@ -496,10 +516,11 @@ export class AgentThreadEngineService {
   recordProfileSnapshotEffect(
     threadId: string,
     organizationId: string,
+    userId: string,
     profileSnapshot: object,
   ): Effect.Effect<AgentProfileSnapshotDocument | null, unknown> {
     return fromPromiseEffect(async () => {
-      await this.ensureThreadAccess(threadId, organizationId);
+      await this.ensureThreadAccess(threadId, organizationId, userId);
 
       const existing = await this.prisma.agentThreadSnapshot.findFirst({
         where: { isDeleted: false, organizationId, threadId },
@@ -569,12 +590,14 @@ export class AgentThreadEngineService {
   async recordProfileSnapshot(
     threadId: string,
     organizationId: string,
+    userId: string,
     profileSnapshot: object,
   ): Promise<AgentProfileSnapshotDocument | null> {
     return runEffectPromise(
       this.recordProfileSnapshotEffect(
         threadId,
         organizationId,
+        userId,
         profileSnapshot,
       ),
     );
@@ -632,6 +655,7 @@ export class AgentThreadEngineService {
   private async ensureThreadAccess(
     threadId: string,
     organizationId: string,
+    userId: string,
   ): Promise<{
     id: string;
     source?: string;
@@ -649,6 +673,7 @@ export class AgentThreadEngineService {
       _id: threadId,
       isDeleted: false,
       organization: organizationId,
+      user: userId,
     });
 
     if (!thread) {

@@ -248,12 +248,37 @@ export class TasksController extends BaseCRUDController<
   @Get('by-identifier/:identifier')
   async findByIdentifier(
     @Req() request: Request,
+    @CurrentUser() user: User,
     @Param('identifier') identifier: string,
   ) {
-    const doc = await this.tasksService.findByIdentifier(identifier);
+    const { organization } = getPublicMetadata(user);
+    const doc = await this.tasksService.findByIdentifier(
+      identifier,
+      organization,
+    );
     if (!doc) {
       throw new NotFoundException(`Task ${identifier} not found`);
     }
+    return serializeSingle(request, TaskSerializer, doc);
+  }
+
+  @Get(':id')
+  override async findOne(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+  ): Promise<JsonApiSingleResponse> {
+    const { organization } = getPublicMetadata(user);
+    const doc = await this.tasksService.findOne({
+      _id: id,
+      isDeleted: false,
+      organizationId: organization,
+    });
+
+    if (!doc) {
+      throw new NotFoundException(`Task not found`);
+    }
+
     return serializeSingle(request, TaskSerializer, doc);
   }
 
@@ -398,6 +423,7 @@ export class TasksController extends BaseCRUDController<
   @HttpCode(HttpStatus.OK)
   async checkout(
     @Req() request: Request,
+    @CurrentUser() user: User,
     @Param('id') id: string,
     @Body() body: { agentId: string; runId: string },
   ) {
@@ -405,7 +431,13 @@ export class TasksController extends BaseCRUDController<
       throw new BadRequestException('agentId and runId are required');
     }
 
-    const doc = await this.tasksService.checkout(id, body.agentId, body.runId);
+    const { organization } = getPublicMetadata(user);
+    const doc = await this.tasksService.checkout(
+      id,
+      body.agentId,
+      body.runId,
+      organization,
+    );
 
     if (!doc) {
       throw new ConflictException(
@@ -420,6 +452,7 @@ export class TasksController extends BaseCRUDController<
   @HttpCode(HttpStatus.OK)
   async release(
     @Req() request: Request,
+    @CurrentUser() user: User,
     @Param('id') id: string,
     @Body() body: { agentId: string },
   ) {
@@ -427,7 +460,8 @@ export class TasksController extends BaseCRUDController<
       throw new BadRequestException('agentId is required');
     }
 
-    const doc = await this.tasksService.release(id, body.agentId);
+    const { organization } = getPublicMetadata(user);
+    const doc = await this.tasksService.release(id, body.agentId, organization);
     return serializeSingle(request, TaskSerializer, doc);
   }
 

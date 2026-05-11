@@ -311,6 +311,7 @@ export class WorkflowExecutorService {
     const execution = await this.executionsService.findOne({
       _id: executionId,
       isDeleted: false,
+      organizationId,
     });
 
     if (!execution) {

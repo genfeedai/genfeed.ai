@@ -59,6 +59,24 @@ export class BatchWorkflowService {
       throw new BadRequestException('Maximum 100 items per batch');
     }
 
+    const validIngredients = await this.prisma.ingredient.findMany({
+      where: {
+        id: { in: ingredientIds },
+        isDeleted: false,
+        organizationId,
+      },
+      select: { id: true },
+    });
+
+    const validIds = new Set(validIngredients.map((i) => i.id));
+    const invalidIds = ingredientIds.filter((id) => !validIds.has(id));
+
+    if (invalidIds.length > 0) {
+      throw new BadRequestException(
+        `Ingredients not found or not accessible: ${invalidIds.join(', ')}`,
+      );
+    }
+
     const items = ingredientIds.map((id) => ({
       ingredientId: id,
       status: BatchWorkflowItemStatus.PENDING,

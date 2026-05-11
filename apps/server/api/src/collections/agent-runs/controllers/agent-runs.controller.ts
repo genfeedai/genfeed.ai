@@ -23,6 +23,7 @@ import { AgentThreadEngineService } from '@api/services/agent-threading/services
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import type { User } from '@clerk/backend';
 import { AgentExecutionStatus } from '@genfeedai/enums';
+import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { AgentRunSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -231,6 +232,29 @@ export class AgentRunsController extends BaseCRUDController<
     );
 
     return { runs };
+  }
+
+  @Get(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get a single agent run by ID' })
+  @ApiResponse({ description: 'Run returned', status: 200 })
+  override async findOne(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+  ): Promise<JsonApiSingleResponse> {
+    const publicMetadata = getPublicMetadata(user);
+    const doc = await this.agentRunsService.findOne({
+      _id: id,
+      isDeleted: false,
+      organization: publicMetadata.organization,
+    });
+
+    if (!doc) {
+      throw new NotFoundException('Agent run not found');
+    }
+
+    return serializeSingle(request, AgentRunSerializer, doc);
   }
 
   @Get(':id/content')

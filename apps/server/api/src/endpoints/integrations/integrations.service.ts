@@ -78,6 +78,9 @@ export class IntegrationsService {
 
     return integrations.map((integration) => ({
       ...integration,
+      config: this.maskSensitiveConfig(
+        (integration.config as Record<string, unknown>) ?? {},
+      ),
       encryptedToken: '***MASKED***', // Never expose tokens
     }));
   }
@@ -100,6 +103,9 @@ export class IntegrationsService {
 
     return {
       ...integration,
+      config: this.maskSensitiveConfig(
+        (integration.config as Record<string, unknown>) ?? {},
+      ),
       encryptedToken: '***MASKED***',
     };
   }
@@ -197,6 +203,9 @@ export class IntegrationsService {
 
     return {
       ...updated,
+      config: this.maskSensitiveConfig(
+        (updated.config as Record<string, unknown>) ?? {},
+      ),
       encryptedToken: '***MASKED***',
     };
   }
@@ -225,6 +234,26 @@ export class IntegrationsService {
       orgId,
       platform: existing.platform as unknown as IntegrationPlatform,
     });
+  }
+
+  private maskSensitiveConfig(
+    config: Record<string, unknown>,
+  ): Record<string, unknown> {
+    const sensitiveKeys = new Set([
+      'appToken',
+      'signingSecret',
+      'clientSecret',
+      'webhookSecret',
+      'apiKey',
+      'apiSecret',
+    ]);
+    const masked = { ...config };
+    for (const key of Object.keys(masked)) {
+      if (sensitiveKeys.has(key) && typeof masked[key] === 'string') {
+        masked[key] = '***MASKED***';
+      }
+    }
+    return masked;
   }
 
   private async emitIntegrationEvent(
