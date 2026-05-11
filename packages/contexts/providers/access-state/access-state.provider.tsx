@@ -12,7 +12,7 @@ import {
 } from '@genfeedai/services/auth/auth.service';
 import { loadClientProtectedBootstrap } from '@providers/protected-bootstrap/client-protected-bootstrap';
 import { useQuery } from '@tanstack/react-query';
-import { createContext, useContext, useMemo } from 'react';
+import { createContext, useCallback, useContext, useMemo } from 'react';
 
 export interface AccessStateContextValue {
   accessState: AccessBootstrapState | null;
@@ -104,6 +104,10 @@ export function AccessStateProvider({
   const needsOnboarding = accessState?.isOnboardingCompleted !== true;
   const canAccessApp = isSuperAdmin || isSubscribed || isByok;
 
+  const refreshAccessState = useCallback(async () => {
+    await refetch();
+  }, [refetch]);
+
   const value = useMemo<AccessStateContextValue>(
     () => ({
       accessState,
@@ -114,7 +118,7 @@ export function AccessStateProvider({
       isSubscribed,
       isSuperAdmin,
       needsOnboarding,
-      refreshAccessState: refetch,
+      refreshAccessState,
     }),
     [
       accessState,
@@ -125,7 +129,7 @@ export function AccessStateProvider({
       isSubscribed,
       isSuperAdmin,
       needsOnboarding,
-      refetch,
+      refreshAccessState,
     ],
   );
 
