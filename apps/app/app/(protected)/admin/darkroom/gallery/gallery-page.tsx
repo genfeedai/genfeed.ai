@@ -4,11 +4,11 @@ import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefr
 import { ButtonVariant } from '@genfeedai/enums';
 import type { IDarkroomAsset, IDarkroomCharacter } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import ImageGrid from '@protected/darkroom/_components/image-grid';
 import { AdminDarkroomService } from '@services/admin/darkroom.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import { useQuery } from '@tanstack/react-query';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { HiOutlinePhoto } from 'react-icons/hi2';
 
 type ContentRating = 'all' | 'sfw' | 'nsfw';
@@ -43,25 +43,25 @@ export default function GalleryPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isActioning, setIsActioning] = useState(false);
 
-  const { data: characters } = useResource<IDarkroomCharacter[]>(
-    async () => {
+  const { data: characters, error: charactersError } = useQuery<
+    IDarkroomCharacter[]
+  >({
+    queryKey: ['darkroom-characters'],
+    queryFn: async () => {
       const service = await getDarkroomService();
       return service.getCharacters();
     },
-    {
-      onError: (error: unknown) => {
-        logger.error('GET /admin/darkroom/characters failed', error);
-      },
-    },
-  );
+  });
 
   const {
     data: assets,
     isLoading,
-    isRefreshing,
-    refresh,
-  } = useResource<IDarkroomAsset[]>(
-    async () => {
+    isFetching,
+    error: assetsError,
+    refetch: refresh,
+  } = useQuery<IDarkroomAsset[]>({
+    queryKey: ['darkroom-gallery-assets', selectedCharacter, contentRating],
+    queryFn: async () => {
       const service = await getDarkroomService();
       const query: Record<string, string> = {};
 
@@ -75,25 +75,21 @@ export default function GalleryPage() {
 
       return service.getAssets(query);
     },
-    {
-      dependencies: [selectedCharacter, contentRating],
-      onError: (error: unknown) => {
-        logger.error('GET /admin/darkroom/assets failed', error);
-      },
-    },
-  );
+  });
 
-  // Refetch when filters change
-  const isInitialMount = useRef(true);
+  const isRefreshing = isFetching && !isLoading;
 
   useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      return;
+    if (charactersError) {
+      logger.error('GET /admin/darkroom/characters failed', charactersError);
     }
+  }, [charactersError]);
 
-    refresh();
-  }, [refresh]);
+  useEffect(() => {
+    if (assetsError) {
+      logger.error('GET /admin/darkroom/assets failed', assetsError);
+    }
+  }, [assetsError]);
 
   const handleDelete = useCallback(
     async (ids: string[]) => {

@@ -1,31 +1,41 @@
 import { useAdminStats } from '@hooks/data/analytics/use-admin-stats/use-admin-stats';
-import { renderHook } from '@testing-library/react';
+import { createQueryWrapper } from '@hooks/tests/query-wrapper';
+import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mockGetAnalyticsService = vi.fn();
-const mockUseResource = vi.fn();
+const mockFindAll = vi.fn();
+const mockGetOrganizationsLeaderboard = vi.fn();
+const mockGetTimeSeries = vi.fn();
+
+const mockAnalyticsService = {
+  findAll: mockFindAll,
+  getOrganizationsLeaderboard: mockGetOrganizationsLeaderboard,
+  getTimeSeries: mockGetTimeSeries,
+};
+
+const mockGetAnalyticsService = vi.fn().mockResolvedValue(mockAnalyticsService);
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(() => mockGetAnalyticsService),
 }));
 
-vi.mock('@hooks/data/resource/use-resource/use-resource', () => ({
-  useResource: (...args: unknown[]) => mockUseResource(...args),
-}));
-
 describe('useAdminStats', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseResource.mockReturnValue({
-      data: null,
-      isLoading: false,
-      isRefreshing: false,
-      refresh: vi.fn(),
-    });
+    mockFindAll.mockResolvedValue(null);
+    mockGetOrganizationsLeaderboard.mockResolvedValue([]);
+    mockGetTimeSeries.mockResolvedValue([]);
+    mockGetAnalyticsService.mockResolvedValue(mockAnalyticsService);
   });
 
-  it('returns stats, leaderboard, timeseries, and loading flags', () => {
-    const { result } = renderHook(() => useAdminStats());
+  it('returns stats, leaderboard, timeseries, and loading flags', async () => {
+    const { result } = renderHook(() => useAdminStats(), {
+      wrapper: createQueryWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
 
     expect(result.current).toHaveProperty('stats');
     expect(result.current).toHaveProperty('leaderboard');
@@ -35,70 +45,53 @@ describe('useAdminStats', () => {
     expect(result.current).toHaveProperty('refresh');
   });
 
-  it('returns default stats when data is null', () => {
-    const { result } = renderHook(() => useAdminStats());
+  it('returns default stats when data is null', async () => {
+    mockFindAll.mockResolvedValue(null);
+
+    const { result } = renderHook(() => useAdminStats(), {
+      wrapper: createQueryWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
     expect(result.current.stats).toHaveProperty('totalPosts');
     expect(result.current.stats?.totalPosts).toBe(0);
   });
 
-  it('returns empty arrays for leaderboard and timeseries when null', () => {
-    const { result } = renderHook(() => useAdminStats());
+  it('returns empty arrays for leaderboard and timeseries when null', async () => {
+    mockGetOrganizationsLeaderboard.mockResolvedValue(null);
+    mockGetTimeSeries.mockResolvedValue(null);
+
+    const { result } = renderHook(() => useAdminStats(), {
+      wrapper: createQueryWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
     expect(result.current.leaderboard).toEqual([]);
     expect(result.current.timeseries).toEqual([]);
   });
 
-  it('combines isLoading from all three resources', () => {
-    mockUseResource
-      .mockReturnValueOnce({
-        data: null,
-        isLoading: true,
-        isRefreshing: false,
-        refresh: vi.fn(),
-      })
-      .mockReturnValueOnce({
-        data: null,
-        isLoading: false,
-        isRefreshing: false,
-        refresh: vi.fn(),
-      })
-      .mockReturnValueOnce({
-        data: null,
-        isLoading: false,
-        isRefreshing: false,
-        refresh: vi.fn(),
-      });
-
-    const { result } = renderHook(() => useAdminStats());
-    expect(result.current.isLoading).toBe(true);
-  });
-
-  it('returns populated stats when data is provided', () => {
+  it('returns populated stats when data is provided', async () => {
     const mockStats = { totalCredits: 999, totalPosts: 100, totalUsers: 50 };
-    mockUseResource
-      .mockReturnValueOnce({
-        data: mockStats,
-        isLoading: false,
-        isRefreshing: false,
-        refresh: vi.fn(),
-      })
-      .mockReturnValueOnce({
-        data: [],
-        isLoading: false,
-        isRefreshing: false,
-        refresh: vi.fn(),
-      })
-      .mockReturnValueOnce({
-        data: [],
-        isLoading: false,
-        isRefreshing: false,
-        refresh: vi.fn(),
-      });
+    mockFindAll.mockResolvedValue(mockStats);
 
-    const { result } = renderHook(() => useAdminStats());
+    const { result } = renderHook(() => useAdminStats(), {
+      wrapper: createQueryWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
     expect(result.current.stats?.totalPosts).toBe(100);
   });
 
-  it('transforms timeseries data correctly', () => {
+  it('transforms timeseries data correctly', async () => {
     const mockTimeseries = [
       {
         date: '2024-01-01',
@@ -106,29 +99,36 @@ describe('useAdminStats', () => {
         youtube: { likes: 10, views: 100 },
       },
     ];
-    mockUseResource
-      .mockReturnValueOnce({
-        data: null,
-        isLoading: false,
-        isRefreshing: false,
-        refresh: vi.fn(),
-      })
-      .mockReturnValueOnce({
-        data: [],
-        isLoading: false,
-        isRefreshing: false,
-        refresh: vi.fn(),
-      })
-      .mockReturnValueOnce({
-        data: mockTimeseries,
-        isLoading: false,
-        isRefreshing: false,
-        refresh: vi.fn(),
-      });
+    mockGetTimeSeries.mockResolvedValue(mockTimeseries);
 
-    const { result } = renderHook(() => useAdminStats());
+    const { result } = renderHook(() => useAdminStats(), {
+      wrapper: createQueryWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
     expect(result.current.timeseries).toHaveLength(1);
     expect(result.current.timeseries[0].date).toBe('2024-01-01');
     expect(result.current.timeseries[0].posts).toBe(150); // sum of views
+  });
+
+  it('provides refresh function that re-fetches all queries', async () => {
+    const { result } = renderHook(() => useAdminStats(), {
+      wrapper: createQueryWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    const callCountBefore = mockFindAll.mock.calls.length;
+
+    await result.current.refresh();
+
+    await waitFor(() => {
+      expect(mockFindAll.mock.calls.length).toBeGreaterThan(callCountBefore);
+    });
   });
 });

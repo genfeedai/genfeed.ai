@@ -3,10 +3,10 @@
 import { PageScope } from '@genfeedai/enums';
 import type { IBatchItem, IBatchSummary } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import PostDetailOverlay from '@pages/posts/detail/PostDetailOverlay';
 import { BatchesService } from '@services/batch/batches.service';
 import { logger } from '@services/core/logger.service';
+import { useQuery } from '@tanstack/react-query';
 import Container from '@ui/layout/container/Container';
 import Loading from '@ui/loading/default/Loading';
 import {
@@ -96,16 +96,16 @@ function ReviewQueueContentContent() {
   const [isActioning, setIsActioning] = useState(false);
 
   const {
-    data: batches,
+    data: batches = [],
     error: batchesError,
     isLoading: isBatchesLoading,
-  } = useResource<IBatchSummary[]>(
-    async () => {
+  } = useQuery({
+    queryKey: ['review-batches'],
+    queryFn: async () => {
       const service = await getBatchesService();
       return service.getBatches();
     },
-    { defaultValue: [] },
-  );
+  });
 
   const batchList = useMemo(
     () => (Array.isArray(batches) ? batches : []),
@@ -156,23 +156,25 @@ function ReviewQueueContentContent() {
   );
 
   const {
-    data: activeBatch,
+    data: activeBatch = null,
     error: activeBatchError,
     isLoading: isBatchLoading,
-    refresh: refreshBatch,
-  } = useResource<IBatchSummary | null>(
-    async () => {
+    refetch: refetchBatch,
+  } = useQuery({
+    queryKey: ['review-batch', activeBatchId],
+    queryFn: async () => {
       if (!activeBatchId) {
         return null;
       }
       const service = await getBatchesService();
       return service.getBatch(activeBatchId);
     },
-    {
-      dependencies: [activeBatchId],
-      enabled: !!activeBatchId,
-    },
-  );
+    enabled: !!activeBatchId,
+  });
+
+  const refreshBatch = useCallback(async () => {
+    await refetchBatch();
+  }, [refetchBatch]);
 
   const actionableItems = useMemo(
     () => activeBatch?.items.filter((item) => isReadyToReview(item)) ?? [],

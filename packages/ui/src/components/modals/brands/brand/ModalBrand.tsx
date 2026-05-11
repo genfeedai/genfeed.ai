@@ -29,7 +29,6 @@ import {
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useElements } from '@genfeedai/hooks/data/elements/use-elements/use-elements';
 import { useOrganization } from '@genfeedai/hooks/data/organization/use-organization/use-organization';
-import { useResource } from '@genfeedai/hooks/data/resource/use-resource/use-resource';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { useModalAutoOpen } from '@genfeedai/hooks/ui/use-modal-auto-open/use-modal-auto-open';
 import { useFormSubmitWithState } from '@genfeedai/hooks/utils/use-form-submit/use-form-submit';
@@ -57,6 +56,7 @@ import BrandDetailLinkEditor, {
   type BrandLinkEditorValues,
 } from '@pages/brands/components/sidebar/BrandDetailLinkEditor';
 import BrandDetailSystemPrompt from '@pages/brands/components/system-prompt/BrandDetailSystemPrompt';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import TextareaLabelActions from '@ui/content/textarea-label-actions/TextareaLabelActions';
 import Alert from '@ui/feedback/alert/Alert';
@@ -588,13 +588,16 @@ export default function BrandOverlay({
     mode: 'onChange',
   });
 
+  const queryClient = useQueryClient();
+  const brandModalKey = ['brand-modal', overlayBrandId];
+
   const {
     data: loadedBrand,
     isLoading: isLoadingBrand,
-    refresh: refreshBrand,
-    mutate: mutateBrand,
-  } = useResource(
-    async () => {
+    refetch: refreshBrand,
+  } = useQuery({
+    queryKey: brandModalKey,
+    queryFn: async () => {
       if (!overlayBrandId) {
         throw new Error('Brand ID is required');
       }
@@ -602,11 +605,12 @@ export default function BrandOverlay({
       const service = await getBrandsService();
       return (await service.findOne(overlayBrandId)) as BrandOverlayRecord;
     },
-    {
-      dependencies: [overlayBrandId],
-      enabled: !!overlayBrandId,
-    },
-  );
+    enabled: !!overlayBrandId,
+  });
+
+  const mutateBrand = (data: BrandOverlayRecord) => {
+    queryClient.setQueryData(brandModalKey, data);
+  };
 
   const activeBrand: BrandOverlayRecord | null =
     loadedBrand ??

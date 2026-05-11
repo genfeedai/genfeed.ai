@@ -7,9 +7,9 @@ import {
   BYOK_FREE_THRESHOLD_CREDITS,
 } from '@helpers/business/pricing/pricing.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import { useSubscription } from '@hooks/data/subscription/use-subscription/use-subscription';
 import { CreditsService } from '@services/billing/credits.service';
+import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import { VStack } from '@ui/layout/stack';
@@ -49,13 +49,13 @@ function ByokUsageSection({
     CreditsService.getInstance(token),
   );
 
-  const { data: byokUsage, isLoading } = useResource(
-    async () => {
+  const { data: byokUsage, isLoading } = useQuery({
+    queryKey: ['byok-usage-summary'],
+    queryFn: async () => {
       const service = await getCreditsService();
       return service.getByokUsageSummary();
     },
-    { dependencies: [] },
-  );
+  });
 
   if (isLoading || !byokUsage) {
     return null;

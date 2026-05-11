@@ -1,7 +1,8 @@
 import { useAuth } from '@clerk/nextjs';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
+import { useQuery } from '@tanstack/react-query';
 import type { DependencyList } from 'react';
+import { useEffect } from 'react';
 
 export interface UseKPIMetricsOptions<T> {
   fetcher: (token: string) => Promise<T>;
@@ -31,8 +32,9 @@ export function useKPIMetrics<T>(
     onError,
   } = options;
 
-  const resource = useResource(
-    async () => {
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['kpi-metrics', ...dependencies],
+    queryFn: async () => {
       const token = await resolveClerkToken(getToken);
 
       if (!token) {
@@ -40,18 +42,32 @@ export function useKPIMetrics<T>(
       }
       return fetcher(token);
     },
-    {
-      dependencies,
-      enabled,
-      onError,
-      onSuccess,
-    },
-  );
+    enabled,
+  });
+
+  useEffect(() => {
+    if (data !== undefined && data !== null) {
+      onSuccess?.(data);
+    }
+  }, [data, onSuccess]);
+
+  useEffect(() => {
+    if (error) {
+      onError?.(error instanceof Error ? error : new Error(String(error)));
+    }
+  }, [error, onError]);
 
   return {
-    data: resource.data,
-    error: resource.error,
-    isLoading: resource.isLoading,
-    refresh: resource.refresh,
+    data: data ?? null,
+    error:
+      error instanceof Error
+        ? error
+        : error != null
+          ? new Error(String(error))
+          : null,
+    isLoading,
+    refresh: async () => {
+      await refetch();
+    },
   };
 }

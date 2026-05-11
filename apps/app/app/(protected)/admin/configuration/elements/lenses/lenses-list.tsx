@@ -7,13 +7,13 @@ import type { IElementLens, IQueryParams } from '@genfeedai/interfaces';
 import type { IElementContentProps } from '@genfeedai/interfaces/ui/elements-content.interface';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import type { ElementLens } from '@models/elements/lens.model';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { LensesService } from '@services/elements/lenses.service';
+import { useQuery } from '@tanstack/react-query';
 import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalLens } from '@ui/lazy/modal/LazyModal';
@@ -113,17 +113,17 @@ function LensesListContent({
   // Extract page from URL to use as dependency (triggers re-fetch when page changes)
   const currentPage = Number(get('page')) || 1;
 
-  // Load lenses using useResource (handles AbortController cleanup properly)
   const {
-    data: lenses,
+    data: lenses = [] as ElementLens[],
     isLoading,
-    isRefreshing,
-    refresh: refreshLenses,
-  } = useResource(
-    async () => {
+    isFetching,
+    error: lensesError,
+    refetch: refreshLenses,
+  } = useQuery({
+    queryKey: ['lenses', currentPage, scope, adminOrg, adminBrand],
+    queryFn: async () => {
       const service = await getLensesService();
 
-      // Build API query
       const query: IQueryParams = {
         limit: ITEMS_PER_PAGE,
         page: currentPage,
@@ -142,16 +142,17 @@ function LensesListContent({
       logger.info('GET /lenses success', data);
       return data;
     },
-    {
-      defaultValue: [] as ElementLens[],
-      dependencies: [currentPage, scope, adminOrg, adminBrand],
-      enabled: !!isSignedIn,
-      onError: (error) => {
-        logger.error('GET /lenses failed', error);
-        notificationsService.error('Failed to load lenses');
-      },
-    },
-  );
+    enabled: !!isSignedIn,
+  });
+
+  const isRefreshing = isFetching && !isLoading;
+
+  useEffect(() => {
+    if (lensesError) {
+      logger.error('GET /lenses failed', lensesError);
+      notificationsService.error('Failed to load lenses');
+    }
+  }, [lensesError, notificationsService]);
 
   // Notify parent of loading state changes
   useEffect(() => {

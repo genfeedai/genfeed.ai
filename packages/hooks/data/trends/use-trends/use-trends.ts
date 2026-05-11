@@ -8,7 +8,7 @@ import type {
 } from '@genfeedai/props/trends/trends-page.props';
 import { TrendsService } from '@genfeedai/services/social/trends.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 const EMPTY_SUMMARY: TrendsSummary = {
@@ -33,6 +33,7 @@ export function useTrends(initialPlatform: string = 'all'): UseTrendsReturn {
   const [selectedPlatform, setSelectedPlatform] =
     useState<string>(initialPlatform);
   const brandId = useBrandId();
+  const queryClient = useQueryClient();
 
   const getTrendsService = useAuthedService((token: string) =>
     TrendsService.getInstance(token),
@@ -45,23 +46,22 @@ export function useTrends(initialPlatform: string = 'all'): UseTrendsReturn {
     setSelectedPlatform(initialPlatform);
   }, [initialPlatform]);
 
+  const queryKey = ['trends-discovery', platformParam, brandId];
+
   const {
     data: response,
     isLoading,
-    isRefreshing,
+    isFetching,
     error,
-    refresh,
-    mutate,
-  } = useResource<TrendsResponse>(
-    async () => {
+    refetch,
+  } = useQuery<TrendsResponse>({
+    queryKey,
+    queryFn: async () => {
       const service = await getTrendsService();
       return service.getTrendsDiscovery({ platform: platformParam });
     },
-    {
-      defaultValue: { summary: EMPTY_SUMMARY, trends: [] },
-      dependencies: [platformParam, brandId],
-    },
-  );
+    initialData: { summary: EMPTY_SUMMARY, trends: [] },
+  });
 
   const trends = useMemo(() => response.trends || [], [response.trends]);
   const summary = useMemo(
@@ -69,20 +69,23 @@ export function useTrends(initialPlatform: string = 'all'): UseTrendsReturn {
     [response.summary],
   );
 
+  const refresh = useCallback(async () => {
+    await refetch();
+  }, [refetch]);
+
   const refreshTrends = useCallback(async () => {
     const service = await getTrendsService();
     await service.refreshTrends();
-    // Re-fetch after refresh
     const freshData = await service.getTrendsDiscovery({
       platform: platformParam,
     });
-    mutate(freshData);
-  }, [getTrendsService, platformParam, mutate]);
+    queryClient.setQueryData(queryKey, freshData);
+  }, [getTrendsService, platformParam, queryClient, queryKey]);
 
   return {
     error,
     isLoading,
-    isRefreshing,
+    isRefreshing: isFetching && !isLoading,
     refresh,
     refreshTrends,
     selectedPlatform,

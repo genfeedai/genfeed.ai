@@ -2,10 +2,10 @@
 
 import type { IOrganizationSetting } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import { logger } from '@services/core/logger.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
-import { useCallback, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useCallback, useEffect, useState } from 'react';
 
 export function useOrganizationSettings(organizationId: string | null) {
   const getOrganizationsService = useAuthedService((token: string) =>
@@ -15,27 +15,34 @@ export function useOrganizationSettings(organizationId: string | null) {
   const [isUpdating, setIsUpdating] = useState(false);
 
   const {
-    data: settings,
+    data: settings = null,
     isLoading,
-    isRefreshing,
-    refresh,
+    isFetching,
     error,
-  } = useResource<IOrganizationSetting>(
-    async () => {
+    refetch,
+  } = useQuery<IOrganizationSetting | null>({
+    queryKey: ['organization-settings', organizationId],
+    queryFn: async () => {
       if (!organizationId) {
         throw new Error('Organization ID is required');
       }
       const service = await getOrganizationsService();
       return service.getSettings(organizationId);
     },
-    {
-      dependencies: [organizationId],
-      enabled: !!organizationId,
-      onError: (error: unknown) => {
-        logger.error('GET /organizations/:id/settings failed', error);
-      },
-    },
-  );
+    enabled: !!organizationId,
+  });
+
+  const isRefreshing = isFetching && !isLoading;
+
+  useEffect(() => {
+    if (error) {
+      logger.error('GET /organizations/:id/settings failed', error);
+    }
+  }, [error]);
+
+  const refresh = useCallback(async () => {
+    await refetch();
+  }, [refetch]);
 
   const updateSettings = useCallback(
     async (data: Partial<IOrganizationSetting>): Promise<void> => {
@@ -51,9 +58,9 @@ export function useOrganizationSettings(organizationId: string | null) {
         await service.patchSettings(organizationId, data);
         logger.info(`${url} success`);
         await refresh();
-      } catch (error) {
-        logger.error(`${url} failed`, error);
-        throw error;
+      } catch (err) {
+        logger.error(`${url} failed`, err);
+        throw err;
       } finally {
         setIsUpdating(false);
       }

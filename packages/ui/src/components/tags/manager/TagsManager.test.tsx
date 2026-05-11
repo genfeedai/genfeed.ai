@@ -6,12 +6,14 @@ vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => vi.fn(),
 }));
 
-vi.mock('@genfeedai/hooks/data/resource/use-resource/use-resource', () => ({
-  useResource: () => ({
+vi.mock('@tanstack/react-query', () => ({
+  useQuery: vi.fn(() => ({
     data: [],
+    error: null,
+    isFetching: false,
     isLoading: false,
-    refresh: vi.fn(),
-  }),
+    refetch: vi.fn(),
+  })),
 }));
 
 vi.mock('@genfeedai/services/content/ingredients.service', () => ({

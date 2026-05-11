@@ -7,13 +7,13 @@ import type { IOrganization } from '@genfeedai/interfaces';
 import type { IElementContentProps } from '@genfeedai/interfaces/ui/elements-content.interface';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import type { Preset } from '@models/elements/preset.model';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { PresetsService } from '@services/elements/presets.service';
+import { useQuery } from '@tanstack/react-query';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
 import Badge from '@ui/display/badge/Badge';
@@ -117,14 +117,15 @@ function PresetsListContent({
   // Extract page from URL to use as dependency (triggers re-fetch when page changes)
   const currentPage = Number(get('page')) || 1;
 
-  // Load presets using useResource (handles AbortController cleanup properly)
   const {
-    data: presets,
+    data: presets = [] as Preset[],
     isLoading,
-    isRefreshing,
-    refresh: refreshPresets,
-  } = useResource(
-    async () => {
+    isFetching,
+    error: presetsError,
+    refetch: refreshPresets,
+  } = useQuery({
+    queryKey: ['presets', currentPage, scope, adminOrg, adminBrand],
+    queryFn: async () => {
       const url = `GET /presets`;
       const service = await getPresetsService();
 
@@ -147,16 +148,17 @@ function PresetsListContent({
       logger.info(`${url} success`, data);
       return data;
     },
-    {
-      defaultValue: [] as Preset[],
-      dependencies: [currentPage, scope, adminOrg, adminBrand],
-      enabled: !!isSignedIn,
-      onError: (error) => {
-        logger.error('GET /presets failed', error);
-        notificationsService.error('Failed to load presets');
-      },
-    },
-  );
+    enabled: !!isSignedIn,
+  });
+
+  const isRefreshing = isFetching && !isLoading;
+
+  useEffect(() => {
+    if (presetsError) {
+      logger.error('GET /presets failed', presetsError);
+      notificationsService.error('Failed to load presets');
+    }
+  }, [presetsError, notificationsService]);
 
   // Notify parent of loading state changes
   useEffect(() => {

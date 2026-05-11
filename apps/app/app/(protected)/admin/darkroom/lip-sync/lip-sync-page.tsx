@@ -3,10 +3,10 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { IDarkroomCharacter } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import { AdminDarkroomService } from '@services/admin/darkroom.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import { useQuery } from '@tanstack/react-query';
 import Container from '@ui/layout/container/Container';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Button } from '@ui/primitives/button';
@@ -42,17 +42,21 @@ export default function LipSyncPage() {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const { data: characters } = useResource<IDarkroomCharacter[]>(
-    async () => {
+  const { data: characters, error: charactersError } = useQuery<
+    IDarkroomCharacter[]
+  >({
+    queryKey: ['darkroom-characters'],
+    queryFn: async () => {
       const service = await getDarkroomService();
       return service.getCharacters();
     },
-    {
-      onError: (error: unknown) => {
-        logger.error('GET /admin/darkroom/characters failed', error);
-      },
-    },
-  );
+  });
+
+  useEffect(() => {
+    if (charactersError) {
+      logger.error('GET /admin/darkroom/characters failed', charactersError);
+    }
+  }, [charactersError]);
 
   const handleGenerate = useCallback(async () => {
     if (!selectedCharacter || !imageUrl.trim()) {

@@ -9,7 +9,6 @@ import {
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAgentRuns } from '@hooks/data/agent-runs/use-agent-runs';
 import { useAgentStrategy } from '@hooks/data/agent-strategies/use-agent-strategy';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import type {
   AgentDetailPageProps,
   AgentRunRowProps,
@@ -20,6 +19,7 @@ import {
 } from '@services/automation/agent-strategies.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import { useQuery } from '@tanstack/react-query';
 import Badge from '@ui/display/badge/Badge';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
@@ -134,18 +134,15 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
   const getService = useAuthedService((token: string) =>
     AgentStrategiesService.getInstance(token),
   );
-  const { data: opportunities, isLoading: isOpportunitiesLoading } =
-    useResource<AgentStrategyOpportunity[]>(
-      async () => {
+  const { data: opportunities = [], isLoading: isOpportunitiesLoading } =
+    useQuery<AgentStrategyOpportunity[]>({
+      queryKey: ['agent-opportunities', agentId, requestedOpportunityId],
+      queryFn: async () => {
         const service = await getService();
         return service.listOpportunities(agentId);
       },
-      {
-        defaultValue: [],
-        dependencies: [agentId, requestedOpportunityId],
-        enabled: Boolean(requestedOpportunityId),
-      },
-    );
+      enabled: Boolean(requestedOpportunityId),
+    });
 
   const handleToggle = useCallback(async () => {
     if (!strategy) return;

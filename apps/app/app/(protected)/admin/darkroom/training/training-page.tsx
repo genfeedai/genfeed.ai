@@ -7,11 +7,11 @@ import type {
   IDarkroomTraining,
 } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { AdminDarkroomService } from '@services/admin/darkroom.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import { useQuery } from '@tanstack/react-query';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
@@ -70,47 +70,43 @@ export default function TrainingPage() {
     useState<IDarkroomTraining | null>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const { data: characters } = useResource<IDarkroomCharacter[]>(
-    async () => {
+  const { data: characters, error: charactersError } = useQuery<
+    IDarkroomCharacter[]
+  >({
+    queryKey: ['darkroom-characters'],
+    queryFn: async () => {
       const service = await getDarkroomService();
       return service.getCharacters();
     },
-    {
-      onError: (error: unknown) => {
-        logger.error('GET /admin/darkroom/characters failed', error);
-      },
-    },
-  );
+  });
 
   const {
     data: trainings,
     isLoading,
-    isRefreshing,
-    refresh,
-  } = useResource<IDarkroomTraining[]>(
-    async () => {
+    isFetching,
+    error: trainingsError,
+    refetch: refresh,
+  } = useQuery<IDarkroomTraining[]>({
+    queryKey: ['darkroom-trainings', selectedCharacter],
+    queryFn: async () => {
       const service = await getDarkroomService();
       return service.getTrainings(selectedCharacter || undefined);
     },
-    {
-      dependencies: [selectedCharacter],
-      onError: (error: unknown) => {
-        logger.error('GET /admin/darkroom/trainings failed', error);
-      },
-    },
-  );
+  });
 
-  // Refetch trainings when character filter changes
-  const isInitialMount = useRef(true);
+  const isRefreshing = isFetching && !isLoading;
 
   useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      return;
+    if (charactersError) {
+      logger.error('GET /admin/darkroom/characters failed', charactersError);
     }
+  }, [charactersError]);
 
-    refresh();
-  }, [refresh]);
+  useEffect(() => {
+    if (trainingsError) {
+      logger.error('GET /admin/darkroom/trainings failed', trainingsError);
+    }
+  }, [trainingsError]);
 
   const selectedChar = (characters || []).find(
     (c) => c.slug === selectedCharacter,

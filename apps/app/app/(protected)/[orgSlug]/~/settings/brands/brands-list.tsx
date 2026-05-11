@@ -4,7 +4,6 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonVariant } from '@genfeedai/enums';
 import type { IQueryParams } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import type { Brand } from '@models/organization/brand.model';
 import {
   useBrandOverlay,
@@ -13,13 +12,14 @@ import {
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { BrandsService } from '@services/social/brands.service';
+import { useQuery } from '@tanstack/react-query';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
-import { Suspense, useCallback, useMemo } from 'react';
+import { Suspense, useCallback, useEffect, useMemo } from 'react';
 import {
   HiOutlineBuildingOffice2,
   HiPencil,
@@ -51,9 +51,11 @@ function BrandsListContent() {
   const {
     data: brands,
     isLoading,
-    refresh,
-  } = useResource(
-    async () => {
+    error: brandsError,
+    refetch,
+  } = useQuery({
+    queryKey: ['brands', organizationId, currentPage],
+    queryFn: async () => {
       if (!organizationId) {
         return [];
       }
@@ -69,15 +71,19 @@ function BrandsListContent() {
       logger.info('GET /brands success', data);
       return data;
     },
-    {
-      dependencies: [organizationId, currentPage],
-      enabled: !!organizationId,
-      onError: (error: unknown) => {
-        logger.error('Failed to load brands', error);
-        notificationsService.error('Failed to load brands');
-      },
-    },
-  );
+    enabled: !!organizationId,
+  });
+
+  useEffect(() => {
+    if (brandsError) {
+      logger.error('Failed to load brands', brandsError);
+      notificationsService.error('Failed to load brands');
+    }
+  }, [brandsError, notificationsService]);
+
+  const refresh = useCallback(async () => {
+    await refetch();
+  }, [refetch]);
 
   const handleDelete = useCallback(
     async (brand: Brand) => {

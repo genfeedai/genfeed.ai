@@ -3,7 +3,7 @@ import type { IAnalytics } from '@genfeedai/interfaces';
 import type { IOrgLeaderboardItem } from '@genfeedai/services/analytics/analytics.service';
 import { AnalyticsService } from '@genfeedai/services/analytics/analytics.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
+import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 
 export interface ITimeSeriesDataPoint {
@@ -47,47 +47,44 @@ export function useAdminStats(): UseAdminStatsReturn {
     AnalyticsService.getInstance(token),
   );
 
-  // Fetch all admin stats
   const {
     data: statsData,
     isLoading: isLoadingStats,
-    isRefreshing: isRefreshingStats,
-    refresh: refreshStats,
-  } = useResource(
-    async () => {
+    isFetching: isFetchingStats,
+    refetch: refetchStats,
+  } = useQuery({
+    queryKey: ['admin-stats'],
+    queryFn: async () => {
       const service = await getAnalyticsService();
       return await service.findAll();
     },
-    { dependencies: [] },
-  );
+  });
 
-  // Fetch organization leaderboard
   const {
     data: leaderboardData,
     isLoading: isLoadingLeaderboard,
-    isRefreshing: isRefreshingLeaderboard,
-    refresh: refreshLeaderboard,
-  } = useResource(
-    async () => {
+    isFetching: isFetchingLeaderboard,
+    refetch: refetchLeaderboard,
+  } = useQuery({
+    queryKey: ['admin-leaderboard'],
+    queryFn: async () => {
       const service = await getAnalyticsService();
       return await service.getOrganizationsLeaderboard({
         limit: 5,
         sort: AnalyticsMetric.POSTS,
       });
     },
-    { dependencies: [] },
-  );
+  });
 
-  // Fetch timeseries data
   const {
     data: timeseriesData,
     isLoading: isLoadingTimeseries,
-    isRefreshing: isRefreshingTimeseries,
-    refresh: refreshTimeseries,
-  } = useResource(
-    async () => {
+    isFetching: isFetchingTimeseries,
+    refetch: refetchTimeseries,
+  } = useQuery({
+    queryKey: ['admin-timeseries'],
+    queryFn: async () => {
       const service = await getAnalyticsService();
-      // Get last 7 days
       const endDate = new Date();
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - 7);
@@ -97,8 +94,7 @@ export function useAdminStats(): UseAdminStatsReturn {
         startDate: startDate.toISOString().split('T')[0],
       });
     },
-    { dependencies: [] },
-  );
+  });
 
   const stats = useMemo(
     () => (statsData as IAnalytics) ?? defaultStats,
@@ -110,14 +106,12 @@ export function useAdminStats(): UseAdminStatsReturn {
     [leaderboardData],
   );
 
-  // Transform timeseries data for the chart
   const timeseries = useMemo(() => {
     if (!timeseriesData || !Array.isArray(timeseriesData)) {
       return [];
     }
 
     return (timeseriesData as Array<Record<string, unknown>>).map((item) => {
-      // Sum up views from all platforms
       const platforms = [
         'youtube',
         'tiktok',
@@ -152,13 +146,15 @@ export function useAdminStats(): UseAdminStatsReturn {
   const isLoading =
     isLoadingStats || isLoadingLeaderboard || isLoadingTimeseries;
   const isRefreshing =
-    isRefreshingStats || isRefreshingLeaderboard || isRefreshingTimeseries;
+    (isFetchingStats && !isLoadingStats) ||
+    (isFetchingLeaderboard && !isLoadingLeaderboard) ||
+    (isFetchingTimeseries && !isLoadingTimeseries);
 
   const refresh = async () => {
     await Promise.all([
-      refreshStats(),
-      refreshLeaderboard(),
-      refreshTimeseries(),
+      refetchStats(),
+      refetchLeaderboard(),
+      refetchTimeseries(),
     ]);
   };
 

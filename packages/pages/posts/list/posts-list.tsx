@@ -35,7 +35,6 @@ import {
   getBrowserTimezone,
 } from '@helpers/formatting/timezone/timezone.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useEvaluation } from '@hooks/ui/evaluation/use-evaluation/use-evaluation';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
@@ -61,6 +60,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { PresetsService } from '@services/elements/presets.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
 import { BrandsService } from '@services/social/brands.service';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import LowCreditsBanner from '@ui/banners/low-credits/LowCreditsBanner';
 import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
 import Badge from '@ui/display/badge/Badge';
@@ -349,14 +349,33 @@ export default function PostsList({
     : filters.status;
   const filterSort = filters.sort;
 
-  // Load posts using useResource (handles data fetching with proper dependency tracking)
+  const queryClient = useQueryClient();
+
+  const postsQueryKey = [
+    'posts-list',
+    scope,
+    brandId,
+    organizationId,
+    platformFilter,
+    filterSearch,
+    filterStatus,
+    filterSort,
+    currentPage,
+    status,
+    adminOrg,
+    adminBrand,
+  ] as const;
+
   const {
-    data: posts,
+    data: posts = [],
     isLoading,
-    refresh: refreshPosts,
-    mutate: setPosts,
-  } = useResource(
-    async () => {
+    refetch: refreshPosts,
+    error: postsError,
+  } = useQuery<IPost[]>({
+    enabled: scope === PageScope.SUPERADMIN || isReady,
+    initialData: initialPosts != null ? hydratedPosts : undefined,
+    staleTime: initialPosts != null ? Number.POSITIVE_INFINITY : undefined,
+    queryFn: async () => {
       let url = 'GET /posts';
 
       const query: IQueryParams & {
@@ -438,32 +457,20 @@ export default function PostsList({
 
       return data;
     },
-    {
-      defaultValue: [] as IPost[],
-      dependencies: [
-        scope,
-        brandId,
-        organizationId,
-        platformFilter,
-        filterSearch,
-        filterStatus,
-        filterSort,
-        currentPage,
-        status,
-        adminOrg,
-        adminBrand,
-      ],
-      enabled: scope === PageScope.SUPERADMIN || isReady,
-      initialData: hydratedPosts,
-      onError: (error: Error) => {
-        logger.error('GET /posts failed', error);
-      },
-      revalidateOnMount: initialPosts == null,
-    },
-  );
+    queryKey: postsQueryKey,
+  });
 
-  // Local alias for callback wiring.
-  const findAllPosts = refreshPosts;
+  useEffect(() => {
+    if (postsError instanceof Error) {
+      logger.error('GET /posts failed', postsError);
+    }
+  }, [postsError]);
+
+  const setPosts = (updatedPosts: IPost[]) => {
+    queryClient.setQueryData(postsQueryKey, updatedPosts);
+  };
+
+  const findAllPosts = () => refreshPosts();
 
   useEffect(() => {
     postsRef.current = posts;
@@ -1087,10 +1094,10 @@ export default function PostsList({
     ],
   );
 
-  // Register refresh function with layout context
-  // Note: wrap in arrow function to prevent React from calling it as a functional update
   useEffect(() => {
-    setRefresh(() => () => refreshPosts());
+    setRefresh(() => () => {
+      void refreshPosts();
+    });
     return () => {
       setRefresh(() => () => {});
     };
