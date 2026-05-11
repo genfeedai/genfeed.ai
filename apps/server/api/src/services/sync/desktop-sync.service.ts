@@ -10,6 +10,7 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  PayloadTooLargeException,
 } from '@nestjs/common';
 import type { DesktopBrandManifestQueryDto } from './dto/desktop-brand-manifest-query.dto';
 import type {
@@ -39,6 +40,28 @@ type DesktopSyncOpPushResult = {
   reason?: string;
   status: 'accepted' | 'rejected';
 };
+
+const MAX_DESKTOP_ASSET_BYTES = 500 * 1024 * 1024; // 500 MB
+const MAX_PROXY_UPLOAD_BYTES = 100 * 1024 * 1024; // 100 MB (body-based upload)
+
+const ALLOWED_DESKTOP_MIME_TYPES = new Set([
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+  'image/svg+xml',
+  'video/mp4',
+  'video/quicktime',
+  'video/webm',
+  'audio/mpeg',
+  'audio/mp3',
+  'audio/wav',
+  'audio/aac',
+  'audio/flac',
+  'audio/ogg',
+  'application/pdf',
+]);
 
 @Injectable()
 export class DesktopSyncService {
@@ -327,6 +350,26 @@ export class DesktopSyncService {
 
     for (const asset of dto.assets) {
       try {
+        if (asset.sizeBytes > MAX_DESKTOP_ASSET_BYTES) {
+          rejected++;
+          assets.push({
+            localAssetId: asset.id,
+            reason: 'file-too-large',
+            status: 'rejected',
+          });
+          continue;
+        }
+
+        if (asset.mimeType && !ALLOWED_DESKTOP_MIME_TYPES.has(asset.mimeType)) {
+          rejected++;
+          assets.push({
+            localAssetId: asset.id,
+            reason: 'unsupported-mime-type',
+            status: 'rejected',
+          });
+          continue;
+        }
+
         const parentBrandId =
           asset.brandId === 'desktop-local-brand'
             ? brandId || null
@@ -459,6 +502,13 @@ export class DesktopSyncService {
       throw new NotFoundException('Desktop asset metadata was not found.');
     }
 
+    const effectiveMime = dto.mimeType ?? asset.mimeType ?? '';
+    if (effectiveMime && !ALLOWED_DESKTOP_MIME_TYPES.has(effectiveMime)) {
+      throw new BadRequestException(
+        `MIME type "${effectiveMime}" is not allowed for desktop uploads`,
+      );
+    }
+
     const logicalObjectKey = (
       asset.cloudObjectKey ??
       this.getCloudObjectKey(organizationId, {
@@ -547,6 +597,22 @@ export class DesktopSyncService {
       throw new NotFoundException('Desktop asset upload was not found.');
     }
 
+    const buffer = Buffer.from(dto.data, 'base64');
+
+    if (buffer.length > MAX_PROXY_UPLOAD_BYTES) {
+      throw new PayloadTooLargeException(
+        `Asset size ${(buffer.length / 1024 / 1024).toFixed(2)}MB exceeds proxy upload limit of ${(MAX_PROXY_UPLOAD_BYTES / 1024 / 1024).toFixed(0)}MB`,
+      );
+    }
+
+    const uploadMime =
+      dto.mimeType ?? asset.mimeType ?? 'application/octet-stream';
+    if (uploadMime && !ALLOWED_DESKTOP_MIME_TYPES.has(uploadMime)) {
+      throw new BadRequestException(
+        `MIME type "${uploadMime}" is not allowed for desktop uploads`,
+      );
+    }
+
     const logicalObjectKey = (
       asset.cloudObjectKey ??
       this.getCloudObjectKey(organizationId, {
@@ -561,9 +627,8 @@ export class DesktopSyncService {
       logicalObjectKey,
       'desktop-assets',
       {
-        contentType:
-          dto.mimeType ?? asset.mimeType ?? 'application/octet-stream',
-        data: Buffer.from(dto.data, 'base64'),
+        contentType: uploadMime,
+        data: buffer,
         type: FileInputType.BUFFER,
       },
     );

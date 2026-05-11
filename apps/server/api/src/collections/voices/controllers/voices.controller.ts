@@ -13,6 +13,7 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { UploadValidationPipe } from '@api/helpers/pipes/upload-validation';
 import {
   getIsSuperAdmin,
   getPublicMetadata,
@@ -71,10 +72,6 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Request } from 'express';
-
-interface UploadedAudioFile {
-  buffer: Buffer;
-}
 
 @AutoSwagger()
 @Controller('voices')
@@ -644,7 +641,23 @@ export class VoicesController {
     @Req() request: Request,
     @CurrentUser() user: User,
     @Body() cloneVoiceDto: CloneVoiceDto,
-    @UploadedFile() file?: UploadedAudioFile,
+    @UploadedFile(
+      new UploadValidationPipe({
+        allowedExtensions: ['mp3', 'wav', 'aac', 'flac', 'ogg', 'webm'],
+        allowedMimeTypes: [
+          'audio/mpeg',
+          'audio/mp3',
+          'audio/wav',
+          'audio/aac',
+          'audio/flac',
+          'audio/ogg',
+          'audio/webm',
+        ],
+        maxSizeBytes: 25 * 1024 * 1024,
+        required: false,
+      }),
+    )
+    file?: Express.Multer.File,
   ): Promise<JsonApiSingleResponse> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -819,7 +832,7 @@ export class VoicesController {
     request: Request,
     user: User,
     dto: CloneVoiceDto,
-    file: UploadedAudioFile | undefined,
+    file: Express.Multer.File | undefined,
     publicMetadata: { brand: string; organization: string; user: string },
     url: string,
   ): Promise<JsonApiSingleResponse> {
@@ -902,7 +915,7 @@ export class VoicesController {
     request: Request,
     user: User,
     dto: CloneVoiceDto,
-    _file: UploadedAudioFile | undefined,
+    _file: Express.Multer.File | undefined,
     publicMetadata: { brand: string; organization: string; user: string },
     url: string,
   ): Promise<JsonApiSingleResponse> {

@@ -20,6 +20,18 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 import { redirectToCallback } from './callback-redirect';
 
+interface DesktopAuthorizeResponse {
+  code: string;
+  expiresAt: string;
+  state: string;
+}
+
+interface CliTokenResponse {
+  apiKey?: string;
+  key?: string;
+  token?: string;
+}
+
 const MIN_PORT = 1024;
 const MAX_PORT = 65535;
 const DESKTOP_CALLBACK_TARGET = 'genfeedai-desktop://auth';
@@ -173,6 +185,9 @@ function CliAuthPageContent() {
   const isDesktopMode = searchParams.get('desktop') === '1';
   const desktopReturnTo = searchParams.get('return_to');
   const desktopState = searchParams.get('state');
+  const codeChallenge = searchParams.get('code_challenge');
+  const codeChallengeMethod = searchParams.get('code_challenge_method');
+  const hasPkce = Boolean(codeChallenge && codeChallengeMethod);
   const hasValidDesktopReturnTarget =
     isDesktopCallbackTargetValid(desktopReturnTo);
   const port = validatePort(portParam);
@@ -198,6 +213,207 @@ function CliAuthPageContent() {
           return;
         }
 
+        // --- Desktop mode: call /auth/desktop/authorize with PKCE params ---
+        if (isDesktopMode) {
+          if (!codeChallenge || !codeChallengeMethod || !desktopState) {
+            setFlowState({
+              error:
+                'Missing PKCE parameters. Restart sign-in from the Genfeed Desktop app.',
+              step: 'error',
+            });
+            return;
+          }
+
+          const response = await fetch(
+            `${EnvironmentService.apiEndpoint}/auth/desktop/authorize`,
+            {
+              body: JSON.stringify({
+                codeChallenge,
+                codeChallengeMethod,
+                returnTo: desktopReturnTo ?? undefined,
+                state: desktopState,
+              }),
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+              method: 'POST',
+              signal,
+            },
+          );
+
+          if (signal.aborted) {
+            return;
+          }
+
+          if (!response.ok) {
+            const errorBody = await response
+              .text()
+              .catch(() => 'Unknown error');
+            setFlowState({
+              error: formatServerError(response.status, errorBody),
+              step: 'error',
+            });
+            return;
+          }
+
+          const data = (await response.json()) as DesktopAuthorizeResponse;
+
+          if (!data.code) {
+            setFlowState({
+              error:
+                'Server did not return an authorization code. Please try again.',
+              step: 'error',
+            });
+            return;
+          }
+
+          setFlowState({ apiKey: data.code, error: null, step: 'redirecting' });
+
+          const callbackUrl = getDesktopCallbackUrl(
+            data.code,
+            user ?? null,
+            desktopReturnTo,
+            desktopState,
+          );
+
+          await new Promise((resolve) => setTimeout(resolve, 500));
+
+          if (signal.aborted) {
+            return;
+          }
+
+          let fallbackTimer: number | null = null;
+          let handoffCompleted = false;
+
+          const cleanup = () => {
+            document.removeEventListener(
+              'visibilitychange',
+              handleVisibilityChange,
+            );
+            window.removeEventListener('pagehide', handlePageHide);
+
+            if (fallbackTimer !== null) {
+              window.clearTimeout(fallbackTimer);
+            }
+          };
+
+          const completeHandoff = () => {
+            if (signal.aborted || handoffCompleted) {
+              return;
+            }
+
+            handoffCompleted = true;
+            cleanup();
+            setFlowState({ apiKey: data.code, error: null, step: 'success' });
+          };
+
+          const handlePageHide = () => {
+            completeHandoff();
+          };
+
+          const handleVisibilityChange = () => {
+            if (document.visibilityState === 'hidden') {
+              completeHandoff();
+            }
+          };
+
+          document.addEventListener('visibilitychange', handleVisibilityChange);
+          window.addEventListener('pagehide', handlePageHide);
+
+          try {
+            redirectToCallback(callbackUrl);
+          } catch (error) {
+            cleanup();
+            setFlowState({
+              apiKey: data.code,
+              error:
+                error instanceof Error
+                  ? error.message
+                  : 'Failed to open the desktop app. Try again or copy the code below.',
+              step: 'error',
+            });
+            return;
+          }
+
+          fallbackTimer = window.setTimeout(() => {
+            if (signal.aborted || handoffCompleted) {
+              return;
+            }
+
+            cleanup();
+            setFlowState({
+              apiKey: data.code,
+              error:
+                'Genfeed Desktop did not open automatically. Make sure the app is installed, then try again or copy the code below.',
+              step: 'error',
+            });
+          }, DESKTOP_CALLBACK_TIMEOUT_MS);
+
+          return;
+        }
+
+        // --- CLI PKCE mode: code_challenge present, no desktop=1 ---
+        if (hasPkce && codeChallenge && codeChallengeMethod && desktopState) {
+          const response = await fetch(
+            `${EnvironmentService.apiEndpoint}/auth/desktop/authorize`,
+            {
+              body: JSON.stringify({
+                codeChallenge,
+                codeChallengeMethod,
+                state: desktopState,
+              }),
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+              method: 'POST',
+              signal,
+            },
+          );
+
+          if (signal.aborted) {
+            return;
+          }
+
+          if (!response.ok) {
+            const errorBody = await response
+              .text()
+              .catch(() => 'Unknown error');
+            setFlowState({
+              error: formatServerError(response.status, errorBody),
+              step: 'error',
+            });
+            return;
+          }
+
+          const data = (await response.json()) as DesktopAuthorizeResponse;
+
+          if (!data.code) {
+            setFlowState({
+              error:
+                'Server did not return an authorization code. Please try again.',
+              step: 'error',
+            });
+            return;
+          }
+
+          setFlowState({ apiKey: data.code, error: null, step: 'redirecting' });
+
+          const callbackUrl = `http://127.0.0.1:${port ?? 0}/callback?code=${encodeURIComponent(data.code)}&state=${encodeURIComponent(desktopState)}`;
+
+          redirectToCallback(callbackUrl);
+
+          setTimeout(() => {
+            if (!signal.aborted) {
+              setFlowState({ apiKey: data.code, error: null, step: 'success' });
+            }
+          }, 2000);
+
+          return;
+        }
+
+        // --- Legacy CLI mode: no PKCE, use /auth/cli/token ---
         const response = await fetch(
           `${EnvironmentService.apiEndpoint}/auth/cli/token`,
           {
@@ -223,10 +439,9 @@ function CliAuthPageContent() {
           return;
         }
 
-        const data = await response.json();
-        const key = data.key || data.apiKey || data.token;
-        const desktopCode = isDesktopMode ? data.code : null;
-        const credential = desktopCode || key;
+        const legacyData = (await response.json()) as CliTokenResponse;
+        const credential =
+          legacyData.key ?? legacyData.apiKey ?? legacyData.token;
 
         if (!credential) {
           setFlowState({
@@ -238,93 +453,9 @@ function CliAuthPageContent() {
 
         setFlowState({ apiKey: credential, error: null, step: 'redirecting' });
 
-        const callbackUrl = isDesktopMode
-          ? getDesktopCallbackUrl(
-              credential,
-              user ?? null,
-              desktopReturnTo,
-              desktopState,
-            )
-          : `http://127.0.0.1:${port ?? 0}/callback?key=${encodeURIComponent(credential)}`;
+        const legacyCallbackUrl = `http://127.0.0.1:${port ?? 0}/callback?key=${encodeURIComponent(credential)}`;
 
-        await new Promise((resolve) => setTimeout(resolve, 500));
-
-        if (signal.aborted) {
-          return;
-        }
-
-        if (isDesktopMode) {
-          let fallbackTimer: number | null = null;
-          let handoffCompleted = false;
-
-          const cleanup = () => {
-            document.removeEventListener(
-              'visibilitychange',
-              handleVisibilityChange,
-            );
-            window.removeEventListener('pagehide', handlePageHide);
-
-            if (fallbackTimer !== null) {
-              window.clearTimeout(fallbackTimer);
-            }
-          };
-
-          const completeHandoff = () => {
-            if (signal.aborted || handoffCompleted) {
-              return;
-            }
-
-            handoffCompleted = true;
-            cleanup();
-            setFlowState({ apiKey: credential, error: null, step: 'success' });
-          };
-
-          const handlePageHide = () => {
-            completeHandoff();
-          };
-
-          const handleVisibilityChange = () => {
-            if (document.visibilityState === 'hidden') {
-              completeHandoff();
-            }
-          };
-
-          document.addEventListener('visibilitychange', handleVisibilityChange);
-          window.addEventListener('pagehide', handlePageHide);
-
-          try {
-            redirectToCallback(callbackUrl);
-          } catch (error) {
-            cleanup();
-            setFlowState({
-              apiKey: credential,
-              error:
-                error instanceof Error
-                  ? error.message
-                  : 'Failed to open the desktop app. Try again or copy the key below.',
-              step: 'error',
-            });
-            return;
-          }
-
-          fallbackTimer = window.setTimeout(() => {
-            if (signal.aborted || handoffCompleted) {
-              return;
-            }
-
-            cleanup();
-            setFlowState({
-              apiKey: credential,
-              error:
-                'Genfeed Desktop did not open automatically. Make sure the app is installed, then try again or copy the key below.',
-              step: 'error',
-            });
-          }, DESKTOP_CALLBACK_TIMEOUT_MS);
-
-          return;
-        }
-
-        redirectToCallback(callbackUrl);
+        redirectToCallback(legacyCallbackUrl);
 
         setTimeout(() => {
           if (!signal.aborted) {
@@ -341,7 +472,17 @@ function CliAuthPageContent() {
         setFlowState({ error: message, step: 'error' });
       }
     },
-    [desktopReturnTo, desktopState, getToken, isDesktopMode, port, user],
+    [
+      codeChallenge,
+      codeChallengeMethod,
+      desktopReturnTo,
+      desktopState,
+      getToken,
+      hasPkce,
+      isDesktopMode,
+      port,
+      user,
+    ],
   );
 
   useEffect(() => {
@@ -444,8 +585,13 @@ function CliAuthPageContent() {
                   routing="hash"
                   forceRedirectUrl={
                     isDesktopMode
-                      ? `/oauth/cli?desktop=1${desktopReturnTo ? `&return_to=${encodeURIComponent(desktopReturnTo)}` : ''}`
-                      : `/oauth/cli?port=${port}`
+                      ? `/oauth/cli?desktop=1${desktopReturnTo ? `&return_to=${encodeURIComponent(desktopReturnTo)}` : ''}${desktopState ? `&state=${encodeURIComponent(desktopState)}` : ''}${codeChallenge ? `&code_challenge=${encodeURIComponent(codeChallenge)}` : ''}${codeChallengeMethod ? `&code_challenge_method=${encodeURIComponent(codeChallengeMethod)}` : ''}`
+                      : hasPkce &&
+                          codeChallenge &&
+                          codeChallengeMethod &&
+                          desktopState
+                        ? `/oauth/cli?port=${port}&code_challenge=${encodeURIComponent(codeChallenge)}&code_challenge_method=${encodeURIComponent(codeChallengeMethod)}&state=${encodeURIComponent(desktopState)}`
+                        : `/oauth/cli?port=${port}`
                   }
                   appearance={{
                     elements: {
