@@ -611,6 +611,11 @@ export class CronJobsService {
     const start = new Date();
     const jobId = job.id;
 
+    await this.assertCreditBalance(
+      (job as Record<string, unknown>).organizationId as string,
+      job.jobType,
+    );
+
     const run = await this.prisma.cronRun.create({
       data: {
         cronJobId: jobId,
