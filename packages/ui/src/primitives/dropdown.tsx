@@ -253,7 +253,7 @@ export function Dropdown({
             : { left: `${portalPos.left}px` }),
           minWidth,
           transform: position === 'bottom-full' ? 'translateY(-100%)' : 'none',
-          zIndex: 10001,
+          zIndex: 50,
           ...(maxWidth && { maxWidth }),
         }}
       >

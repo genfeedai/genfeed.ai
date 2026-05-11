@@ -88,7 +88,7 @@ function TweetInputNodeComponent({ id, data, onUpdate }: TweetInputNodeProps) {
               : 'text-muted-foreground hover:text-foreground'
           }`}
         >
-          <Link className="w-3 h-3" />
+          <Link className="size-3" />
           URL
         </Button>
         <Button
@@ -101,7 +101,7 @@ function TweetInputNodeComponent({ id, data, onUpdate }: TweetInputNodeProps) {
               : 'text-muted-foreground hover:text-foreground'
           }`}
         >
-          <Type className="w-3 h-3" />
+          <Type className="size-3" />
           Text
         </Button>
       </div>
@@ -113,7 +113,7 @@ function TweetInputNodeComponent({ id, data, onUpdate }: TweetInputNodeProps) {
             type="url"
             value={data.tweetUrl || ''}
             onChange={handleUrlChange}
-            placeholder="https://twitter.com/user/status/..."
+            placeholder="https://twitter.com/user/status/…"
           />
           <Button
             onClick={handleFetchTweet}
@@ -124,8 +124,8 @@ function TweetInputNodeComponent({ id, data, onUpdate }: TweetInputNodeProps) {
           >
             {isFetching ? (
               <>
-                <Loader2 className="w-3 h-3 animate-spin" />
-                Fetching...
+                <Loader2 className="size-3 animate-spin" />
+                Fetching…
               </>
             ) : (
               'Fetch Tweet'
@@ -139,7 +139,7 @@ function TweetInputNodeComponent({ id, data, onUpdate }: TweetInputNodeProps) {
         <Textarea
           value={data.rawText || ''}
           onChange={handleRawTextChange}
-          placeholder="Paste tweet text here..."
+          placeholder="Paste tweet text here…"
           className="w-full h-20 px-2 py-1.5 text-sm bg-background border border-white/[0.08] resize-none focus:outline-none focus:ring-1 focus:ring-primary"
         />
       )}

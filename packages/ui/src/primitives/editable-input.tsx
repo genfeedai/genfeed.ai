@@ -190,7 +190,7 @@ export default function EditableInput({
 
           {!isDisabled && (
             <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-              <HiPencil className="w-4 h-4 text-foreground/60" />
+              <HiPencil className="size-4 text-foreground/60" />
             </div>
           )}
         </button>

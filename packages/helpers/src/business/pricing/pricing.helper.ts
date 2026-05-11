@@ -6,7 +6,7 @@
  *
  * Pricing Strategy:
  * - Self-hosted core is free with bring-your-own AI keys
- * - Hosted starts at $8/month plus pay-as-you-go output
+ * - Cloud App starts at $49/month plus pay-as-you-go output
  * - Cloud is higher-entry B2B for collaboration, multi-org, and multi-brand use
  * - Credits are tracked internally but NEVER shown to users
  * - Auto-select premium AI models (no user decision fatigue)
@@ -191,13 +191,13 @@ export const websitePlans: PricingPlanProps[] = [
     valueProposition: 'Full platform on your servers. You manage everything.',
   },
 
-  // Hosted Tier - $8/month + PAYG output
+  // Hosted / Cloud App Tier - $49/month + PAYG output
   {
-    cta: 'Start Hosted',
+    cta: 'Start Cloud App',
     ctaHref: `${process.env.NEXT_PUBLIC_APPS_APP_ENDPOINT || 'https://app.genfeed.ai'}/sign-up?plan=hosted`,
     description: 'Managed app access with usage-based output',
     features: [
-      '$8/month platform access',
+      '$49/month platform access',
       'Pay-as-you-go videos, images, and voice',
       'No infrastructure to manage',
       'Premium AI models (auto-selected)',
@@ -209,7 +209,7 @@ export const websitePlans: PricingPlanProps[] = [
     interval: 'payg',
     label: 'Hosted',
     outputs: null,
-    price: 8,
+    price: 49,
     stripePriceId: STRIPE_PRICE_IDS.pro,
     target: 'Creators and founders who want managed Genfeed without DevOps',
     type: 'payg',

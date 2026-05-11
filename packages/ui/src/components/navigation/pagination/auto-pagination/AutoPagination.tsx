@@ -4,7 +4,7 @@ import type { AutoPaginationProps } from '@genfeedai/props/ui/navigation/paginat
 import { PagesService } from '@genfeedai/services/content/pages.service';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useCallback } from 'react';
+import { Suspense, useCallback } from 'react';
 
 /**
  * Automatic pagination component that reads from URL and PagesService
@@ -41,11 +41,11 @@ import { useCallback } from 'react';
  * <AutoPagination showTotal totalLabel="posts" />
  * ```
  */
-export default function AutoPagination({
+function AutoPaginationContent({
   showTotal = false,
   totalLabel = 'results',
 }: AutoPaginationProps) {
-  const router = useRouter();
+  const { replace } = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
@@ -72,9 +72,9 @@ export default function AutoPagination({
       const queryString = params.toString();
       const newUrl = queryString ? `${pathname}?${queryString}` : pathname;
 
-      router.replace(newUrl, { scroll: false });
+      replace(newUrl, { scroll: false });
     },
-    [pathname, router, searchParams],
+    [pathname, searchParams, replace],
   );
 
   // Don't render if there's only 1 page
@@ -96,5 +96,13 @@ export default function AutoPagination({
         </div>
       )}
     </div>
+  );
+}
+
+export default function AutoPagination(props: AutoPaginationProps) {
+  return (
+    <Suspense fallback={null}>
+      <AutoPaginationContent {...props} />
+    </Suspense>
   );
 }

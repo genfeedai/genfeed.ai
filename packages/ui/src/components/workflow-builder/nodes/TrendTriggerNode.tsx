@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/enums';
+import ClientDateTime from '@ui/components/time/ClientDateTime';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import {
@@ -138,7 +139,7 @@ function TrendTriggerNodeComponent({
       {/* Min Viral Score */}
       <div>
         <label className="text-xs text-muted-foreground flex items-center gap-1">
-          <TrendingUp className="w-3 h-3" />
+          <TrendingUp className="size-3" />
           Min Viral Score: {data.minViralScore}
         </label>
         <Slider
@@ -154,7 +155,7 @@ function TrendTriggerNodeComponent({
       {/* Check Frequency */}
       <div>
         <label className="text-xs text-muted-foreground flex items-center gap-1">
-          <Clock className="w-3 h-3" />
+          <Clock className="size-3" />
           Check Frequency
         </label>
         <Select
@@ -179,7 +180,7 @@ function TrendTriggerNodeComponent({
       {/* Keywords Filter */}
       <div>
         <label className="text-xs text-muted-foreground flex items-center gap-1">
-          <Hash className="w-3 h-3" />
+          <Hash className="size-3" />
           Keywords (optional)
         </label>
         <div className="flex gap-1 mt-1">
@@ -188,7 +189,7 @@ function TrendTriggerNodeComponent({
             value={keywordInput}
             onChange={(e) => setKeywordInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Add keyword..."
+            placeholder="Add keyword…"
             className="flex-1"
           />
           <Button
@@ -214,7 +215,7 @@ function TrendTriggerNodeComponent({
                   variant={ButtonVariant.UNSTYLED}
                   className="hover:text-red-500"
                 >
-                  <X className="w-3 h-3" />
+                  <X className="size-3" />
                 </Button>
               </span>
             ))}
@@ -230,7 +231,7 @@ function TrendTriggerNodeComponent({
             {data.lastTrendTopic || 'Unknown topic'}
           </div>
           <div className="text-xs text-muted-foreground mt-1">
-            {new Date(data.lastTriggeredAt).toLocaleString()}
+            <ClientDateTime value={data.lastTriggeredAt} />
           </div>
         </div>
       )}

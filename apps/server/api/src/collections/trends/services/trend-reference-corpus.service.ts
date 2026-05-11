@@ -293,6 +293,24 @@ export class TrendReferenceCorpusService {
       return;
     }
 
+    // Verify that all referenced trend IDs belong to the caller's org or are global
+    let verifiedTrendIds = trendIds;
+    if (trendIds.length > 0) {
+      const ownedTrends = await this.prisma.trend.findMany({
+        select: { id: true },
+        where: {
+          id: { in: trendIds },
+          isDeleted: false,
+          OR: [
+            { organizationId: payload.organizationId },
+            { organizationId: null },
+          ],
+        },
+      });
+      const ownedTrendIdSet = new Set(ownedTrends.map((t) => t.id));
+      verifiedTrendIds = trendIds.filter((id) => ownedTrendIdSet.has(id));
+    }
+
     // Find existing lineage record
     const where = hasContentDraftId
       ? { contentDraftId: payload.contentDraftId }
@@ -319,7 +337,7 @@ export class TrendReferenceCorpusService {
             set: sourceReferenceIds.map((id) => ({ id })),
           },
           trends: {
-            set: trendIds.map((id) => ({ id })),
+            set: verifiedTrendIds.map((id) => ({ id })),
           },
         } as never,
         where: { id: existing.id },
@@ -339,7 +357,7 @@ export class TrendReferenceCorpusService {
             connect: sourceReferenceIds.map((id) => ({ id })),
           },
           trends: {
-            connect: trendIds.map((id) => ({ id })),
+            connect: verifiedTrendIds.map((id) => ({ id })),
           },
         } as never,
       });

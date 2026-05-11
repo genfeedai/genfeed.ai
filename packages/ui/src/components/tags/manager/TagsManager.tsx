@@ -219,7 +219,7 @@ export default function TagsManager({
               {!isReadOnly && (
                 <Button
                   label={''}
-                  icon={<HiXMark className="w-3 h-3" />}
+                  icon={<HiXMark className="size-3" />}
                   onClick={() => handleRemoveTag(tagDisplay.id)}
                   isDisabled={isSaving}
                   className="hover:opacity-70 transition-opacity"
@@ -309,7 +309,7 @@ export default function TagsManager({
                     type="text"
                     value={newTagLabel}
                     onChange={(e) => setNewTagLabel(e.target.value)}
-                    placeholder="Enter tag label..."
+                    placeholder="Enter tag label…"
                     className="input-sm mb-2"
                   />
 

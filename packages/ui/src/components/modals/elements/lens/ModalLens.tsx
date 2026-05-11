@@ -36,7 +36,7 @@ export default function ModalLens({
     serviceFactory: (token) => LensesService.getInstance(token),
   });
 
-  const handleChange = (
+  const updateModalLens = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = e.target;
@@ -61,7 +61,7 @@ export default function ModalLens({
             type="text"
             name="label"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalLens}
             placeholder="Enter display label"
             isRequired={true}
             isDisabled={isSubmitting}
@@ -73,7 +73,7 @@ export default function ModalLens({
             type="text"
             name="key"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalLens}
             placeholder="lowercase-with-hyphens"
             isRequired={true}
             isDisabled={isSubmitting}
@@ -87,7 +87,7 @@ export default function ModalLens({
           <Input
             name="description"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalLens}
             placeholder="Enter description (optional)"
             isDisabled={isSubmitting}
           />

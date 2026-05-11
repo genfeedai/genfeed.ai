@@ -59,12 +59,12 @@ const AnomalyDetectionCard = memo(function AnomalyDetectionCard({
         className={className}
       >
         <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
+          {[1, 2, 3].map((placeholderId) => (
             <div
-              key={i}
+              key={placeholderId}
               className="animate-pulse flex items-center gap-4 p-4 bg-background"
             >
-              <div className="w-10 h-10 bg-muted rounded-full" />
+              <div className="size-10 bg-muted rounded-full" />
               <div className="flex-1 space-y-2">
                 <div className="h-4 bg-muted w-3/4" />
                 <div className="h-3 bg-muted w-1/2" />
@@ -85,7 +85,7 @@ const AnomalyDetectionCard = memo(function AnomalyDetectionCard({
         className={className}
       >
         <div className="flex flex-col items-center justify-center py-8 text-center">
-          <HiInformationCircle className="w-12 h-12 text-success mb-3" />
+          <HiInformationCircle className="size-12 text-success mb-3" />
           <p className="text-foreground/70 font-medium">
             No anomalies detected
           </p>
@@ -121,9 +121,9 @@ const AnomalyDetectionCard = memo(function AnomalyDetectionCard({
             >
               <div className={cn('mt-0.5', styles.icon)}>
                 {isNegative ? (
-                  <HiArrowTrendingDown className="w-6 h-6" />
+                  <HiArrowTrendingDown className="size-6" />
                 ) : (
-                  <HiArrowTrendingUp className="w-6 h-6" />
+                  <HiArrowTrendingUp className="size-6" />
                 )}
               </div>
 
@@ -179,7 +179,7 @@ const AnomalyDetectionCard = memo(function AnomalyDetectionCard({
                   className="absolute top-2 right-2 p-1 rounded-full hover:bg-muted/50 transition-colors"
                   ariaLabel="Dismiss anomaly"
                 >
-                  <HiXMark className="w-4 h-4 text-foreground/50" />
+                  <HiXMark className="size-4 text-foreground/50" />
                 </Button>
               )}
             </div>

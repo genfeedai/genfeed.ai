@@ -19,12 +19,12 @@ export function createMarketplaceMenuConfig({
     items: [
       {
         href: videosHref,
-        icon: <HiVideoCamera className="w-4 h-4" />,
+        icon: <HiVideoCamera className="size-4" />,
         label: 'Videos',
       },
       {
         href: imagesHref,
-        icon: <HiPhoto className="w-4 h-4" />,
+        icon: <HiPhoto className="size-4" />,
         label: 'Images',
       },
     ],

@@ -55,7 +55,7 @@ function NotificationItem({
       className={`flex flex-col border shadow-xl animate-in fade-in slide-in-from-top-4 duration-300 max-w-md ${typeStyles[type]}`}
     >
       <div className="flex items-center gap-3 px-4 py-3">
-        <Icon className="w-5 h-5 shrink-0" />
+        <Icon className="size-5 shrink-0" />
         <div className="flex-1 min-w-0">
           <span className="text-sm font-medium">{title}</span>
           {message && (
@@ -66,23 +66,19 @@ function NotificationItem({
           variant="ghost"
           size="icon-sm"
           onClick={handleCopy}
-          className="p-1 hover:bg-white/10 shrink-0 h-auto w-auto"
+          className="p-1 hover:bg-white/10 shrink-0 size-auto"
           title="Copy message"
         >
-          {copied ? (
-            <Check className="w-4 h-4" />
-          ) : (
-            <Copy className="w-4 h-4" />
-          )}
+          {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
         </Button>
         <Button
           variant="ghost"
           size="icon-sm"
           onClick={() => removeNotification(id)}
-          className="p-1 hover:bg-white/10 shrink-0 h-auto w-auto"
+          className="p-1 hover:bg-white/10 shrink-0 size-auto"
           title="Dismiss"
         >
-          <X className="w-4 h-4" />
+          <X className="size-4" />
         </Button>
       </div>
     </div>

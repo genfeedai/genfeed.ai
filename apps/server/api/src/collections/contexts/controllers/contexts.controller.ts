@@ -72,8 +72,8 @@ export class ContextsController {
     @Body() dto: CreateContextDto,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
-    const data = await this.contextsService.create(dto, organization, user.id);
+    const { organization, user: dbUserId } = getPublicMetadata(user);
+    const data = await this.contextsService.create(dto, organization, dbUserId);
     return serializeSingle(req, ContextBaseSerializer, data);
   }
 
@@ -193,11 +193,12 @@ export class ContextsController {
     @Body() dto: AutoCreateContextDto,
     @CurrentUser() user: User,
   ) {
-    const { organization } = getPublicMetadata(user);
+    // Pass the DB user ID (publicMetadata.user), not the Clerk user ID (user.id).
+    const { organization, user: dbUserId } = getPublicMetadata(user);
     const data = await this.contextsService.autoCreateFromAccount(
       dto,
       organization,
-      user.id,
+      dbUserId?.toString(),
     );
     return serializeSingle(req, ContextBaseSerializer, data);
   }

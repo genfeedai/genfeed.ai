@@ -27,7 +27,7 @@ function getVoiceTooltip(isRecording: boolean, isProcessing: boolean): string {
     return 'Stop recording';
   }
   if (isProcessing) {
-    return 'Processing...';
+    return 'Processing…';
   }
   return 'Voice input (Speak to transcribe)';
 }
@@ -72,7 +72,7 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
     [watchedText],
   );
 
-  const handleChange = useCallback(
+  const updatePromptBarCollapsedView = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
       const value = event.target.value;
       const cursorPos = event.target.selectionStart ?? value.length;
@@ -108,9 +108,9 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
               tooltipPosition="top"
               variant={ButtonVariant.GHOST}
               size={ButtonSize.SM}
-              className="h-10 w-10 p-0 flex items-center justify-center"
+              className="size-10 p-0 flex items-center justify-center"
               icon={
-                <div className="relative w-8 h-8 overflow-hidden rounded">
+                <div className="relative size-8 overflow-hidden rounded">
                   <Image
                     src={
                       referenceSource === 'brand'
@@ -118,7 +118,7 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
                         : `${EnvironmentService.ingredientsEndpoint}/images/${firstReference.id}`
                     }
                     alt="Reference"
-                    className="w-full h-full object-cover"
+                    className="size-full object-cover"
                     width={32}
                     height={32}
                     sizes="32px"
@@ -139,7 +139,7 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
                 tooltipPosition="top"
                 variant={ButtonVariant.GHOST}
                 size={ButtonSize.SM}
-                className="h-10 w-10 p-0 flex items-center justify-center"
+                className="size-10 p-0 flex items-center justify-center"
                 icon={<span className="text-sm">✕</span>}
                 onClick={onClearReferences}
                 data-testid="clear-reference-button"
@@ -156,7 +156,7 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
             type="text"
             inputRef={collapsedInputRef}
             value={form.getValues('text')}
-            onChange={handleChange}
+            onChange={updatePromptBarCollapsedView}
             placeholder={placeholder}
             isDisabled={isDisabled}
             className="h-10 w-full border-0 bg-transparent pl-3 pr-12 text-sm shadow-none focus:border-transparent focus:outline-none focus-visible:ring-0"
@@ -185,7 +185,7 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
                 : generateLabel
             }
             className={cn(
-              'absolute right-1.5 top-1/2 -translate-y-1/2 h-8 w-8 p-0 transition-all duration-300',
+              'absolute right-1.5 top-1/2 -translate-y-1/2 size-8 p-0 transition-all duration-300',
               activeGenerationsCount > 0 && 'bg-yellow-500 hover:bg-yellow-600',
             )}
             data-testid="generate-button"
@@ -201,7 +201,7 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
               tooltipPosition="left"
               variant={ButtonVariant.GHOST}
               size={ButtonSize.SM}
-              className="h-10 w-10 p-0 flex items-center justify-center"
+              className="size-10 p-0 flex items-center justify-center"
               icon={formatIcon}
               tooltip={
                 {
@@ -233,7 +233,7 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
               className="h-10 px-2 gap-1"
               tooltip="Outputs"
               tooltipPosition="left"
-              icon={<HiSquaresPlus className="w-4 h-4" />}
+              icon={<HiSquaresPlus className="size-4" />}
               onClick={() => {
                 const next = outputs >= 4 ? 1 : outputs + 1;
                 onOutputsChange(next);
@@ -261,7 +261,7 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
             tooltipPosition="top"
             icon={
               <HiMicrophone
-                className="w-4 h-4"
+                className="size-4"
                 color={isRecording ? 'red' : undefined}
               />
             }
@@ -277,8 +277,8 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
           tooltip="Expand prompt bar"
           tooltipPosition="top"
           variant={ButtonVariant.GHOST}
-          className="h-10 w-10 p-0"
-          icon={<HiChevronUp className="transition-transform w-4 h-4" />}
+          className="size-10 p-0"
+          icon={<HiChevronUp className="transition-transform size-4" />}
           data-testid="expand-button"
         />
       </div>

@@ -21,13 +21,13 @@ export function StatusIcon({ status, className, showLabel }: StatusIconProps) {
   const circle = (
     <span
       className={cn(
-        'relative inline-flex h-4 w-4 shrink-0 rounded-full border-2',
+        'relative inline-flex size-4 shrink-0 rounded-full border-2',
         colorClass,
         className,
       )}
     >
       {isDone && (
-        <span className="absolute inset-0 m-auto h-2 w-2 rounded-full bg-current" />
+        <span className="absolute inset-0 m-auto size-2 rounded-full bg-current" />
       )}
     </span>
   );

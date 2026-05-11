@@ -179,10 +179,14 @@ export class TasksService extends BaseService<
     return super.patch(id, updateDto);
   }
 
-  async findByIdentifier(identifier: string): Promise<TaskDocument | null> {
+  async findByIdentifier(
+    identifier: string,
+    organizationId: string,
+  ): Promise<TaskDocument | null> {
     return this.findOne({
       identifier,
       isDeleted: false,
+      organizationId,
     });
   }
 
@@ -214,11 +218,13 @@ export class TasksService extends BaseService<
     taskId: string,
     agentId: string,
     runId: string,
+    organizationId: string,
   ): Promise<TaskDocument | null> {
     const existing = await this.delegate.findFirst({
       where: {
         id: taskId,
         isDeleted: false,
+        organizationId,
         OR: [{ checkoutAgentId: null }, { checkoutAgentId: agentId }],
       },
     });
@@ -236,12 +242,17 @@ export class TasksService extends BaseService<
     })) as unknown as TaskDocument;
   }
 
-  async release(taskId: string, agentId: string): Promise<TaskDocument> {
+  async release(
+    taskId: string,
+    agentId: string,
+    organizationId: string,
+  ): Promise<TaskDocument> {
     const existing = await this.delegate.findFirst({
       where: {
         id: taskId,
         checkoutAgentId: agentId,
         isDeleted: false,
+        organizationId,
       },
     });
 

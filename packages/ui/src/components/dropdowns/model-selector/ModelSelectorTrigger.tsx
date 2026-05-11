@@ -44,9 +44,9 @@ const ModelSelectorTrigger = forwardRef<
         )}
         {...buttonProps}
       >
-        <HiCpuChip className="w-4 h-4" />
-        <span className="text-xs font-medium">Select models...</span>
-        <ChevronIcon className="h-3 w-3 text-foreground/50" />
+        <HiCpuChip className="size-4" />
+        <span className="text-xs font-medium">Select models…</span>
+        <ChevronIcon className="size-3 text-foreground/50" />
       </Button>
     );
   }
@@ -63,11 +63,11 @@ const ModelSelectorTrigger = forwardRef<
           className={cn(triggerClassName, 'text-foreground')}
           {...buttonProps}
         >
-          <HiSparkles className="h-4 w-4 shrink-0 text-primary" />
+          <HiSparkles className="size-4 shrink-0 text-primary" />
           <span className="text-xs font-medium truncate max-w-[148px]">
             {autoLabel ?? model.label}
           </span>
-          <ChevronIcon className="h-3 w-3 text-foreground/50" />
+          <ChevronIcon className="size-3 text-foreground/50" />
         </Button>
       );
     }
@@ -85,7 +85,7 @@ const ModelSelectorTrigger = forwardRef<
         {...buttonProps}
       >
         <div
-          className="h-4 w-4 rounded-sm border border-white/8 flex items-center justify-center text-[9px] font-bold shrink-0"
+          className="size-4 rounded-sm border border-white/8 flex items-center justify-center text-[9px] font-bold shrink-0"
           style={{
             backgroundColor: `${brandConfig.color}20`,
             color: brandConfig.color,
@@ -93,7 +93,7 @@ const ModelSelectorTrigger = forwardRef<
           data-testid="model-trigger-provider-icon"
         >
           {BrandIcon ? (
-            <BrandIcon className="h-2.5 w-2.5" />
+            <BrandIcon className="size-2.5" />
           ) : (
             brandConfig.label.charAt(0)
           )}
@@ -102,7 +102,7 @@ const ModelSelectorTrigger = forwardRef<
           {model.label}
         </span>
         <ModelSelectorCostBadge costTier={model.costTier} />
-        <ChevronIcon className="h-3 w-3 text-foreground/50" />
+        <ChevronIcon className="size-3 text-foreground/50" />
       </Button>
     );
   }
@@ -115,11 +115,11 @@ const ModelSelectorTrigger = forwardRef<
       className={cn(triggerClassName, 'text-foreground')}
       {...buttonProps}
     >
-      <HiCpuChip className="w-4 h-4" />
+      <HiCpuChip className="size-4" />
       <span className="text-xs font-medium">
         {selectedModels.length} models
       </span>
-      <ChevronIcon className="h-3 w-3 text-foreground/50" />
+      <ChevronIcon className="size-3 text-foreground/50" />
     </Button>
   );
 });

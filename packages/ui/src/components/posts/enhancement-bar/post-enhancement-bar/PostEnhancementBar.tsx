@@ -33,6 +33,8 @@ import {
   HiTrash,
 } from 'react-icons/hi2';
 
+const EMPTY_ARRAY: never[] = [];
+
 const _DEFAULT_TEXT_MODEL_COST = EnvironmentService.TEXT_MODEL_DEFAULT_COST;
 
 export const QUICK_ACTIONS = [
@@ -70,7 +72,7 @@ export const TONE_OPTIONS: { key: TweetTone; label: string }[] = [
 ];
 
 // Consistent button sizing
-const BTN_ICON_CLASS = 'h-9 w-9 min-h-0 p-0';
+const BTN_ICON_CLASS = 'size-9 min-h-0 p-0';
 
 /**
  * Unified enhancement bar for post enhancement.
@@ -84,11 +86,11 @@ export default function PostEnhancementBar({
   isEnhancing,
   enhancingAction,
   hasContent = true,
-  placeholder = 'Describe how to enhance this post...',
+  placeholder = 'Describe how to enhance this post…',
   className = '',
   onSelectMedia,
   onGenerateIllustration,
-  selectedMedia = [],
+  selectedMedia = EMPTY_ARRAY,
   isSavingMedia = false,
   onSave,
   isDirty = false,
@@ -267,7 +269,7 @@ export default function PostEnhancementBar({
             {showDelete && onDelete && (
               <>
                 <Button
-                  icon={<HiTrash className="w-4 h-4" />}
+                  icon={<HiTrash className="size-4" />}
                   variant={ButtonVariant.DESTRUCTIVE}
                   size={ButtonSize.ICON}
                   className={BTN_ICON_CLASS}
@@ -283,7 +285,7 @@ export default function PostEnhancementBar({
             {showAddPost && onAddPost && (
               <Button
                 label="Add"
-                icon={<HiPlus className="w-3.5 h-3.5" />}
+                icon={<HiPlus className="size-3.5" />}
                 variant={ButtonVariant.SECONDARY}
                 size={ButtonSize.SM}
                 className="h-9 min-h-0 px-2 gap-1"
@@ -305,7 +307,7 @@ export default function PostEnhancementBar({
                 isDisabled={isSavingMedia}
                 icon={
                   hasMedia && firstMedia ? (
-                    <div className="relative w-5 h-5 overflow-hidden">
+                    <div className="relative size-5 overflow-hidden">
                       <Image
                         src={
                           firstMedia.category === IngredientCategory.VIDEO
@@ -314,7 +316,7 @@ export default function PostEnhancementBar({
                             : `${EnvironmentService.ingredientsEndpoint}/images/${firstMedia.id}`
                         }
                         alt="Media"
-                        className="w-full h-full object-cover"
+                        className="size-full object-cover"
                         width={20}
                         height={20}
                         sizes="20px"
@@ -327,7 +329,7 @@ export default function PostEnhancementBar({
                       )}
                     </div>
                   ) : (
-                    <HiPhoto className="w-4 h-4" />
+                    <HiPhoto className="size-4" />
                   )
                 }
               />
@@ -342,7 +344,7 @@ export default function PostEnhancementBar({
                 className={BTN_ICON_CLASS}
                 onClick={onGenerateIllustration}
                 tooltip="Generate illustration"
-                icon={<HiSparkles className="w-4 h-4" />}
+                icon={<HiSparkles className="size-4" />}
               />
             )}
 
@@ -351,9 +353,9 @@ export default function PostEnhancementBar({
               <Button
                 icon={
                   isDirty ? (
-                    <HiExclamationCircle className="w-4 h-4" />
+                    <HiExclamationCircle className="size-4" />
                   ) : (
-                    <HiCheck className="w-4 h-4" />
+                    <HiCheck className="size-4" />
                   )
                 }
                 variant={

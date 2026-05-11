@@ -30,7 +30,7 @@ export function CommandPaletteItem({
       {command.icon && (
         <span className="flex-shrink-0 opacity-70">
           {IconComponent ? (
-            <IconComponent className="h-5 w-5" />
+            <IconComponent className="size-5" />
           ) : isStringIcon ? (
             <span className="text-xl">{command.icon as string}</span>
           ) : null}

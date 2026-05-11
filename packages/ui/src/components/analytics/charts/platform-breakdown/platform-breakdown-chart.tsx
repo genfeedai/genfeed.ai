@@ -71,7 +71,7 @@ export function PlatformBreakdownChart({
         <div className="relative" style={{ height }}>
           {isLoading && (
             <div className="absolute inset-0 flex items-center justify-center bg-card/50 z-10">
-              <span className="animate-pulse w-12 h-12 rounded-full bg-primary/30" />
+              <span className="animate-pulse size-12 rounded-full bg-primary/30" />
             </div>
           )}
 
@@ -106,8 +106,8 @@ export function PlatformBreakdownChart({
                 fill="hsl(var(--muted-foreground))"
                 dataKey="value"
               >
-                {dataWithTotal.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={getColor(entry.platform)} />
+                {dataWithTotal.map((entry) => (
+                  <Cell key={entry.platform} fill={getColor(entry.platform)} />
                 ))}
               </Pie>
 

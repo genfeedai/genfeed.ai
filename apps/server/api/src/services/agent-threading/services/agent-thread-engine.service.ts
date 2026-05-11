@@ -183,9 +183,15 @@ export class AgentThreadEngineService {
     params: AppendAgentThreadEventParams,
   ): Effect.Effect<AgentThreadEventDocument, unknown> {
     return fromPromiseEffect(async () => {
+      if (!params.userId) {
+        throw new BadRequestException(
+          'userId is required to append thread events',
+        );
+      }
       const thread = await this.ensureThreadAccess(
         params.threadId,
         params.organizationId,
+        params.userId,
       );
 
       // Check idempotency — do not create duplicate events for the same commandId+type
@@ -205,75 +211,82 @@ export class AgentThreadEngineService {
         );
       }
 
-      // Upsert snapshot to increment sequence (atomic increment via update-then-create)
-      let snapshotRow = await this.prisma.agentThreadSnapshot.findFirst({
-        where: {
-          isDeleted: false,
-          organizationId: params.organizationId,
-          threadId: params.threadId,
-        },
-      });
-
-      if (snapshotRow) {
-        const existingData =
-          (snapshotRow.data as Record<string, unknown>) ?? {};
-        const lastSequence = ((existingData.lastSequence as number) ?? 0) + 1;
-        snapshotRow = await this.prisma.agentThreadSnapshot.update({
-          where: { id: snapshotRow.id },
-          data: {
-            data: { ...existingData, lastSequence },
-            updatedAt: new Date(),
-          },
-        });
-      } else {
-        snapshotRow = await this.prisma.agentThreadSnapshot.create({
-          data: {
-            organizationId: params.organizationId,
-            threadId: params.threadId,
-            isDeleted: false,
-            data: {
-              lastSequence: 1,
-              memorySummaryRefs: [],
-              pendingApprovals: [],
-              pendingInputRequests: [],
-              source: thread.source,
-              threadStatus: thread.status,
-              timeline: [],
-              title: thread.title,
+      // Allocate sequence + create event inside a serializable transaction
+      // to prevent concurrent appends from reading the same lastSequence.
+      const { snapshotRow, createdRow } = await this.prisma.$transaction(
+        async (tx) => {
+          let snap = await tx.agentThreadSnapshot.findFirst({
+            where: {
+              isDeleted: false,
+              organizationId: params.organizationId,
+              threadId: params.threadId,
             },
-          },
-        });
-      }
+          });
 
-      if (!snapshotRow) {
-        throw new NotFoundException('Unable to allocate thread snapshot');
-      }
+          if (snap) {
+            const existingData = (snap.data as Record<string, unknown>) ?? {};
+            const lastSequence =
+              ((existingData.lastSequence as number) ?? 0) + 1;
+            snap = await tx.agentThreadSnapshot.update({
+              where: { id: snap.id },
+              data: {
+                data: { ...existingData, lastSequence },
+                updatedAt: new Date(),
+              },
+            });
+          } else {
+            snap = await tx.agentThreadSnapshot.create({
+              data: {
+                organizationId: params.organizationId,
+                threadId: params.threadId,
+                isDeleted: false,
+                data: {
+                  lastSequence: 1,
+                  memorySummaryRefs: [],
+                  pendingApprovals: [],
+                  pendingInputRequests: [],
+                  source: thread.source,
+                  threadStatus: thread.status,
+                  timeline: [],
+                  title: thread.title,
+                },
+              },
+            });
+          }
 
-      const snapshotData = (snapshotRow.data as Record<string, unknown>) ?? {};
-      const sequence = (snapshotData.lastSequence as number) ?? 1;
+          if (!snap) {
+            throw new NotFoundException('Unable to allocate thread snapshot');
+          }
 
-      // Store all per-event fields in data Json; top-level columns are commandId, runId, type
-      const eventDataPayload: Record<string, unknown> = {
-        occurredAt: params.occurredAt ?? new Date().toISOString(),
-      };
-      if (params.payload) eventDataPayload.payload = params.payload;
-      if (params.metadata) eventDataPayload.metadata = params.metadata;
-      if (params.eventId) eventDataPayload.eventId = params.eventId;
-      if (params.userId) eventDataPayload.userId = params.userId;
-      if (params.runId) eventDataPayload.runId = params.runId;
+          const snapData = (snap.data as Record<string, unknown>) ?? {};
+          const sequence = (snapData.lastSequence as number) ?? 1;
 
-      const createdRow = await this.prisma.agentThreadEvent.create({
-        data: {
-          commandId: params.commandId,
-          isDeleted: false,
-          organizationId: params.organizationId,
-          runId: params.runId,
-          sequence,
-          threadId: params.threadId,
-          type: params.type,
-          data: this.serializeJsonRecord(eventDataPayload) as never,
+          const eventDataPayload: Record<string, unknown> = {
+            occurredAt: params.occurredAt ?? new Date().toISOString(),
+          };
+          if (params.payload) eventDataPayload.payload = params.payload;
+          if (params.metadata) eventDataPayload.metadata = params.metadata;
+          if (params.eventId) eventDataPayload.eventId = params.eventId;
+          if (params.userId) eventDataPayload.userId = params.userId;
+          if (params.runId) eventDataPayload.runId = params.runId;
+
+          const event = await tx.agentThreadEvent.create({
+            data: {
+              commandId: params.commandId,
+              isDeleted: false,
+              organizationId: params.organizationId,
+              runId: params.runId,
+              sequence,
+              threadId: params.threadId,
+              type: params.type,
+              data: this.serializeJsonRecord(eventDataPayload) as never,
+            },
+          });
+
+          return { snapshotRow: snap, createdRow: event };
         },
-      });
+        { isolationLevel: 'Serializable' },
+      );
 
       const event = toPrismaEventDocument(
         createdRow as unknown as Record<string, unknown>,
@@ -309,10 +322,11 @@ export class AgentThreadEngineService {
   listEventsEffect(
     threadId: string,
     organizationId: string,
+    userId: string,
     afterSequence?: number,
   ): Effect.Effect<AgentThreadEventDocument[], unknown> {
     return fromPromiseEffect(async () => {
-      await this.ensureThreadAccess(threadId, organizationId);
+      await this.ensureThreadAccess(threadId, organizationId, userId);
 
       const rows = await this.prisma.agentThreadEvent.findMany({
         where: {
@@ -335,19 +349,25 @@ export class AgentThreadEngineService {
   async listEvents(
     threadId: string,
     organizationId: string,
+    userId: string,
     afterSequence?: number,
   ): Promise<AgentThreadEventDocument[]> {
     return runEffectPromise(
-      this.listEventsEffect(threadId, organizationId, afterSequence),
+      this.listEventsEffect(threadId, organizationId, userId, afterSequence),
     );
   }
 
   getSnapshotEffect(
     threadId: string,
     organizationId: string,
+    userId: string,
   ): Effect.Effect<AgentThreadSnapshotDocument, unknown> {
     return fromPromiseEffect(async () => {
-      const thread = await this.ensureThreadAccess(threadId, organizationId);
+      const thread = await this.ensureThreadAccess(
+        threadId,
+        organizationId,
+        userId,
+      );
       let snapshotRow = await this.prisma.agentThreadSnapshot.findFirst({
         where: {
           isDeleted: false,
@@ -393,8 +413,11 @@ export class AgentThreadEngineService {
   async getSnapshot(
     threadId: string,
     organizationId: string,
+    userId: string,
   ): Promise<AgentThreadSnapshotDocument> {
-    return runEffectPromise(this.getSnapshotEffect(threadId, organizationId));
+    return runEffectPromise(
+      this.getSnapshotEffect(threadId, organizationId, userId),
+    );
   }
 
   resolveInputRequestEffect(
@@ -402,7 +425,11 @@ export class AgentThreadEngineService {
   ): Effect.Effect<AgentInputRequestDocument, unknown> {
     return Effect.gen(this, function* () {
       yield* fromPromiseEffect(() =>
-        this.ensureThreadAccess(params.threadId, params.organizationId),
+        this.ensureThreadAccess(
+          params.threadId,
+          params.organizationId,
+          params.userId,
+        ),
       );
 
       // Input requests are stored inside snapshot.data.inputRequests[]
@@ -496,10 +523,11 @@ export class AgentThreadEngineService {
   recordProfileSnapshotEffect(
     threadId: string,
     organizationId: string,
+    userId: string,
     profileSnapshot: object,
   ): Effect.Effect<AgentProfileSnapshotDocument | null, unknown> {
     return fromPromiseEffect(async () => {
-      await this.ensureThreadAccess(threadId, organizationId);
+      await this.ensureThreadAccess(threadId, organizationId, userId);
 
       const existing = await this.prisma.agentThreadSnapshot.findFirst({
         where: { isDeleted: false, organizationId, threadId },
@@ -569,12 +597,14 @@ export class AgentThreadEngineService {
   async recordProfileSnapshot(
     threadId: string,
     organizationId: string,
+    userId: string,
     profileSnapshot: object,
   ): Promise<AgentProfileSnapshotDocument | null> {
     return runEffectPromise(
       this.recordProfileSnapshotEffect(
         threadId,
         organizationId,
+        userId,
         profileSnapshot,
       ),
     );
@@ -632,6 +662,7 @@ export class AgentThreadEngineService {
   private async ensureThreadAccess(
     threadId: string,
     organizationId: string,
+    userId: string,
   ): Promise<{
     id: string;
     source?: string;
@@ -649,6 +680,7 @@ export class AgentThreadEngineService {
       _id: threadId,
       isDeleted: false,
       organization: organizationId,
+      user: userId,
     });
 
     if (!thread) {

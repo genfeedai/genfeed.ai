@@ -134,7 +134,7 @@ const ModalContent = forwardRef<
                 'data-[state=open]:text-muted-foreground',
               )}
             >
-              <X className="h-4 w-4" />
+              <X className="size-4" />
               <span className="sr-only">Close</span>
             </DialogPrimitive.Close>
           )}

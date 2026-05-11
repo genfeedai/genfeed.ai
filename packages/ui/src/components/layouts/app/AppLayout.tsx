@@ -19,6 +19,8 @@ import {
   useState,
 } from 'react';
 
+const EMPTY_ARRAY: never[] = [];
+
 const SIDEBAR_WIDTH = 240;
 const SIDEBAR_COLLAPSED_WIDTH = 48;
 const AGENT_PANEL_HEIGHT = 380;
@@ -171,7 +173,7 @@ export default function AppLayout({
   shellChromeVariant = 'default',
   topbarChromeVariant = 'inherit',
   hasSecondaryTopbar: _hasSecondaryTopbar = false,
-  menuItems = [],
+  menuItems = EMPTY_ARRAY,
   agentPanel,
   isAgentCollapsed = false,
   onAgentToggle,

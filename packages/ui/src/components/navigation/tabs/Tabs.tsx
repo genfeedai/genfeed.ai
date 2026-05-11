@@ -18,7 +18,7 @@ import {
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import type { ReactNode } from 'react';
-import { useMemo } from 'react';
+import { Suspense, useMemo } from 'react';
 
 function isNavigationTab(
   tab: NavigationTab | RouteTabItem | TabItem,
@@ -47,7 +47,7 @@ function getRouteParts(href: string) {
   };
 }
 
-export default function Tabs({
+function TabsContent({
   items,
   tabs,
   activeTab,
@@ -292,5 +292,13 @@ export default function Tabs({
         })}
       </TabsList>
     </TabsRoot>
+  );
+}
+
+export default function Tabs(props: TabsEnhancedProps) {
+  return (
+    <Suspense fallback={null}>
+      <TabsContent {...props} />
+    </Suspense>
   );
 }

@@ -17,7 +17,7 @@ const PromptBarSpeechInput = memo(function PromptBarSpeechInput({
     ? 'What should the avatar say?'
     : 'What the avatar will say (8 seconds of speech)';
 
-  const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
+  const updatePromptBarSpeechInput = (event: ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;
     if (isAvatarRoute || value.length <= charLimit) {
       onSpeechChange(value);
@@ -43,7 +43,7 @@ const PromptBarSpeechInput = memo(function PromptBarSpeechInput({
           !isAvatarRoute && 'pr-28',
         )}
         isDisabled={isDisabled}
-        onChange={handleChange}
+        onChange={updatePromptBarSpeechInput}
       />
 
       {!isAvatarRoute && (

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/rules-of-hooks -- Storybook render functions are invoked as story components. */
 import type { IUser } from '@genfeedai/interfaces';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import AppTable from '@ui/display/table/Table';

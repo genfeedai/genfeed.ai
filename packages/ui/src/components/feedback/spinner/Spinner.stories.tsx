@@ -91,7 +91,7 @@ export const InButton: Story = {
       disabled
     >
       <Spinner size={ComponentSize.SM} />
-      Loading...
+      Loading…
     </button>
   ),
 };
@@ -108,7 +108,7 @@ export const InCard: Story = {
       <div className="flex items-center justify-center">
         <Spinner size={ComponentSize.LG} />
       </div>
-      <p className="text-center mt-4 text-foreground/70">Loading content...</p>
+      <p className="text-center mt-4 text-foreground/70">Loading content…</p>
     </div>
   ),
 };
@@ -187,11 +187,11 @@ export const LoadingOverlay: Story = {
       <div className="absolute inset-0 bg-card/80 backdrop-blur-sm flex items-center justify-center z-10">
         <div className="flex flex-col items-center gap-4">
           <Spinner size={ComponentSize.LG} className="text-primary" />
-          <p className="text-foreground">Processing your request...</p>
+          <p className="text-foreground">Processing your request…</p>
         </div>
       </div>
       <div className="p-6">
-        <h3 className="font-bold text-lg mb-2">Content Area</h3>
+        <h3 className="font-semibold text-lg mb-2">Content Area</h3>
         <p className="text-foreground/70">
           This content is covered by a loading overlay.
         </p>

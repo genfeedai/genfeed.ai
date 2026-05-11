@@ -27,7 +27,7 @@ globalThis.React = React;
 function shouldSuppressTestNoise(message: string): boolean {
   return (
     message.includes('Warning:') ||
-    message.includes('not wrapped in act(...)') ||
+    message.includes('not wrapped in act(…)') ||
     message.includes('The tag <stop> is unrecognized in this browser') ||
     message.includes(
       'The tag <linearGradient> is unrecognized in this browser',

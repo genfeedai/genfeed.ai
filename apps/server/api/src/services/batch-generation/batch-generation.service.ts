@@ -235,6 +235,34 @@ export class BatchGenerationService {
     const items: ManualReviewBatchItem[] = [];
     const batchItems: BatchItemFull[] = [];
 
+    // Collect all ingredient IDs from the batch and validate ownership up-front
+    // to prevent cross-tenant data access (MEDIUM: cross-tenant ingredient ID trust).
+    const ingredientIdsToValidate = dto.items
+      .map((item) => item.ingredientId)
+      .filter((id): id is string => Boolean(id));
+
+    if (ingredientIdsToValidate.length > 0) {
+      const ownedIngredients = await this.prisma.ingredient.findMany({
+        select: { id: true },
+        where: {
+          id: { in: ingredientIdsToValidate },
+          isDeleted: false,
+          organizationId: orgId,
+        },
+      });
+
+      const ownedIngredientIdSet = new Set(ownedIngredients.map((i) => i.id));
+      const unauthorized = ingredientIdsToValidate.filter(
+        (id) => !ownedIngredientIdSet.has(id),
+      );
+
+      if (unauthorized.length > 0) {
+        throw new NotFoundException(
+          `Ingredient(s) not found: ${unauthorized.join(', ')}`,
+        );
+      }
+    }
+
     for (const reviewItem of dto.items) {
       const contentRunId = reviewItem.contentRunId
         ? String(reviewItem.contentRunId)

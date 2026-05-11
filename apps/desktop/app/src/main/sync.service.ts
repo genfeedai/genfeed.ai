@@ -40,14 +40,20 @@ const isOneOf = <T extends string>(
 
 export class DesktopSyncService {
   private readonly assets = new Map<string, IDesktopAsset>();
+  private readonly brands = new Map<string, IDesktopBrand>();
   private readonly jobs = new Map<string, IDesktopSyncJob>();
   private readonly ops = new Map<string, IDesktopSyncOp>();
 
   constructor(private readonly prisma: PrismaClient) {}
 
   async init(): Promise<void> {
-    const [assetRows, jobRows, opRows] = await Promise.all([
+    const [assetRows, brandRows, jobRows, opRows] = await Promise.all([
       this.prisma.desktopAsset.findMany({
+        orderBy: {
+          updatedAt: 'desc',
+        },
+      }),
+      this.prisma.desktopBrand.findMany({
         orderBy: {
           updatedAt: 'desc',
         },
@@ -67,6 +73,11 @@ export class DesktopSyncService {
     this.assets.clear();
     for (const row of assetRows) {
       this.assets.set(row.id, this.toAsset(row));
+    }
+
+    this.brands.clear();
+    for (const row of brandRows) {
+      this.brands.set(row.id, this.toBrand(row));
     }
 
     this.jobs.clear();
@@ -121,6 +132,32 @@ export class DesktopSyncService {
       updatedAt: row.updatedAt,
       uploadPolicy: row.uploadPolicy as DesktopAssetUploadPolicy,
       workspaceId: row.workspaceId ?? undefined,
+    };
+  }
+
+  private toBrand(row: {
+    cloudId: string | null;
+    cloudVersion: string | null;
+    createdAt: string;
+    id: string;
+    lastPulledAt: string | null;
+    name: string;
+    organizationId: string;
+    slug: string;
+    syncPolicy: string;
+    updatedAt: string;
+  }): IDesktopBrand {
+    return {
+      cloudId: row.cloudId ?? undefined,
+      cloudVersion: row.cloudVersion ?? undefined,
+      createdAt: row.createdAt,
+      id: row.id,
+      lastPulledAt: row.lastPulledAt ?? undefined,
+      name: row.name,
+      organizationId: row.organizationId,
+      slug: row.slug,
+      syncPolicy: row.syncPolicy as IDesktopBrand['syncPolicy'],
+      updatedAt: row.updatedAt,
     };
   }
 
@@ -198,6 +235,12 @@ export class DesktopSyncService {
 
   listOps(workspaceId?: string): IDesktopSyncOp[] {
     return this.listOpCache(workspaceId);
+  }
+
+  listBrands(): IDesktopBrand[] {
+    return Array.from(this.brands.values()).sort((left, right) =>
+      right.updatedAt.localeCompare(left.updatedAt),
+    );
   }
 
   getState(): IDesktopSyncState {
@@ -340,6 +383,11 @@ export class DesktopSyncService {
             cloudId: cloudBrand.id,
           },
         });
+        for (const [brandId, brand] of this.brands) {
+          if (brand.cloudId === cloudBrand.id) {
+            this.brands.delete(brandId);
+          }
+        }
         continue;
       }
 
@@ -382,6 +430,7 @@ export class DesktopSyncService {
           id: brand.id,
         },
       });
+      this.brands.set(brand.id, brand);
     }
 
     for (const cloudAsset of manifest.assets) {

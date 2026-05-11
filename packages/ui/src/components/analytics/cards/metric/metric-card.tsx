@@ -83,7 +83,7 @@ export function MetricCard({
         <div className="animate-pulse">
           <div className="flex items-start justify-between mb-4">
             <div className="h-4 bg-muted w-24" />
-            <div className="h-10 w-10 rounded-full bg-muted" />
+            <div className="size-10 rounded-full bg-muted" />
           </div>
           <div className="h-8 bg-muted w-32 mb-2" />
           <div className="h-4 bg-muted w-20" />
@@ -109,7 +109,7 @@ export function MetricCard({
         </div>
         {Icon && (
           <div className={cn('rounded-md bg-muted p-2', iconColor)}>
-            <Icon className="w-6 h-6" />
+            <Icon className="size-6" />
           </div>
         )}
       </div>
@@ -130,7 +130,7 @@ export function MetricCard({
               getChangeColor(change),
             )}
           >
-            {TrendIcon && <TrendIcon className="w-4 h-4" />}
+            {TrendIcon && <TrendIcon className="size-4" />}
             <span>{formatPercentage(change)}</span>
           </div>
         )}

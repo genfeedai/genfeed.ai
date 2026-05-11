@@ -64,11 +64,11 @@ export function CostModal() {
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
           <div className="flex items-center gap-2">
-            <DollarSign className="w-4 h-4 text-[var(--muted-foreground)]" />
+            <DollarSign className="size-4 text-[var(--muted-foreground)]" />
             <span className="text-sm font-medium">Cost Breakdown</span>
           </div>
           <Button variant="ghost" size="icon-sm" onClick={handleClose}>
-            <X className="w-4 h-4" />
+            <X className="size-4" />
           </Button>
         </div>
 

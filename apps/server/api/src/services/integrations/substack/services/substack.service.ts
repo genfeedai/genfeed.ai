@@ -87,7 +87,6 @@ export class SubstackService {
         this.httpService.post(input.webhookUrl, input.payload, {
           headers: {
             'Content-Type': 'application/json',
-            ...(input.webhookHeaders ?? {}),
             ...(signature
               ? { 'X-Genfeed-Signature': `sha256=${signature}` }
               : {}),
@@ -119,12 +118,53 @@ export class SubstackService {
   }
 }
 
+/**
+ * Returns true only for HTTPS URLs with a public, non-IP hostname.
+ *
+ * Rejects:
+ * - Non-HTTPS schemes (http://, ftp://, file://, ...)
+ * - Bare IPv4 / IPv6 addresses (blocks DNS-rebinding via numeric IPs entirely)
+ * - RFC1918 and other private/reserved IPv4 ranges:
+ *     0.0.0.0/8, 10.0.0.0/8, 100.64.0.0/10 (CGN),
+ *     127.0.0.0/8, 169.254.0.0/16 (link-local / AWS metadata),
+ *     172.16.0.0/12, 192.168.0.0/16
+ * - Private/reserved IPv6: loopback (::1), unspecified (::),
+ *     ULA (fc00::/7), link-local (fe80::/10)
+ */
 export function isAllowedWebhookUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
-    const isHttp = parsed.protocol === 'https:' || parsed.protocol === 'http:';
-    const blockedHosts = new Set(['localhost', '127.0.0.1', '::1']);
-    return isHttp && !blockedHosts.has(parsed.hostname);
+
+    // HTTPS only — reject http://, file://, etc.
+    if (parsed.protocol !== 'https:') {
+      return false;
+    }
+
+    const hostname = parsed.hostname;
+
+    // Reject empty hostname
+    if (!hostname) {
+      return false;
+    }
+
+    // Block bare IPv4 addresses (e.g. "1.2.3.4")
+    const isIPv4 = /^\d{1,3}(\.\d{1,3}){3}$/.test(hostname);
+    if (isIPv4) {
+      return false;
+    }
+
+    // Block bare IPv6 addresses — URL.hostname returns them wrapped in [ ]
+    const isIPv6 = hostname.startsWith('[') && hostname.endsWith(']');
+    if (isIPv6) {
+      return false;
+    }
+
+    // Block "localhost" and any subdomain of it
+    if (hostname === 'localhost' || hostname.endsWith('.localhost')) {
+      return false;
+    }
+
+    return true;
   } catch {
     return false;
   }

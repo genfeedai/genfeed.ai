@@ -37,7 +37,7 @@ export default function ProofHeroPage({
             <div className="max-w-2xl">
               {badge ? (
                 <div className="inline-flex items-center gap-2 border border-[var(--gen-accent-border)] bg-[var(--gen-accent-bg)] px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.22em] text-[var(--gen-accent-text)]">
-                  {BadgeIcon ? <BadgeIcon className="h-3.5 w-3.5" /> : null}
+                  {BadgeIcon ? <BadgeIcon className="size-3.5" /> : null}
                   {badge}
                 </div>
               ) : null}

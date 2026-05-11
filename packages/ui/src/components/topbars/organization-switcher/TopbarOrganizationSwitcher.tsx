@@ -22,7 +22,7 @@ type OrganizationEntry = {
 };
 
 export default function TopbarOrganizationSwitcher() {
-  const router = useRouter();
+  const { push } = useRouter();
   const { orgHref } = useOrgUrl();
   const getOrganizationsService = useAuthedService((token: string) =>
     OrganizationsService.getInstance(token),
@@ -95,8 +95,8 @@ export default function TopbarOrganizationSwitcher() {
   );
 
   const handleOpenOrganizationSettings = useCallback(() => {
-    router.push(orgHref('/settings'));
-  }, [router, orgHref]);
+    push(orgHref('/settings'));
+  }, [orgHref, push]);
 
   const handleCreateOrganization = useCallback(async () => {
     const trimmedLabel = newOrganizationLabel.trim();
@@ -148,7 +148,7 @@ export default function TopbarOrganizationSwitcher() {
               isOpen && 'bg-white/[0.06]',
             )}
           >
-            <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center bg-white/20 text-xs font-semibold text-white">
+            <div className="flex size-6 flex-shrink-0 items-center justify-center bg-white/20 text-xs font-semibold text-white">
               {displayLabel.charAt(0).toUpperCase()}
             </div>
             <span
@@ -161,7 +161,7 @@ export default function TopbarOrganizationSwitcher() {
             </span>
             <HiChevronDown
               className={cn(
-                'hidden h-3.5 w-3.5 flex-shrink-0 text-white/40 transition-transform duration-200 md:block',
+                'hidden size-3.5 flex-shrink-0 text-white/40 transition-transform duration-200 md:block',
                 isOpen && 'rotate-180',
               )}
             />
@@ -172,7 +172,7 @@ export default function TopbarOrganizationSwitcher() {
         }
         isDisabled={isSwitchingOrganization}
         hasSearch={organizations.length >= 5}
-        searchPlaceholder="Search organizations..."
+        searchPlaceholder="Search organizations…"
         footerActions={[
           {
             icon: HiOutlineCog6Tooth,

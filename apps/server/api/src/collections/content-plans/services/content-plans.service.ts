@@ -99,12 +99,14 @@ export class ContentPlansService extends BaseService<
   async getByIdOrFail(
     organizationId: string,
     planId: string,
+    brandId?: string,
   ): Promise<ContentPlanDocument> {
     const plan = (await this.delegate.findFirst({
       where: {
         id: planId,
         isDeleted: false,
         organizationId,
+        ...(brandId ? { brandId } : {}),
       },
     })) as PrismaContentPlan | null;
 
@@ -120,14 +122,17 @@ export class ContentPlansService extends BaseService<
     updateDto: UpdateContentPlanDto & {
       organization?: string;
       organizationId?: string;
+      brandId?: string;
     },
   ): Promise<ContentPlanDocument> {
     const organizationId = updateDto.organizationId ?? updateDto.organization;
+    const brandId = updateDto.brandId;
     const existing = (await this.delegate.findFirst({
       where: {
         id,
         isDeleted: false,
         ...(organizationId ? { organizationId } : {}),
+        ...(brandId ? { brandId } : {}),
       },
     })) as PrismaContentPlan | null;
 
@@ -150,12 +155,14 @@ export class ContentPlansService extends BaseService<
     organizationId: string,
     planId: string,
     status: ContentPlanStatus,
+    brandId?: string,
   ): Promise<ContentPlanDocument> {
     const existing = (await this.delegate.findFirst({
       where: {
         id: planId,
         isDeleted: false,
         organizationId,
+        ...(brandId ? { brandId } : {}),
       },
     })) as PrismaContentPlan | null;
 
@@ -176,12 +183,14 @@ export class ContentPlansService extends BaseService<
   async incrementExecutedCount(
     organizationId: string,
     planId: string,
+    brandId?: string,
   ): Promise<void> {
     const existing = (await this.delegate.findFirst({
       where: {
         id: planId,
         isDeleted: false,
         organizationId,
+        ...(brandId ? { brandId } : {}),
       },
     })) as PrismaContentPlan | null;
 
@@ -206,12 +215,14 @@ export class ContentPlansService extends BaseService<
   async softDelete(
     organizationId: string,
     planId: string,
+    brandId?: string,
   ): Promise<ContentPlanDocument> {
     const existing = (await this.delegate.findFirst({
       where: {
         id: planId,
         isDeleted: false,
         organizationId,
+        ...(brandId ? { brandId } : {}),
       },
     })) as PrismaContentPlan | null;
 

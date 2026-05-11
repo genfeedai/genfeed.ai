@@ -45,7 +45,7 @@ export default function ModalGalleryHeader({
       {/* Account reference section */}
       {category === IngredientCategory.IMAGE && accountReference && (
         <div className="mb-4 flex items-center gap-3 p-3 bg-background">
-          <div className="relative w-10 h-10 flex-shrink-0 overflow-hidden">
+          <div className="relative size-10 flex-shrink-0 overflow-hidden">
             <Image
               src={accountReference.url}
               alt="Account reference"
@@ -80,7 +80,7 @@ export default function ModalGalleryHeader({
               {/* Upload Button */}
               <Button
                 label="Upload"
-                icon={<HiArrowUpTray className="w-4 h-4" />}
+                icon={<HiArrowUpTray className="size-4" />}
                 variant={ButtonVariant.DEFAULT}
                 size={ButtonSize.SM}
                 onClick={handleUploadClick}

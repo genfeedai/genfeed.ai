@@ -34,7 +34,7 @@ export default function ContainerTitle({
       <CardIcon
         icon={icon}
         className="text-foreground/60"
-        iconClassName="w-3.5 h-3.5"
+        iconClassName="size-3.5"
       />
       <div className="min-w-0">{titleContent}</div>
     </div>

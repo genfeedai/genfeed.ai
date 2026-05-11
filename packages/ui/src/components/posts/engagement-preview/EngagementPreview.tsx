@@ -53,7 +53,7 @@ export default function EngagementPreview({
   return (
     <Card>
       <div className="flex items-center gap-2 mb-3">
-        <HiChartBar className="h-4 w-4 text-primary" />
+        <HiChartBar className="size-4 text-primary" />
         <h3 className="font-semibold text-sm">Estimated Engagement</h3>
       </div>
       <div className="grid grid-cols-3 gap-3 text-center">

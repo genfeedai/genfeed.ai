@@ -15,6 +15,25 @@ import type { PopulateOption } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 
+// ---------------------------------------------------------------------------
+// Helpers to safely read/write the `result` JSON column
+// ---------------------------------------------------------------------------
+
+function parseResult(raw: unknown): Record<string, unknown> {
+  if (!raw) return {};
+  if (typeof raw === 'string') {
+    try {
+      return JSON.parse(raw) as Record<string, unknown>;
+    } catch {
+      return {};
+    }
+  }
+  if (typeof raw === 'object' && !Array.isArray(raw)) {
+    return { ...(raw as Record<string, unknown>) };
+  }
+  return {};
+}
+
 @Injectable()
 export class WorkflowExecutionsService extends BaseService<
   WorkflowExecutionDocument,
@@ -46,12 +65,17 @@ export class WorkflowExecutionsService extends BaseService<
   ): Promise<WorkflowExecutionDocument> {
     const result = await this.prisma.workflowExecution.create({
       data: {
-        ...dto,
-        nodeResults: [],
         organizationId,
-        progress: 0,
+        result: {
+          inputValues: (dto as Record<string, unknown>).inputValues ?? {},
+          metadata: (dto as Record<string, unknown>).metadata ?? {},
+          nodeResults: [],
+          progress: 0,
+          trigger: (dto as Record<string, unknown>).trigger ?? null,
+        } as never,
         status: WorkflowExecutionStatus.PENDING,
         userId,
+        workflowId: dto.workflowId,
       } as never,
     });
 
@@ -87,14 +111,21 @@ export class WorkflowExecutionsService extends BaseService<
       return null;
     }
 
-    const execDoc = execution as unknown as Record<string, unknown>;
-    const durationMs = (execDoc.startedAt as Date)
-      ? completedAt.getTime() - (execDoc.startedAt as Date).getTime()
+    const existingResult = parseResult(
+      (execution as unknown as Record<string, unknown>).result,
+    );
+
+    const durationMs = (execution as unknown as Record<string, unknown>)
+      .startedAt
+      ? completedAt.getTime() -
+        (
+          (execution as unknown as Record<string, unknown>).startedAt as Date
+        ).getTime()
       : 0;
 
     const existingMetadata =
-      execDoc.metadata && typeof execDoc.metadata === 'object'
-        ? { ...(execDoc.metadata as Record<string, unknown>) }
+      existingResult.metadata && typeof existingResult.metadata === 'object'
+        ? { ...(existingResult.metadata as Record<string, unknown>) }
         : {};
     const existingEta =
       existingMetadata.eta &&
@@ -113,7 +144,9 @@ export class WorkflowExecutionsService extends BaseService<
         estimatedDurationMs,
         executionId,
         observedDurationMs: durationMs,
-        workflowId: execDoc.workflowId?.toString(),
+        workflowId: (
+          execution as unknown as Record<string, unknown>
+        ).workflowId?.toString(),
       });
     }
 
@@ -128,13 +161,18 @@ export class WorkflowExecutionsService extends BaseService<
       },
     };
 
+    const updatedResult = {
+      ...existingResult,
+      durationMs,
+      metadata: nextMetadata,
+      progress: 100,
+    };
+
     const result = await this.prisma.workflowExecution.update({
       data: {
         completedAt,
-        durationMs,
         error,
-        metadata: nextMetadata,
-        progress: 100,
+        result: updatedResult as never,
         status: error
           ? WorkflowExecutionStatus.FAILED
           : WorkflowExecutionStatus.COMPLETED,
@@ -174,17 +212,19 @@ export class WorkflowExecutionsService extends BaseService<
       return null;
     }
 
-    const execDoc = execution as unknown as {
-      nodeResults: WorkflowNodeResult[];
-      progress: number;
-    };
+    const existingResult = parseResult(
+      (execution as unknown as Record<string, unknown>).result,
+    );
+    const existingNodeResults = Array.isArray(existingResult.nodeResults)
+      ? (existingResult.nodeResults as WorkflowNodeResult[])
+      : [];
 
     // Find and update existing node result or add new one
-    const existingIndex = execDoc.nodeResults.findIndex(
+    const existingIndex = existingNodeResults.findIndex(
       (r) => r.nodeId === nodeResult.nodeId,
     );
 
-    const nodeResults = [...execDoc.nodeResults];
+    const nodeResults = [...existingNodeResults];
     if (existingIndex >= 0) {
       nodeResults[existingIndex] = nodeResult;
     } else {
@@ -203,10 +243,15 @@ export class WorkflowExecutionsService extends BaseService<
         ? Math.round((completedNodes / expectedNodes) * 100)
         : 0;
 
+    const updatedResult = {
+      ...existingResult,
+      nodeResults,
+      progress,
+    };
+
     const result = await this.prisma.workflowExecution.update({
       data: {
-        nodeResults: nodeResults as never,
-        progress,
+        result: updatedResult as never,
       } as never,
       where: { id: executionId },
     });
@@ -219,8 +264,19 @@ export class WorkflowExecutionsService extends BaseService<
     executionId: string,
     failedNodeId: string,
   ): Promise<void> {
+    const execution = await this.prisma.workflowExecution.findFirst({
+      where: { id: executionId },
+    });
+    if (!execution) return;
+
+    const existingResult = parseResult(
+      (execution as unknown as Record<string, unknown>).result,
+    );
+
     await this.prisma.workflowExecution.update({
-      data: { failedNodeId } as never,
+      data: {
+        result: { ...existingResult, failedNodeId } as never,
+      } as never,
       where: { id: executionId },
     });
   }
@@ -230,8 +286,19 @@ export class WorkflowExecutionsService extends BaseService<
     executionId: string,
     creditsUsed: number,
   ): Promise<void> {
+    const execution = await this.prisma.workflowExecution.findFirst({
+      where: { id: executionId },
+    });
+    if (!execution) return;
+
+    const existingResult = parseResult(
+      (execution as unknown as Record<string, unknown>).result,
+    );
+
     await this.prisma.workflowExecution.update({
-      data: { creditsUsed } as never,
+      data: {
+        result: { ...existingResult, creditsUsed } as never,
+      } as never,
       where: { id: executionId },
     });
   }
@@ -249,15 +316,25 @@ export class WorkflowExecutionsService extends BaseService<
       return null;
     }
 
+    const existingResult = parseResult(
+      (execution as unknown as Record<string, unknown>).result,
+    );
     const existingMetadata =
-      (execution as unknown as Record<string, unknown>).metadata ?? {};
+      existingResult.metadata && typeof existingResult.metadata === 'object'
+        ? (existingResult.metadata as Record<string, unknown>)
+        : {};
+
+    const updatedResult = {
+      ...existingResult,
+      metadata: {
+        ...existingMetadata,
+        ...metadataUpdates,
+      },
+    };
 
     const result = await this.prisma.workflowExecution.update({
       data: {
-        metadata: {
-          ...(existingMetadata as Record<string, unknown>),
-          ...metadataUpdates,
-        },
+        result: updatedResult as never,
       } as never,
       where: { id: executionId },
     });
@@ -330,13 +407,14 @@ export class WorkflowExecutionsService extends BaseService<
     failed: number;
     avgDurationMs: number;
   }> {
+    // Fetch result JSON alongside status so we can read durationMs from it
     const executions = await this.prisma.workflowExecution.findMany({
-      select: { durationMs: true, status: true },
+      select: { result: true, status: true },
       where: { isDeleted: false, organizationId, workflowId },
     });
 
     const typed = executions as unknown as Array<{
-      durationMs?: number;
+      result?: unknown;
       status: string;
     }>;
 
@@ -349,7 +427,10 @@ export class WorkflowExecutionsService extends BaseService<
     ).length;
 
     const durationsWithValue = typed
-      .map((e) => e.durationMs)
+      .map((e) => {
+        const r = parseResult(e.result);
+        return typeof r.durationMs === 'number' ? r.durationMs : undefined;
+      })
       .filter((d): d is number => typeof d === 'number' && d > 0);
 
     const avgDurationMs =

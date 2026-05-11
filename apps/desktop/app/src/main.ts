@@ -41,7 +41,6 @@ import { DesktopPgliteService } from './main/pglite.service';
 import { DesktopPrismaService } from './main/prisma.service';
 import { DesktopSessionService } from './main/session.service';
 import { DesktopShortcutsService } from './main/shortcuts.service';
-import { DesktopSqliteMigratorService } from './main/sqlite-migrator.service';
 import { DesktopSyncService } from './main/sync.service';
 import { DesktopTelemetryService } from './main/telemetry.service';
 import { DesktopTerminalService } from './main/terminal.service';
@@ -151,6 +150,7 @@ const getBootstrap = (): IDesktopBootstrap => {
     preferences: {
       nativeNotificationsEnabled: Notification.isSupported(),
     },
+    brands: syncService.listBrands(),
     recents: workspaceService.listRecents(),
     session: sessionService.getSession(),
     syncState: syncService.getState(),
@@ -735,10 +735,6 @@ app.whenReady().then(async () => {
   prismaService = new DesktopPrismaService(pglite);
   const prismaClient = prismaService.getClient();
   await prismaService.bootstrapLocalIdentity();
-  await DesktopSqliteMigratorService.migrate(
-    prismaClient,
-    path.join(app.getPath('userData'), `${environment.appName}.sqlite`),
-  );
   kvService = new DesktopKvService(prismaClient);
   await kvService.init();
   sessionService = new DesktopSessionService(kvService, environment);

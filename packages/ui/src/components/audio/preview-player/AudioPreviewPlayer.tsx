@@ -166,7 +166,7 @@ export default function AudioPreviewPlayer({
         {!audioUrl
           ? 'No Preview'
           : isLoading
-            ? 'Loading...'
+            ? 'Loading…'
             : isPlaying
               ? 'Pause'
               : 'Play'}

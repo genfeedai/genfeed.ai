@@ -115,7 +115,7 @@ function CubicBezierEditorComponent({
     const [, gy] = toSVG(0, t);
     gridLines.push(
       <line
-        key={`v-${i}`}
+        key={`v-${t}`}
         x1={gx}
         y1={PADDING}
         x2={gx}
@@ -125,7 +125,7 @@ function CubicBezierEditorComponent({
         strokeDasharray={i === 0 || i === 4 ? undefined : '2 4'}
       />,
       <line
-        key={`h-${i}`}
+        key={`h-${t}`}
         x1={PADDING}
         y1={gy}
         x2={width - PADDING}

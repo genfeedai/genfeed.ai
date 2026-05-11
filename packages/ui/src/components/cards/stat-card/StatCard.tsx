@@ -29,10 +29,10 @@ const VALUE_SIZE_CLASSES = {
 } as const;
 
 const ICON_SIZE_CLASSES = {
-  lg: 'h-12 w-12',
-  md: 'h-10 w-10',
-  sm: 'h-8 w-8',
-  xl: 'h-14 w-14',
+  lg: 'size-12',
+  md: 'size-10',
+  sm: 'size-8',
+  xl: 'size-14',
 } as const;
 
 const LOADER_HEIGHT_CLASSES = {
@@ -145,7 +145,7 @@ const StatCard = memo(function StatCard({
                 ICON_SIZE_CLASSES[size],
               )}
             >
-              <Icon className="h-1/2 w-1/2" />
+              <Icon className="size-1/2" />
             </div>
           )}
         </div>
@@ -188,11 +188,9 @@ const StatCard = memo(function StatCard({
                   !isPositiveTrend && !isNegativeTrend && 'gen-trend-neutral',
                 )}
               >
-                {isPositiveTrend && (
-                  <HiArrowTrendingUp className="h-3.5 w-3.5" />
-                )}
+                {isPositiveTrend && <HiArrowTrendingUp className="size-3.5" />}
                 {isNegativeTrend && (
-                  <HiArrowTrendingDown className="h-3.5 w-3.5" />
+                  <HiArrowTrendingDown className="size-3.5" />
                 )}
                 {isPositiveTrend ? '+' : ''}
                 {trend}%

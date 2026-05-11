@@ -9,13 +9,267 @@ import {
   RotateCcw,
   Square,
 } from 'lucide-react';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { type RefObject, useCallback, useMemo, useRef, useState } from 'react';
 import { useExecutionStore } from '../stores/executionStore';
 import { useWorkflowStore } from '../stores/workflowStore';
 import { Button } from '../ui/button';
 
 const MIN_BATCH = 1;
 const MAX_BATCH = 10;
+
+interface BatchCounterProps {
+  batchCount: number;
+  isActive: boolean;
+  onDecrement: () => void;
+  onIncrement: () => void;
+}
+
+function BatchCounter({
+  batchCount,
+  isActive,
+  onDecrement,
+  onIncrement,
+}: BatchCounterProps) {
+  return (
+    <div className="flex items-center gap-0.5">
+      <span className="mr-0.5 text-[11px] text-neutral-400">Batch</span>
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        onClick={onDecrement}
+        disabled={batchCount <= MIN_BATCH || isActive}
+        className="size-5 text-neutral-400 hover:bg-neutral-700 hover:text-white"
+      >
+        <Minus className="size-2.5" />
+      </Button>
+      <span className="w-4 text-center text-xs font-medium tabular-nums text-white">
+        {batchCount}
+      </span>
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        onClick={onIncrement}
+        disabled={batchCount >= MAX_BATCH || isActive}
+        className="size-5 text-neutral-400 hover:bg-neutral-700 hover:text-white"
+      >
+        <Plus className="size-2.5" />
+      </Button>
+    </div>
+  );
+}
+
+interface RunOptionsState {
+  canRunWorkflow: boolean;
+  hasSelection: boolean;
+  isRunning: boolean;
+  selectedCount: number;
+  showResume: boolean;
+}
+
+interface RunOptionsDropdownProps {
+  dropdownRef: RefObject<HTMLDivElement | null>;
+  onClose: () => void;
+  onResume: () => void;
+  onRunSelected: () => void;
+  onRunWorkflow: () => void;
+  state: RunOptionsState;
+}
+
+function RunOptionsDropdown({
+  dropdownRef,
+  onClose,
+  onResume,
+  onRunSelected,
+  onRunWorkflow,
+  state,
+}: RunOptionsDropdownProps) {
+  const { canRunWorkflow, hasSelection, isRunning, selectedCount, showResume } =
+    state;
+
+  return (
+    <>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        className="fixed inset-0 z-40 size-full p-0 opacity-0"
+        onClick={onClose}
+        aria-label="Close run options"
+      />
+      <div
+        ref={dropdownRef}
+        className="absolute bottom-full left-0 z-50 mb-1.5 min-w-[180px] border border-neutral-700 bg-neutral-800 py-0.5 shadow-xl"
+      >
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onRunWorkflow}
+          disabled={!canRunWorkflow}
+          className="w-full justify-start gap-1.5 px-2.5 py-1.5 text-xs text-neutral-200 hover:bg-neutral-700"
+        >
+          <Play className="size-3" />
+          Run Workflow
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onRunSelected}
+          disabled={!hasSelection || isRunning}
+          className="w-full justify-start gap-1.5 px-2.5 py-1.5 text-xs text-neutral-200 hover:bg-neutral-700"
+        >
+          <PlayCircle className="size-3" />
+          Run Selected ({selectedCount})
+        </Button>
+        {showResume && (
+          <>
+            <div className="mx-2 my-0.5 h-px bg-neutral-700" />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onResume}
+              className="w-full justify-start gap-1.5 px-2.5 py-1.5 text-xs text-neutral-200 hover:bg-neutral-700"
+            >
+              <RotateCcw className="size-3" />
+              Resume from Failed
+            </Button>
+          </>
+        )}
+      </div>
+    </>
+  );
+}
+
+interface RunControlsState extends RunOptionsState {
+  canRunWorkflow: boolean;
+  isActive: boolean;
+  isDropdownOpen: boolean;
+}
+
+interface RunControlsProps {
+  dropdownRef: RefObject<HTMLDivElement | null>;
+  onCloseDropdown: () => void;
+  onPrimaryClick: () => void;
+  onResume: () => void;
+  onRunSelected: () => void;
+  onRunWorkflow: () => void;
+  onToggleDropdown: () => void;
+  state: RunControlsState;
+}
+
+function RunControls({
+  dropdownRef,
+  onCloseDropdown,
+  onPrimaryClick,
+  onResume,
+  onRunSelected,
+  onRunWorkflow,
+  onToggleDropdown,
+  state,
+}: RunControlsProps) {
+  const {
+    canRunWorkflow,
+    hasSelection,
+    isActive,
+    isDropdownOpen,
+    isRunning,
+    selectedCount,
+    showResume,
+  } = state;
+  const variant = isActive
+    ? 'destructive'
+    : canRunWorkflow
+      ? 'default'
+      : 'secondary';
+
+  return (
+    <div className="relative flex items-center">
+      <Button
+        variant={variant}
+        size="sm"
+        onClick={(e) => {
+          e.stopPropagation();
+          onPrimaryClick();
+        }}
+        disabled={!isActive && !canRunWorkflow}
+        className={`rounded-l rounded-r-none px-3 text-xs font-medium ${
+          isActive
+            ? 'bg-red-500/90 hover:bg-red-500'
+            : canRunWorkflow
+              ? ''
+              : 'bg-neutral-600 text-neutral-400'
+        }`}
+      >
+        {isActive ? (
+          <>
+            <Square className="size-3.5" />
+            Stop
+          </>
+        ) : (
+          <>
+            <Play className="size-3.5 fill-current" />
+            Run
+          </>
+        )}
+      </Button>
+      <Button
+        variant={variant}
+        size="sm"
+        onPointerDown={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggleDropdown();
+        }}
+        disabled={isActive}
+        className={`rounded-l-none rounded-r border-l px-1.5 ${
+          isActive
+            ? 'border-red-400/30 bg-red-500/90'
+            : canRunWorkflow
+              ? 'border-neutral-300'
+              : 'border-neutral-500 bg-neutral-600 text-neutral-400'
+        }`}
+      >
+        <ChevronUp className="size-3.5" />
+      </Button>
+
+      {isDropdownOpen && (
+        <RunOptionsDropdown
+          dropdownRef={dropdownRef}
+          onClose={onCloseDropdown}
+          onResume={onResume}
+          onRunSelected={onRunSelected}
+          onRunWorkflow={onRunWorkflow}
+          state={{
+            canRunWorkflow,
+            hasSelection,
+            isRunning,
+            selectedCount,
+            showResume,
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function BatchProgress({
+  batchCount,
+  currentBatchRun,
+}: {
+  batchCount: number;
+  currentBatchRun: number;
+}) {
+  return (
+    <>
+      <div className="mx-1 h-4 w-px bg-neutral-600" />
+      <span className="text-[11px] tabular-nums text-neutral-400">
+        {currentBatchRun}/{batchCount}
+      </span>
+    </>
+  );
+}
 
 export function BottomBar() {
   const [batchCount, setBatchCount] = useState(1);
@@ -76,22 +330,22 @@ export function BottomBar() {
 
     const accumulatedImages = new Map<string, string[]>();
 
-    for (let i = 0; i < batchCount; i++) {
-      if (batchCancelledRef.current) break;
+    async function runBatchStep(batchIndex: number): Promise<void> {
+      if (batchIndex >= batchCount || batchCancelledRef.current) return;
 
-      setCurrentBatchRun(i + 1);
+      setCurrentBatchRun(batchIndex + 1);
       executeWorkflow();
 
       // Wait a tick for isRunning to be set
       await new Promise((r) => setTimeout(r, 50));
 
       // If execution didn't start (validation error), abort
-      if (!useExecutionStore.getState().isRunning) break;
+      if (!useExecutionStore.getState().isRunning) return;
 
       await waitForExecutionEnd();
 
       // Check if execution failed
-      if (useExecutionStore.getState().lastFailedNodeId) break;
+      if (useExecutionStore.getState().lastFailedNodeId) return;
 
       // Accumulate outputImages from imageGen nodes across batch runs
       const { nodes: currentNodes, updateNodeData } =
@@ -107,8 +361,11 @@ export function BottomBar() {
         accumulatedImages.set(node.id, merged);
         updateNodeData(node.id, { outputImages: merged });
       }
+
+      return runBatchStep(batchIndex + 1);
     }
 
+    await runBatchStep(0);
     setIsBatchRunning(false);
     setCurrentBatchRun(0);
   }, [batchCount, executeWorkflow, waitForExecutionEnd]);
@@ -148,171 +405,54 @@ export function BottomBar() {
     }
   }, [canResumeFromFailed, resumeFromFailed]);
 
+  const handleRunWorkflowFromMenu = useCallback(() => {
+    executeWorkflow();
+    setDropdownOpen(false);
+  }, [executeWorkflow]);
+
+  const closeDropdown = useCallback(() => {
+    setDropdownOpen(false);
+  }, []);
+
+  const toggleDropdown = useCallback(() => {
+    setDropdownOpen((prev) => !prev);
+  }, []);
+
   const isActive = isRunning || isBatchRunning;
 
   return (
     <div className="fixed bottom-5 left-1/2 z-50 -translate-x-1/2">
       <div className="flex items-center gap-1 border border-neutral-700/80 bg-neutral-800/95 px-2 py-1 shadow-lg backdrop-blur-sm">
-        {/* Batch Counter */}
-        <div className="flex items-center gap-0.5">
-          <span className="mr-0.5 text-[11px] text-neutral-400">Batch</span>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={decrementBatch}
-            disabled={batchCount <= MIN_BATCH || isActive}
-            className="h-5 w-5 text-neutral-400 hover:bg-neutral-700 hover:text-white"
-          >
-            <Minus className="h-2.5 w-2.5" />
-          </Button>
-          <span className="w-4 text-center text-xs font-medium tabular-nums text-white">
-            {batchCount}
-          </span>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={incrementBatch}
-            disabled={batchCount >= MAX_BATCH || isActive}
-            className="h-5 w-5 text-neutral-400 hover:bg-neutral-700 hover:text-white"
-          >
-            <Plus className="h-2.5 w-2.5" />
-          </Button>
-        </div>
-
-        {/* Divider */}
+        <BatchCounter
+          batchCount={batchCount}
+          isActive={isActive}
+          onDecrement={decrementBatch}
+          onIncrement={incrementBatch}
+        />
         <div className="mx-1 h-4 w-px bg-neutral-600" />
-
-        {/* Run Button with Dropdown */}
-        <div className="relative flex items-center">
-          <Button
-            variant={
-              isActive
-                ? 'destructive'
-                : canRunWorkflow
-                  ? 'default'
-                  : 'secondary'
-            }
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              handlePrimaryClick();
-            }}
-            disabled={!isActive && !canRunWorkflow}
-            className={`rounded-l rounded-r-none px-3 text-xs font-medium ${
-              isActive
-                ? 'bg-red-500/90 hover:bg-red-500'
-                : canRunWorkflow
-                  ? ''
-                  : 'bg-neutral-600 text-neutral-400'
-            }`}
-          >
-            {isActive ? (
-              <>
-                <Square className="h-3.5 w-3.5" />
-                Stop
-              </>
-            ) : (
-              <>
-                <Play className="h-3.5 w-3.5 fill-current" />
-                Run
-              </>
-            )}
-          </Button>
-          <Button
-            variant={
-              isActive
-                ? 'destructive'
-                : canRunWorkflow
-                  ? 'default'
-                  : 'secondary'
-            }
-            size="sm"
-            onPointerDown={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-            }}
-            onClick={(e) => {
-              e.stopPropagation();
-              setDropdownOpen((prev) => !prev);
-            }}
-            disabled={isActive}
-            className={`rounded-l-none rounded-r border-l px-1.5 ${
-              isActive
-                ? 'border-red-400/30 bg-red-500/90'
-                : canRunWorkflow
-                  ? 'border-neutral-300'
-                  : 'border-neutral-500 bg-neutral-600 text-neutral-400'
-            }`}
-          >
-            <ChevronUp className="h-3.5 w-3.5" />
-          </Button>
-
-          {/* Dropdown Menu (opens upward) */}
-          {dropdownOpen && (
-            <>
-              {/* Backdrop */}
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                className="fixed inset-0 z-40 h-full w-full p-0 opacity-0"
-                onClick={() => setDropdownOpen(false)}
-                aria-label="Close run options"
-              />
-              <div
-                ref={dropdownRef}
-                className="absolute bottom-full left-0 z-50 mb-1.5 min-w-[180px] border border-neutral-700 bg-neutral-800 py-0.5 shadow-xl"
-              >
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    executeWorkflow();
-                    setDropdownOpen(false);
-                  }}
-                  disabled={!canRunWorkflow}
-                  className="w-full justify-start gap-1.5 px-2.5 py-1.5 text-xs text-neutral-200 hover:bg-neutral-700"
-                >
-                  <Play className="h-3 w-3" />
-                  Run Workflow
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleRunSelected}
-                  disabled={!hasSelection || isRunning}
-                  className="w-full justify-start gap-1.5 px-2.5 py-1.5 text-xs text-neutral-200 hover:bg-neutral-700"
-                >
-                  <PlayCircle className="h-3 w-3" />
-                  Run Selected ({selectedNodeIds.length})
-                </Button>
-                {showResume && (
-                  <>
-                    <div className="mx-2 my-0.5 h-px bg-neutral-700" />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleResume}
-                      className="w-full justify-start gap-1.5 px-2.5 py-1.5 text-xs text-neutral-200 hover:bg-neutral-700"
-                    >
-                      <RotateCcw className="h-3 w-3" />
-                      Resume from Failed
-                    </Button>
-                  </>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Batch Progress */}
+        <RunControls
+          dropdownRef={dropdownRef}
+          onCloseDropdown={closeDropdown}
+          onPrimaryClick={handlePrimaryClick}
+          onResume={handleResume}
+          onRunSelected={handleRunSelected}
+          onRunWorkflow={handleRunWorkflowFromMenu}
+          onToggleDropdown={toggleDropdown}
+          state={{
+            canRunWorkflow,
+            hasSelection,
+            isActive,
+            isDropdownOpen: dropdownOpen,
+            isRunning,
+            selectedCount: selectedNodeIds.length,
+            showResume,
+          }}
+        />
         {isBatchRunning && (
-          <>
-            <div className="mx-1 h-4 w-px bg-neutral-600" />
-            <span className="text-[11px] tabular-nums text-neutral-400">
-              {currentBatchRun}/{batchCount}
-            </span>
-          </>
+          <BatchProgress
+            batchCount={batchCount}
+            currentBatchRun={currentBatchRun}
+          />
         )}
       </div>
     </div>

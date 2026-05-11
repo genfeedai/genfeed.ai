@@ -83,9 +83,9 @@ export default function WorkflowCanvas({
   );
 
   return (
-    <div ref={reactFlowWrapper} className="h-full w-full">
+    <div ref={reactFlowWrapper} className="size-full">
       <FlowCanvas
-        containerClassName="h-full w-full rounded-none border-0 bg-transparent shadow-none"
+        containerClassName="size-full rounded-none border-0 bg-transparent shadow-none"
         nodes={nodes as Node[]}
         edges={edges}
         onNodesChange={onNodesChange as ReactFlowOnNodesChange}

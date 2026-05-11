@@ -41,7 +41,7 @@ export default function ModalMood({
     serviceFactory: (token) => MoodsService.getInstance(token),
   });
 
-  const handleChange = (
+  const updateModalMood = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = e.target;
@@ -66,7 +66,7 @@ export default function ModalMood({
             type="text"
             name="label"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalMood}
             placeholder="Enter display label"
             isRequired={true}
             isDisabled={isSubmitting}
@@ -78,7 +78,7 @@ export default function ModalMood({
             type="text"
             name="key"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalMood}
             placeholder="lowercase-with-hyphens"
             isRequired={true}
             isDisabled={isSubmitting || (!!item && !isSuperAdmin)}
@@ -98,7 +98,7 @@ export default function ModalMood({
           <Input
             name="description"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalMood}
             placeholder="Enter description (optional)"
             isDisabled={isSubmitting}
           />

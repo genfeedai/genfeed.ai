@@ -56,8 +56,12 @@ function GridPositionSelectorComponent({
 
   return (
     <div className={cn('space-y-1.5', className)}>
-      <label className="text-xs text-muted-foreground">Content Position</label>
-      <div className="grid grid-cols-3 gap-1 p-2 bg-background border border-input">
+      <div className="text-xs text-muted-foreground">Content Position</div>
+      <div
+        aria-label="Content Position"
+        className="grid grid-cols-3 gap-1 p-2 bg-background border border-input"
+        role="group"
+      >
         {GRID_POSITIONS.map((pos) => (
           <Button
             key={`${pos.x}-${pos.y}`}
@@ -65,7 +69,7 @@ function GridPositionSelectorComponent({
             type="button"
             onClick={() => onPositionChange(pos)}
             className={cn(
-              'w-5 h-5 border p-0 min-w-0',
+              'size-5 border p-0 min-w-0',
               isSelected(pos)
                 ? 'bg-primary border-primary hover:bg-primary/90'
                 : 'bg-secondary border-input hover:border-primary',

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/rules-of-hooks -- Storybook render functions are invoked as story components. */
 import { PLATFORM_COLORS } from '@genfeedai/constants';
 import { DropdownDirection, TagCategory } from '@genfeedai/enums';
 import type { IBrand, IOrganization, ITag, IUser } from '@genfeedai/interfaces';
@@ -218,7 +219,7 @@ export const Interactive: Story = {
           ]}
           isLoadingTags={false}
         />
-        <div className="mt-4 text-sm text-gray-600">
+        <div className="mt-4 text-sm text-zinc-600">
           Selected: {selectedTags.join(', ') || 'None'}
         </div>
       </div>

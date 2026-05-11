@@ -169,6 +169,20 @@ export class ContextsService {
       type: dto.type,
     });
 
+    // Verify that sourceBrand belongs to the caller's organization
+    if (dto.sourceBrand) {
+      const brand = await this.prisma.brand.findFirst({
+        where: {
+          id: dto.sourceBrand,
+          isDeleted: false,
+          organizationId,
+        },
+      });
+      if (!brand) {
+        throw new NotFoundException('Brand not found');
+      }
+    }
+
     const contextBase = await this.prisma.contextBase.create({
       data: {
         ...(userId ? { createdById: userId } : {}),
@@ -200,29 +214,33 @@ export class ContextsService {
       search?: string;
     },
   ): Promise<ContextBase[]> {
-    const where: Record<string, unknown> = {
-      isDeleted: false,
-      organizationId,
-    };
+    const rows = await this.prisma.contextBase.findMany({
+      orderBy: { createdAt: 'desc' },
+      where: { isDeleted: false, organizationId },
+    });
 
-    if (filters?.category) {
-      where.category = filters.category;
+    let results = rows;
+
+    if (
+      filters?.category ||
+      filters?.isActive !== undefined ||
+      filters?.search
+    ) {
+      results = rows.filter((row) => {
+        const d = (row.data as Record<string, unknown>) ?? {};
+        if (filters?.category && d.category !== filters.category) return false;
+        if (filters?.isActive !== undefined && d.isActive !== filters.isActive)
+          return false;
+        if (filters?.search) {
+          const label = (d.label as string) ?? '';
+          if (!label.toLowerCase().includes(filters.search.toLowerCase()))
+            return false;
+        }
+        return true;
+      });
     }
 
-    if (filters?.isActive !== undefined) {
-      where.isActive = filters.isActive;
-    }
-
-    if (filters?.search) {
-      where.label = { contains: filters.search, mode: 'insensitive' };
-    }
-
-    return this.normalizeContextBases(
-      await this.prisma.contextBase.findMany({
-        orderBy: { createdAt: 'desc' },
-        where,
-      }),
-    );
+    return this.normalizeContextBases(results);
   }
 
   async findOne(id: string, organizationId: string): Promise<ContextBase> {
@@ -252,6 +270,20 @@ export class ContextsService {
 
     if (!existing) {
       throw new NotFoundException('Context base not found');
+    }
+
+    // Verify that the new sourceBrand belongs to the caller's organization
+    if (dto.sourceBrand !== undefined && dto.sourceBrand !== null) {
+      const brand = await this.prisma.brand.findFirst({
+        where: {
+          id: dto.sourceBrand,
+          isDeleted: false,
+          organizationId,
+        },
+      });
+      if (!brand) {
+        throw new NotFoundException('Brand not found');
+      }
     }
 
     const contextBase = await this.prisma.contextBase.update({
@@ -597,35 +629,32 @@ export class ContextsService {
     organizationId: string,
     dto: EnhancePromptDto,
   ): Promise<ContextBase[]> {
-    const where: Record<string, unknown> = {
-      isActive: true,
+    const baseWhere: Record<string, unknown> = {
       isDeleted: false,
       organizationId,
     };
 
     if (dto.contextBaseIds?.length) {
-      where.id = { in: dto.contextBaseIds };
-      return this.normalizeContextBases(
-        await this.prisma.contextBase.findMany({
-          where,
-        }),
-      );
+      baseWhere.id = { in: dto.contextBaseIds };
     }
+
+    const rows = await this.prisma.contextBase.findMany({
+      where: baseWhere,
+    });
 
     const types: string[] = [];
     if (dto.useBrandVoice) types.push('brand_voice');
     if (dto.useContentLibrary) types.push('content_library');
     if (dto.useAudience) types.push('audience');
 
-    if (types.length > 0) {
-      where.type = { in: types };
-    }
+    const filtered = rows.filter((row) => {
+      const d = (row.data as Record<string, unknown>) ?? {};
+      if (!d.isActive) return false;
+      if (types.length > 0 && !types.includes(d.type as string)) return false;
+      return true;
+    });
 
-    return this.normalizeContextBases(
-      await this.prisma.contextBase.findMany({
-        where,
-      }),
-    );
+    return this.normalizeContextBases(filtered);
   }
 
   private async retrieveRelevantEntries(

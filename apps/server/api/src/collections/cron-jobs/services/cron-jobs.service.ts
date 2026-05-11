@@ -78,6 +78,19 @@ export class CronJobsService {
     private readonly logger: LoggerService,
   ) {}
 
+  private maskCronPayload(
+    payload: Record<string, unknown>,
+  ): Record<string, unknown> {
+    const masked = { ...payload };
+    if ('webhookSecret' in masked) {
+      masked.webhookSecret = '***';
+    }
+    if ('webhookHeaders' in masked && masked.webhookHeaders !== undefined) {
+      masked.webhookHeaders = '***';
+    }
+    return masked;
+  }
+
   private toCronJobDocument(job: PrismaCronJob): CronJobDocument {
     const config = this.asRecord(job.config);
 
@@ -91,7 +104,7 @@ export class CronJobsService {
       lastStatus: this.asCronJobLastStatus(config.lastStatus),
       name: this.asString(config.name) ?? job.label ?? 'Untitled cron job',
       organization: job.organizationId,
-      payload: this.asRecord(config.payload),
+      payload: this.maskCronPayload(this.asRecord(config.payload)),
       schedule: this.asString(config.schedule) ?? job.expression ?? '* * * * *',
       timezone: this.asString(config.timezone) ?? 'UTC',
       user: job.userId,

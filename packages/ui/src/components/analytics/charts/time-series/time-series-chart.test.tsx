@@ -77,7 +77,7 @@ describe('TimeSeriesChart', () => {
   describe('Loading State', () => {
     it('shows loading spinner when isLoading is true', () => {
       render(<TimeSeriesChart data={[]} isLoading />);
-      expect(screen.getByText('Loading chart data...')).toBeInTheDocument();
+      expect(screen.getByText('Loading chart data…')).toBeInTheDocument();
     });
 
     it('shows animated spinner element', () => {

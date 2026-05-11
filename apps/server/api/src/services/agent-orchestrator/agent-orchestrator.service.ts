@@ -4271,6 +4271,7 @@ export class AgentOrchestratorService {
       this.getThreadSnapshotEffect(
         params.threadId,
         params.context.organizationId,
+        params.context.userId,
       ),
     );
     const latestPlan = snapshot?.latestProposedPlan as
@@ -4356,6 +4357,7 @@ export class AgentOrchestratorService {
       this.getThreadSnapshotEffect(
         params.threadId,
         params.context.organizationId,
+        params.context.userId,
       ),
     );
     const latestPlan = snapshot?.latestProposedPlan as
@@ -4788,6 +4790,7 @@ export class AgentOrchestratorService {
       this.recordThreadProfileSnapshotEffect(
         threadId,
         context.organizationId,
+        context.userId,
         profile,
       ),
     );
@@ -5496,6 +5499,7 @@ export class AgentOrchestratorService {
   private getThreadSnapshotEffect(
     threadId: string,
     organizationId: string,
+    userId: string,
   ): Effect.Effect<
     Awaited<ReturnType<AgentThreadEngineService['getSnapshot']>> | null,
     unknown
@@ -5507,6 +5511,7 @@ export class AgentOrchestratorService {
     return this.agentThreadEngineService.getSnapshotEffect(
       threadId,
       organizationId,
+      userId,
     );
   }
 
@@ -5525,6 +5530,7 @@ export class AgentOrchestratorService {
   private recordThreadProfileSnapshotEffect(
     threadId: string,
     organizationId: string,
+    userId: string,
     profile: object,
   ): Effect.Effect<void, unknown> {
     if (!this.agentThreadEngineService) {
@@ -5532,7 +5538,7 @@ export class AgentOrchestratorService {
     }
 
     return this.agentThreadEngineService
-      .recordProfileSnapshotEffect(threadId, organizationId, profile)
+      .recordProfileSnapshotEffect(threadId, organizationId, userId, profile)
       .pipe(Effect.asVoid);
   }
 

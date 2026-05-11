@@ -39,3 +39,15 @@ docs/         Documentation
   cloud/self-hosted, while Electron main exposes it to `apps/app` over typed IPC.
 - First desktop paint is a black Electron boot screen with an animated Genfeed
   mark while the embedded app shell starts.
+
+## Current Website Positioning
+
+- The public website package is `apps/website`; there is no `apps/web` package
+  in this repo.
+- Public website copy leads with the managed `Cloud App` offer.
+- Primary CTA: `Start Cloud App`.
+- Secondary CTA: `Book a Demo`.
+- Public pricing order: Cloud App (`$8/mo` platform access + PAYG output),
+  Cloud Teams (`from $499/mo` + PAYG output), Enterprise, then Self-Hosted Core.
+- Internal pricing data still uses the `Hosted` plan label for compatibility;
+  public surfaces map that plan to `Cloud App`.

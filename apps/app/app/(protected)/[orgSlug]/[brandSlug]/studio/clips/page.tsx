@@ -191,7 +191,10 @@ export default function StudioClipsPage() {
     return () => {
       cancelled = true;
       abortController.abort();
-      clearPendingPoll();
+      if (analysisPollTimeoutRef.current) {
+        clearTimeout(analysisPollTimeoutRef.current);
+        analysisPollTimeoutRef.current = null;
+      }
     };
   }, [
     step,
@@ -319,7 +322,10 @@ export default function StudioClipsPage() {
     return () => {
       cancelled = true;
       abortController.abort();
-      clearPendingPoll();
+      if (clipsPollTimeoutRef.current) {
+        clearTimeout(clipsPollTimeoutRef.current);
+        clipsPollTimeoutRef.current = null;
+      }
     };
   }, [step, project?.projectId, clipsService, isDocumentVisible]);
 

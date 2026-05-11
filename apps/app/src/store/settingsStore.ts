@@ -371,10 +371,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => {
     isLLMConfigured: () => {
       const state = get();
       const activeProvider = state.llm.activeProvider;
-      // Replicate can use server-side env var,
-      others;
-      need;
-      BYOK;
+      // Replicate can use server-side env var; other providers need BYOK.
       if (activeProvider === 'replicate') return true;
       return !!state.llm.providers[activeProvider].apiKey;
     },

@@ -99,10 +99,20 @@ export class ProfilesService {
 
   private normalizeProfile(record: ProfileDocument): Profile {
     const data = this.readObjectRecord(record.data);
+    const {
+      id: _id,
+      _id: __id,
+      organizationId: _organizationId,
+      createdById: _createdById,
+      isDeleted: _isDeleted,
+      createdAt: _createdAt,
+      updatedAt: _updatedAt,
+      ...safeData
+    } = data as Record<string, unknown>;
 
     return {
       ...record,
-      ...data,
+      ...safeData,
       _id: record.mongoId ?? record.id,
     };
   }

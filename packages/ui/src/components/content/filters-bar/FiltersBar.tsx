@@ -155,7 +155,7 @@ export default function FiltersBar({
     return () => clearTimeout(timer);
   }, [searchValue, filters, notifyFilterChange]);
 
-  const handleChange = (
+  const updateFiltersBar = (
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
@@ -218,7 +218,7 @@ export default function FiltersBar({
         <div className="flex-1 min-w-56 max-w-96">
           <FormSearchbar
             value={searchValue}
-            onChange={handleChange}
+            onChange={updateFiltersBar}
             placeholder="Search label, description, or tags"
             size={ComponentSize.SM}
           />

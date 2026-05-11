@@ -166,7 +166,7 @@ export default function ModalMusic({
                     {/* Music Icon */}
                     <div className="flex items-center gap-3">
                       <div
-                        className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                        className={`size-12 rounded-full flex items-center justify-center ${
                           selectedMusic === music.id
                             ? 'bg-primary/20'
                             : 'bg-muted'
@@ -215,7 +215,7 @@ export default function ModalMusic({
                     {/* Selected Badge */}
                     {selectedMusic === music.id && (
                       <div className="absolute top-2 right-2">
-                        <div className="w-2 h-2 bg-primary rounded-full"></div>
+                        <div className="size-2 bg-primary rounded-full"></div>
                       </div>
                     )}
                   </div>
@@ -234,7 +234,7 @@ export default function ModalMusic({
                 onClick={handleClearSelection}
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                  <div className="size-10 rounded-full bg-muted flex items-center justify-center">
                     <HiXMark className="text-foreground/50" />
                   </div>
                   <div>

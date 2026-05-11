@@ -5,13 +5,11 @@ import { SiteFooter } from '@ui/footers';
 const WEBSITE_SECTIONS: FooterSection[] = [
   {
     links: [
-      { href: '/studio', label: 'Studio' },
-      { href: '/publisher', label: 'Publisher' },
-      { href: '/intelligence', label: 'Intelligence' },
+      { href: '/pricing', label: 'Cloud App' },
+      { href: '/cloud', label: 'Cloud Teams' },
+      { href: '/host', label: 'Self-Hosted Core' },
       { href: '/integrations', label: 'Integrations' },
       { href: '/features', label: 'Features' },
-      { href: '/services', label: 'Services' },
-      { href: '/pricing', label: 'Pricing' },
     ],
     title: 'Products',
   },
@@ -20,7 +18,7 @@ const WEBSITE_SECTIONS: FooterSection[] = [
       { href: '/creators', label: 'For Creators' },
       { href: '/agencies', label: 'For Agencies' },
       { href: '/influencers', label: 'AI Influencers' },
-      { href: '/cloud', label: 'Cloud' },
+      { href: '/pricing', label: 'Pricing' },
       { href: 'https://github.com/genfeedai/genfeed.ai', label: 'GitHub' },
     ],
     title: 'Solutions',
@@ -66,7 +64,7 @@ export default function HomeFooter(): React.ReactElement {
         variant="default"
         showNewsletter
         showBookCall
-        brandTagline="The Content OS for agencies. Run research, creation, publishing, and tracking in one workflow."
+        brandTagline="Managed AI content workspace. Start with the cloud app, then pay as you go for output."
       />
     </footer>
   );

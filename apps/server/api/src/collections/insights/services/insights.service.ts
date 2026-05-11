@@ -12,7 +12,7 @@ import { ReplicateService } from '@api/services/integrations/replicate/replicate
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Timeframe } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 type Forecast = ForecastDocument;
 type Insight = InsightDocument;
@@ -342,6 +342,13 @@ export class InsightsService {
     factors: Array<{ factor: string; impact: number; description: string }>;
     recommendations: string[];
   }> {
+    const MAX_CONTENT_LENGTH = 50_000;
+    if (dto.content && dto.content.length > MAX_CONTENT_LENGTH) {
+      throw new BadRequestException(
+        `Content exceeds maximum length of ${MAX_CONTENT_LENGTH} characters`,
+      );
+    }
+
     try {
       this.logger.debug('Predicting viral potential', {
         contentType: dto.contentType,

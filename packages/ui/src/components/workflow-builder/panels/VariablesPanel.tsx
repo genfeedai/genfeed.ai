@@ -51,15 +51,15 @@ function VariableItem({ variable, onUpdate, onDelete }: VariableItemProps) {
         className="flex cursor-pointer items-center gap-2 p-3"
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        <HiOutlineVariable className="h-4 w-4 text-primary" />
+        <HiOutlineVariable className="size-4 text-primary" />
         <span className="flex-1 font-medium text-sm">{variable.label}</span>
         <Badge variant="ghost" size={ComponentSize.SM}>
           {variable.type}
         </Badge>
         {isExpanded ? (
-          <HiOutlineChevronUp className="h-4 w-4" />
+          <HiOutlineChevronUp className="size-4" />
         ) : (
-          <HiOutlineChevronDown className="h-4 w-4" />
+          <HiOutlineChevronDown className="size-4" />
         )}
       </div>
 
@@ -136,7 +136,7 @@ function VariableItem({ variable, onUpdate, onDelete }: VariableItemProps) {
             size={ButtonSize.SM}
             className="w-full"
             onClick={onDelete}
-            icon={<HiOutlineTrash className="h-4 w-4" />}
+            icon={<HiOutlineTrash className="size-4" />}
             label="Delete Variable"
           />
         </div>
@@ -176,9 +176,9 @@ export default function VariablesPanel({
             {variables.length}
           </Badge>
           {isCollapsed ? (
-            <HiOutlineChevronDown className="h-4 w-4" />
+            <HiOutlineChevronDown className="size-4" />
           ) : (
-            <HiOutlineChevronUp className="h-4 w-4" />
+            <HiOutlineChevronUp className="size-4" />
           )}
         </div>
       </div>
@@ -208,7 +208,7 @@ export default function VariablesPanel({
             size={ButtonSize.SM}
             className="w-full"
             onClick={handleAddVariable}
-            icon={<HiOutlinePlus className="h-4 w-4" />}
+            icon={<HiOutlinePlus className="size-4" />}
             label="Add Variable"
           />
         </div>

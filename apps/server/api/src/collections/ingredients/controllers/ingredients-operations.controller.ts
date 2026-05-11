@@ -125,7 +125,14 @@ export class IngredientsOperationsController {
     const publicMetadata = getPublicMetadata(user);
 
     const ingredient = await this.ingredientsService.findOne(
-      { _id: ingredientId },
+      {
+        _id: ingredientId,
+        OR: [
+          { user: publicMetadata.user },
+          { organization: publicMetadata.organization },
+        ],
+        isDeleted: false,
+      },
       [PopulatePatterns.metadataFull],
     );
 
@@ -138,13 +145,13 @@ export class IngredientsOperationsController {
     // Create ingredient with PROCESSING status
     const { metadataData, ingredientData } =
       await this.getSharedService().saveDocuments(user, {
-        brand: ingredient.brand,
+        brand: publicMetadata.brand,
         category: ingredient.category,
         duration: metadata.duration,
         extension: metadata.extension,
         height: metadata.height,
         model: metadata.model,
-        organization: ingredient.organization,
+        organization: publicMetadata.organization,
         parent: ingredientId,
         prompt: metadata.prompt,
         result: metadata.result,

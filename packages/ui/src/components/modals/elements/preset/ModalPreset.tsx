@@ -94,7 +94,7 @@ export default function ModalPreset({
   const promptSubscriptionRef = useRef<(() => void) | null>(null);
 
   // Custom close handler that resets local states
-  const handleClose = () => {
+  const closeModalPreset = () => {
     setIsEnhancing(false);
     setIsCopying(false);
     onClose?.();
@@ -111,7 +111,7 @@ export default function ModalPreset({
   // Watch the description field for reactive updates
   const watchedDescription = form.watch('description');
 
-  const handleChange = (
+  const updateModalPreset = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   ) => {
     const { name, value, type: inputType } = e.target;
@@ -252,7 +252,7 @@ export default function ModalPreset({
             type="text"
             name="label"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalPreset}
             placeholder="Enter display label"
             isRequired={true}
             isDisabled={isSubmitting}
@@ -264,7 +264,7 @@ export default function ModalPreset({
             type="text"
             name="key"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalPreset}
             placeholder="lowercase-with-hyphens"
             isRequired={true}
             isDisabled={isSubmitting}
@@ -279,7 +279,7 @@ export default function ModalPreset({
           <SelectField
             name="category"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalPreset}
             isRequired={true}
             isDisabled={isSubmitting}
           >
@@ -314,7 +314,7 @@ export default function ModalPreset({
           <Textarea
             name="description"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalPreset}
             placeholder="Enter description (optional)"
             isDisabled={isSubmitting || isEnhancing}
           />
@@ -324,7 +324,7 @@ export default function ModalPreset({
           <Button
             label="Cancel"
             variant={ButtonVariant.SECONDARY}
-            onClick={() => handleClose()}
+            onClick={() => closeModalPreset()}
             isLoading={isSubmitting}
           />
 

@@ -60,8 +60,8 @@ export default function ProductionDataBanner() {
       data-testid="production-data-banner"
       className="flex w-full items-center justify-center gap-2 bg-red-600 px-4 py-2 text-sm font-bold text-white"
     >
-      <HiExclamationTriangle className="h-5 w-5 shrink-0" />
-      <span>PRODUCTION DATA — Read carefully before making changes</span>
+      <HiExclamationTriangle className="size-5 shrink-0" />
+      <span>PRODUCTION DATA: Read carefully before making changes</span>
     </div>
   );
 }

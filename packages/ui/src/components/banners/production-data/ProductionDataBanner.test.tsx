@@ -41,9 +41,7 @@ describe('ProductionDataBanner', () => {
     });
 
     expect(
-      screen.getByText(
-        'PRODUCTION DATA — Read carefully before making changes',
-      ),
+      screen.getByText('PRODUCTION DATA: Read carefully before making changes'),
     ).toBeDefined();
   });
 

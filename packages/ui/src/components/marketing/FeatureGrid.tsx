@@ -42,7 +42,7 @@ export default function FeatureGrid({
                 <div className="mb-12 text-xs font-black uppercase tracking-widest text-surface/20">
                   {feature.number} / {feature.label}
                 </div>
-                <Icon className="mb-8 h-10 w-10 text-surface/40 transition-all group-hover:text-surface" />
+                <Icon className="mb-8 size-10 text-surface/40 transition-all group-hover:text-surface" />
                 <h3 className="mb-4 text-xl font-black uppercase tracking-tight">
                   {feature.title}
                 </h3>
@@ -51,7 +51,7 @@ export default function FeatureGrid({
                 </p>
                 {feature.href ? (
                   <span className="mt-auto flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all hover:gap-4">
-                    View Spec <LuArrowRight className="h-3 w-3" />
+                    View Spec <LuArrowRight className="size-3" />
                   </span>
                 ) : null}
               </>

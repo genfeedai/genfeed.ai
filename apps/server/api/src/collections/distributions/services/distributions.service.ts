@@ -56,7 +56,10 @@ export class DistributionsService extends BaseService<
       platform,
     });
 
-    return distribution as unknown as DistributionDocument;
+    return {
+      ...distribution,
+      _id: distribution.id,
+    } as unknown as DistributionDocument;
   }
 
   async findByOrganization(

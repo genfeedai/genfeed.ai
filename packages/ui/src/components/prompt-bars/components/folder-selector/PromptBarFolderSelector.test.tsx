@@ -6,6 +6,8 @@ import PromptBarFolderSelector from '@ui/prompt-bars/components/folder-selector/
 import { useForm } from 'react-hook-form';
 import { describe, expect, it } from 'vitest';
 
+const EMPTY_ARRAY: never[] = [];
+
 function buildFolder(id: string, label: string): IFolder {
   return {
     createdAt: '2024-01-01',
@@ -19,7 +21,7 @@ function buildFolder(id: string, label: string): IFolder {
   };
 }
 
-function Wrapper({ folders = [] }: { folders?: IFolder[] }) {
+function Wrapper({ folders = EMPTY_ARRAY }: { folders?: IFolder[] }) {
   const form = useForm<PromptTextareaSchema>({
     defaultValues: { folder: '' },
   });

@@ -48,13 +48,13 @@ export default function VideoTrimTimeline({
         {isGeneratingThumbnails ? (
           <div className="flex items-center justify-center h-full">
             <Spinner size={ComponentSize.SM} />
-            <span className="ml-2 text-sm">Generating timeline...</span>
+            <span className="ml-2 text-sm">Generating timeline…</span>
           </div>
         ) : thumbnails.length > 0 ? (
           <div className="flex h-full">
-            {thumbnails.map((thumbnail, index) => (
+            {thumbnails.map((thumbnail) => (
               <div
-                key={index}
+                key={thumbnail.dataUrl}
                 className="flex-1 h-full bg-cover bg-center border-r border-white/[0.08] last:border-r-0"
                 style={{
                   backgroundImage: `url(${thumbnail.dataUrl})`,

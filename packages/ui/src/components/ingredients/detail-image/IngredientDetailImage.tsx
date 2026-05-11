@@ -167,7 +167,7 @@ export default function IngredientDetailImage({
           <Image
             className={cn(
               'transition-transform duration-300 group-hover:scale-105',
-              'group-hover:-rotate-1 w-auto h-auto max-h-[70vh]',
+              'group-hover:-rotate-1 size-auto max-h-[70vh]',
             )}
             alt={metadataLabel || 'Image'}
             width={metadata?.width || 1920}
@@ -186,7 +186,7 @@ export default function IngredientDetailImage({
           />
 
           {currentImage.status === IngredientStatus.PROCESSING && (
-            <LoadingOverlay message="Processing image..." />
+            <LoadingOverlay message="Processing image…" />
           )}
         </div>
 

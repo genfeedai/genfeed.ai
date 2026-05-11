@@ -20,7 +20,7 @@ export function SkeletonMarketplace() {
             <Skeleton className="h-5 w-3/4" />
             <Skeleton className="h-4 w-1/2" />
             <div className="flex items-center gap-2">
-              <Skeleton className="h-6 w-6 rounded-full" />
+              <Skeleton className="size-6 rounded-full" />
               <Skeleton className="h-4 w-24" />
             </div>
           </div>

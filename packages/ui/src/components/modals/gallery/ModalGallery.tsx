@@ -15,6 +15,8 @@ import ModalGalleryFooter from '@ui/modals/gallery/ModalGalleryFooter';
 import ModalGalleryHeader from '@ui/modals/gallery/ModalGalleryHeader';
 import Modal from '@ui/modals/modal/Modal';
 
+const EMPTY_ARRAY: never[] = [];
+
 export default function ModalGallery({
   isOpen,
   onClose,
@@ -27,7 +29,7 @@ export default function ModalGallery({
   maxSelectableItems,
   accountReference = null,
   onSelectAccountReference,
-  selectedReferences: initialSelectedReferences = [],
+  selectedReferences: initialSelectedReferences = EMPTY_ARRAY,
 }: ModalGalleryProps) {
   const {
     items,

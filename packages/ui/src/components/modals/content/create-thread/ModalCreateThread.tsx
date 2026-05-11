@@ -41,10 +41,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
 import { HiPlus, HiTrash } from 'react-icons/hi2';
 
+const EMPTY_ARRAY: never[] = [];
+
 export default function ModalCreateThread({
   ingredient,
   credential,
-  credentials = [],
+  credentials = EMPTY_ARRAY,
   onConfirm,
   onClose,
 }: ModalCreateThreadProps) {
@@ -166,7 +168,7 @@ export default function ModalCreateThread({
     <Modal id={ModalEnum.THREAD_CREATE}>
       <form ref={formRef} onSubmit={onSubmit} className="space-y-6">
         <div className="space-y-4">
-          <h2 className="text-2xl font-bold">Create Thread</h2>
+          <h2 className="text-2xl font-semibold">Create Thread</h2>
           <p className="text-foreground/70 text-sm">
             Create multiple posts that will be linked together as a thread
           </p>
@@ -187,8 +189,8 @@ export default function ModalCreateThread({
         {hasFormErrors(form.formState.errors) && (
           <Alert type={AlertCategory.ERROR}>
             <div className="space-y-1">
-              {parseFormErrors(form.formState.errors).map((error, index) => (
-                <div key={index}>{error}</div>
+              {parseFormErrors(form.formState.errors).map((error) => (
+                <div key={error}>{error}</div>
               ))}
             </div>
           </Alert>
@@ -266,7 +268,7 @@ export default function ModalCreateThread({
                 <Button
                   type="button"
                   label="Add Post"
-                  icon={<HiPlus className="h-4 w-4" />}
+                  icon={<HiPlus className="size-4" />}
                   variant={ButtonVariant.DEFAULT}
                   size={ButtonSize.SM}
                   onClick={addPost}
@@ -291,7 +293,7 @@ export default function ModalCreateThread({
                         <Button
                           type="button"
                           label="Remove"
-                          icon={<HiTrash className="h-4 w-4" />}
+                          icon={<HiTrash className="size-4" />}
                           variant={ButtonVariant.GHOST}
                           size={ButtonSize.XS}
                           className="text-error"
@@ -369,7 +371,7 @@ export default function ModalCreateThread({
                     <div className="text-sm">
                       {content || (
                         <span className="text-foreground/40 italic">
-                          No content yet...
+                          No content yet…
                         </span>
                       )}
                     </div>
@@ -398,7 +400,7 @@ export default function ModalCreateThread({
             type="submit"
             label={
               isSubmitting
-                ? 'Creating Thread...'
+                ? 'Creating Thread…'
                 : `Create Thread (${fields.length} posts)`
             }
             variant={ButtonVariant.DEFAULT}

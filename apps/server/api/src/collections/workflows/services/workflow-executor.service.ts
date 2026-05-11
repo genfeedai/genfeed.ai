@@ -311,6 +311,7 @@ export class WorkflowExecutorService {
     const execution = await this.executionsService.findOne({
       _id: executionId,
       isDeleted: false,
+      organizationId,
     });
 
     if (!execution) {
@@ -1803,7 +1804,11 @@ export class WorkflowExecutorService {
       ),
       metadata: this.readObjectRecord(workflowRecord.metadata) ?? undefined,
       nodes: this.readArray<WorkflowVisualNode>(workflowRecord.nodes),
+      // Alias Prisma scalar fields to the relation names expected by the engine adapter
+      organization:
+        workflowRecord.organizationId ?? workflowRecord.organization,
       steps: this.readArray<WorkflowStep>(workflowRecord.steps),
+      user: workflowRecord.userId ?? workflowRecord.user,
     };
   }
 

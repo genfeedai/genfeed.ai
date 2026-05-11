@@ -4,6 +4,8 @@ import { HiCheck, HiPencil, HiPlus, HiXMark } from 'react-icons/hi2';
 import { Badge } from './badge';
 import { Button } from './button';
 
+const EMPTY_ARRAY: never[] = [];
+
 export interface TagsEditableProps {
   label: string;
   value?: string[];
@@ -16,8 +18,8 @@ export interface TagsEditableProps {
 
 export default function TagsEditable({
   label,
-  value = [],
-  placeholder = 'Add a tag...',
+  value = EMPTY_ARRAY,
+  placeholder = 'Add a tag…',
   onSave,
   isDisabled = false,
   maxTags = 10,
@@ -54,13 +56,15 @@ export default function TagsEditable({
   const handleAddTag = () => {
     const trimmedValue = inputValue.trim();
     if (trimmedValue && !tags.includes(trimmedValue) && tags.length < maxTags) {
-      setTags([...tags, trimmedValue]);
+      setTags((previousTags) => [...previousTags, trimmedValue]);
       setInputValue('');
     }
   };
 
   const handleRemoveTag = (tagToRemove: string) => {
-    setTags(tags.filter((tag) => tag !== tagToRemove));
+    setTags((previousTags) =>
+      previousTags.filter((tag) => tag !== tagToRemove),
+    );
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -84,7 +88,7 @@ export default function TagsEditable({
             className="h-6 px-2 inline-flex items-center justify-center hover:bg-accent hover:text-accent-foreground"
             ariaLabel="Edit tags"
           >
-            <HiPencil className="w-3 h-3" />
+            <HiPencil className="size-3" />
           </Button>
         )}
       </div>
@@ -102,7 +106,7 @@ export default function TagsEditable({
                   className="hover:text-error"
                   ariaLabel={`Remove ${tag}`}
                 >
-                  <HiXMark className="w-3 h-3" />
+                  <HiXMark className="size-3" />
                 </Button>
               </Badge>
             ))}
@@ -153,7 +157,7 @@ export default function TagsEditable({
               isDisabled={isDisabled}
               ariaLabel="Save tags"
             >
-              <HiCheck className="w-3 h-3" />
+              <HiCheck className="size-3" />
               Save
             </Button>
           </div>

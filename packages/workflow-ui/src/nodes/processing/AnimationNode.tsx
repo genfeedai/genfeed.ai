@@ -91,7 +91,7 @@ function AnimationNodeComponent(props: NodeProps) {
           onClick={handleExpand}
           title="Expand preview"
         >
-          <Expand className="h-3 w-3" />
+          <Expand className="size-3" />
         </Button>
       ) : null,
     [nodeData.outputVideo, handleExpand],
@@ -135,11 +135,17 @@ function AnimationNodeComponent(props: NodeProps) {
         {/* Preset Selector */}
         {nodeData.curveType === 'preset' && (
           <div>
-            <label className="text-xs text-[var(--muted-foreground)]">
+            <label
+              className="text-xs text-[var(--muted-foreground)]"
+              htmlFor={`animation-easing-preset-${id}`}
+            >
               Easing Preset
             </label>
             <Select value={nodeData.preset} onValueChange={handlePresetChange}>
-              <SelectTrigger className="nodrag h-8 w-full">
+              <SelectTrigger
+                id={`animation-easing-preset-${id}`}
+                className="nodrag h-8 w-full"
+              >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -167,7 +173,7 @@ function AnimationNodeComponent(props: NodeProps) {
         {/* Curve Preview (preset only) */}
         {nodeData.curveType === 'preset' && (
           <div className="h-20 bg-[var(--background)] rounded border border-[var(--border)] p-2">
-            <svg viewBox="0 0 100 100" className="w-full h-full">
+            <svg viewBox="0 0 100 100" className="size-full">
               <path
                 d={pathD}
                 fill="none"
@@ -224,9 +230,9 @@ function AnimationNodeComponent(props: NodeProps) {
               size="icon-sm"
               onClick={handleProcess}
               disabled={nodeData.status === 'processing'}
-              className="absolute top-1 right-1 h-6 w-6 bg-black/50 hover:bg-black/70"
+              className="absolute top-1 right-1 size-6 bg-black/50 hover:bg-black/70"
             >
-              <RefreshCw className="w-3 h-3" />
+              <RefreshCw className="size-3" />
             </Button>
           </div>
         )}
@@ -241,9 +247,9 @@ function AnimationNodeComponent(props: NodeProps) {
             className="w-full"
           >
             {nodeData.status === 'processing' ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="size-4 animate-spin" />
             ) : (
-              <Wand2 className="w-4 h-4" />
+              <Wand2 className="size-4" />
             )}
             {nodeData.status === 'processing'
               ? 'Applying...'
@@ -254,7 +260,7 @@ function AnimationNodeComponent(props: NodeProps) {
         {/* Help text for required inputs */}
         {!hasRequiredInputs && nodeData.status !== 'processing' && (
           <div className="text-xs text-[var(--muted-foreground)] flex items-center gap-1">
-            <AlertCircle className="w-3 h-3" />
+            <AlertCircle className="size-3" />
             Connect a video to animate
           </div>
         )}

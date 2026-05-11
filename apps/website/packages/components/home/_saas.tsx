@@ -52,7 +52,7 @@ const CORE_FEATURES = [
 
 const CLOUD_FEATURES = [
   'Everything in Core, plus:',
-  'Hosted access from $8/mo + PAYG',
+  'Hosted access from $49/mo + PAYG',
   'Cloud teams for multi-org collaboration',
   'Multi-brand workflows',
   'Priority support & SLA',

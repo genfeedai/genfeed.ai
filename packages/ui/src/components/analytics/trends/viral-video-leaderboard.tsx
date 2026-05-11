@@ -9,6 +9,7 @@ import Badge from '@ui/display/badge/Badge';
 import Table from '@ui/display/table/Table';
 import { Button } from '@ui/primitives/button';
 import { PLATFORM_CONFIGS } from '@ui-constants/platform.constant';
+import Image from 'next/image';
 import { HiOutlineFire, HiOutlinePlay } from 'react-icons/hi2';
 
 const TIMEFRAME_OPTIONS = [
@@ -33,8 +34,8 @@ export function ViralVideoLeaderboard({
           <div className="animate-pulse h-8 bg-background w-32" />
         </div>
         <div className="animate-pulse space-y-3">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="h-16 bg-background" />
+          {[1, 2, 3, 4, 5].map((placeholderId) => (
+            <div key={placeholderId} className="h-16 bg-background" />
           ))}
         </div>
       </div>
@@ -44,7 +45,7 @@ export function ViralVideoLeaderboard({
   if (videos.length === 0) {
     return (
       <div className={`text-center py-12 ${className}`}>
-        <HiOutlineFire className="h-12 w-12 mx-auto mb-3 opacity-30" />
+        <HiOutlineFire className="size-12 mx-auto mb-3 opacity-30" />
         <p className="text-foreground/60">No viral videos found</p>
         <p className="text-sm text-foreground/40 mt-1">
           Check back later for trending content
@@ -110,14 +111,17 @@ export function ViralVideoLeaderboard({
             render: (video) => (
               <div className="relative w-16 h-10 overflow-hidden bg-background flex-shrink-0">
                 {video.thumbnailUrl ? (
-                  <img
+                  <Image
                     src={video.thumbnailUrl}
                     alt={video.title || 'Video thumbnail'}
-                    className="w-full h-full object-cover"
+                    fill
+                    sizes="64px"
+                    className="size-full object-cover"
+                    unoptimized
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <HiOutlinePlay className="w-6 h-6 text-foreground/30" />
+                  <div className="size-full flex items-center justify-center">
+                    <HiOutlinePlay className="size-6 text-foreground/30" />
                   </div>
                 )}
               </div>
@@ -149,10 +153,7 @@ export function ViralVideoLeaderboard({
               return (
                 <div className="flex items-center gap-2">
                   {Icon && (
-                    <Icon
-                      className="h-4 w-4"
-                      style={{ color: config?.color }}
-                    />
+                    <Icon className="size-4" style={{ color: config?.color }} />
                   )}
                   <span className="font-medium text-sm">
                     {config?.label || video.platform}

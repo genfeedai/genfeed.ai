@@ -26,15 +26,15 @@ import { HiNewspaper } from 'react-icons/hi2';
 const SIZE_CLASSES = {
   [ComponentSize.LG]: {
     container: 'px-2.5 py-1.5 gap-2 text-sm',
-    icon: 'w-4 h-4',
+    icon: 'size-4',
   },
   [ComponentSize.MD]: {
     container: 'px-2 py-1 gap-1.5 text-xs',
-    icon: 'w-3.5 h-3.5',
+    icon: 'size-3.5',
   },
   [ComponentSize.SM]: {
     container: 'px-1.5 py-0.5 gap-1 text-xs',
-    icon: 'w-3 h-3',
+    icon: 'size-3',
   },
 };
 

@@ -13,7 +13,7 @@ vi.mock('next/image', () => ({
     ...props
   }: {
     alt: string;
-  }) => <img alt={alt} {...props} data-testid="next-image" />,
+  }) => <input type="image" alt={alt} {...props} data-testid="next-image" />,
 }));
 
 // Mock the environment service
@@ -141,7 +141,7 @@ describe('PromptBarActionsRow', () => {
     handleSubmitForm: vi.fn(),
     hasAnyImagenModel: false,
     hasEndFrame: false,
-    iconButtonClass: 'h-10 w-10 p-0 flex items-center justify-center',
+    iconButtonClass: 'size-10 p-0 flex items-center justify-center',
     isAutoMode: false,
     isDisabledState: false,
     isEnhancing: false,

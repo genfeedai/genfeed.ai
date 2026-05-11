@@ -41,23 +41,29 @@ export default function ModalWorkflow({
   onConfirm,
   onClose,
 }: ModalCrudProps<IWorkflow>) {
-  const { form, formRef, isSubmitting, onSubmit, closeModal, handleDelete } =
-    useCrudModal<IWorkflow, WorkflowSchema>({
-      defaultValues: {
-        description: '',
-        key: '',
-        label: '',
-        status: 'draft',
-        tasks: [],
-        trigger: 'manual',
-      },
-      entity: item || null,
-      modalId: ModalEnum.WORKFLOW,
-      onClose,
-      onConfirm,
-      schema: workflowSchema,
-      serviceFactory: (token) => WorkflowsService.getInstance(token),
-    });
+  const {
+    form,
+    formRef,
+    isSubmitting,
+    onSubmit,
+    closeModal,
+    handleDelete: deleteModalWorkflow,
+  } = useCrudModal<IWorkflow, WorkflowSchema>({
+    defaultValues: {
+      description: '',
+      key: '',
+      label: '',
+      status: 'draft',
+      tasks: [],
+      trigger: 'manual',
+    },
+    entity: item || null,
+    modalId: ModalEnum.WORKFLOW,
+    onClose,
+    onConfirm,
+    schema: workflowSchema,
+    serviceFactory: (token) => WorkflowsService.getInstance(token),
+  });
 
   const [selectedTasks, setSelectedTasks] = useState<string[]>(
     item?.tasks || [],
@@ -67,7 +73,7 @@ export default function ModalWorkflow({
     form.setValue('tasks', selectedTasks, { shouldValidate: true });
   }, [selectedTasks, form]);
 
-  const handleChange = (
+  const updateModalWorkflow = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
@@ -104,8 +110,8 @@ export default function ModalWorkflow({
         {hasFormErrors(form.formState.errors) && (
           <Alert type={AlertCategory.ERROR} className="mb-4">
             <div className="space-y-1">
-              {parseFormErrors(form.formState.errors).map((error, index) => (
-                <div key={index}>{error}</div>
+              {parseFormErrors(form.formState.errors).map((error) => (
+                <div key={error}>{error}</div>
               ))}
             </div>
           </Alert>
@@ -116,7 +122,7 @@ export default function ModalWorkflow({
             type="text"
             name="label"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalWorkflow}
             placeholder="Enter workflow name"
             isRequired={true}
             isDisabled={isSubmitting}
@@ -128,7 +134,7 @@ export default function ModalWorkflow({
             type="text"
             name="key"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalWorkflow}
             placeholder="workflow-key"
             isRequired={true}
             isDisabled={isSubmitting}
@@ -139,7 +145,7 @@ export default function ModalWorkflow({
           <Textarea
             name="description"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalWorkflow}
             placeholder="Describe what this workflow does"
             isDisabled={isSubmitting}
           />
@@ -149,7 +155,7 @@ export default function ModalWorkflow({
           <SelectField
             name="trigger"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalWorkflow}
             isDisabled={isSubmitting}
           >
             <option value="manual">Manual</option>
@@ -230,7 +236,7 @@ export default function ModalWorkflow({
           <SelectField
             name="status"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalWorkflow}
             isDisabled={isSubmitting}
           >
             <option value="draft">Draft</option>
@@ -244,7 +250,9 @@ export default function ModalWorkflow({
             <Button
               label="Delete"
               variant={ButtonVariant.DESTRUCTIVE}
-              onClick={handleDelete ? () => handleDelete() : undefined}
+              onClick={
+                deleteModalWorkflow ? () => deleteModalWorkflow() : undefined
+              }
               isLoading={isSubmitting}
             />
           )}

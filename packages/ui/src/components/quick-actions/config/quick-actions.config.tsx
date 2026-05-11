@@ -38,7 +38,7 @@ import {
   MdOutlineCropSquare,
 } from 'react-icons/md';
 
-const ICON_CLASS = 'w-4 h-4';
+const ICON_CLASS = 'size-4';
 
 /**
  * Base configuration for creating a quick action.
@@ -85,7 +85,7 @@ export const createPublishAction = (
   }
 
   return {
-    icon: <HiArrowUpTray className="w-4 h-4" />,
+    icon: <HiArrowUpTray className="size-4" />,
     id: 'publish',
     isLoading,
     label: 'Publish',
@@ -108,7 +108,7 @@ export const createMergeAction = (
   }
 
   return {
-    icon: isSelected ? <HiOutlineMinus className="w-4 h-4" /> : <HiPlus />,
+    icon: isSelected ? <HiOutlineMinus className="size-4" /> : <HiPlus />,
     id: 'merge',
     isLoading,
     label: isSelected ? 'Remove' : 'Add',
@@ -170,7 +170,7 @@ export const createFavoriteAction = (
   return {
     icon: (
       <HiStar
-        className={`w-4 h-4 ${ingredient.isFavorite ? 'fill-yellow-500' : ''}`}
+        className={`size-4 ${ingredient.isFavorite ? 'fill-yellow-500' : ''}`}
       />
     ),
     id: 'favorite',
@@ -196,7 +196,7 @@ export const createVoteAction = (
   }
 
   return {
-    icon: <HiHandThumbUp className="w-4 h-4" />,
+    icon: <HiHandThumbUp className="size-4" />,
     id: 'vote',
     isLoading,
     label: `Vote ${ingredient.totalVotes || 0}`,
@@ -489,7 +489,7 @@ export const createPromptAction = (
   }
 
   return {
-    icon: <HiClipboardDocument className="w-4 h-4" />,
+    icon: <HiClipboardDocument className="size-4" />,
     id: 'prompt',
     label: 'Prompt',
     onClick: () => handler(ingredient),
@@ -509,7 +509,7 @@ export const createUsePromptAction = (
   }
 
   return {
-    icon: <HiCommandLine className="w-4 h-4" />,
+    icon: <HiCommandLine className="size-4" />,
     id: 'use-prompt',
     isLoading,
     label: 'Use Prompt',
@@ -603,7 +603,7 @@ export const createMarkValidatedAction = (
   return {
     icon: (
       <HiCheckCircle
-        className={`w-4 h-4 ${isValidated ? 'text-green-500' : 'text-white'}`}
+        className={`size-4 ${isValidated ? 'text-green-500' : 'text-white'}`}
       />
     ),
     id: 'mark-validated',
@@ -630,7 +630,7 @@ export const createMarkRejectedAction = (
   return {
     icon: (
       <HiXMark
-        className={`w-4 h-4 ${isRejected ? 'text-red-500' : 'text-white'}`}
+        className={`size-4 ${isRejected ? 'text-red-500' : 'text-white'}`}
       />
     ),
     id: 'mark-rejected',

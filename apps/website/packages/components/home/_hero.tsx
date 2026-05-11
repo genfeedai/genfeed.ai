@@ -107,6 +107,7 @@ const DECK_POSITIONS = [
 
 export default function HomeHero(): React.ReactElement {
   const heroRef = useGsapTimeline<HTMLElement>({ steps: HERO_TIMELINE_STEPS });
+  const signUpHref = `${EnvironmentService.apps.app}/sign-up?plan=hosted`;
   const [activeCard, setActiveCard] = useState(0);
 
   useEffect(() => {
@@ -151,7 +152,7 @@ export default function HomeHero(): React.ReactElement {
           <div className="max-w-2xl self-center">
             <HStack className="hero-badge opacity-0 inline-flex items-center gap-2 px-4 py-1.5 gen-badge text-[10px] font-black uppercase tracking-[0.2em]">
               <HiSparkles className="h-3 w-3" />
-              <Text>Public beta</Text>
+              <Text>Cloud app first</Text>
             </HStack>
 
             <Heading
@@ -167,8 +168,9 @@ export default function HomeHero(): React.ReactElement {
               as="p"
               className="hero-description opacity-0 mt-6 max-w-xl text-lg leading-relaxed gen-text-muted md:text-xl"
             >
-              Run AI influencer production, approvals, publishing, and
-              performance tracking for every client brand from one system.
+              Create, approve, and publish AI content across every channel from
+              one managed workspace. Pay for access, then pay for what you
+              create.
             </Text>
 
             <HStack className="mt-8 flex-wrap gap-4">
@@ -176,25 +178,11 @@ export default function HomeHero(): React.ReactElement {
                 asChild
                 size={ButtonSize.PUBLIC}
                 className="hero-cta opacity-0 shadow-[var(--shadow-glow-md)]"
-                trackingData={{
-                  action: EnvironmentService.isPreLaunch
-                    ? 'book_call_hero'
-                    : 'signup_hero',
-                }}
+                trackingData={{ action: 'signup_cloud_app_hero' }}
                 trackingName="hero_cta_click"
               >
-                <a
-                  href={
-                    EnvironmentService.isPreLaunch
-                      ? EnvironmentService.calendly
-                      : `${EnvironmentService.apps.app}/sign-up`
-                  }
-                  rel="noopener noreferrer"
-                  target="_blank"
-                >
-                  {EnvironmentService.isPreLaunch
-                    ? 'Book a Call'
-                    : 'Start Creating'}
+                <a href={signUpHref} rel="noopener noreferrer" target="_blank">
+                  Start Cloud App
                   <LuArrowRight className="h-4 w-4" />
                 </a>
               </ButtonTracked>
@@ -212,11 +200,11 @@ export default function HomeHero(): React.ReactElement {
             </HStack>
           </div>
 
-          <div className="hero-cta opacity-0 flex w-full items-center justify-center lg:justify-end">
+          <div className="hero-cta opacity-0 hidden w-full items-center justify-end lg:flex">
             <div
-              className="relative w-full max-w-[460px]"
+              className="relative w-full max-w-[420px] xl:max-w-[460px]"
               data-testid="home-hero-card-deck"
-              style={{ height: 640 }}
+              style={{ aspectRatio: '9/16', maxHeight: '70vh' }}
             >
               <div className="pointer-events-none absolute -left-12 top-12 h-32 w-32 rounded-full bg-[var(--gen-accent-glow)] blur-3xl opacity-25" />
               <div className="pointer-events-none absolute -right-10 bottom-16 h-40 w-40 rounded-full bg-white/6 blur-3xl" />
@@ -277,7 +265,7 @@ export default function HomeHero(): React.ReactElement {
 
                       <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between gap-4">
                         <div className="rounded-full border border-white/12 bg-black/45 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-white/72 backdrop-blur-sm">
-                          AI influencer avatar
+                          AI content
                         </div>
                         <div className="rounded-full border border-emerald-400/18 bg-emerald-400/10 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-emerald-200 backdrop-blur-sm">
                           Live campaign
@@ -304,7 +292,7 @@ export default function HomeHero(): React.ReactElement {
                             {post.handle}
                           </span>{' '}
                           {post.caption}{' '}
-                          <span className="text-sky-300">#AIInfluencer</span>{' '}
+                          <span className="text-sky-300">#AIContent</span>{' '}
                           <span className="text-sky-300">#Genfeed</span>
                         </p>
                         <p className="text-[11px] uppercase tracking-[0.16em] text-white/34">

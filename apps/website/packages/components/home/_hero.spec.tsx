@@ -36,17 +36,17 @@ describe('HomeHero', () => {
 
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
     expect(
-      screen.getByRole('link', { name: /start creating/i }),
+      screen.getByRole('link', { name: /start cloud app/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: /view pricing/i }),
+      screen.getByRole('link', { name: /book a demo/i }),
     ).toBeInTheDocument();
   });
 
-  it('renders the Instagram-style hero card deck instead of the poster visual', () => {
+  it('renders the cloud console visual instead of the poster visual', () => {
     render(<HomeHero />);
 
-    expect(screen.getByTestId('home-hero-card-deck')).toBeInTheDocument();
+    expect(screen.getByTestId('home-hero-cloud-console')).toBeInTheDocument();
     expect(screen.queryByTestId('home-hero-poster')).not.toBeInTheDocument();
   });
 });

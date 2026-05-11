@@ -661,9 +661,9 @@ export class ByokService {
   ): Promise<{ isValid: boolean; error?: string }> {
     try {
       await firstValueFrom(
-        this.httpService.get(
-          `https://api.apify.com/v2/acts?token=${apiKey}&limit=1`,
-        ),
+        this.httpService.get('https://api.apify.com/v2/acts?limit=1', {
+          headers: { Authorization: `Bearer ${apiKey}` },
+        }),
       );
       return { isValid: true };
     } catch {

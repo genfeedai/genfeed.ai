@@ -197,7 +197,7 @@ function Spinner() {
   return (
     <span
       aria-label="Loading"
-      className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent motion-reduce:animate-[spin_1.5s_linear_infinite]"
+      className="inline-block size-4 animate-spin rounded-full border-2 border-current border-r-transparent motion-reduce:animate-[spin_1.5s_linear_infinite]"
       role="status"
     />
   );
@@ -294,7 +294,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     const wrappedButton = withWrapper ? (
       <div className={cn('relative inline-flex', wrapperClassName)}>
         {isPingEnabled ? (
-          <span className="absolute -top-1 -right-1 h-3 w-3 animate-ping rounded-full bg-red-500" />
+          <span className="absolute -top-1 -right-1 size-3 animate-ping rounded-full bg-red-500" />
         ) : null}
         {buttonElement}
       </div>

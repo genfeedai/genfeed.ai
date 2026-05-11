@@ -16,11 +16,11 @@ describe('Button', () => {
   });
 
   it('handles click events', () => {
-    const handleClick = vi.fn();
-    render(<Button label="Test Button" onClick={handleClick} />);
+    const activateButton = vi.fn();
+    render(<Button label="Test Button" onClick={activateButton} />);
 
     fireEvent.click(screen.getByRole('button'));
-    expect(handleClick).toHaveBeenCalledTimes(1);
+    expect(activateButton).toHaveBeenCalledTimes(1);
   });
 
   it('handles mouse down events', () => {
@@ -84,21 +84,25 @@ describe('Button', () => {
   });
 
   it('calls onClick handler when clicked for non-submit buttons', () => {
-    const handleClick = vi.fn();
-    render(<Button label="Test Button" onClick={handleClick} type="button" />);
+    const activateButton = vi.fn();
+    render(
+      <Button label="Test Button" onClick={activateButton} type="button" />,
+    );
 
     const button = screen.getByRole('button');
     fireEvent.click(button);
-    expect(handleClick).toHaveBeenCalledTimes(1);
+    expect(activateButton).toHaveBeenCalledTimes(1);
   });
 
   it('calls onClick handler for submit buttons', () => {
-    const handleClick = vi.fn();
-    render(<Button label="Test Button" onClick={handleClick} type="submit" />);
+    const activateButton = vi.fn();
+    render(
+      <Button label="Test Button" onClick={activateButton} type="submit" />,
+    );
 
     const button = screen.getByRole('button');
     fireEvent.click(button);
-    expect(handleClick).toHaveBeenCalledTimes(1);
+    expect(activateButton).toHaveBeenCalledTimes(1);
   });
 
   it('calls onMouseDown handler when mouse down', () => {

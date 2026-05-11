@@ -30,27 +30,33 @@ export default function ModalBrandLink({
 }: ModalBrandLinkProps) {
   const [validationError, setValidationError] = useState<string | null>(null);
 
-  const { form, formRef, isSubmitting, onSubmit, closeModal, handleDelete } =
-    useCrudModal<ILink, LinkSchema>({
-      defaultValues: {
-        brand: brandId ?? '',
-        category: LinkCategory.WEBSITE,
-        label: '',
-        url: '',
-      },
-      entity: link || null,
-      modalId: ModalEnum.BRAND_LINK,
-      onConfirm,
-      schema: linkSchema,
-      serviceFactory: (token) => LinksService.getInstance(token),
-      transformSubmitData: (formData) => {
-        // For POST operations, ensure brandId is included
-        if (!link && brandId) {
-          return { ...formData, brand: brandId };
-        }
-        return formData;
-      },
-    });
+  const {
+    form,
+    formRef,
+    isSubmitting,
+    onSubmit,
+    closeModal,
+    handleDelete: deleteModalBrandLink,
+  } = useCrudModal<ILink, LinkSchema>({
+    defaultValues: {
+      brand: brandId ?? '',
+      category: LinkCategory.WEBSITE,
+      label: '',
+      url: '',
+    },
+    entity: link || null,
+    modalId: ModalEnum.BRAND_LINK,
+    onConfirm,
+    schema: linkSchema,
+    serviceFactory: (token) => LinksService.getInstance(token),
+    transformSubmitData: (formData) => {
+      // For POST operations, ensure brandId is included
+      if (!link && brandId) {
+        return { ...formData, brand: brandId };
+      }
+      return formData;
+    },
+  });
 
   // Populate form when editing
   useEffect(() => {
@@ -64,7 +70,7 @@ export default function ModalBrandLink({
     }
   }, [link, brandId, form]);
 
-  const handleChange = (
+  const updateModalBrandLink = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
@@ -82,8 +88,8 @@ export default function ModalBrandLink({
         {hasFormErrors(form.formState.errors) && (
           <Alert type={AlertCategory.ERROR} className="mb-4">
             <div className="space-y-1">
-              {parseFormErrors(form.formState.errors).map((error, index) => (
-                <div key={index}>{error}</div>
+              {parseFormErrors(form.formState.errors).map((error) => (
+                <div key={error}>{error}</div>
               ))}
             </div>
           </Alert>
@@ -94,7 +100,7 @@ export default function ModalBrandLink({
             type="text"
             name="label"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalBrandLink}
             placeholder="Enter link label"
             isRequired={true}
             isDisabled={isSubmitting}
@@ -105,16 +111,14 @@ export default function ModalBrandLink({
           <SelectField
             name="category"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalBrandLink}
             isDisabled={isSubmitting}
           >
-            {Object.values(LinkCategory).map(
-              (category: LinkCategory, index: number) => (
-                <option key={index} value={category}>
-                  {category}
-                </option>
-              ),
-            )}
+            {Object.values(LinkCategory).map((category: LinkCategory) => (
+              <option key={category} value={category}>
+                {category}
+              </option>
+            ))}
           </SelectField>
         </div>
 
@@ -123,7 +127,7 @@ export default function ModalBrandLink({
             type="url"
             name="url"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalBrandLink}
             placeholder="https://genfeed.ai"
             isRequired={true}
             isDisabled={isSubmitting}
@@ -140,13 +144,13 @@ export default function ModalBrandLink({
             onClick={() => closeModal()}
           />
 
-          {link && handleDelete && (
+          {link && deleteModalBrandLink && (
             <Button
               label="Delete"
               variant={ButtonVariant.DESTRUCTIVE}
               size={ButtonSize.LG}
               className="md:h-9 md:px-4 md:py-2 mb-4 md:mb-0"
-              onClick={handleDelete}
+              onClick={deleteModalBrandLink}
               isLoading={isSubmitting}
             />
           )}

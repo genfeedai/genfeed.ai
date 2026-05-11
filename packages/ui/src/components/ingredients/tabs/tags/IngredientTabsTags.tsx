@@ -201,7 +201,7 @@ export default function IngredientTabsTags({
           <div className="flex gap-2">
             <Input
               type="text"
-              placeholder="Enter tag name..."
+              placeholder="Enter tag name…"
               className="flex-1"
               value={newTagName}
               onChange={(e) => setNewTagName(e.target.value)}
@@ -210,7 +210,7 @@ export default function IngredientTabsTags({
             />
 
             <Button
-              label={isCreatingTag ? 'Creating...' : 'Create'}
+              label={isCreatingTag ? 'Creating…' : 'Create'}
               onClick={handleCreateTag}
               isLoading={isCreatingTag}
               isDisabled={!newTagName.trim()}
@@ -233,7 +233,7 @@ export default function IngredientTabsTags({
           </label>
           <Input
             type="text"
-            placeholder="Search tags..."
+            placeholder="Search tags…"
             className="mb-3"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -242,7 +242,7 @@ export default function IngredientTabsTags({
           <div className="max-h-64 overflow-y-auto">
             {isLoading ? (
               <div className="text-center py-4">
-                <span className="inline-block w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
+                <span className="inline-block size-5 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
               </div>
             ) : filteredAvailableTags.length === 0 ? (
               <p className="text-muted-foreground text-center py-4">

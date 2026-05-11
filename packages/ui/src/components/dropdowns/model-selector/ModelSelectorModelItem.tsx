@@ -52,17 +52,17 @@ const ModelSelectorModelItem = memo(function ModelSelectorModelItem({
           name={`model-${model.key}`}
           isChecked={isSelected}
           onChange={() => {}}
-          className="h-3.5 w-3.5 !border-white/20 data-[state=checked]:!bg-blue-500 data-[state=checked]:!border-blue-500 data-[state=checked]:!text-white"
+          className="size-3.5 !border-white/20 data-[state=checked]:!bg-blue-500 data-[state=checked]:!border-blue-500 data-[state=checked]:!text-white"
         />
       </div>
 
       <div
-        className="mt-0.5 h-4 w-4 rounded-sm flex items-center justify-center text-[9px] font-bold shrink-0 border border-white/8"
+        className="mt-0.5 size-4 rounded-sm flex items-center justify-center text-[9px] font-bold shrink-0 border border-white/8"
         style={{ backgroundColor: `${brandColor}20`, color: brandColor }}
       >
         {BrandIcon ? (
           <BrandIcon
-            className="h-2.5 w-2.5"
+            className="size-2.5"
             data-testid="model-option-provider-icon"
           />
         ) : (
@@ -102,7 +102,7 @@ const ModelSelectorModelItem = memo(function ModelSelectorModelItem({
             : 'text-foreground/20 hover:text-foreground/40',
         )}
       >
-        <HiStar className={cn('h-3.5 w-3.5', isFavorite && 'fill-current')} />
+        <HiStar className={cn('size-3.5', isFavorite && 'fill-current')} />
       </Button>
     </CommandItem>
   );

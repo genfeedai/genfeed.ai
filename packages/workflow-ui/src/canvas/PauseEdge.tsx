@@ -5,6 +5,8 @@ import { BaseEdge, getBezierPath } from '@xyflow/react';
 import { Pause } from 'lucide-react';
 import { memo } from 'react';
 
+const EMPTY_EDGE_STYLE: NonNullable<EdgeProps['style']> = {};
+
 function PauseEdgeComponent({
   id,
   sourceX,
@@ -13,7 +15,7 @@ function PauseEdgeComponent({
   targetY,
   sourcePosition,
   targetPosition,
-  style = {},
+  style = EMPTY_EDGE_STYLE,
   markerEnd,
   data,
 }: EdgeProps) {
@@ -49,8 +51,8 @@ function PauseEdgeComponent({
           y={labelY - 10}
           className="pointer-events-none"
         >
-          <div className="flex items-center justify-center w-5 h-5 rounded-full bg-amber-500 text-white">
-            <Pause className="w-3 h-3" />
+          <div className="flex items-center justify-center size-5 rounded-full bg-amber-500 text-white">
+            <Pause className="size-3" />
           </div>
         </foreignObject>
       )}

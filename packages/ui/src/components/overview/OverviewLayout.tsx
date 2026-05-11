@@ -9,11 +9,13 @@ import Container from '@ui/layout/container/Container';
 import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
 import Link from 'next/link';
 
+const EMPTY_ARRAY: never[] = [];
+
 export default function OverviewLayout({
   label,
   description,
   icon,
-  cards = [],
+  cards = EMPTY_ARRAY,
   actionsTitle = 'Quick Actions',
   header,
   children,
@@ -59,10 +61,10 @@ export default function OverviewLayout({
                       <CardIcon
                         icon={card.icon}
                         className={cn(
-                          'gen-shell-surface flex h-11 w-11 items-center justify-center rounded-md border-white/[0.08]',
+                          'gen-shell-surface flex size-11 items-center justify-center rounded-md border-white/[0.08]',
                           card.color,
                         )}
-                        iconClassName="h-5 w-5"
+                        iconClassName="size-5"
                       />
                     </div>
                   </div>

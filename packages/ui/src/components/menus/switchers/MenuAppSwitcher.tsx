@@ -63,7 +63,7 @@ export default function MenuAppSwitcher() {
         category: 'main',
         description: 'Content overview & dashboard',
         href: `${EnvironmentService.apps.app}/overview`,
-        icon: <HiOutlineSquares2X2 className="w-4 h-4" />,
+        icon: <HiOutlineSquares2X2 className="size-4" />,
         label: 'Overview',
         shortcut: ['⌘', '1'],
       },
@@ -71,7 +71,7 @@ export default function MenuAppSwitcher() {
         category: 'main',
         description: 'Create AI content',
         href: EnvironmentService.apps.app,
-        icon: <HiOutlinePaintBrush className="w-4 h-4" />,
+        icon: <HiOutlinePaintBrush className="size-4" />,
         label: 'Studio',
         shortcut: ['⌘', '2'],
       },
@@ -79,7 +79,7 @@ export default function MenuAppSwitcher() {
         category: 'main',
         description: 'Manage your content library',
         href: `${EnvironmentService.apps.app}/library/ingredients`,
-        icon: <HiOutlineFolderOpen className="w-4 h-4" />,
+        icon: <HiOutlineFolderOpen className="size-4" />,
         label: 'Library',
         shortcut: ['⌘', '3'],
       },
@@ -87,7 +87,7 @@ export default function MenuAppSwitcher() {
         category: 'main',
         description: 'Publish content to social platforms',
         href: `${EnvironmentService.apps.app}${getPublisherPostsHref()}`,
-        icon: <HiOutlinePaperAirplane className="w-4 h-4" />,
+        icon: <HiOutlinePaperAirplane className="size-4" />,
         label: 'Posts',
         shortcut: ['⌘', '4'],
       },
@@ -95,7 +95,7 @@ export default function MenuAppSwitcher() {
         category: 'main',
         description: 'View performance metrics',
         href: `${EnvironmentService.apps.app}/analytics/overview`,
-        icon: <HiOutlineChartBar className="w-4 h-4" />,
+        icon: <HiOutlineChartBar className="size-4" />,
         label: 'Analytics',
         shortcut: ['⌘', '5'],
       },
@@ -103,7 +103,7 @@ export default function MenuAppSwitcher() {
         category: 'main',
         description: 'Manage preferences & integrations',
         href: `${EnvironmentService.apps.app}/settings`,
-        icon: <HiOutlineCog6Tooth className="w-4 h-4" />,
+        icon: <HiOutlineCog6Tooth className="size-4" />,
         label: 'Settings',
         shortcut: ['⌘', 'S'],
       },
@@ -112,7 +112,7 @@ export default function MenuAppSwitcher() {
         category: 'admin',
         description: 'Govern accounts',
         href: EnvironmentService.apps.admin,
-        icon: <HiOutlineCog6Tooth className="w-4 h-4" />,
+        icon: <HiOutlineCog6Tooth className="size-4" />,
         label: 'Admin',
       },
     ],
@@ -309,7 +309,7 @@ export default function MenuAppSwitcher() {
             src={logoUrl}
             alt={EnvironmentService.LOGO_ALT}
             className={cn(
-              'h-6 w-6 object-contain dark:invert',
+              'size-6 object-contain dark:invert',
               isLoading && 'opacity-50',
             )}
             width={24}
@@ -322,7 +322,7 @@ export default function MenuAppSwitcher() {
 
         {isLoading && (
           <span className="absolute inset-0 flex items-center justify-center">
-            <span className="animate-spin h-3 w-3 border-2 border-primary border-t-transparent rounded-full opacity-50" />
+            <span className="animate-spin size-3 border-2 border-primary border-t-transparent rounded-full opacity-50" />
           </span>
         )}
       </Button>
@@ -335,7 +335,7 @@ export default function MenuAppSwitcher() {
             className={cn(
               BG_BLUR,
               BORDER_WHITE_30,
-              'app-switcher-dropdown z-[9999] w-[480px] fixed p-2 list-none',
+              'app-switcher-dropdown z-50 w-[480px] fixed p-2 list-none',
             )}
           >
             {renderDropdownContent()}

@@ -97,7 +97,7 @@ const PromptBarSecondaryControlsRow = memo(
         {filteredSounds.length > 0 && (
           <DropdownMultiSelect
             name="sounds"
-            icon={<HiMusicalNote className="w-4 h-4" />}
+            icon={<HiMusicalNote className="size-4" />}
             placeholder="Sounds"
             className={controlClass}
             direction={DropdownDirection.UP}
@@ -113,7 +113,7 @@ const PromptBarSecondaryControlsRow = memo(
         {filteredBlacklists.length > 0 && (
           <DropdownMultiSelect
             name="blacklist"
-            icon={<HiNoSymbol className="w-4 h-4" />}
+            icon={<HiNoSymbol className="size-4" />}
             placeholder="Blacklist"
             className={controlClass}
             direction={DropdownDirection.UP}

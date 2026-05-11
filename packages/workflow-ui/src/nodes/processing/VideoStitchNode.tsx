@@ -106,10 +106,10 @@ function VideoStitchNodeComponent(props: NodeProps) {
           </div>
           {inputVideos.length > 0 && (
             <div className="mt-1 flex gap-1 flex-wrap">
-              {inputVideos.map((_, index) => (
+              {inputVideos.map((video, index) => (
                 <div
-                  key={index}
-                  className="w-6 h-6 bg-[var(--primary)]/20 rounded text-xs flex items-center justify-center text-[var(--primary)]"
+                  key={video}
+                  className="size-6 bg-[var(--primary)]/20 rounded text-xs flex items-center justify-center text-[var(--primary)]"
                 >
                   {index + 1}
                 </div>
@@ -120,14 +120,20 @@ function VideoStitchNodeComponent(props: NodeProps) {
 
         {/* Transition Type */}
         <div>
-          <label className="text-xs text-[var(--muted-foreground)]">
+          <label
+            className="text-xs text-[var(--muted-foreground)]"
+            htmlFor={`video-stitch-transition-${id}`}
+          >
             Transition
           </label>
           <Select
             value={nodeData.transitionType}
             onValueChange={handleTransitionChange}
           >
-            <SelectTrigger className="nodrag h-8 w-full">
+            <SelectTrigger
+              id={`video-stitch-transition-${id}`}
+              className="nodrag h-8 w-full"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -143,10 +149,14 @@ function VideoStitchNodeComponent(props: NodeProps) {
         {/* Transition Duration */}
         {nodeData.transitionType !== 'cut' && (
           <div>
-            <label className="text-xs text-[var(--muted-foreground)]">
+            <div
+              className="text-xs text-[var(--muted-foreground)]"
+              id={`video-stitch-duration-${id}`}
+            >
               Duration: {nodeData.transitionDuration.toFixed(1)}s
-            </label>
+            </div>
             <Slider
+              aria-labelledby={`video-stitch-duration-${id}`}
               value={[nodeData.transitionDuration]}
               min={0.1}
               max={2}
@@ -174,14 +184,20 @@ function VideoStitchNodeComponent(props: NodeProps) {
 
         {/* Audio Codec */}
         <div>
-          <label className="text-xs text-[var(--muted-foreground)]">
+          <label
+            className="text-xs text-[var(--muted-foreground)]"
+            htmlFor={`video-stitch-audio-codec-${id}`}
+          >
             Audio Codec
           </label>
           <Select
             value={nodeData.audioCodec}
             onValueChange={handleAudioCodecChange}
           >
-            <SelectTrigger className="nodrag h-8 w-full">
+            <SelectTrigger
+              id={`video-stitch-audio-codec-${id}`}
+              className="nodrag h-8 w-full"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -205,7 +221,7 @@ function VideoStitchNodeComponent(props: NodeProps) {
             htmlFor={`draft-quality-${id}`}
             className="text-sm text-[var(--foreground)] cursor-pointer flex items-center gap-1"
           >
-            <Zap className="w-3 h-3" />
+            <Zap className="size-3" />
             Draft Quality
           </label>
           {nodeData.outputQuality === 'draft' && (
@@ -229,9 +245,9 @@ function VideoStitchNodeComponent(props: NodeProps) {
               size="icon-sm"
               onClick={handleProcess}
               disabled={nodeData.status === 'processing'}
-              className="absolute top-1 right-1 h-6 w-6 bg-black/50 hover:bg-black/70"
+              className="absolute top-1 right-1 size-6 bg-black/50 hover:bg-black/70"
             >
-              <RefreshCw className="w-3 h-3" />
+              <RefreshCw className="size-3" />
             </Button>
           </div>
         )}
@@ -248,9 +264,9 @@ function VideoStitchNodeComponent(props: NodeProps) {
             className="w-full"
           >
             {nodeData.status === 'processing' ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="size-4 animate-spin" />
             ) : (
-              <Layers className="w-4 h-4" />
+              <Layers className="size-4" />
             )}
             {nodeData.status === 'processing'
               ? 'Stitching...'

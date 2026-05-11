@@ -44,9 +44,14 @@ describe('MetricCard', () => {
     });
 
     it('applies click handler on loading state', () => {
-      const handleClick = vi.fn();
+      const activateMetricCard = vi.fn();
       const { container } = render(
-        <MetricCard title="Test" value={100} isLoading onClick={handleClick} />,
+        <MetricCard
+          title="Test"
+          value={100}
+          isLoading
+          onClick={activateMetricCard}
+        />,
       );
       expect(container.firstChild).toHaveClass('cursor-pointer');
     });
@@ -183,10 +188,12 @@ describe('MetricCard', () => {
 
   describe('Click Handling', () => {
     it('calls onClick when clicked', () => {
-      const handleClick = vi.fn();
-      render(<MetricCard title="Test" value={100} onClick={handleClick} />);
+      const activateMetricCard = vi.fn();
+      render(
+        <MetricCard title="Test" value={100} onClick={activateMetricCard} />,
+      );
       fireEvent.click(screen.getByText('Test').closest('div')!);
-      expect(handleClick).toHaveBeenCalledTimes(1);
+      expect(activateMetricCard).toHaveBeenCalledTimes(1);
     });
 
     it('applies hover styles when onClick is provided', () => {

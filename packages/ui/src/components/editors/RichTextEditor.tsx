@@ -54,7 +54,7 @@ const AI_EDITOR_ACTIONS = [
 export default function RichTextEditor({
   value,
   onChange,
-  placeholder = 'Start writing...',
+  placeholder = 'Start writing…',
   className = '',
   readOnly = false,
   showToolbar = true,

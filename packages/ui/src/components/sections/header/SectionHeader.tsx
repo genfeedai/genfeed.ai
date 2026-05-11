@@ -51,7 +51,7 @@ const SectionHeader = memo(function SectionHeader({
     <div className={cn('mb-12', alignClass, className)}>
       {(Icon || label) && (
         <div className="inline-flex items-center gap-2 mb-4">
-          {Icon && <Icon className="h-6 w-6 text-primary" />}
+          {Icon && <Icon className="size-6 text-primary" />}
           {label && (
             <span className="text-sm font-semibold uppercase tracking-wide text-primary">
               {label}

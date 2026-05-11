@@ -110,7 +110,7 @@ export default function QuickActionsSubmenu({
           transform: menuPosition.shouldShowBelow
             ? 'none'
             : 'translateY(-100%)',
-          zIndex: 9999,
+          zIndex: 50,
         }}
         className={cn(BG_BLUR, BORDER_WHITE_30, ' shadow-2xl', 'min-w-40')}
       >

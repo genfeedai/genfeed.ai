@@ -52,9 +52,9 @@ export function SidebarNavItem({
   const content = (
     <>
       <span className="relative shrink-0">
-        <Icon className="h-4 w-4" />
+        <Icon className="size-4" />
         {alert && (
-          <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-red-500 shadow-[0_0_0_2px_hsl(var(--background))]" />
+          <span className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-red-500 shadow-[0_0_0_2px_hsl(var(--background))]" />
         )}
       </span>
       <span className="flex-1 truncate">{label}</span>
@@ -72,9 +72,9 @@ export function SidebarNavItem({
       )}
       {liveCount != null && liveCount > 0 && (
         <span className="ml-auto flex items-center gap-1.5">
-          <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-pulse rounded-full bg-blue-400 opacity-75" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-blue-500" />
+          <span className="relative flex size-2">
+            <span className="absolute inline-flex size-full animate-pulse rounded-full bg-blue-400 opacity-75" />
+            <span className="relative inline-flex size-2 rounded-full bg-blue-500" />
           </span>
           <span className="text-[11px] font-medium text-blue-600 dark:text-blue-400">
             {liveCount} live

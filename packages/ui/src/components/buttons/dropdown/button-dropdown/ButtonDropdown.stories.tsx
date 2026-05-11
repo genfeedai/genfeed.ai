@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/rules-of-hooks -- Storybook render functions are invoked as story components. */
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
 import { useState } from 'react';
@@ -238,7 +239,7 @@ export const SortDropdown: Story = {
           value={sortBy}
           options={sortOptions}
           onChange={(_, val) => setSortBy(val)}
-          placeholder="Sort by..."
+          placeholder="Sort by…"
         />
 
         <div className="text-sm text-foreground/70">

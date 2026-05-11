@@ -21,7 +21,7 @@ export default function ButtonDropdown({
   value,
   options,
   onChange,
-  placeholder = 'Select...',
+  placeholder = 'Select…',
   className = '',
   isDisabled = false,
   icon,
@@ -58,7 +58,7 @@ export default function ButtonDropdown({
       ) : (
         <>
           <span className="text-xs font-medium">{displayLabel}</span>
-          <HiChevronDown className="h-3 w-3 text-foreground/50 transition-transform data-[state=open]:rotate-180" />
+          <HiChevronDown className="size-3 text-foreground/50 transition-transform data-[state=open]:rotate-180" />
         </>
       )}
     </PrimitiveButton>

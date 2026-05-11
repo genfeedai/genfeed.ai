@@ -37,7 +37,7 @@ export const useCases: UseCase[] = [
     ],
     pricing: {
       recommended: 'Hosted',
-      why: '$8/month platform access plus PAYG output covers managed avatar generation, voice, automation, and publishing.',
+      why: '$49/month platform access plus PAYG output covers managed avatar generation, voice, automation, and publishing.',
     },
     results: [
       'Cost per influencer drops from $10K/mo to $99/mo',
@@ -100,7 +100,7 @@ export const useCases: UseCase[] = [
     ],
     pricing: {
       recommended: 'Hosted',
-      why: '$8/month platform access plus PAYG output is the entry managed path for creators posting daily.',
+      why: '$49/month platform access plus PAYG output is the entry managed path for creators posting daily.',
     },
     results: [
       '10x content output (3 posts/week → 30 posts/week)',
@@ -364,7 +364,7 @@ export const useCases: UseCase[] = [
     ],
     pricing: {
       recommended: 'Hosted',
-      why: '$8/month platform access plus PAYG output is the entry managed path for solo founders building in public.',
+      why: '$49/month platform access plus PAYG output is the entry managed path for solo founders building in public.',
     },
     results: [
       'Post 5x more without extra time',
@@ -378,7 +378,7 @@ export const useCases: UseCase[] = [
       'Automate posting schedule (set it and forget it)',
       'Track which content drives signups/revenue',
       'All-in-one platform (no tool switching)',
-      'Self-host free or use Hosted ($8/month + PAYG output)',
+      'Self-host free or use Hosted ($49/month + PAYG output)',
     ],
     subtitle: 'Solopreneurs & Startup Founders',
     title: 'Genfeed for Founders',

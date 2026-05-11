@@ -72,7 +72,7 @@ const ListingCard = memo(function ListingCard({
             />
           ) : (
             <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-white/5 to-white/[0.02] dark:from-white/5 dark:to-white/[0.02]">
-              <div className="w-16 h-16 bg-white/5 dark:bg-white/5 flex items-center justify-center">
+              <div className="size-16 bg-white/5 dark:bg-white/5 flex items-center justify-center">
                 <span className="text-2xl opacity-40">
                   {listing.type === 'workflow'
                     ? '⚡'
@@ -135,7 +135,7 @@ const ListingCard = memo(function ListingCard({
                     className="rounded-full ring-1 ring-white/10"
                   />
                 ) : (
-                  <div className="w-6 h-6 rounded-full bg-white/10 dark:bg-white/10 flex items-center justify-center">
+                  <div className="size-6 rounded-full bg-white/10 dark:bg-white/10 flex items-center justify-center">
                     <span className="text-xs text-muted-foreground">
                       {listing.seller.displayName.charAt(0)}
                     </span>
@@ -151,7 +151,7 @@ const ListingCard = memo(function ListingCard({
             <div className="flex items-center gap-1">
               {listing.rating && listing.rating > 0 ? (
                 <>
-                  <HiStar className="w-3.5 h-3.5 text-amber-400" />
+                  <HiStar className="size-3.5 text-amber-400" />
                   <span className="text-xs text-muted-foreground">
                     {listing.rating.toFixed(1)}
                   </span>

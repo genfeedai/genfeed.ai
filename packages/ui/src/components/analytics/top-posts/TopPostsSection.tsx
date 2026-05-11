@@ -54,9 +54,13 @@ export default function TopPostsSection({
         <div className="animate-pulse space-y-4">
           <div className="h-48 bg-muted" />
           <div className="grid grid-cols-3 gap-2">
-            {[...Array(9)].map((_, i) => (
-              <div key={i} className="aspect-square bg-muted" />
-            ))}
+            {Array.from({ length: 9 }, (_, placeholderIndex) => {
+              const placeholderId = `top-post-placeholder-${placeholderIndex}`;
+
+              return (
+                <div key={placeholderId} className="aspect-square bg-muted" />
+              );
+            })}
           </div>
         </div>
       </Card>
@@ -71,7 +75,7 @@ export default function TopPostsSection({
         className={className}
       >
         <div className="flex flex-col items-center justify-center py-8 text-foreground/60">
-          <HiPhoto className="w-12 h-12 mb-2 opacity-50" />
+          <HiPhoto className="size-12 mb-2 opacity-50" />
           <p className="text-sm">{EMPTY_STATES.POSTS_PERIOD}</p>
         </div>
       </Card>
@@ -112,6 +116,7 @@ export default function TopPostsSection({
                 }
                 alt={featuredPost.label || 'Top post'}
                 fill
+                sizes="(max-width: 768px) 100vw, 50vw"
                 className="object-cover group-hover:scale-105 transition-transform duration-300"
               />
             )}
@@ -123,7 +128,7 @@ export default function TopPostsSection({
 
             {/* Platform icon */}
             <div className="absolute top-3 right-3 bg-black/50 p-1.5 rounded-full">
-              {getPlatformIcon(featuredPost.platform, 'w-5 h-5 text-white')}
+              {getPlatformIcon(featuredPost.platform, 'size-5 text-white')}
             </div>
 
             {/* KPIs overlay */}
@@ -135,15 +140,15 @@ export default function TopPostsSection({
               </h3>
               <div className="flex items-center gap-4 text-white/90 text-sm">
                 <span className="flex items-center gap-1.5">
-                  <HiEye className="w-4 h-4" />
+                  <HiEye className="size-4" />
                   {formatCompactNumber(featuredPost.totalViews)}
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <HiHeart className="w-4 h-4 text-rose-400" />
+                  <HiHeart className="size-4 text-rose-400" />
                   {formatCompactNumber(featuredPost.totalLikes)}
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <HiChatBubbleLeftRight className="w-4 h-4 text-sky-400" />
+                  <HiChatBubbleLeftRight className="size-4 text-sky-400" />
                   {formatCompactNumber(featuredPost.totalComments)}
                 </span>
               </div>
@@ -169,6 +174,7 @@ export default function TopPostsSection({
                     }
                     alt={post.label || `Post ${index + 2}`}
                     fill
+                    sizes="(max-width: 768px) 33vw, 160px"
                     className="object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                   {/* Rank badge */}
@@ -177,7 +183,7 @@ export default function TopPostsSection({
                   </div>
                   {/* Views badge */}
                   <div className="absolute bottom-1.5 right-1.5 bg-black/70 text-white px-2 py-0.5 rounded-full text-xs flex items-center gap-1">
-                    <HiEye className="w-3 h-3" />
+                    <HiEye className="size-3" />
                     {formatCompactNumber(post.totalViews)}
                   </div>
                 </div>

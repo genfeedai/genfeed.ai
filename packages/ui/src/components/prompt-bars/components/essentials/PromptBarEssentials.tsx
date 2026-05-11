@@ -34,7 +34,7 @@ function getVoiceTooltip(isRecording: boolean, isProcessing: boolean): string {
     return 'Stop recording';
   }
   if (isProcessing) {
-    return 'Processing...';
+    return 'Processing…';
   }
   return 'Voice input (Speak to transcribe)';
 }
@@ -146,8 +146,8 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
             tooltip="Collapse"
             tooltipPosition="left"
             variant={ButtonVariant.GHOST}
-            className="absolute right-2 top-2 h-8 w-8 rounded-full border border-white/10 bg-black/20 p-0 text-white/70 backdrop-blur-sm hover:bg-black/30 hover:text-white"
-            icon={<HiChevronUp className="w-4 h-4" />}
+            className="absolute right-2 top-2 size-8 rounded-full border border-white/10 bg-black/20 p-0 text-white/70 backdrop-blur-sm hover:bg-black/30 hover:text-white"
+            icon={<HiChevronUp className="size-4" />}
             data-testid="collapse-button"
           />
         )}
@@ -329,7 +329,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
                 tooltipPosition="top"
                 ariaLabel="Open reference controls"
               >
-                <span className="relative h-5 w-5 overflow-hidden rounded">
+                <span className="relative size-5 overflow-hidden rounded">
                   <Image
                     src={
                       referenceSource === 'brand'
@@ -358,7 +358,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
               tooltip={isQuickOptionsOpen ? 'Hide settings' : 'Show settings'}
               tooltipPosition="top"
               ariaLabel={isQuickOptionsOpen ? 'Hide settings' : 'Show settings'}
-              icon={<HiAdjustmentsHorizontal className="w-4 h-4" />}
+              icon={<HiAdjustmentsHorizontal className="size-4" />}
             />
 
             {watchedTextTrimmed && (
@@ -369,7 +369,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
                 tooltipPosition="top"
                 variant={ButtonVariant.GHOST}
                 className={iconButtonClass}
-                icon={<HiClipboard className="w-4 h-4" />}
+                icon={<HiClipboard className="size-4" />}
               />
             )}
 
@@ -377,13 +377,11 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
               <Button
                 onClick={enhancePrompt}
                 isDisabled={isDisabledState || isEnhancing}
-                tooltip={
-                  isEnhancing ? 'Enhancing...' : 'Enhance prompt with AI'
-                }
+                tooltip={isEnhancing ? 'Enhancing…' : 'Enhance prompt with AI'}
                 tooltipPosition="top"
                 variant={ButtonVariant.GHOST}
                 className={cn(iconButtonClass, isEnhancing && 'animate-pulse')}
-                icon={<HiSparkles className="w-4 h-4" />}
+                icon={<HiSparkles className="size-4" />}
               />
             )}
 
@@ -395,7 +393,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
                 tooltipPosition="top"
                 variant={ButtonVariant.GHOST}
                 className={iconButtonClass}
-                icon={<HiArrowUturnLeft className="w-4 h-4" />}
+                icon={<HiArrowUturnLeft className="size-4" />}
               />
             )}
           </div>
@@ -409,7 +407,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
                 tooltip="Number of outputs"
                 tooltipPosition="top"
                 icon={
-                  <span className="w-4 h-4 flex items-center justify-center text-xs font-medium">
+                  <span className="size-4 flex items-center justify-center text-xs font-medium">
                     #
                   </span>
                 }
@@ -435,7 +433,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
                   tooltip="Number of outputs"
                   tooltipPosition="top"
                   icon={
-                    <span className="w-4 h-4 flex items-center justify-center text-xs font-medium">
+                    <span className="size-4 flex items-center justify-center text-xs font-medium">
                       #
                     </span>
                   }
@@ -468,7 +466,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
                 isDisabled={isGenerateBlocked || isProcessing}
                 tooltip={getVoiceTooltip(isRecording, isProcessing)}
                 tooltipPosition="top"
-                icon={<HiMicrophone className="w-4 h-4" />}
+                icon={<HiMicrophone className="size-4" />}
               >
                 {isUnifiedShell ? null : 'Voice'}
               </Button>
@@ -496,7 +494,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
                   ? `${generateLabel} (Queue)`
                   : generateLabel
               }
-              className={cn('transition-all duration-300', 'h-9 w-9 p-0')}
+              className={cn('transition-all duration-300', 'size-9 p-0')}
               data-testid="generate-button"
             />
           </div>

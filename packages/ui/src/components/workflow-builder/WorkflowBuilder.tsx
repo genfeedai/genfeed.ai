@@ -18,11 +18,13 @@ import WorkflowToolbar from '@ui/workflow-builder/WorkflowToolbar';
 import { ReactFlowProvider } from '@xyflow/react';
 import { useCallback, useState } from 'react';
 
+const EMPTY_ARRAY: never[] = [];
+
 export default function WorkflowBuilder({
   workflowId,
-  initialNodes = [],
-  initialEdges = [],
-  initialVariables = [],
+  initialNodes = EMPTY_ARRAY,
+  initialEdges = EMPTY_ARRAY,
+  initialVariables = EMPTY_ARRAY,
   onSave,
   isReadOnly = false,
 }: WorkflowBuilderProps) {
@@ -120,7 +122,7 @@ export default function WorkflowBuilder({
   if (isLoading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <span className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
+        <span className="animate-spin size-8 border-4 border-primary border-t-transparent rounded-full" />
       </div>
     );
   }

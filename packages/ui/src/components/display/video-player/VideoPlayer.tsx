@@ -83,7 +83,7 @@ export default function VideoPlayer({
 
     if (hasError) {
       return (
-        <div className="relative w-full h-full">
+        <div className="relative size-full">
           <Image
             src={
               thumbnail ||
@@ -102,7 +102,7 @@ export default function VideoPlayer({
 
     if (thumbnail) {
       return (
-        <div className="relative w-full h-full">
+        <div className="relative size-full">
           <Image
             src={thumbnail}
             alt="Video thumbnail"
@@ -133,7 +133,7 @@ export default function VideoPlayer({
   };
 
   return (
-    <div className={`relative w-full h-full ${className}`}>
+    <div className={`relative size-full ${className}`}>
       {/* Show thumbnail or loading state when video isn't ready */}
       {((showLoader && !isLoaded) || hasError) && (
         <div className="absolute inset-0 z-10">{renderOverlayContent()}</div>
@@ -156,7 +156,7 @@ export default function VideoPlayer({
         onCanPlay={handleCanPlay}
         onError={handleError}
         // crossOrigin="anonymous"
-        className={`w-full h-full object-contain object-center ${
+        className={`size-full object-contain object-center ${
           isLoaded && !hasError ? 'opacity-100' : 'opacity-0'
         }`}
       />

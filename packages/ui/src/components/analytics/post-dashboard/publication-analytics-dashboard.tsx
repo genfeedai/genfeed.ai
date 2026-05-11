@@ -153,7 +153,7 @@ export default function PostAnalyticsDashboard({
     <div className={`space-y-4 ${className}`}>
       {/* Header with refresh buttons */}
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Post Analytics</h2>
+        <h2 className="text-2xl font-semibold">Post Analytics</h2>
         <div className="flex gap-2">
           {publicationId && (
             <ButtonRefresh

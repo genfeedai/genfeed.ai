@@ -18,7 +18,7 @@ export default function TopbarBrandSwitcher() {
   const { brands, brandId } = useBrand();
   const { user } = useUser();
   const { openBrandOverlay } = useBrandOverlay();
-  const router = useRouter();
+  const { push, refresh } = useRouter();
   const { href, orgSlug, orgHref } = useOrgUrl();
 
   const getUsersService = useAuthedService((token: string) =>
@@ -30,10 +30,8 @@ export default function TopbarBrandSwitcher() {
   const selectedBrand = brands.find((b) => b.id === brandId);
 
   const handleOpenBrandSettings = useCallback(() => {
-    router.push(
-      selectedBrand ? href('/settings') : orgHref('/settings/brands'),
-    );
-  }, [router, selectedBrand, href, orgHref]);
+    push(selectedBrand ? href('/settings') : orgHref('/settings/brands'));
+  }, [selectedBrand, href, orgHref, push]);
 
   const handleSelect = useCallback(
     async (id: string) => {
@@ -47,9 +45,9 @@ export default function TopbarBrandSwitcher() {
 
         const newBrand = brands.find((b) => b.id === id);
         if (newBrand?.slug) {
-          router.push(`/${orgSlug}/${newBrand.slug}/workspace/overview`);
+          push(`/${orgSlug}/${newBrand.slug}/workspace/overview`);
         } else {
-          router.refresh();
+          refresh();
         }
 
         setIsUpdatingBrand(false);
@@ -58,7 +56,7 @@ export default function TopbarBrandSwitcher() {
         setIsUpdatingBrand(false);
       }
     },
-    [getUsersService, user, brands, router, orgSlug],
+    [getUsersService, user, brands, orgSlug, refresh, push],
   );
 
   if (brands.length === 0) {
@@ -85,7 +83,7 @@ export default function TopbarBrandSwitcher() {
           )}
         >
           {selectedBrand?.logoUrl && selectedBrand.logoUrl !== '' ? (
-            <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-background">
+            <div className="flex size-6 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-background">
               <Image
                 src={selectedBrand.logoUrl}
                 alt={selectedBrand.label ?? 'Brand'}
@@ -97,7 +95,7 @@ export default function TopbarBrandSwitcher() {
               />
             </div>
           ) : (
-            <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-white/20 text-xs font-semibold text-white">
+            <div className="flex size-6 flex-shrink-0 items-center justify-center rounded-full bg-white/20 text-xs font-semibold text-white">
               {(selectedBrand?.label ?? '?').charAt(0).toUpperCase()}
             </div>
           )}
@@ -106,7 +104,7 @@ export default function TopbarBrandSwitcher() {
           </span>
           <HiChevronDown
             className={cn(
-              'hidden h-3.5 w-3.5 flex-shrink-0 text-white/40 transition-transform duration-200 md:block',
+              'hidden size-3.5 flex-shrink-0 text-white/40 transition-transform duration-200 md:block',
               isOpen && 'rotate-180',
             )}
           />
@@ -115,7 +113,7 @@ export default function TopbarBrandSwitcher() {
       onSelect={(id) => void handleSelect(id)}
       isDisabled={isUpdatingBrand}
       hasSearch={brands.length >= 5}
-      searchPlaceholder="Search brands..."
+      searchPlaceholder="Search brands…"
       footerActions={[
         {
           icon: HiOutlineCog6Tooth,

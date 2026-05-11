@@ -14,7 +14,14 @@ import {
   Undo2,
   X,
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import NextImage from 'next/image';
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import { useExecutionStore } from '../stores/executionStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useUIStore } from '../stores/uiStore';
@@ -56,6 +63,143 @@ function isValidWorkflow(data: unknown): data is WorkflowFile {
   return true;
 }
 
+interface ToolbarLogoProps {
+  branding?: ReactNode;
+  logoHref: string;
+  logoSrc: string;
+}
+
+function ToolbarLogo({ branding, logoHref, logoSrc }: ToolbarLogoProps) {
+  return (
+    branding ?? (
+      <a
+        href={logoHref}
+        title="Go to Dashboard"
+        className="flex size-6 items-center justify-center transition hover:opacity-90"
+      >
+        <NextImage
+          src={logoSrc}
+          alt="Genfeed"
+          width={24}
+          height={24}
+          className="size-6 object-contain"
+          unoptimized
+        />
+      </a>
+    )
+  );
+}
+
+interface FileMenuOptions {
+  fileMenuItemsAppend?: DropdownItem[];
+  fileMenuItemsPrepend?: DropdownItem[];
+  handleExport: () => void;
+  handleImport: () => void;
+  onSaveAs?: ToolbarProps['onSaveAs'];
+  openSaveAsDialog: () => void;
+}
+
+function useFileMenuItems({
+  fileMenuItemsAppend,
+  fileMenuItemsPrepend,
+  handleExport,
+  handleImport,
+  onSaveAs,
+  openSaveAsDialog,
+}: FileMenuOptions): DropdownItem[] {
+  return useMemo(() => {
+    const items: DropdownItem[] = [];
+
+    if (fileMenuItemsPrepend?.length) {
+      items.push(...fileMenuItemsPrepend);
+      items.push({ id: 'separator-prepend', separator: true });
+    }
+
+    if (onSaveAs) {
+      items.push({
+        icon: <SaveAll className="size-4" />,
+        id: 'saveAs',
+        label: 'Save As...',
+        onClick: openSaveAsDialog,
+      });
+      items.push({ id: 'separator-saveas', separator: true });
+    }
+
+    items.push(
+      {
+        icon: <Save className="size-4" />,
+        id: 'export',
+        label: 'Export Workflow',
+        onClick: handleExport,
+      },
+      {
+        icon: <FolderOpen className="size-4" />,
+        id: 'import',
+        label: 'Import Workflow',
+        onClick: handleImport,
+      },
+    );
+
+    if (fileMenuItemsAppend?.length) {
+      items.push({ id: 'separator-append', separator: true });
+      items.push(...fileMenuItemsAppend);
+    }
+
+    return items;
+  }, [
+    handleExport,
+    handleImport,
+    onSaveAs,
+    openSaveAsDialog,
+    fileMenuItemsPrepend,
+    fileMenuItemsAppend,
+  ]);
+}
+
+function ValidationErrorsToast({
+  messages,
+  onClear,
+}: {
+  messages: string[];
+  onClear: () => void;
+}) {
+  if (messages.length === 0) return null;
+
+  return (
+    <div className="fixed right-4 top-20 z-50 max-w-sm border border-destructive/30 bg-destructive/10 p-4 shadow-xl">
+      <div className="flex items-start gap-3">
+        <AlertCircle className="mt-0.5 size-5 shrink-0 text-destructive" />
+        <div className="min-w-0 flex-1">
+          <h4 className="mb-2 text-sm font-medium text-destructive">
+            Cannot run workflow
+          </h4>
+          <ul className="space-y-1">
+            {messages.slice(0, 5).map((message) => (
+              <li key={message} className="text-xs text-destructive/80">
+                {message}
+              </li>
+            ))}
+            {messages.length > 5 && (
+              <li className="text-xs text-destructive/60">
+                +{messages.length - 5} more errors
+              </li>
+            )}
+          </ul>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={onClear}
+          className="text-destructive hover:bg-destructive/20"
+          title="Dismiss validation errors"
+        >
+          <X className="size-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function Toolbar({
   onAutoLayout,
   onSaveAs,
@@ -74,9 +218,12 @@ export function Toolbar({
 }: ToolbarProps) {
   const { exportWorkflow, workflowName } = useWorkflowStore();
   const { undo, redo } = useWorkflowStore.temporal.getState();
-  const [canUndo, setCanUndo] = useState(false);
-  const [canRedo, setCanRedo] = useState(false);
+  const [historyState, setHistoryState] = useState({
+    canRedo: false,
+    canUndo: false,
+  });
   const [showSaveAsDialog, setShowSaveAsDialog] = useState(false);
+  const { canRedo, canUndo } = historyState;
   const validationErrors = useExecutionStore((state) => state.validationErrors);
   const clearValidationErrors = useExecutionStore(
     (state) => state.clearValidationErrors,
@@ -92,13 +239,17 @@ export function Toolbar({
   // Subscribe to temporal state changes for undo/redo button states
   useEffect(() => {
     const unsubscribe = useWorkflowStore.temporal.subscribe((state) => {
-      setCanUndo(state.pastStates.length > 0);
-      setCanRedo(state.futureStates.length > 0);
+      setHistoryState({
+        canRedo: state.futureStates.length > 0,
+        canUndo: state.pastStates.length > 0,
+      });
     });
     // Initialize state
     const temporal = useWorkflowStore.temporal.getState();
-    setCanUndo(temporal.pastStates.length > 0);
-    setCanRedo(temporal.futureStates.length > 0);
+    setHistoryState({
+      canRedo: temporal.futureStates.length > 0,
+      canUndo: temporal.pastStates.length > 0,
+    });
     return unsubscribe;
   }, []);
 
@@ -155,69 +306,22 @@ export function Toolbar({
     [onSaveAs],
   );
 
-  const fileMenuItems: DropdownItem[] = useMemo(() => {
-    const items: DropdownItem[] = [];
+  const openSaveAsDialog = useCallback(() => {
+    setShowSaveAsDialog(true);
+  }, []);
 
-    // Prepend custom items
-    if (fileMenuItemsPrepend?.length) {
-      items.push(...fileMenuItemsPrepend);
-      items.push({ id: 'separator-prepend', separator: true });
-    }
-
-    // Save As (only if callback is provided)
-    if (onSaveAs) {
-      items.push({
-        icon: <SaveAll className="h-4 w-4" />,
-        id: 'saveAs',
-        label: 'Save As...',
-        onClick: () => setShowSaveAsDialog(true),
-      });
-      items.push({ id: 'separator-saveas', separator: true });
-    }
-
-    // Export/Import
-    items.push(
-      {
-        icon: <Save className="h-4 w-4" />,
-        id: 'export',
-        label: 'Export Workflow',
-        onClick: handleExport,
-      },
-      {
-        icon: <FolderOpen className="h-4 w-4" />,
-        id: 'import',
-        label: 'Import Workflow',
-        onClick: handleImport,
-      },
-    );
-
-    // Append custom items
-    if (fileMenuItemsAppend?.length) {
-      items.push({ id: 'separator-append', separator: true });
-      items.push(...fileMenuItemsAppend);
-    }
-
-    return items;
-  }, [
+  const fileMenuItems = useFileMenuItems({
+    fileMenuItemsAppend,
+    fileMenuItemsPrepend,
     handleExport,
     handleImport,
     onSaveAs,
-    fileMenuItemsPrepend,
-    fileMenuItemsAppend,
-  ]);
+    openSaveAsDialog,
+  });
 
   return (
     <div className="flex h-14 items-center gap-3 border-b border-border bg-card px-4">
-      {/* Logo / Home Link */}
-      {branding ?? (
-        <a
-          href={logoHref}
-          title="Go to Dashboard"
-          className="flex h-6 w-6 items-center justify-center transition hover:opacity-90"
-        >
-          <img src={logoSrc} alt="Genfeed" className="h-6 w-6 object-contain" />
-        </a>
-      )}
+      <ToolbarLogo branding={branding} logoHref={logoHref} logoSrc={logoSrc} />
 
       {leftContent}
 
@@ -248,7 +352,7 @@ export function Toolbar({
           title="Debug mode active - API calls are mocked"
           className="border-amber-500/30 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20"
         >
-          <Bug className="h-4 w-4" />
+          <Bug className="size-4" />
           <span className="font-medium">Debug</span>
         </Button>
       )}
@@ -261,7 +365,7 @@ export function Toolbar({
           onClick={() => onAutoLayout('LR')}
           title="Auto-layout nodes"
         >
-          <LayoutGrid className="h-4 w-4" />
+          <LayoutGrid className="size-4" />
         </Button>
       )}
 
@@ -273,7 +377,7 @@ export function Toolbar({
         disabled={!canUndo}
         title="Undo (Ctrl+Z)"
       >
-        <Undo2 className="h-4 w-4" />
+        <Undo2 className="size-4" />
       </Button>
       <Button
         variant="ghost"
@@ -282,7 +386,7 @@ export function Toolbar({
         disabled={!canRedo}
         title="Redo (Ctrl+Shift+Z)"
       >
-        <Redo2 className="h-4 w-4" />
+        <Redo2 className="size-4" />
       </Button>
 
       {/* Auto-Save Indicator */}
@@ -304,7 +408,7 @@ export function Toolbar({
           onClick={() => openModal('shortcutHelp')}
           title="Keyboard shortcuts"
         >
-          <HelpCircle className="h-4 w-4" />
+          <HelpCircle className="size-4" />
         </Button>
       )}
 
@@ -316,44 +420,14 @@ export function Toolbar({
           onClick={() => openModal('settings')}
           title="Settings"
         >
-          <Settings className="h-4 w-4" />
+          <Settings className="size-4" />
         </Button>
       )}
 
-      {/* Validation Errors Toast */}
-      {uniqueErrorMessages.length > 0 && (
-        <div className="fixed right-4 top-20 z-50 max-w-sm border border-destructive/30 bg-destructive/10 p-4 shadow-xl">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
-            <div className="min-w-0 flex-1">
-              <h4 className="mb-2 text-sm font-medium text-destructive">
-                Cannot run workflow
-              </h4>
-              <ul className="space-y-1">
-                {uniqueErrorMessages.slice(0, 5).map((message) => (
-                  <li key={message} className="text-xs text-destructive/80">
-                    {message}
-                  </li>
-                ))}
-                {uniqueErrorMessages.length > 5 && (
-                  <li className="text-xs text-destructive/60">
-                    +{uniqueErrorMessages.length - 5} more errors
-                  </li>
-                )}
-              </ul>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={clearValidationErrors}
-              className="text-destructive hover:bg-destructive/20"
-              title="Dismiss validation errors"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      )}
+      <ValidationErrorsToast
+        messages={uniqueErrorMessages}
+        onClear={clearValidationErrors}
+      />
 
       {/* Save As Dialog */}
       <SaveAsDialog

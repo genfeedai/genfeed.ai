@@ -70,7 +70,9 @@ export default function ModalFolder({
     }
   }, [item, form, propBrandId]);
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const processKeyDownModalFolder = (
+    e: React.KeyboardEvent<HTMLTextAreaElement>,
+  ) => {
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
       if (!isSubmitting && form.formState.isValid) {
@@ -79,14 +81,14 @@ export default function ModalFolder({
     }
   };
 
-  const handleChange = (
+  const updateModalFolder = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
     form.setValue(name as keyof FolderSchema, value, { shouldValidate: true });
   };
 
-  const handleCancel = () => {
+  const cancelModalFolder = () => {
     closeModal();
   };
 
@@ -96,8 +98,8 @@ export default function ModalFolder({
         {hasFormErrors(form.formState.errors) && (
           <Alert type={AlertCategory.ERROR} className="mb-4">
             <div className="space-y-1">
-              {parseFormErrors(form.formState.errors).map((error, index) => (
-                <div key={index}>{error}</div>
+              {parseFormErrors(form.formState.errors).map((error) => (
+                <div key={error}>{error}</div>
               ))}
             </div>
           </Alert>
@@ -108,7 +110,7 @@ export default function ModalFolder({
             type="text"
             name="label"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalFolder}
             placeholder="Enter folder name"
             isRequired={true}
             isDisabled={isSubmitting}
@@ -118,10 +120,10 @@ export default function ModalFolder({
           <Textarea
             name="description"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalFolder}
             placeholder="Enter description (optional)"
             isDisabled={isSubmitting}
-            onKeyDown={handleKeyDown}
+            onKeyDown={processKeyDownModalFolder}
           />
         </FormControl>
 
@@ -130,7 +132,7 @@ export default function ModalFolder({
             <SelectField
               name="brand"
               control={form.control}
-              onChange={handleChange}
+              onChange={updateModalFolder}
               isDisabled={isSubmitting}
             >
               <option value="">None</option>
@@ -149,7 +151,7 @@ export default function ModalFolder({
                 type="text"
                 name="tags"
                 control={form.control}
-                onChange={handleChange}
+                onChange={updateModalFolder}
                 placeholder="Enter tag and press Enter"
                 isDisabled={isSubmitting}
               />
@@ -190,7 +192,7 @@ export default function ModalFolder({
           <Button
             label="Cancel"
             variant={ButtonVariant.SECONDARY}
-            onClick={handleCancel}
+            onClick={cancelModalFolder}
             isLoading={isSubmitting}
           />
 

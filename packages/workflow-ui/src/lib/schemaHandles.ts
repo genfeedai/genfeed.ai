@@ -103,6 +103,7 @@ export function generateHandlesFromSchema(
 
   // Build set of existing static handle IDs to avoid duplicates
   const staticIds = new Set(staticHandles.map((h) => h.id));
+  const requiredFields = new Set(schema.required ?? []);
   const dynamicHandles: HandleDefinition[] = [];
 
   for (const [fieldName, prop] of Object.entries(schema.properties)) {
@@ -122,7 +123,7 @@ export function generateHandlesFromSchema(
       id: fieldName,
       label,
       multiple: prop.type === 'array',
-      required: schema.required?.includes(fieldName),
+      required: requiredFields.has(fieldName),
       type: handleType,
     });
   }

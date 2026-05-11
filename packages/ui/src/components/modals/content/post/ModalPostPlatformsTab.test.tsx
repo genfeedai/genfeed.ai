@@ -5,6 +5,8 @@ import ModalPostPlatformsTab from '@ui/modals/content/post/ModalPostPlatformsTab
 import type { UseFormReturn } from 'react-hook-form';
 import { describe, expect, it, vi } from 'vitest';
 
+const TEST_MIN_DATE = new Date('2025-01-01T00:00:00.000Z');
+
 const createFormStub = (): UseFormReturn<MultiPostSchema> =>
   ({
     watch: vi.fn((field: string) => {
@@ -45,7 +47,7 @@ describe('ModalPostPlatformsTab', () => {
         isLoading={false}
         togglePlatform={togglePlatform}
         updatePlatformConfig={vi.fn()}
-        getMinDateTime={() => new Date('2025-01-01T00:00:00.000Z')}
+        getMinDateTime={() => TEST_MIN_DATE}
       />,
     );
 
@@ -89,7 +91,7 @@ describe('ModalPostPlatformsTab', () => {
         isLoading={false}
         togglePlatform={vi.fn()}
         updatePlatformConfig={vi.fn()}
-        getMinDateTime={() => new Date('2025-01-01T00:00:00.000Z')}
+        getMinDateTime={() => TEST_MIN_DATE}
       />,
     );
 
@@ -136,7 +138,7 @@ describe('ModalPostPlatformsTab', () => {
         isLoading={false}
         togglePlatform={vi.fn()}
         updatePlatformConfig={vi.fn()}
-        getMinDateTime={() => new Date('2025-01-01T00:00:00.000Z')}
+        getMinDateTime={() => TEST_MIN_DATE}
       />,
     );
 

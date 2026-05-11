@@ -1,3 +1,4 @@
+import process from 'node:process';
 import { CreateTrackedLinkDto } from '@api/collections/tracked-links/dto/create-tracked-link.dto';
 import { TrackClickDto } from '@api/collections/tracked-links/dto/track-click.dto';
 import type { LinkClickDocument } from '@api/collections/tracked-links/schemas/link-click.schema';
@@ -158,7 +159,10 @@ export class TrackedLinksService {
     const result = await this.prisma.trackedLink.findFirst({
       where: { isActive: true, isDeleted: false, shortCode },
     });
-    return result as unknown as TrackedLink | null;
+    if (!result) {
+      return null;
+    }
+    return { ...result, _id: result.id } as unknown as TrackedLink;
   }
 
   /**
@@ -216,7 +220,7 @@ export class TrackedLinksService {
     req?: { ip?: string; headers?: Record<string, string | undefined> },
   ): Promise<void> {
     const link = await this.prisma.trackedLink.findFirst({
-      where: { id: dto.linkId },
+      where: { id: dto.linkId, isActive: true, isDeleted: false },
     });
 
     if (!link) {
@@ -490,8 +494,29 @@ export class TrackedLinksService {
       throw new NotFoundException(`Tracked link not found: ${linkId}`);
     }
 
+    // Strict allowlist — only Prisma columns that callers may legitimately update
+    const safeUpdates: Record<string, unknown> = {};
+    const u = updates as Record<string, unknown>;
+    const allowed: Array<keyof typeof u> = [
+      'campaignName',
+      'contentId',
+      'contentType',
+      'customSlug',
+      'expiresAt',
+      'isActive',
+      'platform',
+      'shortUrl',
+      'stats',
+      'utm',
+    ];
+    for (const key of allowed) {
+      if (key in u && u[key] !== undefined) {
+        safeUpdates[key] = u[key];
+      }
+    }
+
     const result = await this.prisma.trackedLink.update({
-      data: updates as never,
+      data: safeUpdates as never,
       where: { id: linkId },
     });
 

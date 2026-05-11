@@ -58,7 +58,7 @@ export default function ModalBrandGenerate({
     onConfirmRef.current();
   }, [form]);
 
-  const handleSubmit = useCallback(async () => {
+  const submitModalBrandGenerate = useCallback(async () => {
     if (!brandId) {
       logger.error('Brand ID is required for generation');
       return;
@@ -88,10 +88,10 @@ export default function ModalBrandGenerate({
   }, [brandId, getAssetsService, form, type, closeAccountGenerateModal]);
 
   const { isSubmitting, onSubmit } = useFormSubmitWithState(() =>
-    handleSubmit(),
+    submitModalBrandGenerate(),
   );
 
-  const handleChange = (
+  const updateModalBrandGenerate = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = e.target;
@@ -110,7 +110,7 @@ export default function ModalBrandGenerate({
           <Input
             name="prompt"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalBrandGenerate}
             placeholder="Enter a prompt"
             isDisabled={isSubmitting}
           />
@@ -120,7 +120,7 @@ export default function ModalBrandGenerate({
           <Textarea
             name="description"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalBrandGenerate}
             placeholder="Describe what you want in the banner/logo"
             isDisabled={isSubmitting}
             rows={3}

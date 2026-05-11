@@ -45,8 +45,9 @@ export class AgentThreadsController {
   ) {
     try {
       const organizationId = this.resolveOrganizationId(user);
+      const userId = await this.resolveMongoUserId(user);
       const snapshot = await runEffectPromise(
-        this.getThreadSnapshotEffect(threadId, organizationId),
+        this.getThreadSnapshotEffect(threadId, organizationId, userId),
       );
       return {
         activeRun: snapshot.activeRun ?? null,
@@ -83,10 +84,12 @@ export class AgentThreadsController {
   ) {
     try {
       const organizationId = this.resolveOrganizationId(user);
+      const userId = await this.resolveMongoUserId(user);
       const events = await runEffectPromise(
         this.listThreadEventsEffect(
           threadId,
           organizationId,
+          userId,
           afterSequence ? Number.parseInt(afterSequence, 10) : undefined,
         ),
       );
@@ -253,21 +256,28 @@ export class AgentThreadsController {
     );
   }
 
-  private getThreadSnapshotEffect(threadId: string, organizationId: string) {
+  private getThreadSnapshotEffect(
+    threadId: string,
+    organizationId: string,
+    userId: string,
+  ) {
     return this.agentThreadEngineService.getSnapshotEffect(
       threadId,
       organizationId,
+      userId,
     );
   }
 
   private listThreadEventsEffect(
     threadId: string,
     organizationId: string,
+    userId: string,
     afterSequence?: number,
   ) {
     return this.agentThreadEngineService.listEventsEffect(
       threadId,
       organizationId,
+      userId,
       afterSequence,
     );
   }

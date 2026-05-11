@@ -13,7 +13,7 @@ export function getEdgeMenuItems({
   return [
     {
       danger: true,
-      icon: <Trash2 className="w-4 h-4" />,
+      icon: <Trash2 className="size-4" />,
       id: 'delete',
       label: 'Delete Connection',
       onClick: () => onDelete(edgeId),

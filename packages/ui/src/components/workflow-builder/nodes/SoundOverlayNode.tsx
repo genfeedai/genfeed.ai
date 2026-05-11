@@ -75,7 +75,7 @@ function SoundOverlayNodeComponent({
               : 'bg-background border-white/[0.08]'
           }`}
         >
-          <Video className="w-4 h-4" />
+          <Video className="size-4" />
           <span className="text-sm">
             {data.videoUrl ? 'Video connected' : 'Awaiting video input'}
           </span>
@@ -87,7 +87,7 @@ function SoundOverlayNodeComponent({
               : 'bg-background border-white/[0.08]'
           }`}
         >
-          <Music className="w-4 h-4" />
+          <Music className="size-4" />
           <span className="text-sm">
             {data.soundUrl ? 'Audio connected' : 'Awaiting audio input'}
           </span>
@@ -121,7 +121,7 @@ function SoundOverlayNodeComponent({
       <div className="space-y-2">
         <div>
           <label className="text-xs text-muted-foreground flex items-center gap-1">
-            <Volume2 className="w-3 h-3" />
+            <Volume2 className="size-3" />
             Audio Volume: {data.audioVolume}%
           </label>
           <Slider
@@ -137,7 +137,7 @@ function SoundOverlayNodeComponent({
         {data.mixMode !== 'replace' && (
           <div>
             <label className="text-xs text-muted-foreground flex items-center gap-1">
-              <Video className="w-3 h-3" />
+              <Video className="size-3" />
               Video Volume: {data.videoVolume}%
             </label>
             <Slider
@@ -188,15 +188,15 @@ function SoundOverlayNodeComponent({
       >
         {isProcessing ? (
           <>
-            <Loader2 className="w-4 h-4 animate-spin" />
-            Processing...
+            <Loader2 className="size-4 animate-spin" />
+            Processing…
             {data.processingProgress !== null && (
               <span>({data.processingProgress}%)</span>
             )}
           </>
         ) : (
           <>
-            <Volume2 className="w-4 h-4" />
+            <Volume2 className="size-4" />
             Apply Sound Overlay
           </>
         )}

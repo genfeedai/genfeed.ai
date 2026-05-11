@@ -365,7 +365,7 @@ export default function DropdownTags({
             ? { right: `${dropdownPosition.right}px` }
             : { left: `${dropdownPosition.left}px` }),
           transform: direction === 'up' ? 'translateY(-100%)' : 'none',
-          zIndex: 9999,
+          zIndex: 50,
         }}
         className={cn(
           'w-80 rounded-md border border-white/[0.08] bg-card shadow-lg',
@@ -378,7 +378,7 @@ export default function DropdownTags({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search or create tags..."
+            placeholder="Search or create tags…"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && showCreateOption) {
                 handleCreateTag();
@@ -411,7 +411,7 @@ export default function DropdownTags({
         <div className="max-h-64 overflow-y-auto">
           {isLoading || isLoadingTags ? (
             <div className="p-4 text-center text-sm text-foreground/60">
-              Loading tags...
+              Loading tags…
             </div>
           ) : filteredTags.length === 0 && !showCreateOption ? (
             <div className="p-4 text-center text-sm text-foreground/60">
@@ -428,7 +428,7 @@ export default function DropdownTags({
                   isDisabled={isCreating}
                   className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-background transition-colors"
                 >
-                  <HiPlus className="w-4 h-4 text-primary" />
+                  <HiPlus className="size-4 text-primary" />
                   <span className="flex-1 text-left">
                     Create <strong>&quot;{searchQuery}&quot;</strong>
                   </span>
@@ -452,13 +452,13 @@ export default function DropdownTags({
                   >
                     <div
                       className={cn(
-                        'flex-shrink-0 w-4 h-4 border-2 flex items-center justify-center',
+                        'flex-shrink-0 size-4 border-2 flex items-center justify-center',
                         selected
                           ? 'bg-primary border-primary'
                           : 'border-white/[0.08]',
                       )}
                     >
-                      {selected && <HiCheck className="w-3 h-3 text-white" />}
+                      {selected && <HiCheck className="size-3 text-white" />}
                     </div>
 
                     <span className="flex-1 text-left truncate">
@@ -539,7 +539,7 @@ export default function DropdownTags({
           !showLabel && hasSelectedTags && 'relative',
         )}
       >
-        <HiHashtag className="w-4 h-4" />
+        <HiHashtag className="size-4" />
         {renderButtonContent()}
       </Button>
 

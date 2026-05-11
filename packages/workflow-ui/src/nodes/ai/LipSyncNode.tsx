@@ -83,7 +83,7 @@ function LipSyncNodeComponent(props: NodeProps) {
           onClick={handleExpand}
           title="Expand preview"
         >
-          <Expand className="h-3 w-3" />
+          <Expand className="size-3" />
         </Button>
       ) : null,
     [nodeData.outputVideo, handleExpand],
@@ -94,11 +94,17 @@ function LipSyncNodeComponent(props: NodeProps) {
       <div className="space-y-3">
         {/* Model Selection */}
         <div>
-          <label className="text-xs text-[var(--muted-foreground)]">
+          <label
+            htmlFor={`lipsync-model-${id}`}
+            className="text-xs text-[var(--muted-foreground)]"
+          >
             Model
           </label>
           <Select value={nodeData.model} onValueChange={handleModelChange}>
-            <SelectTrigger className="nodrag h-8 w-full">
+            <SelectTrigger
+              id={`lipsync-model-${id}`}
+              className="nodrag h-8 w-full"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -114,14 +120,20 @@ function LipSyncNodeComponent(props: NodeProps) {
         {/* Sync Mode (only for Sync Labs models) */}
         {isSyncModel && (
           <div>
-            <label className="text-xs text-[var(--muted-foreground)]">
+            <label
+              htmlFor={`lipsync-sync-mode-${id}`}
+              className="text-xs text-[var(--muted-foreground)]"
+            >
               Sync Mode
             </label>
             <Select
               value={nodeData.syncMode}
               onValueChange={handleSyncModeChange}
             >
-              <SelectTrigger className="nodrag h-8 w-full">
+              <SelectTrigger
+                id={`lipsync-sync-mode-${id}`}
+                className="nodrag h-8 w-full"
+              >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -137,10 +149,14 @@ function LipSyncNodeComponent(props: NodeProps) {
 
         {/* Temperature Slider */}
         <div>
-          <label className="text-xs text-[var(--muted-foreground)]">
+          <div
+            id={`lipsync-temperature-${id}`}
+            className="text-xs text-[var(--muted-foreground)]"
+          >
             Temperature: {nodeData.temperature.toFixed(2)}
-          </label>
+          </div>
           <Slider
+            aria-labelledby={`lipsync-temperature-${id}`}
             value={[nodeData.temperature]}
             min={0}
             max={1}
@@ -180,9 +196,9 @@ function LipSyncNodeComponent(props: NodeProps) {
               size="icon-sm"
               onClick={handleGenerate}
               disabled={nodeData.status === 'processing' || !canGenerate}
-              className="absolute top-1 right-1 h-6 w-6 bg-black/50 hover:bg-black/70"
+              className="absolute top-1 right-1 size-6 bg-black/50 hover:bg-black/70"
             >
-              <RefreshCw className="w-3 h-3" />
+              <RefreshCw className="size-3" />
             </Button>
           </div>
         )}
@@ -197,9 +213,9 @@ function LipSyncNodeComponent(props: NodeProps) {
             className="w-full"
           >
             {nodeData.status === 'processing' ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="size-4 animate-spin" />
             ) : (
-              <Video className="w-4 h-4" />
+              <Video className="size-4" />
             )}
             {nodeData.status === 'processing'
               ? 'Generating...'
@@ -210,7 +226,7 @@ function LipSyncNodeComponent(props: NodeProps) {
         {/* Help text for required inputs */}
         {!canGenerate && nodeData.status !== 'processing' && (
           <div className="text-xs text-[var(--muted-foreground)] flex items-center gap-1">
-            <Mic className="w-3 h-3" />
+            <Mic className="size-3" />
             {supportsImage
               ? 'Connect audio + image to generate'
               : 'Connect audio + video to generate'}

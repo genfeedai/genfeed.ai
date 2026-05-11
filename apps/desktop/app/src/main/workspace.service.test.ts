@@ -100,16 +100,20 @@ describe('DesktopWorkspaceService', () => {
     const workspace = await service.openWorkspace();
 
     expect(workspace).not.toBeNull();
-    expect(workspace?.name).toBe('content-workspace');
-    expect(workspace?.fileIndex.map((file) => file.relativePath)).toEqual(
+    if (!workspace) {
+      throw new Error('Expected workspace to open');
+    }
+
+    expect(workspace.name).toBe('content-workspace');
+    expect(workspace.fileIndex.map((file) => file.relativePath)).toEqual(
       expect.arrayContaining(['README.md', path.join('notes', 'ideas.txt')]),
     );
     expect(
-      workspace?.fileIndex.some((file) => file.relativePath.includes('.git')),
+      workspace.fileIndex.some((file) => file.relativePath.includes('.git')),
     ).toBe(false);
     expect(fs.existsSync(path.join(workspaceDir, '.genfeed'))).toBe(true);
     expect(service.listRecents()[0]?.value).toBe(workspaceDir);
-    expect(service.getWorkspace(workspace!.id).path).toBe(workspaceDir);
+    expect(service.getWorkspace(workspace.id).path).toBe(workspaceDir);
   });
 
   it('links a project, resolves workspace paths, and reveals the folder in Finder', async () => {

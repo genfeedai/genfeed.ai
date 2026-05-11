@@ -75,8 +75,8 @@ export function TimeSeriesChart({
         style={{ height }}
       >
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white/30 mx-auto mb-3" />
-          <p className="text-sm text-white/40">Loading chart data...</p>
+          <div className="animate-spin rounded-full size-12 border-b-2 border-white/30 mx-auto mb-3" />
+          <p className="text-sm text-white/40">Loading chart data…</p>
         </div>
       </div>
     );
@@ -99,13 +99,15 @@ export function TimeSeriesChart({
   }
 
   const toggleMetric = (metric: TimeSeriesMetric) => {
-    if (activeMetrics.includes(metric)) {
-      if (activeMetrics.length > 1) {
-        setActiveMetrics(activeMetrics.filter((m) => m !== metric));
+    setActiveMetrics((previousMetrics) => {
+      if (!previousMetrics.includes(metric)) {
+        return [...previousMetrics, metric];
       }
-    } else {
-      setActiveMetrics([...activeMetrics, metric]);
-    }
+
+      return previousMetrics.length > 1
+        ? previousMetrics.filter((m) => m !== metric)
+        : previousMetrics;
+    });
   };
 
   const formatValue = (value: number, metric: TimeSeriesMetric) => {
@@ -132,7 +134,7 @@ export function TimeSeriesChart({
             }`}
           >
             <span
-              className="inline-block w-3 h-3 rounded-full mr-2"
+              className="inline-block size-3 rounded-full mr-2"
               style={{ backgroundColor: METRIC_COLORS[metric] }}
             />
             {METRIC_LABELS[metric]}

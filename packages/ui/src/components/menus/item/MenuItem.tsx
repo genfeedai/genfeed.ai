@@ -34,7 +34,7 @@ export default function MenuItem({
 
     if (OutlineIcon && SolidIcon) {
       const IconComponent = isActive ? SolidIcon : OutlineIcon;
-      return <IconComponent className="w-5 h-5" />;
+      return <IconComponent className="size-5" />;
     }
 
     return null;
@@ -45,13 +45,13 @@ export default function MenuItem({
     isIconVariant
       ? isHorizontalLayout
         ? [
-            'h-5 w-5 shrink-0',
+            'size-5 shrink-0',
             isActive
               ? 'text-foreground'
               : 'text-foreground/42 group-hover:text-foreground/78',
           ]
         : [
-            'h-8 w-8 rounded border border-border bg-background-secondary text-foreground/78',
+            'size-8 rounded border border-border bg-background-secondary text-foreground/78',
             'group-hover:border-white/[0.14] group-hover:bg-white/[0.07] group-hover:text-foreground',
             isActive &&
               'border-white/[0.14] bg-white text-background shadow-[0_18px_42px_-30px_rgba(0,0,0,0.88)]',

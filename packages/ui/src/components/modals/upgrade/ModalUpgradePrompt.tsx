@@ -105,7 +105,7 @@ export default function ModalUpgradePrompt({
       <div className="space-y-6 py-2">
         {/* Lock message */}
         <div className="flex items-start gap-3 p-4 bg-amber-500/5 border border-amber-500/10">
-          <HiLockClosed className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
+          <HiLockClosed className="size-5 text-amber-500 flex-shrink-0 mt-0.5" />
           <div>
             <p className="text-sm font-medium text-foreground">
               {lockedLabel
@@ -135,7 +135,7 @@ export default function ModalUpgradePrompt({
                 <span className="text-sm font-semibold">
                   {TIER_LABELS[tier]}
                 </span>
-                {highlight && <HiSparkles className="h-4 w-4 text-primary" />}
+                {highlight && <HiSparkles className="size-4 text-primary" />}
               </div>
               <div className="text-2xl font-bold mb-3">
                 {TIER_PRICES[tier]}
@@ -153,7 +153,7 @@ export default function ModalUpgradePrompt({
                       key={q}
                       className="flex items-center gap-2 text-xs text-foreground/60"
                     >
-                      <HiCheck className="h-3 w-3 text-foreground/30" />
+                      <HiCheck className="size-3 text-foreground/30" />
                       {label} quality
                     </li>
                   );
@@ -172,11 +172,11 @@ export default function ModalUpgradePrompt({
           className="w-full"
         >
           {isNavigating ? (
-            'Redirecting...'
+            'Redirecting…'
           ) : (
             <>
               Upgrade Now
-              <HiArrowRight className="h-4 w-4" />
+              <HiArrowRight className="size-4" />
             </>
           )}
         </Button>

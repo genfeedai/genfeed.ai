@@ -26,7 +26,7 @@ export default function MenuBrandSwitcher({
 
   const { user } = useUser();
   const { openBrandOverlay } = useBrandOverlay();
-  const router = useRouter();
+  const { push } = useRouter();
   const { href, orgHref } = useOrgUrl();
   const [isUpdatingBrand, setIsUpdatingBrand] = useState(false);
 
@@ -34,10 +34,8 @@ export default function MenuBrandSwitcher({
   const selectedBrand = brands.find((b) => b.id === brandId);
 
   const handleOpenBrandSettings = useCallback(() => {
-    router.push(
-      selectedBrand ? href('/settings') : orgHref('/settings/brands'),
-    );
-  }, [router, selectedBrand, href, orgHref]);
+    push(selectedBrand ? href('/settings') : orgHref('/settings/brands'));
+  }, [selectedBrand, href, orgHref, push]);
 
   const handleSelect = useCallback(
     async (id: string) => {
@@ -82,7 +80,7 @@ export default function MenuBrandSwitcher({
           title={selectedBrand?.label || 'Select Brand'}
         >
           {selectedBrand?.logoUrl && selectedBrand.logoUrl !== '' ? (
-            <div className="w-8 h-8 rounded-full overflow-hidden bg-background flex items-center justify-center">
+            <div className="size-8 rounded-full overflow-hidden bg-background flex items-center justify-center">
               <Image
                 src={selectedBrand.logoUrl}
                 alt={selectedBrand.label ?? 'Brand'}
@@ -94,7 +92,7 @@ export default function MenuBrandSwitcher({
               />
             </div>
           ) : (
-            <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-sm font-semibold text-white">
+            <div className="size-8 rounded-full bg-white/20 flex items-center justify-center text-sm font-semibold text-white">
               {(selectedBrand?.label ?? '?').charAt(0).toUpperCase()}
             </div>
           )}
@@ -103,7 +101,7 @@ export default function MenuBrandSwitcher({
       onSelect={(id) => void handleSelect(id)}
       isDisabled={isUpdating}
       hasSearch={brands.length >= 5}
-      searchPlaceholder="Search brands..."
+      searchPlaceholder="Search brands…"
       footerActions={[
         {
           icon: HiOutlineCog6Tooth,

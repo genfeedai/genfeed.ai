@@ -17,12 +17,12 @@ function ProviderBadge({
 >) {
   return (
     <div
-      className="mt-0.5 h-5 w-5 rounded border border-white/8 flex items-center justify-center shrink-0"
+      className="mt-0.5 size-5 rounded border border-white/8 flex items-center justify-center shrink-0"
       style={{ backgroundColor: `${brandColor}1f`, color: brandColor }}
     >
       {BrandIcon ? (
         <BrandIcon
-          className="h-3.5 w-3.5"
+          className="size-3.5"
           data-testid="model-family-provider-icon"
         />
       ) : (
@@ -57,7 +57,7 @@ const ModelSelectorFamilyItem = memo(function ModelSelectorFamilyItem({
         'hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20',
       )}
     >
-      <ChevronIcon className="h-3.5 w-3.5 shrink-0 text-foreground/45 transition-transform" />
+      <ChevronIcon className="size-3.5 shrink-0 text-foreground/45 transition-transform" />
       <ProviderBadge
         brandColor={brandColor}
         brandIcon={brandIcon}

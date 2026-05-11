@@ -47,7 +47,7 @@ export function ToolbarDropdown({ label, items }: ToolbarDropdownProps) {
         className="text-muted-foreground hover:text-foreground"
       >
         {label}
-        <ChevronDown className="h-3.5 w-3.5" />
+        <ChevronDown className="size-3.5" />
       </Button>
 
       {isOpen && (
@@ -69,7 +69,7 @@ export function ToolbarDropdown({ label, items }: ToolbarDropdownProps) {
                 disabled={item.disabled}
                 className="w-full justify-start gap-2.5 px-3 py-2 text-sm text-foreground"
               >
-                <span className="h-4 w-4 shrink-0">{item.icon}</span>
+                <span className="size-4 shrink-0">{item.icon}</span>
                 <span>{item.label}</span>
                 {item.external && (
                   <span className="ml-auto text-xs text-muted-foreground">

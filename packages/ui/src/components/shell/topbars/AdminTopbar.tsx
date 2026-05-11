@@ -29,7 +29,7 @@ export default function AdminTopbar({
               aria-expanded={Boolean(isMenuOpen)}
               onClick={onMenuToggle}
             >
-              <ToggleIcon className="h-5 w-5" />
+              <ToggleIcon className="size-5" />
             </Button>
           ) : null}
 
@@ -41,7 +41,7 @@ export default function AdminTopbar({
             <Button
               variant={ButtonVariant.OUTLINE}
               size={ButtonSize.ICON}
-              className={`hidden h-8 w-8 lg:inline-flex ${
+              className={`hidden size-8 lg:inline-flex ${
                 isAgentCollapsed
                   ? 'border-primary/30 text-primary hover:border-primary/40 hover:bg-primary/10'
                   : 'border-white/[0.12] text-white/60 hover:border-white/30 hover:bg-white/[0.06]'
@@ -51,7 +51,7 @@ export default function AdminTopbar({
               }
               onClick={onAgentToggle}
             >
-              <HiOutlineSparkles className="h-5 w-5" />
+              <HiOutlineSparkles className="size-5" />
             </Button>
           ) : null}
         </div>

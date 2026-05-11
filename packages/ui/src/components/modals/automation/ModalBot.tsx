@@ -158,26 +158,32 @@ const DEFAULT_PUBLISHING_SETTINGS: IPublishingBotSettings = {
 };
 
 export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
-  const { form, formRef, isSubmitting, onSubmit, closeModal, handleDelete } =
-    useCrudModal<IBot, BotSchema>({
-      defaultValues: {
-        category: 'chat',
-        description: '',
-        label: '',
-        platforms: [],
-        settings: {
-          messagesPerMinute: 5,
-          responseDelaySeconds: 10,
-          responses: [],
-          triggers: [],
-        },
+  const {
+    form,
+    formRef,
+    isSubmitting,
+    onSubmit,
+    closeModal,
+    handleDelete: deleteModalBot,
+  } = useCrudModal<IBot, BotSchema>({
+    defaultValues: {
+      category: 'chat',
+      description: '',
+      label: '',
+      platforms: [],
+      settings: {
+        messagesPerMinute: 5,
+        responseDelaySeconds: 10,
+        responses: [],
+        triggers: [],
       },
-      entity: bot || null,
-      modalId: ModalEnum.BOT,
-      onConfirm,
-      schema: botSchema,
-      serviceFactory: (token) => BotsService.getInstance(token),
-    });
+    },
+    entity: bot || null,
+    modalId: ModalEnum.BOT,
+    onConfirm,
+    schema: botSchema,
+    serviceFactory: (token) => BotsService.getInstance(token),
+  });
 
   // Populate form when editing
   useEffect(() => {
@@ -216,7 +222,9 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
     }
   }, [bot, form]);
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const processKeyDownModalBot = (
+    e: React.KeyboardEvent<HTMLTextAreaElement>,
+  ) => {
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
       if (!isSubmitting && form.formState.isValid) {
@@ -225,7 +233,7 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
     }
   };
 
-  const handleChange = (
+  const updateModalBot = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
@@ -382,8 +390,8 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
         {hasFormErrors(form.formState.errors) && (
           <Alert type={AlertCategory.ERROR} className="mb-4">
             <div className="space-y-1">
-              {parseFormErrors(form.formState.errors).map((error, index) => (
-                <div key={index}>{error}</div>
+              {parseFormErrors(form.formState.errors).map((error) => (
+                <div key={error}>{error}</div>
               ))}
             </div>
           </Alert>
@@ -397,7 +405,7 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
                 type="text"
                 name="label"
                 control={form.control}
-                onChange={handleChange}
+                onChange={updateModalBot}
                 placeholder="Enter bot name"
                 isRequired={true}
                 isDisabled={isSubmitting}
@@ -408,10 +416,10 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
               <Textarea
                 name="description"
                 control={form.control}
-                onChange={handleChange}
+                onChange={updateModalBot}
                 placeholder="Enter description (optional)"
                 isDisabled={isSubmitting}
-                onKeyDown={handleKeyDown}
+                onKeyDown={processKeyDownModalBot}
               />
             </FormControl>
 
@@ -519,7 +527,7 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
                       parseCommaSeparated(e.target.value),
                     )
                   }
-                  onKeyDown={handleKeyDown}
+                  onKeyDown={processKeyDownModalBot}
                   placeholder="e.g., hello, hi, hey"
                   isDisabled={isSubmitting}
                   className="h-16"
@@ -571,7 +579,7 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
                       parseCommaSeparated(e.target.value),
                     )
                   }
-                  onKeyDown={handleKeyDown}
+                  onKeyDown={processKeyDownModalBot}
                   placeholder="e.g., AI, machine learning, tech"
                   isDisabled={isSubmitting}
                   className="h-16"
@@ -589,7 +597,7 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
                       parseCommaSeparated(e.target.value, '#'),
                     )
                   }
-                  onKeyDown={handleKeyDown}
+                  onKeyDown={processKeyDownModalBot}
                   placeholder="e.g., AI, tech, innovation"
                   isDisabled={isSubmitting}
                   className="h-16"
@@ -607,7 +615,7 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
                       parseCommaSeparated(e.target.value, '@'),
                     )
                   }
-                  onKeyDown={handleKeyDown}
+                  onKeyDown={processKeyDownModalBot}
                   placeholder="e.g., elonmusk, OpenAI"
                   isDisabled={isSubmitting}
                   className="h-16"
@@ -704,7 +712,7 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
                       parseCommaSeparated(e.target.value),
                     )
                   }
-                  onKeyDown={handleKeyDown}
+                  onKeyDown={processKeyDownModalBot}
                   placeholder="e.g., brand name, competitor, product"
                   isDisabled={isSubmitting}
                   className="h-20"
@@ -722,7 +730,7 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
                       parseCommaSeparated(e.target.value, '#'),
                     )
                   }
-                  onKeyDown={handleKeyDown}
+                  onKeyDown={processKeyDownModalBot}
                   placeholder="e.g., yourbrand, industry"
                   isDisabled={isSubmitting}
                   className="h-16"
@@ -740,7 +748,7 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
                       parseCommaSeparated(e.target.value),
                     )
                   }
-                  onKeyDown={handleKeyDown}
+                  onKeyDown={processKeyDownModalBot}
                   placeholder="e.g., spam, unrelated"
                   isDisabled={isSubmitting}
                   className="h-16"
@@ -832,7 +840,7 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
                         e.target.value,
                       )
                     }
-                    placeholder="https://hooks.slack.com/services/..."
+                    placeholder="https://hooks.slack.com/services/…"
                     isDisabled={isSubmitting}
                   />
                 </FormControl>
@@ -903,8 +911,8 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
                         e.target.value,
                       )
                     }
-                    onKeyDown={handleKeyDown}
-                    placeholder="Generate a tweet about..."
+                    onKeyDown={processKeyDownModalBot}
+                    placeholder="Generate a tweet about…"
                     isDisabled={isSubmitting}
                     className="h-24"
                   />
@@ -1019,7 +1027,7 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
                       parseCommaSeparated(e.target.value, '#'),
                     )
                   }
-                  onKeyDown={handleKeyDown}
+                  onKeyDown={processKeyDownModalBot}
                   placeholder="e.g., AI, tech, startup"
                   isDisabled={isSubmitting}
                   className="h-16"
@@ -1054,11 +1062,11 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
             isLoading={isSubmitting}
           />
 
-          {bot && handleDelete && (
+          {bot && deleteModalBot && (
             <Button
               label={<HiTrash />}
               variant={ButtonVariant.DESTRUCTIVE}
-              onClick={handleDelete}
+              onClick={deleteModalBot}
               isLoading={isSubmitting}
             />
           )}

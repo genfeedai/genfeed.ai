@@ -27,7 +27,7 @@ export const FAQ_ITEMS_CORE: FAQItem[] = [
   },
   {
     answer:
-      'Self-host Core for free, or start on Hosted for $8/mo plus pay-as-you-go output.',
+      'Start with the Cloud App for $49/mo plus pay-as-you-go output. Self-host Core for free when you want to run your own infrastructure.',
     question: 'How do I get started?',
   },
   {
@@ -61,7 +61,7 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
       },
       {
         answer:
-          'Self-host Core for free, or start on Hosted for $8/mo plus pay-as-you-go output.',
+          'Start with the Cloud App for $49/mo plus pay-as-you-go output. Self-host Core for free when you want to run your own infrastructure.',
         question: 'How do I get started?',
       },
     ],
@@ -71,22 +71,22 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
     questions: [
       {
         answer:
-          'Genfeed separates platform access from output usage. Core is free to self-host with your own AI keys. Hosted starts at $8/mo plus pay-as-you-go output. Cloud is higher-entry B2B for collaboration, multi-org, and multi-brand workflows.',
+          'Genfeed separates platform access from output usage. Cloud App starts at $49/mo plus pay-as-you-go output. Cloud Teams is higher-entry B2B for collaboration, multi-org, and multi-brand workflows. Core remains free to self-host with your own AI keys.',
         question: 'How does pricing work?',
       },
       {
         answer:
-          'Core is free to self-host. Hosted is $8/month plus pay-as-you-go output. Cloud Teams starts at $499/month for collaboration, multi-org, and multi-brand use cases. Enterprise is custom.',
+          'Cloud App is $49/month plus pay-as-you-go output. Cloud Teams starts at $499/month for collaboration, multi-org, and multi-brand use cases. Enterprise is custom. Self-hosted Core is free.',
         question: 'What are the pricing tiers?',
       },
       {
         answer:
-          'Yes. Self-host Core on your own infrastructure for free. Hosted starts at $8/mo plus usage when you want Genfeed managed for you.',
+          'Yes. Self-host Core on your own infrastructure for free when you want control. The default managed path is Cloud App at $49/mo plus usage.',
         question: 'Is there a free option?',
       },
       {
         answer:
-          'The entry Hosted plan does not bundle output quotas. You pay for the videos, images, and voice output you create.',
+          'The entry Cloud App plan does not bundle output quotas. You pay for the videos, images, and voice output you create.',
         question: 'What happens when I create more?',
       },
       {
@@ -126,8 +126,8 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
     questions: [
       {
         answer:
-          'Hosted includes managed platform access, a personal workspace, one brand kit, premium AI models, multi-platform publishing, and pay-as-you-go output.',
-        question: "What's included in Hosted?",
+          'Cloud App includes managed platform access, a personal workspace, one brand kit, premium AI models, multi-platform publishing, and pay-as-you-go output.',
+        question: "What's included in Cloud App?",
       },
       {
         answer:
@@ -141,7 +141,7 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
       },
       {
         answer:
-          'Core includes API access when you self-host. Managed API access depends on Hosted, Cloud Teams, or Enterprise scope. Contact sales for production API terms.',
+          'Core includes API access when you self-host. Managed API access depends on Cloud App, Cloud Teams, or Enterprise scope. Contact sales for production API terms.',
         question: 'Do you have an API?',
       },
     ],
@@ -166,7 +166,7 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
       },
       {
         answer:
-          'Yes. Hosted includes email support. Cloud Teams includes priority support. Enterprise includes a dedicated Slack channel and account manager.',
+          'Yes. Cloud App includes email support. Cloud Teams includes priority support. Enterprise includes a dedicated Slack channel and account manager.',
         question: 'Do you offer customer support?',
       },
     ],

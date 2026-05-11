@@ -16,7 +16,7 @@ import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import Loading from '@ui/loading/default/Loading';
 import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
-import { useCallback, useEffect, useState } from 'react';
+import { type KeyboardEvent, useCallback, useEffect, useState } from 'react';
 import { HiPhoto, HiVideoCamera, HiXMark } from 'react-icons/hi2';
 
 export default function ParentsManager({
@@ -185,7 +185,7 @@ export default function ParentsManager({
 
             {isSearching ? (
               <div className="flex items-center justify-center py-4">
-                <span className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full" />
+                <span className="animate-spin size-4 border-2 border-primary border-t-transparent rounded-full" />
               </div>
             ) : availableIngredients.length === 0 ? (
               <div className="text-sm text-foreground/60 py-4 text-center">
@@ -196,16 +196,26 @@ export default function ParentsManager({
                 {availableIngredients.map((ing: IIngredient) => (
                   <div
                     key={ing.id}
+                    role="button"
+                    tabIndex={0}
                     className="relative group cursor-pointer transition-all"
                     onClick={() => handleAddParent(ing.id)}
+                    onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => {
+                      if (event.key !== 'Enter' && event.key !== ' ') {
+                        return;
+                      }
+
+                      event.preventDefault();
+                      handleAddParent(ing.id);
+                    }}
                     title={
                       (ing.metadata as IMetadata)?.label ||
                       `${ing.category} - ${ing.id.slice(0, 8)}`
                     }
                   >
-                    <div className="relative w-16 h-16 overflow-hidden border-2 border-transparent hover:border-primary transition-all hover:scale-105">
+                    <div className="relative size-16 overflow-hidden border-2 border-transparent hover:border-primary transition-all hover:scale-105">
                       {isVideo ? (
-                        <div className="w-full h-full bg-background">
+                        <div className="size-full bg-background">
                           <VideoPlayer
                             src={ing.ingredientUrl}
                             thumbnail={ing.thumbnailUrl}
@@ -226,7 +236,7 @@ export default function ParentsManager({
                             `${EnvironmentService.assetsEndpoint}/placeholders/portrait.jpg`
                           }
                           alt={(ing.metadata as IMetadata)?.label}
-                          className="w-full h-full object-cover"
+                          className="size-full object-cover"
                           width={64}
                           height={64}
                           sizes="64px"
@@ -252,9 +262,9 @@ export default function ParentsManager({
         <div className="flex flex-wrap gap-2">
           {parents.map((parent) => (
             <div key={parent.id} className="relative group">
-              <div className="relative w-20 h-20 overflow-hidden border-2 border-primary/30">
+              <div className="relative size-20 overflow-hidden border-2 border-primary/30">
                 {isVideo ? (
-                  <div className="w-full h-full bg-background">
+                  <div className="size-full bg-background">
                     <VideoPlayer
                       src={parent.ingredientUrl}
                       thumbnail={parent.thumbnailUrl}
@@ -275,7 +285,7 @@ export default function ParentsManager({
                       `${EnvironmentService.assetsEndpoint}/placeholders/portrait.jpg`
                     }
                     alt={(parent.metadata as IMetadata)?.label}
-                    className="w-full h-full object-cover"
+                    className="size-full object-cover"
                     width={80}
                     height={80}
                     sizes="80px"
@@ -299,7 +309,7 @@ export default function ParentsManager({
                     className="absolute top-1 right-1 bg-error text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-error-focus"
                     ariaLabel="Remove parent"
                   >
-                    <HiXMark className="w-3 h-3" />
+                    <HiXMark className="size-3" />
                   </Button>
                 )}
               </div>

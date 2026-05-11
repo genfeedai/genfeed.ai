@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/rules-of-hooks -- Storybook render functions are invoked as story components. */
 import { DropdownDirection } from '@genfeedai/enums';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import DropdownMultiSelect from '@ui/dropdowns/multiselect/DropdownMultiSelect';
@@ -68,7 +69,7 @@ export const Default: Story = {
       { label: 'Option 2', value: 'option2' },
       { label: 'Option 3', value: 'option3' },
     ],
-    placeholder: 'Select...',
+    placeholder: 'Select…',
     values: [],
   },
 };
@@ -89,7 +90,7 @@ export const WithSelections: Story = {
       { label: 'Option 3', value: 'option3' },
       { label: 'Option 4', value: 'option4' },
     ],
-    placeholder: 'Select...',
+    placeholder: 'Select…',
     values: ['option1', 'option2'],
   },
 };
@@ -143,7 +144,7 @@ export const ManyOptions: Story = {
       { label: 'Category 7', value: 'cat7' },
       { label: 'Category 8', value: 'cat8' },
     ],
-    placeholder: 'Select categories...',
+    placeholder: 'Select categories…',
     values: [],
   },
 };
@@ -176,9 +177,9 @@ export const Interactive: Story = {
             { label: 'Svelte', value: 'svelte' },
           ]}
           onChange={(_name, newValues) => setValues(newValues)}
-          placeholder="Select frameworks..."
+          placeholder="Select frameworks…"
         />
-        <div className="mt-4 text-sm text-gray-600">
+        <div className="mt-4 text-sm text-zinc-600">
           Selected: {values.join(', ') || 'None'}
         </div>
       </div>

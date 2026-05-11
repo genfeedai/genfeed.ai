@@ -59,7 +59,7 @@ export default function IngredientTabsSharing({
           <Button
             label={
               <>
-                <HiDocumentDuplicate className="w-4 h-4" />
+                <HiDocumentDuplicate className="size-4" />
                 Copy Link
               </>
             }

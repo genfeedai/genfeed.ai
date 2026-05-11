@@ -102,10 +102,10 @@ export default function CaptionGeneratorButton({
       maxWidth="420px"
       trigger={
         <Button
-          icon={<HiSparkles className="w-4 h-4" />}
+          icon={<HiSparkles className="size-4" />}
           variant={ButtonVariant.SECONDARY}
           size={ButtonSize.ICON}
-          className={`h-9 w-9 min-h-0 p-0 ${className}`}
+          className={`size-9 min-h-0 p-0 ${className}`}
           tooltip="Optimize caption"
           tooltipPosition="top"
           isDisabled={isDisabled || !content.trim()}
@@ -121,7 +121,7 @@ export default function CaptionGeneratorButton({
           <div className="flex items-center justify-center py-8">
             <Spinner size={ComponentSize.SM} />
             <span className="ml-2 text-sm text-foreground/60">
-              Optimizing caption...
+              Optimizing caption…
             </span>
           </div>
         )}
@@ -147,9 +147,9 @@ export default function CaptionGeneratorButton({
                   Changes
                 </p>
                 <ul className="space-y-1">
-                  {result.changes.map((change, idx) => (
+                  {result.changes.map((change) => (
                     <li
-                      key={`change-${idx}`}
+                      key={change}
                       className="text-xs text-foreground/60 flex items-start gap-1.5"
                     >
                       <span className="text-primary mt-0.5 flex-shrink-0">
@@ -166,7 +166,7 @@ export default function CaptionGeneratorButton({
             <div className="flex items-center gap-2 border-t border-white/[0.08] pt-3">
               <Button
                 label="Accept"
-                icon={<HiCheck className="w-3.5 h-3.5" />}
+                icon={<HiCheck className="size-3.5" />}
                 variant={ButtonVariant.DEFAULT}
                 size={ButtonSize.SM}
                 className="flex-1"
@@ -174,7 +174,7 @@ export default function CaptionGeneratorButton({
               />
               <Button
                 label="Regenerate"
-                icon={<HiArrowPath className="w-3.5 h-3.5" />}
+                icon={<HiArrowPath className="size-3.5" />}
                 variant={ButtonVariant.SECONDARY}
                 size={ButtonSize.SM}
                 className="flex-1"

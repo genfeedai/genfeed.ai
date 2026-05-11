@@ -5,7 +5,7 @@
  *   import '../../tests/mocks/recharts.mock';
  *
  * This replaces the previous global mock in setup.ts, avoiding TDZ conflicts
- * when tests also call vi.mock('recharts', ...) locally.
+ * when tests also call vi.mock('recharts', …) locally.
  */
 import * as React from 'react';
 import { vi } from 'vitest';

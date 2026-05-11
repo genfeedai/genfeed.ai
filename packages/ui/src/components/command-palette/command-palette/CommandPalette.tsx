@@ -10,7 +10,7 @@ const MODAL_ID = 'command-palette-modal';
 
 export function CommandPalette({
   maxResults = 10,
-  placeholder = 'Type a command or search...',
+  placeholder = 'Type a command or search…',
   noResultsMessage = 'No commands found',
   className,
 }: ICommandPaletteProps): ReactElement {

@@ -19,10 +19,10 @@ function deriveInitials(name: string): string {
 }
 
 const avatarSize: Record<IdentitySize, string> = {
-  default: 'h-6 w-6 text-[10px]',
-  lg: 'h-7 w-7 text-xs',
-  sm: 'h-5 w-5 text-[9px]',
-  xs: 'h-4 w-4 text-[8px]',
+  default: 'size-6 text-[10px]',
+  lg: 'size-7 text-xs',
+  sm: 'size-5 text-[9px]',
+  xs: 'size-4 text-[8px]',
 };
 
 const textSize: Record<IdentitySize, string> = {

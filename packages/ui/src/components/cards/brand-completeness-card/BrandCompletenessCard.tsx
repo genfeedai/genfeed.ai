@@ -61,11 +61,11 @@ function GroupRow({
         className="flex w-full items-center gap-2.5 px-2 py-1.5 text-left transition-colors duration-150 hover:bg-white/[0.04]"
       >
         {isComplete ? (
-          <HiCheck className="w-3.5 h-3.5 text-green-400/60 flex-shrink-0" />
+          <HiCheck className="size-3.5 text-green-400/60 flex-shrink-0" />
         ) : (
           <HiChevronDown
             className={cn(
-              'w-3.5 h-3.5 text-white/20 flex-shrink-0 transition-transform duration-200',
+              'size-3.5 text-white/20 flex-shrink-0 transition-transform duration-200',
               !isExpanded && '-rotate-90',
             )}
           />
@@ -99,7 +99,7 @@ function GroupRow({
               href={href(field.href)}
               className="flex items-center gap-2 px-2 py-1 rounded text-[11px] text-white/45 transition-colors duration-150 hover:text-white/70 hover:bg-white/[0.04]"
             >
-              <HiChevronRight className="w-3 h-3 text-white/15 flex-shrink-0" />
+              <HiChevronRight className="size-3 text-white/15 flex-shrink-0" />
               {field.label}
             </Link>
           ))}

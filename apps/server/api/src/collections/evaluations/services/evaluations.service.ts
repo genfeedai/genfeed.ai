@@ -165,13 +165,15 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
   private async validateContentForEvaluation(
     contentType: IngredientCategory | 'article' | 'post',
     contentId: string,
+    organizationId: string,
   ): Promise<void> {
     switch (contentType) {
       case IngredientCategory.VIDEO: {
         if (!this.videosService) throw new Error('VideosService not available');
-        const video = await this.videosService.findOne({ _id: contentId }, [
-          { path: 'metadata' },
-        ]);
+        const video = await this.videosService.findOne(
+          { _id: contentId, organization: organizationId, isDeleted: false },
+          [{ path: 'metadata' }],
+        );
         if (!video) throw new NotFoundException(`Video ${contentId} not found`);
         if (!(video.metadata as { result?: string })?.result) {
           throw new NotFoundException(`Video ${contentId} has no result URL`);
@@ -180,9 +182,10 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       }
       case IngredientCategory.IMAGE: {
         if (!this.imagesService) throw new Error('ImagesService not available');
-        const image = await this.imagesService.findOne({ _id: contentId }, [
-          { path: 'metadata' },
-        ]);
+        const image = await this.imagesService.findOne(
+          { _id: contentId, organization: organizationId, isDeleted: false },
+          [{ path: 'metadata' }],
+        );
         if (!image) throw new NotFoundException(`Image ${contentId} not found`);
         if (!(image.metadata as { result?: string })?.result) {
           throw new NotFoundException(`Image ${contentId} has no result URL`);
@@ -192,7 +195,11 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       case 'article': {
         if (!this.articlesService)
           throw new Error('ArticlesService not available');
-        const article = await this.articlesService.findOne({ _id: contentId });
+        const article = await this.articlesService.findOne({
+          _id: contentId,
+          organization: organizationId,
+          isDeleted: false,
+        });
         if (!article)
           throw new NotFoundException(`Article ${contentId} not found`);
         if (!article.content)
@@ -201,7 +208,11 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       }
       case 'post': {
         if (!this.postsService) throw new Error('PostsService not available');
-        const post = await this.postsService.findOne({ _id: contentId });
+        const post = await this.postsService.findOne({
+          _id: contentId,
+          organization: organizationId,
+          isDeleted: false,
+        });
         if (!post) throw new NotFoundException(`Post ${contentId} not found`);
         if (!post.description)
           throw new NotFoundException(`Post ${contentId} has no content`);
@@ -225,7 +236,11 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       this.constructorName,
     );
 
-    await this.validateContentForEvaluation(contentType, contentId);
+    await this.validateContentForEvaluation(
+      contentType,
+      contentId,
+      organizationId,
+    );
     await this.assertOrganizationCreditsAvailable(
       organizationId,
       EvaluationsService.EVALUATION_MINIMUM_CREDITS,

@@ -49,7 +49,7 @@ export default function ModalStyle({
     serviceFactory: (token) => StylesService.getInstance(token),
   });
 
-  const handleChange = (
+  const updateModalStyle = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
@@ -74,8 +74,8 @@ export default function ModalStyle({
         {hasFormErrors(form.formState.errors) && (
           <Alert type={AlertCategory.ERROR} className="mb-4">
             <div className="space-y-1">
-              {parseFormErrors(form.formState.errors).map((error, index) => (
-                <div key={index}>{error}</div>
+              {parseFormErrors(form.formState.errors).map((error) => (
+                <div key={error}>{error}</div>
               ))}
             </div>
           </Alert>
@@ -86,7 +86,7 @@ export default function ModalStyle({
             type="text"
             name="label"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalStyle}
             placeholder="Enter display label"
             isRequired={true}
             isDisabled={isSubmitting}
@@ -98,7 +98,7 @@ export default function ModalStyle({
             type="text"
             name="key"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalStyle}
             placeholder="lowercase-with-hyphens"
             isRequired={true}
             isDisabled={isSubmitting}
@@ -177,7 +177,7 @@ export default function ModalStyle({
           <Input
             name="description"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalStyle}
             placeholder="Enter description (optional)"
             isDisabled={isSubmitting}
           />

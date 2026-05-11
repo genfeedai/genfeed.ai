@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/rules-of-hooks -- Storybook render functions are invoked as story components. */
 import {
   BG_BLUR,
   BORDER_WHITE_30,
@@ -98,7 +99,7 @@ function ButtonCreditsMock({ balance = 1000 }: { balance?: number }) {
             className={cn(
               BG_BLUR,
               BORDER_WHITE_30,
-              'credits-dropdown z-[9999] fixed p-3 w-72',
+              'credits-dropdown z-50 fixed p-3 w-72',
             )}
             style={{
               left: `${dropdownPosition.left}px`,
@@ -130,7 +131,7 @@ function ButtonCreditsMock({ balance = 1000 }: { balance?: number }) {
               >
                 <HiArrowPath
                   className={cn(
-                    'w-4 h-4 flex-shrink-0',
+                    'size-4 flex-shrink-0',
                     isLoading && 'animate-spin',
                   )}
                 />
@@ -146,7 +147,7 @@ function ButtonCreditsMock({ balance = 1000 }: { balance?: number }) {
                 title="Top Up Credits"
               >
                 <svg
-                  className="w-4 h-4 flex-shrink-0"
+                  className="size-4 flex-shrink-0"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"

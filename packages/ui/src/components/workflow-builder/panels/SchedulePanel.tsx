@@ -149,7 +149,7 @@ export default function SchedulePanel({
         onClick={onToggleCollapse}
       >
         <div className="flex items-center gap-2">
-          <HiOutlineClock className="h-4 w-4" />
+          <HiOutlineClock className="size-4" />
           <span className="font-semibold text-sm">Schedule</span>
         </div>
         <div className="flex items-center gap-2">
@@ -159,9 +159,9 @@ export default function SchedulePanel({
             </Badge>
           )}
           {isCollapsed ? (
-            <HiOutlineChevronDown className="h-4 w-4" />
+            <HiOutlineChevronDown className="size-4" />
           ) : (
-            <HiOutlineChevronUp className="h-4 w-4" />
+            <HiOutlineChevronUp className="size-4" />
           )}
         </div>
       </div>
@@ -171,7 +171,7 @@ export default function SchedulePanel({
           {/* Current schedule info */}
           {schedule && (
             <div className="flex items-center gap-2 p-2 bg-background">
-              <HiOutlineCalendar className="h-4 w-4" />
+              <HiOutlineCalendar className="size-4" />
               <span className="text-sm">
                 {formatRecurringSchedule(schedule, timezone)}
               </span>

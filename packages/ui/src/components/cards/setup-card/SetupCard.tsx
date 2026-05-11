@@ -48,9 +48,9 @@ export default function SetupCard() {
             )}
           >
             {step.isCompleted ? (
-              <HiCheck className="w-3.5 h-3.5 text-green-400/60 flex-shrink-0" />
+              <HiCheck className="size-3.5 text-green-400/60 flex-shrink-0" />
             ) : (
-              <HiChevronRight className="w-3.5 h-3.5 text-white/20 flex-shrink-0" />
+              <HiChevronRight className="size-3.5 text-white/20 flex-shrink-0" />
             )}
             <span className={cn(step.isCompleted && 'line-through')}>
               {step.label}

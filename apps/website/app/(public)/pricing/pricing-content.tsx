@@ -2,10 +2,7 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import {
-  contentServiceOffering,
-  formatOutputs,
   formatPrice,
-  getEnterprisePlan,
   websitePlans,
 } from '@helpers/business/pricing/pricing.helper';
 import { cn } from '@helpers/formatting/cn/cn.util';
@@ -22,25 +19,97 @@ import {
 } from '@web-components/content/NeuralGrid';
 import PageLayout from '@web-components/PageLayout';
 import Link from 'next/link';
-import { LuCheck, LuSparkles } from 'react-icons/lu';
+import { HiCheckCircle } from 'react-icons/hi2';
+import { LuArrowRight, LuSparkles } from 'react-icons/lu';
 
 const CALENDLY_URL =
   process.env.NEXT_PUBLIC_CALENDLY_URL ||
   'https://calendly.com/vincent-genfeed/30min';
 
-// Tier numbering and short labels for the Neural Noir aesthetic
-const tierMeta: Record<string, { number: string; shortLabel: string }> = {
-  Enterprise: { number: '03', shortLabel: 'Studio' },
-  'Cloud Teams': { number: '02', shortLabel: 'B2B Cloud' },
-  Hosted: { number: '01', shortLabel: 'Managed' },
-  'Self-Hosted': { number: '00', shortLabel: 'Deploy' },
-};
+const PLAN_ORDER = ['Hosted', 'Cloud Teams', 'Enterprise', 'Self-Hosted'];
+const FEATURED_TIER = 'Hosted';
 
-const FEATURED_TIER = 'Cloud Teams';
+const FAQ_ITEMS = [
+  {
+    answer:
+      'Genfeed separates platform access from output usage. Start with the Cloud App at $49/month, then pay as you go for videos, images, and voice output.',
+    question: 'How does pricing work?',
+  },
+  {
+    answer:
+      'No. The entry cloud plan does not bundle artificial quotas. Output usage scales with what you actually create.',
+    question: 'Are credits shown to customers?',
+  },
+  {
+    answer:
+      'Cloud App and Cloud Teams use managed premium models. You do not need to configure model keys to start creating.',
+    question: 'Do I need my own AI keys?',
+  },
+  {
+    answer:
+      'Cloud Teams adds collaboration workspaces, roles, organization boundaries, brand operations, shared approvals, managed billing, and priority support.',
+    question: 'When should I use Cloud Teams?',
+  },
+  {
+    answer:
+      'Yes. Self-hosted Core remains free for teams that want to run Genfeed on their own infrastructure with their own AI keys.',
+    question: 'Can I still self-host?',
+  },
+  {
+    answer:
+      'Book a demo when you need team rollout planning, migration support, enterprise terms, or a multi-brand workflow designed before signup.',
+    question: 'When should I book a demo?',
+  },
+];
+
+const PAYG_RULES = [
+  'Cloud app first',
+  '$49/month platform access',
+  'Pay-as-you-go output',
+  'Book a demo for team rollout',
+] as const;
+
+function getOrderedPlans() {
+  return PLAN_ORDER.map((label) =>
+    websitePlans.find((plan) => plan.label === label),
+  ).filter((plan): plan is (typeof websitePlans)[number] => Boolean(plan));
+}
+
+function getDisplayName(label: string): string {
+  return label === 'Hosted' ? 'Cloud App' : label;
+}
+
+function getPriceQualifier(plan: (typeof websitePlans)[number]): string {
+  if (plan.type === 'payg') {
+    return '/month platform access + PAYG output';
+  }
+
+  if (plan.type === 'subscription') {
+    return '/month + PAYG output';
+  }
+
+  if (plan.type === 'byok') {
+    return 'Self-managed';
+  }
+
+  return 'Custom terms';
+}
+
+function getPlanSummary(plan: (typeof websitePlans)[number]): string {
+  if (plan.label === 'Hosted') {
+    return 'The default path: managed Genfeed, managed models, and usage-based output billing.';
+  }
+
+  if (plan.label === 'Cloud Teams') {
+    return 'B2B cloud for collaboration, organizations, brands, approvals, and managed billing.';
+  }
+
+  return plan.valueProposition || plan.description;
+}
 
 export default function PricingContent() {
-  const containerRef = useMarketingEntrance();
-  const isPreLaunch = EnvironmentService.isPreLaunch;
+  const containerRef = useMarketingEntrance({ hero: false, sections: false });
+  const signUpHref = `${EnvironmentService.apps.app}/sign-up?plan=hosted`;
 
   return (
     <div ref={containerRef}>
@@ -49,537 +118,174 @@ export default function PricingContent() {
         badgeIcon={LuSparkles}
         title={
           <>
-            Simple pricing that{' '}
-            <span className="italic font-light">scales.</span>
+            Cloud app pricing,{' '}
+            <span className="italic font-light">usage-based output.</span>
           </>
         }
-        description={
-          isPreLaunch
-            ? 'Private beta — work directly with our team or get managed access.'
-            : 'Self-host for free, start hosted for $8/mo plus PAYG output, or use Cloud for B2B collaboration.'
-        }
+        description="Start with managed Genfeed. Pay for platform access, then pay only for the videos, images, and voice output you create."
       >
-        {/* ── Plans Grid ── */}
-        {isPreLaunch ? <PreLaunchPlans /> : <SaaSPlans />}
-
-        {/* FAQ */}
-        <WebSection bg="bordered" maxWidth="md" className="gsap-section">
-          <SectionHeader
-            title="Common Questions"
-            description="Everything you need to know about pricing and plans."
-            className="[&_h2]:text-5xl"
-          />
-
-          <FaqGrid
-            items={
-              isPreLaunch
-                ? [
-                    {
-                      answer:
-                        'We offer two options: a fully managed Studio tier at $9,999/mo with unlimited content generation, or a Done-For-You content service starting at $2,500/mo where our team handles everything.',
-                      question: 'How does pricing work?',
-                    },
-                    {
-                      answer:
-                        'We are in private beta. Book a call to discuss your needs and we will find the right fit for your brand.',
-                      question: 'How do I get started?',
-                    },
-                    {
-                      answer:
-                        'All plans include premium AI models that are auto-selected for best quality — GPT-4, Claude, Runway, ElevenLabs, and more. You never have to choose or configure models.',
-                      question: 'What AI models are included?',
-                    },
-                    {
-                      answer:
-                        'The Studio tier includes unlimited video, images, and voice generation. Plus SSO, dedicated account manager, SLA, full API access, white-label branding, and custom domains.',
-                      question: "What's included in Studio?",
-                    },
-                    {
-                      answer:
-                        'We handle everything — strategy, production, publishing. You review and approve. Includes a dedicated content strategist, unlimited revisions, and monthly performance reporting.',
-                      question: 'What does Done-For-You include?',
-                    },
-                    {
-                      answer:
-                        'Yes — the open-source core is available to self-host on your own infrastructure for free under the AGPL-3.0 license.',
-                      question: 'Is there a self-hosted option?',
-                    },
-                  ]
-                : [
-                    {
-                      answer:
-                        'Genfeed separates platform access from output usage. Self-host Core for free with your own keys, use Hosted for $8/mo plus pay-as-you-go output, or use Cloud when you need team, organization, and brand collaboration.',
-                      question: 'How does pricing work?',
-                    },
-                    {
-                      answer:
-                        'Yes — self-host Core on your own infrastructure for free. You bring your own AI keys and manage the deployment. Hosted starts at $8/mo plus PAYG output when you want Genfeed managed for you.',
-                      question: 'Is there a free option?',
-                    },
-                    {
-                      answer:
-                        'Hosted and Cloud use premium AI models that are auto-selected for best quality. You do not need to choose or configure models to start generating.',
-                      question: 'What AI models are included?',
-                    },
-                    {
-                      answer:
-                        'There are no bundled output quotas on the entry hosted plan. You pay for the videos, images, and voice output you create.',
-                      question: 'What happens when I create more?',
-                    },
-                    {
-                      answer:
-                        'Yes. All cloud plans are month-to-month with no lock-in. Cancel anytime from your account settings.',
-                      question: 'Can I cancel anytime?',
-                    },
-                    {
-                      answer:
-                        'Cloud is the B2B layer for collaboration: teams, roles, multi-org accounts, multi-brand workflows, shared approvals, managed billing, and priority support.',
-                      question: "What's included in Cloud?",
-                    },
-                  ]
-            }
-          />
-
-          <div className="text-center mt-12">
-            <Link
-              href="/faq"
-              className="text-[10px] font-black uppercase tracking-widest text-surface/40 hover:text-surface transition-colors"
-            >
-              View All FAQs →
-            </Link>
+        <WebSection maxWidth="lg" py="md">
+          <div className="grid gap-px overflow-hidden border border-edge/5 bg-fill/5 md:grid-cols-4">
+            {PAYG_RULES.map((rule) => (
+              <div key={rule} className="bg-background px-5 py-4">
+                <div className="flex items-center gap-2 text-sm text-surface/65">
+                  <HiCheckCircle className="h-4 w-4 text-success" />
+                  {rule}
+                </div>
+              </div>
+            ))}
           </div>
         </WebSection>
 
-        {/* CTA Section */}
-        {isPreLaunch ? (
-          <CtaSection
-            bg="subtle"
-            title="Let's Talk"
-            description="We're onboarding a limited number of clients. Book a call to discuss fit."
-          >
-            <Button size={ButtonSize.PUBLIC} asChild>
-              <a href={CALENDLY_URL} target="_blank" rel="noopener noreferrer">
-                Book a Call
-              </a>
-            </Button>
-            <Button
-              variant={ButtonVariant.SECONDARY}
-              size={ButtonSize.PUBLIC}
-              asChild
-            >
-              <Link href="/services">Learn About Services</Link>
-            </Button>
-          </CtaSection>
-        ) : (
-          <CtaSection
-            bg="subtle"
-            title="Ready to Get Started?"
-            description="Deploy Core yourself, start Hosted with PAYG output, or use Cloud when collaboration becomes the product requirement."
-          >
-            <Button size={ButtonSize.PUBLIC} asChild>
-              <a
-                href={`${EnvironmentService.apps.app}/sign-up`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Start Free Trial
-              </a>
-            </Button>
-            <Button
-              variant={ButtonVariant.SECONDARY}
-              size={ButtonSize.PUBLIC}
-              asChild
-            >
-              <a href={CALENDLY_URL} target="_blank" rel="noopener noreferrer">
-                Book a Demo
-              </a>
-            </Button>
-          </CtaSection>
-        )}
+        <WebSection maxWidth="full" py="md">
+          <SectionHeader
+            title="Choose the smallest managed plan that fits."
+            description="The website leads with the Cloud App. Self-hosting is still available, but it is no longer the default buyer path."
+            className="[&_h2]:text-5xl mb-4"
+          />
 
-        {/* Services link */}
-        <div className="text-center pb-20">
-          <Link
-            href="/services"
-            className="text-[10px] font-black uppercase tracking-widest text-surface/40 hover:text-surface transition-colors"
-          >
-            Looking for done-for-you content? →
-          </Link>
-        </div>
-      </PageLayout>
-    </div>
-  );
-}
+          <NeuralGrid columns={4} className="gsap-grid">
+            {getOrderedPlans().map((plan, index) => {
+              const isFeatured = plan.label === FEATURED_TIER;
+              const isSelfHosted = plan.type === 'byok';
+              const isEnterprise = plan.type === 'enterprise';
+              const ctaHref = isSelfHosted
+                ? '/host'
+                : isFeatured
+                  ? signUpHref
+                  : plan.ctaHref || CALENDLY_URL;
+              const ctaLabel = isFeatured
+                ? 'Start Cloud App'
+                : plan.cta || 'Get Started';
+              const isExternal = !isSelfHosted;
 
-/** Pre-launch: Studio ($9,999) + DFY ($2,500) side-by-side */
-function PreLaunchPlans() {
-  const enterprise = getEnterprisePlan();
-  const dfy = contentServiceOffering;
+              return (
+                <NeuralGridItem
+                  key={plan.label}
+                  inverted={isFeatured}
+                  padding="lg"
+                  className={cn(
+                    'relative gsap-card',
+                    !isFeatured && 'bg-fill/[0.02]',
+                  )}
+                  tierLabel={`${String(index + 1).padStart(2, '0')} / ${getDisplayName(plan.label)}`}
+                >
+                  {isFeatured ? (
+                    <div className="absolute right-6 top-6">
+                      <span className="bg-black px-3 py-1 text-[10px] font-black uppercase tracking-widest text-surface">
+                        Default
+                      </span>
+                    </div>
+                  ) : null}
 
-  return (
-    <WebSection maxWidth="full">
-      <SectionHeader
-        title="Services"
-        description="Fully managed AI content — limited availability during private beta."
-        className="[&_h2]:text-5xl mb-4"
-      />
-      <NeuralGrid columns={2}>
-        {/* Studio tier */}
-        <NeuralGridItem
-          padding="lg"
-          className="relative gsap-card !rounded-none"
-          style={{ backgroundColor: '#18181b', borderRadius: 0 }}
+                  <div className="mb-2">
+                    <span
+                      className={cn(
+                        'text-5xl font-serif',
+                        isFeatured && 'text-inv-fg',
+                      )}
+                    >
+                      {isEnterprise ? 'Custom' : formatPrice(plan.price)}
+                    </span>
+                  </div>
+
+                  <div
+                    className={cn(
+                      'mb-8 text-sm',
+                      isFeatured ? 'text-inv-fg/50' : 'text-surface/40',
+                    )}
+                  >
+                    {getPriceQualifier(plan)}
+                  </div>
+
+                  <p
+                    className={cn(
+                      'mb-8 text-sm leading-6',
+                      isFeatured ? 'text-inv-fg/60' : 'text-surface/50',
+                    )}
+                  >
+                    {getPlanSummary(plan)}
+                  </p>
+
+                  <ul className="mb-auto space-y-4">
+                    {plan.features.slice(0, 5).map((feature) => (
+                      <li key={feature} className="flex items-start gap-3">
+                        <HiCheckCircle
+                          className={cn(
+                            'mt-0.5 h-4 w-4 shrink-0',
+                            isFeatured ? 'text-inv-fg/35' : 'text-surface/40',
+                          )}
+                        />
+                        <span
+                          className={cn(
+                            'text-sm',
+                            isFeatured ? 'text-inv-fg/60' : 'text-surface/60',
+                          )}
+                        >
+                          {feature}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <Button
+                    asChild
+                    className="mt-12 w-full justify-center"
+                    size={ButtonSize.PUBLIC}
+                    variant={
+                      isFeatured ? ButtonVariant.BLACK : ButtonVariant.OUTLINE
+                    }
+                  >
+                    {isExternal ? (
+                      <a
+                        href={ctaHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {ctaLabel}
+                      </a>
+                    ) : (
+                      <Link href={ctaHref}>{ctaLabel}</Link>
+                    )}
+                  </Button>
+                </NeuralGridItem>
+              );
+            })}
+          </NeuralGrid>
+        </WebSection>
+
+        <WebSection bg="bordered" maxWidth="md">
+          <SectionHeader
+            title="Common Questions"
+            description="Pricing is intentionally simple: managed access first, usage-based output second."
+            className="[&_h2]:text-5xl"
+          />
+
+          <FaqGrid items={FAQ_ITEMS} />
+        </WebSection>
+
+        <CtaSection
+          bg="subtle"
+          title="Start with Cloud App."
+          description="Book a demo only when the rollout needs team planning or enterprise terms."
         >
-          <div className="text-xs font-black uppercase tracking-widest mb-6 text-surface/20">
-            00 / Studio
-          </div>
-
-          <div className="mb-2">
-            <span className="text-5xl font-serif">$9,999</span>
-            <span className="text-sm ml-1 text-surface/40">/mo</span>
-          </div>
-
-          <div className="text-sm mb-8 text-surface/40">
-            Fully managed — limited availability
-          </div>
-
-          <div className="py-6 border-y border-edge/5 mb-8">
-            <div className="text-2xl font-bold">Unlimited</div>
-            <div className="text-sm mt-1 text-surface/40">
-              Videos, images, and voice
-            </div>
-          </div>
-
-          <ul className="space-y-4 mb-auto">
-            {enterprise.features.map((feature) => (
-              <li key={feature} className="flex items-start gap-3">
-                <LuCheck className="h-4 w-4 mt-0.5 shrink-0 text-surface/40" />
-                <span className="text-sm text-surface/60">{feature}</span>
-              </li>
-            ))}
-          </ul>
-
+          <Button size={ButtonSize.PUBLIC} asChild>
+            <a href={signUpHref} target="_blank" rel="noopener noreferrer">
+              Start Cloud App
+              <LuArrowRight className="h-4 w-4" />
+            </a>
+          </Button>
           <Button
-            asChild
-            variant={ButtonVariant.DEFAULT}
+            variant={ButtonVariant.SECONDARY}
             size={ButtonSize.PUBLIC}
-            className="mt-12 w-full text-center"
+            asChild
           >
             <a href={CALENDLY_URL} target="_blank" rel="noopener noreferrer">
               Book a Demo
             </a>
           </Button>
-        </NeuralGridItem>
-
-        {/* DFY card */}
-        <NeuralGridItem
-          padding="lg"
-          inverted
-          className="relative gsap-card !rounded-none"
-          style={{ borderRadius: 0 }}
-        >
-          <div className="absolute top-6 right-6">
-            <span className="px-3 py-1 bg-black text-surface text-[10px] font-black uppercase tracking-widest rounded-full">
-              Most Popular
-            </span>
-          </div>
-
-          <div className="text-xs font-black uppercase tracking-widest mb-6 text-inv-fg/30">
-            01 / Done-For-You
-          </div>
-
-          <div className="mb-2">
-            <span className="text-5xl font-serif text-inv-fg">From $2,500</span>
-            <span className="text-sm ml-1 text-inv-fg/40">/mo</span>
-          </div>
-
-          <div className="text-sm mb-8 text-inv-fg/50">{dfy.description}</div>
-
-          <div className="py-6 border-y border-inv-fg/10 mb-8">
-            <div className="text-2xl font-bold text-inv-fg">Full-Service</div>
-            <div className="text-sm mt-1 text-inv-fg/40">
-              Strategy, production, publishing
-            </div>
-          </div>
-
-          <ul className="space-y-4 mb-auto">
-            {dfy.includes.map((item) => (
-              <li key={item} className="flex items-start gap-3">
-                <LuCheck className="h-4 w-4 mt-0.5 shrink-0 text-inv-fg/30" />
-                <span className="text-sm text-inv-fg/60">{item}</span>
-              </li>
-            ))}
-          </ul>
-
-          <Button
-            asChild
-            variant={ButtonVariant.BLACK}
-            size={ButtonSize.PUBLIC}
-            className="mt-12 w-full text-center"
-          >
-            <a href={CALENDLY_URL} target="_blank" rel="noopener noreferrer">
-              Book a Call
-            </a>
-          </Button>
-        </NeuralGridItem>
-      </NeuralGrid>
-    </WebSection>
-  );
-}
-
-/** Full SaaS plans: 4-tier grid */
-function SaaSPlans() {
-  return (
-    <WebSection maxWidth="full">
-      <SectionHeader
-        title="Plans"
-        description="Core is free to self-host. Hosted starts at $8/mo plus PAYG output. Cloud is for B2B collaboration."
-        className="[&_h2]:text-5xl mb-4"
-      />
-      <NeuralGrid columns={4}>
-        {websitePlans.map((plan) => {
-          const meta = tierMeta[plan.label];
-          const isPopular = plan.label === FEATURED_TIER;
-          const isSelfHosted = plan.type === 'byok';
-          const isEnterprise = plan.type === 'enterprise';
-          const billingDisplay =
-            plan.type === 'payg'
-              ? {
-                  subtitle: 'Videos, images, and voice',
-                  title: 'PAYG output',
-                }
-              : plan.label === 'Cloud Teams'
-                ? {
-                    subtitle: 'Multi-org and multi-brand',
-                    title: 'B2B cloud',
-                  }
-                : null;
-          const priceDisplay = isEnterprise
-            ? 'Custom'
-            : formatPrice(plan.price);
-          const outputDisplay = formatOutputs(plan.outputs ?? undefined);
-
-          const ctaHref = isSelfHosted
-            ? '/host'
-            : isEnterprise
-              ? CALENDLY_URL
-              : plan.ctaHref || `${EnvironmentService.apps.app}/sign-up`;
-
-          const ctaLabel = plan.cta || 'Get Started';
-          const ctaExternal = isEnterprise || (!isSelfHosted && !isEnterprise);
-
-          return (
-            <NeuralGridItem
-              key={plan.label}
-              padding="lg"
-              inverted={isPopular}
-              className="relative gsap-card !rounded-none"
-              style={
-                isPopular
-                  ? { borderRadius: 0 }
-                  : { backgroundColor: '#18181b', borderRadius: 0 }
-              }
-            >
-              {isPopular && (
-                <div className="absolute top-6 right-6">
-                  <span className="px-3 py-1 bg-black text-surface text-[10px] font-black uppercase tracking-widest rounded-full">
-                    Best Value
-                  </span>
-                </div>
-              )}
-
-              <div
-                className={cn(
-                  'text-xs font-black uppercase tracking-widest mb-6',
-                  isPopular ? 'text-inv-fg/30' : 'text-surface/20',
-                )}
-              >
-                {meta?.number} / {meta?.shortLabel}
-              </div>
-
-              <div className="mb-2">
-                <span
-                  className={cn(
-                    'text-5xl font-serif',
-                    isPopular && 'text-inv-fg',
-                  )}
-                >
-                  {priceDisplay}
-                </span>
-                {plan.price && !isEnterprise ? (
-                  <span
-                    className={cn(
-                      'text-sm ml-1',
-                      isPopular ? 'text-inv-fg/40' : 'text-surface/40',
-                    )}
-                  >
-                    {plan.type === 'payg' ? '/mo + PAYG' : '/mo'}
-                  </span>
-                ) : null}
-              </div>
-
-              <div
-                className={cn(
-                  'text-sm mb-8',
-                  isPopular ? 'text-inv-fg/50' : 'text-surface/40',
-                )}
-              >
-                {plan.description}
-              </div>
-
-              {billingDisplay ? (
-                <div
-                  className={cn(
-                    'py-6 border-y mb-8',
-                    isPopular ? 'border-inv-fg/10' : 'border-edge/5',
-                  )}
-                >
-                  <div
-                    className={cn(
-                      'text-2xl font-bold',
-                      isPopular && 'text-inv-fg',
-                    )}
-                  >
-                    {billingDisplay.title}
-                  </div>
-                  <div
-                    className={cn(
-                      'text-sm mt-1',
-                      isPopular ? 'text-inv-fg/40' : 'text-surface/40',
-                    )}
-                  >
-                    {billingDisplay.subtitle}
-                  </div>
-                </div>
-              ) : outputDisplay ? (
-                <div
-                  className={cn(
-                    'py-6 border-y mb-8',
-                    isPopular ? 'border-inv-fg/10' : 'border-edge/5',
-                  )}
-                >
-                  {plan.outputs?.videoMinutes ? (
-                    <div
-                      className={cn(
-                        'text-2xl font-bold',
-                        isPopular && 'text-inv-fg',
-                      )}
-                    >
-                      {plan.outputs.videoMinutes} min video
-                    </div>
-                  ) : null}
-                  {plan.outputs?.images ? (
-                    <div
-                      className={cn(
-                        'text-sm mt-1',
-                        isPopular ? 'text-inv-fg/40' : 'text-surface/40',
-                      )}
-                    >
-                      {plan.outputs.images.toLocaleString()} images
-                    </div>
-                  ) : null}
-                  {plan.outputs?.voiceMinutes ? (
-                    <div
-                      className={cn(
-                        'text-sm mt-0.5',
-                        isPopular ? 'text-inv-fg/40' : 'text-surface/40',
-                      )}
-                    >
-                      {plan.outputs.voiceMinutes.toLocaleString()} min voice
-                    </div>
-                  ) : null}
-                </div>
-              ) : isEnterprise ? (
-                <div
-                  className={cn(
-                    'py-6 border-y mb-8',
-                    isPopular ? 'border-inv-fg/10' : 'border-edge/5',
-                  )}
-                >
-                  <div
-                    className={cn(
-                      'text-2xl font-bold',
-                      isPopular && 'text-inv-fg',
-                    )}
-                  >
-                    Custom terms
-                  </div>
-                  <div
-                    className={cn(
-                      'text-sm mt-1',
-                      isPopular ? 'text-inv-fg/40' : 'text-surface/40',
-                    )}
-                  >
-                    Output, governance, and support
-                  </div>
-                </div>
-              ) : (
-                <div
-                  className={cn(
-                    'py-6 border-y mb-8',
-                    isPopular ? 'border-inv-fg/10' : 'border-edge/5',
-                  )}
-                >
-                  <div
-                    className={cn(
-                      'text-2xl font-bold',
-                      isPopular && 'text-inv-fg',
-                    )}
-                  >
-                    Your keys
-                  </div>
-                  <div
-                    className={cn(
-                      'text-sm mt-1',
-                      isPopular ? 'text-inv-fg/40' : 'text-surface/40',
-                    )}
-                  >
-                    Your infrastructure
-                  </div>
-                </div>
-              )}
-
-              <ul className="space-y-4 mb-auto">
-                {plan.features.map((feature) => (
-                  <li key={feature} className="flex items-start gap-3">
-                    <LuCheck
-                      className={cn(
-                        'h-4 w-4 mt-0.5 shrink-0',
-                        isPopular ? 'text-inv-fg/30' : 'text-surface/40',
-                      )}
-                    />
-                    <span
-                      className={cn(
-                        'text-sm',
-                        isPopular ? 'text-inv-fg/60' : 'text-surface/60',
-                      )}
-                    >
-                      {feature}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-
-              <Button
-                asChild
-                variant={
-                  isPopular ? ButtonVariant.BLACK : ButtonVariant.DEFAULT
-                }
-                size={ButtonSize.PUBLIC}
-                className="mt-12 w-full text-center"
-              >
-                {ctaExternal ? (
-                  <a href={ctaHref} target="_blank" rel="noopener noreferrer">
-                    {ctaLabel}
-                  </a>
-                ) : (
-                  <Link href={ctaHref}>{ctaLabel}</Link>
-                )}
-              </Button>
-            </NeuralGridItem>
-          );
-        })}
-      </NeuralGrid>
-    </WebSection>
+        </CtaSection>
+      </PageLayout>
+    </div>
   );
 }

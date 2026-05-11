@@ -85,39 +85,277 @@ export function setWorkflowRefApi(api: WorkflowRefApi): void {
   workflowRefApi = api;
 }
 
+function WorkflowHandles({
+  handles,
+  position,
+}: {
+  handles: HandleDefinition[];
+  position: Position.Left | Position.Right;
+}) {
+  const handleType = position === Position.Left ? 'target' : 'source';
+
+  return (
+    <>
+      {handles.map((handle, index) => (
+        <Handle
+          key={handle.id}
+          type={handleType}
+          position={position}
+          id={handle.id}
+          className="!w-3 !h-3"
+          style={{
+            background: HANDLE_COLORS[handle.type],
+            top: `${((index + 1) / (handles.length + 1)) * 100}%`,
+          }}
+          title={`${handle.label} (${handle.type})${
+            handle.required ? ' - required' : ''
+          }`}
+        />
+      ))}
+    </>
+  );
+}
+
+function WorkflowRefHeader({
+  isProcessing,
+  label,
+  status,
+}: {
+  isProcessing: boolean;
+  label?: string;
+  status?: string;
+}) {
+  return (
+    <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border">
+      <GitBranch className="size-4 text-foreground" />
+      <span className="flex-1 truncate text-sm font-medium text-foreground">
+        {label || 'Subworkflow'}
+      </span>
+      {isProcessing && <Loader2 className="size-4 animate-spin text-primary" />}
+      {status === 'complete' && (
+        <CheckCircle2 className="size-4 text-chart-2" />
+      )}
+      {status === 'error' && (
+        <AlertCircle className="size-4 text-destructive" />
+      )}
+    </div>
+  );
+}
+
+interface WorkflowSelectorSectionProps {
+  error: string | null;
+  isFetchingWorkflows: boolean;
+  onWorkflowChange: (selectedId: string) => void;
+  referencedWorkflowId: string | null | undefined;
+  workflows: ReferencableWorkflow[];
+}
+
+function WorkflowSelectorSection({
+  error,
+  isFetchingWorkflows,
+  onWorkflowChange,
+  referencedWorkflowId,
+  workflows,
+}: WorkflowSelectorSectionProps) {
+  return (
+    <>
+      <div className="space-y-1.5">
+        <Label className="text-xs">Referenced Workflow</Label>
+        <Select
+          value={referencedWorkflowId || 'none'}
+          onValueChange={onWorkflowChange}
+          disabled={isFetchingWorkflows}
+        >
+          <SelectTrigger className="nodrag h-9 w-full">
+            <SelectValue placeholder="Select a workflow…" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">Select a workflow…</SelectItem>
+            {workflows.map((workflow) => (
+              <SelectItem key={workflow._id} value={workflow._id}>
+                {workflow.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {isFetchingWorkflows && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Loader2 className="size-3 animate-spin" />
+          Loading…
+        </div>
+      )}
+
+      {error && (
+        <div className="text-xs text-destructive bg-destructive/10 rounded px-2 py-1">
+          {error}
+        </div>
+      )}
+    </>
+  );
+}
+
+interface WorkflowInterfaceSummaryProps {
+  cachedInterface: WorkflowInterface;
+  isFetchingWorkflows: boolean;
+  onRefreshInterface: () => void;
+}
+
+function WorkflowInterfaceSummary({
+  cachedInterface,
+  isFetchingWorkflows,
+  onRefreshInterface,
+}: WorkflowInterfaceSummaryProps) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] text-muted-foreground font-medium">
+          Interface
+        </span>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={onRefreshInterface}
+          disabled={isFetchingWorkflows}
+          title="Refresh interface"
+        >
+          <RefreshCw
+            className={clsx('size-3', isFetchingWorkflows && 'animate-spin')}
+          />
+        </Button>
+      </div>
+
+      <HandleList
+        label="Inputs"
+        handles={cachedInterface.inputs}
+        showRequired
+      />
+      <HandleList label="Outputs" handles={cachedInterface.outputs} />
+    </div>
+  );
+}
+
+type InterfaceHandle =
+  | WorkflowInterface['inputs'][number]
+  | WorkflowInterface['outputs'][number];
+
+function HandleList({
+  handles,
+  label,
+  showRequired,
+}: {
+  handles: InterfaceHandle[];
+  label: string;
+  showRequired?: boolean;
+}) {
+  if (handles.length === 0) return null;
+
+  return (
+    <div className="text-[10px]">
+      <span className="text-muted-foreground">{label}: </span>
+      {handles.map((handle, index) => (
+        <span key={handle.nodeId}>
+          <span className="text-foreground">
+            {handle.name}
+            <span className="text-muted-foreground">:{handle.type}</span>
+            {showRequired && 'required' in handle && handle.required && (
+              <span className="text-destructive">*</span>
+            )}
+          </span>
+          {index < handles.length - 1 && ', '}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function WorkflowRefMessages({
+  childExecutionId,
+  error,
+  isFetchingWorkflows,
+  workflowCount,
+}: {
+  childExecutionId?: string | null;
+  error?: string;
+  isFetchingWorkflows: boolean;
+  workflowCount: number;
+}) {
+  return (
+    <>
+      {!isFetchingWorkflows && workflowCount === 0 && (
+        <div className="text-[10px] text-muted-foreground text-center py-2">
+          No reusable workflows found. Create a workflow with
+          WorkflowInput/Output nodes first.
+        </div>
+      )}
+
+      {childExecutionId && (
+        <div className="text-[10px] text-muted-foreground bg-secondary/50 rounded px-2 py-1">
+          Child execution: {childExecutionId.substring(0, 8)}...
+        </div>
+      )}
+
+      {error && (
+        <div className="border border-destructive/30 bg-destructive/10 p-2">
+          <p className="text-xs text-destructive">{error}</p>
+        </div>
+      )}
+    </>
+  );
+}
+
 function WorkflowRefNodeComponent(props: NodeProps) {
   const { id, data, selected } = props;
   const nodeData = data as WorkflowRefNodeData;
   const { updateNodeData, workflowId: currentWorkflowId } = useWorkflowStore();
-  const [workflows, setWorkflows] = useState<ReferencableWorkflow[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [workflowListState, setWorkflowListState] = useState<{
+    error: string | null;
+    isFetchingWorkflows: boolean;
+    workflows: ReferencableWorkflow[];
+  }>({
+    error: null,
+    isFetchingWorkflows: false,
+    workflows: [],
+  });
+  const { error, isFetchingWorkflows, workflows } = workflowListState;
+
+  const loadReferencableWorkflows = useCallback(
+    async (signal?: AbortSignal) => {
+      setWorkflowListState((state) => ({
+        ...state,
+        error: null,
+        isFetchingWorkflows: true,
+      }));
+      try {
+        const response = await workflowRefApi.fetchReferencableWorkflows(
+          currentWorkflowId,
+          signal,
+        );
+        setWorkflowListState({
+          error: null,
+          isFetchingWorkflows: false,
+          workflows: response,
+        });
+      } catch (err) {
+        if ((err as Error).name !== 'AbortError') {
+          setWorkflowListState((state) => ({
+            ...state,
+            error: 'Failed to load workflows',
+            isFetchingWorkflows: false,
+          }));
+        }
+      }
+    },
+    [currentWorkflowId],
+  );
 
   // Fetch referencable workflows on mount
   useEffect(() => {
     const controller = new AbortController();
-
-    async function fetchWorkflows() {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const response = await workflowRefApi.fetchReferencableWorkflows(
-          currentWorkflowId,
-          controller.signal,
-        );
-        setWorkflows(response);
-      } catch (err) {
-        if ((err as Error).name !== 'AbortError') {
-          setError('Failed to load workflows');
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    fetchWorkflows();
+    void loadReferencableWorkflows(controller.signal);
     return () => controller.abort();
-  }, [currentWorkflowId]);
+  }, [loadReferencableWorkflows]);
 
   const handleWorkflowChange = useCallback(
     async (selectedId: string) => {
@@ -140,7 +378,10 @@ function WorkflowRefNodeComponent(props: NodeProps) {
         try {
           await workflowRefApi.validateReference(currentWorkflowId, selectedId);
         } catch (err) {
-          setError((err as Error).message || 'Circular reference detected');
+          setWorkflowListState((state) => ({
+            ...state,
+            error: (err as Error).message || 'Circular reference detected',
+          }));
           return;
         }
       }
@@ -165,7 +406,7 @@ function WorkflowRefNodeComponent(props: NodeProps) {
         referencedWorkflowId: selectedId,
         referencedWorkflowName: selectedWorkflow.name,
       });
-      setError(null);
+      setWorkflowListState((state) => ({ ...state, error: null }));
     },
     [id, updateNodeData, workflows, currentWorkflowId],
   );
@@ -173,7 +414,10 @@ function WorkflowRefNodeComponent(props: NodeProps) {
   const handleRefreshInterface = useCallback(async () => {
     if (!nodeData.referencedWorkflowId) return;
 
-    setIsLoading(true);
+    setWorkflowListState((state) => ({
+      ...state,
+      isFetchingWorkflows: true,
+    }));
     try {
       const response = await workflowRefApi.fetchWorkflowInterface(
         nodeData.referencedWorkflowId,
@@ -205,9 +449,15 @@ function WorkflowRefNodeComponent(props: NodeProps) {
         outputMappings,
       });
     } catch (err) {
-      setError((err as Error).message || 'Failed to refresh interface');
+      setWorkflowListState((state) => ({
+        ...state,
+        error: (err as Error).message || 'Failed to refresh interface',
+      }));
     } finally {
-      setIsLoading(false);
+      setWorkflowListState((state) => ({
+        ...state,
+        isFetchingWorkflows: false,
+      }));
     }
   }, [
     id,
@@ -257,178 +507,40 @@ function WorkflowRefNodeComponent(props: NodeProps) {
         } as React.CSSProperties
       }
     >
-      {/* Dynamic Input Handles */}
-      {inputHandles.map((input, index) => (
-        <Handle
-          key={input.id}
-          type="target"
-          position={Position.Left}
-          id={input.id}
-          className="!w-3 !h-3"
-          style={{
-            background: HANDLE_COLORS[input.type],
-            top: `${((index + 1) / (inputHandles.length + 1)) * 100}%`,
-          }}
-          title={`${input.label} (${input.type})${input.required ? ' - required' : ''}`}
-        />
-      ))}
-
-      {/* Header */}
-      <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border">
-        <GitBranch className="h-4 w-4 text-foreground" />
-        <span className="flex-1 truncate text-sm font-medium text-foreground">
-          {nodeData.label || 'Subworkflow'}
-        </span>
-        {isProcessing && (
-          <Loader2 className="h-4 w-4 animate-spin text-primary" />
-        )}
-        {nodeData.status === 'complete' && (
-          <CheckCircle2 className="h-4 w-4 text-chart-2" />
-        )}
-        {nodeData.status === 'error' && (
-          <AlertCircle className="h-4 w-4 text-destructive" />
-        )}
-      </div>
+      <WorkflowHandles handles={inputHandles} position={Position.Left} />
+      <WorkflowRefHeader
+        isProcessing={isProcessing}
+        label={nodeData.label}
+        status={nodeData.status}
+      />
 
       {/* Content */}
       <div className="p-3 space-y-3">
-        {/* Workflow Selector */}
-        <div className="space-y-1.5">
-          <Label className="text-xs">Referenced Workflow</Label>
-          <Select
-            value={nodeData.referencedWorkflowId || 'none'}
-            onValueChange={handleWorkflowChange}
-            disabled={isLoading}
-          >
-            <SelectTrigger className="nodrag h-9 w-full">
-              <SelectValue placeholder="Select a workflow..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">Select a workflow...</SelectItem>
-              {workflows.map((workflow) => (
-                <SelectItem key={workflow._id} value={workflow._id}>
-                  {workflow.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <WorkflowSelectorSection
+          error={error}
+          isFetchingWorkflows={isFetchingWorkflows}
+          onWorkflowChange={handleWorkflowChange}
+          referencedWorkflowId={nodeData.referencedWorkflowId}
+          workflows={workflows}
+        />
 
-        {/* Loading/Error State */}
-        {isLoading && (
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Loader2 className="h-3 w-3 animate-spin" />
-            Loading...
-          </div>
-        )}
-
-        {error && (
-          <div className="text-xs text-destructive bg-destructive/10 rounded px-2 py-1">
-            {error}
-          </div>
-        )}
-
-        {/* Interface Summary */}
         {hasWorkflow && nodeData.cachedInterface && (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] text-muted-foreground font-medium">
-                Interface
-              </span>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                onClick={handleRefreshInterface}
-                disabled={isLoading}
-                title="Refresh interface"
-              >
-                <RefreshCw
-                  className={clsx('h-3 w-3', isLoading && 'animate-spin')}
-                />
-              </Button>
-            </div>
-
-            {/* Inputs */}
-            {nodeData.cachedInterface.inputs.length > 0 && (
-              <div className="text-[10px]">
-                <span className="text-muted-foreground">Inputs: </span>
-                {nodeData.cachedInterface.inputs.map((input, i) => (
-                  <span key={input.nodeId}>
-                    <span className="text-foreground">
-                      {input.name}
-                      <span className="text-muted-foreground">
-                        :{input.type}
-                      </span>
-                      {input.required && (
-                        <span className="text-destructive">*</span>
-                      )}
-                    </span>
-                    {i < (nodeData.cachedInterface?.inputs?.length ?? 0) - 1 &&
-                      ', '}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            {/* Outputs */}
-            {nodeData.cachedInterface.outputs.length > 0 && (
-              <div className="text-[10px]">
-                <span className="text-muted-foreground">Outputs: </span>
-                {nodeData.cachedInterface.outputs.map((output, i) => (
-                  <span key={output.nodeId}>
-                    <span className="text-foreground">
-                      {output.name}
-                      <span className="text-muted-foreground">
-                        :{output.type}
-                      </span>
-                    </span>
-                    {i < (nodeData.cachedInterface?.outputs?.length ?? 0) - 1 &&
-                      ', '}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
+          <WorkflowInterfaceSummary
+            cachedInterface={nodeData.cachedInterface}
+            isFetchingWorkflows={isFetchingWorkflows}
+            onRefreshInterface={handleRefreshInterface}
+          />
         )}
 
-        {/* No workflows available message */}
-        {!isLoading && workflows.length === 0 && (
-          <div className="text-[10px] text-muted-foreground text-center py-2">
-            No reusable workflows found. Create a workflow with
-            WorkflowInput/Output nodes first.
-          </div>
-        )}
-
-        {/* Child execution info */}
-        {nodeData.childExecutionId && (
-          <div className="text-[10px] text-muted-foreground bg-secondary/50 rounded px-2 py-1">
-            Child execution: {nodeData.childExecutionId.substring(0, 8)}...
-          </div>
-        )}
-
-        {/* Error message */}
-        {nodeData.error && (
-          <div className="border border-destructive/30 bg-destructive/10 p-2">
-            <p className="text-xs text-destructive">{nodeData.error}</p>
-          </div>
-        )}
+        <WorkflowRefMessages
+          childExecutionId={nodeData.childExecutionId}
+          error={nodeData.error}
+          isFetchingWorkflows={isFetchingWorkflows}
+          workflowCount={workflows.length}
+        />
       </div>
 
-      {/* Dynamic Output Handles */}
-      {outputHandles.map((output, index) => (
-        <Handle
-          key={output.id}
-          type="source"
-          position={Position.Right}
-          id={output.id}
-          className="!w-3 !h-3"
-          style={{
-            background: HANDLE_COLORS[output.type],
-            top: `${((index + 1) / (outputHandles.length + 1)) * 100}%`,
-          }}
-          title={`${output.label} (${output.type})`}
-        />
-      ))}
+      <WorkflowHandles handles={outputHandles} position={Position.Right} />
     </div>
   );
 }

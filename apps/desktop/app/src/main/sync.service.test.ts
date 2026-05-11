@@ -3,6 +3,7 @@ import { DesktopSyncService } from './sync.service';
 
 const createPrismaMock = (rows: Array<Record<string, unknown>> = []) => {
   const assets = new Map<string, Record<string, unknown>>();
+  const brands = new Map<string, Record<string, unknown>>();
   const syncJobs = new Map(rows.map((row) => [String(row.id), row]));
   const syncOps = new Map<string, Record<string, unknown>>();
 
@@ -29,8 +30,26 @@ const createPrismaMock = (rows: Array<Record<string, unknown>> = []) => {
       },
     },
     desktopBrand: {
+      findMany: async () =>
+        Array.from(brands.values()).sort((left, right) =>
+          String(right.updatedAt).localeCompare(String(left.updatedAt)),
+        ),
       deleteMany: async () => undefined,
-      upsert: async () => undefined,
+      upsert: async ({
+        create,
+        update,
+        where,
+      }: {
+        create: Record<string, unknown>;
+        update: Record<string, unknown>;
+        where: { id: string };
+      }) => {
+        brands.set(where.id, {
+          ...(brands.get(where.id) ?? create),
+          ...update,
+          id: where.id,
+        });
+      },
     },
     desktopSyncJob: {
       findMany: async ({ where }: { where?: { workspaceId?: string } } = {}) =>
@@ -97,6 +116,7 @@ const createPrismaMock = (rows: Array<Record<string, unknown>> = []) => {
       },
     },
     assets,
+    brands,
     syncJobs,
     syncOps,
   };

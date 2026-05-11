@@ -1,7 +1,7 @@
 'use client';
 
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { memo, useCallback, useMemo, useState } from 'react';
+import { memo, useCallback, useId, useMemo, useState } from 'react';
 import { Button } from '../ui/button';
 
 import { Checkbox } from '../ui/checkbox';
@@ -31,12 +31,14 @@ interface NegativePromptSelectorProps {
  */
 function parseNegativePrompt(value: string): Set<string> {
   if (!value) return new Set();
-  return new Set(
-    value
-      .split(',')
-      .map((term) => term.trim().toLowerCase())
-      .filter(Boolean),
-  );
+  const terms = new Set<string>();
+  for (const term of value.split(',')) {
+    const normalized = term.trim().toLowerCase();
+    if (normalized) {
+      terms.add(normalized);
+    }
+  }
+  return terms;
 }
 
 /**
@@ -54,11 +56,13 @@ function isKnownTerm(term: string): boolean {
  */
 function extractCustomTerms(value: string): string {
   if (!value) return '';
-  const terms = value
-    .split(',')
-    .map((term) => term.trim())
-    .filter(Boolean);
-  const customTerms = terms.filter((term) => !isKnownTerm(term));
+  const customTerms: string[] = [];
+  for (const term of value.split(',')) {
+    const trimmedTerm = term.trim();
+    if (trimmedTerm && !isKnownTerm(trimmedTerm)) {
+      customTerms.push(trimmedTerm);
+    }
+  }
   return customTerms.join(', ');
 }
 
@@ -77,11 +81,12 @@ function combineTerms(checkedValues: Set<string>, customText: string): string {
 
   // Add custom terms
   if (customText.trim()) {
-    const customTerms = customText
-      .split(',')
-      .map((term) => term.trim())
-      .filter(Boolean);
-    parts.push(...customTerms);
+    for (const term of customText.split(',')) {
+      const trimmedTerm = term.trim();
+      if (trimmedTerm) {
+        parts.push(trimmedTerm);
+      }
+    }
   }
 
   return parts.join(', ');
@@ -91,6 +96,7 @@ function NegativePromptSelectorComponent({
   value,
   onChange,
 }: NegativePromptSelectorProps) {
+  const customInputId = useId();
   // Collapsed by default
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -146,9 +152,9 @@ function NegativePromptSelectorComponent({
             </span>
           )}
           {isExpanded ? (
-            <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+            <ChevronDown className="size-3.5 text-muted-foreground" />
           ) : (
-            <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
+            <ChevronRight className="size-3.5 text-muted-foreground" />
           )}
         </div>
       </Button>
@@ -174,7 +180,7 @@ function NegativePromptSelectorComponent({
                         handleCheckboxChange(option.value, checked);
                       }
                     }}
-                    className="w-3.5 h-3.5"
+                    className="size-3.5"
                   />
                   <label
                     htmlFor={checkboxId}
@@ -189,8 +195,14 @@ function NegativePromptSelectorComponent({
 
           {/* Custom terms input */}
           <div className="flex flex-col gap-1 mt-1">
-            <label className="text-xs text-muted-foreground">Custom</label>
+            <label
+              className="text-xs text-muted-foreground"
+              htmlFor={customInputId}
+            >
+              Custom
+            </label>
             <input
+              id={customInputId}
               type="text"
               value={customText}
               onChange={(e) => handleCustomChange(e.target.value)}

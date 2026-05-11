@@ -52,13 +52,17 @@ export class EditorProjectsService extends BaseService<
   }
 
   /**
-   * Atomic CAS: only transitions DRAFT/COMPLETED/FAILED -> RENDERING
+   * Atomic CAS: only transitions DRAFT/COMPLETED/FAILED -> RENDERING.
+   *
+   * Uses a conditional updateMany with a JSON path filter so that only one
+   * concurrent caller wins the race. If the project is already RENDERING the
+   * count will be 0 and we throw ConflictException without a separate read.
    */
   async markAsRendering(
     id: string,
     organizationId: string,
   ): Promise<EditorProjectDocument> {
-    // Check current status first
+    // Verify the project exists first (needed for a meaningful NotFoundException)
     const existing = await this.prisma.editorProject.findFirst({
       where: { id, isDeleted: false, organizationId },
     });
@@ -67,21 +71,40 @@ export class EditorProjectsService extends BaseService<
       throw new NotFoundException('Project not found');
     }
 
-    if (this.readProjectStatus(existing) === EditorProjectStatus.RENDERING) {
-      throw new ConflictException('Project is already rendering');
-    }
-
-    const project = await this.prisma.editorProject.update({
+    // Atomic conditional update — only succeeds when status != RENDERING.
+    // The JSON path filter prevents a second concurrent caller from also
+    // transitioning to RENDERING (eliminates the read-check-write race).
+    const result = await this.prisma.editorProject.updateMany({
       data: {
         config: this.mergeProjectStatus(
           existing,
           EditorProjectStatus.RENDERING,
         ) as never,
+        updatedAt: new Date(),
       },
-      where: { id },
+      where: {
+        id,
+        isDeleted: false,
+        organizationId,
+        NOT: {
+          config: {
+            path: ['status'],
+            equals: EditorProjectStatus.RENDERING,
+          },
+        },
+      },
     });
 
-    return project as unknown as EditorProjectDocument;
+    if (result.count === 0) {
+      throw new ConflictException('Project is already rendering');
+    }
+
+    // Re-fetch to return the updated document
+    const updated = await this.prisma.editorProject.findFirst({
+      where: { id, isDeleted: false, organizationId },
+    });
+
+    return updated as unknown as EditorProjectDocument;
   }
 
   /**

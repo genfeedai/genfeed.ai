@@ -139,7 +139,7 @@ function TrendHashtagInspirationNodeComponent({
       {!data.auto && (
         <div>
           <label className="text-xs text-muted-foreground flex items-center gap-1">
-            <Hash className="w-3 h-3" />
+            <Hash className="size-3" />
             Specific Hashtag
           </label>
           <Input
@@ -162,12 +162,12 @@ function TrendHashtagInspirationNodeComponent({
       >
         {isProcessing ? (
           <>
-            <Loader2 className="w-4 h-4 animate-spin" />
-            Generating...
+            <Loader2 className="size-4 animate-spin" />
+            Generating…
           </>
         ) : (
           <>
-            <Sparkles className="w-4 h-4" />
+            <Sparkles className="size-4" />
             Generate Prompt
           </>
         )}
@@ -177,7 +177,7 @@ function TrendHashtagInspirationNodeComponent({
       {data.sourceHashtag && (
         <div className="p-2 bg-background border border-white/[0.08]">
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <Hash className="w-3 h-3" />
+            <Hash className="size-3" />
             Source Hashtag
           </div>
           <div className="text-sm text-foreground mt-1">

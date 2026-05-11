@@ -41,6 +41,8 @@ import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { HiOutlineFilm } from 'react-icons/hi2';
 
+const EMPTY_ARRAY: never[] = [];
+
 type VideoDetailTab =
   | 'info'
   | 'posts'
@@ -56,8 +58,8 @@ export default function IngredientDetailVideo({
   video,
   videoRef,
   onReload,
-  childIngredients = [],
-  // credentials = [],
+  childIngredients = EMPTY_ARRAY,
+  // credentials = EMPTY_ARRAY,
   onConvertToGif,
   // onVoteIngredient,
   onReverseVideo,
@@ -273,7 +275,7 @@ export default function IngredientDetailVideo({
           />
 
           {currentVideo.status === IngredientStatus.PROCESSING && (
-            <LoadingOverlay message="Processing video..." />
+            <LoadingOverlay message="Processing video…" />
           )}
         </div>
 
@@ -353,7 +355,7 @@ export default function IngredientDetailVideo({
           href={`/editor/new?video=${currentVideo.id}`}
           className="inline-flex items-center gap-2 px-4 py-2 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors text-sm font-medium"
         >
-          <HiOutlineFilm className="w-4 h-4" />
+          <HiOutlineFilm className="size-4" />
           Edit in Video Editor
         </Link>
 

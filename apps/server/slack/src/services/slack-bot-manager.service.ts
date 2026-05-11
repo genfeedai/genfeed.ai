@@ -91,7 +91,10 @@ export class SlackBotManager
         `Slack Bot Manager initialized with ${this.getActiveCount()} bots`,
       );
     } catch (error) {
-      this.logger.error('Failed to initialize Slack Bot Manager:', error);
+      this.logger.error(
+        'Failed to initialize Slack Bot Manager:',
+        this.sanitizeError(error),
+      );
     }
   }
 
@@ -270,7 +273,10 @@ export class SlackBotManager
           });
         }
       } catch (error) {
-        this.logger.error('Failed to handle file upload:', error);
+        this.logger.error(
+          'Failed to handle file upload:',
+          this.sanitizeError(error),
+        );
       }
     });
 
@@ -288,7 +294,10 @@ export class SlackBotManager
     try {
       await botInstance.app.stop();
     } catch (error) {
-      this.logger.error(`Error stopping bot ${botInstance.id}`, error);
+      this.logger.error(
+        `Error stopping bot ${botInstance.id}`,
+        this.sanitizeError(error),
+      );
     }
   }
 
@@ -426,7 +435,10 @@ export class SlackBotManager
           'API returned 401 — set GENFEEDAI_API_KEY in your .env to authenticate with the API.',
         );
       } else {
-        this.logger.error('Failed to fetch integrations:', error);
+        this.logger.error(
+          'Failed to fetch integrations:',
+          this.sanitizeError(error),
+        );
       }
       return [];
     }
@@ -454,7 +466,7 @@ export class SlackBotManager
     } catch (error) {
       this.logger.error(
         `Failed to fetch and add integration ${integrationId}:`,
-        error,
+        this.sanitizeError(error),
       );
     }
   }
@@ -483,7 +495,7 @@ export class SlackBotManager
     } catch (error) {
       this.logger.error(
         `Failed to fetch and update integration ${integrationId}:`,
-        error,
+        this.sanitizeError(error),
       );
     }
   }
@@ -499,7 +511,10 @@ export class SlackBotManager
       );
       return response.data;
     } catch (error) {
-      this.logger.error('Failed to fetch workflows:', error);
+      this.logger.error(
+        'Failed to fetch workflows:',
+        this.sanitizeError(error),
+      );
       return [];
     }
   }
@@ -564,7 +579,10 @@ export class SlackBotManager
 
       await respond({ blocks, text: 'GenFeed AI Workflows' });
     } catch (error) {
-      this.logger.error('Failed to fetch workflows:', error);
+      this.logger.error(
+        'Failed to fetch workflows:',
+        this.sanitizeError(error),
+      );
       await respond({ text: 'Failed to load workflows. Please try again.' });
     }
   }
@@ -680,7 +698,10 @@ export class SlackBotManager
 
       await this.promptNextInput(userId, respond);
     } catch (error) {
-      this.logger.error('Failed to select workflow:', error);
+      this.logger.error(
+        'Failed to select workflow:',
+        this.sanitizeError(error),
+      );
       await respond({
         text: 'Failed to load workflow details. Please try again.',
       });
@@ -838,7 +859,10 @@ export class SlackBotManager
 
       void this.monitorWorkflowExecution(orgId, userId, respond);
     } catch (error) {
-      this.logger.error('Failed to execute workflow:', error);
+      this.logger.error(
+        'Failed to execute workflow:',
+        this.sanitizeError(error),
+      );
       await respond({
         text: 'Workflow execution failed. Please try again.\nUse /workflows to start a new run.',
       });
@@ -1051,11 +1075,37 @@ export class SlackBotManager
         return;
       }
 
-      this.logger.error('Failed while monitoring workflow execution:', error);
+      this.logger.error(
+        'Failed while monitoring workflow execution:',
+        this.sanitizeError(error),
+      );
       await respond({
         text: 'Workflow execution failed. Please try again.\nUse /workflows to start a new run.',
       });
       this.deleteSession(userId);
     }
+  }
+
+  /**
+   * Sanitize an error object before logging to prevent Authorization headers
+   * or other sensitive fields from appearing in log output.
+   */
+  private sanitizeError(error: unknown): Record<string, unknown> {
+    if (!(error instanceof Error)) {
+      return { message: String(error) };
+    }
+
+    const axiosError = error as {
+      message: string;
+      response?: { status?: number; statusText?: string };
+      config?: { url?: string };
+    };
+
+    return {
+      message: axiosError.message,
+      responseStatus: axiosError.response?.status,
+      responseStatusText: axiosError.response?.statusText,
+      url: axiosError.config?.url,
+    };
   }
 }

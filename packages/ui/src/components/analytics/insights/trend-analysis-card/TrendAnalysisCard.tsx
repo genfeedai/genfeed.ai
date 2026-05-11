@@ -58,8 +58,11 @@ const TrendAnalysisCard = memo(function TrendAnalysisCard({
         className={className}
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="animate-pulse p-4 bg-background">
+          {[1, 2, 3, 4].map((placeholderId) => (
+            <div
+              key={placeholderId}
+              className="animate-pulse p-4 bg-background"
+            >
               <div className="flex items-center justify-between mb-3">
                 <div className="h-4 bg-muted w-24" />
                 <div className="h-6 bg-muted w-16" />
@@ -81,7 +84,7 @@ const TrendAnalysisCard = memo(function TrendAnalysisCard({
         className={className}
       >
         <div className="flex flex-col items-center justify-center py-8 text-center">
-          <HiChartBar className="w-12 h-12 text-foreground/30 mb-3" />
+          <HiChartBar className="size-12 text-foreground/30 mb-3" />
           <p className="text-foreground/70 font-medium">
             No trend data available
           </p>
@@ -143,7 +146,7 @@ const TrendItem = memo(function TrendItem({ trend }: TrendItemProps) {
           )}
         </div>
         <div className={cn('flex items-center gap-1', styles.text)}>
-          <DirectionIcon className="w-5 h-5" />
+          <DirectionIcon className="size-5" />
           <span className="font-mono font-medium">
             {formatPercentage(trend.changePercent)}
           </span>

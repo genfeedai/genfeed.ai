@@ -15,6 +15,7 @@ import {
   isVideoIngredient,
 } from '@genfeedai/utils/media/ingredient-type.util';
 import Card from '@ui/card/Card';
+import ClientDateTime from '@ui/components/time/ClientDateTime';
 import Badge from '@ui/display/badge/Badge';
 import EvaluationCard from '@ui/evaluation/card/EvaluationCard';
 import {
@@ -125,8 +126,8 @@ export default function PostDetailSidebar({
             }
 
             return (
-              <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-background">
-                <PlatformIcon className="h-6 w-6" />
+              <span className="inline-flex size-12 items-center justify-center rounded-full bg-background">
+                <PlatformIcon className="size-6" />
               </span>
             );
           })()}
@@ -157,7 +158,7 @@ export default function PostDetailSidebar({
             rel="noopener noreferrer"
             className="inline-flex items-center justify-center gap-2 border border-input bg-secondary/50 px-4 py-2 text-sm font-medium ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 w-full"
           >
-            <HiArrowTopRightOnSquare className="w-4 h-4" />
+            <HiArrowTopRightOnSquare className="size-4" />
             <span>Open on platform</span>
           </Link>
         )}
@@ -266,12 +267,18 @@ export default function PostDetailSidebar({
                 <div className="flex items-start justify-between gap-4">
                   <span className="text-foreground/60">Reviewed</span>
                   <span className="text-right">
-                    {reviewSummary?.reviewedAt
-                      ? new Date(reviewSummary.reviewedAt).toLocaleString(
-                          undefined,
-                          { timeZone: browserTimezone },
-                        )
-                      : 'Not reviewed'}
+                    {reviewSummary?.reviewedAt ? (
+                      <ClientDateTime
+                        value={reviewSummary.reviewedAt}
+                        format={(date) =>
+                          date.toLocaleString(undefined, {
+                            timeZone: browserTimezone,
+                          })
+                        }
+                      />
+                    ) : (
+                      'Not reviewed'
+                    )}
                   </span>
                 </div>
               </div>
@@ -283,9 +290,9 @@ export default function PostDetailSidebar({
 
               {reviewEvents.length > 0 && (
                 <div className="mt-4 space-y-3">
-                  {reviewEvents.map((event, index) => (
+                  {reviewEvents.map((event) => (
                     <div
-                      key={`${event.reviewedAt}-${event.decision}-${index}`}
+                      key={`${event.reviewedAt}-${event.decision}`}
                       className="rounded-lg border border-border bg-background/40 p-3 text-sm"
                     >
                       <div className="flex items-start justify-between gap-4">
@@ -293,12 +300,14 @@ export default function PostDetailSidebar({
                           {formatReviewDecision(event.decision)}
                         </span>
                         <span className="text-right text-foreground/60">
-                          {new Date(event.reviewedAt).toLocaleString(
-                            undefined,
-                            {
-                              timeZone: browserTimezone,
-                            },
-                          )}
+                          <ClientDateTime
+                            value={event.reviewedAt}
+                            format={(date) =>
+                              date.toLocaleString(undefined, {
+                                timeZone: browserTimezone,
+                              })
+                            }
+                          />
                         </span>
                       </div>
                       {event.feedback && (
@@ -330,7 +339,7 @@ export default function PostDetailSidebar({
           />
 
           <Button
-            label={isSavingSchedule ? 'Saving...' : 'Schedule'}
+            label={isSavingSchedule ? 'Saving…' : 'Schedule'}
             variant={ButtonVariant.DEFAULT}
             className="w-full"
             isLoading={isSavingSchedule}
@@ -354,7 +363,7 @@ export default function PostDetailSidebar({
       {isPublished && post.ingredients?.length > 0 && (
         <Card>
           <div className="flex items-center gap-2">
-            <HiBolt className="w-4 h-4 text-warning" />
+            <HiBolt className="size-4 text-warning" />
             <h3 className="font-semibold text-lg">
               Ingredients ({post.ingredients?.length || 0})
             </h3>

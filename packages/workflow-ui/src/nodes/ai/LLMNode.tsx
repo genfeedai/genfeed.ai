@@ -116,9 +116,9 @@ function LLMNodeComponent(props: NodeProps) {
       <div className="space-y-3">
         {nodeData.inputPrompt ? (
           <div>
-            <label className="text-xs text-[var(--muted-foreground)]">
+            <div className="text-xs text-[var(--muted-foreground)]">
               Input Prompt
-            </label>
+            </div>
             <div className="mt-1 p-2 bg-[var(--secondary)]/30 border border-[var(--border)] rounded text-xs text-[var(--muted-foreground)] max-h-16 overflow-hidden line-clamp-3">
               {nodeData.inputPrompt}
             </div>
@@ -126,17 +126,21 @@ function LLMNodeComponent(props: NodeProps) {
         ) : (
           !isProcessing && (
             <div className="text-xs text-[var(--muted-foreground)] flex items-center gap-1">
-              <AlertCircle className="w-3 h-3" />
+              <AlertCircle className="size-3" />
               Connect a prompt to generate
             </div>
           )
         )}
 
         <div>
-          <label className="text-xs text-[var(--muted-foreground)]">
+          <label
+            htmlFor={`llm-system-prompt-${id}`}
+            className="text-xs text-[var(--muted-foreground)]"
+          >
             System Prompt <span className="text-[var(--destructive)]">*</span>
           </label>
           <Textarea
+            id={`llm-system-prompt-${id}`}
             value={nodeData.systemPrompt}
             onChange={handleSystemPromptChange}
             placeholder="Define the AI's behavior..."
@@ -146,10 +150,14 @@ function LLMNodeComponent(props: NodeProps) {
         </div>
 
         <div>
-          <label className="text-xs text-[var(--muted-foreground)]">
+          <div
+            id={`llm-temperature-${id}`}
+            className="text-xs text-[var(--muted-foreground)]"
+          >
             Temperature: {nodeData.temperature.toFixed(2)}
-          </label>
+          </div>
           <Slider
+            aria-labelledby={`llm-temperature-${id}`}
             value={[nodeData.temperature]}
             min={0}
             max={2}
@@ -165,10 +173,14 @@ function LLMNodeComponent(props: NodeProps) {
         </div>
 
         <div>
-          <label className="text-xs text-[var(--muted-foreground)]">
+          <label
+            htmlFor={`llm-max-tokens-${id}`}
+            className="text-xs text-[var(--muted-foreground)]"
+          >
             Max Tokens
           </label>
           <input
+            id={`llm-max-tokens-${id}`}
             type="number"
             min="64"
             max="4096"
@@ -182,9 +194,9 @@ function LLMNodeComponent(props: NodeProps) {
         {nodeData.outputText && (
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="text-xs text-[var(--muted-foreground)]">
+              <div className="text-xs text-[var(--muted-foreground)]">
                 Generated Output
-              </label>
+              </div>
               <div className="flex items-center gap-1">
                 <Button
                   variant="ghost"
@@ -192,18 +204,18 @@ function LLMNodeComponent(props: NodeProps) {
                   onClick={handleGenerate}
                   disabled={isProcessing}
                   title="Regenerate"
-                  className="h-5 w-5"
+                  className="size-5"
                 >
-                  <RefreshCw className="w-3 h-3" />
+                  <RefreshCw className="size-3" />
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon-sm"
                   onClick={handleExpand}
                   title="Expand preview"
-                  className="h-5 w-5"
+                  className="size-5"
                 >
-                  <Expand className="w-3 h-3" />
+                  <Expand className="size-3" />
                 </Button>
               </div>
             </div>

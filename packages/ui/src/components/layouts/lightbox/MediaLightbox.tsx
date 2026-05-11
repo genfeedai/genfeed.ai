@@ -4,6 +4,7 @@ import { IngredientCategory } from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
 import type { MediaLightboxProps } from '@genfeedai/props/layout/media-lightbox.props';
 import dynamic from 'next/dynamic';
+import Image from 'next/image';
 import { useEffect, useMemo, useState } from 'react';
 import type { Plugin } from 'yet-another-react-lightbox';
 import 'yet-another-react-lightbox/plugins/captions.css';
@@ -207,14 +208,13 @@ export default function MediaLightbox({
 
           if (isVideo && thumbnailSrc) {
             return (
-              <img
+              <Image
                 src={thumbnailSrc}
                 alt={'Video thumbnail'}
-                style={{
-                  height: '100%',
-                  objectFit: 'cover',
-                  width: '100%',
-                }}
+                fill
+                sizes="96px"
+                className="object-cover"
+                unoptimized
               />
             );
           }

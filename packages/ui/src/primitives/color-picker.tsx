@@ -88,17 +88,17 @@ export default function ColorPicker({
     );
   }, [presetColors]);
 
-  const handleClick = () => {
+  const activateColorPicker = () => {
     if (!isDisabled) {
       setDisplayColorPicker(!displayColorPicker);
     }
   };
 
-  const handleClose = () => {
+  const closeColorPicker = () => {
     setDisplayColorPicker(false);
   };
 
-  const handleChange = (colorResult: ColorResult) => {
+  const updateColorPicker = (colorResult: ColorResult) => {
     const nextColor = showAlpha ? colorResult.hex : colorResult.hex;
     setColor(nextColor);
     onChange(nextColor);
@@ -111,14 +111,14 @@ export default function ColorPicker({
           <Button
             withWrapper={false}
             variant={ButtonVariant.OUTLINE}
-            onClick={handleClick}
+            onClick={activateColorPicker}
             isDisabled={isDisabled}
             className="h-10 w-full flex items-center gap-2"
             ariaLabel={`Select color, current: ${color}`}
             aria-expanded={displayColorPicker}
           >
             <div
-              className="w-8 h-8 border border-white/[0.08]"
+              className="size-8 border border-white/[0.08]"
               style={{ backgroundColor: color }}
               aria-hidden="true"
             />
@@ -131,7 +131,7 @@ export default function ColorPicker({
                 type="button"
                 variant={ButtonVariant.UNSTYLED}
                 className="fixed inset-0 z-10"
-                onClick={handleClose}
+                onClick={closeColorPicker}
                 ariaLabel="Close color picker"
               />
               <div
@@ -139,7 +139,7 @@ export default function ColorPicker({
               >
                 <SketchPicker
                   color={color}
-                  onChange={handleChange}
+                  onChange={updateColorPicker}
                   disableAlpha={!showAlpha}
                   presetColors={resolvedPresetColors}
                 />

@@ -90,11 +90,17 @@ function SubtitleNodeComponent(props: NodeProps) {
 
         {/* Style Selection */}
         <div>
-          <label className="text-xs text-[var(--muted-foreground)] block mb-1">
+          <label
+            className="text-xs text-[var(--muted-foreground)] block mb-1"
+            htmlFor={`subtitle-style-${id}`}
+          >
             Style
           </label>
           <Select value={nodeData.style} onValueChange={handleStyleChange}>
-            <SelectTrigger className="nodrag h-8 w-full">
+            <SelectTrigger
+              id={`subtitle-style-${id}`}
+              className="nodrag h-8 w-full"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -109,14 +115,20 @@ function SubtitleNodeComponent(props: NodeProps) {
 
         {/* Position Selection */}
         <div>
-          <label className="text-xs text-[var(--muted-foreground)] block mb-1">
+          <label
+            className="text-xs text-[var(--muted-foreground)] block mb-1"
+            htmlFor={`subtitle-position-${id}`}
+          >
             Position
           </label>
           <Select
             value={nodeData.position}
             onValueChange={handlePositionChange}
           >
-            <SelectTrigger className="nodrag h-8 w-full">
+            <SelectTrigger
+              id={`subtitle-position-${id}`}
+              className="nodrag h-8 w-full"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -131,10 +143,14 @@ function SubtitleNodeComponent(props: NodeProps) {
 
         {/* Font Size */}
         <div>
-          <label className="text-xs text-[var(--muted-foreground)] block mb-1">
+          <div
+            className="text-xs text-[var(--muted-foreground)] block mb-1"
+            id={`subtitle-font-size-${id}`}
+          >
             Font Size: {nodeData.fontSize}px
-          </label>
+          </div>
           <Slider
+            aria-labelledby={`subtitle-font-size-${id}`}
             value={[nodeData.fontSize]}
             min={12}
             max={72}
@@ -145,14 +161,18 @@ function SubtitleNodeComponent(props: NodeProps) {
 
         {/* Font Color */}
         <div className="flex items-center gap-2">
-          <label className="text-xs text-[var(--muted-foreground)]">
+          <label
+            className="text-xs text-[var(--muted-foreground)]"
+            htmlFor={`subtitle-color-${id}`}
+          >
             Color
           </label>
           <input
+            id={`subtitle-color-${id}`}
             type="color"
             value={nodeData.fontColor}
             onChange={handleFontColorChange}
-            className="w-8 h-8 rounded border border-[var(--border)] cursor-pointer"
+            className="size-8 rounded border border-[var(--border)] cursor-pointer"
           />
           <span className="text-xs text-[var(--muted-foreground)]">
             {nodeData.fontColor}
@@ -172,9 +192,9 @@ function SubtitleNodeComponent(props: NodeProps) {
               size="icon-sm"
               onClick={handleProcess}
               disabled={nodeData.status === 'processing'}
-              className="absolute top-1 right-1 h-6 w-6 bg-black/50 hover:bg-black/70"
+              className="absolute top-1 right-1 size-6 bg-black/50 hover:bg-black/70"
             >
-              <RefreshCw className="w-3 h-3" />
+              <RefreshCw className="size-3" />
             </Button>
           </div>
         )}
@@ -189,9 +209,9 @@ function SubtitleNodeComponent(props: NodeProps) {
             className="w-full"
           >
             {nodeData.status === 'processing' ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="size-4 animate-spin" />
             ) : (
-              <Subtitles className="w-4 h-4" />
+              <Subtitles className="size-4" />
             )}
             {nodeData.status === 'processing' ? 'Burning...' : 'Burn Subtitles'}
           </Button>
