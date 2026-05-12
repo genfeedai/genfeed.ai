@@ -8,8 +8,12 @@ import { AuthService } from '@genfeedai/services/auth/auth.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { UsersService } from '@genfeedai/services/organization/users.service';
 import { getPlaywrightAuthState } from '@helpers/auth/clerk.helper';
+<<<<<<< HEAD
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createContext, useCallback, useContext, useMemo } from 'react';
+=======
+import { createContext, useCallback, useContext } from 'react';
+>>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
 import { loadClientProtectedBootstrap } from '../../providers/protected-bootstrap/client-protected-bootstrap';
 import { useContextAuthedService } from '../internal/context-authed-service';
 
@@ -56,6 +60,7 @@ export function UserProvider({
   const clientBootstrapCacheKey = shouldFetch
     ? `protected-bootstrap:${clerkUserId}:${effectiveOrgId ?? 'no-org'}`
     : undefined;
+<<<<<<< HEAD
 
   const initialUser = useMemo(
     () => (initialCurrentUser ? new User(initialCurrentUser) : null),
@@ -66,6 +71,11 @@ export function UserProvider({
     () => ['user-context', clerkUserId, clerkUserUpdatedAt, effectiveOrgId],
     [clerkUserId, clerkUserUpdatedAt, effectiveOrgId],
   );
+=======
+  const userCacheKey = clerkUserId
+    ? `user-context:current-user:${clerkUserId}`
+    : undefined;
+>>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
 
   const {
     data: currentUser = null,
@@ -105,9 +115,21 @@ export function UserProvider({
 
       return null;
     },
+<<<<<<< HEAD
     queryKey,
     staleTime: USER_CONTEXT_CACHE_TTL_MS,
   });
+=======
+    {
+      cacheKey: userCacheKey,
+      cacheTimeMs: USER_CONTEXT_CACHE_TTL_MS,
+      dependencies: [clerkUserId, clerkUserUpdatedAt, effectiveOrgId],
+      enabled: shouldFetch,
+      initialData: initialCurrentUser ? new User(initialCurrentUser) : null,
+      revalidateOnMount: initialCurrentUser == null,
+    },
+  );
+>>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
 
   const isFirstLogin = currentUser?.settings?.isFirstLogin ?? false;
 

@@ -27,6 +27,16 @@ export type AnalyticsFeedbackResolver = (params: {
   worstN?: number;
 }) => Promise<AnalyticsFeedbackOutput>;
 
+/**
+ * Analytics Feedback Executor
+ *
+ * Reads aggregated performance data and outputs signals that downstream
+ * nodes (trend trigger, prompt constructor, etc.) can use to steer
+ * content toward what works and away from what doesn't.
+ *
+ * Node Type: analyticsFeedback
+ * Definition: @genfeedai/workflow-saas/nodes/analytics-feedback.ts
+ */
 export class AnalyticsFeedbackExecutor extends BaseExecutor {
   readonly nodeType = 'analyticsFeedback';
   private resolver: AnalyticsFeedbackResolver | null = null;
@@ -55,7 +65,10 @@ export class AnalyticsFeedbackExecutor extends BaseExecutor {
       errors.push('worstN must be between 1 and 50');
     }
 
-    return { errors, valid: errors.length === 0 };
+    return {
+      errors,
+      valid: errors.length === 0,
+    };
   }
 
   async execute(input: ExecutorInput): Promise<ExecutorOutput> {
@@ -86,7 +99,10 @@ export class AnalyticsFeedbackExecutor extends BaseExecutor {
           weekOverWeekDirection: 'stable' as const,
           worstTopics: [],
         } satisfies AnalyticsFeedbackOutput,
-        metadata: { reason: 'no_brand_id', skipped: true },
+        metadata: {
+          reason: 'no_brand_id',
+          skipped: true,
+        },
       };
     }
 
@@ -99,7 +115,9 @@ export class AnalyticsFeedbackExecutor extends BaseExecutor {
 
     return {
       data: feedback,
-      metadata: { resolvedAt: new Date().toISOString() },
+      metadata: {
+        resolvedAt: new Date().toISOString(),
+      },
     };
   }
 }

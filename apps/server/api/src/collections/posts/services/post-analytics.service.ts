@@ -47,6 +47,8 @@ export class PostAnalyticsService extends BaseService<
     @Optional() private readonly tiktokService?: TiktokService,
     @Optional() private readonly youtubeService?: YoutubeService,
     @Optional() private readonly twitterService?: TwitterService,
+    @Optional() private readonly linkedInService?: LinkedInService,
+    @Optional() private readonly mastodonService?: MastodonService,
   ) {
     super(prisma, 'postAnalytics', logger);
   }
@@ -372,6 +374,22 @@ export class PostAnalyticsService extends BaseService<
 
         case CREDENTIAL_PLATFORM.PINTEREST:
           analytics = await this.getPinterestAnalytics(
+            post.organization.toString(),
+            post.brand.toString(),
+            post.externalId,
+          );
+          break;
+
+        case CREDENTIAL_PLATFORM.LINKEDIN:
+          analytics = await this.getLinkedInAnalytics(
+            post.organization.toString(),
+            post.brand.toString(),
+            post.externalId,
+          );
+          break;
+
+        case CREDENTIAL_PLATFORM.MASTODON:
+          analytics = await this.getMastodonAnalytics(
             post.organization.toString(),
             post.brand.toString(),
             post.externalId,
@@ -772,7 +790,11 @@ export class PostAnalyticsService extends BaseService<
   async processLinkedInAnalytics(
     postId: string,
     analytics: {
+<<<<<<< HEAD
       views: number;
+=======
+      views?: number;
+>>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
       likes: number;
       comments: number;
       shares?: number;
@@ -780,7 +802,12 @@ export class PostAnalyticsService extends BaseService<
       clicks?: number;
       engagementRate?: number;
       reach?: number;
+<<<<<<< HEAD
       mediaType?: 'text' | 'image' | 'video' | 'article' | 'document' | 'mixed';
+=======
+      reactions?: number;
+      mediaType?: string;
+>>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
     },
   ): Promise<void> {
     try {
@@ -788,7 +815,11 @@ export class PostAnalyticsService extends BaseService<
         totalComments: analytics.comments,
         totalLikes: analytics.likes,
         totalShares: analytics.shares || 0,
+<<<<<<< HEAD
         totalViews: analytics.impressions || analytics.views,
+=======
+        totalViews: analytics.impressions || analytics.views || 0,
+>>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
       });
 
       this.logger.log(`Updated LinkedIn analytics for post ${postId}`);
@@ -803,7 +834,10 @@ export class PostAnalyticsService extends BaseService<
 
   /**
    * Process Mastodon analytics and update post analytics
+<<<<<<< HEAD
    * Note: Mastodon API does not expose view counts — views default to 0
+=======
+>>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
    */
   async processMastodonAnalytics(
     postId: string,
@@ -819,7 +853,11 @@ export class PostAnalyticsService extends BaseService<
         totalComments: analytics.comments,
         totalLikes: analytics.likes,
         totalShares: analytics.boosts,
+<<<<<<< HEAD
         totalViews: 0, // Mastodon does not expose view counts
+=======
+        totalViews: analytics.views,
+>>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
       });
 
       this.logger.log(`Updated Mastodon analytics for post ${postId}`);
@@ -875,14 +913,22 @@ export class PostAnalyticsService extends BaseService<
       likes: number;
       replies: number;
       reposts: number;
+<<<<<<< HEAD
       quotes: number;
+=======
+      quotes?: number;
+>>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
     },
   ): Promise<void> {
     try {
       await this.updateTodayAnalytics(postId, CREDENTIAL_PLATFORM.THREADS, {
         totalComments: analytics.replies,
         totalLikes: analytics.likes,
+<<<<<<< HEAD
         totalShares: analytics.reposts + analytics.quotes,
+=======
+        totalShares: analytics.reposts,
+>>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
         totalViews: analytics.views,
       });
 
@@ -895,4 +941,75 @@ export class PostAnalyticsService extends BaseService<
       throw error;
     }
   }
+<<<<<<< HEAD
+=======
+
+  private async getLinkedInAnalytics(
+    organizationId: string,
+    brandId: string,
+    shareId: string,
+  ): Promise<{
+    totalViews: number;
+    totalLikes: number;
+    totalComments: number;
+    totalShares: number;
+    totalSaves: number;
+  } | null> {
+    try {
+      if (!this.linkedInService) {
+        this.logger.warn('LinkedInService not available');
+        return null;
+      }
+      const stats = await this.linkedInService.getMediaAnalytics(
+        organizationId,
+        brandId,
+        shareId,
+      );
+      return {
+        totalComments: stats.comments,
+        totalLikes: stats.likes,
+        totalSaves: 0,
+        totalShares: stats.shares || 0,
+        totalViews: stats.impressions || stats.views || 0,
+      };
+    } catch (error: unknown) {
+      this.logger.error('Failed to get LinkedIn analytics', error);
+      return null;
+    }
+  }
+
+  private async getMastodonAnalytics(
+    organizationId: string,
+    brandId: string,
+    statusId: string,
+  ): Promise<{
+    totalViews: number;
+    totalLikes: number;
+    totalComments: number;
+    totalShares: number;
+    totalSaves: number;
+  } | null> {
+    try {
+      if (!this.mastodonService) {
+        this.logger.warn('MastodonService not available');
+        return null;
+      }
+      const stats = await this.mastodonService.getMediaAnalytics(
+        organizationId,
+        brandId,
+        statusId,
+      );
+      return {
+        totalComments: stats.comments,
+        totalLikes: stats.likes,
+        totalSaves: 0,
+        totalShares: stats.boosts,
+        totalViews: stats.views,
+      };
+    } catch (error: unknown) {
+      this.logger.error('Failed to get Mastodon analytics', error);
+      return null;
+    }
+  }
+>>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
 }

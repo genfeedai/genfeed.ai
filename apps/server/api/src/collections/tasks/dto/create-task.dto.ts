@@ -175,15 +175,27 @@ export class CreateTaskDto {
     required: false,
     type: String,
   })
+<<<<<<< HEAD
   voiceId?: string;
+=======
+  heygenVoiceId?: string;
+>>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
 
   @IsOptional()
   @IsString()
   @ApiProperty({
+<<<<<<< HEAD
     description:
       'Voice provider hint — determines how voiceId is resolved (heygen | elevenlabs | genfeed-ai | hedra)',
     required: false,
     type: String,
   })
   voiceProvider?: string;
+=======
+    description: 'ElevenLabs voice ID for facecam tasks with cloned voice',
+    required: false,
+    type: String,
+  })
+  elevenlabsVoiceId?: string;
+>>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
 }

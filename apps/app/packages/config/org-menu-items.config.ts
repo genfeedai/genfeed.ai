@@ -27,9 +27,9 @@ export const ORG_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: '',
-    href: '/agent',
+    href: '/chat',
     label: 'Agent',
-    matchPaths: ['/agent', '/chat'],
+    matchPaths: ['/chat'],
     outline: HiOutlineChatBubbleLeftRight,
     solid: HiChatBubbleLeftRight,
   },

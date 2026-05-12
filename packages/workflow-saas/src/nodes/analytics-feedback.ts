@@ -1,3 +1,10 @@
+/**
+ * Analytics Feedback Node Types
+ *
+ * Reads aggregated performance data and outputs signals that downstream
+ * nodes can use to steer content toward what works and away from what doesn't.
+ */
+
 export interface AnalyticsFeedbackNodeData {
   label: string;
   status: 'idle' | 'running' | 'completed' | 'error';
@@ -40,5 +47,5 @@ export const analyticsFeedbackNodeDefinition = {
     },
     { id: 'bestPostingTimes', label: 'Best Posting Times', type: 'json' },
   ],
-  type: 'analytics-feedback',
+  type: 'analyticsFeedback',
 };

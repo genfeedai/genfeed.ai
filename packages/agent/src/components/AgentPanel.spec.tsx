@@ -1,10 +1,24 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Effect } from 'effect';
 import type { ReactNode } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockPush = vi.fn();
 const mockToggleOpen = vi.fn();
+const socketMocks = vi.hoisted(() => ({
+  on: vi.fn(),
+}));
+const xtermMocks = vi.hoisted(() => ({
+  dispose: vi.fn(),
+  fit: vi.fn(),
+  focus: vi.fn(),
+  loadAddon: vi.fn(),
+  onData: vi.fn(() => ({ dispose: vi.fn() })),
+  open: vi.fn(),
+  reset: vi.fn(),
+  write: vi.fn(),
+  writeln: vi.fn(),
+}));
 
 vi.mock('next/navigation', () => ({
   useParams: () => ({
@@ -14,6 +28,36 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({
     push: mockPush,
   }),
+}));
+
+vi.mock('socket.io-client', () => ({
+  io: vi.fn(() => ({
+    connected: false,
+    disconnect: vi.fn(),
+    emit: vi.fn(),
+    on: socketMocks.on,
+  })),
+}));
+
+vi.mock('@xterm/addon-fit', () => ({
+  FitAddon: vi.fn(() => ({
+    fit: xtermMocks.fit,
+  })),
+}));
+
+vi.mock('@xterm/xterm', () => ({
+  Terminal: vi.fn(() => ({
+    cols: 120,
+    dispose: xtermMocks.dispose,
+    focus: xtermMocks.focus,
+    loadAddon: xtermMocks.loadAddon,
+    onData: xtermMocks.onData,
+    open: xtermMocks.open,
+    reset: xtermMocks.reset,
+    rows: 32,
+    write: xtermMocks.write,
+    writeln: xtermMocks.writeln,
+  })),
 }));
 
 vi.mock('@genfeedai/agent/stores/agent-chat.store', () => ({
@@ -138,14 +182,51 @@ function createCreditsInfoApiService() {
 }
 
 describe('AgentPanel', () => {
-  it('renders terminal chrome with the full workspace action', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    window.localStorage.clear();
+  });
+
+  it('renders the terminal rail without the embedded chat composer toggle', () => {
     render(<AgentPanel apiService={createCreditsInfoApiService() as never} />);
 
     expect(screen.getByTestId('agent-cli-terminal')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('agent-chat-container'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText('Switch to chat mode'),
+    ).not.toBeInTheDocument();
     expect(screen.getByText('genfeed')).toBeInTheDocument();
     expect(
       screen.getByLabelText('Open full chat workspace'),
     ).toBeInTheDocument();
+    expect(
+      screen.getByLabelText('Terminal working directory'),
+    ).toBeInTheDocument();
+  });
+
+  it('persists the terminal working directory locally', () => {
+    render(<AgentPanel apiService={createCreditsInfoApiService() as never} />);
+
+    fireEvent.change(screen.getByLabelText('Terminal working directory'), {
+      target: { value: '/home/testuser/projects/genfeed' },
+    });
+    fireEvent.blur(screen.getByLabelText('Terminal working directory'));
+
+    expect(window.localStorage.getItem('genfeed:terminal:cwd')).toBe(
+      '/home/testuser/projects/genfeed',
+    );
+  });
+
+  it('restores the persisted terminal working directory', () => {
+    window.localStorage.setItem('genfeed:terminal:cwd', '/tmp/genfeed');
+
+    render(<AgentPanel apiService={createCreditsInfoApiService() as never} />);
+
+    expect(screen.getByLabelText('Terminal working directory')).toHaveValue(
+      '/tmp/genfeed',
+    );
   });
 
   it('shows the terminal runtime picker in local mode', async () => {

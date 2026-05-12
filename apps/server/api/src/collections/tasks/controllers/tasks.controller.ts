@@ -91,6 +91,7 @@ export class TasksController extends BaseCRUDController<
       await this.taskCountersService.getNextNumber(organizationId);
     const identifier = `${org.prefix}-${taskNumber}`;
     const extended = createDto as CreateTaskDto & {
+      elevenlabsVoiceId?: string;
       heygenAvatarId?: string;
       outputType?: string;
       platforms?: string[];
@@ -136,6 +137,7 @@ export class TasksController extends BaseCRUDController<
         this.workspaceTaskQueueService
           .enqueue({
             brandId: publicMetadata.brand,
+            elevenlabsVoiceId: extended.elevenlabsVoiceId,
             heygenAvatarId: extended.heygenAvatarId,
             organizationId,
             outputType: extended.outputType,

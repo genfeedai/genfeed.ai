@@ -47,6 +47,8 @@ export class CronAnalyticsSocialService {
                 CredentialPlatform.MASTODON,
                 CredentialPlatform.TIKTOK,
                 CredentialPlatform.PINTEREST,
+                CredentialPlatform.LINKEDIN,
+                CredentialPlatform.MASTODON,
               ],
             },
             status: PostStatus.PUBLIC,
@@ -54,6 +56,8 @@ export class CronAnalyticsSocialService {
         },
         { customLabels, pagination: false },
       );
+      const posts = result as unknown as { docs: PostEntity[] };
+
       const posts = result as unknown as { docs: PostEntity[] };
 
       if (!posts.docs || posts.docs.length === 0) {

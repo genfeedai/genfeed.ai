@@ -58,12 +58,8 @@ function ChatWorkspaceLayoutClientContent({
   const isJourneyRoute = pathname.startsWith('/chat/journey');
   const isOnboarding = pathname.startsWith('/chat/onboarding');
   const isOnboardingEntryRoute = pathname === '/chat/onboarding';
-  const isAgentRoute = pathname.startsWith('/agent');
-  const conversationBasePath = isAgentRoute ? '/agent' : '/chat';
-  const isStandardNewRoute =
-    pathname === '/chat/new' ||
-    pathname === '/agent' ||
-    pathname === '/agent/new';
+  const conversationBasePath = '/chat';
+  const isStandardNewRoute = pathname === '/chat' || pathname === '/chat/new';
   const isUnthreadedRoute = isOnboardingEntryRoute || isStandardNewRoute;
   const prefillPrompt = get('prompt')?.trim() || '';
   const effectiveIsLoaded = isLoaded || playwrightAuth?.isLoaded === true;
@@ -132,7 +128,7 @@ function ChatWorkspaceLayoutClientContent({
         logger.error('OAuth connect failed', error);
       }
     },
-    [conversationBasePath, getToken, isOnboarding, selectedBrand, threadId],
+    [getToken, isOnboarding, selectedBrand, threadId],
   );
 
   // Bootstrap the prefilled prompt only on unthreaded entry routes.
@@ -203,6 +199,7 @@ function ChatWorkspaceLayoutClientContent({
       pendingNavigationThreadRef.current = activeThreadId;
       replace(nextRoute);
     }
+<<<<<<< HEAD
   }, [
     activeThreadId,
     conversationBasePath,
@@ -211,6 +208,9 @@ function ChatWorkspaceLayoutClientContent({
     isUnthreadedRoute,
     replace,
   ]);
+=======
+  }, [activeThreadId, isJourneyRoute, isOnboarding, isUnthreadedRoute, router]);
+>>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
 
   const contextValue = useMemo(
     () => ({

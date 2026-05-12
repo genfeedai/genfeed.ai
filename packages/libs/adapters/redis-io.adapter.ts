@@ -51,7 +51,10 @@ export class RedisIoAdapter extends IoAdapter {
   createIOServer(port: number, options?: ServerOptions): Server {
     const isDevelopment = process.env.NODE_ENV === 'development';
     const corsOrigin = isDevelopment
-      ? [/^http:\/\/local\.genfeed\.ai:30(1[0-9]|20)$/]
+      ? [
+          /^http:\/\/(localhost|127\.0\.0\.1|local\.genfeed\.ai):3000$/,
+          /^http:\/\/local\.genfeed\.ai:30(1[0-9]|20)$/,
+        ]
       : [
           /^https:\/\/genfeed\.ai$/,
           /^https:\/\/(admin|analytics|automation|publisher|dashboard|docs|login|manager|storyboard|stock|studio)\.genfeed\.ai$/,

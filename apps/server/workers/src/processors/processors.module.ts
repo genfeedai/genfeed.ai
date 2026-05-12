@@ -173,6 +173,7 @@ import { WorkersQueuesModule } from '@workers/queues/queues.module';
     AnalyticsSocialProcessor,
     AnalyticsThreadsProcessor,
     AnalyticsSyncProcessor,
+    AnalyticsThreadsProcessor,
     AnalyticsTwitterProcessor,
     AnalyticsYouTubeProcessor,
     CampaignProcessor,

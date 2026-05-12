@@ -89,7 +89,7 @@ vi.mock('@ui/layouts/app/AppLayout', () => ({
     shellChromeVariant?: 'default' | 'transparent';
     topbarChromeVariant?: 'inherit' | 'default' | 'transparent';
   }) => {
-    appLayoutSpy({ bannerComponent, ...props });
+    appLayoutSpy({ agentPanel, bannerComponent, ...props });
     return (
       <div data-testid="app-layout">
         {menuComponent}
@@ -245,7 +245,6 @@ vi.mock('@genfeedai/agent', () => ({
   },
   AgentThreadList: (props: {
     onActionsChange?: (actions: ReactNode) => void;
-    routeBasePath?: string;
   }) => {
     agentThreadListSpy(props);
     useEffect(() => {
@@ -401,6 +400,8 @@ describe('AppProtectedLayout', () => {
     protectedProvidersSpy.mockClear();
     setIsOpenSpy.mockClear();
     toggleOpenSpy.mockClear();
+    delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
+    delete process.env.NEXT_PUBLIC_GENFEED_CLOUD;
 
     Object.defineProperty(globalThis, 'localStorage', {
       configurable: true,
@@ -599,8 +600,8 @@ describe('AppProtectedLayout', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('renders the focused agent route as the full-page conversation app', async () => {
-    mockPathname.value = '/agent';
+  it('marks the focused chat route as the Agent app', async () => {
+    mockPathname.value = '/chat/new';
 
     render(
       <AppProtectedLayout>
@@ -610,11 +611,6 @@ describe('AppProtectedLayout', () => {
 
     expect(await screen.findByTestId('agent-thread-list')).toBeInTheDocument();
     expect(screen.queryByTestId('agent-panel')).not.toBeInTheDocument();
-    expect(agentThreadListSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        routeBasePath: '/agent',
-      }),
-    );
     expect(appLayoutSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         currentApp: 'agent',
@@ -655,6 +651,25 @@ describe('AppProtectedLayout', () => {
     expect(screen.getByTestId('agent-panel-rail')).toBeInTheDocument();
     expect(screen.getByTestId('agent-panel')).toBeInTheDocument();
     expect(screen.queryByTestId('agent-thread-list')).not.toBeInTheDocument();
+  });
+
+  it('hides the terminal dock on hosted cloud', () => {
+    process.env.NEXT_PUBLIC_GENFEED_CLOUD = 'true';
+    mockPathname.value = '/workspace';
+
+    render(
+      <AppProtectedLayout>
+        <div>Protected content</div>
+      </AppProtectedLayout>,
+    );
+
+    expect(screen.queryByTestId('agent-panel-rail')).not.toBeInTheDocument();
+    expect(appLayoutSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        agentPanel: undefined,
+        onAgentToggle: undefined,
+      }),
+    );
   });
 
   it('disables prompt bar and elements providers on workspace home routes', () => {
