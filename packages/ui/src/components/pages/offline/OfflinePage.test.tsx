@@ -124,7 +124,7 @@ describe('OfflinePage', () => {
     it('title has correct styling', () => {
       render(<OfflinePage appName="studio" />);
       const title = screen.getByText('You are offline');
-      expect(title).toHaveClass('text-2xl', 'font-bold', 'text-foreground');
+      expect(title).toHaveClass('text-2xl', 'font-semibold', 'text-foreground');
     });
 
     it('message paragraph has muted text styling', () => {

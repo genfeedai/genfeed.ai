@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'bun:test';
-import { isTrustedApiEndpoint, TRUSTED_API_ORIGINS } from './trusted-origins';
+import {
+  isTrustedApiEndpoint,
+  TRUSTED_API_ORIGINS,
+} from './trusted-api-origins';
 
 describe('isTrustedApiEndpoint', () => {
   describe('trusted origins', () => {

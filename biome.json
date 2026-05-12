@@ -19,6 +19,7 @@
       "!**/bun.lock",
       "!**/.env",
       "!**/.env.*",
+      "!**/next-env.d.ts",
       "!**/.agents",
       "!**/.agents",
       "!.agents",
@@ -37,6 +38,11 @@
     "enabled": true,
     "indentStyle": "space",
     "indentWidth": 2
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
   },
   "javascript": {
     "formatter": {

@@ -13,7 +13,10 @@ vi.mock('next/image', () => ({
     ...props
   }: {
     alt: string;
-  }) => <input type="image" alt={alt} {...props} data-testid="next-image" />,
+  }) => (
+    // biome-ignore lint/performance/noImgElement: next/image is mocked to a basic DOM element in jsdom tests.
+    <img alt={alt} {...props} data-testid="next-image" />
+  ),
 }));
 
 // Mock the environment service
@@ -652,8 +655,12 @@ describe('PromptBarActionsRow', () => {
           endFrame={{ id: 'end-frame-1' }}
         />,
       );
+      const endFrameImage = screen.getByTestId('next-image');
       const buttons = screen.getAllByRole('button');
-      fireEvent.click(buttons[2]);
+      const endFrameButtonIndex = buttons.findIndex((button) =>
+        button.contains(endFrameImage),
+      );
+      fireEvent.click(buttons[endFrameButtonIndex + 1]);
 
       expect(defaultProps.setEndFrame).toHaveBeenCalledWith(null);
       expect(mockForm.setValue).toHaveBeenCalledWith('endFrame', '', {

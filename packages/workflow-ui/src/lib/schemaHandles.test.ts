@@ -44,7 +44,7 @@ describe('generateHandlesFromSchema', () => {
       id: 'start_image',
       label: 'Start Image',
       multiple: false,
-      required: undefined,
+      required: false,
       type: 'image',
     });
   });

@@ -91,7 +91,7 @@ describe('pricing.helper', () => {
 
     it('should have correct prices', () => {
       const prices = websitePlans.map((p) => p.price);
-      expect(prices).toEqual([0, 8, 499, null]);
+      expect(prices).toEqual([0, 49, 499, null]);
     });
 
     it('Self-Hosted plan should have null outputs', () => {
@@ -150,7 +150,7 @@ describe('pricing.helper', () => {
     it('should return the Hosted plan', () => {
       const plan = getHostedPlan();
       expect(plan.label).toBe('Hosted');
-      expect(plan.price).toBe(8);
+      expect(plan.price).toBe(49);
     });
   });
 
@@ -166,7 +166,7 @@ describe('pricing.helper', () => {
     it('should return the Hosted plan as a legacy alias', () => {
       const plan = getProPlan();
       expect(plan.label).toBe('Hosted');
-      expect(plan.price).toBe(8);
+      expect(plan.price).toBe(49);
     });
   });
 
