@@ -10,7 +10,6 @@ import {
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import type { ICaption, IFieldOption, IMetadata } from '@genfeedai/interfaces';
-import type { Caption } from '@genfeedai/models/content/caption.model';
 import type { IngredientTabsCaptionsProps } from '@genfeedai/props/content/ingredient.props';
 import { CaptionsService } from '@genfeedai/services/content/captions.service';
 import { logger } from '@genfeedai/services/core/logger.service';
@@ -221,7 +220,15 @@ export default function IngredientTabsCaptions({
             {captions.map((caption: ICaption) => (
               <div
                 key={caption.id}
+                role="button"
+                tabIndex={0}
                 onClick={() => setSelectedCaption(caption)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setSelectedCaption(caption);
+                  }
+                }}
                 className={`p-3 border cursor-pointer transition-colors ${
                   selectedCaption?.id === caption.id
                     ? 'border-primary bg-primary/10'

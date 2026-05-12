@@ -199,7 +199,7 @@ export default function MultiSelectDropdown({
     name,
   ]);
 
-  const renderOptions = () => {
+  const optionsElements: ReactNode = (() => {
     if (optionsForDisplay.length === 0) {
       return (
         <div className="px-3 py-2 text-sm text-foreground/60">
@@ -287,7 +287,7 @@ export default function MultiSelectDropdown({
     });
 
     return elements;
-  };
+  })();
 
   return (
     <DropdownMenu
@@ -403,7 +403,7 @@ export default function MultiSelectDropdown({
           </>
         )}
 
-        {renderOptions()}
+        {optionsElements}
       </DropdownMenuContent>
     </DropdownMenu>
   );

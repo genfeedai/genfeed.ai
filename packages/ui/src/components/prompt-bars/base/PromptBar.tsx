@@ -554,9 +554,10 @@ function PromptBar({
   useEffect(() => {
     if (filteredBlacklists?.length > 0) {
       const currentBlacklists = form.getValues('blacklist') || [];
-      const defaultKeys = filteredBlacklists
-        .filter((b) => b.isDefault)
-        .map((b) => b.key);
+      const defaultKeys = filteredBlacklists.reduce<string[]>((acc, b) => {
+        if (b.isDefault) acc.push(b.key);
+        return acc;
+      }, []);
       if (defaultKeys.length > 0 && currentBlacklists.length === 0) {
         form.setValue('blacklist', defaultKeys, { shouldValidate: true });
         triggerConfigChange();
@@ -567,10 +568,10 @@ function PromptBar({
   useEffect(() => {
     if (filteredSounds?.length > 0) {
       const currentSounds = form.getValues('sounds') || [];
-      const defaultKeys = filteredSounds
-        .filter((s) => s.isDefault && s.key !== undefined)
-        .map((s) => s.key)
-        .filter((key): key is string => key !== undefined);
+      const defaultKeys = filteredSounds.reduce<string[]>((acc, s) => {
+        if (s.isDefault && s.key !== undefined) acc.push(s.key);
+        return acc;
+      }, []);
 
       if (defaultKeys.length > 0 && currentSounds.length === 0) {
         form.setValue('sounds', defaultKeys, { shouldValidate: true });
@@ -614,9 +615,10 @@ function PromptBar({
         );
       },
       onSelectAccountReference: handleSelectAccountReference,
-      selectedReferences: references
-        .map((reference) => reference.id)
-        .filter((id): id is string => Boolean(id)),
+      selectedReferences: references.reduce<string[]>((acc, reference) => {
+        if (reference.id) acc.push(reference.id);
+        return acc;
+      }, []),
       title:
         currentModelCategory === ModelCategory.VIDEO
           ? 'Select Start Frame'
@@ -651,9 +653,10 @@ function PromptBar({
       setReferenceSource(updatedReferences.length > 0 ? referenceSource : '');
       form.setValue(
         'references',
-        updatedReferences
-          .map((reference) => reference.id)
-          .filter((id): id is string => Boolean(id)),
+        updatedReferences.reduce<string[]>((acc, reference) => {
+          if (reference.id) acc.push(reference.id);
+          return acc;
+        }, []),
         { shouldValidate: true },
       );
       triggerConfigChange();
@@ -708,11 +711,13 @@ function PromptBar({
 
   const handleDroppedUploadComplete = useCallback(
     (uploadedIngredients: (IIngredient | IAsset)[]) => {
-      const uploadedReferences = uploadedIngredients
-        .map((uploaded) => normalizeUploadedReference(uploaded))
-        .filter(
-          (reference): reference is IAsset | IImage => reference !== null,
-        );
+      const uploadedReferences = uploadedIngredients.reduce<
+        (IAsset | IImage)[]
+      >((acc, uploaded) => {
+        const reference = normalizeUploadedReference(uploaded);
+        if (reference !== null) acc.push(reference);
+        return acc;
+      }, []);
 
       if (uploadedReferences.length === 0) {
         return;

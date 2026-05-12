@@ -28,6 +28,147 @@ interface ConfigFieldProps {
   variables: string[];
 }
 
+interface ConfigFieldInputProps {
+  fieldKey: string;
+  field: NodeConfigField;
+  value: unknown;
+  onChange: (key: string, value: unknown) => void;
+  variables: string[];
+  useVariable: boolean;
+}
+
+function ConfigFieldInput({
+  fieldKey,
+  field,
+  value,
+  onChange,
+  variables,
+  useVariable,
+}: ConfigFieldInputProps): React.ReactNode {
+  if (useVariable) {
+    return (
+      <Select
+        value={String(value || '')}
+        onValueChange={(selectedValue) =>
+          onChange(fieldKey, `{{${selectedValue}}}`)
+        }
+      >
+        <SelectTrigger className="h-8">
+          <SelectValue placeholder="Select variable…" />
+        </SelectTrigger>
+        <SelectContent>
+          {variables.map((v) => (
+            <SelectItem key={v} value={v}>
+              {v}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    );
+  }
+
+  switch (field.type) {
+    case 'text':
+      return (
+        <Input
+          type="text"
+          className="h-8"
+          value={String(value || field.defaultValue || '')}
+          placeholder={field.placeholder}
+          onChange={(e) => onChange(fieldKey, e.target.value)}
+        />
+      );
+
+    case 'number':
+      return (
+        <Input
+          type="number"
+          className="h-8"
+          value={Number(value || field.defaultValue || 0)}
+          min={field.min}
+          max={field.max}
+          step={field.step}
+          onChange={(e) => onChange(fieldKey, parseFloat(e.target.value))}
+        />
+      );
+
+    case 'range':
+      return (
+        <div className="flex items-center gap-2">
+          <Slider
+            className="flex-1"
+            value={[Number(value || field.defaultValue || field.min || 0)]}
+            min={field.min}
+            max={field.max}
+            step={field.step}
+            onValueChange={([sliderValue]) => onChange(fieldKey, sliderValue)}
+          />
+          <span className="text-sm tabular-nums w-12 text-right">
+            {Number(value || field.defaultValue || field.min || 0)}
+          </span>
+        </div>
+      );
+
+    case 'select':
+      return (
+        <Select
+          value={String(value || field.defaultValue || '')}
+          onValueChange={(selectedValue) => onChange(fieldKey, selectedValue)}
+        >
+          <SelectTrigger className="h-8">
+            <SelectValue placeholder="Select…" />
+          </SelectTrigger>
+          <SelectContent>
+            {field.options?.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      );
+
+    case 'boolean':
+      return (
+        <Checkbox
+          checked={Boolean(value ?? field.defaultValue ?? false)}
+          onCheckedChange={(checked) => onChange(fieldKey, checked === true)}
+          aria-label={field.label}
+        />
+      );
+
+    case 'textarea':
+      return (
+        <Textarea
+          className="text-sm border border-input px-3 py-2 w-full"
+          value={String(value || field.defaultValue || '')}
+          placeholder={field.placeholder}
+          rows={3}
+          onChange={(e) => onChange(fieldKey, e.target.value)}
+        />
+      );
+
+    case 'color':
+      return (
+        <ColorInput
+          className="h-8 w-full"
+          value={String(value || field.defaultValue || '#000000')}
+          onChange={(e) => onChange(fieldKey, e.target.value)}
+        />
+      );
+
+    default:
+      return (
+        <Input
+          type="text"
+          className="h-8"
+          value={String(value || '')}
+          onChange={(e) => onChange(fieldKey, e.target.value)}
+        />
+      );
+  }
+}
+
 function ConfigField({
   fieldKey,
   field,
@@ -36,131 +177,6 @@ function ConfigField({
   variables,
 }: ConfigFieldProps) {
   const [useVariable, setUseVariable] = useState(false);
-
-  const renderField = () => {
-    if (useVariable) {
-      return (
-        <Select
-          value={String(value || '')}
-          onValueChange={(selectedValue) =>
-            onChange(fieldKey, `{{${selectedValue}}}`)
-          }
-        >
-          <SelectTrigger className="h-8">
-            <SelectValue placeholder="Select variable…" />
-          </SelectTrigger>
-          <SelectContent>
-            {variables.map((v) => (
-              <SelectItem key={v} value={v}>
-                {v}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      );
-    }
-
-    switch (field.type) {
-      case 'text':
-        return (
-          <Input
-            type="text"
-            className="h-8"
-            value={String(value || field.defaultValue || '')}
-            placeholder={field.placeholder}
-            onChange={(e) => onChange(fieldKey, e.target.value)}
-          />
-        );
-
-      case 'number':
-        return (
-          <Input
-            type="number"
-            className="h-8"
-            value={Number(value || field.defaultValue || 0)}
-            min={field.min}
-            max={field.max}
-            step={field.step}
-            onChange={(e) => onChange(fieldKey, parseFloat(e.target.value))}
-          />
-        );
-
-      case 'range':
-        return (
-          <div className="flex items-center gap-2">
-            <Slider
-              className="flex-1"
-              value={[Number(value || field.defaultValue || field.min || 0)]}
-              min={field.min}
-              max={field.max}
-              step={field.step}
-              onValueChange={([sliderValue]) => onChange(fieldKey, sliderValue)}
-            />
-            <span className="text-sm tabular-nums w-12 text-right">
-              {Number(value || field.defaultValue || field.min || 0)}
-            </span>
-          </div>
-        );
-
-      case 'select':
-        return (
-          <Select
-            value={String(value || field.defaultValue || '')}
-            onValueChange={(selectedValue) => onChange(fieldKey, selectedValue)}
-          >
-            <SelectTrigger className="h-8">
-              <SelectValue placeholder="Select…" />
-            </SelectTrigger>
-            <SelectContent>
-              {field.options?.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        );
-
-      case 'boolean':
-        return (
-          <Checkbox
-            checked={Boolean(value ?? field.defaultValue ?? false)}
-            onCheckedChange={(checked) => onChange(fieldKey, checked === true)}
-            aria-label={field.label}
-          />
-        );
-
-      case 'textarea':
-        return (
-          <Textarea
-            className="text-sm border border-input px-3 py-2 w-full"
-            value={String(value || field.defaultValue || '')}
-            placeholder={field.placeholder}
-            rows={3}
-            onChange={(e) => onChange(fieldKey, e.target.value)}
-          />
-        );
-
-      case 'color':
-        return (
-          <ColorInput
-            className="h-8 w-full"
-            value={String(value || field.defaultValue || '#000000')}
-            onChange={(e) => onChange(fieldKey, e.target.value)}
-          />
-        );
-
-      default:
-        return (
-          <Input
-            type="text"
-            className="h-8"
-            value={String(value || '')}
-            onChange={(e) => onChange(fieldKey, e.target.value)}
-          />
-        );
-    }
-  };
 
   return (
     <div className="mb-3">
@@ -181,7 +197,14 @@ function ConfigField({
           />
         )}
       </div>
-      {renderField()}
+      <ConfigFieldInput
+        fieldKey={fieldKey}
+        field={field}
+        value={value}
+        onChange={onChange}
+        variables={variables}
+        useVariable={useVariable}
+      />
       {field.description && (
         <p className="mt-1 text-xs opacity-60">{field.description}</p>
       )}

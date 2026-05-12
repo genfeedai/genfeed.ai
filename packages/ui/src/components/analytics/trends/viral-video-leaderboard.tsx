@@ -54,7 +54,7 @@ export function ViralVideoLeaderboard({
     );
   }
 
-  const sortedVideos = [...videos].sort((a, b) => b.viralScore - a.viralScore);
+  const sortedVideos = videos.toSorted((a, b) => b.viralScore - a.viralScore);
 
   return (
     <div className={`space-y-4 ${className}`}>

@@ -156,12 +156,20 @@ export default function ModalMusic({
                 return (
                   <div
                     key={music.id}
+                    role="button"
+                    tabIndex={0}
                     className={`relative p-4 border-2 transition-all cursor-pointer group ${
                       selectedMusic === music.id
                         ? 'border-primary bg-primary/5'
                         : 'border-white/[0.08] hover:border-primary/50 bg-background'
                     }`}
                     onClick={() => setSelectedMusic(music.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setSelectedMusic(music.id);
+                      }
+                    }}
                   >
                     {/* Music Icon */}
                     <div className="flex items-center gap-3">
@@ -226,12 +234,20 @@ export default function ModalMusic({
             {/* No Music Option */}
             <div className="mt-3 pt-3 border-t border-white/[0.08]">
               <div
+                role="button"
+                tabIndex={0}
                 className={`p-3 border-2 transition-all cursor-pointer ${
                   !selectedMusic
                     ? 'border-primary bg-primary/5'
                     : 'border-white/[0.08] hover:border-primary/50'
                 }`}
                 onClick={handleClearSelection}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleClearSelection();
+                  }
+                }}
               >
                 <div className="flex items-center gap-3">
                   <div className="size-10 rounded-full bg-muted flex items-center justify-center">

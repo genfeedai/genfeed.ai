@@ -345,14 +345,12 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
   };
 
   const parseCommaSeparated = (value: string, stripPrefix?: string) =>
-    value
-      .split(',')
-      .map((t) =>
-        stripPrefix
-          ? t.trim().replace(new RegExp(`^${stripPrefix}`), '')
-          : t.trim(),
-      )
-      .filter((t) => t);
+    value.split(',').flatMap((t) => {
+      const trimmed = stripPrefix
+        ? t.trim().replace(new RegExp(`^${stripPrefix}`), '')
+        : t.trim();
+      return trimmed ? [trimmed] : [];
+    });
 
   const platforms = form.watch('platforms') || [];
   // Cast to extended BotCategory type since schema only has 'chat' | 'comment'

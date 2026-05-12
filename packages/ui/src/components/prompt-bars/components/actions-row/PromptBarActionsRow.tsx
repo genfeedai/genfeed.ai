@@ -128,42 +128,41 @@ const PromptBarActionsRow = memo(function PromptBarActionsRow({
     return 'Reference';
   }
 
-  function renderOutputsDropdown(): React.ReactNode {
-    if (normalizedWatchedModels.length === 0) {
-      return null;
-    }
+  const outputsDropdown =
+    normalizedWatchedModels.length > 0
+      ? (() => {
+          const maxOutputs = getMinFromAllModels((modelKey) =>
+            getModelMaxOutputs(modelKey),
+          );
 
-    const maxOutputs = getMinFromAllModels((modelKey) =>
-      getModelMaxOutputs(modelKey),
-    );
+          const outputOptions = Array.from({ length: maxOutputs }, (_, i) => ({
+            key: String(i + 1),
+            label: `${i + 1}x`,
+          }));
 
-    const outputOptions = Array.from({ length: maxOutputs }, (_, i) => ({
-      key: String(i + 1),
-      label: `${i + 1}x`,
-    }));
-
-    return (
-      <FormDropdown
-        key="outputs"
-        name="outputs"
-        icon={<HiSquaresPlus />}
-        label="Outputs"
-        isFullWidth={false}
-        dropdownDirection="up"
-        className={controlClass}
-        value={String(form.getValues('outputs') || 1)}
-        options={outputOptions}
-        isNoneEnabled={false}
-        isDisabled={isDisabledState}
-        onChange={(event: ChangeEvent<HTMLSelectElement>) => {
-          form.setValue('outputs', parseInt(event.target.value, 10), {
-            shouldValidate: true,
-          });
-          refocusTextarea();
-        }}
-      />
-    );
-  }
+          return (
+            <FormDropdown
+              key="outputs"
+              name="outputs"
+              icon={<HiSquaresPlus />}
+              label="Outputs"
+              isFullWidth={false}
+              dropdownDirection="up"
+              className={controlClass}
+              value={String(form.getValues('outputs') || 1)}
+              options={outputOptions}
+              isNoneEnabled={false}
+              isDisabled={isDisabledState}
+              onChange={(event: ChangeEvent<HTMLSelectElement>) => {
+                form.setValue('outputs', parseInt(event.target.value, 10), {
+                  shouldValidate: true,
+                });
+                refocusTextarea();
+              }}
+            />
+          );
+        })()
+      : null;
 
   return (
     <div className="flex items-center justify-between gap-2">
@@ -347,7 +346,7 @@ const PromptBarActionsRow = memo(function PromptBarActionsRow({
           />
         )}
 
-        {renderOutputsDropdown()}
+        {outputsDropdown}
 
         <Button
           variant={ButtonVariant.GENERATE}

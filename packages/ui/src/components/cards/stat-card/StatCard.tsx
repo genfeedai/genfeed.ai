@@ -89,26 +89,22 @@ const StatCard = memo(function StatCard({
   const isPositiveTrend = hasTrend && trend > 0;
   const isNegativeTrend = hasTrend && trend < 0;
 
-  const renderValue = () => {
-    if (isLoading) {
-      return (
-        <Skeleton
-          className={cn(
-            'w-16 rounded-sm',
-            LOADER_HEIGHT_CLASSES[size],
-            variant === 'white' ? 'bg-black/10' : 'bg-white/10',
-          )}
-        />
-      );
-    }
-
-    // Animate if value is a string that looks like a formatted number
-    if (typeof value === 'string' && /^[\d.]+[KMB]?$/.test(value)) {
-      return <AnimatedValue value={value} />;
-    }
-
-    return value;
-  };
+  let statValue: React.ReactNode;
+  if (isLoading) {
+    statValue = (
+      <Skeleton
+        className={cn(
+          'w-16 rounded-sm',
+          LOADER_HEIGHT_CLASSES[size],
+          variant === 'white' ? 'bg-black/10' : 'bg-white/10',
+        )}
+      />
+    );
+  } else if (typeof value === 'string' && /^[\d.]+[KMB]?$/.test(value)) {
+    statValue = <AnimatedValue value={value} />;
+  } else {
+    statValue = value;
+  }
 
   return (
     <Card
@@ -133,7 +129,7 @@ const StatCard = memo(function StatCard({
                   : 'text-primary',
             )}
           >
-            {renderValue()}
+            {statValue}
           </div>
           {Icon && (
             <div

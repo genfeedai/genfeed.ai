@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { ExternalLink, Share2 } from 'lucide-react';
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useId } from 'react';
 
 // Cloud-specific types (to be defined in workflow-saas)
 export type SocialPlatform =
@@ -69,6 +69,10 @@ function SocialPublishNodeComponent({
   onUpdate,
   onExecute,
 }: SocialPublishNodeProps) {
+  const titleId = useId();
+  const descriptionId = useId();
+  const tagsId = useId();
+  const visibilityId = useId();
   const handlePlatformChange = useCallback(
     (platform: SocialPlatform) => {
       onUpdate(id, { platform });
@@ -92,10 +96,10 @@ function SocialPublishNodeComponent({
 
   const handleTagsChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      const tags = e.target.value
-        .split(',')
-        .map((t) => t.trim())
-        .filter(Boolean);
+      const tags = e.target.value.split(',').flatMap((t) => {
+        const s = t.trim();
+        return s ? [s] : [];
+      });
       onUpdate(id, { tags });
     },
     [id, onUpdate],
@@ -128,8 +132,11 @@ function SocialPublishNodeComponent({
 
       {/* Title */}
       <div>
-        <label className="text-xs text-muted-foreground">Title</label>
+        <label htmlFor={titleId} className="text-xs text-muted-foreground">
+          Title
+        </label>
         <Input
+          id={titleId}
           type="text"
           value={data.title}
           onChange={handleTitleChange}
@@ -140,8 +147,14 @@ function SocialPublishNodeComponent({
 
       {/* Description */}
       <div>
-        <label className="text-xs text-muted-foreground">Description</label>
+        <label
+          htmlFor={descriptionId}
+          className="text-xs text-muted-foreground"
+        >
+          Description
+        </label>
         <Textarea
+          id={descriptionId}
           value={data.description}
           onChange={handleDescriptionChange}
           placeholder="Video description…"
@@ -151,10 +164,11 @@ function SocialPublishNodeComponent({
 
       {/* Tags */}
       <div>
-        <label className="text-xs text-muted-foreground">
+        <label htmlFor={tagsId} className="text-xs text-muted-foreground">
           Tags (comma-separated)
         </label>
         <Input
+          id={tagsId}
           type="text"
           value={data.tags.join(', ')}
           onChange={handleTagsChange}
@@ -165,14 +179,16 @@ function SocialPublishNodeComponent({
 
       {/* Visibility */}
       <div>
-        <label className="text-xs text-muted-foreground">Visibility</label>
+        <label htmlFor={visibilityId} className="text-xs text-muted-foreground">
+          Visibility
+        </label>
         <Select
           value={data.visibility}
           onValueChange={(value) =>
             onUpdate(id, { visibility: value as SocialVisibility })
           }
         >
-          <SelectTrigger className="mt-1">
+          <SelectTrigger id={visibilityId} className="mt-1">
             <SelectValue placeholder="Select visibility" />
           </SelectTrigger>
           <SelectContent>

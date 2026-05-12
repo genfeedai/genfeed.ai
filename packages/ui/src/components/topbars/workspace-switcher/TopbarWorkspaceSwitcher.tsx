@@ -436,10 +436,14 @@ export default function TopbarWorkspaceSwitcher({
           <Modal.Body>
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-white/70">
+                <label
+                  htmlFor="topbar-ws-org-name"
+                  className="text-xs font-medium text-white/70"
+                >
                   Name <span className="text-red-400">*</span>
                 </label>
                 <Input
+                  id="topbar-ws-org-name"
                   type="text"
                   value={newOrganizationLabel}
                   onChange={(event) =>
@@ -455,10 +459,14 @@ export default function TopbarWorkspaceSwitcher({
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-white/70">
+                <label
+                  htmlFor="topbar-ws-org-description"
+                  className="text-xs font-medium text-white/70"
+                >
                   Description <span className="text-white/30">(optional)</span>
                 </label>
                 <Textarea
+                  id="topbar-ws-org-description"
                   value={newOrganizationDescription}
                   onChange={(event) =>
                     setNewOrganizationDescription(event.target.value)

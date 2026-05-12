@@ -7,14 +7,22 @@ import Link from 'next/link';
 import { memo } from 'react';
 import { HiStar } from 'react-icons/hi2';
 
+const priceFormatterCache = new Map<string, Intl.NumberFormat>();
+
+function getPriceFormatter(currency: string): Intl.NumberFormat {
+  let formatter = priceFormatterCache.get(currency);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat('en-US', { currency, style: 'currency' });
+    priceFormatterCache.set(currency, formatter);
+  }
+  return formatter;
+}
+
 function formatPrice(priceInCents: number, currency: string = 'USD'): string {
   if (!priceInCents || priceInCents === 0) {
     return 'Free';
   }
-  return new Intl.NumberFormat('en-US', {
-    currency,
-    style: 'currency',
-  }).format(priceInCents / 100);
+  return getPriceFormatter(currency).format(priceInCents / 100);
 }
 
 const VARIANT_CLASSES = {

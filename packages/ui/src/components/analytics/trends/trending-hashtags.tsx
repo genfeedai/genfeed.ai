@@ -63,7 +63,7 @@ export function TrendingHashtags({
     );
   }
 
-  const sortedHashtags = [...filteredHashtags].sort(
+  const sortedHashtags = filteredHashtags.toSorted(
     (a, b) => b.viralityScore - a.viralityScore,
   );
 

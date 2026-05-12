@@ -6,7 +6,7 @@ import { Input } from '@ui/primitives/input';
 import type { TrendSoundInspirationNodeData } from '@ui/workflow-builder/types/workflow-saas.types';
 import { Loader2, Music, Play, TrendingUp } from 'lucide-react';
 import Image from 'next/image';
-import { memo, useCallback, useState } from 'react';
+import { memo, useCallback, useId, useState } from 'react';
 
 export type { TrendSoundInspirationNodeData };
 
@@ -24,6 +24,8 @@ function TrendSoundInspirationNodeComponent({
   onExecute,
 }: TrendSoundInspirationNodeProps) {
   const [isPlaying, setIsPlaying] = useState(false);
+  const minUsageCountId = useId();
+  const maxDurationId = useId();
 
   const handleUsageCountChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -69,11 +71,15 @@ function TrendSoundInspirationNodeComponent({
     <div className="space-y-3">
       {/* Min Usage Count */}
       <div>
-        <label className="text-xs text-muted-foreground flex items-center gap-1">
+        <label
+          htmlFor={minUsageCountId}
+          className="text-xs text-muted-foreground flex items-center gap-1"
+        >
           <TrendingUp className="size-3" />
           Min Usage Count
         </label>
         <Input
+          id={minUsageCountId}
           type="number"
           value={data.minUsageCount}
           onChange={handleUsageCountChange}
@@ -87,10 +93,14 @@ function TrendSoundInspirationNodeComponent({
 
       {/* Max Duration */}
       <div>
-        <label className="text-xs text-muted-foreground">
+        <label
+          htmlFor={maxDurationId}
+          className="text-xs text-muted-foreground"
+        >
           Max Duration (seconds, optional)
         </label>
         <Input
+          id={maxDurationId}
           type="number"
           value={data.maxDuration || ''}
           onChange={handleMaxDurationChange}

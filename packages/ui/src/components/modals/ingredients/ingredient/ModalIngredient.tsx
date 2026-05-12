@@ -173,10 +173,10 @@ export default function IngredientOverlay({
         [field]: value,
       };
 
-      setLocalIngredient({
-        ...localIngredient,
+      setLocalIngredient((prev) => ({
+        ...prev!,
         metadata: updatedMetadata,
-      });
+      }));
 
       setIsUpdating(true);
 
@@ -189,10 +189,10 @@ export default function IngredientOverlay({
       } catch (error) {
         logger.error('Failed to update metadata', error);
         setError('Failed to update');
-        setLocalIngredient({
-          ...localIngredient,
+        setLocalIngredient((prev) => ({
+          ...prev!,
           metadata: originalMetadata,
-        });
+        }));
 
         setIsUpdating(false);
       }
@@ -208,10 +208,10 @@ export default function IngredientOverlay({
 
       const originalValue = (localIngredient as any)[field];
 
-      setLocalIngredient({
-        ...localIngredient,
+      setLocalIngredient((prev) => ({
+        ...prev!,
         [field]: value,
-      });
+      }));
 
       setIsUpdating(true);
 
@@ -226,10 +226,10 @@ export default function IngredientOverlay({
         logger.error('Failed to update sharing settings', error);
         setError('Failed to update sharing settings');
 
-        setLocalIngredient({
-          ...localIngredient,
+        setLocalIngredient((prev) => ({
+          ...prev!,
           [field]: originalValue,
-        });
+        }));
 
         setIsUpdating(false);
       }
@@ -392,10 +392,10 @@ export default function IngredientOverlay({
       } else if (localIngredient) {
         // Fallback: update manually if updatedIngredient not provided
         const originalScope = localIngredient.scope;
-        setLocalIngredient({
-          ...localIngredient,
+        setLocalIngredient((prev) => ({
+          ...prev!,
           scope,
-        });
+        }));
         setIsUpdating(true);
 
         try {
@@ -409,10 +409,10 @@ export default function IngredientOverlay({
         } catch (error) {
           logger.error('Failed to update scope', error);
           setError('Failed to update scope');
-          setLocalIngredient({
-            ...localIngredient,
+          setLocalIngredient((prev) => ({
+            ...prev!,
             scope: originalScope,
-          });
+          }));
           setIsUpdating(false);
         }
       }

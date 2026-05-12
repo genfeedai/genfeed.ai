@@ -86,12 +86,8 @@ export default function PromptBarArticle({
     }
   }
 
-  function renderPresetDropdown(): React.ReactNode {
-    if (presetOptions.length === 0) {
-      return null;
-    }
-
-    return (
+  const presetDropdown: React.ReactNode =
+    presetOptions.length > 0 ? (
       <FormDropdown
         name="preset"
         icon={<HiBookmark />}
@@ -107,8 +103,7 @@ export default function PromptBarArticle({
           handlePresetChange(e.target.value)
         }
       />
-    );
-  }
+    ) : null;
 
   return (
     <div
@@ -121,7 +116,7 @@ export default function PromptBarArticle({
     >
       {isCollapsed ? (
         <div className="flex items-center gap-2 animate-fade-in">
-          {renderPresetDropdown()}
+          {presetDropdown}
 
           <Input
             name="prompt"
@@ -165,7 +160,7 @@ export default function PromptBarArticle({
         <>
           <div className="flex flex-wrap items-center justify-between gap-2 overflow-visible">
             <div className="flex flex-wrap items-center gap-2">
-              {renderPresetDropdown()}
+              {presetDropdown}
             </div>
 
             <Button

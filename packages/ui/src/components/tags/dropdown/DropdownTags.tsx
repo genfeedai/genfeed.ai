@@ -346,178 +346,171 @@ export default function DropdownTags({
       (tag) => tag.label.toLowerCase() === searchQuery.toLowerCase(),
     );
 
-  // Render dropdown menu via portal
-  const renderDropdown = () => {
-    if (!isOpen || typeof window === 'undefined') {
-      return null;
-    }
-
-    return createPortal(
-      <div
-        ref={dropdownRef}
-        style={{
-          position: 'absolute',
-          top:
-            direction === 'up'
-              ? `${dropdownPosition.top - 8}px`
-              : `${dropdownPosition.top + (buttonRef.current?.offsetHeight || 0) + 8}px`,
-          ...(dropdownPosition.useRight
-            ? { right: `${dropdownPosition.right}px` }
-            : { left: `${dropdownPosition.left}px` }),
-          transform: direction === 'up' ? 'translateY(-100%)' : 'none',
-          zIndex: 50,
-        }}
-        className={cn(
-          'w-80 rounded-md border border-white/[0.08] bg-card shadow-lg',
-        )}
-      >
-        {/* Search Input */}
-        <div className="p-3 border-b border-white/[0.08]">
-          <Input
-            ref={searchInputRef}
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search or create tags…"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && showCreateOption) {
-                handleCreateTag();
-              }
-            }}
-          />
-        </div>
-
-        {/* Selected Tags */}
-        {selectedTagObjects.length > 0 && (
-          <div className="p-3 border-b border-white/[0.08]">
-            <div className="text-xs uppercase text-foreground/60 mb-2">
-              Selected ({selectedTagObjects.length})
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              {selectedTagObjects.map((tag) => (
-                <TagBadge
-                  key={tag.id}
-                  tag={tag}
-                  isRemovable
-                  onRemove={handleRemoveTag}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Tag List */}
-        <div className="max-h-64 overflow-y-auto">
-          {isLoading || isLoadingTags ? (
-            <div className="p-4 text-center text-sm text-foreground/60">
-              Loading tags…
-            </div>
-          ) : filteredTags.length === 0 && !showCreateOption ? (
-            <div className="p-4 text-center text-sm text-foreground/60">
-              No tags found
-            </div>
-          ) : (
-            <>
-              {/* Create New Tag Option */}
-              {showCreateOption && (
-                <Button
-                  withWrapper={false}
-                  variant={ButtonVariant.UNSTYLED}
-                  onClick={handleCreateTag}
-                  isDisabled={isCreating}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-background transition-colors"
-                >
-                  <HiPlus className="size-4 text-primary" />
-                  <span className="flex-1 text-left">
-                    Create <strong>&quot;{searchQuery}&quot;</strong>
-                  </span>
-                </Button>
-              )}
-
-              {/* Existing Tags */}
-              {filteredTags.map((tag) => {
-                const selected = tag.id ? isTagSelected(tag.id) : false;
-
-                return (
-                  <Button
-                    key={tag.id}
-                    withWrapper={false}
-                    variant={ButtonVariant.UNSTYLED}
-                    onClick={() => tag.id && toggleTag(tag.id)}
-                    className={cn(
-                      'w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-background transition-colors',
-                      selected && 'bg-primary/10',
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        'flex-shrink-0 size-4 border-2 flex items-center justify-center',
-                        selected
-                          ? 'bg-primary border-primary'
-                          : 'border-white/[0.08]',
-                      )}
-                    >
-                      {selected && <HiCheck className="size-3 text-white" />}
-                    </div>
-
-                    <span className="flex-1 text-left truncate">
-                      {tag.label}
-                    </span>
-
-                    {tag.description && (
-                      <span className="text-xs text-foreground/60 truncate max-w-56">
-                        {tag.description}
-                      </span>
-                    )}
-                  </Button>
-                );
-              })}
-            </>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="p-2 border-t border-white/[0.08] flex items-center justify-between">
-          <div className="text-xs text-foreground/60">
-            {selectedTags.length} selected
-          </div>
-
-          <Button
-            withWrapper={false}
-            variant={ButtonVariant.UNSTYLED}
-            onClick={() => {
-              setIsOpen(false);
-              setSearchQuery('');
-            }}
-            className="h-6 px-2 text-xs hover:bg-accent hover:text-accent-foreground"
-          >
-            Done
-          </Button>
-        </div>
-      </div>,
-      document.body,
-    );
-  };
-
   const hasSelectedTags = selectedTags.length > 0;
   const tagCountLabel = hasSelectedTags
     ? `${selectedTags.length} tag${selectedTags.length > 1 ? 's' : ''}`
     : placeholder;
 
-  const renderButtonContent = () => {
-    if (showLabel) {
-      return <span>{tagCountLabel}</span>;
-    }
-    if (hasSelectedTags) {
-      return (
-        <span className="absolute -top-0.5 -right-0.5 min-w-fit h-5 flex items-center justify-center px-1 text-[10px] font-bold text-white bg-orange-500 rounded-full border-2 border-white/20 shadow-lg z-10">
-          {selectedTags.length}
-        </span>
-      );
-    }
-    return null;
-  };
+  const buttonContent: React.ReactNode = showLabel ? (
+    <span>{tagCountLabel}</span>
+  ) : hasSelectedTags ? (
+    <span className="absolute -top-0.5 -right-0.5 min-w-fit h-5 flex items-center justify-center px-1 text-[10px] font-bold text-white bg-orange-500 rounded-full border-2 border-white/20 shadow-lg z-10">
+      {selectedTags.length}
+    </span>
+  ) : null;
+
+  // Render dropdown menu via portal
+  const dropdownPortal =
+    isOpen && typeof window !== 'undefined'
+      ? createPortal(
+          <div
+            ref={dropdownRef}
+            style={{
+              position: 'absolute',
+              top:
+                direction === 'up'
+                  ? `${dropdownPosition.top - 8}px`
+                  : `${dropdownPosition.top + (buttonRef.current?.offsetHeight || 0) + 8}px`,
+              ...(dropdownPosition.useRight
+                ? { right: `${dropdownPosition.right}px` }
+                : { left: `${dropdownPosition.left}px` }),
+              transform: direction === 'up' ? 'translateY(-100%)' : 'none',
+              zIndex: 50,
+            }}
+            className={cn(
+              'w-80 rounded-md border border-white/[0.08] bg-card shadow-lg',
+            )}
+          >
+            {/* Search Input */}
+            <div className="p-3 border-b border-white/[0.08]">
+              <Input
+                ref={searchInputRef}
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search or create tags…"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && showCreateOption) {
+                    handleCreateTag();
+                  }
+                }}
+              />
+            </div>
+
+            {/* Selected Tags */}
+            {selectedTagObjects.length > 0 && (
+              <div className="p-3 border-b border-white/[0.08]">
+                <div className="text-xs uppercase text-foreground/60 mb-2">
+                  Selected ({selectedTagObjects.length})
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {selectedTagObjects.map((tag) => (
+                    <TagBadge
+                      key={tag.id}
+                      tag={tag}
+                      isRemovable
+                      onRemove={handleRemoveTag}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Tag List */}
+            <div className="max-h-64 overflow-y-auto">
+              {isLoading || isLoadingTags ? (
+                <div className="p-4 text-center text-sm text-foreground/60">
+                  Loading tags…
+                </div>
+              ) : filteredTags.length === 0 && !showCreateOption ? (
+                <div className="p-4 text-center text-sm text-foreground/60">
+                  No tags found
+                </div>
+              ) : (
+                <>
+                  {/* Create New Tag Option */}
+                  {showCreateOption && (
+                    <Button
+                      withWrapper={false}
+                      variant={ButtonVariant.UNSTYLED}
+                      onClick={handleCreateTag}
+                      isDisabled={isCreating}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-background transition-colors"
+                    >
+                      <HiPlus className="size-4 text-primary" />
+                      <span className="flex-1 text-left">
+                        Create <strong>&quot;{searchQuery}&quot;</strong>
+                      </span>
+                    </Button>
+                  )}
+
+                  {/* Existing Tags */}
+                  {filteredTags.map((tag) => {
+                    const selected = tag.id ? isTagSelected(tag.id) : false;
+
+                    return (
+                      <Button
+                        key={tag.id}
+                        withWrapper={false}
+                        variant={ButtonVariant.UNSTYLED}
+                        onClick={() => tag.id && toggleTag(tag.id)}
+                        className={cn(
+                          'w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-background transition-colors',
+                          selected && 'bg-primary/10',
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            'flex-shrink-0 size-4 border-2 flex items-center justify-center',
+                            selected
+                              ? 'bg-primary border-primary'
+                              : 'border-white/[0.08]',
+                          )}
+                        >
+                          {selected && (
+                            <HiCheck className="size-3 text-white" />
+                          )}
+                        </div>
+
+                        <span className="flex-1 text-left truncate">
+                          {tag.label}
+                        </span>
+
+                        {tag.description && (
+                          <span className="text-xs text-foreground/60 truncate max-w-56">
+                            {tag.description}
+                          </span>
+                        )}
+                      </Button>
+                    );
+                  })}
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-2 border-t border-white/[0.08] flex items-center justify-between">
+              <div className="text-xs text-foreground/60">
+                {selectedTags.length} selected
+              </div>
+
+              <Button
+                withWrapper={false}
+                variant={ButtonVariant.UNSTYLED}
+                onClick={() => {
+                  setIsOpen(false);
+                  setSearchQuery('');
+                }}
+                className="h-6 px-2 text-xs hover:bg-accent hover:text-accent-foreground"
+              >
+                Done
+              </Button>
+            </div>
+          </div>,
+          document.body,
+        )
+      : null;
 
   return (
     <div className="relative">
@@ -540,11 +533,11 @@ export default function DropdownTags({
         )}
       >
         <HiHashtag className="size-4" />
-        {renderButtonContent()}
+        {buttonContent}
       </Button>
 
       {/* Dropdown Menu rendered via portal */}
-      {renderDropdown()}
+      {dropdownPortal}
     </div>
   );
 }

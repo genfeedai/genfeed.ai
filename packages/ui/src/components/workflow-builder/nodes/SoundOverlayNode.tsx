@@ -9,7 +9,7 @@ import type {
   SoundOverlayNodeData,
 } from '@ui/workflow-builder/types/workflow-saas.types';
 import { Loader2, Music, Video, Volume2 } from 'lucide-react';
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useId } from 'react';
 
 export type { MixMode, SoundOverlayNodeData };
 
@@ -36,6 +36,9 @@ function SoundOverlayNodeComponent({
   onUpdate,
   onExecute,
 }: SoundOverlayNodeProps) {
+  const mixModeId = useId();
+  const fadeInId = useId();
+  const fadeOutId = useId();
   const handleMixModeChange = useCallback(
     (mixMode: MixMode) => {
       onUpdate(id, { mixMode });
@@ -96,8 +99,14 @@ function SoundOverlayNodeComponent({
 
       {/* Mix Mode */}
       <div>
-        <label className="text-xs text-muted-foreground">Mix Mode</label>
-        <div className="space-y-1 mt-1">
+        <span id={mixModeId} className="text-xs text-muted-foreground">
+          Mix Mode
+        </span>
+        <div
+          role="group"
+          aria-labelledby={mixModeId}
+          className="space-y-1 mt-1"
+        >
           {MIX_MODES.map((m) => (
             <Button
               key={m.value}
@@ -155,8 +164,11 @@ function SoundOverlayNodeComponent({
       {/* Fade Controls */}
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <label className="text-xs text-muted-foreground">Fade In (s)</label>
+          <label htmlFor={fadeInId} className="text-xs text-muted-foreground">
+            Fade In (s)
+          </label>
           <Input
+            id={fadeInId}
             type="number"
             min="0"
             step="0.5"
@@ -166,8 +178,11 @@ function SoundOverlayNodeComponent({
           />
         </div>
         <div>
-          <label className="text-xs text-muted-foreground">Fade Out (s)</label>
+          <label htmlFor={fadeOutId} className="text-xs text-muted-foreground">
+            Fade Out (s)
+          </label>
           <Input
+            id={fadeOutId}
             type="number"
             min="0"
             step="0.5"

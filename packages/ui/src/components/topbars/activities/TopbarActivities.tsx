@@ -420,13 +420,15 @@ export default function TopbarActivities() {
   // IDs of completed background tasks (for "Clear completed" button)
   const completedBackgroundTaskIds = useMemo(
     () =>
-      filteredActivities
-        .filter(
-          (a) =>
-            isBackgroundTask(a) &&
-            getBackgroundTaskStatus(a.key) === 'completed',
-        )
-        .map((a) => a.id),
+      filteredActivities.reduce<string[]>((acc, a) => {
+        if (
+          isBackgroundTask(a) &&
+          getBackgroundTaskStatus(a.key) === 'completed'
+        ) {
+          acc.push(a.id);
+        }
+        return acc;
+      }, []),
     [filteredActivities],
   );
 
@@ -442,23 +444,31 @@ export default function TopbarActivities() {
     );
 
     // Separate background tasks from regular activities
-    const backgroundTaskItems: UnifiedActivityItem[] = filteredActivities
-      .filter((act) => isBackgroundTask(act))
-      .map((act) => ({
-        data: act,
-        id: act.id,
-        timestamp: new Date(act.createdAt),
-        type: 'background-task' as const,
-      }));
+    const backgroundTaskItems: UnifiedActivityItem[] =
+      filteredActivities.reduce<UnifiedActivityItem[]>((acc, act) => {
+        if (isBackgroundTask(act)) {
+          acc.push({
+            data: act,
+            id: act.id,
+            timestamp: new Date(act.createdAt),
+            type: 'background-task' as const,
+          });
+        }
+        return acc;
+      }, []);
 
-    const regularActivityItems: UnifiedActivityItem[] = filteredActivities
-      .filter((act) => !isBackgroundTask(act))
-      .map((act) => ({
-        data: act,
-        id: act.id,
-        timestamp: new Date(act.createdAt),
-        type: 'activity' as const,
-      }));
+    const regularActivityItems: UnifiedActivityItem[] =
+      filteredActivities.reduce<UnifiedActivityItem[]>((acc, act) => {
+        if (!isBackgroundTask(act)) {
+          acc.push({
+            data: act,
+            id: act.id,
+            timestamp: new Date(act.createdAt),
+            type: 'activity' as const,
+          });
+        }
+        return acc;
+      }, []);
 
     // Merge and sort by timestamp (newest first)
     return [

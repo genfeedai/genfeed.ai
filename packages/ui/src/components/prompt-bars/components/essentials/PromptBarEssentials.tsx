@@ -505,8 +505,10 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
         <p className="text-xs text-foreground/60">
           Tip: Include trigger words:{' '}
           {selectedModels
-            .filter((m) => m.trigger)
-            .map((m) => `"${m.trigger}"`)
+            .reduce<string[]>((acc, m) => {
+              if (m.trigger) acc.push(`"${m.trigger}"`);
+              return acc;
+            }, [])
             .join(', ')}
         </p>
       )}

@@ -269,6 +269,7 @@ export default function MasonryImage({
       {isProcessing && (
         <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none rounded-lg bg-black/20 backdrop-blur-sm">
           <div
+            role="presentation"
             className="pointer-events-auto"
             onClick={(e) => e.stopPropagation()}
           >
@@ -447,6 +448,7 @@ function QuickActionsWrapper({
 }: QuickActionsWrapperProps): React.ReactElement {
   return (
     <div
+      role="presentation"
       className="quick-actions-wrapper flex items-center gap-2"
       onClick={(e) => e.stopPropagation()}
       onMouseDown={(e) => e.stopPropagation()}

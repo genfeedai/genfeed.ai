@@ -175,10 +175,14 @@ export default function OrganizationSwitcher() {
           <Modal.Body>
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-white/70">
+                <label
+                  htmlFor="org-switcher-name"
+                  className="text-xs font-medium text-white/70"
+                >
                   Name <span className="text-red-400">*</span>
                 </label>
                 <Input
+                  id="org-switcher-name"
                   type="text"
                   value={newOrgLabel}
                   onChange={(e) => setNewOrgLabel(e.target.value)}
@@ -191,10 +195,14 @@ export default function OrganizationSwitcher() {
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-white/70">
+                <label
+                  htmlFor="org-switcher-description"
+                  className="text-xs font-medium text-white/70"
+                >
                   Description <span className="text-white/30">(optional)</span>
                 </label>
                 <Textarea
+                  id="org-switcher-description"
                   value={newOrgDescription}
                   onChange={(e) => setNewOrgDescription(e.target.value)}
                   placeholder="What does this organization do?"

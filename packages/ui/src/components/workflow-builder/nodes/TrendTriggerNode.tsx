@@ -19,7 +19,7 @@ import type {
   TrendType,
 } from '@ui/workflow-builder/types/workflow-saas.types';
 import { Clock, Hash, TrendingUp, X } from 'lucide-react';
-import { memo, useCallback, useState } from 'react';
+import { memo, useCallback, useId, useState } from 'react';
 
 export type { CheckFrequency, TrendPlatform, TrendTriggerNodeData, TrendType };
 
@@ -58,6 +58,11 @@ function TrendTriggerNodeComponent({
   onUpdate,
 }: TrendTriggerNodeProps) {
   const [keywordInput, setKeywordInput] = useState('');
+  const platformGroupId = useId();
+  const trendTypeId = useId();
+  const minViralScoreId = useId();
+  const checkFrequencyId = useId();
+  const keywordsInputId = useId();
 
   const handlePlatformChange = useCallback(
     (platform: TrendPlatform) => {
@@ -94,8 +99,14 @@ function TrendTriggerNodeComponent({
     <div className="space-y-3">
       {/* Platform Selection */}
       <div>
-        <label className="text-xs text-muted-foreground">Platform</label>
-        <div className="grid grid-cols-5 gap-1 mt-1">
+        <span id={platformGroupId} className="text-xs text-muted-foreground">
+          Platform
+        </span>
+        <div
+          role="group"
+          aria-labelledby={platformGroupId}
+          className="grid grid-cols-5 gap-1 mt-1"
+        >
           {PLATFORMS.map((p) => (
             <Button
               key={p.value}
@@ -116,14 +127,16 @@ function TrendTriggerNodeComponent({
 
       {/* Trend Type */}
       <div>
-        <label className="text-xs text-muted-foreground">Trend Type</label>
+        <label htmlFor={trendTypeId} className="text-xs text-muted-foreground">
+          Trend Type
+        </label>
         <Select
           value={data.trendType}
           onValueChange={(value) =>
             onUpdate(id, { trendType: value as TrendType })
           }
         >
-          <SelectTrigger className="mt-1">
+          <SelectTrigger id={trendTypeId} className="mt-1">
             <SelectValue placeholder="Select a trend type" />
           </SelectTrigger>
           <SelectContent>
@@ -138,11 +151,15 @@ function TrendTriggerNodeComponent({
 
       {/* Min Viral Score */}
       <div>
-        <label className="text-xs text-muted-foreground flex items-center gap-1">
+        <label
+          htmlFor={minViralScoreId}
+          className="text-xs text-muted-foreground flex items-center gap-1"
+        >
           <TrendingUp className="size-3" />
           Min Viral Score: {data.minViralScore}
         </label>
         <Slider
+          id={minViralScoreId}
           min={0}
           max={100}
           step={1}
@@ -154,7 +171,10 @@ function TrendTriggerNodeComponent({
 
       {/* Check Frequency */}
       <div>
-        <label className="text-xs text-muted-foreground flex items-center gap-1">
+        <label
+          htmlFor={checkFrequencyId}
+          className="text-xs text-muted-foreground flex items-center gap-1"
+        >
           <Clock className="size-3" />
           Check Frequency
         </label>
@@ -164,7 +184,7 @@ function TrendTriggerNodeComponent({
             onUpdate(id, { checkFrequency: value as CheckFrequency })
           }
         >
-          <SelectTrigger className="mt-1">
+          <SelectTrigger id={checkFrequencyId} className="mt-1">
             <SelectValue placeholder="Select a frequency" />
           </SelectTrigger>
           <SelectContent>
@@ -179,12 +199,16 @@ function TrendTriggerNodeComponent({
 
       {/* Keywords Filter */}
       <div>
-        <label className="text-xs text-muted-foreground flex items-center gap-1">
+        <label
+          htmlFor={keywordsInputId}
+          className="text-xs text-muted-foreground flex items-center gap-1"
+        >
           <Hash className="size-3" />
           Keywords (optional)
         </label>
         <div className="flex gap-1 mt-1">
           <Input
+            id={keywordsInputId}
             type="text"
             value={keywordInput}
             onChange={(e) => setKeywordInput(e.target.value)}

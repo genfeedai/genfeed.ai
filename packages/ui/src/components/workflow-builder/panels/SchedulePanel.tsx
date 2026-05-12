@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Switch } from '@ui/primitives/switch';
-import { useCallback, useState } from 'react';
+import { useCallback, useId, useState } from 'react';
 import {
   HiOutlineCalendar,
   HiOutlineChevronDown,
@@ -67,6 +67,9 @@ export default function SchedulePanel({
   onToggleCollapse,
 }: SchedulePanelProps) {
   const { getToken } = useAuth();
+  const enableScheduleId = useId();
+  const cronExpressionId = useId();
+  const timezoneId = useId();
   const [schedule, setSchedule] = useState(currentSchedule || '');
   const [timezone, setTimezone] = useState(currentTimezone);
   const [enabled, setEnabled] = useState(isEnabled);
@@ -145,8 +148,16 @@ export default function SchedulePanel({
   return (
     <div className="border-b border-white/[0.08]">
       <div
+        role="button"
+        tabIndex={0}
         className="flex cursor-pointer items-center justify-between px-4 py-3"
         onClick={onToggleCollapse}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onToggleCollapse?.();
+          }
+        }}
       >
         <div className="flex items-center gap-2">
           <HiOutlineClock className="size-4" />
@@ -181,8 +192,11 @@ export default function SchedulePanel({
 
           {/* Enable toggle */}
           <div className="flex items-center justify-between">
-            <label className="text-sm">Enable Schedule</label>
+            <label htmlFor={enableScheduleId} className="text-sm">
+              Enable Schedule
+            </label>
             <Switch
+              id={enableScheduleId}
               checked={enabled}
               onCheckedChange={setEnabled}
               aria-label="Enable workflow schedule"
@@ -212,8 +226,11 @@ export default function SchedulePanel({
           {/* Schedule selection */}
           {isCustom ? (
             <div>
-              <label className="text-xs font-medium">Cron Expression</label>
+              <label htmlFor={cronExpressionId} className="text-xs font-medium">
+                Cron Expression
+              </label>
               <Input
+                id={cronExpressionId}
                 type="text"
                 className="mt-1 h-8"
                 value={schedule}
@@ -245,9 +262,11 @@ export default function SchedulePanel({
 
           {/* Timezone */}
           <div>
-            <label className="text-xs font-medium">Timezone</label>
+            <label htmlFor={timezoneId} className="text-xs font-medium">
+              Timezone
+            </label>
             <Select value={timezone} onValueChange={setTimezone}>
-              <SelectTrigger className="mt-1 h-8">
+              <SelectTrigger id={timezoneId} className="mt-1 h-8">
                 <SelectValue placeholder="Select a timezone" />
               </SelectTrigger>
               <SelectContent>

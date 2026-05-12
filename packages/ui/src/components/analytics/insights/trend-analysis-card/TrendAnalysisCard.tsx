@@ -9,6 +9,7 @@ import {
 import type { TrendAnalysisCardProps } from '@genfeedai/props/analytics/insights.props';
 import Card from '@ui/card/Card';
 import { ChartContainer, ChartTooltipContent } from '@ui/charts';
+import dynamic from 'next/dynamic';
 import { memo, useMemo } from 'react';
 import {
   HiArrowTrendingDown,
@@ -16,7 +17,22 @@ import {
   HiChartBar,
   HiMinus,
 } from 'react-icons/hi2';
-import { Area, AreaChart, Tooltip, XAxis, YAxis } from 'recharts';
+
+const AreaChart = dynamic(() => import('recharts').then((m) => m.AreaChart), {
+  ssr: false,
+});
+const Area = dynamic(() => import('recharts').then((m) => m.Area), {
+  ssr: false,
+});
+const Tooltip = dynamic(() => import('recharts').then((m) => m.Tooltip), {
+  ssr: false,
+});
+const XAxis = dynamic(() => import('recharts').then((m) => m.XAxis), {
+  ssr: false,
+});
+const YAxis = dynamic(() => import('recharts').then((m) => m.YAxis), {
+  ssr: false,
+});
 
 const getDirectionStyles = (direction: TrendDirection) => {
   switch (direction) {

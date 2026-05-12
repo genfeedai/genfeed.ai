@@ -12,7 +12,7 @@ import type {
   TrendVideoInspirationNodeData,
 } from '@ui/workflow-builder/types/workflow-saas.types';
 import { ExternalLink, Loader2, Sparkles, Video } from 'lucide-react';
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useId } from 'react';
 
 export type {
   AspectRatio,
@@ -65,6 +65,9 @@ function TrendVideoInspirationNodeComponent({
   onUpdate,
   onExecute,
 }: TrendVideoInspirationNodeProps) {
+  const platformGroupId = useId();
+  const inspirationStyleGroupId = useId();
+  const minViralScoreId = useId();
   const handlePlatformChange = useCallback(
     (platform: TrendPlatform) => {
       onUpdate(id, { platform });
@@ -89,8 +92,14 @@ function TrendVideoInspirationNodeComponent({
     <div className="space-y-3">
       {/* Platform Selection */}
       <div>
-        <label className="text-xs text-muted-foreground">Platform</label>
-        <div className="grid grid-cols-5 gap-1 mt-1">
+        <span id={platformGroupId} className="text-xs text-muted-foreground">
+          Platform
+        </span>
+        <div
+          role="group"
+          aria-labelledby={platformGroupId}
+          className="grid grid-cols-5 gap-1 mt-1"
+        >
           {PLATFORMS.map((p) => (
             <Button
               key={p.value}
@@ -111,10 +120,17 @@ function TrendVideoInspirationNodeComponent({
 
       {/* Inspiration Style */}
       <div>
-        <label className="text-xs text-muted-foreground">
+        <span
+          id={inspirationStyleGroupId}
+          className="text-xs text-muted-foreground"
+        >
           Inspiration Style
-        </label>
-        <div className="space-y-1 mt-1">
+        </span>
+        <div
+          role="group"
+          aria-labelledby={inspirationStyleGroupId}
+          className="space-y-1 mt-1"
+        >
           {INSPIRATION_STYLES.map((s) => (
             <Button
               key={s.value}
@@ -136,10 +152,14 @@ function TrendVideoInspirationNodeComponent({
 
       {/* Min Viral Score */}
       <div>
-        <label className="text-xs text-muted-foreground">
+        <label
+          htmlFor={minViralScoreId}
+          className="text-xs text-muted-foreground"
+        >
           Min Viral Score: {data.minViralScore}
         </label>
         <Slider
+          id={minViralScoreId}
           min={0}
           max={100}
           step={1}

@@ -9,15 +9,28 @@ import {
 import type { PostPerformanceChartProps } from '@genfeedai/props/analytics/charts.props';
 import { ChartContainer, ChartTooltipContent } from '@ui/charts';
 import { Button } from '@ui/primitives/button';
+import dynamic from 'next/dynamic';
 import { useMemo, useState } from 'react';
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
+
+const AreaChart = dynamic(() => import('recharts').then((m) => m.AreaChart), {
+  ssr: false,
+});
+const Area = dynamic(() => import('recharts').then((m) => m.Area), {
+  ssr: false,
+});
+const CartesianGrid = dynamic(
+  () => import('recharts').then((m) => m.CartesianGrid),
+  { ssr: false },
+);
+const Tooltip = dynamic(() => import('recharts').then((m) => m.Tooltip), {
+  ssr: false,
+});
+const XAxis = dynamic(() => import('recharts').then((m) => m.XAxis), {
+  ssr: false,
+});
+const YAxis = dynamic(() => import('recharts').then((m) => m.YAxis), {
+  ssr: false,
+});
 
 type MetricType = AnalyticsMetric.VIEWS | AnalyticsMetric.ENGAGEMENT;
 
@@ -30,6 +43,16 @@ const METRIC_LABELS = {
   engagement: 'Engagement',
   views: 'Views',
 };
+
+const HOURLY_DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
+  hour: 'numeric',
+  hour12: true,
+});
+
+const DAILY_DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
+  day: 'numeric',
+  month: 'short',
+});
 
 export function PostPerformanceChart({
   data,
@@ -74,19 +97,10 @@ export function PostPerformanceChart({
 
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
-    if (isHourlyData) {
-      // Show hour for first 24h
-      return new Intl.DateTimeFormat('en-US', {
-        hour: 'numeric',
-        hour12: true,
-      }).format(date);
-    } else {
-      // Show date for daily data
-      return new Intl.DateTimeFormat('en-US', {
-        day: 'numeric',
-        month: 'short',
-      }).format(date);
-    }
+    // Show hour for first 24h, date for daily data
+    return isHourlyData
+      ? HOURLY_DATE_FORMATTER.format(date)
+      : DAILY_DATE_FORMATTER.format(date);
   };
 
   return (

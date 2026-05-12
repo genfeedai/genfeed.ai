@@ -45,12 +45,14 @@ const PromptBarSecondaryControlsRow = memo(
     isDisabledState,
     controlClass,
   }: PromptBarSecondaryControlsRowProps) {
-    const soundOptions = filteredSounds
-      .filter(hasSoundKeyAndLabel)
-      .map((sound) => ({
-        label: sound.label,
-        value: sound.key,
-      }));
+    const soundOptions = filteredSounds.reduce<
+      { label: string; value: string }[]
+    >((acc, sound) => {
+      if (hasSoundKeyAndLabel(sound)) {
+        acc.push({ label: sound.label, value: sound.key });
+      }
+      return acc;
+    }, []);
 
     const blacklistOptions = filteredBlacklists.map((blacklist) => ({
       label: blacklist.label,
