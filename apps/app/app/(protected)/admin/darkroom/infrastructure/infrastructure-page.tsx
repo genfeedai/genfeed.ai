@@ -8,12 +8,12 @@ import type {
   IFleetInstance,
 } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
 import { AdminDarkroomService } from '@services/admin/darkroom.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
@@ -117,45 +117,53 @@ export default function InfrastructurePage() {
   const {
     data: instances,
     isLoading: isLoadingInstances,
-    isRefreshing: isRefreshingInstances,
-    refresh: refreshInstances,
-  } = useResource<IEC2Instance[]>(
-    async () => {
+    isFetching: isFetchingInstances,
+    error: instancesError,
+    refetch: refreshInstances,
+  } = useQuery<IEC2Instance[]>({
+    queryKey: ['darkroom-ec2-status'],
+    queryFn: async () => {
       const service = await getDarkroomService();
       return service.getEC2Status();
     },
-    {
-      onError: (error: unknown) => {
-        logger.error(
-          'GET /admin/darkroom/infrastructure/ec2/status failed',
-          error,
-        );
-      },
-    },
-  );
+  });
+
+  const isRefreshingInstances = isFetchingInstances && !isLoadingInstances;
 
   const {
     data: fleetHealth,
     isLoading: isLoadingFleet,
-    refresh: refreshFleet,
-  } = useResource<IFleetHealthResponse>(
-    async () => {
+    error: fleetError,
+    refetch: refreshFleet,
+  } = useQuery<IFleetHealthResponse>({
+    queryKey: ['darkroom-fleet-health'],
+    queryFn: async () => {
       const service = await getDarkroomService();
       return service.getFleetHealth();
     },
-    {
-      onError: (error: unknown) => {
-        logger.error(
-          'GET /admin/darkroom/infrastructure/fleet/health failed',
-          error,
-        );
-      },
-    },
-  );
+  });
+
+  useEffect(() => {
+    if (instancesError) {
+      logger.error(
+        'GET /admin/darkroom/infrastructure/ec2/status failed',
+        instancesError,
+      );
+    }
+  }, [instancesError]);
+
+  useEffect(() => {
+    if (fleetError) {
+      logger.error(
+        'GET /admin/darkroom/infrastructure/fleet/health failed',
+        fleetError,
+      );
+    }
+  }, [fleetError]);
 
   useEffect(() => {
     pollingRef.current = setInterval(() => {
-      refreshFleet();
+      void refreshFleet();
     }, POLL_INTERVAL_MS);
 
     return () => {

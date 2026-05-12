@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ReviewQueueContent from './review-queue-content';
 
-const useResourceMock = vi.fn();
+const useQueryMock = vi.fn();
 const getBatchesServiceMock = vi.fn();
 const replaceMock = vi.fn();
 const searchParamsState = new URLSearchParams();
@@ -12,8 +12,11 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => getBatchesServiceMock,
 }));
 
-vi.mock('@hooks/data/resource/use-resource/use-resource', () => ({
-  useResource: (...args: unknown[]) => useResourceMock(...args),
+vi.mock('@tanstack/react-query', () => ({
+  useQuery: (options: { queryKey: unknown[] }) => useQueryMock(options),
+  useQueryClient: () => ({
+    setQueryData: vi.fn(),
+  }),
 }));
 
 vi.mock('./components/ReviewGrid', () => ({
@@ -114,24 +117,22 @@ describe('ReviewQueueContent', () => {
     getBatchesServiceMock.mockResolvedValue({
       itemAction: vi.fn(),
     });
-    useResourceMock.mockImplementation(
-      (_resource: unknown, options?: { defaultValue?: unknown }) => {
-        if (options?.defaultValue !== undefined) {
-          return {
-            data: { items: [] },
-            error: null,
-            isLoading: false,
-          };
-        }
-
+    useQueryMock.mockImplementation((options: { queryKey: unknown[] }) => {
+      if (options.queryKey[0] === 'review-batches') {
         return {
-          data: null,
+          data: { items: [] },
           error: null,
           isLoading: false,
-          refresh: vi.fn(),
         };
-      },
-    );
+      }
+
+      return {
+        data: null,
+        error: null,
+        isLoading: false,
+        refetch: vi.fn(),
+      };
+    });
 
     render(<ReviewQueueContent />);
 
@@ -143,48 +144,46 @@ describe('ReviewQueueContent', () => {
 
   it('redirects approved manual-review drafts to the post detail page', async () => {
     const itemAction = vi.fn().mockResolvedValue({});
-    const refresh = vi.fn().mockResolvedValue(undefined);
+    const refetch = vi.fn().mockResolvedValue(undefined);
 
     getBatchesServiceMock.mockResolvedValue({
       itemAction,
     });
-    useResourceMock.mockImplementation(
-      (_resource: unknown, options?: { defaultValue?: unknown }) => {
-        if (options?.defaultValue !== undefined) {
-          return {
-            data: [
-              {
-                id: 'batch-1',
-                status: 'completed',
-                totalCount: 1,
-              },
-            ],
-            error: null,
-            isLoading: false,
-          };
-        }
-
+    useQueryMock.mockImplementation((options: { queryKey: unknown[] }) => {
+      if (options.queryKey[0] === 'review-batches') {
         return {
-          data: {
-            id: 'batch-1',
-            items: [
-              {
-                createdAt: new Date().toISOString(),
-                format: 'video',
-                id: 'item-1',
-                postId: 'post-123',
-                status: 'completed',
-              },
-            ],
-            status: 'completed',
-            totalCount: 1,
-          },
+          data: [
+            {
+              id: 'batch-1',
+              status: 'completed',
+              totalCount: 1,
+            },
+          ],
           error: null,
           isLoading: false,
-          refresh,
         };
-      },
-    );
+      }
+
+      return {
+        data: {
+          id: 'batch-1',
+          items: [
+            {
+              createdAt: new Date().toISOString(),
+              format: 'video',
+              id: 'item-1',
+              postId: 'post-123',
+              status: 'completed',
+            },
+          ],
+          status: 'completed',
+          totalCount: 1,
+        },
+        error: null,
+        isLoading: false,
+        refetch,
+      };
+    });
 
     render(<ReviewQueueContent />);
 

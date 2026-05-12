@@ -3,7 +3,6 @@
 import { useAuth } from '@clerk/nextjs';
 import { ButtonVariant, ComponentSize } from '@genfeedai/enums';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@genfeedai/hooks/data/resource/use-resource/use-resource';
 import type { ITag } from '@genfeedai/interfaces';
 import type { ExtendedIngredientTabsTagsProps } from '@genfeedai/props/content/ingredient-tabs.props';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
@@ -11,6 +10,7 @@ import { TagsService } from '@genfeedai/services/content/tags.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { IngredientEndpoints } from '@genfeedai/utils/media/ingredients.util';
+import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
@@ -43,18 +43,14 @@ export default function IngredientTabsTags({
     return IngredientsService.getInstance(token);
   });
 
-  // Load available tags using useResource (handles AbortController cleanup properly)
-  const { data: allTags, isLoading } = useResource(
-    async () => {
+  const { data: allTags = [], isLoading } = useQuery({
+    queryKey: ['ingredient-tabs-tags'],
+    queryFn: async () => {
       const service = await getTagsService();
       return service.findAll();
     },
-    {
-      defaultValue: [] as ITag[],
-      dependencies: [tags],
-      enabled: !!isSignedIn,
-    },
-  );
+    enabled: !!isSignedIn,
+  });
 
   // Filter out already assigned tags
   const availableTags = useMemo(() => {

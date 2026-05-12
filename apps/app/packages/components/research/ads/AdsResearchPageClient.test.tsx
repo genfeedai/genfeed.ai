@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom';
 
 const useBrandMock = vi.fn();
-let useResourceCallIndex = 0;
+let useQueryCallIndex = 0;
 
 const publicAd = {
   accountName: 'Founders Club',
@@ -101,24 +101,24 @@ const adAccountsState = [
   },
 ];
 
-const useResourceStates = [
+const useQueryStates = [
   {
     data: resultsState,
     error: null,
     isLoading: false,
-    refresh: vi.fn(),
+    refetch: vi.fn(),
   },
   {
     data: adAccountsState,
     error: null,
     isLoading: false,
-    refresh: vi.fn(),
+    refetch: vi.fn(),
   },
   {
     data: detailResult,
     error: null,
     isLoading: false,
-    refresh: vi.fn(),
+    refetch: vi.fn(),
   },
 ];
 
@@ -152,9 +152,11 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => vi.fn(),
 }));
 
-vi.mock('@hooks/data/resource/use-resource/use-resource', () => ({
-  useResource: () =>
-    useResourceStates[useResourceCallIndex++ % useResourceStates.length],
+vi.mock('@tanstack/react-query', () => ({
+  useQuery: () => useQueryStates[useQueryCallIndex++ % useQueryStates.length],
+  useQueryClient: () => ({
+    setQueryData: vi.fn(),
+  }),
 }));
 
 vi.mock('@ui/layout/container/Container', () => ({
@@ -295,7 +297,7 @@ import AdsResearchPageClient from './AdsResearchPageClient';
 describe('AdsResearchPageClient', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    useResourceCallIndex = 0;
+    useQueryCallIndex = 0;
     useBrandMock.mockReturnValue({
       brandId: 'brand-1',
       credentials: [
@@ -308,9 +310,9 @@ describe('AdsResearchPageClient', () => {
   });
 
   it('filters ads, opens detail sidebar, and exposes launch actions', () => {
-    useResourceStates[0].refresh.mockClear();
-    useResourceStates[1].refresh.mockClear();
-    useResourceStates[2].refresh.mockClear();
+    useQueryStates[0].refetch.mockClear();
+    useQueryStates[1].refetch.mockClear();
+    useQueryStates[2].refetch.mockClear();
 
     const { container } = render(<AdsResearchPageClient />);
 

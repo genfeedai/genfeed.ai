@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mockUseAgentStrategies = vi.fn();
 const mockUseAgentCampaigns = vi.fn();
 const mockUseOverviewBootstrap = vi.fn();
-const mockUseResource = vi.fn();
+const mockUseQuery = vi.fn();
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: vi.fn(() => ({
@@ -32,8 +32,11 @@ vi.mock('@hooks/data/overview/use-overview-bootstrap', () => ({
     mockUseOverviewBootstrap(...args),
 }));
 
-vi.mock('@hooks/data/resource/use-resource/use-resource', () => ({
-  useResource: (...args: unknown[]) => mockUseResource(...args),
+vi.mock('@tanstack/react-query', () => ({
+  useQuery: (...args: unknown[]) => mockUseQuery(...args),
+  useQueryClient: vi.fn(() => ({
+    setQueryData: vi.fn(),
+  })),
 }));
 
 vi.mock('@services/core/notifications.service', () => ({
@@ -119,7 +122,7 @@ describe('ContentTeamPage', () => {
       },
     });
 
-    mockUseResource
+    mockUseQuery
       .mockReturnValueOnce({
         data: [
           {
@@ -131,9 +134,13 @@ describe('ContentTeamPage', () => {
             targetValue: 250000,
           },
         ],
+        isLoading: false,
+        refetch: vi.fn(),
       })
       .mockReturnValueOnce({
         data: [{ id: 'workflow-1' }, { id: 'workflow-2' }],
+        isLoading: false,
+        refetch: vi.fn(),
       });
   });
 

@@ -8,12 +8,12 @@ import {
   TagCategory,
 } from '@genfeedai/enums';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@genfeedai/hooks/data/resource/use-resource/use-resource';
 import type { ITag } from '@genfeedai/interfaces';
 import type { TagsManagerComponentProps } from '@genfeedai/props/content/tags-manager.props';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
 import { TagsService } from '@genfeedai/services/content/tags.service';
 import { logger } from '@genfeedai/services/core/logger.service';
+import { useQuery } from '@tanstack/react-query';
 import Badge from '@ui/display/badge/Badge';
 import Loading from '@ui/loading/default/Loading';
 import { Button } from '@ui/primitives/button';
@@ -50,21 +50,18 @@ export default function TagsManager({
     setTags(ingredient.tags || []);
   }
 
-  // Load available tags using useResource (handles AbortController cleanup properly)
   const {
-    data: availableTags,
+    data: availableTags = [],
     isLoading,
-    refresh: refreshAvailableTags,
-  } = useResource(
-    async () => {
+    refetch: refreshAvailableTags,
+  } = useQuery({
+    queryKey: ['tags-manager-available', TagCategory.INGREDIENT],
+    queryFn: async () => {
       const service = await getTagsService();
       return service.searchTags('', TagCategory.INGREDIENT);
     },
-    {
-      defaultValue: [] as ITag[],
-      enabled: !!isSignedIn,
-    },
-  );
+    enabled: !!isSignedIn,
+  });
 
   const handleAddTag = async (tag: ITag) => {
     const tagExists = tags.some((t) => {

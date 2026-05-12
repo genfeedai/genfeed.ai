@@ -4,13 +4,13 @@ import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefr
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { IDarkroomCharacter } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import {
   AdminDarkroomService,
   type IDarkroomGenerationJob,
 } from '@services/admin/darkroom.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
@@ -82,17 +82,21 @@ export default function GeneratePage() {
   );
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const { data: characters } = useResource<DarkroomCharacterRecord[]>(
-    async () => {
+  const { data: characters, error: charactersError } = useQuery<
+    DarkroomCharacterRecord[]
+  >({
+    queryKey: ['darkroom-characters'],
+    queryFn: async () => {
       const service = await getDarkroomService();
       return service.getCharacters() as Promise<DarkroomCharacterRecord[]>;
     },
-    {
-      onError: (error: unknown) => {
-        logger.error('GET /admin/darkroom/characters failed', error);
-      },
-    },
-  );
+  });
+
+  useEffect(() => {
+    if (charactersError) {
+      logger.error('GET /admin/darkroom/characters failed', charactersError);
+    }
+  }, [charactersError]);
 
   const selectedCharacterRecord = (characters || []).find(
     (character) => character.slug === selectedCharacter,

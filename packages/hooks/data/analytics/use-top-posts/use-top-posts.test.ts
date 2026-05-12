@@ -1,8 +1,8 @@
 import { useTopPosts } from '@hooks/data/analytics/use-top-posts/use-top-posts';
-import { renderHook } from '@testing-library/react';
+import { createQueryWrapper } from '@hooks/tests/query-wrapper';
+import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mockUseResource = vi.fn();
 const mockGetTopContent = vi.fn();
 const mockGetAnalyticsService = vi.fn();
 
@@ -14,8 +14,12 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(),
 }));
 
-vi.mock('@hooks/data/resource/use-resource/use-resource', () => ({
-  useResource: (...args: unknown[]) => mockUseResource(...args),
+vi.mock('@helpers/data/cache/cache.helper', () => ({
+  createCacheKey: vi.fn((...args: unknown[]) => args.join(':')),
+  createLocalStorageCache: vi.fn(() => ({
+    get: vi.fn().mockReturnValue(null),
+    set: vi.fn(),
+  })),
 }));
 
 import { useAnalyticsContext } from '@genfeedai/contexts/analytics/analytics-context';
@@ -38,42 +42,36 @@ describe('useTopPosts', () => {
       },
       refreshTrigger: 0,
     });
-    mockUseResource.mockReturnValue({
-      data: [],
-      error: null,
-      isLoading: false,
-      refresh: vi.fn(),
-    });
   });
 
-  it('returns top posts data from useResource', () => {
-    const refresh = vi.fn();
-    mockUseResource.mockReturnValue({
-      data: [{ platform: 'x', postId: 'post-1', totalViews: 10 }],
-      error: null,
-      isLoading: true,
-      refresh,
-    });
+  it('returns top posts data from the service', async () => {
+    const mockPosts = [{ platform: 'x', postId: 'post-1', totalViews: 10 }];
+    mockGetTopContent.mockResolvedValue(mockPosts);
 
-    const { result } = renderHook(() =>
-      useTopPosts({ limit: 5, metric: 'views' }),
+    const { result } = renderHook(
+      () => useTopPosts({ limit: 5, metric: 'views' }),
+      {
+        wrapper: createQueryWrapper(),
+      },
     );
 
-    expect(result.current.topPosts).toEqual([
-      { platform: 'x', postId: 'post-1', totalViews: 10 },
-    ]);
-    expect(result.current.isLoading).toBe(true);
-    expect(result.current.refetch).toBe(refresh);
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.topPosts).toEqual(mockPosts);
+    expect(typeof result.current.refetch).toBe('function');
   });
 
   it('fetches top posts with formatted date keys', async () => {
-    renderHook(() =>
-      useTopPosts({ brandId: 'brand-1', limit: 5, metric: 'views' }),
+    const { result } = renderHook(
+      () => useTopPosts({ brandId: 'brand-1', limit: 5, metric: 'views' }),
+      { wrapper: createQueryWrapper() },
     );
 
-    const fetcher = mockUseResource.mock
-      .calls[0]?.[0] as () => Promise<unknown>;
-    await fetcher();
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
 
     expect(mockGetAnalyticsService).toHaveBeenCalledTimes(1);
     expect(mockGetTopContent).toHaveBeenCalledWith({
@@ -94,11 +92,27 @@ describe('useTopPosts', () => {
       refreshTrigger: 0,
     });
 
-    renderHook(() => useTopPosts());
+    const { result } = renderHook(() => useTopPosts(), {
+      wrapper: createQueryWrapper(),
+    });
 
-    const options = mockUseResource.mock.calls[0]?.[1] as {
-      enabled?: boolean;
-    };
-    expect(options.enabled).toBe(false);
+    // Query should be disabled — service should not be called
+    expect(mockGetAnalyticsService).not.toHaveBeenCalled();
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.topPosts).toEqual([]);
+  });
+
+  it('returns empty array when no data is fetched', async () => {
+    mockGetTopContent.mockResolvedValue([]);
+
+    const { result } = renderHook(() => useTopPosts(), {
+      wrapper: createQueryWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.topPosts).toEqual([]);
   });
 });

@@ -6,7 +6,7 @@ import type { TagCategory } from '@genfeedai/enums';
 import type { ITag } from '@genfeedai/interfaces';
 import { TagsService } from '@genfeedai/services/content/tags.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
+import { useQuery } from '@tanstack/react-query';
 
 export interface UseTagsOptions {
   scope?: TagCategory;
@@ -22,14 +22,14 @@ export function useTags(options: UseTagsOptions = {}) {
     TagsService.getInstance(token),
   );
 
-  // Use useResource for proper AbortController cleanup (no mounted hack needed)
   const {
-    data: tags,
+    data: tags = [] as ITag[],
     isLoading,
     error,
-    refresh,
-  } = useResource(
-    async () => {
+    refetch,
+  } = useQuery({
+    queryKey: ['tags', scope, brandId],
+    queryFn: async () => {
       const service = await getTagsService();
       const params: Record<string, string> = {};
 
@@ -43,18 +43,14 @@ export function useTags(options: UseTagsOptions = {}) {
 
       return (await service.findAll(params)) as ITag[];
     },
-    {
-      defaultValue: [] as ITag[],
-      dependencies: [scope, brandId],
-      enabled: autoLoad && !!isSignedIn,
-    },
-  );
+    enabled: autoLoad && !!isSignedIn,
+  });
 
   return {
     error,
     isLoading,
-    loadTags: refresh,
-    refresh,
+    loadTags: refetch,
+    refresh: refetch,
     tags,
   };
 }

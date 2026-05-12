@@ -4,7 +4,7 @@ import AgentDetailPage from './AgentDetailPage';
 import '@testing-library/jest-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const useResourceMock = vi.fn();
+const useQueryMock = vi.fn();
 
 vi.mock('next/dynamic', () => ({
   default: () => () => <div>Agent Run Content Grid</div>,
@@ -70,8 +70,11 @@ vi.mock('@hooks/data/agent-runs/use-agent-runs', () => ({
   }),
 }));
 
-vi.mock('@hooks/data/resource/use-resource/use-resource', () => ({
-  useResource: (...args: unknown[]) => useResourceMock(...args),
+vi.mock('@tanstack/react-query', () => ({
+  useQuery: (...args: unknown[]) => useQueryMock(...args),
+  useQueryClient: vi.fn(() => ({
+    setQueryData: vi.fn(),
+  })),
 }));
 
 vi.mock('@services/core/notifications.service', () => ({
@@ -124,7 +127,7 @@ vi.mock('@ui/display/badge/Badge', () => ({
 describe('AgentDetailPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    useResourceMock.mockReturnValue({
+    useQueryMock.mockReturnValue({
       data: [
         {
           decisionReason: 'Trend watcher matched a current platform trend.',
@@ -136,6 +139,7 @@ describe('AgentDetailPage', () => {
         },
       ],
       isLoading: false,
+      refetch: vi.fn(),
     });
   });
 

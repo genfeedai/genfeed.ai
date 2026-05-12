@@ -9,11 +9,11 @@ import {
 import type { IIngredient } from '@genfeedai/interfaces';
 import { closeModal, openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import type { ModalHookRemixProps } from '@props/trends/hook-remix.props';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { logger } from '@services/core/logger.service';
 import { HookRemixService } from '@services/hook-remix/hook-remix.service';
+import { useQuery } from '@tanstack/react-query';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
@@ -72,22 +72,19 @@ export default function HookRemixModal({
   );
 
   // Fetch video ingredients (CTA clips) for selected brand
-  const { data: videoIngredients, isLoading: isLoadingClips } = useResource<
+  const { data: videoIngredients = [], isLoading: isLoadingClips } = useQuery<
     IIngredient[]
-  >(
-    async () => {
+  >({
+    enabled: Boolean(selectedBrandId),
+    queryFn: async () => {
       if (!selectedBrandId) {
         return [];
       }
       const service = await getVideoIngredientsService();
       return service.findAll({ brand: selectedBrandId });
     },
-    {
-      defaultValue: [],
-      dependencies: [selectedBrandId],
-      enabled: Boolean(selectedBrandId),
-    },
-  );
+    queryKey: ['hook-remix-trends-clips', selectedBrandId],
+  });
 
   // Open modal when isOpen/openKey changes
   useEffect(() => {
@@ -219,7 +216,7 @@ export default function HookRemixModal({
                   ? 'Select a brand first'
                   : 'Select a CTA clip'}
             </option>
-            {videoIngredients.map((ingredient) => (
+            {videoIngredients.map((ingredient: IIngredient) => (
               <option key={ingredient.id} value={ingredient.id}>
                 {getIngredientOptionLabel(ingredient)}
               </option>

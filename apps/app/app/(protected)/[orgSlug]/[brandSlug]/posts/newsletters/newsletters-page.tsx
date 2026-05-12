@@ -3,12 +3,12 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonVariant } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Newsletter } from '@models/content/newsletter.model';
 import { NewslettersService } from '@services/content/newsletters.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
@@ -17,7 +17,7 @@ import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useMemo, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   HiArchiveBox,
   HiCheckCircle,
@@ -128,11 +128,13 @@ function NewslettersPageContent() {
   );
 
   const {
-    data: newslettersData,
+    data: newsletters = [],
     isLoading,
-    refresh,
-  } = useResource<Newsletter[]>(
-    async () => {
+    error: newslettersError,
+    refetch,
+  } = useQuery<Newsletter[]>({
+    queryKey: ['newsletters', brandId, organizationId],
+    queryFn: async () => {
       if (!isReady || !brandId || !organizationId) {
         return [];
       }
@@ -145,16 +147,19 @@ function NewslettersPageContent() {
         sort: 'publishedAt: -1, createdAt: -1',
       });
     },
-    {
-      dependencies: [brandId, getService, isReady, organizationId],
-      enabled: isReady,
-      onError: (error: unknown) => {
-        logger.error('Failed to load newsletters', error);
-        notificationsService.error('Failed to load newsletters');
-      },
-    },
-  );
-  const newsletters = newslettersData ?? [];
+    enabled: isReady,
+  });
+
+  useEffect(() => {
+    if (newslettersError) {
+      logger.error('Failed to load newsletters', newslettersError);
+      notificationsService.error('Failed to load newsletters');
+    }
+  }, [newslettersError, notificationsService]);
+
+  const refresh = useCallback(async () => {
+    await refetch();
+  }, [refetch]);
 
   const publishedNewsletters = useMemo(
     () => newsletters.filter((item) => item.status === 'published').slice(0, 5),

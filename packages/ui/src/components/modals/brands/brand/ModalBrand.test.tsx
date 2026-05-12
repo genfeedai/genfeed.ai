@@ -150,15 +150,29 @@ vi.mock('@genfeedai/hooks/data/elements/use-elements/use-elements', () => ({
   }),
 }));
 
-vi.mock('@genfeedai/hooks/data/resource/use-resource/use-resource', () => ({
-  __esModule: true,
-  useResource: () => ({
+vi.mock('@tanstack/react-query', () => ({
+  useQuery: vi.fn(() => ({
     data: null,
+    error: null,
+    isFetching: false,
     isLoading: false,
-    mutate: vi.fn(),
-    refresh: vi.fn(),
-  }),
+    refetch: vi.fn(),
+  })),
+  useQueryClient: vi.fn(() => ({
+    setQueryData: vi.fn(),
+  })),
 }));
+
+vi.mock(
+  '@genfeedai/hooks/data/organization/use-organization/use-organization',
+  () => ({
+    __esModule: true,
+    useOrganization: () => ({
+      isLoading: false,
+      settings: null,
+    }),
+  }),
+);
 
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   __esModule: true,

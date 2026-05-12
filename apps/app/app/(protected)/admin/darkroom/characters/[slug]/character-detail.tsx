@@ -4,19 +4,19 @@ import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefr
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { IDarkroomAsset, IDarkroomCharacter } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import DatasetUploader from '@protected/darkroom/_components/dataset-uploader';
 import ImageGrid from '@protected/darkroom/_components/image-grid';
 import { AdminDarkroomService } from '@services/admin/darkroom.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import { useQuery } from '@tanstack/react-query';
 import Badge from '@ui/display/badge/Badge';
 import Container from '@ui/layout/container/Container';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { HiArrowLeft, HiOutlineUserCircle } from 'react-icons/hi2';
 
 type ReviewTab = 'selected' | 'review' | 'trash';
@@ -57,38 +57,49 @@ export default function CharacterDetail({ slug }: CharacterDetailProps) {
   const {
     data: character,
     isLoading: isLoadingCharacter,
-    refresh: refreshCharacter,
-  } = useResource<DarkroomCharacterRecord>(
-    async () => {
+    error: characterError,
+    refetch: refreshCharacter,
+  } = useQuery<DarkroomCharacterRecord>({
+    queryKey: ['darkroom-character', slug],
+    queryFn: async () => {
       const service = await getDarkroomService();
       return service.getCharacter(slug) as Promise<DarkroomCharacterRecord>;
     },
-    {
-      onError: (error: unknown) => {
-        logger.error(`GET /admin/darkroom/characters/${slug} failed`, error);
-      },
-    },
-  );
+  });
 
   const {
     data: assets,
     isLoading: isLoadingAssets,
-    refresh: refreshAssets,
-    isRefreshing,
-  } = useResource<IDarkroomAsset[]>(
-    async () => {
+    isFetching: isFetchingAssets,
+    error: assetsError,
+    refetch: refreshAssets,
+  } = useQuery<IDarkroomAsset[]>({
+    queryKey: ['darkroom-assets', slug],
+    queryFn: async () => {
       const service = await getDarkroomService();
       return service.getAssets({ personaSlug: slug });
     },
-    {
-      onError: (error: unknown) => {
-        logger.error(
-          `GET /admin/darkroom/assets?personaSlug=${slug} failed`,
-          error,
-        );
-      },
-    },
-  );
+  });
+
+  const isRefreshing = isFetchingAssets && !isLoadingAssets;
+
+  useEffect(() => {
+    if (characterError) {
+      logger.error(
+        `GET /admin/darkroom/characters/${slug} failed`,
+        characterError,
+      );
+    }
+  }, [characterError, slug]);
+
+  useEffect(() => {
+    if (assetsError) {
+      logger.error(
+        `GET /admin/darkroom/assets?personaSlug=${slug} failed`,
+        assetsError,
+      );
+    }
+  }, [assetsError, slug]);
 
   const activeStatus =
     TABS.find((t) => t.key === activeTab)?.status ?? 'approved';

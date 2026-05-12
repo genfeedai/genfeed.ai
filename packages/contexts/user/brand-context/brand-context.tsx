@@ -18,11 +18,13 @@ import {
   getClerkPublicData,
   getPlaywrightAuthState,
 } from '@helpers/auth/clerk.helper';
+import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
 import {
   createContext,
   type PropsWithChildren,
   startTransition,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -33,7 +35,6 @@ import {
   clearContextTokenCache,
   useContextAuthedService,
 } from '../internal/context-authed-service';
-import { useContextResource } from '../internal/context-resource';
 
 export interface BrandContextType {
   brands: Brand[];
@@ -180,9 +181,6 @@ export function BrandProvider({
     initialOrganizationId || clerkData.organization || effectiveOrgId || '',
   );
   const shouldFetchBrands = effectiveIsAuthLoaded && effectiveIsSignedIn;
-  const brandsCacheKey = shouldFetchBrands
-    ? `brand-context:brands:${sessionKey}`
-    : undefined;
   const clientBootstrapCacheKey = shouldFetchBrands
     ? `protected-bootstrap:${sessionKey}`
     : undefined;
@@ -214,12 +212,17 @@ export function BrandProvider({
     effectiveOrgId,
   ]);
 
+  const skipBrandsInitialFetch = initialBrands.length > 0;
+
   const {
     data: brandsData,
     isLoading: brandsLoading,
-    refresh: refreshBrands,
-  } = useContextResource(
-    async () => {
+    refetch: refetchBrands,
+  } = useQuery({
+    enabled: shouldFetchBrands,
+    initialData: initialBrands.length > 0 ? initialBrands : undefined,
+    initialDataUpdatedAt: initialBrands.length > 0 ? 0 : undefined,
+    queryFn: async () => {
       if (!shouldFetchBrands) {
         return [];
       }
@@ -248,15 +251,13 @@ export function BrandProvider({
 
       return data.map((brand: Partial<IBrand>) => new Brand(brand));
     },
-    {
-      cacheKey: brandsCacheKey,
-      cacheTimeMs: BRAND_CONTEXT_CACHE_TTL_MS,
-      dependencies: [effectiveIsAuthLoaded, effectiveIsSignedIn, sessionKey],
-      enabled: shouldFetchBrands,
-      initialData: initialBrands,
-      revalidateOnMount: initialBrands.length === 0,
-    },
-  );
+    queryKey: ['brand-context-brands', sessionKey],
+    staleTime: skipBrandsInitialFetch ? BRAND_CONTEXT_CACHE_TTL_MS : 0,
+  });
+
+  const refreshBrands = useCallback(async () => {
+    await refetchBrands();
+  }, [refetchBrands]);
 
   const brands = useMemo(() => brandsData ?? [], [brandsData]);
   const routeOrgSlug =
@@ -358,20 +359,15 @@ export function BrandProvider({
     effectiveIsSignedIn &&
     !!scopedOrganizationId &&
     !!scopedBrandId;
-  const settingsCacheKey = scopedOrganizationId
-    ? `brand-context:settings:${scopedOrganizationId}`
-    : undefined;
-  const darkroomCapabilitiesCacheKey =
-    scopedOrganizationId && scopedBrandId
-      ? `brand-context:darkroom:${scopedOrganizationId}:${scopedBrandId}`
-      : undefined;
-
   const {
-    data: settings,
+    data: settings = null,
     isLoading: settingsLoading,
-    refresh: refreshSettings,
-  } = useContextResource(
-    async () => {
+    refetch: refetchSettings,
+  } = useQuery({
+    enabled: shouldFetchSettings && !!scopedOrganizationId,
+    initialData: initialSettings ?? undefined,
+    initialDataUpdatedAt: initialSettings != null ? 0 : undefined,
+    queryFn: async () => {
       if (!shouldFetchSettings || !scopedOrganizationId) {
         return null;
       }
@@ -402,66 +398,62 @@ export function BrandProvider({
         return null;
       }
     },
-    {
-      cacheKey: settingsCacheKey,
-      cacheTimeMs: BRAND_CONTEXT_CACHE_TTL_MS,
-      dependencies: [scopedOrganizationId],
-      enabled: shouldFetchSettings && !!scopedOrganizationId,
-      initialData: initialSettings,
-      revalidateOnMount: initialSettings == null,
+    queryKey: ['brand-context-settings', scopedOrganizationId],
+    staleTime: BRAND_CONTEXT_CACHE_TTL_MS,
+  });
+
+  const refreshSettings = useCallback(async () => {
+    await refetchSettings();
+  }, [refetchSettings]);
+
+  const {
+    data: darkroomCapabilities = null,
+    isLoading: darkroomCapabilitiesLoading,
+  } = useQuery({
+    enabled: shouldFetchDarkroom && !!scopedOrganizationId && !!scopedBrandId,
+    initialData: initialDarkroomCapabilities ?? undefined,
+    initialDataUpdatedAt: initialDarkroomCapabilities != null ? 0 : undefined,
+    queryFn: async () => {
+      if (!shouldFetchDarkroom || !scopedOrganizationId || !scopedBrandId) {
+        return null;
+      }
+
+      try {
+        const bootstrap = await loadClientProtectedBootstrap(
+          clientBootstrapCacheKey,
+          getAuthService,
+        );
+
+        if (
+          bootstrap?.organizationId === scopedOrganizationId &&
+          bootstrap.brandId === scopedBrandId
+        ) {
+          return bootstrap.darkroomCapabilities;
+        }
+      } catch (error) {
+        logger.warn(
+          'Failed to load client protected bootstrap for darkroom capabilities',
+          {
+            error,
+            reportToSentry: false,
+          },
+        );
+      }
+
+      try {
+        const service = await getOrganizationsService();
+        return await service.getDarkroomCapabilities(
+          scopedOrganizationId,
+          scopedBrandId,
+        );
+      } catch (error) {
+        logger.error('Failed to fetch darkroom capabilities', error);
+        return null;
+      }
     },
-  );
-
-  const { data: darkroomCapabilities, isLoading: darkroomCapabilitiesLoading } =
-    useContextResource(
-      async () => {
-        if (!shouldFetchDarkroom || !scopedOrganizationId || !scopedBrandId) {
-          return null;
-        }
-
-        try {
-          const bootstrap = await loadClientProtectedBootstrap(
-            clientBootstrapCacheKey,
-            getAuthService,
-          );
-
-          if (
-            bootstrap?.organizationId === scopedOrganizationId &&
-            bootstrap.brandId === scopedBrandId
-          ) {
-            return bootstrap.darkroomCapabilities;
-          }
-        } catch (error) {
-          logger.warn(
-            'Failed to load client protected bootstrap for darkroom capabilities',
-            {
-              error,
-              reportToSentry: false,
-            },
-          );
-        }
-
-        try {
-          const service = await getOrganizationsService();
-          return await service.getDarkroomCapabilities(
-            scopedOrganizationId,
-            scopedBrandId,
-          );
-        } catch (error) {
-          logger.error('Failed to fetch darkroom capabilities', error);
-          return null;
-        }
-      },
-      {
-        cacheKey: darkroomCapabilitiesCacheKey,
-        cacheTimeMs: BRAND_CONTEXT_CACHE_TTL_MS,
-        dependencies: [scopedOrganizationId, scopedBrandId],
-        enabled:
-          shouldFetchDarkroom && !!scopedOrganizationId && !!scopedBrandId,
-        initialData: initialDarkroomCapabilities,
-        revalidateOnMount: initialDarkroomCapabilities == null,
-      },
-    );
+    queryKey: ['brand-context-darkroom', scopedOrganizationId, scopedBrandId],
+    staleTime: BRAND_CONTEXT_CACHE_TTL_MS,
+  });
 
   useEffect(() => {
     if (effectiveIsAuthLoaded && !effectiveIsSignedIn) {

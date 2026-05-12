@@ -40,8 +40,14 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
 }));
 
-vi.mock('@genfeedai/hooks/data/resource/use-resource/use-resource', () => ({
-  useResource: () => ({ data: [], refresh: vi.fn() }),
+vi.mock('@tanstack/react-query', () => ({
+  useQuery: vi.fn(() => ({
+    data: [],
+    error: null,
+    isFetching: false,
+    isLoading: false,
+    refetch: vi.fn(),
+  })),
 }));
 
 vi.mock(

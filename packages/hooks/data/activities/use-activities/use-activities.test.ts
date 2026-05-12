@@ -2,16 +2,18 @@ import { useAuth } from '@clerk/nextjs';
 import type { IActivity } from '@genfeedai/interfaces';
 import { getPlaywrightAuthState } from '@helpers/auth/clerk.helper';
 import { useActivities } from '@hooks/data/activities/use-activities/use-activities';
-import { act, renderHook } from '@testing-library/react';
+import { createQueryWrapper } from '@hooks/tests/query-wrapper';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mockUseResource = vi.fn();
-const mockUseFilteredData = vi.fn();
-const mockGetActivitiesService = vi.fn();
 const mockBulkPatch = vi.fn();
 const mockPatch = vi.fn();
 const mockRefresh = vi.fn();
 const mockWithSilentOperation = vi.fn();
+const mockGetActivitiesService = vi.fn();
+const mockGetBrandsService = vi.fn();
+const mockGetOrganizationsService = vi.fn();
+const mockUseFilteredData = vi.fn();
 
 vi.mock('@clerk/nextjs', () => ({
   useAuth: vi.fn(() => ({ isLoaded: true, isSignedIn: true })),
@@ -31,11 +33,19 @@ vi.mock('@helpers/auth/clerk.helper', () => ({
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: vi.fn(),
-}));
-
-vi.mock('@hooks/data/resource/use-resource/use-resource', () => ({
-  useResource: (...args: unknown[]) => mockUseResource(...args),
+  useAuthedService: vi.fn((factory: (token: string) => unknown) => {
+    const factoryStr = factory.toString();
+    if (factoryStr.includes('ActivitiesService')) {
+      return mockGetActivitiesService;
+    }
+    if (factoryStr.includes('BrandsService')) {
+      return mockGetBrandsService;
+    }
+    if (factoryStr.includes('OrganizationsService')) {
+      return mockGetOrganizationsService;
+    }
+    return vi.fn().mockResolvedValue({});
+  }),
 }));
 
 vi.mock('@hooks/utils/use-filtered-data/use-filtered-data', () => ({
@@ -51,8 +61,6 @@ vi.mock('@genfeedai/services/core/notifications.service', () => ({
     getInstance: vi.fn(),
   },
 }));
-
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 
 describe('useActivities', () => {
   const today = new Date();
@@ -85,19 +93,19 @@ describe('useActivities', () => {
     mockPatch.mockResolvedValue(undefined);
     mockGetActivitiesService.mockResolvedValue({
       bulkPatch: mockBulkPatch,
+      findAll: vi.fn().mockResolvedValue(activities),
       patch: mockPatch,
     });
-    mockRefresh.mockResolvedValue(undefined);
-    (useAuthedService as ReturnType<typeof vi.fn>).mockReturnValue(
-      mockGetActivitiesService,
-    );
-    mockUseResource.mockReturnValue({
-      data: activities,
-      isLoading: false,
-      isRefreshing: false,
-      refresh: mockRefresh,
+    mockGetBrandsService.mockResolvedValue({
+      findBrandActivities: vi.fn().mockResolvedValue(activities),
     });
-    mockUseFilteredData.mockReturnValue(activities);
+    mockGetOrganizationsService.mockResolvedValue({
+      findOrganizationActivities: vi.fn().mockResolvedValue(activities),
+    });
+    mockRefresh.mockResolvedValue(undefined);
+    mockUseFilteredData.mockImplementation(
+      ({ data }: { data: IActivity[] }) => data,
+    );
     mockWithSilentOperation.mockImplementation(
       async ({
         operation,
@@ -112,8 +120,14 @@ describe('useActivities', () => {
     );
   });
 
-  it('returns activities and stats', () => {
-    const { result } = renderHook(() => useActivities());
+  it('returns activities and stats', async () => {
+    const { result } = renderHook(() => useActivities(), {
+      wrapper: createQueryWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
 
     expect(result.current.activities).toEqual(activities);
     expect(result.current.activityStats.total).toBe(2);
@@ -124,8 +138,10 @@ describe('useActivities', () => {
     });
   });
 
-  it('updates filter state', () => {
-    const { result } = renderHook(() => useActivities({ initialFilter: '' }));
+  it('updates filter state', async () => {
+    const { result } = renderHook(() => useActivities({ initialFilter: '' }), {
+      wrapper: createQueryWrapper(),
+    });
 
     act(() => {
       result.current.setFilter('alpha');
@@ -135,7 +151,13 @@ describe('useActivities', () => {
   });
 
   it('marks all unread activities as read', async () => {
-    const { result } = renderHook(() => useActivities());
+    const { result } = renderHook(() => useActivities(), {
+      wrapper: createQueryWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
 
     await act(async () => {
       await result.current.markActivitiesAsRead();
@@ -152,11 +174,16 @@ describe('useActivities', () => {
       isRead: true,
       type: 'activity-bulk-patch',
     });
-    expect(mockRefresh).toHaveBeenCalled();
   });
 
   it('toggles activity read status', async () => {
-    const { result } = renderHook(() => useActivities());
+    const { result } = renderHook(() => useActivities(), {
+      wrapper: createQueryWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
 
     await act(async () => {
       await result.current.toggleActivityRead('activity-1');
@@ -174,19 +201,18 @@ describe('useActivities', () => {
     });
   });
 
-  it('does not enable resource loading before auth is ready', () => {
+  it('does not fetch activities before auth is ready', () => {
     vi.mocked(useAuth).mockReturnValue({
       isLoaded: false,
       isSignedIn: false,
     } as ReturnType<typeof useAuth>);
 
-    renderHook(() => useActivities());
+    const { result } = renderHook(() => useActivities(), {
+      wrapper: createQueryWrapper(),
+    });
 
-    expect(mockUseResource).toHaveBeenCalledWith(
-      expect.any(Function),
-      expect.objectContaining({
-        enabled: false,
-      }),
-    );
+    // When auth is not ready the query is disabled — activities should be empty
+    expect(result.current.activities).toEqual([]);
+    expect(result.current.isLoading).toBe(false);
   });
 });

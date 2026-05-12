@@ -10,7 +10,7 @@ import {
 import type { AgentRunStats as CloudAgentRunStats } from '@genfeedai/types';
 import { getPlaywrightAuthState } from '@helpers/auth/clerk.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
+import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 
 export interface UseOverviewBootstrapOptions {
@@ -87,24 +87,29 @@ export function useOverviewBootstrap(
   const shouldFetch =
     effectiveIsAuthLoaded && effectiveIsSignedIn && !!effectiveUserId;
 
-  const { data, isLoading, refresh } = useResource(
-    async (_signal: AbortSignal) => {
+  const skipInitialFetch =
+    (options.revalidateOnMount ?? initialData === undefined) === false &&
+    !!initialData;
+
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ['overview-bootstrap'],
+    queryFn: async () => {
       const service = await getAuthService();
       return await service.getOverviewBootstrap();
     },
-    {
-      enabled: shouldFetch,
-      initialData,
-      revalidateOnMount: options.revalidateOnMount ?? initialData === undefined,
-    },
-  );
+    enabled: shouldFetch,
+    initialData,
+    staleTime: skipInitialFetch ? Number.POSITIVE_INFINITY : 0,
+  });
 
   return useMemo(
     () => ({
       activeRuns: data?.activeRuns ?? [],
       analytics: data?.analytics ?? {},
       isLoading,
-      refresh,
+      refresh: async () => {
+        await refetch();
+      },
       reviewInbox: data?.reviewInbox ?? {
         approvedCount: 0,
         changesRequestedCount: 0,
@@ -125,7 +130,7 @@ export function useOverviewBootstrap(
       data?.stats,
       data?.timeSeries,
       isLoading,
-      refresh,
+      refetch,
     ],
   );
 }

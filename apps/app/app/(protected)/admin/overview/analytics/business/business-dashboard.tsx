@@ -3,9 +3,9 @@
 import { AlertCategory } from '@genfeedai/enums';
 import { formatCompactNumberIntl } from '@helpers/formatting/format/format.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import type { IBusinessAnalytics } from '@services/analytics/analytics.service';
 import { AnalyticsService } from '@services/analytics/analytics.service';
+import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import Alert from '@ui/feedback/alert/Alert';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
@@ -18,7 +18,6 @@ import {
   TableHeader,
   TableRow,
 } from '@ui/primitives/table';
-import { useCallback } from 'react';
 import {
   HiOutlineBanknotes,
   HiOutlineCreditCard,
@@ -260,15 +259,13 @@ export default function BusinessDashboard() {
     AnalyticsService.getInstance(token),
   );
 
-  const fetcher = useCallback(async () => {
-    const service = await getAnalyticsService();
-    return service.getBusinessAnalytics();
-  }, [getAnalyticsService]);
-
-  const { data, isLoading, error } = useResource<IBusinessAnalytics>(fetcher, {
-    cacheKey: 'business-analytics',
-    cacheTimeMs: 5 * 60 * 1000,
-    errorMessage: 'Failed to load business analytics',
+  const { data, isLoading, error } = useQuery<IBusinessAnalytics>({
+    queryKey: ['business-analytics'],
+    queryFn: async () => {
+      const service = await getAnalyticsService();
+      return service.getBusinessAnalytics();
+    },
+    staleTime: 5 * 60 * 1000,
   });
 
   if (isLoading && !data) {

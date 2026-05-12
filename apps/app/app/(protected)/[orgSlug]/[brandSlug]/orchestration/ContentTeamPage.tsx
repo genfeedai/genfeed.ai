@@ -7,7 +7,6 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { useAgentCampaigns } from '@hooks/data/agent-campaigns/use-agent-campaigns';
 import { useAgentStrategies } from '@hooks/data/agent-strategies/use-agent-strategies';
 import { useOverviewBootstrap } from '@hooks/data/overview/use-overview-bootstrap';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { AgentCampaign } from '@services/automation/agent-campaigns.service';
 import {
@@ -21,6 +20,7 @@ import {
 import { WorkflowsService } from '@services/automation/workflows.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
@@ -222,27 +222,25 @@ export default function ContentTeamPage() {
     WorkflowsService.getInstance(token),
   );
 
-  const { data: goals } = useResource(
-    async (signal: AbortSignal) => {
+  const { data: goals = [] as AgentGoal[] } = useQuery<AgentGoal[]>({
+    queryKey: ['agent-goals'],
+    queryFn: async ({ signal }) => {
       const service = await getGoalsService();
       const result = await service.list();
       return signal.aborted ? [] : result;
     },
-    {
-      defaultValue: [] as AgentGoal[],
-    },
-  );
+  });
 
-  const { data: workflows } = useResource(
-    async (signal: AbortSignal) => {
+  const { data: workflows = [] as Array<{ id: string }> } = useQuery<
+    Array<{ id: string }>
+  >({
+    queryKey: ['workflows-list'],
+    queryFn: async ({ signal }) => {
       const service = await getWorkflowsService();
       const result = await service.findAll();
       return signal.aborted ? [] : result;
     },
-    {
-      defaultValue: [] as Array<{ id: string }>,
-    },
-  );
+  });
 
   const strategiesById = useMemo(
     () => new Map(strategies.map((strategy) => [strategy.id, strategy])),

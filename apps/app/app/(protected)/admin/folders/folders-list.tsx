@@ -10,7 +10,6 @@ import type {
 } from '@genfeedai/interfaces/utils/filters.interface';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import type { Folder } from '@models/content/folder.model';
 import type { ContentProps } from '@props/layout/content.props';
 import type { TableColumn } from '@props/ui/display/table.props';
@@ -18,6 +17,7 @@ import { useConfirmModal } from '@providers/global-modals/global-modals.provider
 import { FoldersService } from '@services/content/folders.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import { useQuery } from '@tanstack/react-query';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
 import FiltersButton from '@ui/content/filters-button/FiltersButton';
@@ -28,7 +28,7 @@ import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagina
 import { Button } from '@ui/primitives/button';
 import { Switch } from '@ui/primitives/switch';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useCallback, useMemo, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { HiFolderOpen, HiPencil, HiPlus, HiTrash } from 'react-icons/hi2';
 
 function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
@@ -112,19 +112,27 @@ function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
   // Extract page from URL to use as dependency (triggers re-fetch when page changes)
   const currentPage = Number(get('page')) || 1;
 
-  // Load folders using useResource (handles AbortController cleanup properly)
   const {
-    data: folders,
+    data: folders = [] as Folder[],
     isLoading,
-    isRefreshing,
-    refresh: refreshFolders,
-  } = useResource(
-    async () => {
+    isFetching,
+    error: foldersError,
+    refetch: refreshFolders,
+  } = useQuery({
+    queryKey: [
+      'folders',
+      query,
+      filters,
+      currentPage,
+      scope,
+      adminOrg,
+      adminBrand,
+    ],
+    queryFn: async () => {
       const url = `GET /folders`;
 
       const service = await getFoldersService();
 
-      // Build API query with proper sort format
       const queryParams: IQueryParams = {
         ...query,
         limit: ITEMS_PER_PAGE,
@@ -145,16 +153,17 @@ function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
       logger.info(`${url} success`, data);
       return data;
     },
-    {
-      defaultValue: [] as Folder[],
-      dependencies: [query, filters, currentPage, scope, adminOrg, adminBrand],
-      enabled: !!isSignedIn,
-      onError: (error) => {
-        logger.error('GET /folders failed', error);
-        notificationsService.error('Failed to load folders');
-      },
-    },
-  );
+    enabled: !!isSignedIn,
+  });
+
+  const isRefreshing = isFetching && !isLoading;
+
+  useEffect(() => {
+    if (foldersError) {
+      logger.error('GET /folders failed', foldersError);
+      notificationsService.error('Failed to load folders');
+    }
+  }, [foldersError, notificationsService]);
 
   const handleToggleActive = useCallback(
     async (folder: IFolder) => {

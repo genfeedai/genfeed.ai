@@ -15,9 +15,9 @@ import {
   getPlaywrightAuthState,
 } from '@helpers/auth/clerk.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import { withSilentOperation } from '@hooks/utils/service-operation/service-operation.util';
 import { useFilteredData } from '@hooks/utils/use-filtered-data/use-filtered-data';
+import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 
 export function useActivities({
@@ -37,7 +37,6 @@ export function useActivities({
 
   const [filter, setFilter] = useState(initialFilter);
 
-  // Compute isSuperAdmin directly from user data (don't store in state)
   const isSuperAdmin = useMemo(() => {
     if (!user) {
       return false;
@@ -46,7 +45,6 @@ export function useActivities({
     return data.isSuperAdmin === true;
   }, [user]);
 
-  // Get services without unnecessary useMemo wrappers
   const getOrganizationsService = useAuthedService((token: string) =>
     OrganizationsService.getInstance(token),
   );
@@ -59,14 +57,25 @@ export function useActivities({
     ActivitiesService.getInstance(token),
   );
 
-  // Fetch activities based on scope using useResource
   const {
     data: activitiesData,
     isLoading,
-    isRefreshing,
-    refresh,
-  } = useResource(
-    async () => {
+    isFetching,
+    refetch,
+  } = useQuery({
+    queryKey: [
+      'activities',
+      autoLoad,
+      isAuthReady,
+      hasAuthenticatedSession,
+      isSuperAdmin,
+      scope,
+      organizationId,
+      brandId,
+      page,
+      limit,
+    ],
+    queryFn: async () => {
       if (!autoLoad || !hasAuthenticatedSession) {
         return [];
       }
@@ -74,29 +83,23 @@ export function useActivities({
       let data: IActivity[] = [];
       const paginationParams = { limit, page };
 
-      // Load activities based on scope and user role
       if (isSuperAdmin && scope === PageScope.ORGANIZATION && organizationId) {
-        // Organization scope for dashboard
         const service = await getOrganizationsService();
         data = await service.findOrganizationActivities(
           organizationId,
           paginationParams,
         );
       } else if (isSuperAdmin && scope === PageScope.BRAND && brandId) {
-        // Account scope
         const service = await getBrandsService();
         data = await service.findBrandActivities(brandId, paginationParams);
       } else if (isSuperAdmin && scope === PageScope.SUPERADMIN) {
-        // Global scope for superadmin
         const service = await getActivitiesService();
         data = await service.findAll(paginationParams);
       } else if (!isSuperAdmin) {
-        // For non-superadmin users, respect the scope parameter
         if (scope === PageScope.BRAND && brandId) {
           const service = await getBrandsService();
           data = await service.findBrandActivities(brandId, paginationParams);
         } else if (organizationId) {
-          // Default to organization scope if available
           const service = await getOrganizationsService();
           data = await service.findOrganizationActivities(
             organizationId,
@@ -104,46 +107,30 @@ export function useActivities({
           );
         } else {
           if (brandId) {
-            // Fallback to brand scope if no organization
             const service = await getBrandsService();
             data = await service.findBrandActivities(brandId, paginationParams);
           }
         }
       } else {
-        // Fallback to global activities service
         const service = await getActivitiesService();
         data = await service.findAll(paginationParams);
       }
 
       return data;
     },
-    {
-      dependencies: [
-        autoLoad,
-        isAuthReady,
-        hasAuthenticatedSession,
-        isSuperAdmin,
-        scope,
-        organizationId,
-        brandId,
-        page,
-        limit,
-      ],
-      enabled: autoLoad && isAuthReady && hasAuthenticatedSession,
-    },
-  );
+    enabled: autoLoad && isAuthReady && hasAuthenticatedSession,
+  });
 
-  // Ensure activities is always an array
+  const isRefreshing = isFetching && !isLoading;
+
   const activities = useMemo(() => activitiesData ?? [], [activitiesData]);
 
-  // Filter activities using useFilteredData
   const filteredActivities = useFilteredData({
     data: activities,
     filter,
     filterFields: (activity) => [activity.key],
   });
 
-  // Memoize expensive stats calculation
   const activityStats = useMemo(() => {
     const total = activities.length;
     const today = new Date().toDateString();
@@ -169,7 +156,7 @@ export function useActivities({
 
     await withSilentOperation({
       errorMessage: 'Failed to mark activities as read',
-      onSuccess: refresh,
+      onSuccess: () => void refetch(),
       operation: async () => {
         const service = await getActivitiesService();
         return service.bulkPatch({
@@ -189,7 +176,7 @@ export function useActivities({
 
     await withSilentOperation({
       errorMessage: 'Failed to clear completed activities',
-      onSuccess: refresh,
+      onSuccess: () => void refetch(),
       operation: async () => {
         const service = await getActivitiesService();
         return service.bulkPatch({
@@ -207,10 +194,8 @@ export function useActivities({
     let idsToMark: string[];
 
     if (activityIds && activityIds.length > 0) {
-      // Mark specific activities
       idsToMark = activityIds;
     } else {
-      // Mark all unread activities
       idsToMark = activities.filter((a) => !a.isRead).map((a) => a.id);
     }
 
@@ -225,7 +210,7 @@ export function useActivities({
 
     await withSilentOperation({
       errorMessage: 'Failed to update activity status',
-      onSuccess: refresh,
+      onSuccess: () => void refetch(),
       operation: async () => {
         const service = await getActivitiesService();
         return service.patch(activityId, {
@@ -246,7 +231,9 @@ export function useActivities({
     isLoading,
     isRefreshing,
     markActivitiesAsRead,
-    refresh,
+    refresh: async () => {
+      await refetch();
+    },
     setFilter,
     toggleActivityRead,
   };

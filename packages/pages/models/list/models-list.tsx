@@ -10,7 +10,6 @@ import type {
 } from '@genfeedai/interfaces/utils/filters.interface';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import { Model } from '@models/ai/model.model';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
@@ -18,6 +17,7 @@ import { ModelsService } from '@services/ai/models.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import StatsCards from '@ui/card/stats/StatsCards';
 import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
 import Badge from '@ui/display/badge/Badge';
@@ -136,33 +136,44 @@ export default function ModelsList({
   // Admin-specific state
   const [selectedModel, setSelectedModel] = useState<IModel>();
 
-  // Fetch organization settings to get enabled models (only for non-admin scopes)
-  const { data: settings, refresh: refreshSettings } =
-    useResource<IOrganizationSetting | null>(
-      async () => {
-        if (isAdminScope || !organizationId) {
-          return null;
-        }
-        const service = await getOrganizationsService();
-        const data = await service.findOne(organizationId);
-        logger.info(
-          `GET /organizations/${organizationId}/settings success`,
-          data,
-        );
+  const queryClient = useQueryClient();
 
-        return data.settings;
-      },
-      {
-        dependencies: [organizationId, isAdminScope],
-        enabled: !isAdminScope && !!organizationId,
-        onError: (error: Error) => {
-          logger.error(
-            `GET /organizations/${organizationId}/settings failed`,
-            error,
-          );
-        },
-      },
-    );
+  // Fetch organization settings to get enabled models (only for non-admin scopes)
+  const settingsQueryKey = [
+    'studio-models-settings',
+    organizationId,
+    isAdminScope,
+  ] as const;
+  const {
+    data: settings,
+    refetch: refreshSettings,
+    error: settingsError,
+  } = useQuery<IOrganizationSetting | null>({
+    enabled: !isAdminScope && !!organizationId,
+    queryFn: async () => {
+      if (isAdminScope || !organizationId) {
+        return null;
+      }
+      const service = await getOrganizationsService();
+      const data = await service.findOne(organizationId);
+      logger.info(
+        `GET /organizations/${organizationId}/settings success`,
+        data,
+      );
+
+      return data.settings;
+    },
+    queryKey: settingsQueryKey,
+  });
+
+  useEffect(() => {
+    if (settingsError instanceof Error) {
+      logger.error(
+        `GET /organizations/${organizationId}/settings failed`,
+        settingsError,
+      );
+    }
+  }, [settingsError, organizationId]);
 
   // Map route type to category filter
   const categoryFromType = useMemo(() => {
@@ -191,18 +202,27 @@ export default function ModelsList({
   }, [isAdminScope, category, categoryFromType, filters?.category]);
 
   // Fetch all system models with pagination
+  const modelsQueryKey = [
+    'studio-models',
+    categoryFilter,
+    currentPage,
+    isAdminScope,
+    adminOrg,
+    adminBrand,
+  ] as const;
+
   const {
-    data: models,
+    data: models = [],
     isLoading,
-    refresh,
-    mutate: setModels,
-  } = useResource<IModel[]>(
-    async () => {
+    refetch: refetchModels,
+    error: modelsError,
+  } = useQuery<IModel[]>({
+    queryFn: async () => {
       const service = await getModelsService();
-      const query: Record<string, any> = {
+      const query: Record<string, unknown> = {
         limit: ITEMS_PER_PAGE,
         page: currentPage,
-        sort: 'label: 1', // Sort by label ascending
+        sort: 'label: 1',
       };
 
       // Filter inactive models for non-admin scopes
@@ -229,26 +249,31 @@ export default function ModelsList({
       // Instantiate Model class for each item to enable getter methods
       return data.map((m) => new Model(m));
     },
-    {
-      defaultValue: [],
-      dependencies: [
-        categoryFilter,
-        currentPage,
-        isAdminScope,
-        adminOrg,
-        adminBrand,
-      ],
-      onError: (error: any) => {
-        logger.error('GET /models failed', error);
-      },
-    },
-  );
+    queryKey: modelsQueryKey,
+  });
+
+  useEffect(() => {
+    if (modelsError instanceof Error) {
+      logger.error('GET /models failed', modelsError);
+    }
+  }, [modelsError]);
+
+  const setModels = (updatedModels: IModel[]) => {
+    queryClient.setQueryData(modelsQueryKey, updatedModels);
+  };
+
+  const refresh = async () => {
+    await refetchModels();
+  };
 
   // Fetch default models for admin cards
-  const { data: defaultModelsData, isLoading: isLoadingDefaults } = useResource<
-    IModel[]
-  >(
-    async () => {
+  const {
+    data: defaultModelsData = [],
+    isLoading: isLoadingDefaults,
+    error: defaultModelsError,
+  } = useQuery<IModel[]>({
+    enabled: isAdminScope,
+    queryFn: async () => {
       if (!isAdminScope) {
         return [];
       }
@@ -258,15 +283,14 @@ export default function ModelsList({
       // Instantiate Model class for each item to enable getter methods
       return allModels.map((m) => new Model(m));
     },
-    {
-      defaultValue: [],
-      dependencies: [],
-      enabled: isAdminScope,
-      onError: (error: any) => {
-        logger.error('Failed to load default models', error);
-      },
-    },
-  );
+    queryKey: ['studio-models-defaults'],
+  });
+
+  useEffect(() => {
+    if (defaultModelsError instanceof Error) {
+      logger.error('Failed to load default models', defaultModelsError);
+    }
+  }, [defaultModelsError]);
 
   // Process default models for admin cards
   const defaultModels = useMemo(() => {
