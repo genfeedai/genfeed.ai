@@ -1,5 +1,6 @@
 'use client';
 
+import { useAuth } from '@clerk/nextjs';
 import { useBrandId } from '@genfeedai/contexts/user/brand-context/brand-context';
 import type {
   TrendContentItem,
@@ -28,6 +29,7 @@ export interface UseTrendContentReturn {
 }
 
 export function useTrendContent(platform?: string): UseTrendContentReturn {
+  const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
   const brandId = useBrandId();
   const queryClient = useQueryClient();
 
@@ -49,6 +51,7 @@ export function useTrendContent(platform?: string): UseTrendContentReturn {
     isLoading,
     isFetching,
   } = useQuery<TrendContentResponse>({
+    enabled: isAuthLoaded && !!isSignedIn,
     queryFn: async () => {
       const service = await getTrendsService();
       return service.getTrendContent({ platform });

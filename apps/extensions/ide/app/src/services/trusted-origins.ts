@@ -48,14 +48,27 @@ export function isTrustedApiEndpoint(raw: string): boolean {
 }
 
 /**
- * Reads `genfeed.apiEndpoint` from VS Code workspace configuration and
- * validates it against the trusted-origins allowlist.
+ * Returns true when the endpoint was set in user-level (global) settings,
+ * which cannot be repo-controlled and are therefore safe for self-hosted use.
+ */
+function isUserLevelSetting(): boolean {
+  const config = vscode.workspace.getConfiguration('genfeed');
+  const inspection = config.inspect<string>('apiEndpoint');
+  return (
+    inspection?.globalValue !== undefined ||
+    inspection?.globalLanguageValue !== undefined
+  );
+}
+
+/**
+ * Reads `genfeed.apiEndpoint` from VS Code configuration and validates it.
  *
- * If the configured value is not trusted, a warning notification is shown to
- * the user and the default endpoint (`https://api.genfeed.ai`) is returned
- * so that no bearer token is ever sent to an untrusted host.
+ * Workspace-level settings (controllable by repo authors) are restricted to
+ * the hardcoded TRUSTED_API_ORIGINS allowlist to prevent token exfiltration.
+ * User-level (global) settings are trusted — self-hosted deployments set
+ * their custom API endpoint there.
  *
- * @returns A validated, trusted API base URL (no trailing slash).
+ * @returns A validated API base URL (no trailing slash).
  */
 export function getValidatedApiEndpoint(): string {
   const config = vscode.workspace.getConfiguration('genfeed');
@@ -66,6 +79,29 @@ export function getValidatedApiEndpoint(): string {
   }
 
   if (isTrustedApiEndpoint(configured)) {
+    return configured.replace(/\/$/, '');
+  }
+
+  if (isUserLevelSetting()) {
+    let parsed: URL;
+    try {
+      parsed = new URL(configured);
+    } catch {
+      vscode.window.showWarningMessage(
+        `Genfeed: "genfeed.apiEndpoint" is not a valid URL (${configured}). Using default.`,
+      );
+      return DEFAULT_API_ENDPOINT;
+    }
+
+    const isLocalhost =
+      parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1';
+    if (!isLocalhost && parsed.protocol !== 'https:') {
+      vscode.window.showWarningMessage(
+        `Genfeed: "genfeed.apiEndpoint" must use HTTPS for non-localhost origins. Using default.`,
+      );
+      return DEFAULT_API_ENDPOINT;
+    }
+
     return configured.replace(/\/$/, '');
   }
 

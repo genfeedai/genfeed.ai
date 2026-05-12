@@ -54,13 +54,19 @@ const ALLOWED_DESKTOP_MIME_TYPES = new Set([
   'video/mp4',
   'video/quicktime',
   'video/webm',
+  'video/avi',
+  'video/x-matroska',
   'audio/mpeg',
   'audio/mp3',
   'audio/wav',
   'audio/aac',
   'audio/flac',
   'audio/ogg',
+  'audio/webm',
   'application/pdf',
+  'text/plain',
+  'text/csv',
+  'application/json',
 ]);
 
 @Injectable()

@@ -415,6 +415,15 @@ export class ModelsService extends BaseService<
         if (aValue === bValue) continue;
 
         const multiplier = direction === 'asc' || direction === 1 ? 1 : -1;
+
+        if (aValue instanceof Date && bValue instanceof Date) {
+          return (aValue.getTime() - bValue.getTime()) * multiplier;
+        }
+
+        if (typeof aValue === 'number' && typeof bValue === 'number') {
+          return (aValue - bValue) * multiplier;
+        }
+
         return (
           String(aValue ?? '').localeCompare(String(bValue ?? '')) * multiplier
         );

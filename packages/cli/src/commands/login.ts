@@ -11,7 +11,7 @@ import { formatHeader, formatLabel, formatSuccess, formatWarning, print } from '
 import { GenfeedError, handleError } from '@/utils/errors.js';
 
 const AUTH_URL = 'https://app.genfeed.ai/oauth/cli';
-const API_BASE_URL = 'https://api.genfeed.ai';
+const API_BASE_URL = 'https://api.genfeed.ai/v1';
 const CALLBACK_TIMEOUT = 120_000; // 2 minutes
 
 interface PkceParams {

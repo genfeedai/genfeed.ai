@@ -204,6 +204,8 @@ export function useAnalytics({
       return data;
     },
     queryKey: ['analytics', selectedScope, selectedScopeId, startDate, endDate],
+    staleTime:
+      revalidateOnMount === false && initialData ? Number.POSITIVE_INFINITY : 0,
   });
 
   const isRefreshing = isFetching && !isLoading;

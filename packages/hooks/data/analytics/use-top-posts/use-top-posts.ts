@@ -165,6 +165,8 @@ export function useTopPosts(options: UseTopPostsOptions = {}) {
       platform,
       refreshTrigger,
     ],
+    staleTime:
+      revalidateOnMount === false && initialData ? Number.POSITIVE_INFINITY : 0,
   });
 
   const refetchTopPosts = async () => {
