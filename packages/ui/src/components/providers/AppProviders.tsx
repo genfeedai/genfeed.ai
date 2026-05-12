@@ -103,18 +103,6 @@ function MaybeClerkProvider({
   );
 }
 
-function makeQueryClient() {
-  return new QueryClient({
-    defaultOptions: {
-      queries: {
-        gcTime: 5 * 60_000,
-        retry: 1,
-        staleTime: 0,
-      },
-    },
-  });
-}
-
 export default function AppProviders({
   children,
   initialTheme,
