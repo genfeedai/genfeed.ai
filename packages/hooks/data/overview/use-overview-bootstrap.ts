@@ -87,29 +87,30 @@ export function useOverviewBootstrap(
   const shouldFetch =
     effectiveIsAuthLoaded && effectiveIsSignedIn && !!effectiveUserId;
 
-  const skipInitialFetch =
-    (options.revalidateOnMount ?? initialData === undefined) === false &&
-    !!initialData;
+  const skipInitialFetch = options.revalidateOnMount === false && !!initialData;
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['overview-bootstrap'],
+    enabled: shouldFetch,
+    initialData,
+    initialDataUpdatedAt: initialData ? 0 : undefined,
     queryFn: async () => {
       const service = await getAuthService();
       return await service.getOverviewBootstrap();
     },
-    enabled: shouldFetch,
-    initialData,
+    queryKey: ['overview-bootstrap', effectiveUserId],
     staleTime: skipInitialFetch ? Number.POSITIVE_INFINITY : 0,
   });
+
+  const refresh = async () => {
+    await refetch();
+  };
 
   return useMemo(
     () => ({
       activeRuns: data?.activeRuns ?? [],
       analytics: data?.analytics ?? {},
       isLoading,
-      refresh: async () => {
-        await refetch();
-      },
+      refresh,
       reviewInbox: data?.reviewInbox ?? {
         approvedCount: 0,
         changesRequestedCount: 0,
@@ -130,7 +131,7 @@ export function useOverviewBootstrap(
       data?.stats,
       data?.timeSeries,
       isLoading,
-      refetch,
+      refresh,
     ],
   );
 }

@@ -35,24 +35,28 @@ export function useTrendContent(platform?: string): UseTrendContentReturn {
     TrendsService.getInstance(token),
   );
 
-  const queryKey = ['trend-content', brandId, platform];
+  const queryKey = useMemo(
+    () => ['trend-content', brandId, platform],
+    [brandId, platform],
+  );
 
   const {
-    data: response,
+    data: response = {
+      items: [],
+      summary: EMPTY_SUMMARY,
+    } as TrendContentResponse,
     error,
     isLoading,
     isFetching,
   } = useQuery<TrendContentResponse>({
-    queryKey,
     queryFn: async () => {
       const service = await getTrendsService();
       return service.getTrendContent({ platform });
     },
-    initialData: {
-      items: [],
-      summary: EMPTY_SUMMARY,
-    },
+    queryKey,
   });
+
+  const isRefreshing = isFetching && !isLoading;
 
   const refreshTrendContent = useCallback(async () => {
     const service = await getTrendsService();
@@ -61,7 +65,7 @@ export function useTrendContent(platform?: string): UseTrendContentReturn {
       refresh: true,
     });
     queryClient.setQueryData(queryKey, refreshed);
-  }, [getTrendsService, platform, queryClient, queryKey]);
+  }, [getTrendsService, queryClient, queryKey, platform]);
 
   const items = useMemo(() => response.items || [], [response.items]);
   const summary = useMemo(
@@ -72,7 +76,7 @@ export function useTrendContent(platform?: string): UseTrendContentReturn {
   return {
     error,
     isLoading,
-    isRefreshing: isFetching && !isLoading,
+    isRefreshing,
     items,
     refreshTrendContent,
     summary,
