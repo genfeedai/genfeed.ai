@@ -14,10 +14,7 @@ import { Job } from 'bullmq';
 export interface ThreadsAnalyticsJobData {
   posts: Array<{
     _id: string;
-<<<<<<< HEAD
     credential?: string;
-=======
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
     externalId: string;
     organization: string;
     brand: string;
@@ -62,7 +59,6 @@ export class AnalyticsThreadsProcessor extends WorkerHost {
 
     this.logger.log(`Processing Threads analytics for ${posts.length} posts`);
 
-<<<<<<< HEAD
     try {
       await job.updateProgress(10);
 
@@ -127,57 +123,6 @@ export class AnalyticsThreadsProcessor extends WorkerHost {
       );
       throw error;
     }
-=======
-    if (posts.length === 0) {
-      this.logger.warn('No posts provided for Threads analytics batch');
-      return;
-    }
-
-    let processed = 0;
-
-    for (const post of posts) {
-      try {
-        const analytics = await this.threadsService.getThreadInsights(
-          post.organization,
-          post.brand,
-          post.externalId,
-        );
-
-        await this.postAnalyticsService.processThreadsAnalytics(
-          post._id,
-          analytics,
-        );
-        processed++;
-
-        if (processed < posts.length) {
-          await this.delay(this.DEFAULT_DELAY_MS);
-        }
-      } catch (error: unknown) {
-        this.logger.error(
-          `Failed to fetch Threads analytics for post ${post._id}`,
-          error,
-        );
-
-        try {
-          await this.postsService.patch(post._id, {
-            isAnalyticsEnabled: false,
-          });
-          this.logger.log(
-            `Disabled analytics tracking for post ${post._id} due to fetch failure`,
-          );
-        } catch (patchError: unknown) {
-          this.logger.error(
-            `Failed to disable analytics for post ${post._id}`,
-            patchError,
-          );
-        }
-      }
-    }
-
-    this.logger.log(
-      `Threads analytics completed - ${processed}/${posts.length} posts`,
-    );
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
   }
 
   private delay(ms: number): Promise<void> {

@@ -11,13 +11,8 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 
 /**
  * Facebook Analytics Cron Service
-<<<<<<< HEAD
  * Fetches analytics for Facebook posts every hour
  * Facebook Graph API does not support batch analytics — posts are processed individually
-=======
- * Fetches analytics for Facebook posts every hour.
- * Facebook requires page access token resolution, handled by the processor.
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
  */
 @Injectable()
 export class CronAnalyticsFacebookService {
@@ -52,10 +47,6 @@ export class CronAnalyticsFacebookService {
         },
         { customLabels, pagination: false },
       );
-<<<<<<< HEAD
-=======
-
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
       const posts = result as unknown as { docs: PostEntity[] };
 
       if (!posts.docs || posts.docs.length === 0) {
@@ -67,34 +58,24 @@ export class CronAnalyticsFacebookService {
         `${url} found ${posts.docs.length} Facebook posts to track`,
       );
 
-<<<<<<< HEAD
       // Group posts into chunks for parallel processing
       const chunks: PostEntity[][] = [];
-=======
-      const chunks: (typeof posts.docs)[] = [];
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
       for (let i = 0; i < posts.docs.length; i += this.CHUNK_SIZE) {
         chunks.push(posts.docs.slice(i, i + this.CHUNK_SIZE));
       }
 
-<<<<<<< HEAD
       this.logger.log(
         `${url} created ${chunks.length} chunks (${this.CHUNK_SIZE} posts/chunk)`,
       );
 
       // Add each chunk to the queue
-=======
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
       for (let i = 0; i < chunks.length; i++) {
         const chunk = chunks[i];
         const jobData: FacebookAnalyticsJobData = {
           posts: chunk.map((post: PostEntity) => ({
             _id: post._id.toString(),
             brand: post.brand.toString(),
-<<<<<<< HEAD
             credential: post.credential?.toString(),
-=======
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
             externalId: post.externalId!,
             organization: post.organization.toString(),
             platform: post.platform as CredentialPlatform,

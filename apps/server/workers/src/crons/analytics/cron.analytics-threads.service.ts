@@ -11,11 +11,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 
 /**
  * Threads Analytics Cron Service
-<<<<<<< HEAD
  * Fetches analytics for Threads posts every hour
-=======
- * Fetches analytics for Threads posts every hour.
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
  */
 @Injectable()
 export class CronAnalyticsThreadsService {
@@ -50,10 +46,6 @@ export class CronAnalyticsThreadsService {
         },
         { customLabels, pagination: false },
       );
-<<<<<<< HEAD
-=======
-
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
       const posts = result as unknown as { docs: PostEntity[] };
 
       if (!posts.docs || posts.docs.length === 0) {
@@ -65,34 +57,24 @@ export class CronAnalyticsThreadsService {
         `${url} found ${posts.docs.length} Threads posts to track`,
       );
 
-<<<<<<< HEAD
       // Group posts into chunks for parallel processing
       const chunks: PostEntity[][] = [];
-=======
-      const chunks: (typeof posts.docs)[] = [];
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
       for (let i = 0; i < posts.docs.length; i += this.CHUNK_SIZE) {
         chunks.push(posts.docs.slice(i, i + this.CHUNK_SIZE));
       }
 
-<<<<<<< HEAD
       this.logger.log(
         `${url} created ${chunks.length} chunks (${this.CHUNK_SIZE} posts/chunk)`,
       );
 
       // Add each chunk to the queue
-=======
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
       for (let i = 0; i < chunks.length; i++) {
         const chunk = chunks[i];
         const jobData: ThreadsAnalyticsJobData = {
           posts: chunk.map((post: PostEntity) => ({
             _id: post._id.toString(),
             brand: post.brand.toString(),
-<<<<<<< HEAD
             credential: post.credential?.toString(),
-=======
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
             externalId: post.externalId!,
             organization: post.organization.toString(),
             platform: post.platform as CredentialPlatform,

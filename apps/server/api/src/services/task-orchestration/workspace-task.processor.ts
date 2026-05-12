@@ -102,18 +102,6 @@ export class WorkspaceTaskProcessor extends WorkerHost {
   /**
    * Direct facecam dispatch: bypasses the agent orchestrator and calls
    * AvatarVideoGenerationService directly.
-<<<<<<< HEAD
-=======
-   *
-   * When the user explicitly picks a HeyGen avatar + voice from the
-   * composer, those values win (useIdentity: false). When either is
-   * absent, we flip useIdentity: true so brand/org identity defaults
-   * are consulted as a fallback.
-   *
-   * Supports both HeyGen and ElevenLabs voices — if elevenlabsVoiceId
-   * is present, voiceProvider is set to 'elevenlabs' so the service
-   * runs ElevenLabs TTS before lip-syncing.
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
    *
    * Voice resolution uses a generic voiceId + voiceProvider pattern:
    * - voiceProvider === 'heygen' → voiceId is a HeyGen catalog voice,
@@ -131,7 +119,6 @@ export class WorkspaceTaskProcessor extends WorkerHost {
     }
 
     const hasExplicitAvatar = Boolean(data.heygenAvatarId);
-<<<<<<< HEAD
     const voiceProvider = data.voiceProvider || (data.voiceId ? 'heygen' : '');
     const hasExplicitVoice = Boolean(data.voiceId && voiceProvider);
     const useIdentity = !hasExplicitAvatar || !hasExplicitVoice;
@@ -148,12 +135,6 @@ export class WorkspaceTaskProcessor extends WorkerHost {
         voiceParams.voiceProvider = voiceProvider;
       }
     }
-=======
-    const hasExplicitVoice =
-      Boolean(data.heygenVoiceId) || Boolean(data.elevenlabsVoiceId);
-    const useIdentity = !hasExplicitAvatar || !hasExplicitVoice;
-    const voiceProvider = data.elevenlabsVoiceId ? 'elevenlabs' : 'heygen';
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
 
     this.logger.log(
       `${this.logContext}: Dispatching facecam for task ${data.taskId}`,
@@ -162,10 +143,7 @@ export class WorkspaceTaskProcessor extends WorkerHost {
         heygenAvatarId: data.heygenAvatarId,
         taskId: data.taskId,
         useIdentity,
-<<<<<<< HEAD
         voiceId: data.voiceId,
-=======
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
         voiceProvider,
       },
     );
@@ -180,24 +158,14 @@ export class WorkspaceTaskProcessor extends WorkerHost {
         payload: {
           elevenlabsVoiceId: data.elevenlabsVoiceId,
           heygenAvatarId: data.heygenAvatarId,
-<<<<<<< HEAD
           useIdentity,
           voiceId: data.voiceId,
-=======
-          heygenVoiceId: data.heygenVoiceId,
-          useIdentity,
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
           voiceProvider,
         },
         type: 'task_started',
       },
       {
-<<<<<<< HEAD
         chosenProvider: voiceProvider || 'heygen',
-=======
-        chosenProvider:
-          voiceProvider === 'elevenlabs' ? 'elevenlabs+heygen' : 'heygen',
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
         executionPathUsed: 'video_generation',
         progress: {
           activeRunCount: 1,
@@ -215,19 +183,9 @@ export class WorkspaceTaskProcessor extends WorkerHost {
           {
             aspectRatio: '9:16',
             ...(hasExplicitAvatar && { avatarId: data.heygenAvatarId }),
-<<<<<<< HEAD
             ...voiceParams,
             text: data.request,
             useIdentity,
-=======
-            ...(data.elevenlabsVoiceId && {
-              elevenlabsVoiceId: data.elevenlabsVoiceId,
-            }),
-            ...(data.heygenVoiceId && { heygenVoiceId: data.heygenVoiceId }),
-            text: data.request,
-            useIdentity,
-            voiceProvider,
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
           },
           {
             brandId: data.brandId,
@@ -269,11 +227,7 @@ export class WorkspaceTaskProcessor extends WorkerHost {
         {
           progress: {
             activeRunCount: 1,
-<<<<<<< HEAD
             message: 'Facecam video generation in progress.',
-=======
-            message: 'Facecam video generation in progress on HeyGen.',
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
             percent: 35,
             stage: 'waiting_for_provider',
           },

@@ -16,10 +16,7 @@ import { Job } from 'bullmq';
 export interface FacebookAnalyticsJobData {
   posts: Array<{
     _id: string;
-<<<<<<< HEAD
     credential?: string;
-=======
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
     externalId: string;
     organization: string;
     brand: string;
@@ -33,13 +30,8 @@ export class AnalyticsFacebookProcessor extends WorkerHost {
   private readonly circuitBreaker: ProcessorCircuitBreaker;
 
   constructor(
-<<<<<<< HEAD
     private readonly credentialsService: CredentialsService,
     private readonly facebookService: FacebookService,
-=======
-    private readonly facebookService: FacebookService,
-    private readonly credentialsService: CredentialsService,
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
     private readonly postAnalyticsService: PostAnalyticsService,
     private readonly postsService: PostsService,
     private readonly logger: LoggerService,
@@ -70,7 +62,6 @@ export class AnalyticsFacebookProcessor extends WorkerHost {
 
     this.logger.log(`Processing Facebook analytics for ${posts.length} posts`);
 
-<<<<<<< HEAD
     try {
       await job.updateProgress(10);
 
@@ -165,74 +156,6 @@ export class AnalyticsFacebookProcessor extends WorkerHost {
       );
       throw error;
     }
-=======
-    if (posts.length === 0) {
-      this.logger.warn('No posts provided for Facebook analytics batch');
-      return;
-    }
-
-    let processed = 0;
-
-    for (const post of posts) {
-      try {
-        const credential = await this.credentialsService.findOne({
-          brand: post.brand,
-          isDeleted: false,
-          organization: post.organization,
-          platform: CredentialPlatform.FACEBOOK,
-        });
-
-        if (!credential?.accessToken) {
-          this.logger.warn(
-            `No Facebook credential found for brand ${post.brand}, skipping post ${post._id}`,
-          );
-          continue;
-        }
-
-        const decryptedAccessToken = EncryptionUtil.decrypt(
-          credential.accessToken,
-        );
-
-        const analytics = await this.facebookService.getPostAnalytics(
-          post.externalId,
-          decryptedAccessToken,
-        );
-
-        await this.postAnalyticsService.processFacebookAnalytics(
-          post._id,
-          analytics,
-        );
-        processed++;
-
-        if (processed < posts.length) {
-          await this.delay(this.DEFAULT_DELAY_MS);
-        }
-      } catch (error: unknown) {
-        this.logger.error(
-          `Failed to fetch Facebook analytics for post ${post._id}`,
-          error,
-        );
-
-        try {
-          await this.postsService.patch(post._id, {
-            isAnalyticsEnabled: false,
-          });
-          this.logger.log(
-            `Disabled analytics tracking for post ${post._id} due to fetch failure`,
-          );
-        } catch (patchError: unknown) {
-          this.logger.error(
-            `Failed to disable analytics for post ${post._id}`,
-            patchError,
-          );
-        }
-      }
-    }
-
-    this.logger.log(
-      `Facebook analytics completed - ${processed}/${posts.length} posts`,
-    );
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
   }
 
   private delay(ms: number): Promise<void> {

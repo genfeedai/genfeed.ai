@@ -1,23 +1,6 @@
 import type { WorkflowTemplate } from '@api/collections/workflows/templates/workflow-templates';
 import { WorkflowStepCategory } from '@genfeedai/enums';
 
-<<<<<<< HEAD
-=======
-/**
- * Content Loop Workflow Template
- *
- * Closed-loop automation: analytics feedback → trend discovery →
- * prompt construction → content generation → publish.
- *
- * Node graph:
- * [analyticsFeedback] --topTopics--> [trendTrigger].keywords
- *                     --bestPlatform--> [trendTrigger].platform
- * [trendTrigger]      --topic-------> [promptConstructor]
- * [brand]             --brandVoice--> [promptConstructor]
- * [promptConstructor] --prompt------> [textGen]
- * [textGen]           --content-----> [publish]
- */
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
 export const CONTENT_LOOP_TEMPLATE: WorkflowTemplate = {
   category: 'content',
   description:
@@ -47,11 +30,7 @@ export const CONTENT_LOOP_TEMPLATE: WorkflowTemplate = {
     {
       id: 'e-brand-prompt',
       source: 'brand-context',
-<<<<<<< HEAD
       sourceHandle: 'voice',
-=======
-      sourceHandle: 'brandVoice',
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
       target: 'prompt-constructor',
       targetHandle: 'brandVoice',
     },
@@ -63,7 +42,6 @@ export const CONTENT_LOOP_TEMPLATE: WorkflowTemplate = {
       targetHandle: 'prompt',
     },
     {
-<<<<<<< HEAD
       id: 'e-brand-publish',
       source: 'brand-context',
       sourceHandle: 'brandId',
@@ -71,17 +49,11 @@ export const CONTENT_LOOP_TEMPLATE: WorkflowTemplate = {
       targetHandle: 'brand',
     },
     {
-=======
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
       id: 'e-gen-publish',
       source: 'text-gen',
       sourceHandle: 'content',
       target: 'publish',
-<<<<<<< HEAD
       targetHandle: 'caption',
-=======
-      targetHandle: 'content',
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
     },
   ],
   icon: 'repeat',
@@ -117,27 +89,13 @@ export const CONTENT_LOOP_TEMPLATE: WorkflowTemplate = {
   name: 'Content Loop',
   nodes: [
     {
-<<<<<<< HEAD
       data: { config: { topN: 5, worstN: 3 }, label: 'Analytics Feedback' },
-=======
-      data: {
-        config: { topN: 5, worstN: 3 },
-        label: 'Analytics Feedback',
-      },
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
       id: 'analytics-feedback',
       position: { x: 0, y: 0 },
       type: 'analytics-feedback',
     },
     {
-<<<<<<< HEAD
       data: { config: {}, label: 'Brand Context' },
-=======
-      data: {
-        config: {},
-        label: 'Brand Context',
-      },
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
       id: 'brand-context',
       position: { x: 0, y: 200 },
       type: 'brandContext',
@@ -159,15 +117,7 @@ export const CONTENT_LOOP_TEMPLATE: WorkflowTemplate = {
     },
     {
       data: {
-<<<<<<< HEAD
         config: { includeHashtags: true, maxLength: 2200, tone: 'brand-voice' },
-=======
-        config: {
-          includeHashtags: true,
-          maxLength: 2200,
-          tone: 'brand-voice',
-        },
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
         label: 'Prompt Constructor',
       },
       id: 'prompt-constructor',
@@ -190,7 +140,6 @@ export const CONTENT_LOOP_TEMPLATE: WorkflowTemplate = {
     {
       data: {
         config: {
-<<<<<<< HEAD
           platforms: {
             facebook: false,
             instagram: false,
@@ -201,10 +150,6 @@ export const CONTENT_LOOP_TEMPLATE: WorkflowTemplate = {
             youtube: false,
           },
           schedule: { type: 'immediate' },
-=======
-          autoPost: false,
-          schedulingMode: 'queue',
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
         },
         label: 'Publish',
       },
@@ -215,21 +160,13 @@ export const CONTENT_LOOP_TEMPLATE: WorkflowTemplate = {
   ],
   steps: [
     {
-<<<<<<< HEAD
       category: WorkflowStepCategory.PERFORMANCE_TRACK,
-=======
-      category: WorkflowStepCategory.TRIGGER,
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
       config: { topN: 5, worstN: 3 },
       id: 'step-analytics-feedback',
       name: 'Read Analytics',
     },
     {
-<<<<<<< HEAD
       category: WorkflowStepCategory.WEBHOOK,
-=======
-      category: WorkflowStepCategory.TRIGGER,
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
       config: {
         checkFrequency: '6hr',
         minViralScore: 70,
@@ -240,29 +177,20 @@ export const CONTENT_LOOP_TEMPLATE: WorkflowTemplate = {
       name: 'Find Matching Trend',
     },
     {
-<<<<<<< HEAD
       category: WorkflowStepCategory.GENERATE_HOOK,
-=======
-      category: WorkflowStepCategory.PROCESSING,
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
       config: { includeHashtags: true, tone: 'brand-voice' },
       dependsOn: ['step-trend-trigger'],
       id: 'step-prompt',
       name: 'Build Prompt',
     },
     {
-<<<<<<< HEAD
       category: WorkflowStepCategory.GENERATE_ARTICLE,
-=======
-      category: WorkflowStepCategory.GENERATION,
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
       config: { model: 'openai/gpt-4o-mini', temperature: 0.8 },
       dependsOn: ['step-prompt'],
       id: 'step-generate',
       name: 'Generate Content',
     },
     {
-<<<<<<< HEAD
       category: WorkflowStepCategory.PUBLISH,
       config: {
         platforms: {
@@ -276,10 +204,6 @@ export const CONTENT_LOOP_TEMPLATE: WorkflowTemplate = {
         },
         schedule: { type: 'immediate' },
       },
-=======
-      category: WorkflowStepCategory.OUTPUT,
-      config: { autoPost: false, schedulingMode: 'queue' },
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
       dependsOn: ['step-generate'],
       id: 'step-publish',
       name: 'Publish',

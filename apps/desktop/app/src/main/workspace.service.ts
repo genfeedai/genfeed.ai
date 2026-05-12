@@ -175,11 +175,7 @@ export class DesktopWorkspaceService {
     const shouldReindex = input.reindex ?? true;
     const fileIndex =
       !shouldReindex && existing
-<<<<<<< HEAD
         ? existing.fileIndex
-=======
-        ? (JSON.parse(existing.fileIndex) as IDesktopWorkspaceFile[])
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
         : this.indexWorkspaceFiles(input.path);
 
     const row = {

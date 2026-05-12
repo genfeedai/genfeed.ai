@@ -114,7 +114,6 @@ function persistTerminalCwd(cwd: string): void {
   } catch {
     // Ignore persistence failures in constrained browser environments.
   }
-<<<<<<< HEAD
 }
 
 function attachTerminalSocketHandlers({
@@ -190,8 +189,6 @@ function attachTerminalSocketHandlers({
     socket.off('terminal:error', handleTerminalError);
     socket.off('terminal:exit', handleTerminalExit);
   };
-=======
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
 }
 
 export function AgentCliTerminal({
@@ -285,10 +282,7 @@ export function AgentCliTerminal({
     }
 
     let disposed = false;
-<<<<<<< HEAD
     let detachSocketHandlers: (() => void) | null = null;
-=======
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
 
     async function bootTerminal(): Promise<void> {
       const [{ Terminal }, { FitAddon }] = await Promise.all([
@@ -373,7 +367,6 @@ export function AgentCliTerminal({
         transports: ['websocket'],
       });
       socketRef.current = socket;
-<<<<<<< HEAD
       detachSocketHandlers = attachTerminalSocketHandlers({
         fitAndSyncSize,
         sessionRef,
@@ -381,50 +374,6 @@ export function AgentCliTerminal({
         socket,
         startSession,
         terminal,
-=======
-
-      socket.on('connect', () => {
-        setStatus('connected');
-        startSession('shell');
-      });
-
-      socket.on('connect_error', (error) => {
-        setStatus('local terminal unavailable');
-        terminal.writeln(
-          `Could not connect to the local terminal gateway: ${error.message}`,
-        );
-      });
-
-      socket.on('terminal:created', (nextSession: TerminalSession) => {
-        sessionRef.current = nextSession;
-        setStatus(`${nextSession.command} - ${nextSession.cwd}`);
-        fitAndSyncSize();
-        terminal.focus();
-      });
-
-      socket.on('terminal:data', (payload: TerminalDataPayload) => {
-        if (payload.sessionId !== sessionRef.current?.id) {
-          return;
-        }
-
-        terminal.write(payload.data);
-      });
-
-      socket.on('terminal:error', (payload: { message?: string }) => {
-        const message = payload.message || 'Local terminal error.';
-        setStatus(message);
-        terminal.writeln(message);
-      });
-
-      socket.on('terminal:exit', (payload: TerminalExitPayload) => {
-        if (payload.sessionId !== sessionRef.current?.id) {
-          return;
-        }
-
-        setStatus(`exited with code ${payload.exitCode ?? 0}`);
-        terminal.writeln(`\r\n[process exited: ${payload.exitCode ?? 0}]`);
-        sessionRef.current = null;
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
       });
     }
 
@@ -444,10 +393,7 @@ export function AgentCliTerminal({
       }
 
       resizeObserverRef.current?.disconnect();
-<<<<<<< HEAD
       detachSocketHandlers?.();
-=======
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
       dataDisposableRef.current?.dispose();
       terminalRef.current?.dispose();
       socket?.disconnect();
@@ -500,25 +446,12 @@ export function AgentCliTerminal({
             type="submit"
             variant={ButtonVariant.UNSTYLED}
             withWrapper={false}
-<<<<<<< HEAD
           />
-=======
-            className="h-6 rounded border border-border/60 px-2 text-[11px] text-foreground/55 transition-colors hover:border-emerald-300/50 hover:text-emerald-200"
-            type="submit"
-          >
-            cwd
-          </Button>
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
         </form>
         <div className="flex shrink-0 items-center gap-1">
           {TERMINAL_PRESETS.map((preset) => (
             <Button
               key={preset.kind}
-<<<<<<< HEAD
-=======
-              variant={ButtonVariant.UNSTYLED}
-              withWrapper={false}
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
               className={cn(
                 'h-6 rounded border border-border/60 px-2 text-[11px] text-foreground/55 transition-colors hover:border-emerald-300/50 hover:text-emerald-200',
                 activeKind === preset.kind &&
@@ -528,18 +461,11 @@ export function AgentCliTerminal({
                 event.stopPropagation();
                 startSession(preset.kind);
               }}
-<<<<<<< HEAD
               label={preset.label}
               type="button"
               variant={ButtonVariant.UNSTYLED}
               withWrapper={false}
             />
-=======
-              type="button"
-            >
-              {preset.label}
-            </Button>
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
           ))}
         </div>
       </div>

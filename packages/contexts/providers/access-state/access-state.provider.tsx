@@ -11,12 +11,8 @@ import {
   AuthService,
 } from '@genfeedai/services/auth/auth.service';
 import { loadClientProtectedBootstrap } from '@providers/protected-bootstrap/client-protected-bootstrap';
-<<<<<<< HEAD
 import { useQuery } from '@tanstack/react-query';
 import { createContext, useCallback, useContext, useMemo } from 'react';
-=======
-import { createContext, useContext, useMemo } from 'react';
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
 
 export interface AccessStateContextValue {
   accessState: AccessBootstrapState | null;
@@ -61,13 +57,6 @@ export function AccessStateProvider({
     effectiveIsSignedIn &&
     !!effectiveUserId &&
     !!organizationId;
-<<<<<<< HEAD
-=======
-  const accessStateCacheKey =
-    shouldFetch && effectiveUserId
-      ? `access-state:${organizationId}:${brandId || 'no-brand'}:${effectiveUserId}`
-      : undefined;
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
   const effectiveOrgId = orgId ?? playwrightAuth?.orgId ?? organizationId;
   const clientBootstrapCacheKey =
     shouldFetch && effectiveUserId
@@ -94,7 +83,6 @@ export function AccessStateProvider({
 
       return bootstrap?.accessState ?? null;
     },
-<<<<<<< HEAD
     queryKey: [
       'access-state',
       brandId,
@@ -104,17 +92,6 @@ export function AccessStateProvider({
     ],
     staleTime: ACCESS_STATE_CACHE_TTL_MS,
   });
-=======
-    {
-      cacheKey: accessStateCacheKey,
-      cacheTimeMs: ACCESS_STATE_CACHE_TTL_MS,
-      dependencies: [brandId, organizationId, effectiveUserId, effectiveOrgId],
-      enabled: shouldFetch,
-      initialData: initialAccessState,
-      revalidateOnMount: initialAccessState == null,
-    },
-  );
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
 
   const isSuperAdmin = accessState?.isSuperAdmin === true;
   const isSubscribed =

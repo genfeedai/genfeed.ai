@@ -9,10 +9,7 @@ import type {
   IDesktopDataService,
   IDesktopGenerationOptions,
   IDesktopGenerationProviderConfig,
-<<<<<<< HEAD
   IDesktopSyncOpAck,
-=======
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
   IDesktopTerminalCreateOptions,
   IDesktopWorkflowGenerationOptions,
 } from '@genfeedai/desktop-contracts';
@@ -55,7 +52,6 @@ const environment = configService.getEnvironment();
 
 let mainWindow: BrowserWindow | null = null;
 let bootstrapCache: IDesktopBootstrap | null = null;
-<<<<<<< HEAD
 let pgliteService: DesktopPgliteService;
 let prismaService: DesktopPrismaService;
 let kvService: DesktopKvService;
@@ -70,38 +66,6 @@ let localService: DesktopLocalService;
 let draftsService: DesktopDraftsService;
 let appShellService: DesktopAppShellService;
 let isOfflineMode = false;
-=======
-let bootstrapPromise: Promise<IDesktopBootstrap> | null = null;
-
-const prismaService = new DesktopPrismaService();
-const database = new DesktopDatabaseService(prismaService);
-const localIdentityService = new LocalIdentityService(database);
-const sessionService = new DesktopSessionService(database, environment);
-const workspaceService = new DesktopWorkspaceService(database);
-const filesService = new DesktopFilesService(workspaceService);
-const syncService = new DesktopSyncService(database);
-const terminalService = new DesktopTerminalService(workspaceService);
-const generationService = new DesktopGenerationService(database);
-const cloudService = new DesktopCloudService(environment, () =>
-  sessionService.getSession(),
-);
-const localService = new DesktopLocalService(
-  prismaService,
-  generationService,
-  () => ({
-    clerkId: localIdentityService.getClerkId(),
-    localUserId: localIdentityService.getLocalUserId(),
-    userEmail: sessionService.getSession()?.userEmail,
-    userName: sessionService.getSession()?.userName,
-  }),
-);
-const draftsService = new DesktopDraftsService(workspaceService);
-const appShellService = new DesktopAppShellService(
-  environment,
-  () => sessionService.getSession(),
-  () => database.getDatabasePath(),
-);
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
 
 const telemetryService = new DesktopTelemetryService(environment);
 
@@ -164,7 +128,6 @@ const emitBootstrap = async (): Promise<void> => {
   bootstrapCache = null;
   mainWindow?.webContents.send(
     DESKTOP_IPC_CHANNELS.bootstrapChanged,
-<<<<<<< HEAD
     getBootstrap(),
   );
 };
@@ -196,54 +159,6 @@ const getBootstrap = (): IDesktopBootstrap => {
 
   bootstrapCache = bootstrap;
   return bootstrap;
-=======
-    await getBootstrap({ force: true }),
-  );
-};
-
-const getBootstrap = async ({
-  force = false,
-}: {
-  force?: boolean;
-} = {}): Promise<IDesktopBootstrap> => {
-  if (!force && bootstrapCache) {
-    return bootstrapCache;
-  }
-
-  if (!force && bootstrapPromise) {
-    return bootstrapPromise;
-  }
-
-  bootstrapPromise = (async () => {
-    const [recents, syncState, workspaces] = await Promise.all([
-      workspaceService.listRecents(),
-      syncService.getState(),
-      workspaceService.listRecentWorkspaces(),
-    ]);
-
-    const bootstrap: IDesktopBootstrap = {
-      clerkId: localIdentityService.getClerkId(),
-      environment: sessionService.getEnvironment(),
-      localUserId: localIdentityService.getLocalUserId(),
-      preferences: {
-        nativeNotificationsEnabled: Notification.isSupported(),
-      },
-      recents,
-      session: sessionService.getSession(),
-      syncState,
-      workspaces,
-    };
-
-    bootstrapCache = bootstrap;
-    return bootstrap;
-  })();
-
-  try {
-    return await bootstrapPromise;
-  } finally {
-    bootstrapPromise = null;
-  }
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
 };
 
 const runDataService = async <T>(

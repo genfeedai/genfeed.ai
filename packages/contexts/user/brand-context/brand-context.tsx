@@ -181,12 +181,6 @@ export function BrandProvider({
     initialOrganizationId || clerkData.organization || effectiveOrgId || '',
   );
   const shouldFetchBrands = effectiveIsAuthLoaded && effectiveIsSignedIn;
-<<<<<<< HEAD
-=======
-  const brandsCacheKey = shouldFetchBrands
-    ? `brand-context:brands:${sessionKey}`
-    : undefined;
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
   const clientBootstrapCacheKey = shouldFetchBrands
     ? `protected-bootstrap:${sessionKey}`
     : undefined;
@@ -257,7 +251,6 @@ export function BrandProvider({
 
       return data.map((brand: Partial<IBrand>) => new Brand(brand));
     },
-<<<<<<< HEAD
     queryKey: ['brand-context-brands', sessionKey],
     staleTime: skipBrandsInitialFetch ? BRAND_CONTEXT_CACHE_TTL_MS : 0,
   });
@@ -265,17 +258,6 @@ export function BrandProvider({
   const refreshBrands = useCallback(async () => {
     await refetchBrands();
   }, [refetchBrands]);
-=======
-    {
-      cacheKey: brandsCacheKey,
-      cacheTimeMs: BRAND_CONTEXT_CACHE_TTL_MS,
-      dependencies: [effectiveIsAuthLoaded, effectiveIsSignedIn, sessionKey],
-      enabled: shouldFetchBrands,
-      initialData: initialBrands,
-      revalidateOnMount: initialBrands.length === 0,
-    },
-  );
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
 
   const brands = useMemo(() => brandsData ?? [], [brandsData]);
   const routeOrgSlug =
@@ -377,17 +359,6 @@ export function BrandProvider({
     effectiveIsSignedIn &&
     !!scopedOrganizationId &&
     !!scopedBrandId;
-<<<<<<< HEAD
-=======
-  const settingsCacheKey = scopedOrganizationId
-    ? `brand-context:settings:${scopedOrganizationId}`
-    : undefined;
-  const darkroomCapabilitiesCacheKey =
-    scopedOrganizationId && scopedBrandId
-      ? `brand-context:darkroom:${scopedOrganizationId}:${scopedBrandId}`
-      : undefined;
-
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
   const {
     data: settings = null,
     isLoading: settingsLoading,
@@ -427,7 +398,6 @@ export function BrandProvider({
         return null;
       }
     },
-<<<<<<< HEAD
     queryKey: ['brand-context-settings', scopedOrganizationId],
     staleTime: BRAND_CONTEXT_CACHE_TTL_MS,
   });
@@ -484,68 +454,6 @@ export function BrandProvider({
     queryKey: ['brand-context-darkroom', scopedOrganizationId, scopedBrandId],
     staleTime: BRAND_CONTEXT_CACHE_TTL_MS,
   });
-=======
-    {
-      cacheKey: settingsCacheKey,
-      cacheTimeMs: BRAND_CONTEXT_CACHE_TTL_MS,
-      dependencies: [scopedOrganizationId],
-      enabled: shouldFetchSettings && !!scopedOrganizationId,
-      initialData: initialSettings,
-      revalidateOnMount: initialSettings == null,
-    },
-  );
-
-  const { data: darkroomCapabilities, isLoading: darkroomCapabilitiesLoading } =
-    useContextResource(
-      async () => {
-        if (!shouldFetchDarkroom || !scopedOrganizationId || !scopedBrandId) {
-          return null;
-        }
-
-        try {
-          const bootstrap = await loadClientProtectedBootstrap(
-            clientBootstrapCacheKey,
-            getAuthService,
-          );
-
-          if (
-            bootstrap?.organizationId === scopedOrganizationId &&
-            bootstrap.brandId === scopedBrandId
-          ) {
-            return bootstrap.darkroomCapabilities;
-          }
-        } catch (error) {
-          logger.warn(
-            'Failed to load client protected bootstrap for darkroom capabilities',
-            {
-              error,
-              reportToSentry: false,
-            },
-          );
-        }
-
-        try {
-          const service = await getOrganizationsService();
-          return await service.getDarkroomCapabilities(
-            scopedOrganizationId,
-            scopedBrandId,
-          );
-        } catch (error) {
-          logger.error('Failed to fetch darkroom capabilities', error);
-          return null;
-        }
-      },
-      {
-        cacheKey: darkroomCapabilitiesCacheKey,
-        cacheTimeMs: BRAND_CONTEXT_CACHE_TTL_MS,
-        dependencies: [scopedOrganizationId, scopedBrandId],
-        enabled:
-          shouldFetchDarkroom && !!scopedOrganizationId && !!scopedBrandId,
-        initialData: initialDarkroomCapabilities,
-        revalidateOnMount: initialDarkroomCapabilities == null,
-      },
-    );
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
 
   useEffect(() => {
     if (effectiveIsAuthLoaded && !effectiveIsSignedIn) {

@@ -8,13 +8,8 @@
     "asarUnpack": [
       "dist/app-shell/**/*",
       "node_modules/node-pty/**/*",
-<<<<<<< HEAD
       "node_modules/@electric-sql/pglite/dist/**",
       "node_modules/.bun/@electric-sql+pglite@*/node_modules/@electric-sql/pglite/dist/**"
-=======
-      "node_modules/@electric-sql/pglite/**/*",
-      "node_modules/.bun/@electric-sql+pglite@*/node_modules/@electric-sql/pglite/**/*"
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
     ],
     "directories": {
       "output": "release"
@@ -89,11 +84,7 @@
   "scripts": {
     "build": "bun run build:native && bun run build:app-shell && bun run copy:app-shell",
     "build:app-shell": "node ./scripts/build-app-shell.cjs",
-<<<<<<< HEAD
     "build:main": "bunx esbuild src/main.ts --bundle --platform=node --target=node20 --outfile=dist/main.js --external:electron --external:@electric-sql/pglite --external:@electric-sql/pglite/* --external:@electric-sql/pglite-socket --external:@genfeedai/desktop-prisma --external:@genfeedai/desktop-prisma/* --external:node-pty --tsconfig=tsconfig.json",
-=======
-    "build:main": "bunx esbuild src/main.ts --bundle --platform=node --target=node20 --outfile=dist/main.js --external:electron --external:@electric-sql/pglite --external:@electric-sql/pglite/* --external:@electric-sql/pglite-socket --external:node-pty --tsconfig=tsconfig.json",
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
     "build:preload": "bunx esbuild src/preload.ts --bundle --platform=node --target=node20 --outfile=dist/preload.js --external:electron --tsconfig=tsconfig.json",
     "build:release": "bun run build && bun run prepare:release",
     "build:native": "bun run clean && bun run build:main && bun run build:preload && bun run copy:assets",

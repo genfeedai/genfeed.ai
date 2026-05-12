@@ -72,12 +72,8 @@ const PUBLISH_INTENT_OPTIONS: Array<{
 ];
 
 const UNLINKED_PROJECT_VALUE = '__not_linked__';
-<<<<<<< HEAD
 const CREDIT_CHECKOUT_PATH =
   '/onboarding/post-signup?credits=1000&source=desktop';
-=======
-const CREDIT_CHECKOUT_PATH = '/settings/billing?source=desktop';
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
 const PROVIDER_KEYS_PATH = '/settings/api-keys?source=desktop';
 
 const PROVIDER_PRESETS: Record<

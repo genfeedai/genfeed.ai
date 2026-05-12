@@ -1738,13 +1738,8 @@ textarea {
 
 .terminal-preset:hover,
 .terminal-preset.active {
-<<<<<<< HEAD:apps/desktop/app/src/renderer/styles.css
   border-color: color-mix(in srgb, var(--agent) 50%, transparent);
   color: var(--agent);
-=======
-  border-color: rgba(114, 240, 194, 0.5);
-  color: #72f0c2;
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02):apps/desktop/app/src/renderer/styles.scss
 }
 
 .terminal-interactive {

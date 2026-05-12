@@ -56,10 +56,7 @@ import type {
   ExecutionRunResult,
 } from '@genfeedai/workflow-engine';
 import {
-<<<<<<< HEAD
   type AnalyticsFeedbackOutput,
-=======
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
   createAnalyticsFeedbackExecutor,
   createBrandAssetExecutor,
   createBrandContextExecutor,
@@ -203,10 +200,6 @@ const NODE_TYPE_TO_EXECUTOR: Record<string, string> = {
   'trigger-new-follower': 'newFollowerTrigger',
   'trigger-new-like': 'newLikeTrigger',
   'trigger-new-repost': 'newRepostTrigger',
-<<<<<<< HEAD
-=======
-  // Analytics feedback node
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
   'analytics-feedback': 'analyticsFeedback',
 };
 
@@ -517,7 +510,6 @@ export class WorkflowEngineAdapterService {
     );
   }
 
-<<<<<<< HEAD
   private registerBrandContextExecutor(): void {
     if (!this.brandsService) return;
     const brandsService = this.brandsService;
@@ -559,26 +551,11 @@ export class WorkflowEngineAdapterService {
           return this.createEmptyAnalyticsFeedback();
         }
 
-=======
-  private registerAnalyticsFeedbackExecutor(): void {
-    if (!this.performanceSummaryService) {
-      return;
-    }
-
-    const summaryService = this.performanceSummaryService;
-
-    const executor = createAnalyticsFeedbackExecutor(
-      async ({ organizationId, brandId, topN, worstN }) => {
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
         const summary = await summaryService.getWeeklySummary(
           organizationId,
           brandId,
           { topN, worstN },
         );
-<<<<<<< HEAD
-=======
-
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
         const bestPlatform =
           summary.avgEngagementByPlatform.length > 0
             ? summary.avgEngagementByPlatform.reduce((best, current) =>
@@ -587,10 +564,6 @@ export class WorkflowEngineAdapterService {
                   : best,
               ).platform
             : null;
-<<<<<<< HEAD
-=======
-
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
         return {
           avgEngagementRate:
             summary.avgEngagementByPlatform.length > 0
@@ -615,57 +588,6 @@ export class WorkflowEngineAdapterService {
         };
       },
     );
-<<<<<<< HEAD
-=======
-
-    this.engine.registerExecutor(
-      executor.nodeType,
-      this.wrapEngineExecutor(executor),
-    );
-  }
-
-  private registerBrandContextExecutor(): void {
-    if (!this.brandsService) {
-      return;
-    }
-
-    const brandsService = this.brandsService;
-
-    const executor = createBrandContextExecutor(
-      async (brandId, organizationId) => {
-        const brand = await brandsService.findOne(
-          {
-            _id: brandId,
-            isDeleted: false,
-            organization: organizationId,
-          },
-          ['detail'],
-        );
-
-        if (!brand) {
-          return null;
-        }
-
-        const brandDoc = brand as unknown as Record<string, unknown>;
-
-        return {
-          brandId: String(brandDoc._id),
-          colors:
-            (brandDoc.colors as {
-              primary: string;
-              secondary: string;
-              background: string;
-            } | null) ?? null,
-          fonts: (brandDoc.fonts as string | null) ?? null,
-          label: String(brandDoc.name ?? brandDoc.label ?? ''),
-          models: null,
-          slug: String(brandDoc.slug ?? ''),
-          voice: (brandDoc.voice as string | null) ?? null,
-        };
-      },
-    );
-
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
     this.engine.registerExecutor(
       executor.nodeType,
       this.wrapEngineExecutor(executor),
@@ -673,7 +595,6 @@ export class WorkflowEngineAdapterService {
   }
 
   private registerTrendTriggerExecutor(): void {
-<<<<<<< HEAD
     const executor = createTrendTriggerExecutor(async (params) => {
       const keywordMatch = await this.findTrendFromSocialKeywordMatch(params);
       if (keywordMatch) {
@@ -700,12 +621,6 @@ export class WorkflowEngineAdapterService {
         viralScore: params.minViralScore,
       };
     });
-=======
-    // Register without a checker — the checker is wired at workflow run time
-    // when a TrendsService is available in the execution context
-    const executor = createTrendTriggerExecutor();
-
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
     this.engine.registerExecutor(
       executor.nodeType,
       this.wrapEngineExecutor(executor),
@@ -713,7 +628,6 @@ export class WorkflowEngineAdapterService {
   }
 
   private registerPublishExecutor(): void {
-<<<<<<< HEAD
     const postsService = this.postsService;
     const credentialsService = this.credentialsService;
     const executor = createPublishExecutor(
@@ -779,19 +693,12 @@ export class WorkflowEngineAdapterService {
         };
       },
     );
-=======
-    // Register without a resolver — the resolver is wired at workflow run time
-    // when social publishing services are available
-    const executor = createPublishExecutor();
-
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
     this.engine.registerExecutor(
       executor.nodeType,
       this.wrapEngineExecutor(executor),
     );
   }
 
-<<<<<<< HEAD
   private createEmptyAnalyticsFeedback(): AnalyticsFeedbackOutput {
     return {
       avgEngagementRate: 0,
@@ -866,8 +773,6 @@ export class WorkflowEngineAdapterService {
     return null;
   }
 
-=======
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
   private registerPromptConstructorExecutor(): void {
     const promptConstructorExecutor = createPromptConstructorExecutor();
 
@@ -1763,13 +1668,8 @@ export class WorkflowEngineAdapterService {
         'ai-avatar-video',
         'ai-generate-image',
         'analytics-feedback',
-<<<<<<< HEAD
         'analyticsFeedback',
         'brandContext',
-=======
-        'brandContext',
-        'effect-captions',
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
         'imageGen',
         'ai-text-to-speech',
         'musicSource',

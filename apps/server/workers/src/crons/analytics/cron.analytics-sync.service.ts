@@ -6,15 +6,6 @@ import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
-<<<<<<< HEAD
-=======
-/**
- * Analytics Sync Cron Service
- * Triggers incremental analytics sync every 6 hours for all active organizations.
- * Enqueues one analytics-sync job per org; the AnalyticsSyncProcessor handles
- * aggregation into content_performance records.
- */
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
 @Injectable()
 export class CronAnalyticsSyncService {
   private readonly constructorName: string = String(this.constructor.name);
@@ -33,13 +24,7 @@ export class CronAnalyticsSyncService {
 
     try {
       const orgs = await this.organizationsService.findAll(
-<<<<<<< HEAD
         { where: { isDeleted: false } },
-=======
-        {
-          where: { isDeleted: false },
-        },
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
         { pagination: false },
       );
 
@@ -53,7 +38,6 @@ export class CronAnalyticsSyncService {
       this.logger.log(`${url} found ${docs.length} organizations to sync`);
 
       for (const org of docs) {
-<<<<<<< HEAD
         const window = Math.floor(Date.now() / (6 * 60 * 60 * 1000));
         const organizationId = String(org._id);
         const jobData: AnalyticsSyncJobData = {
@@ -65,21 +49,6 @@ export class CronAnalyticsSyncService {
           attempts: 3,
           backoff: { delay: 5000, type: 'exponential' },
           jobId: `analytics-sync-${organizationId}-${window}`,
-=======
-        const jobData: AnalyticsSyncJobData = {
-          incremental: true,
-          organizationId: org._id.toString(),
-        };
-
-        const window = Math.floor(Date.now() / (6 * 60 * 60 * 1000));
-        await this.queueService.add(this.QUEUE_NAME, jobData, {
-          attempts: 3,
-          backoff: {
-            delay: 5000,
-            type: 'exponential',
-          },
-          jobId: `analytics-sync-${org._id.toString()}-${window}`,
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
         });
       }
 

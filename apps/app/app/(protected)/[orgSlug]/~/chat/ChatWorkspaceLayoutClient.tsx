@@ -199,18 +199,13 @@ function ChatWorkspaceLayoutClientContent({
       pendingNavigationThreadRef.current = activeThreadId;
       replace(nextRoute);
     }
-<<<<<<< HEAD
   }, [
     activeThreadId,
-    conversationBasePath,
     isJourneyRoute,
     isOnboarding,
     isUnthreadedRoute,
     replace,
   ]);
-=======
-  }, [activeThreadId, isJourneyRoute, isOnboarding, isUnthreadedRoute, router]);
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
 
   const contextValue = useMemo(
     () => ({

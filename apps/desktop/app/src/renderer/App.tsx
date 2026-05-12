@@ -10,10 +10,7 @@ import {
   useEffect,
   useState,
 } from 'react';
-<<<<<<< HEAD
 import { AuthScreen } from './auth/AuthScreen';
-=======
->>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
 import OnboardingWizard from './components/OnboardingWizard';
 import ReconnectBanner from './components/ReconnectBanner';
 import { Sidebar } from './components/Sidebar';
