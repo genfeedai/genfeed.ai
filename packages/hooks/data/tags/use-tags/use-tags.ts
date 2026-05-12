@@ -28,7 +28,7 @@ export function useTags(options: UseTagsOptions = {}) {
     error,
     refetch,
   } = useQuery({
-    queryKey: ['tags', scope, brandId],
+    enabled: autoLoad && !!isSignedIn,
     queryFn: async () => {
       const service = await getTagsService();
       const params: Record<string, string> = {};
@@ -43,14 +43,18 @@ export function useTags(options: UseTagsOptions = {}) {
 
       return (await service.findAll(params)) as ITag[];
     },
-    enabled: autoLoad && !!isSignedIn,
+    queryKey: ['tags', scope, brandId],
   });
+
+  const refresh = async () => {
+    await refetch();
+  };
 
   return {
     error,
     isLoading,
-    loadTags: refetch,
-    refresh: refetch,
+    loadTags: refresh,
+    refresh,
     tags,
   };
 }

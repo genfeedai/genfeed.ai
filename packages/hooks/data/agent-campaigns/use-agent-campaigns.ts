@@ -30,7 +30,6 @@ export function useAgentCampaigns(
     isLoading,
     refetch,
   } = useQuery({
-    queryKey: ['agent-campaigns', brandId, options.status],
     queryFn: async () => {
       const token = await resolveClerkToken(getToken);
       if (!token) return [];
@@ -40,13 +39,16 @@ export function useAgentCampaigns(
         status: options.status,
       });
     },
+    queryKey: ['agent-campaigns', brandId, options.status],
   });
+
+  const refresh = async () => {
+    await refetch();
+  };
 
   return {
     campaigns,
     isLoading,
-    refresh: async () => {
-      await refetch();
-    },
+    refresh,
   };
 }

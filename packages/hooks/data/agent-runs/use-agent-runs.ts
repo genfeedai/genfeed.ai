@@ -35,28 +35,13 @@ export function useAgentRuns(
     options.initialStats ?? null,
   );
 
-  const shouldRevalidateOnMount =
-    options.revalidateOnMount ?? options.initialRuns == null;
-
   const {
     data: runs = [] as IAgentRun[],
     isLoading,
     refetch,
   } = useQuery({
-    queryKey: [
-      'agent-runs',
-      options.historyOnly,
-      options.model,
-      options.page,
-      options.q,
-      options.routingPolicy,
-      options.sortMode,
-      options.status,
-      options.strategy,
-      options.timeRange,
-      options.trigger,
-      options.webSearchEnabled,
-    ],
+    initialData: options.initialRuns ?? undefined,
+    initialDataUpdatedAt: options.initialRuns ? 0 : undefined,
     queryFn: async () => {
       const token = await resolveClerkToken(getToken);
       if (!token) return [];
@@ -82,9 +67,25 @@ export function useAgentRuns(
       setStats(fetchedStats);
       return fetchedRuns;
     },
-    initialData: options.initialRuns ?? undefined,
-    staleTime: shouldRevalidateOnMount ? 0 : Number.POSITIVE_INFINITY,
+    queryKey: [
+      'agent-runs',
+      options.historyOnly,
+      options.model,
+      options.page,
+      options.q,
+      options.routingPolicy,
+      options.sortMode,
+      options.status,
+      options.strategy,
+      options.timeRange,
+      options.trigger,
+      options.webSearchEnabled,
+    ],
   });
+
+  const refresh = async () => {
+    await refetch();
+  };
 
   const cancelRun = useCallback(
     async (id: string) => {
@@ -101,9 +102,7 @@ export function useAgentRuns(
   return {
     cancelRun,
     isLoading,
-    refresh: async () => {
-      await refetch();
-    },
+    refresh,
     runs,
     stats,
   };

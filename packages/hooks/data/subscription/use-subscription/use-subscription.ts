@@ -13,7 +13,7 @@ import { NotificationsService } from '@genfeedai/services/core/notifications.ser
 import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
 import { getClerkPublicData } from '@helpers/auth/clerk.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 
 const SUBSCRIPTION_CACHE_TTL_MS = 60_000;
@@ -21,7 +21,6 @@ const CREDITS_CACHE_TTL_MS = 30_000;
 
 export function useSubscription(): UseSubscriptionReturn {
   const { user } = useUser();
-  const queryClient = useQueryClient();
 
   const notificationsService = NotificationsService.getInstance();
 
@@ -45,19 +44,12 @@ export function useSubscription(): UseSubscriptionReturn {
     return publicData.organization;
   }, [user]);
 
-  const subscriptionQueryKey = ['subscription', organizationId];
-  const creditsQueryKey = [
-    'credits-breakdown',
-    organizationId ?? 'no-org',
-    user?.id,
-  ];
-
   const {
     data: subscription = null,
     isLoading: isLoadingSubscription,
     refetch: refetchSubscription,
   } = useQuery({
-    queryKey: subscriptionQueryKey,
+    enabled: !!organizationId,
     queryFn: async () => {
       if (!organizationId) {
         return null;
@@ -68,17 +60,17 @@ export function useSubscription(): UseSubscriptionReturn {
 
       return data || null;
     },
+    queryKey: ['subscription', organizationId],
     staleTime: SUBSCRIPTION_CACHE_TTL_MS,
-    enabled: !!organizationId,
   });
 
   const {
     data: creditsBreakdown = null,
     isLoading: isLoadingCredits,
     refetch: refetchCredits,
-    error: creditsQueryError,
+    error: creditsError,
   } = useQuery({
-    queryKey: creditsQueryKey,
+    enabled: !!user,
     queryFn: async () => {
       if (!user) {
         return null;
@@ -89,61 +81,12 @@ export function useSubscription(): UseSubscriptionReturn {
 
       return data as ICreditsBreakdown;
     },
+    queryKey: ['credits-breakdown', organizationId, user?.id],
     staleTime: CREDITS_CACHE_TTL_MS,
-    enabled: !!user,
   });
 
   const isLoading = isLoadingSubscription || isLoadingCredits;
-  const error =
-    creditsQueryError instanceof Error ? creditsQueryError.message : null;
-
-  const openBillingPortal = async () => {
-    try {
-      const service = await getStripeService();
-      const response: IBillingPortalResponse = await service.getPortalUrl();
-
-      window.open(response.url, '_blank');
-    } catch (err) {
-      logger.error('Failed to open billing portal:', err);
-      notificationsService.error('Opening billing portal');
-    }
-  };
-
-  // const postSubscriptionPreview = async (
-  //   newPriceId: string,
-  // ): Promise<ISubscriptionPreview> => {
-  //   try {
-  //     const token: string =
-  //     const service = SubscriptionsService.getInstance(token);
-
-  //     const body: Partial<ISubscriptionPreview> = {
-  //       price: newPriceId,
-  //     };
-
-  //     return await service.postSubscriptionPreview(body);
-  //   } catch (error) {
-  //     logger.error('Failed to preview subscription change:', error);
-  //     notificationsService.error('Subscription preview');
-  //     setError('Failed to preview subscription change');
-  //     throw error;
-  //   }
-  // };
-
-  const changeSubscriptionPlan = async (newPriceId: string): Promise<void> => {
-    try {
-      const service = await getSubscriptionsService();
-      await service.changeSubscriptionPlan(newPriceId);
-
-      await refetchSubscription();
-      await refetchCredits();
-
-      notificationsService.success('Subscription plan changed');
-    } catch (err) {
-      logger.error('Failed to change subscription plan:', err);
-      notificationsService.error('Subscription plan change');
-      throw err;
-    }
-  };
+  const error = creditsError?.message ?? null;
 
   const refreshSubscription = async () => {
     await refetchSubscription();
@@ -153,8 +96,35 @@ export function useSubscription(): UseSubscriptionReturn {
     await refetchCredits();
   };
 
+  const openBillingPortal = async () => {
+    try {
+      const service = await getStripeService();
+      const response: IBillingPortalResponse = await service.getPortalUrl();
+
+      window.open(response.url, '_blank');
+    } catch (error) {
+      logger.error('Failed to open billing portal:', error);
+      notificationsService.error('Opening billing portal');
+    }
+  };
+
+  const changeSubscriptionPlan = async (newPriceId: string): Promise<void> => {
+    try {
+      const service = await getSubscriptionsService();
+      await service.changeSubscriptionPlan(newPriceId);
+
+      await refreshSubscription();
+      await refreshCreditsBreakdown();
+
+      notificationsService.success('Subscription plan changed');
+    } catch (error) {
+      logger.error('Failed to change subscription plan:', error);
+      notificationsService.error('Subscription plan change');
+      throw error;
+    }
+  };
+
   return {
-    // postSubscriptionPreview,
     changeSubscriptionPlan,
     creditsBreakdown,
     error,

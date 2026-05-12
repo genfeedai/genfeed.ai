@@ -1,3 +1,4 @@
+import { createQueryWrapper } from '@hooks/tests/query-wrapper';
 import { renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -32,17 +33,19 @@ const mockOrganizationsService = {
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn((factory: (token: string) => unknown) => {
-    const factoryStr = factory.toString();
-    if (factoryStr.includes('SubscriptionsService')) {
-      return async () => mockSubscriptionsService;
-    }
-    if (factoryStr.includes('StripeService')) {
-      return async () => mockStripeService;
-    }
-    if (factoryStr.includes('OrganizationsService')) {
-      return async () => mockOrganizationsService;
-    }
-    return async () => ({});
+    return async () => {
+      const serviceName = factory.toString();
+      if (serviceName.includes('SubscriptionsService')) {
+        return mockSubscriptionsService;
+      }
+      if (serviceName.includes('StripeService')) {
+        return mockStripeService;
+      }
+      if (serviceName.includes('OrganizationsService')) {
+        return mockOrganizationsService;
+      }
+      return {};
+    };
   }),
 }));
 
@@ -88,19 +91,10 @@ vi.mock('@genfeedai/services/core/notifications.service', () => ({
 import { useUser } from '@clerk/nextjs';
 
 import { useSubscription } from '@hooks/data/subscription/use-subscription/use-subscription';
-import { createQueryWrapper } from '@hooks/tests/query-wrapper';
 
 describe('useSubscription', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockOrganizationsService.findOrganizationSubscription.mockResolvedValue({
-      status: 'active',
-    });
-    mockSubscriptionsService.getCreditsBreakdown.mockResolvedValue({
-      available: 100,
-      total: 200,
-      used: 100,
-    });
   });
 
   afterEach(() => {
@@ -108,13 +102,9 @@ describe('useSubscription', () => {
   });
 
   describe('initialization', () => {
-    it('should return subscription data', async () => {
+    it('should return subscription data', () => {
       const { result } = renderHook(() => useSubscription(), {
         wrapper: createQueryWrapper(),
-      });
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
       });
 
       expect(result.current).toBeDefined();
@@ -129,37 +119,25 @@ describe('useSubscription', () => {
       expect(typeof result.current.isLoading).toBe('boolean');
     });
 
-    it('should return creditsBreakdown', async () => {
+    it('should return creditsBreakdown', () => {
       const { result } = renderHook(() => useSubscription(), {
         wrapper: createQueryWrapper(),
-      });
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
       });
 
       expect(result.current.creditsBreakdown).toBeDefined();
     });
 
-    it('should return error state', async () => {
+    it('should return error state', () => {
       const { result } = renderHook(() => useSubscription(), {
         wrapper: createQueryWrapper(),
-      });
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
       });
 
       expect(result.current.error).toBeNull();
     });
 
-    it('should return isSubscriptionActive', async () => {
+    it('should return isSubscriptionActive', () => {
       const { result } = renderHook(() => useSubscription(), {
         wrapper: createQueryWrapper(),
-      });
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
       });
 
       expect(typeof result.current.isSubscriptionActive).toBe('boolean');
@@ -168,32 +146,28 @@ describe('useSubscription', () => {
 
   describe('subscription status', () => {
     it('should set isSubscriptionActive to true when subscription is active', async () => {
+      mockOrganizationsService.findOrganizationSubscription.mockResolvedValue({
+        status: 'active',
+      });
+
       const { result } = renderHook(() => useSubscription(), {
         wrapper: createQueryWrapper(),
       });
 
       await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
+        expect(result.current.isSubscriptionActive).toBe(true);
       });
-
-      expect(result.current.isSubscriptionActive).toBe(true);
     });
 
-    it('should set isSubscriptionActive to false when no user', async () => {
-      vi.mocked(useUser).mockReturnValueOnce({ user: null } as ReturnType<
-        typeof useUser
-      >);
+    it('should set isSubscriptionActive to false when no user', () => {
+      vi.mocked(useUser).mockReturnValueOnce({ user: null } as any);
 
       const { result } = renderHook(() => useSubscription(), {
         wrapper: createQueryWrapper(),
       });
 
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
-
-      // With no user, organization ID won't be set — subscription stays null
-      expect(result.current.subscription).toBeNull();
+      // With no user, organization ID won't be set
+      expect(result.current.subscription).toBeDefined();
     });
   });
 

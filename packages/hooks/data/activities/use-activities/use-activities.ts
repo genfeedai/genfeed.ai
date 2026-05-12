@@ -63,18 +63,7 @@ export function useActivities({
     isFetching,
     refetch,
   } = useQuery({
-    queryKey: [
-      'activities',
-      autoLoad,
-      isAuthReady,
-      hasAuthenticatedSession,
-      isSuperAdmin,
-      scope,
-      organizationId,
-      brandId,
-      page,
-      limit,
-    ],
+    enabled: autoLoad && isAuthReady && hasAuthenticatedSession,
     queryFn: async () => {
       if (!autoLoad || !hasAuthenticatedSession) {
         return [];
@@ -118,7 +107,18 @@ export function useActivities({
 
       return data;
     },
-    enabled: autoLoad && isAuthReady && hasAuthenticatedSession,
+    queryKey: [
+      'activities',
+      autoLoad,
+      isAuthReady,
+      hasAuthenticatedSession,
+      isSuperAdmin,
+      scope,
+      organizationId,
+      brandId,
+      page,
+      limit,
+    ],
   });
 
   const isRefreshing = isFetching && !isLoading;
@@ -149,6 +149,10 @@ export function useActivities({
     return { statusCounts, todayCount, total };
   }, [activities]);
 
+  const refresh = async () => {
+    await refetch();
+  };
+
   const patchActivities = async (activityIds: string[]) => {
     if (activityIds.length === 0) {
       return;
@@ -156,7 +160,7 @@ export function useActivities({
 
     await withSilentOperation({
       errorMessage: 'Failed to mark activities as read',
-      onSuccess: () => void refetch(),
+      onSuccess: refresh,
       operation: async () => {
         const service = await getActivitiesService();
         return service.bulkPatch({
@@ -176,7 +180,7 @@ export function useActivities({
 
     await withSilentOperation({
       errorMessage: 'Failed to clear completed activities',
-      onSuccess: () => void refetch(),
+      onSuccess: refresh,
       operation: async () => {
         const service = await getActivitiesService();
         return service.bulkPatch({
@@ -210,7 +214,7 @@ export function useActivities({
 
     await withSilentOperation({
       errorMessage: 'Failed to update activity status',
-      onSuccess: () => void refetch(),
+      onSuccess: refresh,
       operation: async () => {
         const service = await getActivitiesService();
         return service.patch(activityId, {
@@ -231,9 +235,7 @@ export function useActivities({
     isLoading,
     isRefreshing,
     markActivitiesAsRead,
-    refresh: async () => {
-      await refetch();
-    },
+    refresh,
     setFilter,
     toggleActivityRead,
   };

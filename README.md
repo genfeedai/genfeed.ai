@@ -9,6 +9,9 @@
 
 ---
 
+> [!WARNING]
+> This project is under active development and is a work in progress. Features may be incomplete, APIs may change, and there may be bugs. Contributions and feedback welcome!
+
 ## What is Genfeed.ai?
 
 Genfeed.ai is a self-hostable, AI-powered content creation platform. Generate images, videos, voice, music, and text through a visual workflow editor. Schedule and publish to any platform from a single interface. Deploy with Docker in minutes.
