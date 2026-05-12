@@ -112,82 +112,87 @@ export default function DropdownPrompt({
     return null;
   }
 
-  // Render dropdown menu via portal
-  const renderDropdown = () => {
-    if (!isOpen || typeof window === 'undefined') {
-      return null;
-    }
-
-    return createPortal(
-      <div
-        ref={dropdownRef}
-        data-dropdown="true"
-        style={{
-          position: 'absolute',
-          top:
-            direction === 'up'
-              ? `${dropdownPosition.top - 8}px`
-              : `${dropdownPosition.top + dropdownPosition.buttonHeight + 8}px`,
-          ...(dropdownPosition.useRight
-            ? { right: `${dropdownPosition.right}px` }
-            : { left: `${dropdownPosition.left}px` }),
-          transform: direction === 'up' ? 'translateY(-100%)' : 'none',
-          zIndex: 50,
-        }}
-        className={cn(BG_BLUR, BORDER_WHITE_30, 'w-80')}
-      >
-        {/* Header with Copy and Reprompt Buttons */}
-        <div className="p-3 border-b border-white/[0.08] flex items-center justify-between">
-          <div className="text-xs uppercase text-foreground/60">Prompt</div>
-          <div className="flex items-center gap-2">
-            {onReprompt && (
-              <Button
-                withWrapper={false}
-                variant={ButtonVariant.UNSTYLED}
-                className="h-6 px-2 text-xs hover:bg-accent hover:text-accent-foreground"
-                title="Regenerate with same settings"
-                ariaLabel="Regenerate"
-                tooltip="Regenerate with same settings"
-                tooltipPosition="top"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onReprompt();
-                  setIsOpen(false);
-                }}
-              >
-                <HiArrowPath className="size-4" />
-              </Button>
-            )}
-
-            <Button
-              withWrapper={false}
-              variant={ButtonVariant.UNSTYLED}
-              onClick={handleCopyPrompt}
-              className="h-6 px-2 text-xs hover:bg-accent hover:text-accent-foreground"
-              title="Copy prompt"
-              ariaLabel="Copy prompt"
-              tooltip="Copy prompt"
-              tooltipPosition="top"
-            >
-              <HiDocumentDuplicate className="size-4" />
-            </Button>
-          </div>
-        </div>
-
-        {/* Prompt Text */}
-        <div className="p-4">
+  // Dropdown menu via portal
+  const dropdownPortal =
+    isOpen && typeof window !== 'undefined'
+      ? createPortal(
           <div
-            onClick={handlePromptTextClick}
-            className="text-sm text-foreground cursor-pointer hover:bg-background p-3 transition-colors select-all"
-            title="Click to copy"
+            ref={dropdownRef}
+            data-dropdown="true"
+            style={{
+              position: 'absolute',
+              top:
+                direction === 'up'
+                  ? `${dropdownPosition.top - 8}px`
+                  : `${dropdownPosition.top + dropdownPosition.buttonHeight + 8}px`,
+              ...(dropdownPosition.useRight
+                ? { right: `${dropdownPosition.right}px` }
+                : { left: `${dropdownPosition.left}px` }),
+              transform: direction === 'up' ? 'translateY(-100%)' : 'none',
+              zIndex: 50,
+            }}
+            className={cn(BG_BLUR, BORDER_WHITE_30, 'w-80')}
           >
-            {promptText}
-          </div>
-        </div>
-      </div>,
-      document.body,
-    );
-  };
+            {/* Header with Copy and Reprompt Buttons */}
+            <div className="p-3 border-b border-white/[0.08] flex items-center justify-between">
+              <div className="text-xs uppercase text-foreground/60">Prompt</div>
+              <div className="flex items-center gap-2">
+                {onReprompt && (
+                  <Button
+                    withWrapper={false}
+                    variant={ButtonVariant.UNSTYLED}
+                    className="h-6 px-2 text-xs hover:bg-accent hover:text-accent-foreground"
+                    title="Regenerate with same settings"
+                    ariaLabel="Regenerate"
+                    tooltip="Regenerate with same settings"
+                    tooltipPosition="top"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onReprompt();
+                      setIsOpen(false);
+                    }}
+                  >
+                    <HiArrowPath className="size-4" />
+                  </Button>
+                )}
+
+                <Button
+                  withWrapper={false}
+                  variant={ButtonVariant.UNSTYLED}
+                  onClick={handleCopyPrompt}
+                  className="h-6 px-2 text-xs hover:bg-accent hover:text-accent-foreground"
+                  title="Copy prompt"
+                  ariaLabel="Copy prompt"
+                  tooltip="Copy prompt"
+                  tooltipPosition="top"
+                >
+                  <HiDocumentDuplicate className="size-4" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Prompt Text */}
+            <div className="p-4">
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={handlePromptTextClick}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleCopyPrompt();
+                  }
+                }}
+                className="text-sm text-foreground cursor-pointer hover:bg-background p-3 transition-colors select-all"
+                title="Click to copy"
+              >
+                {promptText}
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )
+      : null;
 
   return (
     <div className="relative">
@@ -207,7 +212,7 @@ export default function DropdownPrompt({
       </Button>
 
       {/* Dropdown Menu rendered via portal */}
-      {renderDropdown()}
+      {dropdownPortal}
     </div>
   );
 }

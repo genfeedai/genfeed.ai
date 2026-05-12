@@ -4,7 +4,20 @@ import { formatFullNumber } from '@genfeedai/helpers/formatting/format/format.he
 import type { PlatformBreakdownChartProps } from '@genfeedai/props/analytics/analytics.props';
 import Card from '@ui/card/Card';
 import { ChartContainer, ChartTooltipContent } from '@ui/charts';
-import { Cell, Pie, PieChart, Tooltip } from 'recharts';
+import dynamic from 'next/dynamic';
+
+const PieChart = dynamic(() => import('recharts').then((m) => m.PieChart), {
+  ssr: false,
+});
+const Pie = dynamic(() => import('recharts').then((m) => m.Pie), {
+  ssr: false,
+});
+const Cell = dynamic(() => import('recharts').then((m) => m.Cell), {
+  ssr: false,
+});
+const Tooltip = dynamic(() => import('recharts').then((m) => m.Tooltip), {
+  ssr: false,
+});
 
 const PLATFORM_COLORS: Record<string, string> = {
   facebook: 'var(--platform-facebook)',

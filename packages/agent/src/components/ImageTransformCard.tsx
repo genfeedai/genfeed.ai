@@ -14,7 +14,7 @@ export function ImageTransformCard({
   return (
     <div className="border border-border bg-background p-4 my-2">
       <div className="flex items-center gap-2 mb-3">
-        <HiPhoto className="w-5 h-5 text-purple-500" />
+        <HiPhoto className="size-5 text-purple-500" />
         <h3 className="font-semibold text-sm">
           {action.title || 'Image Transform'}
         </h3>
@@ -42,9 +42,9 @@ export function ImageTransformCard({
               className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-100 transition-colors"
             >
               {cta.label.toLowerCase().includes('upscale') ? (
-                <HiArrowsPointingOut className="w-3 h-3" />
+                <HiArrowsPointingOut className="size-3" />
               ) : (
-                <HiSparkles className="w-3 h-3" />
+                <HiSparkles className="size-3" />
               )}
               {cta.label}
             </a>

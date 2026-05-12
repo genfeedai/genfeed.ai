@@ -26,12 +26,14 @@ import {
   HiOutlineSparkles,
 } from 'react-icons/hi2';
 
+const _currencyFormatter = new Intl.NumberFormat('en-US', {
+  currency: 'USD',
+  maximumFractionDigits: 0,
+  style: 'currency',
+});
+
 function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('en-US', {
-    currency: 'USD',
-    maximumFractionDigits: 0,
-    style: 'currency',
-  }).format(value);
+  return _currencyFormatter.format(value);
 }
 
 function _formatPercent(value: number): string {

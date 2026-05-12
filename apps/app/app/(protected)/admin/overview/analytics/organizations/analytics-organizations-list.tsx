@@ -244,7 +244,7 @@ export default function AnalyticsOrganizationsList({
               variant={ButtonVariant.GHOST}
               size={ButtonSize.SM}
               isDisabled={page === 1}
-              onClick={() => setPage(page - 1)}
+              onClick={() => setPage((prev) => prev - 1)}
               icon={<HiChevronLeft className="size-4" />}
             />
             <span className="text-sm">
@@ -254,7 +254,7 @@ export default function AnalyticsOrganizationsList({
               variant={ButtonVariant.GHOST}
               size={ButtonSize.SM}
               isDisabled={page === pagination.totalPages}
-              onClick={() => setPage(page + 1)}
+              onClick={() => setPage((prev) => prev + 1)}
               icon={<HiChevronRight className="size-4" />}
             />
           </div>

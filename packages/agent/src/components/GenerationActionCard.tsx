@@ -130,7 +130,7 @@ function QualityBadge({
             onClick={onRegenerate}
             className="border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200 dark:hover:bg-amber-900"
           >
-            <HiArrowPath className="h-3 w-3" />
+            <HiArrowPath className="size-3" />
             Regenerate
           </Button>
         )}
@@ -381,7 +381,7 @@ export function GenerationActionCard({
           ariaLabel="Copy prompt"
           className="p-1 text-muted-foreground hover:text-foreground"
         >
-          <HiOutlineClipboard className="h-3.5 w-3.5" />
+          <HiOutlineClipboard className="size-3.5" />
         </Button>
         <Button
           variant={ButtonVariant.GHOST}
@@ -392,13 +392,13 @@ export function GenerationActionCard({
           ariaLabel="Retry"
           className="p-1 text-muted-foreground hover:text-foreground"
         >
-          <HiArrowPath className="h-3.5 w-3.5" />
+          <HiArrowPath className="size-3.5" />
         </Button>
       </div>
 
       {/* Header */}
       <div className="flex items-center gap-2 border-b border-border px-3 py-2">
-        <Icon className="h-4 w-4 text-primary" />
+        <Icon className="size-4 text-primary" />
         <span className="text-sm font-medium text-foreground">
           {action.title}
         </span>
@@ -529,7 +529,7 @@ export function GenerationActionCard({
             isDisabled={!prompt.trim()}
             className="w-full"
           >
-            <HiPlay className="h-4 w-4" />
+            <HiPlay className="size-4" />
             Generate {isImage ? 'Image' : 'Video'}
           </Button>
         )}
@@ -537,7 +537,7 @@ export function GenerationActionCard({
         {/* Generating state */}
         {status === 'generating' && (
           <div className="flex items-center justify-center gap-2 border border-border px-4 py-3">
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <div className="size-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
             <span className="text-sm text-muted-foreground">Generating...</span>
           </div>
         )}
@@ -555,7 +555,7 @@ export function GenerationActionCard({
               }}
               className="w-full"
             >
-              <HiArrowPath className="h-4 w-4" />
+              <HiArrowPath className="size-4" />
               Try Again
             </Button>
           </div>
@@ -604,7 +604,7 @@ export function GenerationActionCard({
                 }}
                 className="flex-1"
               >
-                <HiArrowPath className="h-3 w-3" />
+                <HiArrowPath className="size-3" />
                 Regenerate
               </Button>
             </div>

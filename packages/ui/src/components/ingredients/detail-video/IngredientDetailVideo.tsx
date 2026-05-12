@@ -38,6 +38,7 @@ import LoadingOverlay from '@ui/loading/overlay/LoadingOverlay';
 import { Button } from '@ui/primitives/button';
 import IngredientQuickActions from '@ui/quick-actions/actions/IngredientQuickActions';
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { HiOutlineFilm } from 'react-icons/hi2';
 
@@ -287,26 +288,29 @@ export default function IngredientDetailVideo({
             </h4>
 
             <div className="flex flex-wrap gap-2">
-              {childIngredients
-                .filter((child) =>
+              {childIngredients.reduce<ReactNode[]>((acc, child) => {
+                if (
                   child.transformations?.includes(
                     TransformationCategory.CAPTIONED,
-                  ),
-                )
-                .map((child) => (
-                  <Button
-                    key={child.id}
-                    withWrapper={false}
-                    onClick={() => onSeeDetails?.(child)}
-                    variant={ButtonVariant.OUTLINE}
-                    size={ButtonSize.SM}
-                    ariaLabel={child.metadataLabel || 'Captioned Version'}
-                  >
-                    <span className="text-xs">
-                      📝 {child.metadataLabel || 'Captioned Version'}
-                    </span>
-                  </Button>
-                ))}
+                  )
+                ) {
+                  acc.push(
+                    <Button
+                      key={child.id}
+                      withWrapper={false}
+                      onClick={() => onSeeDetails?.(child)}
+                      variant={ButtonVariant.OUTLINE}
+                      size={ButtonSize.SM}
+                      ariaLabel={child.metadataLabel || 'Captioned Version'}
+                    >
+                      <span className="text-xs">
+                        📝 {child.metadataLabel || 'Captioned Version'}
+                      </span>
+                    </Button>,
+                  );
+                }
+                return acc;
+              }, [])}
 
               {childIngredients
                 .filter(

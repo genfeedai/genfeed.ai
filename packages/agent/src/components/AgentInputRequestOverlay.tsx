@@ -65,7 +65,7 @@ export function AgentInputRequestOverlay({
                 }}
                 className="flex w-full items-start gap-4 border border-white/[0.08] bg-white/[0.02] px-5 py-4 text-left transition-colors hover:border-primary/40 hover:bg-white/[0.04] disabled:opacity-50"
               >
-                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center bg-white/[0.04] text-sm text-foreground/70">
+                <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center bg-white/[0.04] text-sm text-foreground/70">
                   {index + 1}
                 </span>
                 <span className="block">

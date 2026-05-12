@@ -16,8 +16,7 @@ import { ChevronDown, ChevronUp } from 'lucide-react';
 import {
   type ChangeEvent,
   Children,
-  type ComponentPropsWithoutRef,
-  forwardRef,
+  type ComponentPropsWithRef,
   isValidElement,
   type ReactElement,
   type ReactNode,
@@ -46,91 +45,122 @@ const selectFieldVariants = cva('', {
   },
 });
 
-const SelectTrigger = forwardRef<
-  React.ElementRef<typeof SelectPrimitive.Trigger>,
-  ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger>
->(({ className, children, ...props }, ref) => (
-  <ShipSelectTrigger ref={ref} className={cn('ship-ui', className)} {...props}>
-    {children}
-  </ShipSelectTrigger>
-));
+function SelectTrigger({
+  ref,
+  className,
+  children,
+  ...props
+}: ComponentPropsWithRef<typeof SelectPrimitive.Trigger>) {
+  return (
+    <ShipSelectTrigger
+      ref={ref}
+      className={cn('ship-ui', className)}
+      {...props}
+    >
+      {children}
+    </ShipSelectTrigger>
+  );
+}
 SelectTrigger.displayName = SelectPrimitive.Trigger.displayName;
 
-const SelectScrollUpButton = forwardRef<
-  React.ElementRef<typeof SelectPrimitive.ScrollUpButton>,
-  ComponentPropsWithoutRef<typeof SelectPrimitive.ScrollUpButton>
->(({ className, ...props }, ref) => (
-  <SelectPrimitive.ScrollUpButton
-    ref={ref}
-    className={cn(
-      'flex cursor-default items-center justify-center py-1',
-      className,
-    )}
-    {...props}
-  >
-    <ChevronUp className="size-4" aria-hidden="true" />
-  </SelectPrimitive.ScrollUpButton>
-));
+function SelectScrollUpButton({
+  ref,
+  className,
+  ...props
+}: ComponentPropsWithRef<typeof SelectPrimitive.ScrollUpButton>) {
+  return (
+    <SelectPrimitive.ScrollUpButton
+      ref={ref}
+      className={cn(
+        'flex cursor-default items-center justify-center py-1',
+        className,
+      )}
+      {...props}
+    >
+      <ChevronUp className="size-4" aria-hidden="true" />
+    </SelectPrimitive.ScrollUpButton>
+  );
+}
 SelectScrollUpButton.displayName = SelectPrimitive.ScrollUpButton.displayName;
 
-const SelectScrollDownButton = forwardRef<
-  React.ElementRef<typeof SelectPrimitive.ScrollDownButton>,
-  ComponentPropsWithoutRef<typeof SelectPrimitive.ScrollDownButton>
->(({ className, ...props }, ref) => (
-  <SelectPrimitive.ScrollDownButton
-    ref={ref}
-    className={cn(
-      'flex cursor-default items-center justify-center py-1',
-      className,
-    )}
-    {...props}
-  >
-    <ChevronDown className="size-4" aria-hidden="true" />
-  </SelectPrimitive.ScrollDownButton>
-));
+function SelectScrollDownButton({
+  ref,
+  className,
+  ...props
+}: ComponentPropsWithRef<typeof SelectPrimitive.ScrollDownButton>) {
+  return (
+    <SelectPrimitive.ScrollDownButton
+      ref={ref}
+      className={cn(
+        'flex cursor-default items-center justify-center py-1',
+        className,
+      )}
+      {...props}
+    >
+      <ChevronDown className="size-4" aria-hidden="true" />
+    </SelectPrimitive.ScrollDownButton>
+  );
+}
 SelectScrollDownButton.displayName =
   SelectPrimitive.ScrollDownButton.displayName;
 
-const SelectContent = forwardRef<
-  React.ElementRef<typeof SelectPrimitive.Content>,
-  ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
->(({ className, ...props }, ref) => (
-  <ShipSelectContent
-    ref={ref}
-    className={cn(fieldControlPopoverClassName, className)}
-    {...props}
-  />
-));
+function SelectContent({
+  ref,
+  className,
+  ...props
+}: ComponentPropsWithRef<typeof SelectPrimitive.Content>) {
+  return (
+    <ShipSelectContent
+      ref={ref}
+      className={cn(fieldControlPopoverClassName, className)}
+      {...props}
+    />
+  );
+}
 SelectContent.displayName = SelectPrimitive.Content.displayName;
 
-const SelectLabel = forwardRef<
-  React.ElementRef<typeof SelectPrimitive.Label>,
-  ComponentPropsWithoutRef<typeof SelectPrimitive.Label>
->(({ className, ...props }, ref) => (
-  <ShipSelectLabel ref={ref} className={cn('ship-ui', className)} {...props} />
-));
+function SelectLabel({
+  ref,
+  className,
+  ...props
+}: ComponentPropsWithRef<typeof SelectPrimitive.Label>) {
+  return (
+    <ShipSelectLabel
+      ref={ref}
+      className={cn('ship-ui', className)}
+      {...props}
+    />
+  );
+}
 SelectLabel.displayName = SelectPrimitive.Label.displayName;
 
-const SelectItem = forwardRef<
-  React.ElementRef<typeof SelectPrimitive.Item>,
-  ComponentPropsWithoutRef<typeof SelectPrimitive.Item>
->(({ className, children, ...props }, ref) => (
-  <ShipSelectItem ref={ref} className={cn('ship-ui', className)} {...props}>
-    {children}
-  </ShipSelectItem>
-));
+function SelectItem({
+  ref,
+  className,
+  children,
+  ...props
+}: ComponentPropsWithRef<typeof SelectPrimitive.Item>) {
+  return (
+    <ShipSelectItem ref={ref} className={cn('ship-ui', className)} {...props}>
+      {children}
+    </ShipSelectItem>
+  );
+}
 SelectItem.displayName = SelectPrimitive.Item.displayName;
 
-const SelectSeparator = forwardRef<
-  React.ElementRef<typeof SelectPrimitive.Separator>,
-  ComponentPropsWithoutRef<typeof SelectPrimitive.Separator>
->(({ className, ...props }, ref) => (
-  <ShipSelectSeparator
-    ref={ref}
-    className={cn('ship-ui', className)}
-    {...props}
-  />
-));
+function SelectSeparator({
+  ref,
+  className,
+  ...props
+}: ComponentPropsWithRef<typeof SelectPrimitive.Separator>) {
+  return (
+    <ShipSelectSeparator
+      ref={ref}
+      className={cn('ship-ui', className)}
+      {...props}
+    />
+  );
+}
 SelectSeparator.displayName = SelectPrimitive.Separator.displayName;
 
 interface SelectFieldOption {

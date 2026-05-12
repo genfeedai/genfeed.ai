@@ -3,22 +3,28 @@ import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import {
-  forwardRef,
   type ReactElement,
+  type Ref,
   useEffect,
   useImperativeHandle,
   useState,
 } from 'react';
 
+interface BrandMentionListHandle {
+  onKeyDown: (props: { event: KeyboardEvent }) => boolean;
+}
+
 interface BrandMentionListProps {
   items: BrandMentionItem[];
   command: (item: BrandMentionItem) => void;
+  ref?: Ref<BrandMentionListHandle>;
 }
 
-export const BrandMentionList = forwardRef<
-  { onKeyDown: (props: { event: KeyboardEvent }) => boolean },
-  BrandMentionListProps
->(function BrandMentionList({ items, command }, ref): ReactElement {
+export function BrandMentionList({
+  items,
+  command,
+  ref,
+}: BrandMentionListProps): ReactElement {
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   useEffect(() => {
@@ -79,4 +85,4 @@ export const BrandMentionList = forwardRef<
       ))}
     </div>
   );
-});
+}

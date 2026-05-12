@@ -72,6 +72,26 @@ function getStartFrameTooltip(
   return defaultLabel;
 }
 
+function ClearButton({
+  onClick,
+  title,
+}: {
+  onClick: (e: MouseEvent) => void;
+  title: string;
+}): React.ReactElement {
+  return (
+    <Button
+      variant={ButtonVariant.UNSTYLED}
+      withWrapper={false}
+      onClick={onClick}
+      ariaLabel={title}
+      className="absolute top-0 right-0 size-4 bg-black/70 hover:bg-error rounded-bl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+      tooltip={title}
+      icon={<HiXMark className="size-3 text-white" />}
+    />
+  );
+}
+
 function getEndFrameTooltip(
   hasInterpolation: boolean,
   refCount: number,
@@ -200,9 +220,10 @@ const PromptBarFrameControls = memo(function PromptBarFrameControls({
       maxSelectableItems: getMaxSelectableItems(),
       onSelect: handleReferenceSelect,
       onSelectAccountReference: (assets) => setReferences(assets, 'brand'),
-      selectedReferences: references
-        .map((ref) => ref.id)
-        .filter((id): id is string => id !== undefined),
+      selectedReferences: references.reduce<string[]>((acc, ref) => {
+        if (ref.id !== undefined) acc.push(ref.id);
+        return acc;
+      }, []),
       title: isVideoModel ? 'Select Start Frame' : 'Select Reference Images',
     });
   };
@@ -239,21 +260,6 @@ const PromptBarFrameControls = memo(function PromptBarFrameControls({
     }
   };
 
-  const renderClearButton = (
-    onClick: (e: MouseEvent) => void,
-    title: string,
-  ) => (
-    <Button
-      variant={ButtonVariant.UNSTYLED}
-      withWrapper={false}
-      onClick={onClick}
-      ariaLabel={title}
-      className="absolute top-0 right-0 size-4 bg-black/70 hover:bg-error rounded-bl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-      tooltip={title}
-      icon={<HiXMark className="size-3 text-white" />}
-    />
-  );
-
   return (
     <>
       <Button
@@ -286,10 +292,10 @@ const PromptBarFrameControls = memo(function PromptBarFrameControls({
                   {references.length}
                 </div>
               )}
-              {renderClearButton(
-                clearReferences,
-                isVideoModel ? 'Clear start frame' : 'Clear reference',
-              )}
+              <ClearButton
+                onClick={clearReferences}
+                title={isVideoModel ? 'Clear start frame' : 'Clear reference'}
+              />
             </div>
           ) : (
             <HiPhoto className="size-4" />
@@ -317,7 +323,7 @@ const PromptBarFrameControls = memo(function PromptBarFrameControls({
                   sizes="40px"
                   priority
                 />
-                {renderClearButton(clearEndFrame, 'Clear end frame')}
+                <ClearButton onClick={clearEndFrame} title="Clear end frame" />
               </div>
             ) : (
               <HiTv className="size-4" />

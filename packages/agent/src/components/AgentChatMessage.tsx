@@ -689,7 +689,7 @@ export function AgentChatMessage({
             {userAttachments.map((attachment) => (
               <div
                 key={attachment.ingredientId}
-                className="h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-border/60"
+                className="size-10 shrink-0 overflow-hidden rounded-lg border border-border/60"
               >
                 <img
                   src={attachment.url}
@@ -750,7 +750,7 @@ export function AgentChatMessage({
               isUser ? 'text-foreground/38' : 'text-foreground/42',
             )}
           >
-            {!isUser && <HiOutlineClock className="h-3 w-3" />}
+            {!isUser && <HiOutlineClock className="size-3" />}
             {metaItems.map((item, index) => (
               <span
                 key={`${item}-${index}`}
@@ -775,7 +775,7 @@ export function AgentChatMessage({
                   ariaLabel="Copy message"
                   onClick={() => onCopy(copyContent)}
                 >
-                  <HiOutlineClipboard className="h-3.5 w-3.5" />
+                  <HiOutlineClipboard className="size-3.5" />
                 </Button>
               ) : null}
               {shouldShowAssistantActions && onRetry ? (
@@ -788,7 +788,7 @@ export function AgentChatMessage({
                   ariaLabel="Retry message"
                   onClick={() => onRetry(message)}
                 >
-                  <HiOutlineArrowPath className="h-3.5 w-3.5" />
+                  <HiOutlineArrowPath className="size-3.5" />
                 </Button>
               ) : null}
               {shouldShowAssistantActions && onRemember ? (
@@ -801,7 +801,7 @@ export function AgentChatMessage({
                   ariaLabel="Remember message"
                   onClick={() => onRemember(message)}
                 >
-                  <HiSparkles className="h-3.5 w-3.5 text-purple-300" />
+                  <HiSparkles className="size-3.5 text-purple-300" />
                 </Button>
               ) : null}
             </div>

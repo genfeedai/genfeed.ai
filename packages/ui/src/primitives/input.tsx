@@ -1,12 +1,11 @@
 import { Input as ShipInput } from '@shipshitdev/ui/primitives';
-import {
-  type ChangeEvent,
-  type FocusEvent,
-  forwardRef,
-  type InputHTMLAttributes,
-  type ReactElement,
-  type Ref,
-  type RefObject,
+import type {
+  ChangeEvent,
+  FocusEvent,
+  InputHTMLAttributes,
+  ReactElement,
+  Ref,
+  RefObject,
 } from 'react';
 import {
   type Control,
@@ -44,6 +43,7 @@ export interface InputProps<T extends FieldValues = FieldValues>
   name?: Path<T> | string;
   onBlur?: (event: FocusEvent<HTMLInputElement>) => void;
   onChange?: (event: ChangeEvent<HTMLInputElement>) => void;
+  ref?: Ref<HTMLInputElement>;
   required?: boolean;
 }
 
@@ -180,10 +180,12 @@ function ControlledInputInner<T extends FieldValues = FieldValues>({
   });
 }
 
-function InputInner<T extends FieldValues = FieldValues>(
-  { control, inputRef, ...props }: InputProps<T>,
-  ref: Ref<HTMLInputElement>,
-): ReactElement {
+function Input<T extends FieldValues = FieldValues>({
+  ref,
+  control,
+  inputRef,
+  ...props
+}: InputProps<T>): ReactElement {
   if (control && props.name) {
     return (
       <ControlledInputInner
@@ -201,12 +203,6 @@ function InputInner<T extends FieldValues = FieldValues>(
     inputRef,
   });
 }
-
-const Input = forwardRef(InputInner) as (<T extends FieldValues = FieldValues>(
-  props: InputProps<T> & { ref?: Ref<HTMLInputElement> },
-) => ReactElement) & {
-  displayName?: string;
-};
 
 Input.displayName = 'Input';
 

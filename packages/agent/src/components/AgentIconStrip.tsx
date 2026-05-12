@@ -23,10 +23,10 @@ export function AgentIconStrip({
           variant={ButtonVariant.GHOST}
           size={ButtonSize.ICON}
           onClick={onExpand}
-          className="h-8 w-8 bg-transparent text-primary hover:bg-primary/10"
+          className="size-8 bg-transparent text-primary hover:bg-primary/10"
           ariaLabel="Expand agent sidebar"
         >
-          <HiOutlineSparkles className="h-4 w-4" />
+          <HiOutlineSparkles className="size-4" />
         </Button>
       </div>
       <div className="flex-1" />

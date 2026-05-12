@@ -1,6 +1,6 @@
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { cva, type VariantProps } from 'class-variance-authority';
-import { type ElementType, forwardRef, type HTMLAttributes } from 'react';
+import type { ElementType, HTMLAttributes } from 'react';
 
 const headingVariants = cva('font-semibold text-foreground', {
   defaultVariants: {
@@ -31,20 +31,19 @@ export interface HeadingProps
   extends HTMLAttributes<HTMLHeadingElement>,
     VariantProps<typeof headingVariants> {
   as?: ElementType;
+  ref?: React.Ref<HTMLHeadingElement>;
 }
 
-const Heading = forwardRef<HTMLHeadingElement, HeadingProps>(
-  ({ as, className, size = 'lg', ...props }, ref) => {
-    const Component = as ?? headingElementMap[size ?? 'lg'] ?? 'h3';
-    return (
-      <Component
-        className={cn(headingVariants({ size }), className)}
-        ref={ref}
-        {...props}
-      />
-    );
-  },
-);
+function Heading({ ref, as, className, size = 'lg', ...props }: HeadingProps) {
+  const Component = as ?? headingElementMap[size ?? 'lg'] ?? 'h3';
+  return (
+    <Component
+      className={cn(headingVariants({ size }), className)}
+      ref={ref}
+      {...props}
+    />
+  );
+}
 Heading.displayName = 'Heading';
 
 export { Heading, headingVariants };

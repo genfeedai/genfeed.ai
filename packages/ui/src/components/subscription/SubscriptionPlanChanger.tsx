@@ -8,6 +8,17 @@ import { logger } from '@genfeedai/services/core/logger.service';
 import { Button } from '@ui/primitives/button';
 import { useState } from 'react';
 
+const currencyFormatterCache = new Map<string, Intl.NumberFormat>();
+
+function getCurrencyFormatter(currency: string): Intl.NumberFormat {
+  let formatter = currencyFormatterCache.get(currency);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat('en-US', { currency, style: 'currency' });
+    currencyFormatterCache.set(currency, formatter);
+  }
+  return formatter;
+}
+
 export default function SubscriptionPlanChanger({
   subscription,
   onPreviewChange,
@@ -65,10 +76,7 @@ export default function SubscriptionPlanChanger({
   };
 
   const formatAmount = (amount: number, currency: string = 'usd') => {
-    return new Intl.NumberFormat('en-US', {
-      currency: currency.toUpperCase(),
-      style: 'currency',
-    }).format(amount / 100);
+    return getCurrencyFormatter(currency.toUpperCase()).format(amount / 100);
   };
 
   return (

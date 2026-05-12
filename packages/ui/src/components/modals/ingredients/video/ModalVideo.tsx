@@ -103,8 +103,16 @@ export default function ModalVideo({
               {availableVideos.map((video) => (
                 <div
                   key={video.id}
+                  role="button"
+                  tabIndex={0}
                   className="cursor-pointer group"
                   onClick={() => onSelect(video)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onSelect(video);
+                    }
+                  }}
                 >
                   <div
                     className={`relative ${getAspectClass()} bg-background overflow-hidden shadow-md group-hover:shadow-xl transition-all group-hover:scale-105`}

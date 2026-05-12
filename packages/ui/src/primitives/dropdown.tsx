@@ -213,11 +213,10 @@ export function Dropdown({
   );
 
   if (!useManualPortal) {
+    const nonManualTrigger = renderTrigger(false);
     return (
       <DropdownMenu open={isOpen} onOpenChange={handleOpenChange}>
-        <DropdownMenuTrigger asChild>
-          {renderTrigger(false)}
-        </DropdownMenuTrigger>
+        <DropdownMenuTrigger asChild>{nonManualTrigger}</DropdownMenuTrigger>
 
         <DropdownMenuContent
           align="end"
@@ -235,40 +234,40 @@ export function Dropdown({
     );
   }
 
-  const renderPortalDropdown = () => {
-    if (!isOpen || typeof window === 'undefined') {
-      return null;
-    }
+  const portalDropdown =
+    isOpen && typeof window !== 'undefined'
+      ? createPortal(
+          <div
+            ref={dropdownRef}
+            data-dropdown="true"
+            data-quick-actions-dropdown="true"
+            style={{
+              position: 'absolute',
+              top: `${portalPos.top}px`,
+              ...(portalPos.useRight
+                ? { right: `${portalPos.right}px` }
+                : { left: `${portalPos.left}px` }),
+              minWidth,
+              transform:
+                position === 'bottom-full' ? 'translateY(-100%)' : 'none',
+              zIndex: 50,
+              ...(maxWidth && { maxWidth }),
+            }}
+          >
+            <div className="overflow-hidden rounded-md border border-border bg-popover p-1.5 text-popover-foreground shadow-md">
+              {children}
+            </div>
+          </div>,
+          document.body,
+        )
+      : null;
 
-    return createPortal(
-      <div
-        ref={dropdownRef}
-        data-dropdown="true"
-        data-quick-actions-dropdown="true"
-        style={{
-          position: 'absolute',
-          top: `${portalPos.top}px`,
-          ...(portalPos.useRight
-            ? { right: `${portalPos.right}px` }
-            : { left: `${portalPos.left}px` }),
-          minWidth,
-          transform: position === 'bottom-full' ? 'translateY(-100%)' : 'none',
-          zIndex: 50,
-          ...(maxWidth && { maxWidth }),
-        }}
-      >
-        <div className="overflow-hidden rounded-md border border-border bg-popover p-1.5 text-popover-foreground shadow-md">
-          {children}
-        </div>
-      </div>,
-      document.body,
-    );
-  };
+  const manualTrigger = renderTrigger(true);
 
   return (
     <>
-      {renderTrigger(true)}
-      {renderPortalDropdown()}
+      {manualTrigger}
+      {portalDropdown}
     </>
   );
 }

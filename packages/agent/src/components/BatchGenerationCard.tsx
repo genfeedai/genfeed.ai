@@ -59,7 +59,7 @@ export function BatchGenerationCard({
     return (
       <div className="my-2 border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
         <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-          <HiCheck className="h-5 w-5" />
+          <HiCheck className="size-5" />
           <span className="text-sm font-medium">
             Batch generation started for {count} items
           </span>
@@ -71,7 +71,7 @@ export function BatchGenerationCard({
   return (
     <div className="my-2 border border-border bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
-        <HiRectangleStack className="h-5 w-5 text-cyan-500" />
+        <HiRectangleStack className="size-5 text-cyan-500" />
         <h3 className="text-sm font-semibold">
           {action.title || 'Batch Generation'}
         </h3>
@@ -126,7 +126,7 @@ export function BatchGenerationCard({
 
       {/* Credit estimate */}
       <div className="mb-3 flex items-center gap-1.5 text-xs text-muted-foreground">
-        <HiCurrencyDollar className="h-3.5 w-3.5" />
+        <HiCurrencyDollar className="size-3.5" />
         <span>Estimated cost: {estimatedCredits} credits</span>
       </div>
 
@@ -135,7 +135,7 @@ export function BatchGenerationCard({
         variant={ButtonVariant.DEFAULT}
         onClick={handleGenerate}
         isDisabled={count < 1 || selectedPlatforms.size === 0}
-        icon={<HiRectangleStack className="h-4 w-4" />}
+        icon={<HiRectangleStack className="size-4" />}
         className="w-full justify-center"
       >
         Generate

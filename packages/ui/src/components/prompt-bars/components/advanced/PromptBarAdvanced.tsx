@@ -116,12 +116,17 @@ const PromptBarAdvanced = memo(function PromptBarAdvanced({
               values={
                 (form.getValues('sounds') ?? []).filter(Boolean) as string[]
               }
-              options={filteredSounds
-                .filter(
-                  (sound): sound is ISound & { key: string; label: string } =>
-                    Boolean(sound.key && sound.label),
-                )
-                .map((sound) => ({ label: sound.label, value: sound.key }))}
+              options={filteredSounds.reduce<
+                { label: string; value: string }[]
+              >((acc, sound) => {
+                if (sound.key && sound.label) {
+                  acc.push({
+                    label: sound.label as string,
+                    value: sound.key as string,
+                  });
+                }
+                return acc;
+              }, [])}
               onChange={(_name, values) => {
                 form.setValue('sounds', values, {
                   shouldValidate: true,

@@ -38,7 +38,7 @@ export function TimelineWorkGroup({
           >
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 text-[11px] font-medium text-foreground/82">
-                <HiClock className="h-3.5 w-3.5 shrink-0 text-foreground/44" />
+                <HiClock className="size-3.5 shrink-0 text-foreground/44" />
                 <span>
                   {durationLabel
                     ? `Worked for ${durationLabel}`
@@ -52,14 +52,14 @@ export function TimelineWorkGroup({
                 </span>
                 <span aria-hidden="true">•</span>
                 <span className="inline-flex items-center gap-1">
-                  <HiCheckCircle className="h-3.5 w-3.5 text-emerald-500" />
+                  <HiCheckCircle className="size-3.5 text-emerald-500" />
                   Completed
                 </span>
               </div>
             </div>
             <HiChevronDown
               className={cn(
-                'h-4 w-4 shrink-0 text-foreground/42 transition-transform',
+                'size-4 shrink-0 text-foreground/42 transition-transform',
                 isExpanded ? 'rotate-180' : '',
               )}
             />

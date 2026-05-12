@@ -257,6 +257,7 @@ export default function QuickActionsMenu({
         createPortal(
           <div
             ref={menuRef}
+            role="presentation"
             data-dropdown="true"
             data-quick-actions-dropdown="true"
             onClick={(e) => e.stopPropagation()}

@@ -111,7 +111,11 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
 
   const sourceGroups = useMemo(() => {
     const groups = Array.from(
-      new Set(allOptions.map((option) => option.sourceGroup).filter(Boolean)),
+      new Set(
+        allOptions.flatMap((option) =>
+          option.sourceGroup ? [option.sourceGroup] : [],
+        ),
+      ),
     ) as string[];
 
     return groups.map((group) => ({
@@ -218,33 +222,33 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
       groupedByBrand.set(option.brandSlug, brandFamilies);
     }
 
-    return (
+    const brandSlugs =
       activeBrand && activeBrand !== 'favorites'
         ? [activeBrand]
-        : brands.map((brand) => brand.slug)
-    )
-      .map((brandSlug) => {
-        const families = groupedByBrand.get(brandSlug);
-        if (!families) {
-          return null;
-        }
+        : brands.map((brand) => brand.slug);
 
-        return {
-          brandSlug,
-          families: Array.from(families.entries()).map(
-            ([familyKey, familyData]) => ({
-              familyKey,
-              familyLabel: familyData.familyLabel,
-              options: familyData.options.sort((left, right) =>
-                left.variantLabel.localeCompare(right.variantLabel, undefined, {
-                  numeric: true,
-                }),
-              ),
-            }),
-          ),
-        };
-      })
-      .filter((group): group is GroupedFamilies[number] => group !== null);
+    return brandSlugs.reduce<GroupedFamilies>((acc, brandSlug) => {
+      const families = groupedByBrand.get(brandSlug);
+      if (!families) {
+        return acc;
+      }
+
+      acc.push({
+        brandSlug,
+        families: Array.from(families.entries()).map(
+          ([familyKey, familyData]) => ({
+            familyKey,
+            familyLabel: familyData.familyLabel,
+            options: familyData.options.sort((left, right) =>
+              left.variantLabel.localeCompare(right.variantLabel, undefined, {
+                numeric: true,
+              }),
+            ),
+          }),
+        ),
+      });
+      return acc;
+    }, []);
   }, [activeBrand, brands, visibleOptions]);
 
   const groupedSections = useMemo((): GroupedSection[] => {

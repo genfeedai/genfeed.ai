@@ -351,7 +351,7 @@ export function ClipWorkflowRunCard({
   return (
     <div className="mt-2 overflow-hidden border border-border bg-background">
       <div className="flex items-center gap-2 border-b border-border px-3 py-2">
-        <HiOutlineFilm className="h-4 w-4 text-primary" />
+        <HiOutlineFilm className="size-4 text-primary" />
         <span className="text-sm font-medium text-foreground">
           {action.title}
         </span>
@@ -453,7 +453,7 @@ export function ClipWorkflowRunCard({
 
         {error && (
           <div className="flex items-center gap-2 border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
-            <HiExclamationCircle className="h-4 w-4" />
+            <HiExclamationCircle className="size-4" />
             {error}
           </div>
         )}
@@ -465,7 +465,7 @@ export function ClipWorkflowRunCard({
             onClick={runNext}
             isDisabled={!nextNonPublishStep}
           >
-            <HiOutlinePlay className="h-3.5 w-3.5" />
+            <HiOutlinePlay className="size-3.5" />
             {nextNonPublishStep ? 'Run Next Step' : 'Pipeline Ready'}
           </Button>
 
@@ -474,7 +474,7 @@ export function ClipWorkflowRunCard({
             size={ButtonSize.SM}
             onClick={addAnotherClip}
           >
-            <HiOutlineBolt className="h-3.5 w-3.5" />
+            <HiOutlineBolt className="size-3.5" />
             Generate Another Clip
           </Button>
 
@@ -484,7 +484,7 @@ export function ClipWorkflowRunCard({
               size={ButtonSize.SM}
               onClick={() => runOneStep('merge_clips')}
             >
-              <HiOutlineArrowPathRoundedSquare className="h-3.5 w-3.5" />
+              <HiOutlineArrowPathRoundedSquare className="size-3.5" />
               Merge Now
             </Button>
           )}
@@ -498,7 +498,7 @@ export function ClipWorkflowRunCard({
               steps.supervised_review === 'completed'
             }
           >
-            <HiOutlineSparkles className="h-3.5 w-3.5" />
+            <HiOutlineSparkles className="size-3.5" />
             Open Supervised Review
           </Button>
         </div>
@@ -539,7 +539,7 @@ export function ClipWorkflowRunCard({
 
         {steps.supervised_review === 'completed' && (
           <div className="flex items-center gap-2 border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-700 dark:border-green-900 dark:bg-green-950 dark:text-green-300">
-            <HiCheckCircle className="h-4 w-4" />
+            <HiCheckCircle className="size-4" />
             Handed off into the supervised publishing flow for human review.
           </div>
         )}

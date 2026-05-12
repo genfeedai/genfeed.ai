@@ -216,25 +216,18 @@ export default function ContentPreviewSidebar({
     );
   };
 
-  const renderPreviewContent = () => {
-    if (platform === CredentialPlatform.TWITTER) {
-      return renderTwitterPreview();
-    }
-
-    if (platform === CredentialPlatform.LINKEDIN) {
-      return renderLinkedInPreview();
-    }
-
-    if (platform === CredentialPlatform.REDDIT) {
-      return renderRedditPreview();
-    }
-
-    if (platform === 'article') {
-      return renderArticlePreview();
-    }
-
-    return renderGenericPreview();
-  };
+  let previewContent: React.ReactNode;
+  if (platform === CredentialPlatform.TWITTER) {
+    previewContent = renderTwitterPreview();
+  } else if (platform === CredentialPlatform.LINKEDIN) {
+    previewContent = renderLinkedInPreview();
+  } else if (platform === CredentialPlatform.REDDIT) {
+    previewContent = renderRedditPreview();
+  } else if (platform === 'article') {
+    previewContent = renderArticlePreview();
+  } else {
+    previewContent = renderGenericPreview();
+  }
 
   return (
     <div className={`space-y-4 ${className}`}>
@@ -243,7 +236,7 @@ export default function ContentPreviewSidebar({
         <Badge variant="outline">{getPlatformLabel()}</Badge>
       </div>
       <div className=" border border-white/[0.08] bg-background/60 p-4">
-        {renderPreviewContent()}
+        {previewContent}
       </div>
     </div>
   );

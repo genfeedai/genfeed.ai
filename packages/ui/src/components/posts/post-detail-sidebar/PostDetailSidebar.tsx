@@ -94,7 +94,7 @@ export default function PostDetailSidebar({
     Boolean(reviewSummary?.sourceWorkflowName) ||
     Boolean(reviewSummary?.sourceActionId) ||
     Boolean(reviewSummary?.generationId);
-  const reviewEvents = [...(reviewSummary?.reviewEvents ?? [])].sort(
+  const reviewEvents = (reviewSummary?.reviewEvents ?? []).toSorted(
     (left, right) => right.reviewedAt.localeCompare(left.reviewedAt),
   );
 

@@ -413,6 +413,12 @@ export default function AppLayout({
     [agentPanelHeight, isAgentCollapsed],
   );
 
+  const desktopMenuContent = renderMenu();
+  const mobileMenuContent = renderMenu({
+    isCollapsed: false,
+    onClose: handleCloseSidebar,
+  });
+
   const layoutContent = (
     <SidebarNavigationProvider items={menuItems}>
       <div
@@ -427,7 +433,7 @@ export default function AppLayout({
               isCollapsed={isDesktopCollapsed}
               width={desktopSidebarExpandedWidth}
             >
-              {renderMenu()}
+              {desktopMenuContent}
             </DesktopSidebar>
 
             {/* Mobile sidebar drawer */}
@@ -454,10 +460,7 @@ export default function AppLayout({
                 )}
                 style={{ width: mobileSidebarWidth }}
               >
-                {renderMenu({
-                  isCollapsed: false,
-                  onClose: handleCloseSidebar,
-                })}
+                {mobileMenuContent}
               </div>
             </div>
           </>
@@ -518,6 +521,12 @@ export default function AppLayout({
           >
             <div
               data-testid="agent-panel-resize-handle"
+              role="button"
+              aria-label="Resize agent panel"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') e.preventDefault();
+              }}
               className="absolute top-0 left-0 right-0 z-10 h-1.5 cursor-row-resize border-t border-border"
               onMouseDown={handleAgentPanelResizeStart}
             />

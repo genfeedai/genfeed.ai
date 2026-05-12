@@ -75,12 +75,13 @@ function ClarifyingView() {
       )}
 
       {/* Show previously answered questions */}
-      {questions.filter((q) => q.answer && q.id !== currentQuestion?.id)
-        .length > 0 && (
-        <div className="space-y-2 opacity-60">
-          {questions
-            .filter((q) => q.answer && q.id !== currentQuestion?.id)
-            .map((q) => (
+      {(() => {
+        const answeredQuestions = questions.filter(
+          (q) => q.answer && q.id !== currentQuestion?.id,
+        );
+        return answeredQuestions.length > 0 ? (
+          <div className="space-y-2 opacity-60">
+            {answeredQuestions.map((q) => (
               <QuestionCard
                 key={q.id}
                 question={q}
@@ -88,8 +89,9 @@ function ClarifyingView() {
                 disabled
               />
             ))}
-        </div>
-      )}
+          </div>
+        ) : null;
+      })()}
     </div>
   );
 }

@@ -416,6 +416,16 @@ export default function MenuShared({
       </div>
     ) : null;
 
+  const topLevelGroupsContent = renderGroupedItems(topLevelGroups);
+  const sectionGroupsContent = renderGroupedItems(sectionGroups);
+  const allGroupsContent = renderGroupedItems(groupedItems);
+  const topSlotContent = renderTopSlot ? renderTopSlot() : null;
+  const bodyContent = renderBody ? renderBody() : null;
+  const afterNavigationContent = renderAfterNavigation
+    ? renderAfterNavigation()
+    : null;
+  const footerSlotContent = renderFooterSlot ? renderFooterSlot() : null;
+
   const navigationContent = (
     <>
       {backHref && (
@@ -438,19 +448,19 @@ export default function MenuShared({
       )}
       {sectionLabel ? (
         <>
-          {renderGroupedItems(topLevelGroups)}
+          {topLevelGroupsContent}
           {sectionGroups.length > 0 ? (
             <CollapsibleGroup
               label={sectionLabel}
               isDrillDown={false}
               storageKey={`__${sectionLabel.toLowerCase()}__`}
             >
-              {renderGroupedItems(sectionGroups)}
+              {sectionGroupsContent}
             </CollapsibleGroup>
           ) : null}
         </>
       ) : (
-        renderGroupedItems(groupedItems)
+        allGroupsContent
       )}
     </>
   );
@@ -548,8 +558,8 @@ export default function MenuShared({
               : 'opacity-100',
           )}
         >
-          {renderTopSlot ? (
-            <div className="px-3 pt-2">{renderTopSlot()}</div>
+          {topSlotContent ? (
+            <div className="px-3 pt-2">{topSlotContent}</div>
           ) : null}
 
           {/* Primary actions */}
@@ -638,9 +648,9 @@ export default function MenuShared({
             </div>
           ) : null}
 
-          {renderBody ? (
+          {bodyContent ? (
             <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin">
-              {renderBody()}
+              {bodyContent}
             </div>
           ) : nestedGroup && nestedGroupId ? (
             <div
@@ -682,7 +692,7 @@ export default function MenuShared({
                   {secondaryNavigationContent}
                 </div>
 
-                {renderAfterNavigation && (
+                {afterNavigationContent && (
                   <div
                     data-testid="sidebar-conversations-section"
                     className={cn(
@@ -729,15 +739,15 @@ export default function MenuShared({
                           !isConversationsCollapsed && 'min-h-0 flex-1',
                         )}
                       >
-                        {renderAfterNavigation()}
+                        {afterNavigationContent}
                       </div>
                     </CollapsibleGroup>
                   </div>
                 )}
               </div>
 
-              {renderFooterSlot && (
-                <div className="px-3 pb-1">{renderFooterSlot()}</div>
+              {footerSlotContent && (
+                <div className="px-3 pb-1">{footerSlotContent}</div>
               )}
             </>
           )}
@@ -841,10 +851,6 @@ function CollapsibleGroup({
     }
   }, [key]);
 
-  useEffect(() => {
-    onCollapsedChange?.(isCollapsed);
-  }, [isCollapsed, onCollapsedChange]);
-
   const toggleMenuShared = useCallback(() => {
     setIsCollapsed((prev) => {
       const next = !prev;
@@ -855,9 +861,10 @@ function CollapsibleGroup({
         groups.delete(key);
       }
       persistCollapsedGroups(groups);
+      onCollapsedChange?.(next);
       return next;
     });
-  }, [key]);
+  }, [key, onCollapsedChange]);
 
   // DrillDown groups render their own row — no separate label needed
   if (isDrillDown) {

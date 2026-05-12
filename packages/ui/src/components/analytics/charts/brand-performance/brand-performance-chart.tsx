@@ -9,8 +9,28 @@ import type { BrandPerformanceChartProps } from '@genfeedai/props/analytics/char
 import Card from '@ui/card/Card';
 import { ChartContainer, ChartTooltipContent } from '@ui/charts';
 import { Button } from '@ui/primitives/button';
+import dynamic from 'next/dynamic';
 import { useMemo, useState } from 'react';
-import { Bar, BarChart, CartesianGrid, Tooltip, XAxis, YAxis } from 'recharts';
+
+const BarChart = dynamic(() => import('recharts').then((m) => m.BarChart), {
+  ssr: false,
+});
+const Bar = dynamic(() => import('recharts').then((m) => m.Bar), {
+  ssr: false,
+});
+const CartesianGrid = dynamic(
+  () => import('recharts').then((m) => m.CartesianGrid),
+  { ssr: false },
+);
+const Tooltip = dynamic(() => import('recharts').then((m) => m.Tooltip), {
+  ssr: false,
+});
+const XAxis = dynamic(() => import('recharts').then((m) => m.XAxis), {
+  ssr: false,
+});
+const YAxis = dynamic(() => import('recharts').then((m) => m.YAxis), {
+  ssr: false,
+});
 
 const METRIC_COLORS = {
   engagement: 'var(--accent-rose)',
@@ -53,8 +73,8 @@ export function BrandPerformanceChart({
   const isEmpty = !data || data.length === 0;
 
   // Sort and take top 10 brands by selected metric
-  const sortedData = [...data]
-    .sort((a, b) => b[activeMetric] - a[activeMetric])
+  const sortedData = data
+    .toSorted((a, b) => b[activeMetric] - a[activeMetric])
     .slice(0, 10);
 
   // Truncate long brand names

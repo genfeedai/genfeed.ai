@@ -188,63 +188,86 @@ function mapTimelineStatus(
 }
 
 export function mapSnapshotWorkEvents(snapshot: AgentThreadSnapshot) {
-  return snapshot.timeline
-    .map((entry) => {
-      const event = mapTimelineEventType(entry);
-      if (!event) {
-        return null;
-      }
+  type WorkEvent = {
+    createdAt: (typeof snapshot.timeline)[number]['createdAt'];
+    debug:
+      | import('@genfeedai/utils/progress/structured-progress-event.util').StructuredProgressDebugPayload
+      | undefined;
+    detail: (typeof snapshot.timeline)[number]['detail'];
+    estimatedDurationMs: number | undefined;
+    event: NonNullable<ReturnType<typeof mapTimelineEventType>>;
+    id: (typeof snapshot.timeline)[number]['id'];
+    inputRequestId: string | undefined;
+    label: (typeof snapshot.timeline)[number]['label'];
+    parameters: Record<string, unknown> | undefined;
+    phase: string | undefined;
+    progress: number | undefined;
+    remainingDurationMs: number | undefined;
+    resultSummary: string | undefined;
+    runId: string | undefined;
+    startedAt: string | undefined;
+    status: ReturnType<typeof mapTimelineStatus>;
+    threadId: string;
+    toolCallId: string | undefined;
+    toolName: string | undefined;
+  };
 
-      const payloadToolName = readPayloadString(entry, 'toolName');
-      const payloadToolCallId = readPayloadString(entry, 'toolCallId');
-      const payloadInputRequestId = readPayloadString(entry, 'inputRequestId');
-      const payloadStartedAt = readPayloadString(entry, 'startedAt');
+  return snapshot.timeline.reduce<WorkEvent[]>((acc, entry) => {
+    const event = mapTimelineEventType(entry);
+    if (!event) {
+      return acc;
+    }
 
-      return {
-        createdAt: entry.createdAt,
-        debug: entry.payload?.debug as
-          | import('@genfeedai/utils/progress/structured-progress-event.util').StructuredProgressDebugPayload
-          | undefined,
-        detail: entry.detail,
-        estimatedDurationMs:
-          typeof entry.payload?.estimatedDurationMs === 'number'
-            ? entry.payload.estimatedDurationMs
-            : undefined,
-        event,
-        id: entry.id,
-        inputRequestId: entry.requestId ?? payloadInputRequestId,
-        label: entry.label,
-        parameters:
-          entry.payload &&
-          typeof entry.payload.parameters === 'object' &&
-          entry.payload.parameters !== null
-            ? (entry.payload.parameters as Record<string, unknown>)
-            : undefined,
-        phase:
-          typeof entry.payload?.phase === 'string'
-            ? entry.payload.phase
-            : undefined,
-        progress:
-          typeof entry.payload?.progress === 'number'
-            ? entry.payload.progress
-            : undefined,
-        remainingDurationMs:
-          typeof entry.payload?.remainingDurationMs === 'number'
-            ? entry.payload.remainingDurationMs
-            : undefined,
-        resultSummary:
-          typeof entry.payload?.resultSummary === 'string'
-            ? entry.payload.resultSummary
-            : undefined,
-        runId: entry.runId ?? undefined,
-        startedAt: payloadStartedAt,
-        status: mapTimelineStatus(entry),
-        threadId: snapshot.threadId,
-        toolCallId: payloadToolCallId,
-        toolName: entry.toolName ?? payloadToolName,
-      };
-    })
-    .filter((event): event is NonNullable<typeof event> => event !== null);
+    const payloadToolName = readPayloadString(entry, 'toolName');
+    const payloadToolCallId = readPayloadString(entry, 'toolCallId');
+    const payloadInputRequestId = readPayloadString(entry, 'inputRequestId');
+    const payloadStartedAt = readPayloadString(entry, 'startedAt');
+
+    acc.push({
+      createdAt: entry.createdAt,
+      debug: entry.payload?.debug as
+        | import('@genfeedai/utils/progress/structured-progress-event.util').StructuredProgressDebugPayload
+        | undefined,
+      detail: entry.detail,
+      estimatedDurationMs:
+        typeof entry.payload?.estimatedDurationMs === 'number'
+          ? entry.payload.estimatedDurationMs
+          : undefined,
+      event,
+      id: entry.id,
+      inputRequestId: entry.requestId ?? payloadInputRequestId,
+      label: entry.label,
+      parameters:
+        entry.payload &&
+        typeof entry.payload.parameters === 'object' &&
+        entry.payload.parameters !== null
+          ? (entry.payload.parameters as Record<string, unknown>)
+          : undefined,
+      phase:
+        typeof entry.payload?.phase === 'string'
+          ? entry.payload.phase
+          : undefined,
+      progress:
+        typeof entry.payload?.progress === 'number'
+          ? entry.payload.progress
+          : undefined,
+      remainingDurationMs:
+        typeof entry.payload?.remainingDurationMs === 'number'
+          ? entry.payload.remainingDurationMs
+          : undefined,
+      resultSummary:
+        typeof entry.payload?.resultSummary === 'string'
+          ? entry.payload.resultSummary
+          : undefined,
+      runId: entry.runId ?? undefined,
+      startedAt: payloadStartedAt,
+      status: mapTimelineStatus(entry),
+      threadId: snapshot.threadId,
+      toolCallId: payloadToolCallId,
+      toolName: entry.toolName ?? payloadToolName,
+    });
+    return acc;
+  }, []);
 }
 
 export function mapSnapshotPendingInputRequest(

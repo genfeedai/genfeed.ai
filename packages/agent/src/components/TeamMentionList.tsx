@@ -3,22 +3,28 @@ import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import {
-  forwardRef,
   type ReactElement,
+  type Ref,
   useEffect,
   useImperativeHandle,
   useState,
 } from 'react';
 
+interface TeamMentionListHandle {
+  onKeyDown: (props: { event: KeyboardEvent }) => boolean;
+}
+
 interface TeamMentionListProps {
   items: TeamMentionItem[];
   command: (item: TeamMentionItem) => void;
+  ref?: Ref<TeamMentionListHandle>;
 }
 
-export const TeamMentionList = forwardRef<
-  { onKeyDown: (props: { event: KeyboardEvent }) => boolean },
-  TeamMentionListProps
->(function TeamMentionList({ items, command }, ref): ReactElement {
+export function TeamMentionList({
+  items,
+  command,
+  ref,
+}: TeamMentionListProps): ReactElement {
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   useEffect(() => {
@@ -73,7 +79,7 @@ export const TeamMentionList = forwardRef<
             <img
               src={item.avatar}
               alt={item.displayName}
-              className="h-6 w-6 rounded-full object-cover"
+              className="size-6 rounded-full object-cover"
             />
           )}
           <div className="flex flex-col">
@@ -93,4 +99,4 @@ export const TeamMentionList = forwardRef<
       ))}
     </div>
   );
-});
+}

@@ -23,8 +23,15 @@ export default function ModalGalleryItemMusic({
 
   return (
     <div
-      key={music.id}
+      role="button"
+      tabIndex={0}
       onClick={() => onSelect(music)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect(music);
+        }
+      }}
       className={`relative p-4 border-2 transition-all cursor-pointer group ${
         isSelected
           ? 'border-primary bg-primary/5'

@@ -3,22 +3,28 @@ import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import {
-  forwardRef,
   type ReactElement,
+  type Ref,
   useEffect,
   useImperativeHandle,
   useState,
 } from 'react';
 
+interface ContentMentionListHandle {
+  onKeyDown: (props: { event: KeyboardEvent }) => boolean;
+}
+
 interface ContentMentionListProps {
   items: ContentMentionItem[];
   command: (item: ContentMentionItem) => void;
+  ref?: Ref<ContentMentionListHandle>;
 }
 
-export const ContentMentionList = forwardRef<
-  { onKeyDown: (props: { event: KeyboardEvent }) => boolean },
-  ContentMentionListProps
->(function ContentMentionList({ items, command }, ref): ReactElement {
+export function ContentMentionList({
+  items,
+  command,
+  ref,
+}: ContentMentionListProps): ReactElement {
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   useEffect(() => {
@@ -73,7 +79,7 @@ export const ContentMentionList = forwardRef<
             <img
               src={item.thumbnailUrl}
               alt={item.contentTitle}
-              className="h-8 w-8 rounded object-cover"
+              className="size-8 rounded object-cover"
             />
           )}
           <div className="flex flex-col">
@@ -86,4 +92,4 @@ export const ContentMentionList = forwardRef<
       ))}
     </div>
   );
-});
+}

@@ -191,11 +191,15 @@ export default function IngredientTabsTags({
 
         {/* Create New Tag */}
         <div className="mb-4">
-          <label className="text-sm font-medium mb-1 block">
+          <label
+            htmlFor="ingredient-tabs-new-tag-name"
+            className="text-sm font-medium mb-1 block"
+          >
             Create New Tag
           </label>
           <div className="flex gap-2">
             <Input
+              id="ingredient-tabs-new-tag-name"
               type="text"
               placeholder="Enter tag name…"
               className="flex-1"
@@ -224,10 +228,14 @@ export default function IngredientTabsTags({
 
         {/* Search Existing Tags */}
         <div>
-          <label className="text-sm font-medium mb-1 block">
+          <label
+            htmlFor="ingredient-tabs-search-tags"
+            className="text-sm font-medium mb-1 block"
+          >
             Select Existing Tags
           </label>
           <Input
+            id="ingredient-tabs-search-tags"
             type="text"
             placeholder="Search tags…"
             className="mb-3"

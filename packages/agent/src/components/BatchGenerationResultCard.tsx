@@ -59,7 +59,7 @@ export function BatchGenerationResultCard({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-            <HiRectangleStack className="h-4.5 w-4.5 text-cyan-400" />
+            <HiRectangleStack className="size-4.5 text-cyan-400" />
             <span>{action.title || 'Batch generation'}</span>
           </div>
           {action.description ? (
@@ -73,7 +73,7 @@ export function BatchGenerationResultCard({
           {action.status ? <Badge status={action.status} /> : null}
           {creditsUsed > 0 ? (
             <Badge variant="warning">
-              <HiCurrencyDollar className="h-3 w-3" />
+              <HiCurrencyDollar className="size-3" />
               {creditsUsed} credits
             </Badge>
           ) : null}
@@ -93,7 +93,7 @@ export function BatchGenerationResultCard({
         {completedCount != null ? (
           <div className="border border-border/60 bg-background/70 p-3">
             <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-              <HiCheckCircle className="h-3.5 w-3.5 text-emerald-400" />
+              <HiCheckCircle className="size-3.5 text-emerald-400" />
               Ready
             </div>
             <div className="mt-2 text-2xl font-semibold text-foreground">
@@ -105,7 +105,7 @@ export function BatchGenerationResultCard({
         {failedCount != null && failedCount > 0 ? (
           <div className="border border-border/60 bg-background/70 p-3">
             <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-              <HiXCircle className="h-3.5 w-3.5 text-rose-400" />
+              <HiXCircle className="size-3.5 text-rose-400" />
               Failed
             </div>
             <div className="mt-2 text-2xl font-semibold text-foreground">
@@ -117,7 +117,7 @@ export function BatchGenerationResultCard({
         {!hasCompletionMetrics ? (
           <div className="border border-border/60 bg-background/70 p-3">
             <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-              <HiCalendarDays className="h-3.5 w-3.5 text-sky-400" />
+              <HiCalendarDays className="size-3.5 text-sky-400" />
               Queue
             </div>
             <div className="mt-2 text-sm font-medium text-foreground">

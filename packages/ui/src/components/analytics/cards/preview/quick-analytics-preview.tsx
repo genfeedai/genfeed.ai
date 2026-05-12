@@ -6,6 +6,7 @@ import {
 } from '@genfeedai/helpers/formatting/format/format.helper';
 import type { IAnalytics } from '@genfeedai/interfaces';
 import { ChartContainer } from '@ui/charts';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import {
   HiArrowRight,
@@ -13,7 +14,13 @@ import {
   HiEye,
   HiHeart,
 } from 'react-icons/hi2';
-import { Area, AreaChart } from 'recharts';
+
+const AreaChart = dynamic(() => import('recharts').then((m) => m.AreaChart), {
+  ssr: false,
+});
+const Area = dynamic(() => import('recharts').then((m) => m.Area), {
+  ssr: false,
+});
 
 export interface QuickAnalyticsPreviewProps {
   data: IAnalytics | null;

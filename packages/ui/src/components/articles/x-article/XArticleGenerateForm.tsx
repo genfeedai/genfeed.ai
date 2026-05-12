@@ -37,10 +37,10 @@ export default function XArticleGenerateForm({
       return;
     }
 
-    const keywordList = keywords
-      .split(',')
-      .map((k) => k.trim())
-      .filter(Boolean);
+    const keywordList = keywords.split(',').flatMap((k) => {
+      const t = k.trim();
+      return t ? [t] : [];
+    });
 
     onGenerate({
       credential: credentialId || undefined,

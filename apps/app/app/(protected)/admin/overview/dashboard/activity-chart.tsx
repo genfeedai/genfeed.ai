@@ -27,12 +27,18 @@ const YAxis = dynamic(() => import('recharts').then((module) => module.YAxis), {
   ssr: false,
 });
 
+const _dateFormatter = new Intl.DateTimeFormat('en-US', {
+  day: 'numeric',
+  month: 'short',
+});
+
+const _compactNumberFormatter = new Intl.NumberFormat('en-US', {
+  notation: 'compact',
+});
+
 function formatDate(dateStr: string) {
   const date = new Date(dateStr);
-  return new Intl.DateTimeFormat('en-US', {
-    day: 'numeric',
-    month: 'short',
-  }).format(date);
+  return _dateFormatter.format(date);
 }
 
 interface ActivityChartProps {
@@ -109,11 +115,7 @@ export default function ActivityChart({ data, isLoading }: ActivityChartProps) {
                 fontSize={12}
                 tickLine={false}
                 axisLine={false}
-                tickFormatter={(value) =>
-                  new Intl.NumberFormat('en-US', {
-                    notation: 'compact',
-                  }).format(value)
-                }
+                tickFormatter={(value) => _compactNumberFormatter.format(value)}
               />
               <Tooltip
                 contentStyle={{

@@ -96,6 +96,7 @@ function ButtonCreditsMock({ balance = 1000 }: { balance?: number }) {
       {isOpen && (
         <Portal>
           <div
+            role="presentation"
             className={cn(
               BG_BLUR,
               BORDER_WHITE_30,

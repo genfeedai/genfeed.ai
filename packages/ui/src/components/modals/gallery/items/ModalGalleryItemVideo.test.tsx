@@ -6,7 +6,18 @@ import { describe, expect, it, vi } from 'vitest';
 // Mock dependencies
 vi.mock('@ui/masonry/video/MasonryVideo', () => ({
   default: ({ video, onClickIngredient }: any) => (
-    <div data-testid={`masonry-video-${video.id}`} onClick={onClickIngredient}>
+    <div
+      data-testid={`masonry-video-${video.id}`}
+      role="button"
+      tabIndex={0}
+      onClick={onClickIngredient}
+      onKeyDown={(e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClickIngredient?.();
+        }
+      }}
+    >
       {video.id}
     </div>
   ),

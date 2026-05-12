@@ -234,12 +234,20 @@ export default function ModalBrandInstagram({
             {availableHandles.map((handle: CredentialInstagram) => (
               <div
                 key={handle.id}
+                role="button"
+                tabIndex={0}
                 className={`p-4 cursor-pointer transition-all ${
                   selectedHandle?.id === handle.id
                     ? 'border-2 border-white bg-primary/10'
                     : 'border-2 border-transparent hover:bg-white/5'
                 }`}
                 onClick={() => setSelectedHandle(handle)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setSelectedHandle(handle);
+                  }
+                }}
               >
                 <div className="flex items-center gap-2">
                   <div className="size-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center flex-shrink-0">

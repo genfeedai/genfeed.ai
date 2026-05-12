@@ -71,7 +71,7 @@ function renderVariantPreview(
     return (
       <div className="gen-shell-surface rounded-[1.25rem] p-4">
         <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
-          <HiOutlineMusicalNote className="h-4 w-4 text-primary/80" />
+          <HiOutlineMusicalNote className="size-4 text-primary/80" />
           {variant.title ?? group.title}
         </div>
         <audio src={variant.url} controls className="w-full">
@@ -85,7 +85,7 @@ function renderVariantPreview(
     return (
       <div className="gen-shell-surface rounded-[1.25rem] p-4">
         <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
-          <HiOutlineDocumentText className="h-4 w-4 text-primary/80" />
+          <HiOutlineDocumentText className="size-4 text-primary/80" />
           {variant.title ?? group.title}
         </div>
         <Pre
@@ -122,18 +122,18 @@ function VariantIcon({
   kind: ThreadOutputVariant['kind'];
 }): ReactElement {
   if (kind === 'video') {
-    return <HiOutlineVideoCamera className="h-4 w-4 text-primary/80" />;
+    return <HiOutlineVideoCamera className="size-4 text-primary/80" />;
   }
 
   if (kind === 'audio') {
-    return <HiOutlineMusicalNote className="h-4 w-4 text-primary/80" />;
+    return <HiOutlineMusicalNote className="size-4 text-primary/80" />;
   }
 
   if (kind === 'text') {
-    return <HiOutlineDocumentText className="h-4 w-4 text-primary/80" />;
+    return <HiOutlineDocumentText className="size-4 text-primary/80" />;
   }
 
-  return <HiOutlinePhoto className="h-4 w-4 text-primary/80" />;
+  return <HiOutlinePhoto className="size-4 text-primary/80" />;
 }
 
 export function AgentOutputsPanel({
@@ -187,8 +187,8 @@ export function AgentOutputsPanel({
         )}
       >
         <div className="gen-shell-empty-state w-full max-w-sm rounded-[1.75rem] px-6 py-7">
-          <div className="gen-shell-surface mx-auto flex h-14 w-14 items-center justify-center rounded-2xl">
-            <HiOutlinePhoto className="h-6 w-6 text-foreground/38" />
+          <div className="gen-shell-surface mx-auto flex size-14 items-center justify-center rounded-2xl">
+            <HiOutlinePhoto className="size-6 text-foreground/38" />
           </div>
           <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-foreground/38">
             Outputs
@@ -208,7 +208,7 @@ export function AgentOutputsPanel({
     <section className={cn('flex h-full min-h-0 flex-col', className)}>
       <div
         className={cn(
-          'gen-shell-toolbar shrink-0 px-4 py-4',
+          'gen-shell-toolbar shrink-0 p-4',
           isCompact ? 'space-y-3' : 'space-y-4',
         )}
       >
@@ -273,7 +273,7 @@ export function AgentOutputsPanel({
                 )
               }
             >
-              <HiOutlineChatBubbleLeftRight className="mr-1.5 h-4 w-4" />
+              <HiOutlineChatBubbleLeftRight className="mr-1.5 size-4" />
               Use in chat
             </Button>
 
@@ -284,7 +284,7 @@ export function AgentOutputsPanel({
                   download
                   className="gen-shell-control inline-flex h-9 items-center rounded-xl px-3 text-xs font-semibold"
                 >
-                  <HiOutlineArrowDownTray className="mr-1.5 h-4 w-4" />
+                  <HiOutlineArrowDownTray className="mr-1.5 size-4" />
                   Download
                 </a>
                 <a
@@ -293,7 +293,7 @@ export function AgentOutputsPanel({
                   rel="noreferrer"
                   className="gen-shell-control inline-flex h-9 items-center rounded-xl px-3 text-xs font-semibold"
                 >
-                  <HiOutlineArrowTopRightOnSquare className="mr-1.5 h-4 w-4" />
+                  <HiOutlineArrowTopRightOnSquare className="mr-1.5 size-4" />
                   Open asset
                 </a>
               </>
@@ -310,7 +310,7 @@ export function AgentOutputsPanel({
                   rel="noreferrer"
                   className="gen-shell-control inline-flex h-9 items-center rounded-xl px-3 text-xs font-semibold"
                 >
-                  <HiOutlineArrowTopRightOnSquare className="mr-1.5 h-4 w-4" />
+                  <HiOutlineArrowTopRightOnSquare className="mr-1.5 size-4" />
                   {cta.label}
                 </a>
               ))}
@@ -318,7 +318,7 @@ export function AgentOutputsPanel({
         ) : null}
       </div>
 
-      <div className="flex-1 overflow-y-auto px-3 py-3">
+      <div className="flex-1 overflow-y-auto p-3">
         <div className="space-y-2.5">
           {outputs.map((group) => {
             const previewVariant = group.variants[0];
@@ -331,7 +331,7 @@ export function AgentOutputsPanel({
                   setSelectedGroupId(group.id);
                   setSelectedVariantId(group.variants[0]?.id ?? null);
                 }}
-                className="gen-shell-surface flex w-full items-start gap-3 rounded-2xl px-3 py-3.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+                className="gen-shell-surface flex w-full items-start gap-3 rounded-2xl p-3.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
                 data-active={group.id === selectedGroupId ? 'true' : 'false'}
               >
                 <div className="mt-0.5 shrink-0">

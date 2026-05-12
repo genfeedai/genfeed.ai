@@ -27,7 +27,7 @@ function CardCtas({ action }: AgentCardProps): ReactElement | null {
             className="inline-flex items-center gap-1.5 border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
           >
             {cta.label}
-            <HiArrowTopRightOnSquare className="h-3.5 w-3.5" />
+            <HiArrowTopRightOnSquare className="size-3.5" />
           </Link>
         ) : null,
       )}
@@ -39,7 +39,7 @@ export function AdsSearchResultsCard({ action }: AgentCardProps): ReactElement {
   return (
     <div className="my-2 border border-border bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
-        <HiMegaphone className="h-5 w-5 text-primary" />
+        <HiMegaphone className="size-5 text-primary" />
         <h3 className="text-sm font-semibold text-foreground">
           {action.title || 'Ads search results'}
         </h3>
@@ -72,7 +72,7 @@ export function AdDetailSummaryCard({ action }: AgentCardProps): ReactElement {
   return (
     <div className="my-2 border border-border bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
-        <HiChartBar className="h-5 w-5 text-blue-500" />
+        <HiChartBar className="size-5 text-blue-500" />
         <h3 className="text-sm font-semibold text-foreground">
           {action.title || 'Ad detail summary'}
         </h3>
@@ -103,7 +103,7 @@ export function CampaignLaunchPrepCard({
   return (
     <div className="my-2 border border-amber-500/20 bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
-        <HiRocketLaunch className="h-5 w-5 text-amber-500" />
+        <HiRocketLaunch className="size-5 text-amber-500" />
         <h3 className="text-sm font-semibold text-foreground">
           {action.title || 'Campaign launch prep'}
         </h3>

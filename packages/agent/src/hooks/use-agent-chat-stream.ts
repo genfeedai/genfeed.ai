@@ -590,8 +590,12 @@ export function useAgentChatStream(
       const preAssistantIds = new Set(
         useAgentChatStore
           .getState()
-          .messages.filter((message) => message.role === 'assistant')
-          .map((message) => message.id),
+          .messages.reduce<string[]>((acc, message) => {
+            if (message.role === 'assistant') {
+              acc.push(message.id);
+            }
+            return acc;
+          }, []),
       );
 
       const userMessage: AgentChatMessage = {

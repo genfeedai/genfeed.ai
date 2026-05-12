@@ -43,6 +43,33 @@ function renderItems(
   );
 }
 
+function SkeletonListItem({ id }: SkeletonRenderItem): React.ReactNode {
+  return (
+    <div key={id} className="flex items-center space-x-4">
+      <Skeleton variant="circular" width={40} height={40} />
+      <div className="flex-1 space-y-2">
+        <Skeleton variant="text" height={16} className="w-1/3" />
+        <Skeleton variant="text" height={14} className="w-2/3" />
+      </div>
+    </div>
+  );
+}
+
+function SkeletonVideoGridItem({ id }: SkeletonRenderItem): React.ReactNode {
+  return (
+    <div key={id} className="space-y-3">
+      <Skeleton variant="rounded" className="aspect-video w-full" />
+      <div className="flex items-center space-x-2">
+        <Skeleton variant="circular" width={32} height={32} />
+        <div className="flex-1 space-y-1">
+          <Skeleton variant="text" height={14} className="w-3/4" />
+          <Skeleton variant="text" height={12} className="w-1/2" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /**
  * Enhanced Skeleton component with variant support
  * Uses shadcn Skeleton as base
@@ -112,15 +139,7 @@ export function SkeletonCard({
 export function SkeletonList({ count = 3 }: SkeletonListProps) {
   return (
     <div className="space-y-4">
-      {renderItems(count, 'list-item', ({ id }) => (
-        <div key={id} className="flex items-center space-x-4">
-          <Skeleton variant="circular" width={40} height={40} />
-          <div className="flex-1 space-y-2">
-            <Skeleton variant="text" height={16} className="w-1/3" />
-            <Skeleton variant="text" height={14} className="w-2/3" />
-          </div>
-        </div>
-      ))}
+      {renderItems(count, 'list-item', SkeletonListItem)}
     </div>
   );
 }
@@ -181,18 +200,7 @@ export function SkeletonTable({ rows = 5, columns = 4 }: SkeletonTableProps) {
 export function SkeletonVideoGrid({ count = 6 }: SkeletonVideoGridProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {renderItems(count, 'video-grid-item', ({ id }) => (
-        <div key={id} className="space-y-3">
-          <Skeleton variant="rounded" className="aspect-video w-full" />
-          <div className="flex items-center space-x-2">
-            <Skeleton variant="circular" width={32} height={32} />
-            <div className="flex-1 space-y-1">
-              <Skeleton variant="text" height={14} className="w-3/4" />
-              <Skeleton variant="text" height={12} className="w-1/2" />
-            </div>
-          </div>
-        </div>
-      ))}
+      {renderItems(count, 'video-grid-item', SkeletonVideoGridItem)}
     </div>
   );
 }

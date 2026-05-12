@@ -63,8 +63,8 @@ function IngredientThumbnail({
 
       {/* Selected checkmark */}
       {isSelected && (
-        <div className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary">
-          <HiCheck className="h-2.5 w-2.5 text-primary-foreground" />
+        <div className="absolute right-1 top-1 flex size-4 items-center justify-center rounded-full bg-primary">
+          <HiCheck className="size-2.5 text-primary-foreground" />
         </div>
       )}
     </Button>
@@ -104,7 +104,7 @@ export function IngredientPickerCard({
     return (
       <div className="mt-2 flex items-center justify-between border border-border bg-background px-3 py-2.5">
         <div className="flex items-center gap-2">
-          <HiCheck className="h-4 w-4 text-primary" />
+          <HiCheck className="size-4 text-primary" />
           <span className="text-sm text-foreground">
             Selected:{' '}
             <span className="font-medium">
@@ -128,7 +128,7 @@ export function IngredientPickerCard({
     <div className="mt-2 border border-border bg-background">
       {/* Header */}
       <div className="flex items-center gap-2 border-b border-border px-3 py-2.5">
-        <HiPhoto className="h-4 w-4 shrink-0 text-muted-foreground" />
+        <HiPhoto className="size-4 shrink-0 text-muted-foreground" />
         <div className="min-w-0">
           <p className="text-sm font-medium text-foreground">{action.title}</p>
           {action.description && (
@@ -161,14 +161,14 @@ export function IngredientPickerCard({
 
       {/* Confirm button */}
       {selectedId && (
-        <div className="border-t border-border px-2 py-2">
+        <div className="border-t border-border p-2">
           <Button
             variant={ButtonVariant.DEFAULT}
             size={ButtonSize.SM}
             onClick={handleConfirm}
             className="w-full"
           >
-            <HiCheck className="h-3.5 w-3.5" />
+            <HiCheck className="size-3.5" />
             Use this ingredient
           </Button>
         </div>

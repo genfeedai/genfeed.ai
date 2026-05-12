@@ -12,7 +12,7 @@ export function CampaignCreateCard({
   return (
     <div className="border border-border bg-background p-4 my-2">
       <div className="flex items-center gap-2 mb-3">
-        <HiMegaphone className="w-5 h-5 text-orange-500" />
+        <HiMegaphone className="size-5 text-orange-500" />
         <h3 className="font-semibold text-sm">
           {action.title || 'New Campaign'}
         </h3>
@@ -50,17 +50,17 @@ export function CampaignControlCard({
   > = {
     active: {
       color: 'text-green-500',
-      icon: <HiPlay className="w-4 h-4" />,
+      icon: <HiPlay className="size-4" />,
       label: 'Active',
     },
     completed: {
       color: 'text-blue-500',
-      icon: <HiCheckCircle className="w-4 h-4" />,
+      icon: <HiCheckCircle className="size-4" />,
       label: 'Completed',
     },
     paused: {
       color: 'text-yellow-500',
-      icon: <HiPause className="w-4 h-4" />,
+      icon: <HiPause className="size-4" />,
       label: 'Paused',
     },
   };
@@ -71,7 +71,7 @@ export function CampaignControlCard({
     <div className="border border-border bg-background p-4 my-2">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <HiMegaphone className="w-5 h-5 text-orange-500" />
+          <HiMegaphone className="size-5 text-orange-500" />
           <h3 className="font-semibold text-sm">
             {action.title || 'Campaign'}
           </h3>

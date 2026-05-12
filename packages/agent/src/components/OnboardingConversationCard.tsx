@@ -85,8 +85,8 @@ export function OnboardingConversationCard({
   return (
     <div className="mx-auto mt-8 w-full max-w-3xl border border-white/[0.08] bg-[#0d1118] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
       <div className="flex items-start gap-4">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center bg-foreground/[0.06] ring-1 ring-inset ring-foreground/[0.1]">
-          <HiOutlineSparkles className="h-6 w-6 text-foreground/70" />
+        <div className="flex size-12 shrink-0 items-center justify-center bg-foreground/[0.06] ring-1 ring-inset ring-foreground/[0.1]">
+          <HiOutlineSparkles className="size-6 text-foreground/70" />
         </div>
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-foreground/45">
@@ -126,7 +126,7 @@ export function OnboardingConversationCard({
                 )}
               >
                 <div className="flex items-center gap-2">
-                  <Icon className="h-5 w-5 text-foreground/70" />
+                  <Icon className="size-5 text-foreground/70" />
                   <span className="text-sm font-semibold text-foreground">
                     {type.label}
                   </span>
@@ -155,7 +155,7 @@ export function OnboardingConversationCard({
 
         <div className="border border-white/[0.08] bg-white/[0.02] p-4">
           <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-            <HiOutlinePhoto className="h-4 w-4 text-foreground/70" />
+            <HiOutlinePhoto className="size-4 text-foreground/70" />
             First reward
           </div>
           <p className="mt-2 text-xs leading-5 text-foreground/58">

@@ -1,11 +1,13 @@
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import { forwardRef, type HTMLAttributes } from 'react';
+import type { HTMLAttributes } from 'react';
 
-export interface SectionLabelProps extends HTMLAttributes<HTMLSpanElement> {}
+export interface SectionLabelProps extends HTMLAttributes<HTMLSpanElement> {
+  ref?: React.Ref<HTMLSpanElement>;
+}
 
 /** Uppercase tracking-widest label used across website/marketing pages */
-const SectionLabel = forwardRef<HTMLSpanElement, SectionLabelProps>(
-  ({ className, ...props }, ref) => (
+function SectionLabel({ ref, className, ...props }: SectionLabelProps) {
+  return (
     <span
       className={cn(
         'text-white/20 text-xs font-black uppercase tracking-widest mb-6 block',
@@ -14,8 +16,8 @@ const SectionLabel = forwardRef<HTMLSpanElement, SectionLabelProps>(
       ref={ref}
       {...props}
     />
-  ),
-);
+  );
+}
 SectionLabel.displayName = 'SectionLabel';
 
 export { SectionLabel };

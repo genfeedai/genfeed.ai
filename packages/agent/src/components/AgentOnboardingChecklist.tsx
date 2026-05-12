@@ -11,23 +11,23 @@ import { HiCheck } from 'react-icons/hi2';
 function StatusIcon({ status }: { status: OnboardingChecklistStatus }) {
   if (status === 'complete') {
     return (
-      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-green-500/20 text-green-400">
-        <HiCheck className="h-3.5 w-3.5" />
+      <div className="flex size-6 items-center justify-center rounded-full bg-green-500/20 text-green-400">
+        <HiCheck className="size-3.5" />
       </div>
     );
   }
 
   if (status === 'in-progress') {
     return (
-      <div className="flex h-6 w-6 items-center justify-center">
-        <div className="h-4 w-4 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+      <div className="flex size-6 items-center justify-center">
+        <div className="size-4 rounded-full border-2 border-primary border-t-transparent animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="flex h-6 w-6 items-center justify-center">
-      <div className="h-3 w-3 rounded-full border-2 border-white/20" />
+    <div className="flex size-6 items-center justify-center">
+      <div className="size-3 rounded-full border-2 border-white/20" />
     </div>
   );
 }
@@ -104,13 +104,13 @@ export function AgentOnboardingChecklist({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-3 py-3">
+      <div className="flex-1 overflow-y-auto p-3">
         <div className="flex flex-col gap-1">
           {steps.map((step, index) => (
             <div
               key={step.id}
               className={cn(
-                'flex items-start gap-3 px-3 py-3 transition-colors',
+                'flex items-start gap-3 p-3 transition-colors',
                 step.id === currentStepId && 'bg-white/[0.04]',
                 step.status === 'complete' && 'opacity-60',
               )}

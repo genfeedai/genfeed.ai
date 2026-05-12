@@ -504,8 +504,10 @@ export default function ModalReplyBot({
                   onChange={(e) => {
                     const keywords = e.target.value
                       .split(',')
-                      .map((k: string) => k.trim())
-                      .filter(Boolean);
+                      .flatMap((k: string) => {
+                        const t = k.trim();
+                        return t ? [t] : [];
+                      });
                     form.setValue('filters.includeKeywords', keywords, {
                       shouldValidate: true,
                     });
@@ -527,8 +529,10 @@ export default function ModalReplyBot({
                   onChange={(e) => {
                     const keywords = e.target.value
                       .split(',')
-                      .map((k: string) => k.trim())
-                      .filter(Boolean);
+                      .flatMap((k: string) => {
+                        const t = k.trim();
+                        return t ? [t] : [];
+                      });
                     form.setValue('filters.excludeKeywords', keywords, {
                       shouldValidate: true,
                     });

@@ -97,33 +97,37 @@ function TabsContent({
     }
 
     const activeNavTab = normalizedTabs
-      .filter(isNavigationTab)
-      .map((tab) => {
-        const routeParts = getRouteParts(tab.href);
-        const exactMatch =
-          tab.matchPaths?.includes(pathname || '') ||
-          tab.matchPaths?.includes(currentRoute) ||
-          currentRoute === routeParts.full ||
-          pathname === routeParts.path;
-        const prefixMatch =
-          pathname === routeParts.path ||
-          Boolean(pathname?.startsWith(`${routeParts.path}/`));
+      .reduce<{ score: number; tab: (typeof normalizedTabs)[number] }[]>(
+        (acc, tab) => {
+          if (!isNavigationTab(tab)) return acc;
+          const routeParts = getRouteParts(tab.href);
+          const exactMatch =
+            tab.matchPaths?.includes(pathname || '') ||
+            tab.matchPaths?.includes(currentRoute) ||
+            currentRoute === routeParts.full ||
+            pathname === routeParts.path;
+          const prefixMatch =
+            pathname === routeParts.path ||
+            Boolean(pathname?.startsWith(`${routeParts.path}/`));
 
-        if (tab.matchMode === 'exact') {
-          return { score: exactMatch ? 3 : -1, tab };
-        }
+          let score: number;
+          if (tab.matchMode === 'exact') {
+            score = exactMatch ? 3 : -1;
+          } else if (exactMatch) {
+            score = 2;
+          } else if (prefixMatch) {
+            score = 1;
+          } else {
+            score = -1;
+          }
 
-        if (exactMatch) {
-          return { score: 2, tab };
-        }
-
-        if (prefixMatch) {
-          return { score: 1, tab };
-        }
-
-        return { score: -1, tab };
-      })
-      .filter((match) => match.score >= 0)
+          if (score >= 0) {
+            acc.push({ score, tab });
+          }
+          return acc;
+        },
+        [],
+      )
       .sort((left, right) => right.score - left.score)[0]?.tab;
 
     return activeNavTab ? getTabId(activeNavTab) : activeTab;

@@ -154,9 +154,7 @@ export default function TextOverlayPanel({
 
               {/* Preview section */}
               <div className="mt-6">
-                <label className="text-sm font-medium mb-2 block">
-                  Preview
-                </label>
+                <p className="text-sm font-medium mb-2">Preview</p>
                 <div className="relative bg-background aspect-video flex items-center justify-center">
                   <div
                     className={`absolute ${getPositionClasses(position)} p-4`}

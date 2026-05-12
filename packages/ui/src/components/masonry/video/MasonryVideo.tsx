@@ -70,7 +70,6 @@ export default function MasonryVideo({
   const playTimeoutRef = useRef<NodeJS.Timeout>(null);
   const isHoveringRef = useRef(false);
   const [isHovered, setIsHovered] = useState(false);
-  const [showActions, setShowActions] = useState(false);
 
   // URL resolution
   const referenceImageUrl = useMemo(() => {
@@ -170,9 +169,8 @@ export default function MasonryVideo({
     isHoveringRef.current = false;
 
     const frameId = requestAnimationFrame(() => {
-      setShowActions(false);
-      onHoverChange?.(false);
       setIsHovered(false);
+      onHoverChange?.(false);
     });
 
     return () => cancelAnimationFrame(frameId);
@@ -197,7 +195,6 @@ export default function MasonryVideo({
 
         if (!relatedTarget) {
           // Mouse leaving to outside
-          setShowActions(false);
           setIsHovered(false);
           onHoverChange?.(false);
           return stopAndResetVideo(videoRef);
@@ -228,7 +225,6 @@ export default function MasonryVideo({
       }
 
       isHoveringRef.current = isHover;
-      setShowActions(isHover);
       setIsHovered(isHover);
       onHoverChange?.(isHover);
 
@@ -343,6 +339,8 @@ export default function MasonryVideo({
         {isUnavailable ? (
           <div
             data-testid={`masonry-ingredient-${video.id}`}
+            role="button"
+            tabIndex={0}
             className="cursor-pointer relative w-full"
             draggable={isDragEnabled && !!onUpdateParent}
             onDragStartCapture={handleMediaDragStart}
@@ -357,10 +355,19 @@ export default function MasonryVideo({
                 onClickIngredient?.(video);
               }
             }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                if (!isDarkroomLocked) {
+                  onClickIngredient?.(video);
+                }
+              }
+            }}
           >
             {isProcessing && (
               <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none bg-black/20 backdrop-blur-sm">
                 <div
+                  role="presentation"
                   className="pointer-events-auto"
                   onClick={(e) => e.stopPropagation()}
                 >
@@ -388,6 +395,8 @@ export default function MasonryVideo({
         ) : (
           <div
             data-testid={`masonry-ingredient-${video.id}`}
+            role="button"
+            tabIndex={0}
             className="cursor-pointer relative w-full"
             draggable={isDragEnabled && !!onUpdateParent}
             onDragStartCapture={handleMediaDragStart}
@@ -400,6 +409,14 @@ export default function MasonryVideo({
             onClick={() => {
               if (!isDarkroomLocked) {
                 onClickIngredient?.(video);
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                if (!isDarkroomLocked) {
+                  onClickIngredient?.(video);
+                }
               }
             }}
           >
@@ -438,7 +455,7 @@ export default function MasonryVideo({
         <div
           className={cn(
             'absolute inset-x-0 bottom-0 z-50 w-full overflow-visible border-t border-white/[0.08] bg-black/72 p-2 backdrop-blur-sm transition-opacity duration-200',
-            showActions ? 'opacity-100' : 'opacity-0 pointer-events-none',
+            isHovered ? 'opacity-100' : 'opacity-0 pointer-events-none',
             'group-hover:opacity-100',
           )}
         >
@@ -462,8 +479,9 @@ export default function MasonryVideo({
                 />
               ) : (
                 !isUnavailable &&
-                showActions && (
+                isHovered && (
                   <div
+                    role="presentation"
                     className="quick-actions-wrapper flex items-center gap-2"
                     onClick={(e) => e.stopPropagation()}
                     onMouseDown={(e) => e.stopPropagation()}

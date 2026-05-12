@@ -180,7 +180,7 @@ export const Interactive: Story = {
         label: 'New Tag',
         textColor: '#ffffff',
       } as any;
-      setTags([...tags, newTag]);
+      setTags((prev) => [...prev, newTag]);
     };
 
     const handleRemoveTag = (tagId: string) => {

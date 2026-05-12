@@ -49,7 +49,7 @@ export function TrendingSounds({
     );
   }
 
-  const sortedSounds = [...sounds].sort((a, b) => b.usageCount - a.usageCount);
+  const sortedSounds = sounds.toSorted((a, b) => b.usageCount - a.usageCount);
 
   const formatDuration = (seconds?: number) => {
     if (!seconds) {

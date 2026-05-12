@@ -93,9 +93,9 @@ export function ToolCallDetailPanel({
             onClick={() => void handleCopy()}
           >
             {copied ? (
-              <HiOutlineCheck className="h-3.5 w-3.5 text-emerald-500" />
+              <HiOutlineCheck className="size-3.5 text-emerald-500" />
             ) : (
-              <HiOutlineClipboardDocument className="h-3.5 w-3.5" />
+              <HiOutlineClipboardDocument className="size-3.5" />
             )}
           </Button>
         </div>

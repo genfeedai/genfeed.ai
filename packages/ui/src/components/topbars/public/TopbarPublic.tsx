@@ -75,12 +75,6 @@ export default function TopbarPublic({
     setMounted(true);
   }, []);
 
-  // Close mobile menu on route change
-  useEffect(() => {
-    setIsMobileMenuOpen(false);
-    setOpenDropdown(null);
-  }, []);
-
   // Lock body scroll when mobile menu is open
   const [isScrolled, setIsScrolled] = useState(false);
 

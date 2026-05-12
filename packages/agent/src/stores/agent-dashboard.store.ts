@@ -103,9 +103,13 @@ export const useAgentDashboardStore = create<AgentDashboardStore>((set) => ({
   reorderBlocks: (ids) =>
     set((state) => {
       const blockMap = new Map(state.blocks.map((b) => [b.id, b]));
-      const blocks = ids
-        .map((id) => blockMap.get(id))
-        .filter((b): b is AgentUIBlock => b !== undefined);
+      const blocks = ids.reduce<AgentUIBlock[]>((acc, id) => {
+        const b = blockMap.get(id);
+        if (b !== undefined) {
+          acc.push(b);
+        }
+        return acc;
+      }, []);
       const next = { blocks, isAgentModified: state.isAgentModified };
       persistDashboardState(next);
       return next;

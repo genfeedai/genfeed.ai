@@ -8,6 +8,7 @@ import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { SkeletonTable } from '@ui/display/skeleton/skeleton';
 import { Button } from '@ui/primitives/button';
 import dynamic from 'next/dynamic';
+import type { ReactNode } from 'react';
 import { useCallback, useRef } from 'react';
 
 const EMPTY_ARRAY: never[] = [];
@@ -209,15 +210,15 @@ export default function AppTable<T>({
                     <td className="px-4 py-2 relative align-middle">
                       <div className="flex justify-end opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all duration-200">
                         <div className="flex items-center gap-1">
-                          {actions
-                            .filter((action) => {
+                          {actions.reduce<ReactNode[]>(
+                            (acc, action, actionIndex) => {
                               // Check if action should be visible for this item
-                              if (action.isVisible) {
-                                return action.isVisible(item);
+                              const isVisible = action.isVisible
+                                ? action.isVisible(item)
+                                : true;
+                              if (!isVisible) {
+                                return acc;
                               }
-                              return true; // Show by default if isVisible not specified
-                            })
-                            .map((action, actionIndex) => {
                               const iconContent =
                                 typeof action.icon === 'function'
                                   ? action.icon(item)
@@ -227,7 +228,7 @@ export default function AppTable<T>({
                                   ? action.tooltip(item)
                                   : action.tooltip;
 
-                              return (
+                              acc.push(
                                 <Button
                                   key={actionIndex}
                                   label={iconContent}
@@ -246,9 +247,12 @@ export default function AppTable<T>({
                                     action.className,
                                     action.getClassName?.(item),
                                   )}
-                                />
+                                />,
                               );
-                            })}
+                              return acc;
+                            },
+                            [],
+                          )}
                         </div>
                       </div>
                     </td>

@@ -60,7 +60,7 @@ export function ReviewGateCard({
     return (
       <div className="border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 p-4 my-2">
         <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-          <HiCheck className="w-5 h-5" />
+          <HiCheck className="size-5" />
           <span className="text-sm font-medium">
             Review submitted for {selected.size} item
             {selected.size !== 1 ? 's' : ''}
@@ -74,7 +74,7 @@ export function ReviewGateCard({
     <div className="border border-border bg-background p-4 my-2">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <HiClipboardDocumentList className="w-5 h-5 text-amber-500" />
+          <HiClipboardDocumentList className="size-5 text-amber-500" />
           <h3 className="font-semibold text-sm">
             {action.title || 'Review Queue'}
           </h3>
@@ -139,7 +139,7 @@ export function ReviewGateCard({
             isDisabled={selected.size === 0}
             className="bg-green-500 text-white hover:bg-green-600"
           >
-            <HiCheck className="w-3.5 h-3.5" />
+            <HiCheck className="size-3.5" />
             Approve ({selected.size})
           </Button>
           <Button
@@ -149,7 +149,7 @@ export function ReviewGateCard({
             isDisabled={selected.size === 0}
             className="bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400"
           >
-            <HiXMark className="w-3.5 h-3.5" />
+            <HiXMark className="size-3.5" />
             Reject ({selected.size})
           </Button>
         </div>
