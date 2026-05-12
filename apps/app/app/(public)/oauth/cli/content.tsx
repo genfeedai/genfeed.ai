@@ -472,8 +472,13 @@ function CliAuthPageContent() {
 
         const state = stateTokenRef.current;
         const callbackUrl = isDesktopMode
-          ? getDesktopCallbackUrl(key, user ?? null, desktopReturnTo)
-          : `http://127.0.0.1:${port ?? 0}/callback?key=${encodeURIComponent(key)}&state=${encodeURIComponent(state)}`;
+          ? getDesktopCallbackUrl(
+              credential,
+              user ?? null,
+              desktopReturnTo,
+              state,
+            )
+          : `http://127.0.0.1:${port ?? 0}/callback?key=${encodeURIComponent(credential)}&state=${encodeURIComponent(state)}`;
 
         redirectToCallback(callbackUrl);
 
@@ -492,8 +497,17 @@ function CliAuthPageContent() {
         setFlowState({ error: message, step: 'error' });
       }
     },
-    // stateTokenRef is a stable ref — no need to list it as a dependency
-    [desktopReturnTo, getToken, isDesktopMode, port, user],
+    [
+      codeChallenge,
+      codeChallengeMethod,
+      desktopReturnTo,
+      desktopState,
+      getToken,
+      hasPkce,
+      isDesktopMode,
+      port,
+      user,
+    ],
   );
 
   useEffect(() => {

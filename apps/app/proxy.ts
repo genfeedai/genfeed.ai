@@ -86,16 +86,6 @@ function canonicalizeFlatProtectedPath(pathname: string): string {
 /** Slug segments must be alphanumeric + hyphens only (no dots, slashes, etc.). */
 const SLUG_RE = /^[a-zA-Z0-9-]+$/;
 
-/**
- * Validate that a slug coming from the API / cookie cannot be used as a
- * cross-origin redirect vector (e.g. `//attacker.example`).
- */
-function assertSafeSlug(slug: string, label: string): void {
-  if (!SLUG_RE.test(slug)) {
-    throw new Error(`Invalid ${label} slug: "${slug}"`);
-  }
-}
-
 function redirectPreservingSearch(req: NextRequest, pathname: string) {
   const url = new URL(pathname, req.url);
   // Guard: the resolved URL must share the same origin as the incoming request.
