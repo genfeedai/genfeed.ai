@@ -254,7 +254,7 @@ describe('SlackBotManager', () => {
 
       expect(loggerRef.error).toHaveBeenCalledWith(
         `Error stopping bot ${mockIntegration.id}`,
-        error,
+        expect.objectContaining({ message: error.message }),
       );
     });
   });
@@ -371,7 +371,7 @@ describe('SlackBotManager', () => {
 
       expect(loggerRef.error).toHaveBeenCalledWith(
         `Error stopping bot ${mockIntegration.id}`,
-        expect.any(Error),
+        expect.objectContaining({ message: 'Stop error' }),
       );
       expect(service.getActiveCount()).toBe(0);
     });
@@ -422,8 +422,8 @@ describe('SlackBotManager', () => {
       await service['fetchAndAddIntegration']('slack-integration-1');
 
       expect(loggerRef.error).toHaveBeenCalledWith(
-        'Failed to fetch and add integration slack-integration-1:',
-        expect.any(Error),
+        'Failed to fetch and add integration slack-integration-1',
+        expect.objectContaining({ message: 'Fetch failed' }),
       );
       expect(service.getActiveCount()).toBe(0);
     });
@@ -461,8 +461,8 @@ describe('SlackBotManager', () => {
       await service['fetchAndUpdateIntegration']('slack-integration-1');
 
       expect(loggerRef.error).toHaveBeenCalledWith(
-        'Failed to fetch and update integration slack-integration-1:',
-        expect.any(Error),
+        'Failed to fetch and update integration slack-integration-1',
+        expect.objectContaining({ message: 'Fetch failed' }),
       );
     });
   });

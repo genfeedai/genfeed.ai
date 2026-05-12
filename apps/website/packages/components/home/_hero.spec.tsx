@@ -4,7 +4,14 @@ import { describe, expect, it, vi } from 'vitest';
 import HomeHero from './_hero';
 
 vi.mock('next/image', () => ({
-  default: (props: ImgHTMLAttributes<HTMLImageElement>) => (
+  default: ({
+    fill: _fill,
+    priority: _priority,
+    ...props
+  }: ImgHTMLAttributes<HTMLImageElement> & {
+    fill?: boolean;
+    priority?: boolean;
+  }) => (
     // biome-ignore lint/performance/noImgElement: next/image is mocked to a basic DOM element in jsdom tests.
     <img {...props} alt={props.alt ?? ''} />
   ),
@@ -39,14 +46,14 @@ describe('HomeHero', () => {
       screen.getByRole('link', { name: /start cloud app/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: /book a demo/i }),
+      screen.getByRole('link', { name: /view pricing/i }),
     ).toBeInTheDocument();
   });
 
-  it('renders the cloud console visual instead of the poster visual', () => {
+  it('renders the card deck visual instead of the poster visual', () => {
     render(<HomeHero />);
 
-    expect(screen.getByTestId('home-hero-cloud-console')).toBeInTheDocument();
+    expect(screen.getByTestId('home-hero-card-deck')).toBeInTheDocument();
     expect(screen.queryByTestId('home-hero-poster')).not.toBeInTheDocument();
   });
 });

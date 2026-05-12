@@ -32,7 +32,8 @@ describe('ListRowSound', () => {
         onPlay={mockOnPlay}
       />,
     );
-    const listItem = container.firstChild as HTMLElement;
+    const listItem = container.querySelector('div[role="button"]');
+    expect(listItem).toBeInTheDocument();
     fireEvent.click(listItem);
     expect(mockOnClick).toHaveBeenCalledWith('test-id');
   });
@@ -49,9 +50,9 @@ describe('ListRowSound', () => {
         title="Rachel"
       />,
     );
-    const rootElement = container.firstChild as HTMLElement;
+    const rootElement = container.querySelector('div[role="button"]');
     expect(rootElement).toBeInTheDocument();
-    expect(rootElement.className).toContain('bg-white/[0.06]');
+    expect(rootElement?.className).toContain('bg-white/[0.06]');
     expect(screen.getByText('Rachel')).toBeInTheDocument();
     expect(screen.getByText('Narration')).toBeInTheDocument();
     expect(screen.getByText('Action')).toBeInTheDocument();

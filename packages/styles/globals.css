@@ -6,7 +6,7 @@
 @import "./calendar.css";
 @import "./genfeed.css";
 
-@source '../../node_modules/@shipshitdev/ui/dist';
+@source "../../node_modules/@shipshitdev/ui/dist";
 
 @theme inline {
   /* Semantic surface tokens */

@@ -23,7 +23,7 @@ describe('Spinner', () => {
     render(<Spinner size={ComponentSize.LG} />);
 
     const spinner = screen.getByRole('status');
-    expect(spinner).toHaveClass('h-6', 'w-6');
+    expect(spinner).toHaveClass('size-6');
   });
 
   it('renders with custom className', () => {
@@ -37,7 +37,7 @@ describe('Spinner', () => {
     render(<Spinner size={ComponentSize.SM} className="my-spinner" />);
 
     const spinner = screen.getByRole('status');
-    expect(spinner).toHaveClass('h-4', 'w-4', 'my-spinner');
+    expect(spinner).toHaveClass('size-4', 'my-spinner');
   });
 
   it('handles undefined props gracefully', () => {
@@ -57,10 +57,10 @@ describe('Spinner', () => {
 
   it('renders with different size variants', () => {
     const sizeToClass: Record<SpinnerSize, string[]> = {
-      [ComponentSize.XS]: ['h-3', 'w-3'],
-      [ComponentSize.SM]: ['h-4', 'w-4'],
-      [ComponentSize.MD]: ['h-5', 'w-5'],
-      [ComponentSize.LG]: ['h-6', 'w-6'],
+      [ComponentSize.XS]: ['size-3'],
+      [ComponentSize.SM]: ['size-4'],
+      [ComponentSize.MD]: ['size-5'],
+      [ComponentSize.LG]: ['size-6'],
     };
 
     const sizes: SpinnerSize[] = [

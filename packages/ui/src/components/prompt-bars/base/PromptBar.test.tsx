@@ -985,7 +985,7 @@ describe('PromptBar', () => {
     const { container } = render(<PromptBar {...(defaultProps as any)} />);
     const rootElement = container.firstChild as HTMLElement;
     expect(rootElement).toBeInTheDocument();
-    expect(rootElement).toHaveClass('w-full');
+    expect(rootElement).toHaveClass('size-full');
   });
 
   it('should handle disabled state', () => {
@@ -1395,7 +1395,7 @@ describe('PromptBar', () => {
   describe('styling', () => {
     it('should keep the root layout container classes', () => {
       const { container } = render(<PromptBar {...(defaultProps as any)} />);
-      expect(container.firstChild).toHaveClass('w-full', 'min-h-0');
+      expect(container.firstChild).toHaveClass('size-full', 'min-h-0');
     });
 
     it('should have flex-col class', () => {

@@ -216,6 +216,10 @@ export default defineConfig({
         replacement: UI_CHARTS_SRC,
       },
       {
+        find: /^@ui\/components\/(.*)$/,
+        replacement: path.resolve(UI_COMPONENTS_SRC, '$1'),
+      },
+      {
         find: '@ui/flows',
         replacement: UI_FLOWS_SRC,
       },
