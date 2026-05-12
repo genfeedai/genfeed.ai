@@ -92,6 +92,7 @@ describe('TerminalService', () => {
     expect(enabled.isAvailable()).toBe(true);
   });
 
+<<<<<<< HEAD
   it('documents the accepted production enablement value in disabled errors', () => {
     process.env.NODE_ENV = 'production';
     const service = new TerminalService(
@@ -109,6 +110,8 @@ describe('TerminalService', () => {
     ).toThrow('GENFEED_LOCAL_TERMINAL=true');
   });
 
+=======
+>>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
   it('spawns allowlisted terminal commands in the configured cwd', () => {
     const workspaceDir = fs.mkdtempSync(
       path.join(os.tmpdir(), 'genfeed-terminal-'),

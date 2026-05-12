@@ -592,7 +592,7 @@ export default function ActivitiesList({ scope }: ActivitiesListProps) {
         },
       },
     ],
-    [getPreviewUrl, handleViewIngredient, statusVariants[status]],
+    [getPreviewUrl, handleViewIngredient, statusVariants],
   );
 
   const actions: TableAction<IActivity>[] = useMemo(
@@ -626,6 +626,9 @@ export default function ActivitiesList({ scope }: ActivitiesListProps) {
 
   // Determine button state and copy
   const hasSelectedActivities = selectedActivityIds.length > 0;
+  const hasUnreadActivities = filteredActivities.some(
+    (activity) => !activity.isRead,
+  );
 
   const getButtonLabel = () => {
     if (hasSelectedActivities) {
@@ -663,7 +666,9 @@ export default function ActivitiesList({ scope }: ActivitiesListProps) {
             label={getButtonLabel()}
             onClick={handleBulkMarkAsRead}
             variant={ButtonVariant.DEFAULT}
-            isDisabled={isRefreshing || !hasSelectedActivities}
+            isDisabled={
+              isRefreshing || (!hasSelectedActivities && !hasUnreadActivities)
+            }
           />
         </>
       }

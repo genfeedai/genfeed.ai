@@ -36,6 +36,8 @@ export class AnalyticsSocialProcessor extends WorkerHost {
     private readonly mastodonService: MastodonService,
     private readonly tiktokService: TiktokService,
     private readonly pinterestService: PinterestService,
+    private readonly linkedInService: LinkedInService,
+    private readonly mastodonService: MastodonService,
     private readonly postAnalyticsService: PostAnalyticsService,
     private readonly postsService: PostsService,
     private readonly logger: LoggerService,
@@ -353,7 +355,10 @@ export class AnalyticsSocialProcessor extends WorkerHost {
           post.externalId,
         );
 
+<<<<<<< HEAD
         // LinkedIn returns reactions as an object — map fields explicitly (no spread)
+=======
+>>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
         await this.postAnalyticsService.processLinkedInAnalytics(post._id, {
           clicks: analytics.clicks,
           comments: analytics.comments,
@@ -367,7 +372,10 @@ export class AnalyticsSocialProcessor extends WorkerHost {
         });
         processed++;
 
+<<<<<<< HEAD
         // Rate limiting delay
+=======
+>>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
         if (processed < posts.length) {
           await this.delay(this.DEFAULT_DELAY_MS);
         }
@@ -377,7 +385,10 @@ export class AnalyticsSocialProcessor extends WorkerHost {
           error,
         );
 
+<<<<<<< HEAD
         // Disable analytics for this post to prevent repeated failures
+=======
+>>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
         try {
           await this.postsService.patch(post._id, {
             isAnalyticsEnabled: false,
@@ -413,6 +424,7 @@ export class AnalyticsSocialProcessor extends WorkerHost {
           post.externalId,
         );
 
+<<<<<<< HEAD
         await this.postAnalyticsService.processMastodonAnalytics(
           post._id,
           analytics,
@@ -420,6 +432,13 @@ export class AnalyticsSocialProcessor extends WorkerHost {
         processed++;
 
         // Rate limiting delay
+=======
+        await this.postAnalyticsService.processMastodonAnalytics(post._id, {
+          ...analytics,
+        });
+        processed++;
+
+>>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
         if (processed < posts.length) {
           await this.delay(this.DEFAULT_DELAY_MS);
         }
@@ -429,7 +448,10 @@ export class AnalyticsSocialProcessor extends WorkerHost {
           error,
         );
 
+<<<<<<< HEAD
         // Disable analytics for this post to prevent repeated failures
+=======
+>>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
         try {
           await this.postsService.patch(post._id, {
             isAnalyticsEnabled: false,

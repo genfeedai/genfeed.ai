@@ -45,7 +45,6 @@ import { PiPushPinSimple } from 'react-icons/pi';
 interface AgentThreadListProps {
   apiService: AgentApiService;
   isActive?: boolean;
-  routeBasePath?: '/agent' | '/chat';
   onNavigate?: (path: string) => void;
   onActionsChange?: (actions: ReactNode) => void;
 }
@@ -194,7 +193,6 @@ function getErrorMessage(error: unknown, fallback: string): string {
 export function AgentThreadList({
   apiService,
   isActive = true,
-  routeBasePath = '/chat',
   onNavigate,
   onActionsChange,
 }: AgentThreadListProps): ReactElement {
@@ -226,13 +224,10 @@ export function AgentThreadList({
   const menuButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const renameInputRef = useRef<HTMLInputElement | null>(null);
   const getThreadHref = useCallback(
-    (threadId: string) => `${routeBasePath}/${threadId}`,
-    [routeBasePath],
+    (threadId: string) => `/chat/${threadId}`,
+    [],
   );
-  const getNewThreadHref = useCallback(
-    () => `${routeBasePath}/new`,
-    [routeBasePath],
-  );
+  const getNewThreadHref = useCallback(() => '/chat/new', []);
 
   useEffect(() => {
     if (renamingThreadId) {

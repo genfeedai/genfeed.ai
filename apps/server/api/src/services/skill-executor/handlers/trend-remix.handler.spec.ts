@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { TrendsService } from '@api/collections/trends/services/trends.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { TrendRemixHandler } from '@api/services/skill-executor/handlers/trend-remix.handler';
@@ -140,11 +141,90 @@ describe('TrendRemixHandler', () => {
 
   it('returns low-confidence fallback when no trends exist', async () => {
     mockTrendsService.getTrendsWithAccessControl.mockResolvedValue({
+=======
+import { TrendRemixHandler } from '@api/services/skill-executor/handlers/trend-remix.handler';
+import type { SkillExecutionContext } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
+import { describe, expect, it, vi } from 'vitest';
+
+const mockTrend = {
+  _id: 'trend-1',
+  metadata: { hashtags: ['#AI', '#agents'], sampleContent: 'test content' },
+  platform: 'twitter',
+  topic: 'AI agents',
+  viralityScore: 85,
+};
+
+const mockTrendsResponse = {
+  connectedPlatforms: ['twitter'],
+  lockedPlatforms: [],
+  trends: [mockTrend],
+};
+
+const mockContext: SkillExecutionContext = {
+  brandId: 'brand-1',
+  brandVoice: 'witty and insightful',
+  memory: undefined,
+  organizationId: 'org-1',
+  platforms: ['twitter'],
+};
+
+function createMocks() {
+  const trendsService = {
+    getTrendsWithAccessControl: vi.fn().mockResolvedValue(mockTrendsResponse),
+  };
+  const llmDispatcherService = {
+    chatCompletion: vi.fn().mockResolvedValue({
+      choices: [{ message: { content: 'Remixed content about AI agents' } }],
+    }),
+  };
+  const loggerService = { log: vi.fn(), warn: vi.fn() };
+
+  const handler = new TrendRemixHandler(
+    trendsService as never,
+    llmDispatcherService as never,
+    loggerService as never,
+  );
+
+  return { handler, llmDispatcherService, loggerService, trendsService };
+}
+
+describe('TrendRemixHandler', () => {
+  it('should remix a trend with auto-selected top trend', async () => {
+    const { handler, trendsService } = createMocks();
+
+    const result = await handler.execute(mockContext, {});
+
+    expect(trendsService.getTrendsWithAccessControl).toHaveBeenCalledWith(
+      'org-1',
+      'brand-1',
+    );
+    expect(result.content).toBe('Remixed content about AI agents');
+    expect(result.skillSlug).toBe('trend-remix');
+    expect(result.type).toBe('text');
+    expect(result.confidence).toBe(0.78);
+    expect(result.metadata.trendId).toBe('trend-1');
+  });
+
+  it('should remix a specific trend by trendId', async () => {
+    const { handler } = createMocks();
+
+    const result = await handler.execute(mockContext, {
+      trendId: 'trend-1',
+    });
+
+    expect(result.metadata.trendTopic).toBe('AI agents');
+  });
+
+  it('should throw when no active trends available', async () => {
+    const { handler, trendsService } = createMocks();
+    trendsService.getTrendsWithAccessControl.mockResolvedValue({
+>>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
       connectedPlatforms: [],
       lockedPlatforms: [],
       trends: [],
     });
 
+<<<<<<< HEAD
     const result = await handler.execute(baseContext, {});
 
     expect(result.content).toBe('No active trends found...');
@@ -210,5 +290,38 @@ describe('TrendRemixHandler', () => {
         hypothesis: 'Concrete workflow examples outperform AI trend recaps',
       }),
     );
+=======
+    await expect(handler.execute(mockContext, {})).rejects.toThrow(
+      'No active trends available for remix',
+    );
+  });
+
+  it('should fallback to stub draft when LLM fails', async () => {
+    const { handler, llmDispatcherService, loggerService } = createMocks();
+    llmDispatcherService.chatCompletion.mockRejectedValue(
+      new Error('LLM unavailable'),
+    );
+
+    const result = await handler.execute(mockContext, {});
+
+    expect(loggerService.warn).toHaveBeenCalled();
+    expect(result.confidence).toBe(0.4);
+    expect(result.content).toContain('AI agents');
+    expect(result.metadata.fallback).toBe(true);
+  });
+
+  it('should return correct skillSlug and type', async () => {
+    const { handler } = createMocks();
+
+    const result = await handler.execute(mockContext, {
+      platform: 'linkedin',
+      tone: 'casual',
+    });
+
+    expect(result.skillSlug).toBe('trend-remix');
+    expect(result.type).toBe('text');
+    expect(result.metadata.platform).toBe('linkedin');
+    expect(result.metadata.tone).toBe('casual');
+>>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
   });
 });

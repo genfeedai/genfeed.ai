@@ -120,7 +120,11 @@ export class TerminalGateway
     const origin = client.handshake.headers.origin;
 
     if (!origin) {
+<<<<<<< HEAD
       return false;
+=======
+      return true;
+>>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
     }
 
     try {

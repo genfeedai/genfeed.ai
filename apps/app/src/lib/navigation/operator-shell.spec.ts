@@ -16,8 +16,8 @@ describe('operator-shell helpers', () => {
     expect(normalizeProtectedPathname('/acme/~/settings/organization')).toBe(
       '/settings/organization',
     );
-    expect(normalizeProtectedPathname('/acme/~/agent/thread-1')).toBe(
-      '/agent/thread-1',
+    expect(normalizeProtectedPathname('/acme/~/chat/thread-1')).toBe(
+      '/chat/thread-1',
     );
   });
 

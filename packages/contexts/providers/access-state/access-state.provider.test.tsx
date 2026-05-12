@@ -134,7 +134,20 @@ describe('AccessStateProvider', () => {
       </Wrapper>,
     );
 
+<<<<<<< HEAD
     expect(screen.getByTestId('user-id')).toHaveTextContent('user_123');
+=======
+    expect(useResourceMock).toHaveBeenCalledWith(
+      expect.any(Function),
+      expect.objectContaining({
+        enabled: true,
+        cacheKey: 'access-state:org_123:brand_123:clerk_123',
+        cacheTimeMs: 60_000,
+        initialData: initialAccessState,
+        revalidateOnMount: false,
+      }),
+    );
+>>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
     expect(useAuthedServiceMock).not.toHaveBeenCalled();
   });
 });

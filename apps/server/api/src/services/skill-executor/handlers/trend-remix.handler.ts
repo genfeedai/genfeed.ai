@@ -1,9 +1,16 @@
 import { TrendsService } from '@api/collections/trends/services/trends.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
+<<<<<<< HEAD
 import {
   type ContentDraft,
   type SkillExecutionContext,
   type SkillHandler,
+=======
+import type {
+  ContentDraft,
+  SkillExecutionContext,
+  SkillHandler,
+>>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
 } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -11,6 +18,7 @@ import { Injectable } from '@nestjs/common';
 const PLATFORM_CHAR_LIMITS: Record<string, number> = {
   instagram: 2200,
   linkedin: 3000,
+<<<<<<< HEAD
   tiktok: 2200,
   twitter: 280,
   youtube: 5000,
@@ -29,6 +37,11 @@ type RemixPackVariantDefinition = {
   hypothesis: string;
   platform: string;
   type: string;
+=======
+  threads: 500,
+  tiktok: 2200,
+  twitter: 280,
+>>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
 };
 
 @Injectable()
@@ -43,6 +56,7 @@ export class TrendRemixHandler implements SkillHandler {
     context: SkillExecutionContext,
     params: Record<string, unknown>,
   ): Promise<ContentDraft> {
+<<<<<<< HEAD
     const platform =
       typeof params.platform === 'string'
         ? params.platform
@@ -101,11 +115,60 @@ export class TrendRemixHandler implements SkillHandler {
             { content: userPrompt, role: 'user' },
           ],
           model: this.resolveModel(params.model),
+=======
+    const trendId =
+      typeof params.trendId === 'string' ? params.trendId : undefined;
+    const platform =
+      typeof params.platform === 'string'
+        ? params.platform
+        : (context.platforms[0] ?? 'twitter');
+    const tone = typeof params.tone === 'string' ? params.tone : 'professional';
+
+    const response = await this.trendsService.getTrendsWithAccessControl(
+      context.organizationId,
+      context.brandId,
+    );
+
+    const trend = trendId
+      ? response.trends.find((t) => String(t._id) === trendId)
+      : response.trends[0];
+
+    if (!trend) {
+      throw new Error('No active trends available for remix');
+    }
+
+    const topic = trend.topic;
+    const hashtags = Array.isArray(trend.metadata?.hashtags)
+      ? trend.metadata.hashtags.slice(0, 5).join(' ')
+      : '';
+    const charLimit = PLATFORM_CHAR_LIMITS[platform.toLowerCase()] ?? 1000;
+
+    try {
+      const completion = await this.llmDispatcherService.chatCompletion(
+        {
+          max_tokens: 500,
+          messages: [
+            {
+              content:
+                'You are a social media content creator. Write original, on-brand content inspired by a trending topic. Never copy the source — remix it with a fresh angle for the brand.',
+              role: 'system',
+            },
+            {
+              content: `Brand voice: ${context.brandVoice || 'engaging and authentic'}\n\nTrending topic: ${topic}\nRelevant hashtags: ${hashtags}\nPlatform: ${platform}\nTone: ${tone}\nCharacter limit: ${charLimit}\n\nWrite an original ${platform} post that taps into this trend. Include 2-3 relevant hashtags.`,
+              role: 'user',
+            },
+          ],
+          model:
+            typeof params.model === 'string'
+              ? params.model
+              : 'openai/gpt-4o-mini',
+>>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
           temperature: 0.8,
         },
         context.organizationId,
       );
 
+<<<<<<< HEAD
       const content = response.choices[0]?.message?.content;
 
       if (content) {
@@ -127,10 +190,29 @@ export class TrendRemixHandler implements SkillHandler {
           type: 'text',
         };
       }
+=======
+      const remixedContent = completion.choices[0]?.message?.content ?? topic;
+
+      return {
+        confidence: 0.78,
+        content: remixedContent,
+        metadata: {
+          platform,
+          tone,
+          trendId: String(trend._id),
+          trendTopic: topic,
+          viralityScore: trend.viralityScore,
+        },
+        platforms: context.platforms,
+        skillSlug: 'trend-remix',
+        type: 'text',
+      };
+>>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
     } catch (error: unknown) {
       this.loggerService.warn('trend-remix LLM call failed, using fallback', {
         error,
       });
+<<<<<<< HEAD
     }
 
     const fallbackContent = [
@@ -270,5 +352,23 @@ export class TrendRemixHandler implements SkillHandler {
         type: 'reply',
       },
     ];
+=======
+
+      return {
+        confidence: 0.4,
+        content: `Trending: ${topic}. ${context.brandVoice || 'Share your take on this trend.'}`,
+        metadata: {
+          fallback: true,
+          platform,
+          tone,
+          trendId: String(trend._id),
+          trendTopic: topic,
+        },
+        platforms: context.platforms,
+        skillSlug: 'trend-remix',
+        type: 'text',
+      };
+    }
+>>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
   }
 }

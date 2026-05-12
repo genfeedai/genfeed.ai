@@ -201,6 +201,7 @@ describe('AppSwitcher', () => {
       );
     });
 
+<<<<<<< HEAD
     it('links brand app surfaces to brand-scoped routes', () => {
       render(
         <AppSwitcher
@@ -229,10 +230,13 @@ describe('AppSwitcher', () => {
     });
 
     it('links to the org-scoped agent app route', () => {
+=======
+    it('links to the org-scoped chat app route for Agent', () => {
+>>>>>>> f3242288 (chore: recover WIP snapshot from 2026-05-02)
       render(<AppSwitcher orgSlug="acme" currentApp="workspace" />);
       expect(screen.getByRole('link', { name: 'Agent' })).toHaveAttribute(
         'href',
-        '/acme/~/agent',
+        '/acme/~/chat',
       );
     });
 
