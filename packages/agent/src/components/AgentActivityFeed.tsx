@@ -104,7 +104,7 @@ export function AgentActivityFeed({
   const runs = useMemo(
     () =>
       strategy?.runHistory
-        ? [...strategy.runHistory].sort(
+        ? strategy.runHistory.toSorted(
             (a, b) =>
               new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime(),
           )
@@ -115,7 +115,7 @@ export function AgentActivityFeed({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-12">
-        <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <div className="size-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
       </div>
     );
   }

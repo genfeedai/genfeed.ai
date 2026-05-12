@@ -6,7 +6,7 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { ModelSelectorTriggerProps } from '@genfeedai/props/ui/model-selector/model-selector.props';
 import ModelSelectorCostBadge from '@ui/dropdowns/model-selector/ModelSelectorCostBadge';
 import { Button, buttonVariants } from '@ui/primitives/button';
-import { forwardRef } from 'react';
+import type { ButtonHTMLAttributes, Ref } from 'react';
 import {
   HiChevronDown,
   HiChevronUp,
@@ -14,13 +14,16 @@ import {
   HiSparkles,
 } from 'react-icons/hi2';
 
-const ModelSelectorTrigger = forwardRef<
-  HTMLButtonElement,
-  ModelSelectorTriggerProps & React.ButtonHTMLAttributes<HTMLButtonElement>
->(function ModelSelectorTrigger(
-  { selectedModels, isOpen, shouldFlash, className, autoLabel, ...buttonProps },
+function ModelSelectorTrigger({
   ref,
-) {
+  selectedModels,
+  isOpen,
+  shouldFlash,
+  className,
+  autoLabel,
+  ...buttonProps
+}: ModelSelectorTriggerProps &
+  ButtonHTMLAttributes<HTMLButtonElement> & { ref?: Ref<HTMLButtonElement> }) {
   const ChevronIcon = isOpen ? HiChevronUp : HiChevronDown;
   const triggerClassName = cn(
     buttonVariants({
@@ -122,6 +125,6 @@ const ModelSelectorTrigger = forwardRef<
       <ChevronIcon className="size-3 text-foreground/50" />
     </Button>
   );
-});
+}
 
 export default ModelSelectorTrigger;

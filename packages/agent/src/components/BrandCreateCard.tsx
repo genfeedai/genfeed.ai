@@ -31,7 +31,7 @@ export function BrandCreateCard({
     return (
       <div className="my-2 border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
         <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-          <HiCheck className="h-5 w-5" />
+          <HiCheck className="size-5" />
           <span className="text-sm font-medium">
             Brand &quot;{name}&quot; created
           </span>
@@ -43,7 +43,7 @@ export function BrandCreateCard({
   return (
     <div className="my-2 border border-border bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
-        <HiSparkles className="h-5 w-5 text-pink-500" />
+        <HiSparkles className="size-5 text-pink-500" />
         <h3 className="text-sm font-semibold">
           {action.title || 'Create Brand'}
         </h3>
@@ -87,7 +87,7 @@ export function BrandCreateCard({
         variant={ButtonVariant.DEFAULT}
         onClick={handleCreate}
         isDisabled={!name.trim()}
-        icon={<HiSparkles className="h-4 w-4" />}
+        icon={<HiSparkles className="size-4" />}
         className="w-full justify-center"
       >
         Create Brand

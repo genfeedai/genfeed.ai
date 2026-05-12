@@ -697,7 +697,7 @@ export function AgentChatInput({
           </div>
         )}
 
-        <div className="px-2 py-2">
+        <div className="p-2">
           <EditorContent editor={editor} className="flex-1" />
         </div>
 
@@ -727,10 +727,10 @@ export function AgentChatInput({
                   withWrapper={false}
                   onClick={() => fileInputRef.current?.click()}
                   isDisabled={disabled || isUploading}
-                  className="shrink-0 flex h-9 w-9 items-center justify-center rounded-md border border-white/12 bg-white/[0.04] text-muted-foreground transition-colors hover:bg-white/[0.08] hover:text-foreground"
+                  className="shrink-0 flex size-9 items-center justify-center rounded-md border border-white/12 bg-white/[0.04] text-muted-foreground transition-colors hover:bg-white/[0.08] hover:text-foreground"
                   ariaLabel="Attach image"
                 >
-                  <HiOutlinePaperClip className="h-4 w-4" />
+                  <HiOutlinePaperClip className="size-4" />
                 </Button>
               )}
 
@@ -753,21 +753,21 @@ export function AgentChatInput({
                   variant={ButtonVariant.UNSTYLED}
                   withWrapper={false}
                   isDisabled
-                  className="shrink-0 flex h-9 w-9 items-center justify-center rounded-md bg-primary/20 text-primary"
+                  className="shrink-0 flex size-9 items-center justify-center rounded-md bg-primary/20 text-primary"
                   aria-label="Transcribing"
                 >
-                  <HiOutlineArrowPath className="h-4 w-4 animate-spin" />
+                  <HiOutlineArrowPath className="size-4 animate-spin" />
                 </Button>
               ) : !showStop && isListening ? (
                 <Button
                   variant={ButtonVariant.UNSTYLED}
                   withWrapper={false}
                   onClick={stopListening}
-                  className="relative shrink-0 flex h-9 w-9 items-center justify-center rounded-md bg-red-500/20 text-red-400 transition-colors hover:bg-red-500/30"
+                  className="relative shrink-0 flex size-9 items-center justify-center rounded-md bg-red-500/20 text-red-400 transition-colors hover:bg-red-500/30"
                   aria-label="Stop listening"
                 >
-                  <HiOutlineMicrophone className="h-4 w-4" />
-                  <span className="absolute right-0 top-0 h-2 w-2 animate-pulse rounded-full bg-red-500" />
+                  <HiOutlineMicrophone className="size-4" />
+                  <span className="absolute right-0 top-0 size-2 animate-pulse rounded-full bg-red-500" />
                 </Button>
               ) : shouldShowVoiceInput ? (
                 <Button
@@ -775,10 +775,10 @@ export function AgentChatInput({
                   withWrapper={false}
                   onClick={startListening}
                   isDisabled={disabled}
-                  className="shrink-0 flex h-9 w-9 items-center justify-center rounded-md border border-white/12 bg-white/[0.04] text-muted-foreground transition-colors hover:bg-white/[0.08] hover:text-foreground"
+                  className="shrink-0 flex size-9 items-center justify-center rounded-md border border-white/12 bg-white/[0.04] text-muted-foreground transition-colors hover:bg-white/[0.08] hover:text-foreground"
                   ariaLabel="Start voice input"
                 >
-                  <HiOutlineMicrophone className="h-4 w-4" />
+                  <HiOutlineMicrophone className="size-4" />
                 </Button>
               ) : shouldShowSendButton ? (
                 <Button

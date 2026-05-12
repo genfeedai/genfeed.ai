@@ -216,9 +216,7 @@ export default function AnalyticsList(_props: ContentProps) {
     }
 
     const fetchData = async () => {
-      await findAnalytics();
-      await findAllVideos();
-      await findTimeSeries();
+      await Promise.all([findAnalytics(), findAllVideos(), findTimeSeries()]);
     };
 
     fetchData();

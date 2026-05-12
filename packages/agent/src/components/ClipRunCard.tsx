@@ -113,7 +113,7 @@ export function ClipRunCard({
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border px-3 py-2">
         <div className="flex items-center gap-2">
-          <HiOutlineFilm className="h-4 w-4 text-primary" />
+          <HiOutlineFilm className="size-4 text-primary" />
           <span className="text-sm font-medium text-foreground">Clip Run</span>
         </div>
         <span
@@ -175,7 +175,7 @@ export function ClipRunCard({
         {/* Error state */}
         {state.status === 'failed' && failedStep && (
           <div className="flex items-start gap-2 border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
-            <HiXCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            <HiXCircle className="mt-0.5 size-4 shrink-0" />
             <div>
               <p className="font-medium">Failed at: {failedStep.label}</p>
               <p>{failedStep.errorMessage}</p>
@@ -192,7 +192,7 @@ export function ClipRunCard({
         {state.confirmationPending && (
           <div className="border border-yellow-200 bg-yellow-50 p-3 dark:border-yellow-900 dark:bg-yellow-950">
             <div className="mb-2 flex items-center gap-2 text-xs font-medium text-yellow-700 dark:text-yellow-300">
-              <HiExclamationTriangle className="h-4 w-4" />
+              <HiExclamationTriangle className="size-4" />
               <span>
                 {state.confirmationMessage ?? 'Confirmation required'}
               </span>
@@ -204,7 +204,7 @@ export function ClipRunCard({
                 onClick={onConfirm}
                 className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium"
               >
-                <HiCheckCircle className="h-3.5 w-3.5" />
+                <HiCheckCircle className="size-3.5" />
                 Confirm
               </Button>
               <Button
@@ -222,7 +222,7 @@ export function ClipRunCard({
         {/* Final output link */}
         {state.status === 'done' && state.finalOutputUrl && (
           <div className="flex items-center gap-2 border border-green-200 bg-green-50 px-3 py-2 dark:border-green-900 dark:bg-green-950">
-            <HiCheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+            <HiCheckCircle className="size-4 text-green-600 dark:text-green-400" />
             <a
               href={state.finalOutputUrl}
               target="_blank"
@@ -230,7 +230,7 @@ export function ClipRunCard({
               className="flex items-center gap-1 text-xs font-medium text-green-700 underline-offset-2 hover:underline dark:text-green-300"
             >
               View Final Output
-              <HiOutlineArrowTopRightOnSquare className="h-3 w-3" />
+              <HiOutlineArrowTopRightOnSquare className="size-3" />
             </a>
           </div>
         )}

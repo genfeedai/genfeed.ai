@@ -47,25 +47,25 @@ export function AnalyticsSnapshotCard({
       : [
           {
             change: data?.viewsChange as number | undefined,
-            icon: <HiEye className="w-4 h-4" />,
+            icon: <HiEye className="size-4" />,
             label: 'Views',
             value: formatNumber((data?.views as number) ?? 0),
           },
           {
             change: data?.likesChange as number | undefined,
-            icon: <HiHeart className="w-4 h-4" />,
+            icon: <HiHeart className="size-4" />,
             label: 'Likes',
             value: formatNumber((data?.likes as number) ?? 0),
           },
           {
             change: data?.commentsChange as number | undefined,
-            icon: <HiChatBubbleLeft className="w-4 h-4" />,
+            icon: <HiChatBubbleLeft className="size-4" />,
             label: 'Comments',
             value: formatNumber((data?.comments as number) ?? 0),
           },
           {
             change: data?.engagementChange as number | undefined,
-            icon: <HiChartBar className="w-4 h-4" />,
+            icon: <HiChartBar className="size-4" />,
             label: 'Engagement',
             value: `${((data?.engagementRate as number) ?? 0).toFixed(1)}%`,
           },
@@ -74,7 +74,7 @@ export function AnalyticsSnapshotCard({
   return (
     <div className="border border-border bg-background p-4 my-2">
       <div className="flex items-center gap-2 mb-3">
-        <HiChartBar className="w-5 h-5 text-blue-500" />
+        <HiChartBar className="size-5 text-blue-500" />
         <h3 className="font-semibold text-sm">
           {action.title || 'Analytics Snapshot'}
         </h3>
@@ -100,9 +100,9 @@ export function AnalyticsSnapshotCard({
                   }`}
                 >
                   {metric.change >= 0 ? (
-                    <HiArrowTrendingUp className="w-3 h-3 mr-0.5" />
+                    <HiArrowTrendingUp className="size-3 mr-0.5" />
                   ) : (
-                    <HiArrowTrendingDown className="w-3 h-3 mr-0.5" />
+                    <HiArrowTrendingDown className="size-3 mr-0.5" />
                   )}
                   {Math.abs(metric.change).toFixed(1)}%
                 </span>
@@ -145,16 +145,16 @@ function getMetricIcon(label: string): ReactElement {
   const normalizedLabel = label.toLowerCase();
 
   if (normalizedLabel.includes('view')) {
-    return <HiEye className="w-4 h-4" />;
+    return <HiEye className="size-4" />;
   }
 
   if (normalizedLabel.includes('like')) {
-    return <HiHeart className="w-4 h-4" />;
+    return <HiHeart className="size-4" />;
   }
 
   if (normalizedLabel.includes('comment')) {
-    return <HiChatBubbleLeft className="w-4 h-4" />;
+    return <HiChatBubbleLeft className="size-4" />;
   }
 
-  return <HiChartBar className="w-4 h-4" />;
+  return <HiChartBar className="size-4" />;
 }

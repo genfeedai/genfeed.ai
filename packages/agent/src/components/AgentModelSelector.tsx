@@ -51,7 +51,7 @@ export function AgentModelSelector({
           className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
         >
           {current?.isReasoning && (
-            <HiSparkles className="h-3 w-3 text-purple-400" />
+            <HiSparkles className="size-3 text-purple-400" />
           )}
           <span>{current?.label ?? 'Select model'}</span>
           <CostBadge
@@ -59,7 +59,7 @@ export function AgentModelSelector({
             creditCost={current?.creditCost}
           />
           <HiChevronUp
-            className={cn('h-3 w-3 transition-transform', open && 'rotate-180')}
+            className={cn('size-3 transition-transform', open && 'rotate-180')}
           />
         </Button>
       </PopoverTrigger>
@@ -140,7 +140,7 @@ function ModelRow({
       <div className="flex flex-1 flex-col gap-0.5">
         <div className="flex items-center gap-1.5">
           {model.isReasoning && (
-            <HiSparkles className="h-3 w-3 text-purple-400" />
+            <HiSparkles className="size-3 text-purple-400" />
           )}
           <span className="font-medium text-foreground">{model.label}</span>
         </div>
@@ -150,7 +150,7 @@ function ModelRow({
       </div>
       <div className="flex items-center gap-1.5">
         <CostBadge costTier={model.costTier} creditCost={model.creditCost} />
-        {isLocked && <HiLockClosed className="h-3 w-3 text-muted-foreground" />}
+        {isLocked && <HiLockClosed className="size-3 text-muted-foreground" />}
       </div>
     </Button>
   );

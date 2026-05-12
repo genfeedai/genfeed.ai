@@ -86,7 +86,7 @@ export function TimelineStreamingRow({
       <div className="w-full max-w-none space-y-2 rounded-2xl border border-border/65 bg-background-secondary/68 px-4 py-3 shadow-[0_1px_0_rgba(0,0,0,0.18)]">
         <div className="px-0 py-0.5">
           <div className="flex items-center gap-1.5 text-[11px] text-foreground/46">
-            <HiSparkles className="h-3.5 w-3.5 text-primary/70" />
+            <HiSparkles className="size-3.5 text-primary/70" />
             <AnimatedStatusText
               text={statusLabel}
               className="font-medium tracking-[0.01em]"
@@ -97,7 +97,7 @@ export function TimelineStreamingRow({
                   •
                 </span>
                 <span className="inline-flex items-center gap-1 text-[10px] font-mono uppercase tracking-[0.12em] text-foreground/38">
-                  <HiClock className="h-3 w-3" />
+                  <HiClock className="size-3" />
                   <span>{runDurationLabel}</span>
                 </span>
               </>

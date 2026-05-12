@@ -2,7 +2,6 @@ import { Textarea as ShipTextarea } from '@shipshitdev/ui/primitives';
 import {
   type ChangeEvent,
   type FocusEvent,
-  forwardRef,
   type KeyboardEvent,
   type ReactElement,
   type Ref,
@@ -45,8 +44,9 @@ export interface TextareaProps<T extends FieldValues = FieldValues>
   onChange?: (event: ChangeEvent<HTMLTextAreaElement>) => void;
   onFocus?: (event: FocusEvent<HTMLTextAreaElement>) => void;
   onKeyDown?: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
-  required?: boolean;
+  ref?: Ref<HTMLTextAreaElement>;
   register?: UseFormRegisterReturn<Path<T>>;
+  required?: boolean;
   rows?: number;
   textareaRef?: RefObject<HTMLTextAreaElement | null>;
 }
@@ -392,10 +392,13 @@ function HookedControlledTextareaInner<T extends FieldValues = FieldValues>({
   );
 }
 
-function TextareaInner<T extends FieldValues = FieldValues>(
-  { control, register, textareaRef, ...props }: TextareaProps<T>,
-  ref: Ref<HTMLTextAreaElement>,
-): ReactElement {
+function Textarea<T extends FieldValues = FieldValues>({
+  ref,
+  control,
+  register,
+  textareaRef,
+  ...props
+}: TextareaProps<T>): ReactElement {
   if (register) {
     return (
       <RegisteredTextareaInner
@@ -427,14 +430,6 @@ function TextareaInner<T extends FieldValues = FieldValues>(
     />
   );
 }
-
-const Textarea = forwardRef(TextareaInner) as (<
-  T extends FieldValues = FieldValues,
->(
-  props: TextareaProps<T> & { ref?: Ref<HTMLTextAreaElement> },
-) => ReactElement) & {
-  displayName?: string;
-};
 
 Textarea.displayName = 'Textarea';
 

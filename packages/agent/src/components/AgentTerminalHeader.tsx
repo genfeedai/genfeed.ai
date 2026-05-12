@@ -26,7 +26,7 @@ export function AgentTerminalHeader({
       <span
         aria-hidden="true"
         className={cn(
-          'inline-flex h-1.5 w-1.5 shrink-0 rounded-full',
+          'inline-flex size-1.5 shrink-0 rounded-full',
           catalog.environmentLabel === 'local'
             ? 'bg-emerald-400'
             : 'bg-sky-400',

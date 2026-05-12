@@ -118,16 +118,16 @@ function AgentConversationSkeleton({
         zIndex={10}
         className="bottom-3 md:bottom-5"
       >
-        <div className="rounded-md border border-white/[0.08] bg-background/80 px-4 py-4 shadow-[0_18px_50px_rgba(0,0,0,0.28)] backdrop-blur-xl">
+        <div className="rounded-md border border-white/[0.08] bg-background/80 p-4 shadow-[0_18px_50px_rgba(0,0,0,0.28)] backdrop-blur-xl">
           <Skeleton className="mb-4 h-5 w-28 rounded-full bg-white/[0.04]" />
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <Skeleton className="h-8 w-8 rounded-full bg-white/[0.04]" />
+              <Skeleton className="size-8 rounded-full bg-white/[0.04]" />
               <Skeleton className="h-4 w-40 rounded-full bg-white/[0.04]" />
             </div>
             <div className="flex items-center gap-3">
               <Skeleton className="h-4 w-16 rounded-full bg-white/[0.04]" />
-              <Skeleton className="h-8 w-8 rounded-full bg-white/[0.04]" />
+              <Skeleton className="size-8 rounded-full bg-white/[0.04]" />
             </div>
           </div>
         </div>
@@ -910,8 +910,8 @@ export function AgentChatContainer({
                 isWideLayout ? 'max-w-3xl' : 'max-w-3xl',
               )}
             >
-              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-md bg-foreground/[0.05] ring-1 ring-inset ring-foreground/[0.08]">
-                <HiOutlineSparkles className="h-4 w-4 text-foreground/68" />
+              <div className="mb-3 flex size-9 items-center justify-center rounded-md bg-foreground/[0.05] ring-1 ring-inset ring-foreground/[0.08]">
+                <HiOutlineSparkles className="size-4 text-foreground/68" />
               </div>
 
               <h2 className="mb-1 text-center text-base font-semibold tracking-[-0.02em] text-foreground">
@@ -970,7 +970,7 @@ export function AgentChatContainer({
             <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
               <div
                 className={cn(
-                  'mx-auto space-y-1 px-4 py-4 pb-56 md:px-6 md:pb-72',
+                  'mx-auto space-y-1 p-4 pb-56 md:px-6 md:pb-72',
                   conversationColumnMaxWidthClass,
                 )}
               >
@@ -1098,7 +1098,7 @@ export function AgentChatContainer({
                 <Button
                   variant={ButtonVariant.GHOST}
                   size={ButtonSize.ICON}
-                  icon={<HiOutlineArrowDown className="h-4 w-4" />}
+                  icon={<HiOutlineArrowDown className="size-4" />}
                   ariaLabel="Scroll to latest message"
                   className="rounded-full border border-border/70 bg-background/88 text-foreground/72 shadow-[0_16px_36px_-24px_rgba(0,0,0,0.85)] backdrop-blur-sm hover:text-foreground"
                   withWrapper={false}

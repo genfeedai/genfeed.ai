@@ -214,7 +214,7 @@ function MetricCard({ block }: { block: MetricCardBlock }): ReactElement {
         )}
       </div>
       {isLoading ? (
-        <div className="mt-2 h-3 w-3/4 animate-pulse rounded bg-muted/60" />
+        <div className="mt-2 size-3/4 animate-pulse rounded bg-muted/60" />
       ) : block.subtitle ? (
         <p className="mt-1 text-xs text-muted-foreground">{block.subtitle}</p>
       ) : null}
@@ -257,7 +257,7 @@ function TopPosts({ block }: { block: TopPostsBlock }): ReactElement {
           >
             <div
               className={`animate-pulse rounded bg-muted/70 ${
-                isList ? 'h-12 w-12 shrink-0' : 'mb-2 h-32 w-full'
+                isList ? 'size-12 shrink-0' : 'mb-2 h-32 w-full'
               }`}
             />
             <div className="min-w-0 flex-1 space-y-2">
@@ -286,7 +286,7 @@ function TopPosts({ block }: { block: TopPostsBlock }): ReactElement {
               src={post.thumbnail}
               alt={post.title ?? 'Post thumbnail'}
               className={`rounded object-cover ${
-                isList ? 'h-12 w-12 shrink-0' : 'mb-2 h-32 w-full'
+                isList ? 'size-12 shrink-0' : 'mb-2 h-32 w-full'
               }`}
             />
           )}

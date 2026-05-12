@@ -1,5 +1,5 @@
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import { forwardRef, type HTMLAttributes, type ReactNode } from 'react';
+import type { HTMLAttributes, ReactNode } from 'react';
 
 export interface PageSectionProps
   extends Omit<HTMLAttributes<HTMLElement>, 'title'> {
@@ -9,10 +9,19 @@ export interface PageSectionProps
   description?: ReactNode;
   /** Right-side actions (buttons, etc.) */
   actions?: ReactNode;
+  ref?: React.Ref<HTMLElement>;
 }
 
-const PageSection = forwardRef<HTMLElement, PageSectionProps>(
-  ({ actions, children, className, description, title, ...props }, ref) => (
+function PageSection({
+  ref,
+  actions,
+  children,
+  className,
+  description,
+  title,
+  ...props
+}: PageSectionProps) {
+  return (
     <section className={cn('space-y-4', className)} ref={ref} {...props}>
       {(title || description || actions) && (
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -29,8 +38,8 @@ const PageSection = forwardRef<HTMLElement, PageSectionProps>(
       )}
       {children}
     </section>
-  ),
-);
+  );
+}
 PageSection.displayName = 'PageSection';
 
 export { PageSection };

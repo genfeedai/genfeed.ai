@@ -49,7 +49,7 @@ export function AgentGeneratedTextCard({
                   ariaLabel="Copy generated content"
                   onClick={() => onCopy(content)}
                 >
-                  <HiOutlineClipboard className="h-3.5 w-3.5" />
+                  <HiOutlineClipboard className="size-3.5" />
                 </Button>
               )}
               {onRegenerate && (
@@ -62,7 +62,7 @@ export function AgentGeneratedTextCard({
                   ariaLabel="Regenerate content"
                   onClick={() => onRegenerate()}
                 >
-                  <HiOutlineArrowPath className="h-3.5 w-3.5" />
+                  <HiOutlineArrowPath className="size-3.5" />
                 </Button>
               )}
             </div>

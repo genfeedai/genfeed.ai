@@ -1,6 +1,6 @@
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { cva, type VariantProps } from 'class-variance-authority';
-import { forwardRef, type HTMLAttributes } from 'react';
+import type { HTMLAttributes } from 'react';
 
 const stackVariants = cva('flex', {
   defaultVariants: {
@@ -53,10 +53,21 @@ const stackVariants = cva('flex', {
 
 export interface StackProps
   extends HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof stackVariants> {}
+    VariantProps<typeof stackVariants> {
+  ref?: React.Ref<HTMLDivElement>;
+}
 
-const Stack = forwardRef<HTMLDivElement, StackProps>(
-  ({ className, direction, gap, align, justify, wrap, ...props }, ref) => (
+function Stack({
+  ref,
+  className,
+  direction,
+  gap,
+  align,
+  justify,
+  wrap,
+  ...props
+}: StackProps) {
+  return (
     <div
       className={cn(
         stackVariants({ align, direction, gap, justify, wrap }),
@@ -65,22 +76,24 @@ const Stack = forwardRef<HTMLDivElement, StackProps>(
       ref={ref}
       {...props}
     />
-  ),
-);
+  );
+}
 Stack.displayName = 'Stack';
 
 /** Vertical stack — shorthand for `<Stack direction="column">` */
-const VStack = forwardRef<HTMLDivElement, Omit<StackProps, 'direction'>>(
-  (props, ref) => <Stack direction="column" ref={ref} {...props} />,
-);
+function VStack({ ref, ...props }: Omit<StackProps, 'direction'>) {
+  return <Stack direction="column" ref={ref} {...props} />;
+}
 VStack.displayName = 'VStack';
 
 /** Horizontal stack — shorthand for `<Stack direction="row">` */
-const HStack = forwardRef<HTMLDivElement, Omit<StackProps, 'direction'>>(
-  ({ align = 'center', ...props }, ref) => (
-    <Stack align={align} direction="row" ref={ref} {...props} />
-  ),
-);
+function HStack({
+  ref,
+  align = 'center',
+  ...props
+}: Omit<StackProps, 'direction'>) {
+  return <Stack align={align} direction="row" ref={ref} {...props} />;
+}
 HStack.displayName = 'HStack';
 
 export { HStack, Stack, stackVariants, VStack };

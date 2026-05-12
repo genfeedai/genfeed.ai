@@ -112,7 +112,7 @@ export function AgentToolCallDisplay({
             </svg>
           )}
           {!isCompleted && !isFailed && (
-            <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <div className="size-3.5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
           )}
         </span>
 

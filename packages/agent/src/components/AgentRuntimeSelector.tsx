@@ -33,22 +33,22 @@ function RuntimeIcon({
   provider,
 }: Pick<AgentRuntimeOption, 'category' | 'provider'>): ReactElement {
   if (category === 'local') {
-    return <HiCommandLine className="h-3.5 w-3.5 text-emerald-300" />;
+    return <HiCommandLine className="size-3.5 text-emerald-300" />;
   }
 
   if (provider === 'replicate') {
-    return <HiComputerDesktop className="h-3.5 w-3.5 text-sky-300" />;
+    return <HiComputerDesktop className="size-3.5 text-sky-300" />;
   }
 
   if (provider === 'openrouter') {
-    return <HiServerStack className="h-3.5 w-3.5 text-amber-300" />;
+    return <HiServerStack className="size-3.5 text-amber-300" />;
   }
 
   if (category === 'auto') {
-    return <HiOutlineBolt className="h-3.5 w-3.5 text-primary" />;
+    return <HiOutlineBolt className="size-3.5 text-primary" />;
   }
 
-  return <HiOutlineSparkles className="h-3.5 w-3.5 text-violet-300" />;
+  return <HiOutlineSparkles className="size-3.5 text-violet-300" />;
 }
 
 export function AgentRuntimeSelector({
@@ -89,7 +89,7 @@ export function AgentRuntimeSelector({
           </span>
           <HiChevronDown
             className={cn(
-              'h-3 w-3 text-foreground/42 transition-transform',
+              'size-3 text-foreground/42 transition-transform',
               open && 'rotate-180',
             )}
           />
@@ -134,7 +134,7 @@ export function AgentRuntimeSelector({
                   onRuntimeChange(option);
                   setOpen(false);
                 }}
-                className="gen-shell-surface flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition-colors"
+                className="gen-shell-surface flex w-full items-center gap-3 rounded-2xl p-3 text-left transition-colors"
                 data-active={isSelected ? 'true' : 'false'}
               >
                 <RuntimeIcon

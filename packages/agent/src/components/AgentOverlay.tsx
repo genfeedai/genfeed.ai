@@ -51,7 +51,7 @@ export function AgentOverlay({
         withWrapper={false}
         onClick={handleToggle}
         className={cn(
-          'fixed bottom-6 right-6 z-40 flex h-12 w-12 items-center justify-center rounded-full shadow-lg transition-all duration-200',
+          'fixed bottom-6 right-6 z-40 flex size-12 items-center justify-center rounded-full shadow-lg transition-all duration-200',
           isOpen
             ? 'bg-foreground/10 text-foreground hover:bg-foreground/20'
             : 'bg-primary text-primary-foreground hover:scale-105',
@@ -59,9 +59,9 @@ export function AgentOverlay({
         aria-label={isOpen ? 'Close agent' : 'Open agent'}
       >
         {isOpen ? (
-          <HiOutlineXMark className="h-5 w-5" />
+          <HiOutlineXMark className="size-5" />
         ) : (
-          <HiOutlineSparkles className="h-5 w-5" />
+          <HiOutlineSparkles className="size-5" />
         )}
       </Button>
 

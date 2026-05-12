@@ -25,7 +25,7 @@ export function OnboardingChecklistCard({
   return (
     <div className="my-2 border border-border bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
-        <HiRocketLaunch className="h-5 w-5 text-violet-500" />
+        <HiRocketLaunch className="size-5 text-violet-500" />
         <h3 className="text-sm font-semibold">
           {action.title || 'Getting Started'}
         </h3>
@@ -87,7 +87,7 @@ export function OnboardingChecklistCard({
           >
             <div className="flex items-center gap-2">
               <HiCheckCircle
-                className={`h-4 w-4 shrink-0 ${
+                className={`size-4 shrink-0 ${
                   item.isCompleted
                     ? 'text-green-500'
                     : 'text-muted-foreground/40'
@@ -112,7 +112,7 @@ export function OnboardingChecklistCard({
                 className="flex items-center gap-0.5 text-[10px] font-medium text-primary hover:underline"
               >
                 {item.ctaLabel || 'Start'}
-                <HiChevronRight className="h-3 w-3" />
+                <HiChevronRight className="size-3" />
               </a>
             )}
           </div>

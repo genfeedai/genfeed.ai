@@ -34,7 +34,7 @@ function sortRows(
 ): Record<string, unknown>[] {
   if (!sort) return rows;
 
-  return [...rows].sort((a, b) => {
+  return rows.toSorted((a, b) => {
     const aVal = a[sort.column];
     const bVal = b[sort.column];
 

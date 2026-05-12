@@ -28,7 +28,7 @@ export function StudioHandoffCard({
 
       <div className="p-4">
         <div className="mb-3 flex items-center gap-2">
-          <HiPaintBrush className="h-5 w-5 text-indigo-500" />
+          <HiPaintBrush className="size-5 text-indigo-500" />
           <h3 className="text-sm font-semibold">
             {action.title || 'Open in Studio'}
           </h3>
@@ -52,7 +52,7 @@ export function StudioHandoffCard({
           href={studioUrl}
           className="flex w-full items-center justify-center gap-2 bg-primary px-4 py-2 text-sm font-black text-primary-foreground transition-colors hover:bg-primary/90"
         >
-          <HiArrowTopRightOnSquare className="h-4 w-4" />
+          <HiArrowTopRightOnSquare className="size-4" />
           Open in Studio
         </a>
       </div>

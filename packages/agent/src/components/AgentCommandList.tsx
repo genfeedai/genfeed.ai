@@ -3,8 +3,8 @@ import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import {
-  forwardRef,
   type ReactElement,
+  type Ref,
   useEffect,
   useImperativeHandle,
   useState,
@@ -23,27 +23,33 @@ import {
 } from 'react-icons/hi2';
 
 const COMMAND_ICONS: Record<string, ReactElement> = {
-  analyze: <HiOutlineChartBar className="h-4 w-4" />,
-  batch: <HiOutlineSquare2Stack className="h-4 w-4" />,
-  caption: <HiOutlineChatBubbleBottomCenterText className="h-4 w-4" />,
-  'create-post': <HiOutlineDocumentText className="h-4 w-4" />,
-  'generate-image': <HiOutlinePhoto className="h-4 w-4" />,
-  hashtags: <HiOutlineHashtag className="h-4 w-4" />,
-  ideas: <HiOutlineLightBulb className="h-4 w-4" />,
-  repurpose: <HiOutlineRocketLaunch className="h-4 w-4" />,
-  schedule: <HiOutlineCalendarDays className="h-4 w-4" />,
-  trends: <HiOutlineBolt className="h-4 w-4" />,
+  analyze: <HiOutlineChartBar className="size-4" />,
+  batch: <HiOutlineSquare2Stack className="size-4" />,
+  caption: <HiOutlineChatBubbleBottomCenterText className="size-4" />,
+  'create-post': <HiOutlineDocumentText className="size-4" />,
+  'generate-image': <HiOutlinePhoto className="size-4" />,
+  hashtags: <HiOutlineHashtag className="size-4" />,
+  ideas: <HiOutlineLightBulb className="size-4" />,
+  repurpose: <HiOutlineRocketLaunch className="size-4" />,
+  schedule: <HiOutlineCalendarDays className="size-4" />,
+  trends: <HiOutlineBolt className="size-4" />,
 };
+
+interface AgentCommandListHandle {
+  onKeyDown: (props: { event: KeyboardEvent }) => boolean;
+}
 
 interface AgentCommandListProps {
   items: AgentSlashCommand[];
   command: (item: AgentSlashCommand) => void;
+  ref?: Ref<AgentCommandListHandle>;
 }
 
-export const AgentCommandList = forwardRef<
-  { onKeyDown: (props: { event: KeyboardEvent }) => boolean },
-  AgentCommandListProps
->(function AgentCommandList({ items, command }, ref): ReactElement {
+export function AgentCommandList({
+  items,
+  command,
+  ref,
+}: AgentCommandListProps): ReactElement {
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   useEffect(() => {
@@ -95,7 +101,7 @@ export const AgentCommandList = forwardRef<
           )}
         >
           <span className="flex shrink-0 text-muted-foreground">
-            {COMMAND_ICONS[item.name] ?? <HiOutlineBolt className="h-4 w-4" />}
+            {COMMAND_ICONS[item.name] ?? <HiOutlineBolt className="size-4" />}
           </span>
           <div className="flex flex-col gap-0.5">
             <span className="text-sm font-medium">/{item.name}</span>
@@ -107,4 +113,4 @@ export const AgentCommandList = forwardRef<
       ))}
     </div>
   );
-});
+}

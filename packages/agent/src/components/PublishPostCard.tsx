@@ -108,7 +108,7 @@ export function PublishPostCard({
     return (
       <div className="my-2 border border-emerald-500/20 bg-background p-4">
         <div className="flex items-center gap-2 text-emerald-600">
-          <HiCheckCircle className="h-5 w-5" />
+          <HiCheckCircle className="size-5" />
           <span className="text-sm font-medium">
             {scheduledAt
               ? 'Publish scheduled from chat.'
@@ -122,7 +122,7 @@ export function PublishPostCard({
   return (
     <div className="my-2 border border-border bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
-        <HiPaperAirplane className="h-5 w-5 text-emerald-500" />
+        <HiPaperAirplane className="size-5 text-emerald-500" />
         <h3 className="text-sm font-semibold text-foreground">
           {action.title || 'Publish selected content'}
         </h3>
@@ -175,7 +175,7 @@ export function PublishPostCard({
 
       <div className="mb-4">
         <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-          <HiCalendarDays className="mr-1 inline h-3 w-3" />
+          <HiCalendarDays className="mr-1 inline size-3" />
           Schedule for later
         </label>
         <Input
@@ -196,7 +196,7 @@ export function PublishPostCard({
         }
         className="flex w-full items-center justify-center gap-2 rounded bg-emerald-500 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600"
       >
-        <HiPaperAirplane className="h-4 w-4" />
+        <HiPaperAirplane className="size-4" />
         {isSubmitting
           ? 'Publishing...'
           : scheduledAt

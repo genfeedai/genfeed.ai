@@ -1,12 +1,11 @@
 import * as CheckboxPrimitive from '@radix-ui/react-checkbox';
 import { Checkbox as ShipCheckbox } from '@shipshitdev/ui/primitives';
-import {
-  type ChangeEvent,
-  type ComponentPropsWithoutRef,
-  forwardRef,
-  type ReactElement,
-  type ReactNode,
-  type Ref,
+import type {
+  ChangeEvent,
+  ComponentPropsWithoutRef,
+  ReactElement,
+  ReactNode,
+  Ref,
 } from 'react';
 import type { Control, FieldValues, Path } from 'react-hook-form';
 import { useController } from 'react-hook-form';
@@ -28,6 +27,7 @@ export interface CheckboxProps<T extends FieldValues = FieldValues>
   name?: Path<T> | string;
   onChange?: (event: ChangeEvent<HTMLInputElement>) => void;
   onCheckedChange?: (checked: CheckboxPrimitive.CheckedState) => void;
+  ref?: Ref<HTMLButtonElement>;
   required?: boolean;
 }
 
@@ -131,17 +131,15 @@ function HookedCheckboxInner<T extends FieldValues = FieldValues>({
   );
 }
 
-const Checkbox = forwardRef<HTMLButtonElement, CheckboxProps>(
-  ({ control, ...props }, ref) => {
-    if (control && props.name) {
-      return (
-        <HookedCheckboxInner {...props} control={control} externalRef={ref} />
-      );
-    }
+function Checkbox({ ref, control, ...props }: CheckboxProps) {
+  if (control && props.name) {
+    return (
+      <HookedCheckboxInner {...props} control={control} externalRef={ref} />
+    );
+  }
 
-    return <CheckboxInner {...props} externalRef={ref} />;
-  },
-);
+  return <CheckboxInner {...props} externalRef={ref} />;
+}
 Checkbox.displayName =
   ShipCheckbox.displayName ?? CheckboxPrimitive.Root.displayName;
 

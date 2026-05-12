@@ -34,18 +34,18 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
     placeholder: 'Ask about your analytics...',
     suggestedActions: [
       {
-        icon: HiOutlineChartBar({ className: 'h-5 w-5 text-foreground/50' }),
+        icon: HiOutlineChartBar({ className: 'size-5 text-foreground/50' }),
         label: 'Compare',
         prompt: 'Compare my content performance across platforms',
       },
       {
-        icon: HiOutlineTrophy({ className: 'h-5 w-5 text-foreground/50' }),
+        icon: HiOutlineTrophy({ className: 'size-5 text-foreground/50' }),
         label: 'Top posts',
         prompt: 'What was my best performing content this month?',
       },
       {
         icon: HiOutlineRocketLaunch({
-          className: 'h-5 w-5 text-foreground/50',
+          className: 'size-5 text-foreground/50',
         }),
         label: 'Growth',
         prompt: 'Give me growth tips based on my analytics data',
@@ -56,14 +56,14 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
     placeholder: 'Ask about your AI insights...',
     suggestedActions: [
       {
-        icon: HiOutlineChartBar({ className: 'h-5 w-5 text-foreground/50' }),
+        icon: HiOutlineChartBar({ className: 'size-5 text-foreground/50' }),
         label: 'Summarize',
         prompt:
           'Summarize my AI insights and tell me the highest-priority next step.',
       },
       {
         icon: HiOutlineRocketLaunch({
-          className: 'h-5 w-5 text-foreground/50',
+          className: 'size-5 text-foreground/50',
         }),
         label: 'Repeat',
         prompt:
@@ -75,14 +75,14 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
     placeholder: 'Ask about winning patterns...',
     suggestedActions: [
       {
-        icon: HiOutlineSparkles({ className: 'h-5 w-5 text-foreground/50' }),
+        icon: HiOutlineSparkles({ className: 'size-5 text-foreground/50' }),
         label: 'Patterns',
         prompt:
           'Show me the strongest creative patterns and explain how I should reuse them.',
       },
       {
         icon: HiOutlinePencilSquare({
-          className: 'h-5 w-5 text-foreground/50',
+          className: 'size-5 text-foreground/50',
         }),
         label: 'Remix',
         prompt:
@@ -95,14 +95,14 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
     suggestedActions: [
       {
         icon: HiOutlineDocumentText({
-          className: 'h-5 w-5 text-foreground/50',
+          className: 'size-5 text-foreground/50',
         }),
         label: 'Write',
         prompt: 'Help me write a new long-form article',
       },
       {
         icon: HiOutlinePencilSquare({
-          className: 'h-5 w-5 text-foreground/50',
+          className: 'size-5 text-foreground/50',
         }),
         label: 'Edit',
         prompt: 'Help me edit and polish my latest article draft',
@@ -114,18 +114,18 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
     suggestedActions: [
       {
         icon: HiOutlineWrenchScrewdriver({
-          className: 'h-5 w-5 text-foreground/50',
+          className: 'size-5 text-foreground/50',
         }),
         label: 'Create',
         prompt: 'Help me create a new automation workflow',
       },
       {
-        icon: HiOutlinePause({ className: 'h-5 w-5 text-foreground/50' }),
+        icon: HiOutlinePause({ className: 'size-5 text-foreground/50' }),
         label: 'Pause',
         prompt: 'Pause my current running campaigns',
       },
       {
-        icon: HiOutlineSparkles({ className: 'h-5 w-5 text-foreground/50' }),
+        icon: HiOutlineSparkles({ className: 'size-5 text-foreground/50' }),
         label: 'Status',
         prompt: 'Show me the status of all my automated bots',
       },
@@ -136,7 +136,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
     suggestedActions: [
       {
         icon: HiOutlineCalendarDays({
-          className: 'h-5 w-5 text-foreground/50',
+          className: 'size-5 text-foreground/50',
         }),
         label: 'Fill gaps',
         prompt:
@@ -144,14 +144,14 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
       },
       {
         icon: HiOutlineCalendarDays({
-          className: 'h-5 w-5 text-foreground/50',
+          className: 'size-5 text-foreground/50',
         }),
         label: 'Reschedule',
         prompt: 'Help me reorganize my posting schedule for better engagement',
       },
       {
         icon: HiOutlineCalendarDays({
-          className: 'h-5 w-5 text-foreground/50',
+          className: 'size-5 text-foreground/50',
         }),
         label: 'Plan',
         prompt: 'Plan my content schedule for next week',
@@ -163,37 +163,37 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
     suggestedActions: [
       {
         icon: HiOutlineCalendarDays({
-          className: 'h-5 w-5 text-foreground/50',
+          className: 'size-5 text-foreground/50',
         }),
         label: 'Generate',
         prompt: 'Generate 20 posts for this week across my connected platforms',
       },
       {
         icon: HiOutlineClipboardDocumentCheck({
-          className: 'h-5 w-5 text-foreground/50',
+          className: 'size-5 text-foreground/50',
         }),
         label: 'Review',
         prompt: 'Show me pending content in the review queue',
       },
       {
-        icon: HiOutlineChartBar({ className: 'h-5 w-5 text-foreground/50' }),
+        icon: HiOutlineChartBar({ className: 'size-5 text-foreground/50' }),
         label: 'Analytics',
         prompt: 'How did my content perform this week? Show me the analytics',
       },
       {
-        icon: HiOutlinePhoto({ className: 'h-5 w-5 text-foreground/50' }),
+        icon: HiOutlinePhoto({ className: 'size-5 text-foreground/50' }),
         label: 'Create',
         prompt: 'Generate a professional lifestyle photo for Instagram',
         visibleTo: ['owner', 'admin', 'creator'] as MemberRole[],
       },
       {
-        icon: HiOutlineCog6Tooth({ className: 'h-5 w-5 text-foreground/50' }),
+        icon: HiOutlineCog6Tooth({ className: 'size-5 text-foreground/50' }),
         label: 'Autopilot',
         prompt: 'Help me set up my proactive agent strategy',
         visibleTo: ['owner', 'admin'] as MemberRole[],
       },
       {
-        icon: HiOutlineUserGroup({ className: 'h-5 w-5 text-foreground/50' }),
+        icon: HiOutlineUserGroup({ className: 'size-5 text-foreground/50' }),
         label: 'Team',
         prompt: 'Help me manage team members and permissions',
         visibleTo: ['owner', 'admin'] as MemberRole[],
@@ -205,18 +205,18 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
     suggestedActions: [
       {
         icon: HiOutlineMagnifyingGlass({
-          className: 'h-5 w-5 text-foreground/50',
+          className: 'size-5 text-foreground/50',
         }),
         label: 'Search',
         prompt: 'Help me find images in my library for a new post',
       },
       {
-        icon: HiOutlinePaintBrush({ className: 'h-5 w-5 text-foreground/50' }),
+        icon: HiOutlinePaintBrush({ className: 'size-5 text-foreground/50' }),
         label: 'Variations',
         prompt: 'Create variations of my recent images',
       },
       {
-        icon: HiOutlineFolderOpen({ className: 'h-5 w-5 text-foreground/50' }),
+        icon: HiOutlineFolderOpen({ className: 'size-5 text-foreground/50' }),
         label: 'Organize',
         prompt: 'Help me organize my media library',
       },
@@ -226,18 +226,18 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
     placeholder: 'Ask about your images...',
     suggestedActions: [
       {
-        icon: HiOutlinePhoto({ className: 'h-5 w-5 text-foreground/50' }),
+        icon: HiOutlinePhoto({ className: 'size-5 text-foreground/50' }),
         label: 'Generate',
         prompt: 'Generate a professional lifestyle photo for Instagram',
       },
       {
-        icon: HiOutlinePaintBrush({ className: 'h-5 w-5 text-foreground/50' }),
+        icon: HiOutlinePaintBrush({ className: 'size-5 text-foreground/50' }),
         label: 'Variations',
         prompt: 'Create variations of my recent images',
       },
       {
         icon: HiOutlineMagnifyingGlass({
-          className: 'h-5 w-5 text-foreground/50',
+          className: 'size-5 text-foreground/50',
         }),
         label: 'Search',
         prompt: 'Help me find images in my library for a new post',
@@ -248,13 +248,13 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
     placeholder: 'Ask about your videos...',
     suggestedActions: [
       {
-        icon: HiOutlineFilm({ className: 'h-5 w-5 text-foreground/50' }),
+        icon: HiOutlineFilm({ className: 'size-5 text-foreground/50' }),
         label: 'Create',
         prompt: 'Help me create a new video from my images',
       },
       {
         icon: HiOutlineMagnifyingGlass({
-          className: 'h-5 w-5 text-foreground/50',
+          className: 'size-5 text-foreground/50',
         }),
         label: 'Search',
         prompt: 'Help me find videos in my library',
@@ -266,20 +266,20 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
     suggestedActions: [
       {
         icon: HiOutlineCalendarDays({
-          className: 'h-5 w-5 text-foreground/50',
+          className: 'size-5 text-foreground/50',
         }),
         label: 'Generate',
         prompt: 'Generate 20 posts for this week across my connected platforms',
       },
       {
         icon: HiOutlineClipboardDocumentCheck({
-          className: 'h-5 w-5 text-foreground/50',
+          className: 'size-5 text-foreground/50',
         }),
         label: 'Review',
         prompt: 'Show me pending content in the review queue',
       },
       {
-        icon: HiOutlineChartBar({ className: 'h-5 w-5 text-foreground/50' }),
+        icon: HiOutlineChartBar({ className: 'size-5 text-foreground/50' }),
         label: 'Analytics',
         prompt: 'How did my content perform this week? Show me the analytics',
       },
@@ -289,13 +289,13 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
     placeholder: 'Ask about recent activity...',
     suggestedActions: [
       {
-        icon: HiOutlineChartBar({ className: 'h-5 w-5 text-foreground/50' }),
+        icon: HiOutlineChartBar({ className: 'size-5 text-foreground/50' }),
         label: 'Summary',
         prompt: 'Give me a summary of recent content activity',
       },
       {
         icon: HiOutlineMagnifyingGlass({
-          className: 'h-5 w-5 text-foreground/50',
+          className: 'size-5 text-foreground/50',
         }),
         label: 'Engage',
         prompt: 'Search for posts I should engage with',
@@ -307,21 +307,21 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
     suggestedActions: [
       {
         icon: HiOutlineCalendarDays({
-          className: 'h-5 w-5 text-foreground/50',
+          className: 'size-5 text-foreground/50',
         }),
         label: 'Schedule',
         prompt: 'Help me schedule my pending posts for this week',
       },
       {
         icon: HiOutlinePencilSquare({
-          className: 'h-5 w-5 text-foreground/50',
+          className: 'size-5 text-foreground/50',
         }),
         label: 'Captions',
         prompt: 'Write engaging captions for my latest posts',
       },
       {
         icon: HiOutlineClipboardDocumentCheck({
-          className: 'h-5 w-5 text-foreground/50',
+          className: 'size-5 text-foreground/50',
         }),
         label: 'Review',
         prompt: 'Show me all posts in the review queue',
@@ -332,14 +332,14 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
     placeholder: 'Ask about this post...',
     suggestedActions: [
       {
-        icon: HiOutlineChartBar({ className: 'h-5 w-5 text-foreground/50' }),
+        icon: HiOutlineChartBar({ className: 'size-5 text-foreground/50' }),
         label: 'Performance',
         prompt:
           'Review this post and tell me whether I should analyze, remix, or leave it alone.',
       },
       {
         icon: HiOutlinePencilSquare({
-          className: 'h-5 w-5 text-foreground/50',
+          className: 'size-5 text-foreground/50',
         }),
         label: 'Remix',
         prompt:
@@ -352,19 +352,19 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
     suggestedActions: [
       {
         icon: HiOutlineClipboardDocumentCheck({
-          className: 'h-5 w-5 text-foreground/50',
+          className: 'size-5 text-foreground/50',
         }),
         label: 'Queue',
         prompt: 'Show me all content waiting for review',
       },
       {
-        icon: HiOutlineSparkles({ className: 'h-5 w-5 text-foreground/50' }),
+        icon: HiOutlineSparkles({ className: 'size-5 text-foreground/50' }),
         label: 'Approve',
         prompt: 'Review and approve all posts that are ready to publish',
       },
       {
         icon: HiOutlinePencilSquare({
-          className: 'h-5 w-5 text-foreground/50',
+          className: 'size-5 text-foreground/50',
         }),
         label: 'Captions',
         prompt: 'Improve the captions on my pending review posts',
@@ -376,13 +376,13 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
     suggestedActions: [
       {
         icon: HiOutlineRocketLaunch({
-          className: 'h-5 w-5 text-foreground/50',
+          className: 'size-5 text-foreground/50',
         }),
         label: 'Trending',
         prompt: 'What topics are trending in my niche right now?',
       },
       {
-        icon: HiOutlineSparkles({ className: 'h-5 w-5 text-foreground/50' }),
+        icon: HiOutlineSparkles({ className: 'size-5 text-foreground/50' }),
         label: 'Ideas',
         prompt: 'Suggest content ideas based on current trends',
       },
@@ -392,20 +392,20 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
     placeholder: 'Ask about winning ads in your niche...',
     suggestedActions: [
       {
-        icon: HiOutlineSparkles({ className: 'h-5 w-5 text-foreground/50' }),
+        icon: HiOutlineSparkles({ className: 'size-5 text-foreground/50' }),
         label: 'Top ads',
         prompt:
           'List the best-performing ads in my niche and explain why they work.',
       },
       {
-        icon: HiOutlineChartBar({ className: 'h-5 w-5 text-foreground/50' }),
+        icon: HiOutlineChartBar({ className: 'size-5 text-foreground/50' }),
         label: 'Compare',
         prompt:
           'Compare Meta Ads versus Google Ads winners for my current niche.',
       },
       {
         icon: HiOutlineWrenchScrewdriver({
-          className: 'h-5 w-5 text-foreground/50',
+          className: 'size-5 text-foreground/50',
         }),
         label: 'Workflow',
         prompt:
@@ -417,14 +417,14 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
     placeholder: 'Ask about Google and YouTube ads...',
     suggestedActions: [
       {
-        icon: HiOutlineSparkles({ className: 'h-5 w-5 text-foreground/50' }),
+        icon: HiOutlineSparkles({ className: 'size-5 text-foreground/50' }),
         label: 'Google winners',
         prompt:
           'Show me the best Google ads for this niche across Search, Display, and YouTube.',
       },
       {
         icon: HiOutlineRocketLaunch({
-          className: 'h-5 w-5 text-foreground/50',
+          className: 'size-5 text-foreground/50',
         }),
         label: 'Launch prep',
         prompt:
@@ -436,14 +436,14 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
     placeholder: 'Ask about Meta ad winners...',
     suggestedActions: [
       {
-        icon: HiOutlineSparkles({ className: 'h-5 w-5 text-foreground/50' }),
+        icon: HiOutlineSparkles({ className: 'size-5 text-foreground/50' }),
         label: 'Meta winners',
         prompt:
           'Show me the best-performing Meta ads for this niche and summarize the reusable angles.',
       },
       {
         icon: HiOutlinePencilSquare({
-          className: 'h-5 w-5 text-foreground/50',
+          className: 'size-5 text-foreground/50',
         }),
         label: 'Remix',
         prompt:
@@ -455,13 +455,13 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
     placeholder: 'Need help with settings?',
     suggestedActions: [
       {
-        icon: HiOutlineCog6Tooth({ className: 'h-5 w-5 text-foreground/50' }),
+        icon: HiOutlineCog6Tooth({ className: 'size-5 text-foreground/50' }),
         label: 'Configure',
         prompt: 'Help me configure my account settings',
       },
       {
         icon: HiOutlineWrenchScrewdriver({
-          className: 'h-5 w-5 text-foreground/50',
+          className: 'size-5 text-foreground/50',
         }),
         label: 'Connect',
         prompt: 'Help me connect a new social media account',
@@ -472,12 +472,12 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
     placeholder: 'Ask about your trainings...',
     suggestedActions: [
       {
-        icon: HiOutlineSparkles({ className: 'h-5 w-5 text-foreground/50' }),
+        icon: HiOutlineSparkles({ className: 'size-5 text-foreground/50' }),
         label: 'Train',
         prompt: 'Help me start a new AI model training',
       },
       {
-        icon: HiOutlineChartBar({ className: 'h-5 w-5 text-foreground/50' }),
+        icon: HiOutlineChartBar({ className: 'size-5 text-foreground/50' }),
         label: 'Status',
         prompt: 'Show me the status of my model trainings',
       },
@@ -487,13 +487,13 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
     placeholder: 'Ask about this asset...',
     suggestedActions: [
       {
-        icon: HiOutlineSparkles({ className: 'h-5 w-5 text-foreground/50' }),
+        icon: HiOutlineSparkles({ className: 'size-5 text-foreground/50' }),
         label: 'Next step',
         prompt:
           'Summarize the best next step for the asset I am viewing right now.',
       },
       {
-        icon: HiOutlinePaintBrush({ className: 'h-5 w-5 text-foreground/50' }),
+        icon: HiOutlinePaintBrush({ className: 'size-5 text-foreground/50' }),
         label: 'Variations',
         prompt: 'Suggest variations or remixes I should try for this asset.',
       },
@@ -505,19 +505,19 @@ const DEFAULT_CONTEXT: PageContextConfig = {
   placeholder: 'Ask me anything...',
   suggestedActions: [
     {
-      icon: HiOutlineCalendarDays({ className: 'h-5 w-5 text-foreground/50' }),
+      icon: HiOutlineCalendarDays({ className: 'size-5 text-foreground/50' }),
       label: 'Generate',
       prompt: 'Generate 20 posts for this week across my connected platforms',
     },
     {
       icon: HiOutlineClipboardDocumentCheck({
-        className: 'h-5 w-5 text-foreground/50',
+        className: 'size-5 text-foreground/50',
       }),
       label: 'Review',
       prompt: 'Show me pending content in the review queue',
     },
     {
-      icon: HiOutlineChartBar({ className: 'h-5 w-5 text-foreground/50' }),
+      icon: HiOutlineChartBar({ className: 'size-5 text-foreground/50' }),
       label: 'Analytics',
       prompt: 'How did my content perform this week? Show me the analytics',
     },
