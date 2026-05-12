@@ -11,14 +11,12 @@ import {
 } from '@genfeedai/enums';
 import type {
   IFolder,
+  IImage,
   IIngredient,
   IModel,
   IQueryParams,
 } from '@genfeedai/interfaces';
-import type {
-  AvatarVoiceData,
-  AvatarVoiceOption,
-} from '@genfeedai/interfaces/studio/studio-generate.interface';
+import type { AvatarVoiceData } from '@genfeedai/interfaces/studio/studio-generate.interface';
 import { formatVideos } from '@helpers/data/data/data.helper';
 import { resolveIngredientAspectRatio } from '@helpers/formatting/aspect-ratio/aspect-ratio.util';
 import {
@@ -33,6 +31,7 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import {
   AssetControlsHeader,
   AssetDisplayGrid,
+  StoryboardPanel,
   StudioComposer,
 } from '@pages/studio/generate/components';
 import {
@@ -41,6 +40,7 @@ import {
   useFilters,
   usePromptState,
   useSocketGeneration,
+  useStoryboardGeneration,
   useTableActions,
   useTableColumns,
   useTableSelection,
@@ -50,6 +50,7 @@ import {
   buildAvatarVoiceOption,
   isImageOrVideoCategory,
   resolveAvatarPreviewUrl,
+  resolveStoryboardFormat,
 } from '@pages/studio/generate/utils';
 import StudioSelectionActionsBar from '@pages/studio/selection/StudioSelectionActionsBar';
 import type { StudioGeneratePageProps } from '@props/studio/studio.props';
@@ -290,6 +291,26 @@ export default function StudioGenerateLayout({
     categoryType,
     currentModels,
     findAllAssets,
+    setGeneratedAssetId,
+  });
+
+  const {
+    appendStoryboardFrames,
+    cameraMovementPreset,
+    clearStoryboard,
+    customCameraPrompt,
+    frames: storyboardFrames,
+    handleGenerateStoryboard,
+    isStoryboardGenerating,
+    setCameraMovementPreset,
+    setCustomCameraPrompt,
+    setFrames: setStoryboardFrames,
+  } = useStoryboardGeneration({
+    brandId,
+    currentModels,
+    findAllAssets,
+    promptConfig,
+    promptText,
     setGeneratedAssetId,
   });
 
@@ -813,6 +834,10 @@ export default function StudioGenerateLayout({
             setPromptText(image.promptText);
           }
 
+          if (categoryType === IngredientCategory.VIDEO) {
+            appendStoryboardFrames([image as unknown as IImage]);
+          }
+
           const message =
             categoryType === IngredientCategory.VIDEO
               ? 'Image set as video reference.'
@@ -854,6 +879,7 @@ export default function StudioGenerateLayout({
     setFilters,
     promptDataRef,
     setPromptText,
+    appendStoryboardFrames,
   ]);
 
   // Prompt handlers
@@ -916,6 +942,11 @@ export default function StudioGenerateLayout({
     return promptConfig.format as IngredientFormat;
   }, [isImageOrVideo, promptConfig.format]);
 
+  const storyboardFormat = useMemo(
+    () => resolveStoryboardFormat(promptConfig.format),
+    [promptConfig.format],
+  );
+
   const emptyLabel = `No ${categoryType.toLowerCase()} generated yet`;
 
   return (
@@ -935,6 +966,21 @@ export default function StudioGenerateLayout({
       <div className="flex flex-1 overflow-hidden relative w-full">
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="flex-1 overflow-auto px-6 pt-6 pb-40 md:pb-40">
+            {isVideoCategory && (
+              <StoryboardPanel
+                cameraMovementPreset={cameraMovementPreset}
+                customCameraPrompt={customCameraPrompt}
+                format={storyboardFormat}
+                frames={storyboardFrames}
+                isGenerating={isStoryboardGenerating}
+                onCameraMovementPresetChange={setCameraMovementPreset}
+                onClear={clearStoryboard}
+                onCustomCameraPromptChange={setCustomCameraPrompt}
+                onFramesChange={setStoryboardFrames}
+                onGenerate={handleGenerateStoryboard}
+              />
+            )}
+
             {viewMode === ViewType.TABLE && tableSelectedIds.length > 0 && (
               <StudioSelectionActionsBar
                 count={tableSelectedIds.length}

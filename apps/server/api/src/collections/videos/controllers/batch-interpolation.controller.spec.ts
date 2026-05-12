@@ -263,6 +263,79 @@ describe('BatchInterpolationController', () => {
         });
       });
 
+      it('should generate a fresh group ID for each storyboard batch', async () => {
+        mockBuildReferenceImageUrls
+          .mockReset()
+          .mockResolvedValue(['https://cdn.example.com/frame.jpg']);
+
+        const first = await controller.createBatchInterpolation(
+          mockReq,
+          mockDto,
+          mockUser,
+        );
+        const second = await controller.createBatchInterpolation(
+          mockReq,
+          mockDto,
+          mockUser,
+        );
+
+        expect(first.groupId).toEqual(expect.any(String));
+        expect(second.groupId).toEqual(expect.any(String));
+        expect(first.groupId).not.toBe(second.groupId);
+      });
+
+      it('should start all pair generations without waiting for earlier pairs to finish', async () => {
+        const twoPairDto: BatchInterpolationDto = {
+          ...mockDto,
+          pairs: [
+            {
+              endImageId: '507f1f77bcf86cd799439002',
+              startImageId: '507f1f77bcf86cd799439001',
+            },
+            {
+              endImageId: '507f1f77bcf86cd799439004',
+              startImageId: '507f1f77bcf86cd799439003',
+            },
+          ],
+        };
+        let resolveFirstGeneration!: (value: string) => void;
+        let resolveSecondGeneration!: (value: string) => void;
+        const firstGeneration = new Promise<string>((resolve) => {
+          resolveFirstGeneration = resolve;
+        });
+        const secondGeneration = new Promise<string>((resolve) => {
+          resolveSecondGeneration = resolve;
+        });
+
+        mockBuildReferenceImageUrls
+          .mockReset()
+          .mockResolvedValue(['https://cdn.example.com/frame.jpg']);
+        replicateService.generateTextToVideo
+          .mockReset()
+          .mockImplementationOnce(() => firstGeneration)
+          .mockImplementationOnce(() => secondGeneration);
+
+        const batchPromise = controller.createBatchInterpolation(
+          mockReq,
+          twoPairDto,
+          mockUser,
+        );
+
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        expect(replicateService.generateTextToVideo).toHaveBeenCalledTimes(2);
+
+        resolveFirstGeneration('replicate-generation-id-1');
+        resolveSecondGeneration('replicate-generation-id-2');
+
+        const result = await batchPromise;
+
+        expect(result.jobs).toHaveLength(2);
+        expect(result.jobs.every((job) => job.status === 'processing')).toBe(
+          true,
+        );
+      });
+
       it('should deduct credits after successful generation', async () => {
         await controller.createBatchInterpolation(mockReq, mockDto, mockUser);
 

@@ -34,7 +34,12 @@ export class VideosService extends IngredientsService<Video> {
       VideosService.videoInstances.set(token, new VideosService(token));
     }
 
-    return VideosService.videoInstances.get(token)!;
+    const instance = VideosService.videoInstances.get(token);
+    if (!instance) {
+      throw new Error('Videos service instance was not initialized');
+    }
+
+    return instance;
   }
 
   public async post(body: Partial<IVideo>) {
@@ -192,7 +197,7 @@ export class VideosService extends IngredientsService<Video> {
       status: string;
     }>;
     totalJobs: number;
-    batchId: string;
+    groupId: string;
     isMergeEnabled: boolean;
   }> {
     return await this.instance
@@ -204,7 +209,7 @@ export class VideosService extends IngredientsService<Video> {
             status: string;
           }>;
           totalJobs: number;
-          batchId: string;
+          groupId: string;
           isMergeEnabled: boolean;
         };
       }>(buildResourcePath('interpolation'), data)
