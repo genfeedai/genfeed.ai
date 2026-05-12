@@ -518,7 +518,6 @@ export class DesktopSyncService {
       dto.mimeType ?? asset.mimeType ?? 'application/octet-stream';
     this.assertAllowedMimeType(mimeType);
 
-
     const logicalObjectKey = (
       asset.cloudObjectKey ??
       this.getCloudObjectKey(organizationId, {
