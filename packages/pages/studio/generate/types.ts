@@ -115,6 +115,7 @@ export interface UseStoryboardGenerationReturn {
   customCameraPrompt: string;
   frames: IImage[];
   handleGenerateStoryboard: () => Promise<void>;
+  hasInterpolationModel: boolean;
   isStoryboardGenerating: boolean;
   setCameraMovementPreset: (preset: CameraMovementPreset) => void;
   setCustomCameraPrompt: (prompt: string) => void;

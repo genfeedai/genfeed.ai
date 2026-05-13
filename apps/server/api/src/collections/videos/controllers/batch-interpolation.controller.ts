@@ -34,6 +34,7 @@ import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builde
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import type { User } from '@clerk/backend';
+import { hasInterpolation } from '@genfeedai/constants';
 import {
   ActivityEntityModel,
   ActivityKey,
@@ -121,6 +122,21 @@ export class BatchInterpolationController {
           title: 'Model not found',
         },
         HttpStatus.NOT_FOUND,
+      );
+    }
+
+    const modelHasInterpolation =
+      typeof model.hasInterpolation === 'boolean'
+        ? model.hasInterpolation
+        : hasInterpolation(dto.modelKey);
+
+    if (!modelHasInterpolation) {
+      throw new HttpException(
+        {
+          detail: `Model ${dto.modelKey} does not support start/end frame interpolation`,
+          title: 'Model does not support interpolation',
+        },
+        HttpStatus.BAD_REQUEST,
       );
     }
 
