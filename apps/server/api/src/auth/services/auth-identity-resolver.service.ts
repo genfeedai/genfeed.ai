@@ -92,6 +92,10 @@ export class AuthIdentityResolverService {
         isDeleted: false,
       })) ??
       (await this.organizationsService.findOne({
+        clerkOrganizationId: organizationCandidate,
+        isDeleted: false,
+      })) ??
+      (await this.organizationsService.findOne({
         isDeleted: false,
         mongoId: organizationCandidate,
       }));
