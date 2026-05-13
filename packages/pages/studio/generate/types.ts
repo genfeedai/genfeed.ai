@@ -6,10 +6,12 @@ import type {
 } from '@genfeedai/enums';
 import type {
   IFolder,
+  IImage,
   IIngredient,
   IModel,
   IPreset,
 } from '@genfeedai/interfaces';
+import type { CameraMovementPreset } from '@genfeedai/interfaces/studio/camera-movement.interface';
 import type {
   AvatarVoiceData,
   AvatarVoiceOption,
@@ -88,6 +90,35 @@ export interface UseSocketGenerationReturn {
     promptData: PromptTextareaSchema & { isValid: boolean },
   ) => Promise<void>;
   isGenerationCooldown: boolean;
+}
+
+export interface UseStoryboardGenerationParams {
+  brandId: string;
+  currentModels: IModel[];
+  findAllAssets: (
+    page?: number,
+    append?: boolean,
+    skipLoadingState?: boolean,
+    overrideBrandId?: string,
+  ) => Promise<void>;
+  promptConfig: Partial<Omit<PromptTextareaSchema, 'text'>> & {
+    isValid: boolean;
+  };
+  promptText: string;
+  setGeneratedAssetId: (id: string | null) => void;
+}
+
+export interface UseStoryboardGenerationReturn {
+  appendStoryboardFrames: (frames: IImage[]) => void;
+  cameraMovementPreset: CameraMovementPreset;
+  clearStoryboard: () => void;
+  customCameraPrompt: string;
+  frames: IImage[];
+  handleGenerateStoryboard: () => Promise<void>;
+  isStoryboardGenerating: boolean;
+  setCameraMovementPreset: (preset: CameraMovementPreset) => void;
+  setCustomCameraPrompt: (prompt: string) => void;
+  setFrames: React.Dispatch<React.SetStateAction<IImage[]>>;
 }
 
 export interface UseAssetActionsParams {
