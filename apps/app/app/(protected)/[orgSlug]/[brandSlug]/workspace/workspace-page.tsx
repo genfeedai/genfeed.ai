@@ -1437,8 +1437,9 @@ function WorkspacePageContentContent({
   const { organizationId } = useBrand();
   const pathname = usePathname();
   const { push, replace } = useRouter();
-  const { get, toString: getSearchParamsString } = useSearchParams();
-  const requestedTaskId = get('taskId');
+  const searchParams = useSearchParams();
+  const searchParamsString = searchParams.toString();
+  const requestedTaskId = searchParams.get('taskId');
   const [isTaskComposerOpen, setTaskComposerOpen] = useState(false);
   const [workspaceActionError, setWorkspaceActionError] = useState<
     string | null
@@ -1515,7 +1516,7 @@ function WorkspacePageContentContent({
   );
   const replaceTaskSearchParam = useCallback(
     (taskId: string | null) => {
-      const nextSearchParams = new URLSearchParams(getSearchParamsString());
+      const nextSearchParams = new URLSearchParams(searchParamsString);
 
       for (const key of OPERATOR_TASK_CONTEXT_QUERY_KEYS) {
         if (key !== 'taskId') {
@@ -1534,7 +1535,7 @@ function WorkspacePageContentContent({
         scroll: false,
       });
     },
-    [pathname, replace, getSearchParamsString],
+    [pathname, replace, searchParamsString],
   );
   const visibleInboxTasks = useMemo(() => {
     switch (defaultInboxView) {

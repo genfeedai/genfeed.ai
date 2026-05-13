@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { AppSwitcherItemConfig } from '@genfeedai/interfaces';
 import type { AppSwitcherProps } from '@genfeedai/props/ui/app-switcher.props';
@@ -16,15 +16,13 @@ import {
   HiOutlineSparkles,
   HiOutlineSquares2X2,
 } from 'react-icons/hi2';
+import { TbGridDots } from 'react-icons/tb';
 import { Button } from '../../../primitives/button';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '../../../primitives/dropdown-menu';
-import { SimpleTooltip } from '../../../primitives/tooltip';
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '../../../primitives/popover';
 
 const CONTENT_APPS: AppSwitcherItemConfig[] = [
   {
@@ -60,7 +58,7 @@ const PLATFORM_APPS: AppSwitcherItemConfig[] = [
   {
     icon: HiOutlineSparkles,
     id: 'studio',
-    label: 'Image',
+    label: 'Studio',
     route: (org, brand) =>
       brand ? `/${org}/${brand}/studio/image` : `/${org}/~/overview`,
   },
@@ -96,8 +94,6 @@ const PLATFORM_APPS: AppSwitcherItemConfig[] = [
   },
 ];
 
-const ALL_APPS = [...CONTENT_APPS, ...PLATFORM_APPS];
-
 function withPreservedSearch(path: string, preservedSearch?: string): string {
   if (!preservedSearch) {
     return path;
@@ -124,104 +120,110 @@ function withPreservedSearch(path: string, preservedSearch?: string): string {
   return nextSearch ? `${pathname}?${nextSearch}` : pathname;
 }
 
+function AppGridItem({
+  app,
+  isActive,
+  href,
+}: {
+  app: AppSwitcherItemConfig;
+  isActive: boolean;
+  href: string;
+}) {
+  const Icon = app.icon;
+
+  return (
+    <Link
+      href={href}
+      aria-current={isActive ? 'page' : undefined}
+      className={cn(
+        'group flex flex-col items-center gap-1.5 rounded-lg p-2.5 transition-colors',
+        'hover:bg-white/[0.06]',
+        isActive && 'bg-white/[0.08]',
+      )}
+    >
+      <span
+        className={cn(
+          'flex size-10 items-center justify-center rounded-full transition-colors',
+          isActive
+            ? 'bg-white/[0.12] text-foreground'
+            : 'bg-white/[0.04] text-foreground/60 group-hover:bg-white/[0.08] group-hover:text-foreground/80',
+        )}
+      >
+        <Icon className="size-5" />
+      </span>
+      <span
+        className={cn(
+          'text-[11px] leading-tight',
+          isActive
+            ? 'font-medium text-foreground'
+            : 'text-foreground/60 group-hover:text-foreground/80',
+        )}
+      >
+        {app.label}
+      </span>
+    </Link>
+  );
+}
+
 export function AppSwitcher({
   brandSlug,
   currentApp,
   orgSlug,
   preservedSearch,
 }: AppSwitcherProps) {
-  const activeApp = ALL_APPS.find((app) => app.id === currentApp);
-  const ActiveIcon = activeApp?.icon ?? HiOutlineSquares2X2;
-
   function getAppHref(app: AppSwitcherItemConfig) {
     return withPreservedSearch(app.route(orgSlug, brandSlug), preservedSearch);
   }
 
   return (
-    <DropdownMenu>
-      <SimpleTooltip label={activeApp?.label ?? 'Switch app'} position="bottom">
-        <DropdownMenuTrigger asChild>
-          <Button
-            type="button"
-            variant={ButtonVariant.UNSTYLED}
-            withWrapper={false}
-            className="inline-flex size-7 items-center justify-center rounded border border-border bg-background-secondary transition-colors hover:border-border-strong hover:bg-background-tertiary"
-            ariaLabel={`Current app: ${activeApp?.label ?? currentApp}. Click to switch apps.`}
-          >
-            <ActiveIcon className="size-4" />
-          </Button>
-        </DropdownMenuTrigger>
-      </SimpleTooltip>
-      <DropdownMenuContent align="end" sideOffset={8} className="min-w-0">
-        {CONTENT_APPS.map((app) => {
-          const Icon = app.icon;
-          const isActive = app.id === currentApp;
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.ICON}
+          className="size-7"
+          ariaLabel="Switch app"
+        >
+          <TbGridDots className="size-4" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="start" sideOffset={8} className="w-[264px] p-3">
+        <div className="mb-2">
+          <p className="px-1 text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/30">
+            Content
+          </p>
+        </div>
+        <div className="grid grid-cols-3 gap-0.5">
+          {CONTENT_APPS.map((app) => (
+            <AppGridItem
+              key={app.id}
+              app={app}
+              isActive={app.id === currentApp}
+              href={getAppHref(app)}
+            />
+          ))}
+        </div>
 
-          return (
-            <SimpleTooltip key={app.id} label={app.label} position="left">
-              <DropdownMenuItem
-                asChild
-                className={cn(
-                  'flex items-center justify-center px-3 py-2',
-                  isActive && 'bg-hover',
-                )}
-              >
-                <Link
-                  href={getAppHref(app)}
-                  aria-current={isActive ? 'page' : undefined}
-                  aria-label={app.label}
-                  data-active={isActive ? 'true' : undefined}
-                >
-                  <Icon
-                    aria-hidden="true"
-                    className={cn(
-                      'size-4',
-                      isActive ? 'text-foreground' : 'text-foreground/55',
-                    )}
-                  />
-                  <span className="sr-only">{app.label}</span>
-                </Link>
-              </DropdownMenuItem>
-            </SimpleTooltip>
-          );
-        })}
+        <div className="my-2 border-t border-border" />
 
-        <DropdownMenuSeparator />
-
-        {PLATFORM_APPS.map((app) => {
-          const Icon = app.icon;
-          const isActive = app.id === currentApp;
-
-          return (
-            <SimpleTooltip key={app.id} label={app.label} position="left">
-              <DropdownMenuItem
-                asChild
-                className={cn(
-                  'flex items-center justify-center px-3 py-2',
-                  isActive && 'bg-hover',
-                )}
-              >
-                <Link
-                  href={getAppHref(app)}
-                  aria-current={isActive ? 'page' : undefined}
-                  aria-label={app.label}
-                  data-active={isActive ? 'true' : undefined}
-                >
-                  <Icon
-                    aria-hidden="true"
-                    className={cn(
-                      'size-4',
-                      isActive ? 'text-foreground' : 'text-foreground/55',
-                    )}
-                  />
-                  <span className="sr-only">{app.label}</span>
-                </Link>
-              </DropdownMenuItem>
-            </SimpleTooltip>
-          );
-        })}
-      </DropdownMenuContent>
-    </DropdownMenu>
+        <div className="mb-2">
+          <p className="px-1 text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/30">
+            Tools
+          </p>
+        </div>
+        <div className="grid grid-cols-3 gap-0.5">
+          {PLATFORM_APPS.map((app) => (
+            <AppGridItem
+              key={app.id}
+              app={app}
+              isActive={app.id === currentApp}
+              href={getAppHref(app)}
+            />
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 

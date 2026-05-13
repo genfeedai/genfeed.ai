@@ -46,7 +46,10 @@ const WORKSPACE_PACK_PATHS: Record<string, WorkspacePackPaths> = {
   },
 };
 
-const nativeImport: NativeImport = (specifier) => import(specifier);
+const nativeImport = new Function(
+  'specifier',
+  'return import(specifier)',
+) as NativeImport;
 
 function runtimeRequireModule(
   requireFn: NodeJS.Require,

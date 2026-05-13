@@ -22,7 +22,7 @@ import {
 const EMPTY_ARRAY: never[] = [];
 
 const SIDEBAR_WIDTH = 240;
-const SIDEBAR_COLLAPSED_WIDTH = 48;
+const SIDEBAR_COLLAPSED_WIDTH = 0;
 const AGENT_PANEL_HEIGHT = 380;
 const DESKTOP_TITLEBAR_HEIGHT = 32;
 const SIDEBAR_TRANSITION_DURATION_MS = 300;
@@ -128,39 +128,66 @@ function persistAgentPanelHeight(nextHeight: number): void {
   }
 }
 
-/**
- * Desktop sidebar wrapper — animates width between 240px and 48px with overflow:hidden.
- * MenuShared always renders at full 240px; this container clips content during collapse.
- */
 function DesktopSidebar({
   children,
   collapsedWidth = SIDEBAR_COLLAPSED_WIDTH,
   isCollapsed,
+  onExpand,
   width = SIDEBAR_WIDTH,
 }: {
   children: ReactNode;
   collapsedWidth?: number;
   isCollapsed: boolean;
+  onExpand?: () => void;
   width?: number;
 }) {
   const targetWidth = isCollapsed ? collapsedWidth : width;
 
   return (
-    <aside
-      data-testid="desktop-sidebar-rail"
-      className={cn(
-        'fixed bottom-0 left-0 z-30 hidden flex-col overflow-hidden md:flex',
-        'bg-transparent',
+    <>
+      <aside
+        data-testid="desktop-sidebar-rail"
+        className={cn(
+          'fixed bottom-0 left-0 z-30 hidden flex-col overflow-hidden md:flex',
+          'bg-background',
+          !isCollapsed && 'border-r border-border',
+        )}
+        style={{
+          minWidth: targetWidth,
+          top: 'var(--desktop-titlebar-height)',
+          transition: `width ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, min-width ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}`,
+          width: targetWidth,
+        }}
+      >
+        {children}
+      </aside>
+      {isCollapsed && onExpand && (
+        <Button
+          type="button"
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
+          onClick={onExpand}
+          ariaLabel="Expand sidebar"
+          className="fixed left-0 top-1/2 z-30 hidden -translate-y-1/2 md:flex items-center justify-center w-3 h-12 rounded-r bg-background-secondary/80 text-foreground/30 hover:text-foreground/60 hover:bg-background-tertiary transition-colors cursor-pointer"
+        >
+          <svg
+            width="6"
+            height="16"
+            viewBox="0 0 6 16"
+            fill="none"
+            className="size-3"
+          >
+            <path
+              d="M1 1L5 8L1 15"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </Button>
       )}
-      style={{
-        minWidth: targetWidth,
-        top: 'var(--desktop-titlebar-height)',
-        transition: `width ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, min-width ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}`,
-        width: targetWidth,
-      }}
-    >
-      {children}
-    </aside>
+    </>
   );
 }
 
@@ -283,6 +310,7 @@ export default function AppLayout({
 
       const element = menuComponent as ReactElement<{
         collapsedSidebarWidth?: number;
+        currentApp?: string;
         isCollapsed?: boolean;
         mobileSidebarWidth?: number;
         onClose?: (...args: unknown[]) => void;
@@ -297,6 +325,7 @@ export default function AppLayout({
       return cloneElement(element, {
         ...(element.props as Record<string, unknown>),
         ...extraProps,
+        currentApp,
         isCollapsed:
           (extraProps.isCollapsed as boolean | undefined) ?? isDesktopCollapsed,
         onClose: (...args: unknown[]) => {
@@ -311,7 +340,7 @@ export default function AppLayout({
         onToggleCollapse: handleToggleDesktopSidebar,
       });
     },
-    [menuComponent, handleToggleDesktopSidebar, isDesktopCollapsed],
+    [menuComponent, handleToggleDesktopSidebar, isDesktopCollapsed, currentApp],
   );
 
   const topbarProps: TopbarProps | undefined = useMemo(() => {
@@ -431,6 +460,7 @@ export default function AppLayout({
             <DesktopSidebar
               collapsedWidth={desktopSidebarCollapsedWidth}
               isCollapsed={isDesktopCollapsed}
+              onExpand={handleToggleDesktopSidebar}
               width={desktopSidebarExpandedWidth}
             >
               {desktopMenuContent}

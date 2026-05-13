@@ -77,10 +77,11 @@ function ReviewQueueContentContent() {
   );
   const pathname = usePathname();
   const { replace } = useRouter();
-  const { get, toString: getSearchParamsString } = useSearchParams();
-  const requestedBatchId = get('batch');
-  const requestedFilter = parseReviewFilter(get('filter'));
-  const requestedItemId = get('item');
+  const searchParams = useSearchParams();
+  const searchParamsString = searchParams.toString();
+  const requestedBatchId = searchParams.get('batch');
+  const requestedFilter = parseReviewFilter(searchParams.get('filter'));
+  const requestedItemId = searchParams.get('item');
 
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(
     requestedBatchId,
@@ -121,7 +122,7 @@ function ReviewQueueContentContent() {
       filter?: ReviewFilter;
       itemId?: string | null;
     }) => {
-      const params = new URLSearchParams(getSearchParamsString());
+      const params = new URLSearchParams(searchParamsString);
       const nextBatchId = input.batchId ?? activeBatchId;
       const nextFilter = input.filter ?? activeFilter;
       const nextItemId =
@@ -151,7 +152,7 @@ function ReviewQueueContentContent() {
       activeItemId,
       pathname,
       replace,
-      getSearchParamsString,
+      searchParamsString,
     ],
   );
 

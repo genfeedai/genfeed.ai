@@ -3,7 +3,7 @@
     "@genfeedai/constants": "workspace:*",
     "@genfeedai/enums": "workspace:*",
     "@genfeedai/interfaces": "workspace:*",
-    "zod": "4.3.6"
+    "zod": "4.4.3"
   },
   "description": "Genfeed.ai shared client models and schemas",
   "devDependencies": {

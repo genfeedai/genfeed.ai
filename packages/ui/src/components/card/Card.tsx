@@ -7,7 +7,7 @@ import { memo } from 'react';
 
 const VARIANT_CLASSES: Record<CardVariant, string> = {
   [CardVariant.DEFAULT]:
-    'border border-border bg-card text-card-foreground hover:border-border-strong',
+    'shadow-border bg-card text-card-foreground hover:shadow-border-strong',
   [CardVariant.WHITE]:
     'border border-black/[0.08] bg-white text-black hover:border-black/[0.14]',
   [CardVariant.BLACK]:

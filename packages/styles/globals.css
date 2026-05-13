@@ -58,7 +58,7 @@
   --color-error-content: hsl(var(--destructive-foreground));
 
   /* Radius scale */
-  --radius-sm: 4px;
+  --radius-sm: 2px;
   --radius-md: 6px;
   --radius-lg: 8px;
   --radius-xl: 10px;
@@ -117,6 +117,25 @@
   --ship-info: #2563eb;
   --ship-agent: #0284c7;
   --ship-done: #7c3aed;
+}
+
+/* Shadow utilities — inset containment borders matching ShipCode/Linear */
+@utility shadow-border {
+  box-shadow: inset 0 0 0 1px hsl(var(--border));
+}
+@utility shadow-border-strong {
+  box-shadow: inset 0 0 0 1px hsl(var(--border-strong, var(--border)));
+}
+@utility shadow-dropdown {
+  box-shadow:
+    inset 0 0 0 1px hsl(var(--border)),
+    0 10px 15px -3px rgba(0, 0, 0, 0.3),
+    0 4px 6px -4px rgba(0, 0, 0, 0.3);
+}
+@utility shadow-dialog {
+  box-shadow:
+    inset 0 0 0 1px hsl(var(--border)),
+    0 25px 50px -12px rgba(0, 0, 0, 0.4);
 }
 
 /* ship-ui scoped utilities */
@@ -379,12 +398,16 @@ a {
 }
 
 /* Shared operator-shell surfaces for docked tools, switchers, and prompt chrome */
+/* Uses inset box-shadow for containment (not CSS border) on panels/surfaces */
 .gen-shell-panel,
-.gen-shell-surface,
+.gen-shell-surface {
+  border: none;
+  box-shadow: inset 0 0 0 1px hsl(var(--border));
+}
+
 .gen-shell-control,
 .gen-shell-segmented {
-  border: 1px solid hsl(var(--border) / 0.82);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  border: 1px solid hsl(var(--border));
 }
 
 .gen-shell-panel {
@@ -392,7 +415,7 @@ a {
 }
 
 .gen-shell-toolbar {
-  border-bottom: 1px solid hsl(var(--border) / 0.82);
+  border-bottom: 1px solid hsl(var(--border));
   background: hsl(var(--background));
 }
 
@@ -422,7 +445,7 @@ a {
 }
 
 .gen-shell-control {
-  background: hsl(var(--background) / 0.48);
+  background: transparent;
   color: hsl(var(--foreground) / 0.78);
   transition:
     background-color 180ms var(--motion-ease-standard),
@@ -435,7 +458,7 @@ a {
 .gen-shell-control:hover,
 .gen-shell-control:focus-visible {
   border-color: hsl(var(--foreground) / 0.16);
-  background: hsl(var(--background) / 0.74);
+  background: hsl(var(--background-tertiary));
   color: hsl(var(--foreground));
 }
 
@@ -466,7 +489,7 @@ a {
 }
 
 .gen-shell-surface[data-active="true"] {
-  border-color: hsl(var(--primary) / 0.26);
+  box-shadow: inset 0 0 0 1px hsl(var(--primary) / 0.26);
   background: hsl(var(--background));
 }
 
@@ -475,10 +498,9 @@ a {
   align-items: center;
   gap: 0.35rem;
   border-radius: 999px;
-  border: 1px solid hsl(var(--border) / 0.82);
+  border: 1px solid hsl(var(--border));
   background: hsl(var(--background) / 0.44);
   color: hsl(var(--foreground) / 0.66);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
 .gen-shell-chip[data-tone="success"] {
@@ -494,18 +516,18 @@ a {
 }
 
 .gen-shell-empty-state {
-  border: 1px dashed hsl(var(--border) / 0.72);
+  border: 1px dashed hsl(var(--border));
   background: hsl(var(--background));
 }
 
 [data-agent-console="true"] {
-  border-color: hsl(var(--border) / 0.76);
-  border-top: none;
+  border: none;
+  box-shadow: none;
   background: hsl(var(--background));
 }
 
 [data-agent-console="true"] .gen-shell-toolbar {
-  border-bottom-color: hsl(var(--border) / 0.72);
+  border-bottom-color: hsl(var(--border));
   background: hsl(var(--background));
 }
 
@@ -514,7 +536,7 @@ a {
 }
 
 [data-agent-console="true"] .gen-shell-segmented {
-  border-color: hsl(var(--border) / 0.72);
+  border-color: hsl(var(--border));
   background: hsl(var(--background) / 0.68);
 }
 
@@ -535,18 +557,18 @@ a {
 }
 
 [data-agent-console="true"] .gen-shell-control {
-  border-color: hsl(var(--border) / 0.68);
-  background: hsl(var(--background) / 0.52);
+  border-color: hsl(var(--border));
+  background: hsl(var(--background-secondary));
 }
 
 [data-agent-console="true"] .gen-shell-control:hover,
 [data-agent-console="true"] .gen-shell-control:focus-visible {
   border-color: hsl(var(--foreground) / 0.14);
-  background: hsl(var(--background) / 0.78);
+  background: hsl(var(--background-tertiary));
 }
 
 [data-agent-console="true"] .gen-shell-empty-state {
   border-style: solid;
-  border-color: hsl(var(--border) / 0.66);
+  border-color: hsl(var(--border));
   background: hsl(var(--background) / 0.42);
 }

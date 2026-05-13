@@ -233,7 +233,8 @@ function AppLayoutWithDynamicMenu({
 }: AppLayoutWithDynamicMenuProps) {
   const shellChromeVariant = 'default' as const;
   const rawPathname = usePathname();
-  const { toString: getSearchParamsString } = useSearchParams();
+  const searchParams = useSearchParams();
+  const searchParamsString = searchParams.toString();
   // Strip org/brand prefix from pathname for route detection.
   // Pathname may be /orgSlug/brandSlug/studio or /orgSlug/~/settings.
   const pathname = useMemo(
@@ -315,9 +316,9 @@ function AppLayoutWithDynamicMenu({
   const taskContextSearchParams = useMemo(
     () =>
       pickOperatorTaskContextSearchParams(
-        new URLSearchParams(getSearchParamsString()),
+        new URLSearchParams(searchParamsString),
       ),
-    [getSearchParamsString],
+    [searchParamsString],
   );
   const getTokenRef = useRef(getToken);
   useEffect(() => {

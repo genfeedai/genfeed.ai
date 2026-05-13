@@ -49,17 +49,20 @@ function parseTimeRange(value: string | null): AgentRunTimeRange {
 function MissionControlContent() {
   const pathname = usePathname();
   const { replace } = useRouter();
-  const { get, toString: getSearchParamsString } = useSearchParams();
+  const searchParams = useSearchParams();
+  const searchParamsString = searchParams.toString();
 
-  const [searchQuery, setSearchQuery] = useState(() => get('q') ?? '');
+  const [searchQuery, setSearchQuery] = useState(
+    () => searchParams.get('q') ?? '',
+  );
   const [selectedModel, setSelectedModel] = useState(
-    () => get('model') ?? 'all',
+    () => searchParams.get('model') ?? 'all',
   );
   const [sortMode, setSortMode] = useState<AgentRunSortMode>(() =>
-    parseSortMode(get('sort')),
+    parseSortMode(searchParams.get('sort')),
   );
   const [timeRange, setTimeRange] = useState<AgentRunTimeRange>(() =>
-    parseTimeRange(get('range')),
+    parseTimeRange(searchParams.get('range')),
   );
 
   const { runs, stats, isLoading, refresh, cancelRun } = useAgentRuns({
@@ -76,7 +79,7 @@ function MissionControlContent() {
   }, [refresh, refreshActive]);
 
   useEffect(() => {
-    const nextParams = new URLSearchParams(getSearchParamsString());
+    const nextParams = new URLSearchParams(searchParamsString);
 
     if (searchQuery.trim().length > 0) {
       nextParams.set('q', searchQuery.trim());
@@ -103,7 +106,7 @@ function MissionControlContent() {
     }
 
     const nextQuery = nextParams.toString();
-    const currentQuery = getSearchParamsString();
+    const currentQuery = searchParamsString;
 
     if (nextQuery !== currentQuery) {
       replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, {
@@ -113,7 +116,7 @@ function MissionControlContent() {
   }, [
     pathname,
     replace,
-    getSearchParamsString,
+    searchParamsString,
     searchQuery,
     selectedModel,
     sortMode,

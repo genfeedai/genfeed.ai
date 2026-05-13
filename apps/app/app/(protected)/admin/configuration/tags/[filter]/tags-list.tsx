@@ -62,8 +62,8 @@ function TagsListContent({
 
   const { replace } = useRouter();
   const pathname = usePathname();
-  const { toString: getSearchParamsString } = useSearchParams();
-  const searchParamsString = getSearchParamsString() ?? '';
+  const searchParams = useSearchParams();
+  const searchParamsString = searchParams.toString();
   const parsedSearchParams = useMemo(
     () => new URLSearchParams(searchParamsString),
     [searchParamsString],

@@ -54,7 +54,7 @@ export default function CloudSyncIndicator() {
           type="button"
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}
-          className="relative inline-flex size-7 items-center justify-center rounded border border-border bg-background-secondary transition-colors hover:border-border-strong hover:bg-background-tertiary cursor-pointer"
+          className="relative inline-flex size-7 items-center justify-center rounded-md bg-transparent transition-colors hover:bg-hover cursor-pointer"
           ariaLabel={isConnected ? 'Cloud connected' : 'Cloud disconnected'}
         >
           {isConnected ? (

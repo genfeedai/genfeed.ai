@@ -12,26 +12,26 @@
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "lucide-react": "1.14.0",
-    "nanoid": "5.1.9",
-    "tailwind-merge": "3.5.0"
+    "nanoid": "5.1.11",
+    "tailwind-merge": "3.6.0"
   },
   "description": "Shared UI components for Genfeed workflow editor",
   "devDependencies": {
     "@testing-library/jest-dom": "6.9.1",
     "@testing-library/react": "16.3.2",
-    "@types/node": "25.6.0",
+    "@types/node": "25.7.0",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "@xyflow/react": "12.10.2",
-    "jsdom": "29.1.0",
-    "react": "19.2.5",
+    "jsdom": "29.1.1",
+    "react": "19.2.6",
     "react-compare-slider": "4.0.0",
-    "react-dom": "19.2.5",
+    "react-dom": "19.2.6",
     "tsup": "8.5.1",
     "typescript": "6.0.2",
-    "vitest": "4.1.5",
+    "vitest": "4.1.6",
     "zundo": "2.3.0",
-    "zustand": "5.0.12"
+    "zustand": "5.0.13"
   },
   "exports": {
     ".": {

@@ -5,7 +5,6 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
 import { runEffectPromise } from '@api/helpers/utils/effect/effect.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
-import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
@@ -89,7 +88,6 @@ export class AgentThreadsController {
         this.listThreadEventsEffect(
           threadId,
           organizationId,
-          userId,
           afterSequence ? Number.parseInt(afterSequence, 10) : undefined,
           userId,
         ),
@@ -272,14 +270,12 @@ export class AgentThreadsController {
   private listThreadEventsEffect(
     threadId: string,
     organizationId: string,
-    userId: string,
     afterSequence?: number,
     userId?: string,
   ) {
     return this.agentThreadEngineService.listEventsEffect(
       threadId,
       organizationId,
-      userId,
       afterSequence,
       userId,
     );
@@ -315,7 +311,7 @@ export class AgentThreadsController {
 
   private resolveOrganizationId(user: User): string {
     const { organization } = getPublicMetadata(user);
-    if (!ObjectIdUtil.isValid(organization)) {
+    if (!organization) {
       throw new UnauthorizedException(
         'Invalid organization context. Please sign in again.',
       );
@@ -332,7 +328,7 @@ export class AgentThreadsController {
     }
 
     const { user: metadataUserId } = getPublicMetadata(user);
-    if (ObjectIdUtil.isValid(metadataUserId)) {
+    if (metadataUserId) {
       const metadataUserDoc = await this.usersService.findOne(
         { _id: metadataUserId, clerkId },
         [],

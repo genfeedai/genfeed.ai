@@ -203,17 +203,17 @@ export default function TopbarCreditsBar() {
           withWrapper={false}
           variant={ButtonVariant.UNSTYLED}
           className={cn(
-            'gen-shell-control hidden h-10 max-w-[20rem] items-center gap-2 rounded-md px-3 text-left sm:flex',
+            'hidden h-8 max-w-[20rem] items-center gap-2 rounded-md bg-transparent px-2.5 text-left transition-colors hover:bg-hover sm:flex',
           )}
           data-active={isOpen ? 'true' : 'false'}
           title={`${fullBalance} ${EnvironmentService.CREDITS_LABEL}`}
           ariaLabel={`${fullBalance} ${EnvironmentService.CREDITS_LABEL}`}
         >
-          <div className="flex min-w-0 flex-col items-start">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-foreground/36">
+          <div className="flex min-w-0 items-center gap-1.5">
+            <span className="text-[11px] font-medium text-foreground/50">
               Credits
             </span>
-            <span className="text-sm font-semibold tracking-[-0.02em] text-foreground">
+            <span className="text-[13px] font-semibold tracking-[-0.02em] text-foreground">
               {compactBalance}
             </span>
           </div>
@@ -257,7 +257,7 @@ export default function TopbarCreditsBar() {
 
       <PopoverPanelContent align="end" className="w-80 rounded-md p-4">
         <div role="dialog" className="space-y-4">
-          <div className="gen-shell-surface rounded-md p-4 text-center">
+          <div className="rounded-md bg-background-secondary p-4 text-center">
             <div className="flex items-baseline justify-center gap-2">
               <span className="text-4xl font-semibold tracking-[-0.05em] text-foreground">
                 {fullBalance}
@@ -269,7 +269,7 @@ export default function TopbarCreditsBar() {
           </div>
 
           {planLimit > 0 && (
-            <div className="gen-shell-surface rounded-md p-3">
+            <div className="rounded-md bg-background-secondary p-3">
               <div className="mb-2 flex items-center justify-between gap-3">
                 <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground/36">
                   Plan usage
@@ -344,7 +344,7 @@ export default function TopbarCreditsBar() {
                 {providerSegments.map((segment) => (
                   <div
                     key={segment.provider}
-                    className="gen-shell-surface flex items-center justify-between gap-3 rounded-md px-3 py-2"
+                    className="flex items-center justify-between gap-3 rounded-md bg-background-secondary px-3 py-2"
                   >
                     <div className="min-w-0">
                       <div className="truncate text-sm font-medium text-foreground/86">
@@ -388,7 +388,7 @@ export default function TopbarCreditsBar() {
               }}
               isDisabled={isLoading}
               className={cn(
-                'gen-shell-control flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium',
+                'flex flex-1 items-center justify-center gap-2 rounded-md bg-background-secondary px-3 py-2.5 text-sm font-medium text-foreground/80 transition-colors hover:bg-background-tertiary',
                 isLoading && 'opacity-50 cursor-not-allowed',
               )}
               title="Refresh Balance"
@@ -407,9 +407,7 @@ export default function TopbarCreditsBar() {
               href={orgHref('/settings')}
               target="_blank"
               rel="noopener noreferrer"
-              className={cn(
-                'gen-shell-control flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2.5 text-sm font-semibold',
-              )}
+              className="flex flex-1 items-center justify-center gap-2 rounded-md bg-background-secondary px-3 py-2.5 text-sm font-semibold text-foreground/80 transition-colors hover:bg-background-tertiary"
               data-tone="accent"
               onClick={() => setIsOpen(false)}
               title="Top Up Credits"
