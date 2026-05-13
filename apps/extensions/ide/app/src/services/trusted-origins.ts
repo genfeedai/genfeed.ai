@@ -1,9 +1,11 @@
 import * as vscode from 'vscode';
+
+import { isTrustedApiEndpoint } from './trusted-api-origins';
+
 export {
   isTrustedApiEndpoint,
   TRUSTED_API_ORIGINS,
 } from './trusted-api-origins';
-import { isTrustedApiEndpoint } from './trusted-api-origins';
 
 const DEFAULT_API_ENDPOINT = 'https://api.genfeed.ai';
 

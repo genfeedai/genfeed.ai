@@ -23,7 +23,7 @@ function PostSignupPageContent() {
   const { getToken } = useAuth();
   const { user: clerkUser } = useUser();
   const { currentUser, isLoading } = useCurrentUser();
-  const { get } = useSearchParams();
+  const searchParams = useSearchParams();
   const calledRef = useRef(false);
   const [showFallback, setShowFallback] = useState(false);
   const [statusMessage, setStatusMessage] = useState(
@@ -86,7 +86,9 @@ function PostSignupPageContent() {
     }, 12_000);
 
     const route = async () => {
-      const requestedCredits = parseSelectedCredits(get('credits'));
+      const requestedCredits = parseSelectedCredits(
+        searchParams.get('credits'),
+      );
       if (requestedCredits) {
         localStorage.removeItem(ONBOARDING_STORAGE_KEYS.selectedPlan);
         localStorage.setItem(
@@ -207,7 +209,14 @@ function PostSignupPageContent() {
     return () => {
       window.clearTimeout(fallbackTimeout);
     };
-  }, [clerkUser, currentUser, getToken, isLoading, resolveOnboardingHref, get]);
+  }, [
+    clerkUser,
+    currentUser,
+    getToken,
+    isLoading,
+    resolveOnboardingHref,
+    searchParams,
+  ]);
 
   return (
     <PageLoadingState

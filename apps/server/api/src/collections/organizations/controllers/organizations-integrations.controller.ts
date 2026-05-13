@@ -28,13 +28,6 @@ import type { Request } from 'express';
 export class OrganizationsIntegrationsController {
   constructor(private readonly integrationsService: IntegrationsService) {}
 
-  private assertOrgAccess(user: User, organizationId: string): void {
-    const { organization } = getPublicMetadata(user);
-    if (organization !== organizationId) {
-      throw new ForbiddenException('Organization access denied');
-    }
-  }
-
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async create(

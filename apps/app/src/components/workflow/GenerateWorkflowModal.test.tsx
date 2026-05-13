@@ -287,7 +287,7 @@ describe('GenerateWorkflowModal', () => {
         .closest('button');
       if (generateButton) fireEvent.click(generateButton);
 
-      expect(screen.getByText('Generating...')).toBeInTheDocument();
+      expect(screen.getByText(/Generating/)).toBeInTheDocument();
 
       resolveRequest?.({
         json: () => Promise.resolve(mockGeneratedWorkflow),

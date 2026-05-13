@@ -1,5 +1,12 @@
 import { BadRequestException } from '@nestjs/common';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+
+const dnsLookupMock = vi.hoisted(() => vi.fn());
+
+vi.mock('node:dns/promises', () => ({
+  lookup: dnsLookupMock,
+}));
+
 import {
   assertSafeWebhookHeaders,
   assertSafeWebhookUrl,
@@ -87,13 +94,11 @@ describe('assertSafeWebhookUrl — blocked IPv6 literals', () => {
 
 describe('assertSafeWebhookUrl — DNS resolution', () => {
   afterEach(() => {
-    vi.restoreAllMocks();
+    dnsLookupMock.mockReset();
   });
 
   it('throws when DNS lookup fails', async () => {
-    vi.spyOn(await import('node:dns/promises'), 'lookup').mockRejectedValue(
-      new Error('ENOTFOUND'),
-    );
+    dnsLookupMock.mockRejectedValue(new Error('ENOTFOUND'));
 
     await expect(
       assertSafeWebhookUrl('https://not-a-real-host.internal/hook'),
@@ -101,11 +106,11 @@ describe('assertSafeWebhookUrl — DNS resolution', () => {
   });
 
   it('blocks hostname resolving to private RFC1918 address', async () => {
-    vi.spyOn(await import('node:dns/promises'), 'lookup').mockResolvedValue({
+    dnsLookupMock.mockResolvedValue({
       address: '192.168.1.100',
       family: 4,
       hostname: '',
-    } as never);
+    });
 
     await expect(
       assertSafeWebhookUrl('https://internal.example.com/hook'),
@@ -113,11 +118,11 @@ describe('assertSafeWebhookUrl — DNS resolution', () => {
   });
 
   it('blocks hostname resolving to AWS metadata endpoint 169.254.169.254', async () => {
-    vi.spyOn(await import('node:dns/promises'), 'lookup').mockResolvedValue({
+    dnsLookupMock.mockResolvedValue({
       address: '169.254.169.254',
       family: 4,
       hostname: '',
-    } as never);
+    });
 
     await expect(
       assertSafeWebhookUrl('https://metadata.evil.com/hook'),
@@ -125,11 +130,11 @@ describe('assertSafeWebhookUrl — DNS resolution', () => {
   });
 
   it('allows hostname resolving to public address', async () => {
-    vi.spyOn(await import('node:dns/promises'), 'lookup').mockResolvedValue({
+    dnsLookupMock.mockResolvedValue({
       address: '93.184.216.34',
       family: 4,
       hostname: '',
-    } as never);
+    });
 
     await expect(
       assertSafeWebhookUrl('https://hooks.example.com/webhook'),

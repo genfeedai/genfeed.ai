@@ -223,9 +223,16 @@ describe('TasksController', () => {
       } as TaskDocument;
       tasksService.findByIdentifier.mockResolvedValue(task);
 
-      const result = await controller.findByIdentifier(mockRequest, 'GENA-18');
+      const result = await controller.findByIdentifier(
+        mockRequest,
+        mockUser,
+        'GENA-18',
+      );
 
-      expect(tasksService.findByIdentifier).toHaveBeenCalledWith('GENA-18');
+      expect(tasksService.findByIdentifier).toHaveBeenCalledWith(
+        'GENA-18',
+        organizationId,
+      );
       expect('data' in result ? result.data : result).toEqual(task);
     });
 
@@ -233,7 +240,7 @@ describe('TasksController', () => {
       tasksService.findByIdentifier.mockResolvedValue(null);
 
       await expect(
-        controller.findByIdentifier(mockRequest, 'GENA-404'),
+        controller.findByIdentifier(mockRequest, mockUser, 'GENA-404'),
       ).rejects.toThrow(NotFoundException);
     });
   });

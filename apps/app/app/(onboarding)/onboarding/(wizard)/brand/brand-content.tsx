@@ -97,7 +97,7 @@ function BrandContentContent() {
   const sectionRef = useGsapTimeline<HTMLDivElement>({ steps: TIMELINE_STEPS });
   const { getToken } = useAuth();
   const { push } = useRouter();
-  const { get } = useSearchParams();
+  const searchParams = useSearchParams();
 
   const [brandName, setBrandName] = useState('');
   const [websiteUrl, setWebsiteUrl] = useState('');
@@ -284,7 +284,7 @@ function BrandContentContent() {
       return;
     }
 
-    const isAuto = get('auto') === 'true';
+    const isAuto = searchParams.get('auto') === 'true';
     const storedDomain = localStorage.getItem(
       ONBOARDING_STORAGE_KEYS.brandDomain,
     );
@@ -305,7 +305,7 @@ function BrandContentContent() {
         logger.error('Failed to continue auto onboarding flow', error);
       });
     }
-  }, [handleContinue, get]);
+  }, [handleContinue, searchParams]);
 
   return (
     <div ref={sectionRef}>

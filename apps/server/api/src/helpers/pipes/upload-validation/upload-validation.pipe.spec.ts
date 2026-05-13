@@ -160,8 +160,10 @@ describe('UploadValidationPipe', () => {
         fail('should have thrown');
       } catch (error: unknown) {
         expect(error).toBeInstanceOf(BadRequestException);
-        const response = (error as BadRequestException).getResponse() as string;
-        expect(response).toContain('MB');
+        const response = (error as BadRequestException).getResponse() as {
+          message: string;
+        };
+        expect(response.message).toContain('MB');
       }
     });
 
@@ -175,8 +177,10 @@ describe('UploadValidationPipe', () => {
         fail('should have thrown');
       } catch (error: unknown) {
         expect(error).toBeInstanceOf(BadRequestException);
-        const response = (error as BadRequestException).getResponse() as string;
-        expect(response).toContain('image/gif');
+        const response = (error as BadRequestException).getResponse() as {
+          message: string;
+        };
+        expect(response.message).toContain('image/gif');
       }
     });
   });

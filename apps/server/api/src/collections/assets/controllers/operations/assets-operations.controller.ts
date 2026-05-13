@@ -306,7 +306,23 @@ export class AssetsOperationsController {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${url} started`, { category: uploadDto.category });
 
-    const contentType = file.mimetype;
+    if (!file) {
+      throw new ValidationException('File is required');
+    }
+
+    const validatedFile = new UploadValidationPipe({
+      allowedExtensions: ['jpg', 'jpeg', 'png', 'webp', 'gif'],
+      allowedMimeTypes: [
+        'image/jpeg',
+        'image/jpg',
+        'image/png',
+        'image/webp',
+        'image/gif',
+      ],
+      maxSizeBytes: 50 * 1024 * 1024,
+    }).transform(file);
+
+    const contentType = validatedFile.mimetype;
     const publicMetadata = getPublicMetadata(user);
 
     try {
@@ -376,7 +392,7 @@ export class AssetsOperationsController {
         `${uploadDto.category}s`,
         {
           contentType,
-          data: file.buffer,
+          data: validatedFile.buffer,
           type: FileInputType.BUFFER,
         },
       );

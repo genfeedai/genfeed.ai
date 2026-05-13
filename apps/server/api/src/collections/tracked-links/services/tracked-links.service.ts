@@ -13,7 +13,6 @@ type TrackedLinkUpdatePayload = {
   title?: string;
 };
 
-import process from 'node:process';
 import { nanoid } from 'nanoid';
 
 type TrackedLink = TrackedLinkDocument;

@@ -80,7 +80,17 @@ export class VideosUploadController {
     file: Express.Multer.File,
   ) {
     const publicMetadata = getPublicMetadata(user);
-    const validatedFile = file;
+    const validatedFile = new UploadValidationPipe({
+      allowedExtensions: ['mp4', 'avi', 'mov', 'mkv', 'webm'],
+      allowedMimeTypes: [
+        'video/mp4',
+        'video/avi',
+        'video/quicktime',
+        'video/x-matroska',
+        'video/webm',
+      ],
+      maxSizeBytes: 100 * 1024 * 1024,
+    }).transform(file);
 
     const { ingredientData, metadataData } =
       await this.sharedService.saveDocuments(user, {
