@@ -1,10 +1,6 @@
 import '@testing-library/jest-dom';
 import * as React from 'react';
-import { act } from 'react';
 import { afterAll, beforeAll, vi } from 'vitest';
-
-// React 19 removed act from default export — patch for @testing-library/react compatibility
-(React as any).act = act;
 
 // Ensure DOM environment is available
 if (typeof global.document === 'undefined') {
@@ -17,6 +13,34 @@ if (typeof global.document === 'undefined') {
   global.document = dom.window.document;
   global.window = dom.window as any;
   global.navigator = dom.window.navigator;
+}
+
+function createStorageMock(): Storage {
+  const store = new Map<string, string>();
+
+  return {
+    get length() {
+      return store.size;
+    },
+    clear: vi.fn(() => {
+      store.clear();
+    }),
+    getItem: vi.fn((key: string) => store.get(key) ?? null),
+    key: vi.fn((index: number) => Array.from(store.keys())[index] ?? null),
+    removeItem: vi.fn((key: string) => {
+      store.delete(key);
+    }),
+    setItem: vi.fn((key: string, value: string) => {
+      store.set(key, String(value));
+    }),
+  };
+}
+
+if (!window.localStorage) {
+  Object.defineProperty(window, 'localStorage', {
+    configurable: true,
+    value: createStorageMock(),
+  });
 }
 
 // Make React globally available

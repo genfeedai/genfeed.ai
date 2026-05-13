@@ -31,9 +31,11 @@ vi.mock('@clerk/nextjs/server', () => ({
 describe('proxy', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = 'pk_test';
-    process.env.CLERK_SECRET_KEY = 'sk_test';
-    process.env.NEXT_PUBLIC_API_ENDPOINT = 'http://localhost:3010/v1';
+    vi.stubEnv('NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY', 'pk_test');
+    vi.stubEnv('CLERK_SECRET_KEY', 'sk_test');
+    vi.stubEnv('NEXT_PUBLIC_API_ENDPOINT', 'http://localhost:3010/v1');
+    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', undefined);
+    vi.resetModules();
     authStateMock.mockResolvedValue({
       getToken: vi.fn().mockResolvedValue('token_1'),
       sessionId: 'session_1',

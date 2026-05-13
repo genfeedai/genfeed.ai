@@ -598,7 +598,7 @@ function PostsWritePageContent() {
             />
           </div>
 
-          <span className="grid gap-2 text-sm text-foreground/75">
+          <label className="grid gap-2 text-sm text-foreground/75">
             <span>Prompt</span>
             <Textarea
               value={prompt}
@@ -606,9 +606,9 @@ function PostsWritePageContent() {
               placeholder="Describe the post you want to generate..."
               className="min-h-28 rounded-xl border border-white/10 bg-black/20 p-3 text-sm text-foreground outline-none transition focus:border-white/20"
             />
-          </span>
+          </label>
 
-          <span className="grid gap-2 text-sm text-foreground/75">
+          <label className="grid gap-2 text-sm text-foreground/75">
             <span>Draft content</span>
             <Textarea
               value={localContent}
@@ -616,7 +616,7 @@ function PostsWritePageContent() {
               placeholder="Write the post here if you just want a clean composer and a copy button."
               className="min-h-44 rounded-xl border border-white/10 bg-black/20 p-3 text-sm text-foreground outline-none transition focus:border-white/20"
             />
-          </span>
+          </label>
 
           <div className="grid gap-2 text-sm text-foreground/75">
             <span>Tone</span>

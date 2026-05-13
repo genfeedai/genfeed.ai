@@ -1,9 +1,10 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/enums';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { TopbarProps } from '@props/navigation/topbar.props';
 import { Button } from '@ui/primitives/button';
+import { AppSwitcher } from '@ui/shell/app-switcher/AppSwitcher';
 import TopbarBreadcrumbs from '@ui/topbars/breadcrumbs/TopbarBreadcrumbs';
 import TopbarCreditsBar from '@ui/topbars/credits-bar/TopbarCreditsBar';
 import TopbarEnd from '@ui/topbars/end/TopbarEnd';
@@ -20,6 +21,9 @@ function AppProtectedTopbarContent({
   onMenuToggle,
   isSidebarCollapsed,
   onSidebarToggle,
+  currentApp,
+  orgSlug,
+  brandSlug,
   isAgentCollapsed,
   onAgentToggle,
 }: TopbarProps = {}) {
@@ -45,9 +49,8 @@ function AppProtectedTopbarContent({
           {onMenuToggle ? (
             <Button
               type="button"
-              variant={ButtonVariant.GHOST}
-              size={ButtonSize.ICON}
-              className="size-7 md:hidden"
+              variant={ButtonVariant.UNSTYLED}
+              className="inline-flex size-7 items-center justify-center rounded border border-border bg-background-secondary transition-colors hover:border-border-strong hover:bg-background-tertiary md:hidden"
               data-active={isMenuOpen ? 'true' : 'false'}
               ariaLabel={
                 isMenuOpen ? 'Close navigation menu' : 'Open navigation menu'
@@ -61,9 +64,8 @@ function AppProtectedTopbarContent({
           {isSidebarCollapsed && onSidebarToggle ? (
             <Button
               type="button"
-              variant={ButtonVariant.GHOST}
-              size={ButtonSize.ICON}
-              className="hidden size-7 md:flex"
+              variant={ButtonVariant.UNSTYLED}
+              className="hidden size-7 items-center justify-center rounded border border-border bg-background-secondary transition-colors hover:border-border-strong hover:bg-background-tertiary md:flex"
               ariaLabel="Expand sidebar"
               onClick={onSidebarToggle}
             >
@@ -71,8 +73,21 @@ function AppProtectedTopbarContent({
             </Button>
           ) : null}
 
-          <div className="min-w-0">
-            <TopbarBreadcrumbs />
+          {currentApp && orgSlug ? (
+            <div className="shrink-0">
+              <AppSwitcher
+                currentApp={currentApp}
+                orgSlug={orgSlug}
+                brandSlug={brandSlug}
+                preservedSearch={searchParams.toString()}
+              />
+            </div>
+          ) : null}
+
+          <div className="hidden min-w-0 md:flex">
+            <div className="flex h-7 min-w-0 items-center rounded px-2">
+              <TopbarBreadcrumbs />
+            </div>
           </div>
         </div>
 
@@ -101,9 +116,8 @@ function AppProtectedTopbarContent({
           {onAgentToggle ? (
             <Button
               type="button"
-              variant={ButtonVariant.GHOST}
-              size={ButtonSize.ICON}
-              className="size-7"
+              variant={ButtonVariant.UNSTYLED}
+              className="inline-flex size-7 items-center justify-center rounded border border-border bg-background-secondary transition-colors hover:border-border-strong hover:bg-background-tertiary"
               data-active={isAgentCollapsed ? 'false' : 'true'}
               ariaLabel={
                 isAgentCollapsed ? 'Open terminal dock' : 'Close terminal dock'

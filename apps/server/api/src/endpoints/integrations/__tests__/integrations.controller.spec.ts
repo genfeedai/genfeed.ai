@@ -5,6 +5,7 @@ import { InternalIntegrationsController } from '@api/endpoints/integrations/inte
 import { IntegrationsService } from '@api/endpoints/integrations/integrations.service';
 import { AdminApiKeyGuard } from '@api/helpers/guards/admin-api-key/admin-api-key.guard';
 import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
+import type { User } from '@clerk/backend';
 import { IntegrationPlatform, IntegrationStatus } from '@genfeedai/enums';
 import type { OrgIntegration } from '@genfeedai/prisma';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
@@ -36,6 +37,9 @@ describe('OrganizationsIntegrationsController', () => {
   let service: vi.Mocked<IntegrationsService>;
 
   const mockReq = {} as Request;
+  const mockUser = {
+    publicMetadata: { organization: 'org-123' },
+  } as unknown as User;
 
   beforeEach(async () => {
     const mockService = {
@@ -83,7 +87,12 @@ describe('OrganizationsIntegrationsController', () => {
     it('should create a new integration', async () => {
       service.create.mockResolvedValue(mockIntegration);
 
-      const result = await controller.create(mockReq, 'org-123', createDto);
+      const result = await controller.create(
+        mockReq,
+        mockUser,
+        'org-123',
+        createDto,
+      );
 
       expect(service.create).toHaveBeenCalledWith('org-123', createDto);
       expect(result).toEqual(mockIntegration);
@@ -94,14 +103,21 @@ describe('OrganizationsIntegrationsController', () => {
       service.create.mockRejectedValue(error);
 
       await expect(
-        controller.create(mockReq, 'org-123', createDto),
+        controller.create(mockReq, mockUser, 'org-123', createDto),
       ).rejects.toThrow('Integration already exists');
     });
 
     it('should validate orgId parameter', async () => {
       service.create.mockResolvedValue(mockIntegration);
 
-      await controller.create(mockReq, 'org-456', createDto);
+      await controller.create(
+        mockReq,
+        {
+          publicMetadata: { organization: 'org-456' },
+        } as unknown as User,
+        'org-456',
+        createDto,
+      );
 
       expect(service.create).toHaveBeenCalledWith('org-456', createDto);
     });
@@ -112,7 +128,7 @@ describe('OrganizationsIntegrationsController', () => {
       const integrations = [mockIntegration];
       service.findAll.mockResolvedValue(integrations);
 
-      const result = await controller.findAll(mockReq, 'org-123');
+      const result = await controller.findAll(mockReq, mockUser, 'org-123');
 
       expect(service.findAll).toHaveBeenCalledWith('org-123');
       expect(result).toEqual(integrations);
@@ -121,7 +137,7 @@ describe('OrganizationsIntegrationsController', () => {
     it('should return empty array when no integrations exist', async () => {
       service.findAll.mockResolvedValue([]);
 
-      const result = await controller.findAll(mockReq, 'org-123');
+      const result = await controller.findAll(mockReq, mockUser, 'org-123');
 
       expect(result).toEqual([]);
     });
@@ -133,6 +149,7 @@ describe('OrganizationsIntegrationsController', () => {
 
       const result = await controller.findOne(
         mockReq,
+        mockUser,
         'org-123',
         'integration-456',
       );
@@ -149,7 +166,7 @@ describe('OrganizationsIntegrationsController', () => {
       service.findOne.mockRejectedValue(error);
 
       await expect(
-        controller.findOne(mockReq, 'org-123', 'non-existent-id'),
+        controller.findOne(mockReq, mockUser, 'org-123', 'non-existent-id'),
       ).rejects.toThrow('Integration not found');
     });
   });
@@ -173,6 +190,7 @@ describe('OrganizationsIntegrationsController', () => {
 
       const result = await controller.update(
         mockReq,
+        mockUser,
         'org-123',
         'integration-456',
         updateDto,
@@ -191,7 +209,13 @@ describe('OrganizationsIntegrationsController', () => {
       service.update.mockRejectedValue(error);
 
       await expect(
-        controller.update(mockReq, 'org-123', 'non-existent-id', updateDto),
+        controller.update(
+          mockReq,
+          mockUser,
+          'org-123',
+          'non-existent-id',
+          updateDto,
+        ),
       ).rejects.toThrow('Integration not found');
     });
 
@@ -208,6 +232,7 @@ describe('OrganizationsIntegrationsController', () => {
 
       const result = await controller.update(
         mockReq,
+        mockUser,
         'org-123',
         'integration-456',
         partialDto,
@@ -226,7 +251,7 @@ describe('OrganizationsIntegrationsController', () => {
     it('should remove an integration', async () => {
       service.remove.mockResolvedValue(undefined);
 
-      await controller.remove('org-123', 'integration-456');
+      await controller.remove(mockUser, 'org-123', 'integration-456');
 
       expect(service.remove).toHaveBeenCalledWith('org-123', 'integration-456');
     });
@@ -236,7 +261,7 @@ describe('OrganizationsIntegrationsController', () => {
       service.remove.mockRejectedValue(error);
 
       await expect(
-        controller.remove('org-123', 'non-existent-id'),
+        controller.remove(mockUser, 'org-123', 'non-existent-id'),
       ).rejects.toThrow('Integration not found');
     });
   });

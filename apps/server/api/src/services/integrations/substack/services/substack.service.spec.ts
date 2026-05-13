@@ -1,11 +1,18 @@
 import { BadRequestException } from '@nestjs/common';
 import { of } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+
+const dnsLookupMock = vi.hoisted(() => vi.fn());
+
+vi.mock('node:dns/promises', () => ({
+  lookup: dnsLookupMock,
+}));
+
 import { SubstackService } from './substack.service';
 
 describe('SubstackService', () => {
   afterEach(() => {
-    vi.restoreAllMocks();
+    dnsLookupMock.mockReset();
   });
 
   it('returns explicit fallback for draft creation', async () => {
@@ -38,11 +45,11 @@ describe('SubstackService', () => {
 
   it('delivers webhook when url is valid', async () => {
     // Stub DNS lookup to resolve to a public address so no real DNS call is made.
-    vi.spyOn(await import('node:dns/promises'), 'lookup').mockResolvedValue({
+    dnsLookupMock.mockResolvedValue({
       address: '93.184.216.34',
       family: 4,
       hostname: '',
-    } as never);
+    });
 
     const post = vi.fn().mockReturnValue(of({ status: 202 }));
     const service = new SubstackService(
@@ -103,11 +110,11 @@ describe('SubstackService', () => {
   });
 
   it('throws BadRequestException when Authorization header is supplied', async () => {
-    vi.spyOn(await import('node:dns/promises'), 'lookup').mockResolvedValue({
+    dnsLookupMock.mockResolvedValue({
       address: '93.184.216.34',
       family: 4,
       hostname: '',
-    } as never);
+    });
 
     const service = new SubstackService(
       { post: vi.fn() } as never,
@@ -124,11 +131,11 @@ describe('SubstackService', () => {
   });
 
   it('throws BadRequestException for header value with CRLF injection', async () => {
-    vi.spyOn(await import('node:dns/promises'), 'lookup').mockResolvedValue({
+    dnsLookupMock.mockResolvedValue({
       address: '93.184.216.34',
       family: 4,
       hostname: '',
-    } as never);
+    });
 
     const service = new SubstackService(
       { post: vi.fn() } as never,

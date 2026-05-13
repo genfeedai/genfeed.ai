@@ -169,7 +169,7 @@ describe('CliAuthPage', () => {
     });
     expect(
       screen.getByText(
-        'Genfeed Desktop did not open automatically. Make sure the app is installed, then try again or copy the key below.',
+        'Genfeed Desktop did not open automatically. Make sure the app is installed, then try again or copy the code below.',
       ),
     ).toBeInTheDocument();
     expect(screen.getByText('gf_desktop_code')).toBeInTheDocument();

@@ -146,7 +146,7 @@ export default function NewsletterComposerPanel() {
         </div>
 
         <div className="grid gap-4">
-          <span className="grid gap-2 text-sm text-foreground/75">
+          <label className="grid gap-2 text-sm text-foreground/75">
             <span>Topic</span>
             <Input
               value={topic}
@@ -154,9 +154,9 @@ export default function NewsletterComposerPanel() {
               placeholder="What should this issue cover?"
               className="rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-white/20"
             />
-          </span>
+          </label>
 
-          <span className="grid gap-2 text-sm text-foreground/75">
+          <label className="grid gap-2 text-sm text-foreground/75">
             <span>Angle</span>
             <Input
               value={angle}
@@ -164,7 +164,7 @@ export default function NewsletterComposerPanel() {
               placeholder="Optional framing or thesis"
               className="rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-white/20"
             />
-          </span>
+          </label>
 
           <Textarea
             label="Editorial instructions"
@@ -175,7 +175,7 @@ export default function NewsletterComposerPanel() {
             className="min-h-28 rounded-xl border-white/10 bg-black/20"
           />
 
-          <span className="grid gap-2 text-sm text-foreground/75">
+          <label className="grid gap-2 text-sm text-foreground/75">
             <span>Draft label</span>
             <Input
               value={label}
@@ -183,7 +183,7 @@ export default function NewsletterComposerPanel() {
               placeholder="Newsletter title"
               className="rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-white/20"
             />
-          </span>
+          </label>
 
           <Textarea
             label="Summary"

@@ -88,10 +88,11 @@ const SLUG_RE = /^[a-zA-Z0-9-]+$/;
 
 function redirectPreservingSearch(req: NextRequest, pathname: string) {
   const url = new URL(pathname, req.url);
+  const requestOrigin = req.nextUrl.origin ?? new URL(req.url).origin;
   // Guard: the resolved URL must share the same origin as the incoming request.
   // This prevents slugs like `//attacker.example` from becoming cross-origin
   // redirects via the `new URL(pathname, base)` constructor.
-  if (url.origin !== req.nextUrl.origin) {
+  if (url.origin !== requestOrigin) {
     // Fall back to the workspace home rather than redirecting off-origin.
     const safe = new URL(SEEDED_WORKSPACE_PATH, req.url);
     const search = req.nextUrl.search;

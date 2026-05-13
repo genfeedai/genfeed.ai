@@ -70,17 +70,31 @@ export class MusicsUploadController {
     )
     file: Express.Multer.File,
   ) {
+    const validatedFile = new UploadValidationPipe({
+      allowedExtensions: ['mp3', 'wav', 'aac', 'flac', 'ogg', 'webm'],
+      allowedMimeTypes: [
+        'audio/mpeg',
+        'audio/mp3',
+        'audio/wav',
+        'audio/aac',
+        'audio/flac',
+        'audio/ogg',
+        'audio/webm',
+      ],
+      maxSizeBytes: 50 * 1024 * 1024,
+    }).transform(file);
+
     const { ingredientData } = await this.sharedService.saveDocuments(user, {
       category: IngredientCategory.MUSIC,
       extension: MetadataExtension.MP3,
-      label: file.originalname,
+      label: validatedFile.originalname,
       scope: AssetScope.USER,
       status: IngredientStatus.UPLOADED,
     });
 
     await this.filesClientService.uploadToS3(ingredientData._id, `musics`, {
-      contentType: file.mimetype || 'audio/mpeg',
-      data: file.buffer,
+      contentType: validatedFile.mimetype || 'audio/mpeg',
+      data: validatedFile.buffer,
       type: FileInputType.BUFFER,
     });
 

@@ -1670,6 +1670,7 @@ export class WorkflowEngineAdapterService {
         'analytics-feedback',
         'analyticsFeedback',
         'brandContext',
+        'effect-captions',
         'imageGen',
         'ai-text-to-speech',
         'musicSource',

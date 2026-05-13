@@ -77,7 +77,13 @@ const mockSnapshotRow = {
 
 describe('AgentThreadEngineService', () => {
   let service: AgentThreadEngineService;
-  let mockPrisma: Record<string, Record<string, ReturnType<typeof vi.fn>>>;
+  type MockPrismaModel = Record<string, ReturnType<typeof vi.fn>>;
+  type MockPrisma = {
+    $transaction: ReturnType<typeof vi.fn>;
+    agentThreadEvent: MockPrismaModel;
+    agentThreadSnapshot: MockPrismaModel;
+  };
+  let mockPrisma: MockPrisma;
   let agentThreadsService: vi.Mocked<Pick<AgentThreadsService, 'findOne'>>;
   let agentMemoriesService: vi.Mocked<
     Pick<AgentMemoriesService, 'createMemory'>
@@ -109,6 +115,7 @@ describe('AgentThreadEngineService', () => {
         findUnique: vi.fn().mockResolvedValue(mockSnapshotRow),
         update: vi.fn().mockResolvedValue(mockSnapshotRow),
       },
+      $transaction: vi.fn(async (callback) => callback(mockPrisma)),
     };
 
     agentThreadsService = { findOne: vi.fn().mockResolvedValue(mockThread) };
@@ -237,7 +244,7 @@ describe('AgentThreadEngineService', () => {
   describe('listEvents', () => {
     it('exposes an Effect-based list path', async () => {
       const result = await Effect.runPromise(
-        service.listEventsEffect(threadId, orgId, userId),
+        service.listEventsEffect(threadId, orgId, undefined, userId),
       );
 
       expect(result).toBeDefined();
@@ -245,13 +252,18 @@ describe('AgentThreadEngineService', () => {
     });
 
     it('returns sorted events', async () => {
-      const result = await service.listEvents(threadId, orgId, userId);
+      const result = await service.listEvents(
+        threadId,
+        orgId,
+        undefined,
+        userId,
+      );
       expect(mockPrisma.agentThreadEvent.findMany).toHaveBeenCalled();
       expect(Array.isArray(result)).toBe(true);
     });
 
     it('applies afterSequence filter when provided', async () => {
-      await service.listEvents(threadId, orgId, userId, 5);
+      await service.listEvents(threadId, orgId, 5, userId);
       expect(mockPrisma.agentThreadEvent.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
@@ -262,9 +274,9 @@ describe('AgentThreadEngineService', () => {
     });
 
     it('throws BadRequestException for invalid threadId', async () => {
-      await expect(service.listEvents('bad', orgId, userId)).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        service.listEvents('bad', orgId, undefined, userId),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 
