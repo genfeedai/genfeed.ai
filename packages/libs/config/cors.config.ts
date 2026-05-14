@@ -52,6 +52,7 @@ export function getGenfeedCorsOrigins(
     return [
       // Local development domains (ports 3000-3999: web apps and local services)
       /^http:\/\/(localhost|local\.genfeed\.ai):(3\d{3})$/,
+      /^https:\/\/([a-z0-9-]+\.)*genfeed\.localhost$/,
 
       // Allow Chrome extensions in development
       /^chrome-extension:\/\/.*$/,
@@ -70,7 +71,7 @@ export function getGenfeedCorsOrigins(
 
     // All subdomains
 
-    /^https:\/\/(admin|app|chatgpt|docs|login|marketplace|website)\.genfeed\.ai$/,
+    /^https:\/\/(admin|app|chatgpt|docs|login|marketplace|studio|website|workflows)\.genfeed\.ai$/,
 
     // ChatGPT GPT Actions
     'https://chat.openai.com',
@@ -100,5 +101,7 @@ export const GENFEED_SUBDOMAINS = [
   'docs',
   'login',
   'marketplace',
+  'studio',
   'website',
+  'workflows',
 ] as const;

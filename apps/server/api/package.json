@@ -55,6 +55,8 @@
     "build:prod": "cd .. && nest build api && cd api && (bun run sentry:sourcemaps || true)",
     "deps:update": "bunx npm-check-updates -u --reject typescript && bun install",
     "dev": "cd .. && NODE_OPTIONS=\"--max-old-space-size=4096 --expose-gc\" nest start api --watch",
+    "dev:direct": "cd .. && NODE_OPTIONS=\"--max-old-space-size=4096 --expose-gc\" nest start api --watch",
+    "dev:portless": "portless run --name api.genfeed bun run dev:direct",
     "dev:webpack": "cd .. && NODE_OPTIONS=\"--max-old-space-size=4096 --expose-gc\" nest start api --watch",
     "lint": "bun run scripts/check-request-context-usage.ts && biome lint --write src --no-errors-on-unmatched",
     "seed:workflows": "bun run scripts/seeds/workflows.seed.ts",

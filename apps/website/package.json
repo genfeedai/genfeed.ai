@@ -31,6 +31,8 @@
     "build": "next build",
     "deps:update": "bunx npm-check-updates -u --reject typescript && bun install",
     "dev": "NODE_OPTIONS='--max-old-space-size=4096 --disable-warning=DEP0169' next dev --turbopack",
+    "dev:direct": "NODE_OPTIONS='--max-old-space-size=4096 --disable-warning=DEP0169' next dev --turbopack",
+    "dev:portless": "portless run --name website.genfeed bun run dev:direct",
     "generate:llms": "bun run scripts/generate-llms-txt.ts",
     "lint": "biome check app src packages scripts instrumentation.ts instrumentation-client.ts next.config.ts postcss.config.mjs tailwind.config.ts package.json tsconfig.json vercel.json sentry.edge.config.ts sentry.server.config.ts README.md",
     "prebuild": "bun run scripts/generate-llms-txt.ts",

@@ -19,6 +19,8 @@
   "scripts": {
     "build": "next build",
     "dev": "next dev --turbopack --port 3001",
+    "dev:direct": "next dev --turbopack",
+    "dev:portless": "portless run --name docs.genfeed bun run dev:direct",
     "format:check": "prettier --check .",
     "format:fix": "prettier --write .",
     "lint": "biome check app components content mdx-components.tsx next.config.mjs package.json tsconfig.json types styles README.md",

@@ -74,6 +74,8 @@
     "build": "next build",
     "deps:update": "bunx npm-check-updates -u --reject typescript && bun install",
     "dev": "NODE_OPTIONS='--max-old-space-size=4096 --disable-warning=DEP0169' next dev --turbopack",
+    "dev:direct": "NODE_OPTIONS='--max-old-space-size=4096 --disable-warning=DEP0169' next dev --turbopack",
+    "dev:portless": "portless run --name app.genfeed bun run dev:direct",
     "lint": "biome check app src packages tests instrumentation.ts jsx-compat.d.ts next.config.ts next.config.test.ts package.json postcss.config.mjs proxy.ts proxy.test.ts remotion.d.ts sentry.edge.config.ts sentry.server.config.ts tailwind.config.ts tsconfig.json tsconfig.test.json vercel.json",
     "start": "next start",
     "test": "vitest run --config ./vitest.config.mts",

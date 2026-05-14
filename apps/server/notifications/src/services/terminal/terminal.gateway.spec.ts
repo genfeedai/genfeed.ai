@@ -56,4 +56,17 @@ describe('TerminalGateway', () => {
     });
     expect(socket.disconnect).not.toHaveBeenCalled();
   });
+
+  it('accepts portless worktree origins when the terminal service is available', () => {
+    const terminalService = createTerminalService();
+    const gateway = new TerminalGateway(terminalService as never);
+    const socket = createSocket('https://feat-123.app.genfeed.localhost');
+
+    gateway.handleConnection(socket);
+
+    expect(socket.emit).toHaveBeenCalledWith('terminal:ready', {
+      socketId: 'socket-1',
+    });
+    expect(socket.disconnect).not.toHaveBeenCalled();
+  });
 });
