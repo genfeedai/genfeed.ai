@@ -361,6 +361,49 @@ describe('MenuShared', () => {
     expect(screen.getByText('Activity')).toBeInTheDocument();
   });
 
+  it('does not reuse raw href keys for settings items with different scopes', () => {
+    mockPathname.value = '/acme/~/settings/brands';
+    const consoleError = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined);
+    const settingsConfig: MenuConfig = {
+      items: [
+        {
+          href: '/settings',
+          hrefScope: 'personal',
+          label: 'Personal',
+        },
+        {
+          href: '/settings',
+          hrefScope: 'organization',
+          label: 'Organization',
+        },
+        {
+          href: '/settings/brands',
+          hrefScope: 'organization',
+          label: 'Brands',
+        },
+      ],
+      logoHref: '/',
+    };
+
+    try {
+      render(<MenuShared config={settingsConfig} sectionLabel="Settings" />);
+
+      expect(
+        consoleError.mock.calls.some((call) =>
+          call.some(
+            (arg) =>
+              typeof arg === 'string' &&
+              arg.includes('Encountered two children with the same key'),
+          ),
+        ),
+      ).toBe(false);
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
+
   it('routes the conversations new chat CTA directly to /chat/new', () => {
     render(
       <MenuShared

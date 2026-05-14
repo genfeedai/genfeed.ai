@@ -730,7 +730,7 @@ function AppLayoutWithDynamicMenu({
           taskContextSearchParams,
         )}
         sectionLabel={undefined}
-        collapsedSidebarWidth={isConversationRoute ? undefined : 64}
+        collapsedSidebarWidth={0}
         mobileSidebarWidth={isConversationRoute ? undefined : 304}
         renderTopSlot={
           isConversationRoute

@@ -207,6 +207,32 @@ describe('BrandsController', () => {
     });
   });
 
+  describe('buildFindAllQuery', () => {
+    it('honors superadmin organization filters with cuid2 ids', () => {
+      const organizationId = 'b13yktd0f1e38me3f55swu0n';
+      const query = {
+        isDeleted: false,
+        organization: organizationId,
+        sort: 'label: 1',
+      } as BaseQueryDto;
+      const superAdmin = {
+        ...mockUser,
+        publicMetadata: {
+          ...(mockUser.publicMetadata as IClerkPublicMetadata),
+          isSuperAdmin: true,
+        },
+      } as unknown as User;
+
+      const result = controller.buildFindAllQuery(superAdmin, query);
+
+      expect(result.where).toEqual({
+        isDeleted: false,
+        organization: organizationId,
+      });
+      expect(result.orderBy).toEqual({ label: 1 });
+    });
+  });
+
   describe('findOne', () => {
     it('should return a brand by id', async () => {
       const brandId = '507f191e810c19729de860ee'.toString();

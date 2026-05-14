@@ -114,7 +114,6 @@ export class ElementsStylesController extends BaseCRUDController<
       adminFilter,
       metadata: {
         organization: publicMetadata.organization,
-        user: publicMetadata.user,
       },
       query,
     });

@@ -3,7 +3,6 @@ import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 
 interface ElementMetadata {
   organization?: string;
-  user?: string;
 }
 
 interface BuildElementFindAllQueryOptions {
@@ -24,18 +23,12 @@ export function buildElementFindAllQuery({
   searchableFields = [],
 }: BuildElementFindAllQueryOptions): Record<string, unknown> {
   const queryAny = query as unknown as Record<string, unknown>;
-  const orConditions: Record<string, unknown>[] = [
-    { organization: null, user: null },
-  ];
+  const orConditions: Record<string, unknown>[] = [];
 
   if (metadata.organization) {
     orConditions.push({
-      organization: metadata.organization,
+      organizationId: metadata.organization,
     });
-  }
-
-  if (metadata.user) {
-    orConditions.push({ user: metadata.user });
   }
 
   const where: Record<string, unknown> = {
@@ -48,7 +41,7 @@ export function buildElementFindAllQuery({
       typeof queryAny.isDefault === 'boolean' && {
         isDefault: queryAny.isDefault,
       }),
-    ...(adminFilter ?? { OR: orConditions }),
+    ...(adminFilter ?? (orConditions.length > 0 ? { OR: orConditions } : {})),
   };
 
   if (searchableFields.length > 0 && typeof queryAny.search === 'string') {

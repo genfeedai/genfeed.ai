@@ -1,14 +1,33 @@
 import type { TopbarProps } from '@genfeedai/props/navigation/topbar.props';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import AppLayout from '@ui/layouts/app/AppLayout';
 import type { ReactElement } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function MenuComponent(): ReactElement {
   return <div data-testid="menu-component">Menu</div>;
 }
 
 describe('AppLayout', () => {
+  const localStorageStore = new Map<string, string>();
+
+  beforeEach(() => {
+    if (!window.localStorage) {
+      Object.defineProperty(window, 'localStorage', {
+        configurable: true,
+        value: {
+          clear: () => localStorageStore.clear(),
+          getItem: (key: string) => localStorageStore.get(key) ?? null,
+          removeItem: (key: string) => localStorageStore.delete(key),
+          setItem: (key: string, value: string) =>
+            localStorageStore.set(key, value),
+        },
+      });
+    }
+
+    window.localStorage.clear();
+  });
+
   it('renders layout shell', () => {
     render(
       <AppLayout>
@@ -88,8 +107,8 @@ describe('AppLayout', () => {
 
     const rail = screen.getByTestId('desktop-sidebar-rail');
     expect(rail).toBeInTheDocument();
-    expect(rail).not.toHaveClass('border-r');
-    expect(rail).toHaveClass('bg-transparent');
+    expect(rail).toHaveClass('border-r', 'border-border');
+    expect(rail).toHaveClass('bg-background');
     expect(rail).toHaveClass('fixed', 'bottom-0', 'left-0');
     expect(rail).toHaveStyle({ top: 'var(--desktop-titlebar-height)' });
     expect(screen.getAllByTestId('menu-component')).toHaveLength(2);
@@ -110,6 +129,41 @@ describe('AppLayout', () => {
     expect(rail).toHaveClass('bg-transparent');
     expect(rail).not.toHaveClass('border-r');
     expect(rail).not.toHaveClass('bg-background-secondary');
+  });
+
+  it('collapses the desktop sidebar to only the Genfeed logo toggle', async () => {
+    window.localStorage.setItem('genfeed:sidebar:collapsed:anon', 'true');
+
+    render(
+      <AppLayout menuComponent={<MenuComponent />}>
+        <div>Content</div>
+      </AppLayout>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('desktop-sidebar-rail')).toHaveStyle({
+        minWidth: '0px',
+        width: '0px',
+      });
+    });
+
+    const expandToggle = screen.getByRole('button', {
+      name: 'Expand sidebar',
+    });
+
+    expect(expandToggle).toBeInTheDocument();
+
+    fireEvent.click(expandToggle);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('desktop-sidebar-rail')).toHaveStyle({
+        minWidth: '240px',
+        width: '240px',
+      });
+    });
+    expect(
+      screen.queryByRole('button', { name: 'Expand sidebar' }),
+    ).not.toBeInTheDocument();
   });
 
   it('renders agent dock and fixed-height shell when agent panel is provided', () => {

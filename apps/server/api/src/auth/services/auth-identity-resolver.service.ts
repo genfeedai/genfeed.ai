@@ -127,7 +127,19 @@ export class AuthIdentityResolverService {
     publicMetadata: Partial<IClerkPublicMetadata>,
     userId: string,
     members: MemberDocument[],
+    clerkOrgId?: string,
   ): Promise<OrganizationDocument | null> {
+    if (clerkOrgId) {
+      const orgFromClerk = await this.findAccessibleOrganization(
+        clerkOrgId,
+        userId,
+        members,
+      );
+      if (orgFromClerk) {
+        return orgFromClerk;
+      }
+    }
+
     const organizationCandidate =
       typeof publicMetadata.organization === 'string'
         ? publicMetadata.organization
@@ -245,7 +257,10 @@ export class AuthIdentityResolverService {
     });
   }
 
-  async resolve(user: User): Promise<{
+  async resolve(
+    user: User,
+    options?: { clerkOrgId?: string },
+  ): Promise<{
     brandId?: string;
     clerkUserId: string;
     organizationId?: string;
@@ -269,6 +284,7 @@ export class AuthIdentityResolverService {
       publicMetadata,
       resolvedUser.userId,
       members,
+      options?.clerkOrgId,
     );
     const organizationId =
       getEntityId(organization as Record<string, unknown> | null | undefined) ||

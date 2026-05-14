@@ -62,7 +62,7 @@ export class AdminPage {
     );
     this.quickActionCards = page.locator(
       '[data-testid="quick-action"], .quick-action, ' +
-        'a[href="/users"], a[href="/templates"]',
+        'a[href="/admin/administration/users"], a[href="/admin/content/templates"]',
     );
     this.activityChart = page.locator(
       '[data-testid="activity-chart"], .recharts-wrapper, ' +
@@ -126,105 +126,105 @@ export class AdminPage {
   // ---------- Navigation ----------
 
   async gotoOverview(): Promise<void> {
-    await this.page.goto('/overview', {
+    await this.page.goto('/admin/overview/dashboard', {
       waitUntil: 'domcontentloaded',
     });
     await this.waitForPageLoad();
   }
 
   async gotoUsers(): Promise<void> {
-    await this.page.goto('/users', {
+    await this.page.goto('/admin/administration/users', {
       waitUntil: 'domcontentloaded',
     });
     await this.waitForPageLoad();
   }
 
   async gotoTemplates(): Promise<void> {
-    await this.page.goto('/templates', {
+    await this.page.goto('/admin/content/templates', {
       waitUntil: 'domcontentloaded',
     });
     await this.waitForPageLoad();
   }
 
   async gotoDarkroomGallery(): Promise<void> {
-    await this.page.goto('/darkroom/gallery', {
+    await this.page.goto('/admin/darkroom/gallery', {
       waitUntil: 'domcontentloaded',
     });
     await this.waitForPageLoad();
   }
 
   async gotoDarkroomCharacters(): Promise<void> {
-    await this.page.goto('/darkroom/characters', {
+    await this.page.goto('/admin/darkroom/characters', {
       waitUntil: 'domcontentloaded',
     });
     await this.waitForPageLoad();
   }
 
   async gotoDarkroomPipeline(): Promise<void> {
-    await this.page.goto('/darkroom/pipeline', {
+    await this.page.goto('/admin/darkroom/pipeline', {
       waitUntil: 'domcontentloaded',
     });
     await this.waitForPageLoad();
   }
 
   async gotoDarkroomInfrastructure(): Promise<void> {
-    await this.page.goto('/darkroom/infrastructure', {
+    await this.page.goto('/admin/darkroom/infrastructure', {
       waitUntil: 'domcontentloaded',
     });
     await this.waitForPageLoad();
   }
 
   async gotoCrmLeads(): Promise<void> {
-    await this.page.goto('/crm/leads', {
+    await this.page.goto('/admin/content/leads', {
       waitUntil: 'domcontentloaded',
     });
     await this.waitForPageLoad();
   }
 
   async gotoCrmCompanies(): Promise<void> {
-    await this.page.goto('/crm/companies', {
+    await this.page.goto('/admin/content/companies', {
       waitUntil: 'domcontentloaded',
     });
     await this.waitForPageLoad();
   }
 
   async gotoCrmTasks(): Promise<void> {
-    await this.page.goto('/crm/tasks', {
+    await this.page.goto('/admin/content/tasks', {
       waitUntil: 'domcontentloaded',
     });
     await this.waitForPageLoad();
   }
 
   async gotoCrmAnalytics(): Promise<void> {
-    await this.page.goto('/crm/analytics', {
+    await this.page.goto('/admin/content/analytics', {
       waitUntil: 'domcontentloaded',
     });
     await this.waitForPageLoad();
   }
 
   async gotoAnalyticsAll(): Promise<void> {
-    await this.page.goto('/analytics/all', {
+    await this.page.goto('/admin/overview/analytics/all', {
       waitUntil: 'domcontentloaded',
     });
     await this.waitForPageLoad();
   }
 
   async gotoAnalyticsOrganizations(): Promise<void> {
-    await this.page.goto('/analytics/organizations', {
+    await this.page.goto('/admin/overview/analytics/organizations', {
       waitUntil: 'domcontentloaded',
     });
     await this.waitForPageLoad();
   }
 
   async gotoAnalyticsBrands(): Promise<void> {
-    await this.page.goto('/analytics/brands', {
+    await this.page.goto('/admin/overview/analytics/brands', {
       waitUntil: 'domcontentloaded',
     });
     await this.waitForPageLoad();
   }
 
   async gotoAnalyticsBusiness(): Promise<void> {
-    await this.page.goto('/overview/analytics/business', {
+    await this.page.goto('/admin/overview/analytics/business', {
       waitUntil: 'domcontentloaded',
     });
     await this.waitForPageLoad();

@@ -83,6 +83,7 @@ const makeMocks = () => ({
     invalidateForUser: vi.fn(),
   },
   usersService: { findOne: vi.fn(), patch: vi.fn() },
+  userSetupService: { initializeUserResources: vi.fn() },
 });
 
 // ---------------------------------------------------------------------------
@@ -107,6 +108,14 @@ describe('OnboardingService', () => {
 
   beforeEach(() => {
     mocks = makeMocks();
+    mocks.userSetupService.initializeUserResources.mockResolvedValue({
+      brand: { _id: '507f191e810c19729de860ef' },
+      member: { _id: '507f191e810c19729de860f0' },
+      organization: { _id: orgId },
+      organizationSettings: { _id: '507f191e810c19729de860f1' },
+      userSettings: { _id: '507f191e810c19729de860f2' },
+    });
+    mocks.clerkService.updateUserPublicMetadata.mockResolvedValue(undefined);
     service = new OnboardingService(
       mocks.loggerService as any,
       mocks.brandScraperService as any,
@@ -123,6 +132,7 @@ describe('OnboardingService', () => {
       mocks.proactiveOnboardingService as any,
       mocks.requestContextCacheService as any,
       mocks.accessBootstrapCacheService as any,
+      mocks.userSetupService as any,
     );
   });
 
@@ -133,7 +143,6 @@ describe('OnboardingService', () => {
   describe('setAccountType', () => {
     it('updates org and Clerk metadata, returns success', async () => {
       mocks.organizationsService.patch.mockResolvedValue(undefined);
-      mocks.clerkService.updateUserPublicMetadata.mockResolvedValue(undefined);
 
       const result = await service.setAccountType(
         user,
@@ -152,6 +161,36 @@ describe('OnboardingService', () => {
         expect.objectContaining({ category: OrganizationCategory.BRAND }),
       );
       expect(result).toMatchObject({ success: true });
+    });
+
+    it('creates the onboarding workspace when Clerk metadata has no organization', async () => {
+      const clerkOnlyUser = {
+        id: 'clerk_user_123',
+        publicMetadata: {},
+      } as any;
+      mocks.usersService.findOne.mockResolvedValue({ _id: userId });
+      mocks.organizationsService.patch.mockResolvedValue(undefined);
+
+      await service.setAccountType(
+        clerkOnlyUser,
+        OrganizationCategory.BUSINESS,
+      );
+
+      expect(
+        mocks.userSetupService.initializeUserResources,
+      ).toHaveBeenCalledWith(userId, OrganizationCategory.BUSINESS);
+      expect(mocks.organizationsService.patch).toHaveBeenCalledWith(orgId, {
+        accountType: OrganizationCategory.BUSINESS,
+        category: OrganizationCategory.BUSINESS,
+      });
+      expect(mocks.clerkService.updateUserPublicMetadata).toHaveBeenCalledWith(
+        'clerk_user_123',
+        {
+          brand: '507f191e810c19729de860ef',
+          organization: orgId,
+          user: userId,
+        },
+      );
     });
 
     it('throws 500 when org patch fails', async () => {

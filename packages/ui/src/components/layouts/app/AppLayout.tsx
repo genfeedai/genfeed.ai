@@ -3,10 +3,13 @@
 import { SidebarNavigationProvider } from '@genfeedai/contexts/ui/sidebar-navigation-context';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { useThemeLogo } from '@genfeedai/hooks/ui/use-theme-logo/use-theme-logo';
 import type { AppLayoutProps } from '@genfeedai/props/layout/app-layout.props';
 import type { TopbarProps } from '@genfeedai/props/navigation/topbar.props';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
 import { Button } from '@ui/primitives/button';
+import Image from 'next/image';
 import {
   type CSSProperties,
   cloneElement,
@@ -132,62 +135,67 @@ function DesktopSidebar({
   children,
   collapsedWidth = SIDEBAR_COLLAPSED_WIDTH,
   isCollapsed,
-  onExpand,
+  shellChromeVariant = 'default',
   width = SIDEBAR_WIDTH,
 }: {
   children: ReactNode;
   collapsedWidth?: number;
   isCollapsed: boolean;
-  onExpand?: () => void;
+  shellChromeVariant?: AppLayoutProps['shellChromeVariant'];
   width?: number;
 }) {
   const targetWidth = isCollapsed ? collapsedWidth : width;
 
   return (
-    <>
-      <aside
-        data-testid="desktop-sidebar-rail"
-        className={cn(
-          'fixed bottom-0 left-0 z-30 hidden flex-col overflow-hidden md:flex',
-          'bg-background',
-          !isCollapsed && 'border-r border-border',
-        )}
-        style={{
-          minWidth: targetWidth,
-          top: 'var(--desktop-titlebar-height)',
-          transition: `width ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, min-width ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}`,
-          width: targetWidth,
-        }}
-      >
-        {children}
-      </aside>
-      {isCollapsed && onExpand && (
-        <Button
-          type="button"
-          variant={ButtonVariant.UNSTYLED}
-          withWrapper={false}
-          onClick={onExpand}
-          ariaLabel="Expand sidebar"
-          className="fixed left-0 top-1/2 z-30 hidden -translate-y-1/2 md:flex items-center justify-center w-3 h-12 rounded-r bg-background-secondary/80 text-foreground/30 hover:text-foreground/60 hover:bg-background-tertiary transition-colors cursor-pointer"
-        >
-          <svg
-            width="6"
-            height="16"
-            viewBox="0 0 6 16"
-            fill="none"
-            className="size-3"
-          >
-            <path
-              d="M1 1L5 8L1 15"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </Button>
+    <aside
+      data-testid="desktop-sidebar-rail"
+      className={cn(
+        'fixed bottom-0 left-0 z-30 hidden flex-col overflow-hidden md:flex',
+        shellChromeVariant === 'transparent'
+          ? 'bg-transparent'
+          : 'bg-background',
+        !isCollapsed &&
+          shellChromeVariant !== 'transparent' &&
+          'border-r border-border',
       )}
-    </>
+      style={{
+        minWidth: targetWidth,
+        top: 'var(--desktop-titlebar-height)',
+        transition: `width ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, min-width ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}`,
+        width: targetWidth,
+      }}
+    >
+      {children}
+    </aside>
+  );
+}
+
+function CollapsedSidebarLogoToggle({ onClick }: { onClick: () => void }) {
+  const logoUrl = useThemeLogo();
+
+  return (
+    <Button
+      type="button"
+      variant={ButtonVariant.UNSTYLED}
+      withWrapper={false}
+      onClick={onClick}
+      ariaLabel="Expand sidebar"
+      className="fixed left-2 z-[60] hidden size-8 items-center justify-center rounded-md bg-background text-foreground shadow-sm transition-colors hover:bg-background-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 md:flex"
+      style={{ top: 'calc(var(--desktop-titlebar-height) + 0.5rem)' }}
+    >
+      {logoUrl ? (
+        <Image
+          src={logoUrl}
+          alt={EnvironmentService.LOGO_ALT}
+          className="size-4 object-contain dark:invert"
+          width={16}
+          height={16}
+          sizes="16px"
+        />
+      ) : (
+        <span className="text-sm font-bold leading-none">G</span>
+      )}
+    </Button>
   );
 }
 
@@ -460,11 +468,16 @@ export default function AppLayout({
             <DesktopSidebar
               collapsedWidth={desktopSidebarCollapsedWidth}
               isCollapsed={isDesktopCollapsed}
-              onExpand={handleToggleDesktopSidebar}
+              shellChromeVariant={shellChromeVariant}
               width={desktopSidebarExpandedWidth}
             >
               {desktopMenuContent}
             </DesktopSidebar>
+            {isDesktopCollapsed ? (
+              <CollapsedSidebarLogoToggle
+                onClick={handleToggleDesktopSidebar}
+              />
+            ) : null}
 
             {/* Mobile sidebar drawer */}
             <div

@@ -6,9 +6,9 @@ import type { AppSwitcherItemConfig } from '@genfeedai/interfaces';
 import type { AppSwitcherProps } from '@genfeedai/props/ui/app-switcher.props';
 import Link from 'next/link';
 import {
+  HiOutlineChartBar,
   HiOutlineChartBarSquare,
   HiOutlineChatBubbleLeftRight,
-  HiOutlineCog6Tooth,
   HiOutlineDocumentText,
   HiOutlineFolder,
   HiOutlinePencilSquare,
@@ -19,10 +19,13 @@ import {
 import { TbGridDots } from 'react-icons/tb';
 import { Button } from '../../../primitives/button';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '../../../primitives/popover';
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../../../primitives/dropdown-menu';
 
 const CONTENT_APPS: AppSwitcherItemConfig[] = [
   {
@@ -63,7 +66,7 @@ const PLATFORM_APPS: AppSwitcherItemConfig[] = [
       brand ? `/${org}/${brand}/studio/image` : `/${org}/~/overview`,
   },
   {
-    icon: HiOutlineCog6Tooth,
+    icon: HiOutlineChartBar,
     id: 'workflows',
     label: 'Workflows',
     route: (org, brand) =>
@@ -120,7 +123,7 @@ function withPreservedSearch(path: string, preservedSearch?: string): string {
   return nextSearch ? `${pathname}?${nextSearch}` : pathname;
 }
 
-function AppGridItem({
+function AppDropdownItem({
   app,
   isActive,
   href,
@@ -132,36 +135,28 @@ function AppGridItem({
   const Icon = app.icon;
 
   return (
-    <Link
-      href={href}
-      aria-current={isActive ? 'page' : undefined}
-      className={cn(
-        'group flex flex-col items-center gap-1.5 rounded-lg p-2.5 transition-colors',
-        'hover:bg-white/[0.06]',
-        isActive && 'bg-white/[0.08]',
-      )}
-    >
-      <span
+    <DropdownMenuItem asChild>
+      <Link
+        href={href}
+        aria-current={isActive ? 'page' : undefined}
         className={cn(
-          'flex size-10 items-center justify-center rounded-full transition-colors',
-          isActive
-            ? 'bg-white/[0.12] text-foreground'
-            : 'bg-white/[0.04] text-foreground/60 group-hover:bg-white/[0.08] group-hover:text-foreground/80',
+          'flex items-center gap-2.5 px-3 py-1.5 text-[13px]',
+          isActive && 'bg-white/[0.06] font-medium',
         )}
       >
-        <Icon className="size-5" />
-      </span>
-      <span
-        className={cn(
-          'text-[11px] leading-tight',
-          isActive
-            ? 'font-medium text-foreground'
-            : 'text-foreground/60 group-hover:text-foreground/80',
-        )}
-      >
-        {app.label}
-      </span>
-    </Link>
+        <Icon
+          className={cn(
+            'size-4 shrink-0',
+            isActive ? 'text-foreground' : 'text-foreground/50',
+          )}
+        />
+        <span
+          className={cn(isActive ? 'text-foreground' : 'text-foreground/80')}
+        >
+          {app.label}
+        </span>
+      </Link>
+    </DropdownMenuItem>
   );
 }
 
@@ -176,8 +171,8 @@ export function AppSwitcher({
   }
 
   return (
-    <Popover>
-      <PopoverTrigger asChild>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
         <Button
           type="button"
           variant={ButtonVariant.GHOST}
@@ -187,43 +182,31 @@ export function AppSwitcher({
         >
           <TbGridDots className="size-4" />
         </Button>
-      </PopoverTrigger>
-      <PopoverContent align="start" sideOffset={8} className="w-[264px] p-3">
-        <div className="mb-2">
-          <p className="px-1 text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/30">
-            Content
-          </p>
-        </div>
-        <div className="grid grid-cols-3 gap-0.5">
-          {CONTENT_APPS.map((app) => (
-            <AppGridItem
-              key={app.id}
-              app={app}
-              isActive={app.id === currentApp}
-              href={getAppHref(app)}
-            />
-          ))}
-        </div>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" sideOffset={8} className="w-48">
+        <DropdownMenuLabel>Content</DropdownMenuLabel>
+        {CONTENT_APPS.map((app) => (
+          <AppDropdownItem
+            key={app.id}
+            app={app}
+            isActive={app.id === currentApp}
+            href={getAppHref(app)}
+          />
+        ))}
 
-        <div className="my-2 border-t border-border" />
+        <DropdownMenuSeparator />
 
-        <div className="mb-2">
-          <p className="px-1 text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/30">
-            Tools
-          </p>
-        </div>
-        <div className="grid grid-cols-3 gap-0.5">
-          {PLATFORM_APPS.map((app) => (
-            <AppGridItem
-              key={app.id}
-              app={app}
-              isActive={app.id === currentApp}
-              href={getAppHref(app)}
-            />
-          ))}
-        </div>
-      </PopoverContent>
-    </Popover>
+        <DropdownMenuLabel>Tools</DropdownMenuLabel>
+        {PLATFORM_APPS.map((app) => (
+          <AppDropdownItem
+            key={app.id}
+            app={app}
+            isActive={app.id === currentApp}
+            href={getAppHref(app)}
+          />
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 

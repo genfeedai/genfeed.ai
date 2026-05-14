@@ -35,6 +35,7 @@ import {
   getIsSuperAdmin,
   getPublicMetadata,
 } from '@api/helpers/utils/clerk/clerk.util';
+import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
@@ -195,12 +196,24 @@ export class BrandsController extends BaseCRUDController<
    */
   public buildFindAllQuery(user: User, query: BaseQueryDto) {
     const publicMetadata = getPublicMetadata(user);
+    const adminFilter = CollectionFilterUtil.buildAdminFilter(
+      publicMetadata,
+      query,
+    );
+
+    const where: Record<string, unknown> = {
+      isDeleted: query.isDeleted ?? false,
+    };
+
+    if (adminFilter) {
+      Object.assign(where, adminFilter);
+    } else {
+      where.user = publicMetadata.user;
+    }
+
     return {
-      where: {
-        isDeleted: query.isDeleted ?? false,
-        user: publicMetadata.user,
-      },
       orderBy: handleQuerySort(query.sort),
+      where,
     };
   }
 

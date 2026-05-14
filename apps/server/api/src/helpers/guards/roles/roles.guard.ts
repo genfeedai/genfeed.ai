@@ -4,6 +4,7 @@ import {
   getIsSuperAdmin,
   getPublicMetadata,
 } from '@api/helpers/utils/clerk/clerk.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
 import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
 import type { User } from '@clerk/backend';
@@ -92,7 +93,7 @@ export class RolesGuard implements CanActivate {
       );
     }
 
-    if (!/^[0-9a-f]{24}$/i.test(publicMetadata.user)) {
+    if (!isEntityId(publicMetadata.user)) {
       throw new HttpException(
         {
           detail: 'User context is invalid',
@@ -175,20 +176,18 @@ export class RolesGuard implements CanActivate {
     const explicitOrganizationId = params.organizationId ?? params.orgId;
 
     if (explicitOrganizationId !== undefined) {
-      return /^[0-9a-f]{24}$/i.test(explicitOrganizationId)
-        ? explicitOrganizationId
-        : null;
+      return isEntityId(explicitOrganizationId) ? explicitOrganizationId : null;
     }
 
     // 2. Try to get from request body
     const bodyOrganization = req.body?.organization;
-    if (bodyOrganization && /^[0-9a-f]{24}$/i.test(bodyOrganization)) {
+    if (bodyOrganization && isEntityId(bodyOrganization)) {
       return bodyOrganization;
     }
 
     // 3. Fallback to publicMetadata (user's current org context)
     const metadataOrganization = publicMetadata.organization;
-    if (metadataOrganization && /^[0-9a-f]{24}$/i.test(metadataOrganization)) {
+    if (metadataOrganization && isEntityId(metadataOrganization)) {
       return metadataOrganization;
     }
 
