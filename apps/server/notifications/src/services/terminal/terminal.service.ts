@@ -130,6 +130,10 @@ export class TerminalService {
     return !isCloud && (isDevelopment || explicitlyEnabled === 'true');
   }
 
+  getClerkSecretKey(): string | undefined {
+    return this.configService.get('CLERK_SECRET_KEY') || undefined;
+  }
+
   killAllForSocket(ownerSocketId: string): void {
     for (const [sessionId, session] of this.sessions.entries()) {
       if (session.ownerSocketId === ownerSocketId) {

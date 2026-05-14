@@ -1,3 +1,4 @@
+import { verifyToken } from '@clerk/backend';
 import { Logger } from '@nestjs/common';
 import {
   ConnectedSocket,
@@ -30,10 +31,11 @@ export class TerminalGateway
   implements OnGatewayConnection, OnGatewayDisconnect
 {
   private readonly logger = new Logger(TerminalGateway.name);
+  private readonly authenticatedSockets = new Set<string>();
 
   constructor(private readonly terminalService: TerminalService) {}
 
-  handleConnection(client: Socket): void {
+  async handleConnection(client: Socket): Promise<void> {
     if (!this.isAllowedLocalOrigin(client)) {
       this.logger.warn('Rejected non-local terminal socket connection', {
         address: client.handshake.address,
@@ -47,6 +49,19 @@ export class TerminalGateway
       return;
     }
 
+    if (!(await this.isAuthenticatedLocalClient(client))) {
+      this.logger.warn('Rejected unauthenticated terminal socket connection', {
+        address: client.handshake.address,
+        origin: client.handshake.headers.origin,
+        socketId: client.id,
+      });
+      client.emit('terminal:error', {
+        message: 'Local terminal requires an authenticated session.',
+      });
+      client.disconnect(true);
+      return;
+    }
+
     if (!this.terminalService.isAvailable()) {
       client.emit('terminal:error', {
         message: 'Local terminal is disabled.',
@@ -55,10 +70,12 @@ export class TerminalGateway
       return;
     }
 
+    this.authenticatedSockets.add(client.id);
     client.emit('terminal:ready', { socketId: client.id });
   }
 
   handleDisconnect(client: Socket): void {
+    this.authenticatedSockets.delete(client.id);
     this.terminalService.killAllForSocket(client.id);
   }
 
@@ -67,6 +84,10 @@ export class TerminalGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() payload?: TerminalCreatePayload,
   ): void {
+    if (!this.ensureAuthenticated(client)) {
+      return;
+    }
+
     try {
       const session = this.terminalService.createSession(client.id, payload, {
         onData: (data) => client.emit('terminal:data', data),
@@ -88,6 +109,10 @@ export class TerminalGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: TerminalKillPayload,
   ): void {
+    if (!this.ensureAuthenticated(client)) {
+      return;
+    }
+
     this.terminalService.killSession(client.id, payload.sessionId);
   }
 
@@ -96,6 +121,10 @@ export class TerminalGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: TerminalResizePayload,
   ): void {
+    if (!this.ensureAuthenticated(client)) {
+      return;
+    }
+
     this.terminalService.resizeSession(
       client.id,
       payload.sessionId,
@@ -109,6 +138,10 @@ export class TerminalGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: TerminalWritePayload,
   ): void {
+    if (!this.ensureAuthenticated(client)) {
+      return;
+    }
+
     this.terminalService.writeSession(
       client.id,
       payload.sessionId,
@@ -128,5 +161,57 @@ export class TerminalGateway
     } catch {
       return false;
     }
+  }
+
+  private async isAuthenticatedLocalClient(client: Socket): Promise<boolean> {
+    const token = this.extractToken(client);
+    if (!token) {
+      return false;
+    }
+
+    const clerkSecret = this.terminalService.getClerkSecretKey();
+    if (!clerkSecret) {
+      this.logger.warn(
+        'CLERK_SECRET_KEY is required before local terminal sockets can authenticate.',
+      );
+      return false;
+    }
+
+    try {
+      const payload = await verifyToken(token, { secretKey: clerkSecret });
+      return typeof payload.sub === 'string' && payload.sub.length > 0;
+    } catch (error: unknown) {
+      this.logger.warn('Failed to verify local terminal socket token', {
+        error: error instanceof Error ? error.message : String(error),
+        socketId: client.id,
+      });
+      return false;
+    }
+  }
+
+  private extractToken(client: Socket): string | undefined {
+    const authToken = client.handshake.auth?.token;
+    if (typeof authToken === 'string' && authToken.length > 0) {
+      return authToken;
+    }
+
+    const headerToken = client.handshake.headers.authorization;
+    if (typeof headerToken === 'string' && headerToken.startsWith('Bearer ')) {
+      return headerToken.slice('Bearer '.length).trim() || undefined;
+    }
+
+    return undefined;
+  }
+
+  private ensureAuthenticated(client: Socket): boolean {
+    if (this.authenticatedSockets.has(client.id)) {
+      return true;
+    }
+
+    client.emit('terminal:error', {
+      message: 'Local terminal requires an authenticated session.',
+    });
+    client.disconnect(true);
+    return false;
   }
 }

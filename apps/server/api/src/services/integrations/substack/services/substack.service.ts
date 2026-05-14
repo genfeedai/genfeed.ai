@@ -1,7 +1,7 @@
 import * as crypto from 'node:crypto';
 import {
   assertSafeWebhookHeaders,
-  assertSafeWebhookUrl,
+  createSafeWebhookHttpsAgent,
 } from '@api/shared/utils/webhook-validator/webhook-validator.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
@@ -70,9 +70,7 @@ export class SubstackService {
       };
     }
 
-    // SSRF guard: validate URL scheme and resolve hostname against private/reserved ranges.
-    // assertSafeWebhookUrl throws BadRequestException on any violation.
-    await assertSafeWebhookUrl(input.webhookUrl);
+    const httpsAgent = await createSafeWebhookHttpsAgent(input.webhookUrl);
 
     // Header injection guard: strip forbidden headers and reject CR/LF injection attempts.
     const safeHeaders = assertSafeWebhookHeaders(input.webhookHeaders);
@@ -96,6 +94,8 @@ export class SubstackService {
               : {}),
             'X-Genfeed-Event': 'newsletter.draft.ready',
           },
+          httpsAgent,
+          maxRedirects: 0,
           timeout: 30000,
           validateStatus: (status) => status < 500,
         }),

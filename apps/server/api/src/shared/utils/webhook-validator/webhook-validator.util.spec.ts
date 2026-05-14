@@ -11,6 +11,7 @@ import {
   assertSafeWebhookHeaders,
   assertSafeWebhookUrl,
   BLOCKED_WEBHOOK_HEADERS,
+  createSafeWebhookHttpsAgent,
 } from './webhook-validator.util';
 
 // ---------------------------------------------------------------------------
@@ -106,11 +107,7 @@ describe('assertSafeWebhookUrl — DNS resolution', () => {
   });
 
   it('blocks hostname resolving to private RFC1918 address', async () => {
-    dnsLookupMock.mockResolvedValue({
-      address: '192.168.1.100',
-      family: 4,
-      hostname: '',
-    });
+    dnsLookupMock.mockResolvedValue([{ address: '192.168.1.100', family: 4 }]);
 
     await expect(
       assertSafeWebhookUrl('https://internal.example.com/hook'),
@@ -118,11 +115,9 @@ describe('assertSafeWebhookUrl — DNS resolution', () => {
   });
 
   it('blocks hostname resolving to AWS metadata endpoint 169.254.169.254', async () => {
-    dnsLookupMock.mockResolvedValue({
-      address: '169.254.169.254',
-      family: 4,
-      hostname: '',
-    });
+    dnsLookupMock.mockResolvedValue([
+      { address: '169.254.169.254', family: 4 },
+    ]);
 
     await expect(
       assertSafeWebhookUrl('https://metadata.evil.com/hook'),
@@ -130,15 +125,61 @@ describe('assertSafeWebhookUrl — DNS resolution', () => {
   });
 
   it('allows hostname resolving to public address', async () => {
-    dnsLookupMock.mockResolvedValue({
-      address: '93.184.216.34',
-      family: 4,
-      hostname: '',
-    });
+    dnsLookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
 
     await expect(
       assertSafeWebhookUrl('https://hooks.example.com/webhook'),
     ).resolves.toBeUndefined();
+  });
+
+  it('blocks hostname when any resolved address is private or reserved', async () => {
+    dnsLookupMock.mockResolvedValue([
+      { address: '93.184.216.34', family: 4 },
+      { address: '10.0.0.7', family: 4 },
+    ]);
+
+    await expect(
+      assertSafeWebhookUrl('https://multi.example.com/webhook'),
+    ).rejects.toThrow('private or reserved');
+  });
+
+  it('pins the validated address for webhook requests', async () => {
+    dnsLookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+
+    const agent = await createSafeWebhookHttpsAgent(
+      'https://hooks.example.com/webhook',
+    );
+    const lookup = agent.options.lookup;
+
+    expect(lookup).toBeTypeOf('function');
+
+    await new Promise<void>((resolve, reject) => {
+      lookup?.('hooks.example.com', {}, (error, address, family) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+
+        expect(address).toBe('93.184.216.34');
+        expect(family).toBe(4);
+        resolve();
+      });
+    });
+  });
+
+  it('rejects lookup attempts for redirected webhook hostnames', async () => {
+    dnsLookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+
+    const agent = await createSafeWebhookHttpsAgent(
+      'https://hooks.example.com/webhook',
+    );
+
+    await new Promise<void>((resolve) => {
+      agent.options.lookup?.('redirect.example.com', {}, (error) => {
+        expect(error).toBeInstanceOf(Error);
+        resolve();
+      });
+    });
   });
 });
 

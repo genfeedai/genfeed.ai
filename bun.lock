@@ -520,6 +520,7 @@
       "name": "@genfeedai/notifications",
       "version": "1.0.0",
       "dependencies": {
+        "@clerk/backend": "3.4.1",
         "@genfeedai/config": "workspace:*",
         "@genfeedai/enums": "workspace:*",
         "@slack/web-api": "7.15.1",
