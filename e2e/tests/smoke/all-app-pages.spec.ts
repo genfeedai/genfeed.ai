@@ -449,7 +449,11 @@ async function sweepRoutes(
   options: { allowRedirectToLogin?: boolean } = {},
 ): Promise<void> {
   const filteredRoutes = routeFilter
-    ? routesToCheck.filter((route) => route.includes(routeFilter))
+    ? routesToCheck.filter((route) =>
+        routeFilter.startsWith('=')
+          ? route === routeFilter.slice(1)
+          : route.includes(routeFilter),
+      )
     : routesToCheck;
   const failures: string[] = [];
 
