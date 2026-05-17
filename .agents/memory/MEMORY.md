@@ -46,6 +46,9 @@
 - [Open Source Context](system/OPEN-SOURCE-CONTEXT.md) — OSS licensing, contribution
 - [Self-Hosted Guide](system/SELF-HOSTED-GUIDE.md) — Docker deployment guide
 
+## Plans (UI design outputs)
+- **MergedSwitcher** (2026-05-17) — Merged AppSwitcher + ContentTypeSwitcher. Generate section: 4×2 colored icon grid (GenerationType enum). Navigate section: 2-col grid (Overview, Workflows, Library, Calendar, Analytics). Component: `packages/ui/src/components/shell/merged-switcher/MergedSwitcher.tsx`. HTML mockups gitignored under `.agents/plans/`.
+
 ## Architecture Decisions
 - [Dynamic Scheduling](architecture/ADR-DYNAMIC-SCHEDULING-WORKFLOW-CANONICAL.md) — scheduling via workflow engine
 - [PLG Boundary](architecture/ADR-PLG-BOUNDARY-OSS-CLOUD.md) — OSS vs cloud feature split

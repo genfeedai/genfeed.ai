@@ -37,6 +37,7 @@ apps/desktop/app/release/
 .claude/skills/
 .worktrees/
 .agents/SESSIONS/
+.agents/plans/
 
 # Claude Code skill runtime (should never be committed)
 .superpowers/

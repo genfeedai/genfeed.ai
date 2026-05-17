@@ -9,20 +9,9 @@ import type {
 import type {
   FormDropdownOption as DropdownFieldOption,
   IAsset,
-  IElementBlacklist,
-  IElementCamera,
-  IElementCameraMovement,
-  IElementLens,
-  IElementLighting,
-  IElementMood,
-  IElementScene,
-  IElementStyle,
   IFolder,
-  IFontFamily,
   IImage,
   IModel,
-  IPreset,
-  ISound,
   ITraining,
 } from '@genfeedai/interfaces';
 import type { IGenerationItem } from '@genfeedai/interfaces/components/generation.interface';
@@ -186,45 +175,4 @@ export interface PromptBarQuickOptionsProps {
   showToggle?: boolean;
   onOpenAdvanced?: () => void;
   inlineContent?: ReactNode;
-}
-
-/**
- * Props for PromptBarAdvanced — the modal/drawer third tier.
- * Contains: all metadata selectors, tags, sounds, blacklists.
- */
-export interface PromptBarAdvancedProps {
-  currentConfig: PromptBarConfig;
-  pathname: string;
-  categoryType?: IngredientCategory;
-
-  form: UseFormReturn<PromptTextareaSchema>;
-  isDisabledState: boolean;
-  controlClass: string;
-
-  isAdvancedControlsEnabled: boolean;
-
-  profiles?: Array<{ id: string; name: string; description?: string }>;
-  filteredPresets: IPreset[];
-  filteredScenes: IElementScene[];
-  filteredFontFamilies: IFontFamily[];
-  filteredStyles: IElementStyle[];
-  filteredCameras: IElementCamera[];
-  filteredLightings: IElementLighting[];
-  filteredLenses: IElementLens[];
-  filteredCameraMovements: IElementCameraMovement[];
-  filteredMoods: IElementMood[];
-  filteredSounds: ISound[];
-  filteredBlacklists: IElementBlacklist[];
-
-  selectedPreset: string;
-  setSelectedPreset: Dispatch<SetStateAction<string>>;
-  selectedProfile: string;
-  setSelectedProfile: Dispatch<SetStateAction<string>>;
-
-  refocusTextarea: () => void;
-  onTextChange?: (text: string) => void;
-  triggerConfigChange: () => void;
-
-  isOpen: boolean;
-  onClose: () => void;
 }
