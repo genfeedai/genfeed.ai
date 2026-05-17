@@ -1,10 +1,16 @@
+import { isIP } from 'node:net';
 import process from 'node:process';
 import { CreateTrackedLinkDto } from '@api/collections/tracked-links/dto/create-tracked-link.dto';
 import { TrackClickDto } from '@api/collections/tracked-links/dto/track-click.dto';
 import type { LinkClickDocument } from '@api/collections/tracked-links/schemas/link-click.schema';
 import type { TrackedLinkDocument } from '@api/collections/tracked-links/schemas/tracked-link.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 
 /** Fields a caller is allowed to mutate on an existing tracked link. */
 type TrackedLinkUpdatePayload = {
@@ -23,6 +29,50 @@ export class TrackedLinksService {
 
   constructor(private readonly prisma: PrismaService) {}
 
+  private async assertBrandAccess(
+    brandId: string | undefined,
+    organizationId: string,
+  ): Promise<string | undefined> {
+    if (!brandId) return undefined;
+
+    const brand = await this.prisma.brand.findFirst({
+      where: {
+        OR: [{ id: brandId }, { mongoId: brandId }],
+        isDeleted: false,
+        organizationId,
+      },
+    });
+
+    if (!brand) {
+      throw new NotFoundException(`Brand not found: ${brandId}`);
+    }
+
+    return brand.id;
+  }
+
+  private async assertContentAccess(
+    contentId: string | undefined,
+    organizationId: string,
+    brandId: string | undefined,
+  ): Promise<string | undefined> {
+    if (!contentId) return undefined;
+
+    const content = await this.prisma.ingredient.findFirst({
+      where: {
+        OR: [{ id: contentId }, { mongoId: contentId }],
+        isDeleted: false,
+        organizationId,
+        ...(brandId ? { brandId } : {}),
+      },
+    });
+
+    if (!content) {
+      throw new NotFoundException(`Content not found: ${contentId}`);
+    }
+
+    return content.id;
+  }
+
   /**
    * Generate tracking link with UTM parameters
    */
@@ -30,6 +80,13 @@ export class TrackedLinksService {
     dto: CreateTrackedLinkDto,
     organizationId: string,
   ): Promise<TrackedLink> {
+    const brandId = await this.assertBrandAccess(dto.brandId, organizationId);
+    const contentId = await this.assertContentAccess(
+      dto.contentId,
+      organizationId,
+      brandId,
+    );
+
     // Generate unique short code
     let shortCode = dto.customSlug || nanoid(8);
 
@@ -77,9 +134,9 @@ export class TrackedLinksService {
     // Create tracked link
     const trackedLink = await this.prisma.trackedLink.create({
       data: {
-        brandId: dto.brandId,
+        brandId,
         campaignName: dto.campaignName,
-        contentId: dto.contentId,
+        contentId,
         contentType: dto.contentType,
         customSlug: dto.customSlug,
         isActive: true,
@@ -118,31 +175,75 @@ export class TrackedLinksService {
     url: string,
     utm: Record<string, string | undefined>,
   ): string {
-    try {
-      const urlObj = new URL(url);
+    const urlObj = this.parseRedirectUrl(url);
 
-      if (utm.source) {
-        urlObj.searchParams.set('utm_source', utm.source);
-      }
-      if (utm.medium) {
-        urlObj.searchParams.set('utm_medium', utm.medium);
-      }
-      if (utm.campaign) {
-        urlObj.searchParams.set('utm_campaign', utm.campaign);
-      }
-      if (utm.content) {
-        urlObj.searchParams.set('utm_content', utm.content);
-      }
-      if (utm.term) {
-        urlObj.searchParams.set('utm_term', utm.term);
-      }
-
-      return urlObj.toString();
-    } catch (error: unknown) {
-      // If URL parsing fails, return original
-      this.logger.warn(`Failed to parse URL: ${url}`, error);
-      return url;
+    if (utm.source) {
+      urlObj.searchParams.set('utm_source', utm.source);
     }
+    if (utm.medium) {
+      urlObj.searchParams.set('utm_medium', utm.medium);
+    }
+    if (utm.campaign) {
+      urlObj.searchParams.set('utm_campaign', utm.campaign);
+    }
+    if (utm.content) {
+      urlObj.searchParams.set('utm_content', utm.content);
+    }
+    if (utm.term) {
+      urlObj.searchParams.set('utm_term', utm.term);
+    }
+
+    return urlObj.toString();
+  }
+
+  private parseRedirectUrl(url: string): URL {
+    let urlObj: URL;
+
+    try {
+      urlObj = new URL(url);
+    } catch {
+      throw new BadRequestException('Tracked link URL must be absolute');
+    }
+
+    if (urlObj.protocol !== 'https:') {
+      throw new BadRequestException('Tracked link URL must use HTTPS');
+    }
+
+    if (this.isBlockedRedirectHost(urlObj.hostname)) {
+      throw new BadRequestException('Tracked link URL host is not allowed');
+    }
+
+    return urlObj;
+  }
+
+  private isBlockedRedirectHost(hostname: string): boolean {
+    const host = hostname.toLowerCase();
+
+    if (
+      host === 'localhost' ||
+      host.endsWith('.localhost') ||
+      host.endsWith('.local')
+    ) {
+      return true;
+    }
+
+    if (isIP(host) === 4) {
+      const [a = 0, b = 0] = host.split('.').map((part) => Number(part));
+      return (
+        a === 0 ||
+        a === 10 ||
+        a === 127 ||
+        a === 169 ||
+        (a === 172 && b >= 16 && b <= 31) ||
+        (a === 192 && b === 168)
+      );
+    }
+
+    if (isIP(host) === 6) {
+      return host === '::1' || host.startsWith('fc') || host.startsWith('fd');
+    }
+
+    return false;
   }
 
   /**
@@ -249,7 +350,7 @@ export class TrackedLinksService {
     );
 
     // Get country from IP
-    const country = await this.getCountryFromIP(dto.ip || req?.ip);
+    const country = await this.getCountryFromIP(req?.ip);
 
     // Save click
     await this.prisma.linkClick.create({
@@ -507,7 +608,9 @@ export class TrackedLinksService {
     const safeData: TrackedLinkUpdatePayload = {};
     if (updates.isActive !== undefined) safeData.isActive = updates.isActive;
     if (updates.originalUrl !== undefined)
-      safeData.originalUrl = updates.originalUrl;
+      safeData.originalUrl = this.parseRedirectUrl(
+        updates.originalUrl,
+      ).toString();
     if (updates.title !== undefined) safeData.title = updates.title;
 
     const result = await this.prisma.trackedLink.update({

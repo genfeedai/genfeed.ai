@@ -248,14 +248,24 @@ export function extractGeneratedPreview(output: unknown): string | null {
 }
 
 export function extractPostResults(output: unknown): PostResultEntry[] {
-  const arrayCandidate = POST_RESULT_ARRAY_PATHS.map((path) =>
-    getNestedValue(output, path),
-  ).find((value) => Array.isArray(value));
+  let arrayCandidate: unknown;
+  for (const path of POST_RESULT_ARRAY_PATHS) {
+    const value = getNestedValue(output, path);
+    if (Array.isArray(value)) {
+      arrayCandidate = value;
+      break;
+    }
+  }
 
   if (Array.isArray(arrayCandidate)) {
-    return arrayCandidate
-      .map((item) => toPostResultEntry(item))
-      .filter((item): item is PostResultEntry => Boolean(item));
+    const results: PostResultEntry[] = [];
+    for (const item of arrayCandidate) {
+      const result = toPostResultEntry(item);
+      if (result) {
+        results.push(result);
+      }
+    }
+    return results;
   }
 
   const single = toPostResultEntry(output);

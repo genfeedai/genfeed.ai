@@ -1,8 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import {
-  loadClipOrchestratorMap,
-  saveClipOrchestratorMap,
-} from '@api/services/clip-orchestrator/clip-orchestrator-store';
+import { ClipOrchestratorStateStore } from '@api/services/clip-orchestrator/clip-orchestrator-state.store';
 import { ClipRunState } from '@api/services/clip-orchestrator/clip-run-state.enum';
 import { ClipRunStepDto } from '@api/services/clip-orchestrator/dto/clip-run-step.dto';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -64,7 +61,10 @@ export interface MergeJob {
 export class VideoMergeService {
   private readonly logContext = 'VideoMergeService';
 
-  constructor(private readonly logger: LoggerService) {}
+  constructor(
+    private readonly logger: LoggerService,
+    private readonly stateStore: ClipOrchestratorStateStore,
+  ) {}
 
   // -------------------------------------------------------------------------
   // Public API
@@ -122,9 +122,7 @@ export class VideoMergeService {
       videoCount: queue.items.length,
     };
 
-    const jobs = this.loadJobs();
-    jobs.set(job.jobId, job);
-    this.persistJobs(jobs);
+    await this.stateStore.set('merge-jobs', job.jobId, job);
 
     this.logger.log(`${this.logContext} merge job queued`, {
       clipProjectId: queue.clipProjectId,
@@ -143,7 +141,7 @@ export class VideoMergeService {
       throw new Error('jobId is required');
     }
 
-    const job = this.loadJobs().get(jobId);
+    const job = await this.stateStore.get<MergeJob>('merge-jobs', jobId);
     if (!job) {
       throw new Error(`Merge job not found: ${jobId}`);
     }
@@ -158,13 +156,12 @@ export class VideoMergeService {
   /**
    * Transition a job to a new status. Returns the updated job.
    */
-  updateJobStatus(
+  async updateJobStatus(
     jobId: string,
     status: MergeJobStatus,
     extra?: { outputUrl?: string; error?: string },
-  ): MergeJob {
-    const jobs = this.loadJobs();
-    const job = jobs.get(jobId);
+  ): Promise<MergeJob> {
+    const job = await this.stateStore.get<MergeJob>('merge-jobs', jobId);
     if (!job) {
       throw new Error(`Merge job not found: ${jobId}`);
     }
@@ -174,17 +171,8 @@ export class VideoMergeService {
     if (extra?.outputUrl) job.outputUrl = extra.outputUrl;
     if (extra?.error) job.error = extra.error;
 
-    jobs.set(jobId, job);
-    this.persistJobs(jobs);
+    await this.stateStore.set('merge-jobs', jobId, job);
     return job;
-  }
-
-  private loadJobs(): Map<string, MergeJob> {
-    return loadClipOrchestratorMap<MergeJob>('merge-jobs');
-  }
-
-  private persistJobs(jobs: Map<string, MergeJob>): void {
-    saveClipOrchestratorMap('merge-jobs', jobs);
   }
 
   /**

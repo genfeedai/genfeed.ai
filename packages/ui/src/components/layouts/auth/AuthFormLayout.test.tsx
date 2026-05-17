@@ -11,8 +11,9 @@ vi.mock('next/image', () => ({
     priority: _priority,
     ...props
   }: Record<string, unknown>) => (
-    // biome-ignore lint/performance/noImgElement: next/image is mocked to a basic DOM element in jsdom tests.
-    <img src={src as string} alt={alt as string} {...props} />
+    <picture>
+      <img src={src as string} alt={alt as string} {...props} />
+    </picture>
   ),
 }));
 

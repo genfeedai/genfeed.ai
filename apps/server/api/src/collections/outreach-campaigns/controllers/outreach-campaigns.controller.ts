@@ -67,6 +67,23 @@ export class OutreachCampaignsController extends BaseCRUDController<
     );
   }
 
+  @Post()
+  @ApiOperation({ summary: 'Create an outreach campaign' })
+  async create(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Body() createDto: CreateOutreachCampaignDto,
+  ) {
+    const publicMetadata = getPublicMetadata(user);
+    const data = await this.outreachCampaignsService.createScoped(createDto, {
+      brandId: publicMetadata.brand,
+      organizationId: publicMetadata.organization,
+      userId: publicMetadata.user,
+    });
+
+    return serializeSingle(request, OutreachCampaignSerializer, data);
+  }
+
   public buildFindAllQuery(user: User, query: OutreachCampaignsQueryDto) {
     const publicMetadata = getPublicMetadata(user);
     const match: Record<string, unknown> = {

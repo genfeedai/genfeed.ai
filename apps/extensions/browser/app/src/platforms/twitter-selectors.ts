@@ -262,10 +262,7 @@ function findFileInputSemantic(): HTMLInputElement | null {
     const accept = element.getAttribute('accept') || '';
 
     // Check if it accepts images or videos
-    const acceptsMedia =
-      accept.includes('image') ||
-      accept.includes('video') ||
-      accept.includes('gif');
+    const acceptsMedia = /image|video|gif/.test(accept);
 
     // Check if it's in a compose/reply context
     const isInComposeContext =
@@ -296,12 +293,7 @@ function findSubmitButtonSemantic(): HTMLElement | null {
 
     // Check for post/tweet/reply labels
     const isPostButton =
-      ariaLabel.includes('post') ||
-      ariaLabel.includes('tweet') ||
-      ariaLabel.includes('reply') ||
-      innerText.includes('post') ||
-      innerText.includes('tweet') ||
-      innerText.includes('reply');
+      /post|tweet|reply/.test(ariaLabel) || /post|tweet|reply/.test(innerText);
 
     // Check if it's in a compose context
     const isInComposeContext =

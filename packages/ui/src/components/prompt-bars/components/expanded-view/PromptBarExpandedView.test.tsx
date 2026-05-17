@@ -3,6 +3,8 @@ import { PromptBarInternalContext } from '@genfeedai/contexts/ui/prompt-bar-inte
 import '@testing-library/jest-dom';
 import { render } from '@testing-library/react';
 import PromptBarExpandedView from '@ui/prompt-bars/components/expanded-view/PromptBarExpandedView';
+import type { ReactElement } from 'react';
+import type { FieldValues, UseFormReturn } from 'react-hook-form';
 import { useForm } from 'react-hook-form';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -18,9 +20,9 @@ vi.mock('react-hook-form', () => ({
 }));
 
 function createMockContext(
+  mockForm: UseFormReturn<FieldValues>,
   overrides: Partial<PromptBarInternalContextValue> = {},
 ): PromptBarInternalContextValue {
-  const mockForm = useForm();
   return {
     activeGenerations: [],
     attachedPromptAssets: [],
@@ -127,15 +129,25 @@ function createMockContext(
   };
 }
 
+function PromptBarExpandedViewTestProvider({
+  overrides,
+}: {
+  overrides: Partial<PromptBarInternalContextValue>;
+}): ReactElement {
+  const mockForm = useForm();
+  const ctx = createMockContext(mockForm, overrides);
+
+  return (
+    <PromptBarInternalContext.Provider value={ctx}>
+      <PromptBarExpandedView />
+    </PromptBarInternalContext.Provider>
+  );
+}
+
 function renderWithContext(
   overrides: Partial<PromptBarInternalContextValue> = {},
 ) {
-  const ctx = createMockContext(overrides);
-  return render(
-    <PromptBarInternalContext.Provider value={ctx}>
-      <PromptBarExpandedView />
-    </PromptBarInternalContext.Provider>,
-  );
+  return render(<PromptBarExpandedViewTestProvider overrides={overrides} />);
 }
 
 describe('PromptBarExpandedView', () => {

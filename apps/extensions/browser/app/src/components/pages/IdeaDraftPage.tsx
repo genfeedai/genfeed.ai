@@ -178,10 +178,14 @@ export function IdeaDraftPage({
       )}
 
       <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium text-muted-foreground">
+        <label
+          className="text-xs font-medium text-muted-foreground"
+          htmlFor="idea-source-url"
+        >
           Source URL (optional)
         </label>
         <Input
+          id="idea-source-url"
           type="url"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
@@ -190,10 +194,14 @@ export function IdeaDraftPage({
       </div>
 
       <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium text-muted-foreground">
+        <label
+          className="text-xs font-medium text-muted-foreground"
+          htmlFor="idea-content"
+        >
           Content / Idea
         </label>
         <Textarea
+          id="idea-content"
           value={content}
           onChange={(e) => handleContentChange(e.target.value)}
           placeholder="Highlighted text or idea to save…"
@@ -203,10 +211,14 @@ export function IdeaDraftPage({
       </div>
 
       <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium text-muted-foreground">
+        <label
+          className="text-xs font-medium text-muted-foreground"
+          htmlFor="idea-title"
+        >
           Title
         </label>
         <Input
+          id="idea-title"
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
@@ -215,14 +227,17 @@ export function IdeaDraftPage({
       </div>
 
       <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium text-muted-foreground">
+        <label
+          className="text-xs font-medium text-muted-foreground"
+          htmlFor="idea-platform"
+        >
           Platform
         </label>
         <Select
           value={platform}
           onValueChange={(value) => setPlatform(value as SocialPlatform)}
         >
-          <SelectTrigger>
+          <SelectTrigger id="idea-platform">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

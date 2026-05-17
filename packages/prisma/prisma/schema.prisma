@@ -1434,7 +1434,7 @@ model TrackedLink {
   content        Ingredient?  @relation(fields: [contentId], references: [id])
   originalUrl    String
   shortUrl       String
-  shortCode      String
+  shortCode      String       @unique
   customSlug     String?
   contentType    String?
   platform       String?
@@ -1450,7 +1450,6 @@ model TrackedLink {
   linkClicks     LinkClick[]
   subscriptionAttributions SubscriptionAttribution[] @relation("attribution_link")
 
-  @@index([shortCode])
   @@map("tracked_links")
 }
 

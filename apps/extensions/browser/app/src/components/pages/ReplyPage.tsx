@@ -268,10 +268,14 @@ export function ReplyPage({
       )}
 
       <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium text-muted-foreground">
+        <label
+          className="text-xs font-medium text-muted-foreground"
+          htmlFor="reply-post-content"
+        >
           Post to reply to
         </label>
         <Textarea
+          id="reply-post-content"
           value={postContent}
           onChange={(e) => setPostContent(e.target.value)}
           placeholder="Paste the post content here…"
@@ -282,10 +286,14 @@ export function ReplyPage({
 
       <div className="flex gap-2">
         <div className="flex flex-1 flex-col gap-1">
-          <label className="text-xs font-medium text-muted-foreground">
+          <label
+            className="text-xs font-medium text-muted-foreground"
+            htmlFor="reply-author"
+          >
             Author (optional)
           </label>
           <Input
+            id="reply-author"
             type="text"
             value={author}
             onChange={(e) => setAuthor(e.target.value)}
@@ -295,9 +303,7 @@ export function ReplyPage({
       </div>
 
       <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium text-muted-foreground">
-          Tone
-        </label>
+        <div className="text-xs font-medium text-muted-foreground">Tone</div>
         <div className="grid grid-cols-2 gap-1.5">
           {TONES.map((t) => (
             <Button

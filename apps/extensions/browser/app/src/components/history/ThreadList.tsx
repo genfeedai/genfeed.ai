@@ -123,7 +123,13 @@ function groupByDate(threads: Thread[]): GroupedThreads[] {
     }
   }
 
-  return Object.entries(groups)
-    .filter(([, items]) => items.length > 0)
-    .map(([label, items]) => ({ items, label }));
+  return Object.entries(groups).reduce<{ items: Thread[]; label: string }[]>(
+    (entries, [label, items]) => {
+      if (items.length > 0) {
+        entries.push({ items, label });
+      }
+      return entries;
+    },
+    [],
+  );
 }

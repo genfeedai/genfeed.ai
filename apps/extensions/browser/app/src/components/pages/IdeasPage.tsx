@@ -117,7 +117,7 @@ export default function IdeasPage() {
                 )}
                 <p className="text-sm text-blue-600 truncate">{idea.url}</p>
                 <p className="text-xs text-zinc-400 mt-1">
-                  {new Date(idea.savedAt).toLocaleDateString()}
+                  {idea.savedAt.split('T')[0]}
                 </p>
               </div>
               <div className="flex items-center gap-1">

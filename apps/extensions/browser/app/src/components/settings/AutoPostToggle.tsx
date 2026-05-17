@@ -4,7 +4,7 @@ import type { ReactElement } from 'react';
 
 export function AutoPostToggle(): ReactElement {
   return (
-    <label className="flex items-center justify-between opacity-50">
+    <div className="flex items-center justify-between opacity-50">
       <div>
         <div className="flex items-center gap-2">
           <span className="text-sm text-foreground">Auto-post content</span>
@@ -26,6 +26,6 @@ export function AutoPostToggle(): ReactElement {
       >
         <span className="absolute top-0.5 left-0.5 size-4 rounded-full bg-white" />
       </Button>
-    </label>
+    </div>
   );
 }

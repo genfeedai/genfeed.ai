@@ -1,5 +1,11 @@
+vi.mock('@genfeedai/workflows', () => ({
+  buildWorkflowGenerationMessages: vi.fn(() => []),
+  parseWorkflowGenerationResponse: vi.fn(() => ({ workflow: {} })),
+}));
+
 import { ClipOrchestratorModule } from '@api/services/clip-orchestrator/clip-orchestrator.module';
 import { ClipOrchestratorService } from '@api/services/clip-orchestrator/clip-orchestrator.service';
+import { ClipOrchestratorStateStore } from '@api/services/clip-orchestrator/clip-orchestrator-state.store';
 import { ClipRunObserverService } from '@api/services/clip-orchestrator/clip-run-observer.service';
 import { PortraitConversionService } from '@api/services/clip-orchestrator/portrait-conversion.service';
 import { PublishHandoffService } from '@api/services/clip-orchestrator/publish-handoff.service';
@@ -18,6 +24,7 @@ describe('ClipOrchestratorModule', () => {
 
     for (const service of [
       ClipOrchestratorService,
+      ClipOrchestratorStateStore,
       ClipRunObserverService,
       PortraitConversionService,
       PublishHandoffService,
