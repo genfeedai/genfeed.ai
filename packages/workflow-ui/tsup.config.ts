@@ -1,6 +1,7 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
+  bundle: false,
   clean: true,
   dts: true,
   entry: {
@@ -14,11 +15,6 @@ export default defineConfig({
     stores: 'src/stores/index.ts',
     toolbar: 'src/toolbar/index.ts',
     ui: 'src/ui/index.ts',
-  },
-  esbuildOptions(options) {
-    options.banner = {
-      js: '"use client";',
-    };
   },
   external: [
     'react',
@@ -36,7 +32,6 @@ export default defineConfig({
   noExternal: ['react-compare-slider'],
   outExtension: () => ({ js: '.mjs' }),
   sourcemap: true,
-  splitting: true,
   treeshake: true,
   tsconfig: 'tsconfig.build.json',
 });

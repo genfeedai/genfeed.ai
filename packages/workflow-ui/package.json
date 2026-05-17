@@ -101,7 +101,7 @@
     "url": "git+https://github.com/genfeedai/packages.git"
   },
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && bun run scripts/prepend-use-client.ts",
     "dev": "tsup --watch",
     "prepublishOnly": "bun run build",
     "release:npm": "../../scripts/publish-package.sh . --no-bump",

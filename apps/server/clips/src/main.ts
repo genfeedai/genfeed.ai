@@ -7,6 +7,7 @@ import '@clips/instrument';
 
 bootstrap({ app: 'clips' });
 
+import process from 'node:process';
 import { AppModule } from '@clips/app.module';
 import { ConfigService } from '@clips/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -14,17 +15,18 @@ import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 
 async function main() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
-    abortOnError: false,
-    logger: ['error'],
-    snapshot: true,
-  });
-
-  const configService = app.get(ConfigService);
-  const logger = app.get<LoggerService>(LoggerService);
-  const port = configService.get('PORT');
-
+  let logger: LoggerService | undefined;
   try {
+    const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+      abortOnError: false,
+      logger: ['error'],
+      snapshot: true,
+    });
+
+    const configService = app.get(ConfigService);
+    logger = app.get<LoggerService>(LoggerService);
+    const port = configService.get('PORT');
+
     setupServiceShell(app, {
       redirectPaths: ['/', '/docs'],
       redirectTarget: '/v1/health',
@@ -37,9 +39,16 @@ async function main() {
 
     setupGracefulShutdown();
   } catch (error: unknown) {
-    logger.error('Failed to start clips service:', error);
+    if (logger) {
+      logger.error('Failed to start clips service:', error);
+    } else {
+      console.error('Failed to start clips service:', error);
+    }
     process.exit(1);
   }
 }
 
-main();
+void main().catch((error: unknown) => {
+  console.error('Failed to start clips service:', error);
+  process.exit(1);
+});

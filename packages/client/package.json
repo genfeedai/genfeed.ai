@@ -11,28 +11,28 @@
   },
   "exports": {
     ".": {
-      "default": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     },
     "./models": {
-      "default": "./dist/models/index.js",
-      "types": "./dist/models/index.d.ts"
+      "types": "./dist/models/index.d.ts",
+      "default": "./dist/models/index.js"
     },
     "./models/social": {
-      "default": "./dist/models/social/index.js",
-      "types": "./dist/models/social/index.d.ts"
+      "types": "./dist/models/social/index.d.ts",
+      "default": "./dist/models/social/index.js"
     },
     "./models/*": {
-      "default": "./dist/models/*.js",
-      "types": "./dist/models/*.d.ts"
+      "types": "./dist/models/*.d.ts",
+      "default": "./dist/models/*.js"
     },
     "./schemas": {
-      "default": "./dist/schemas/index.js",
-      "types": "./dist/schemas/index.d.ts"
+      "types": "./dist/schemas/index.d.ts",
+      "default": "./dist/schemas/index.js"
     },
     "./schemas/*": {
-      "default": "./dist/schemas/*.js",
-      "types": "./dist/schemas/*.d.ts"
+      "types": "./dist/schemas/*.d.ts",
+      "default": "./dist/schemas/*.js"
     }
   },
   "files": [

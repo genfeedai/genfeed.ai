@@ -5,8 +5,8 @@ import packageJson from '../../../package.json';
 describe('social model package export', () => {
   it('exposes the social directory index subpath', () => {
     expect(packageJson.exports['./models/social']).toEqual({
-      default: './dist/models/social/index.js',
       types: './dist/models/social/index.d.ts',
+      default: './dist/models/social/index.js',
     });
     expect(packageJson.typesVersions['*']['models/social']).toEqual([
       'dist/models/social/index.d.ts',

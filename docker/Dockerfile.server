@@ -9,7 +9,7 @@
 # ==================================================
 # Stage 1: Base - Install dependencies
 # ==================================================
-FROM node:25.8.2-slim AS base
+FROM node:24-slim AS base
 
 # Install bun and build dependencies
 RUN apt-get update && apt-get install -y \
@@ -157,7 +157,7 @@ RUN echo "Checking build outputs..." && \
 # ==================================================
 # Stage 3: Production - Runtime image
 # ==================================================
-FROM node:25.8.2-slim AS production
+FROM node:24-slim AS production
 
 # Install system dependencies (curl, bash, unzip for bun; ffmpeg for api & files)
 RUN apt-get update && apt-get install -y \

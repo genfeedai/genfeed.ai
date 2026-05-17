@@ -9,6 +9,8 @@ packages/prisma/generated/
 **/src/**/*.js.map
 **/src/**/*.d.ts.map
 **/src/**/*.d.ts
+# Source resolver bridge for package-style .js exports while developing from src.
+!packages/client/src/models/social/link.model.js
 # Hand-authored ambient module declarations / generated API types — keep tracked
 !apps/app/src/types/*.d.ts
 !apps/desktop/app/src/shared/*.d.ts
@@ -39,6 +41,7 @@ apps/desktop/app/release/
 .agents/SESSIONS/
 .agents/plans/
 .clawpatch/
+.genfeed/
 
 # Claude Code skill runtime (should never be committed)
 .superpowers/

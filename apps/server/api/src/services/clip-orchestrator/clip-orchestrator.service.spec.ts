@@ -191,6 +191,16 @@ describe('ClipOrchestratorService', () => {
     expect(service.getRun('nonexistent')).toBeUndefined();
   });
 
+  it('should retain runs across service instances', () => {
+    const run = service.startRun(makeDto({ projectId: 'proj-persisted' }));
+    const nextService = new ClipOrchestratorService(new EventEmitter2());
+
+    expect(nextService.getRun(run.id)).toMatchObject({
+      id: run.id,
+      projectId: 'proj-persisted',
+    });
+  });
+
   // -------------------------------------------------------------------------
   // 12. Full pipeline with merging
   // -------------------------------------------------------------------------

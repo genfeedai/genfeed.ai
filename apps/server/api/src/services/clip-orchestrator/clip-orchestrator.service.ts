@@ -5,6 +5,10 @@ import {
   type ClipRunStateChangeEvent,
 } from '@api/services/clip-orchestrator/clip-orchestrator.events';
 import {
+  loadClipOrchestratorMap,
+  saveClipOrchestratorMap,
+} from '@api/services/clip-orchestrator/clip-orchestrator-store';
+import {
   ClipRunState,
   CONFIRMATION_CHECKPOINTS,
   PIPELINE_STATES,
@@ -47,9 +51,6 @@ export interface ClipRun {
  */
 @Injectable()
 export class ClipOrchestratorService {
-  /** In-memory store of active runs (keyed by run ID). */
-  private readonly runs = new Map<string, ClipRun>();
-
   constructor(private readonly eventEmitter: EventEmitter2) {}
 
   // ---------------------------------------------------------------------------
@@ -74,7 +75,9 @@ export class ClipOrchestratorService {
       userId: dto.userId,
     };
 
-    this.runs.set(run.id, run);
+    const runs = this.loadRuns();
+    runs.set(run.id, run);
+    this.persistRuns(runs);
     return run;
   }
 
@@ -82,7 +85,7 @@ export class ClipOrchestratorService {
    * Retrieve a run by ID.
    */
   getRun(runId: string): ClipRun | undefined {
-    return this.runs.get(runId);
+    return this.loadRuns().get(runId);
   }
 
   /**
@@ -165,6 +168,7 @@ export class ClipOrchestratorService {
         timestamp: new Date(),
       });
 
+      this.persistRun(run);
       return run;
     }
 
@@ -178,6 +182,7 @@ export class ClipOrchestratorService {
       timestamp: new Date(),
     });
 
+    this.persistRun(run);
     return run;
   }
 
@@ -267,6 +272,7 @@ export class ClipOrchestratorService {
       timestamp: new Date(),
     });
 
+    this.persistRun(run);
     return run;
   }
 
@@ -275,7 +281,7 @@ export class ClipOrchestratorService {
   // ---------------------------------------------------------------------------
 
   private getRunOrThrow(runId: string): ClipRun {
-    const run = this.runs.get(runId);
+    const run = this.loadRuns().get(runId);
     if (!run) {
       throw new Error(`Clip run not found: ${runId}`);
     }
@@ -307,6 +313,7 @@ export class ClipOrchestratorService {
       stepId: randomUUID(),
     };
     run.steps.push(step);
+    this.persistRun(run);
 
     // Emit state change event
     const event: ClipRunStateChangeEvent = {
@@ -345,6 +352,20 @@ export class ClipOrchestratorService {
     return run;
   }
 
+  private loadRuns(): Map<string, ClipRun> {
+    return loadClipOrchestratorMap<ClipRun>('runs', reviveClipRun);
+  }
+
+  private persistRun(run: ClipRun): void {
+    const runs = this.loadRuns();
+    runs.set(run.id, run);
+    this.persistRuns(runs);
+  }
+
+  private persistRuns(runs: Map<string, ClipRun>): void {
+    saveClipOrchestratorMap('runs', runs);
+  }
+
   private getCurrentStep(run: ClipRun): ClipRunStepDto {
     const existing = this.findCurrentStep(run);
     if (existing) return existing;
@@ -365,4 +386,17 @@ export class ClipOrchestratorService {
       .reverse()
       .find((s) => s.state === run.currentState && !s.completedAt);
   }
+}
+
+function reviveClipRun(run: ClipRun): ClipRun {
+  return {
+    ...run,
+    createdAt: new Date(run.createdAt),
+    steps: run.steps.map((step) => ({
+      ...step,
+      completedAt: step.completedAt ? new Date(step.completedAt) : undefined,
+      startedAt: new Date(step.startedAt),
+    })),
+    updatedAt: new Date(run.updatedAt),
+  };
 }

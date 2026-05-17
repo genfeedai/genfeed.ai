@@ -9,7 +9,7 @@ author: Claude Code PM System
 
 ## Core Stack
 
-- **Runtime**: Bun >= 1.3.x, Node.js >= 20
+- **Runtime**: Bun >= 1.3.x, Node.js >= 24 < 25
 - **Language**: TypeScript (strict, no `any`)
 - **Backend**: NestJS 11 with Mongoose (MongoDB)
 - **Frontend**: Next.js 16 with Turbopack

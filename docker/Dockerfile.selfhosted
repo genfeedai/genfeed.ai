@@ -6,7 +6,7 @@
 # ==================================================
 # Stage 1: Base — system deps + runtime tools
 # ==================================================
-FROM node:20-bookworm-slim AS base
+FROM node:24-bookworm-slim AS base
 
 # Redis + tini
 RUN apt-get update && apt-get install -y --no-install-recommends \

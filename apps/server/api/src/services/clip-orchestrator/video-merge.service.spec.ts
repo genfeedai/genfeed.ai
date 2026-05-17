@@ -78,7 +78,7 @@ describe('VideoMergeService', () => {
     expect(job.videoCount).toBe(2);
   });
 
-  it('should throw when queue has no items', async () => {
+  it('should throw when queue has fewer than 2 items', async () => {
     const queue: VideoMergeQueue = {
       clipProjectId: 'proj-1',
       createdAt: new Date().toISOString(),
@@ -86,8 +86,16 @@ describe('VideoMergeService', () => {
     };
 
     await expect(service.queueMerge(queue)).rejects.toThrow(
-      'Merge queue must contain at least one item',
+      'At least 2 videos must be selected for merge',
     );
+
+    await expect(
+      service.queueMerge({
+        clipProjectId: 'proj-1',
+        createdAt: new Date().toISOString(),
+        items: [{ id: 'a', order: 0, videoUrl: 'url-a' }],
+      }),
+    ).rejects.toThrow('At least 2 videos must be selected for merge');
   });
 
   // -----------------------------------------------------------------------
