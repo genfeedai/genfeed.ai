@@ -30,14 +30,12 @@ vi.mock('../../../primitives/button', () => ({
     ariaLabel,
     className,
     'aria-current': ariaCurrent,
-    'data-active': dataActive,
   }: {
     children: React.ReactNode;
     onClick?: () => void;
     ariaLabel?: string;
     className?: string;
     'aria-current'?: string;
-    'data-active'?: string;
   }) => (
     <button
       type="button"
@@ -45,7 +43,6 @@ vi.mock('../../../primitives/button', () => ({
       aria-label={ariaLabel}
       className={className}
       aria-current={ariaCurrent}
-      data-active={dataActive}
     >
       {children}
     </button>
@@ -67,14 +64,18 @@ vi.mock('../../../primitives/dropdown-menu', () => ({
     className?: string;
   }) =>
     asChild && isValidElement(children) ? (
-      cloneElement(children as ReactElement<{ className?: string }>, {
-        className,
-      })
+      cloneElement(
+        children as ReactElement<{ className?: string }>,
+        className ? { className } : undefined,
+      )
     ) : (
       <button type="button" className={className}>
         {children}
       </button>
     ),
+  DropdownMenuLabel: ({ children }: { children: ReactNode }) => (
+    <div>{children}</div>
+  ),
   DropdownMenuSeparator: () => <hr />,
   DropdownMenuTrigger: ({ children }: { children: ReactNode }) => (
     <>{children}</>
@@ -103,7 +104,7 @@ describe('AppSwitcher', () => {
     render(<AppSwitcher orgSlug="acme" currentApp="workspace" />);
     expect(
       screen.getByRole('button', {
-        name: 'Current app: Workspace. Click to switch apps.',
+        name: 'Switch app',
       }),
     ).toBeInTheDocument();
   });
@@ -115,7 +116,7 @@ describe('AppSwitcher', () => {
       'Posts',
       'Workspace',
       'Agent',
-      'Image',
+      'Studio',
       'Workflows',
       'Editor',
       'Write',
@@ -143,13 +144,15 @@ describe('AppSwitcher', () => {
     render(<AppSwitcher orgSlug="acme" currentApp="compose" />);
     const btn = screen.getByRole('link', { name: 'Write' });
     expect(btn).toBeDefined();
-    expect(btn).toHaveAttribute('data-active', 'true');
+    expect(btn).toHaveAttribute('aria-current', 'page');
+    expect(btn).toHaveClass('bg-white/[0.06]');
   });
 
   it('inactive app button does not have active-state classes', () => {
     render(<AppSwitcher orgSlug="acme" currentApp="compose" />);
     const btn = screen.getByRole('link', { name: 'Editor' });
-    expect(btn).not.toHaveAttribute('data-active', 'true');
+    expect(btn).not.toHaveAttribute('aria-current');
+    expect(btn).not.toHaveClass('bg-white/[0.06]');
   });
 
   describe('route generation', () => {
@@ -161,7 +164,7 @@ describe('AppSwitcher', () => {
           brandSlug="my-brand"
         />,
       );
-      expect(screen.getByRole('link', { name: 'Image' })).toHaveAttribute(
+      expect(screen.getByRole('link', { name: 'Studio' })).toHaveAttribute(
         'href',
         '/acme/my-brand/studio/image',
       );
@@ -169,7 +172,7 @@ describe('AppSwitcher', () => {
 
     it('links to org overview for studio when brandSlug is absent', () => {
       render(<AppSwitcher orgSlug="acme" currentApp="workspace" />);
-      expect(screen.getByRole('link', { name: 'Image' })).toHaveAttribute(
+      expect(screen.getByRole('link', { name: 'Studio' })).toHaveAttribute(
         'href',
         '/acme/~/overview',
       );

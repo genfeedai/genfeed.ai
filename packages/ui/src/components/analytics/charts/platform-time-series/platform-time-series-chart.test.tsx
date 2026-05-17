@@ -187,7 +187,7 @@ describe('PlatformTimeSeriesChart', () => {
       const { container } = render(<PlatformTimeSeriesChart data={mockData} />);
       // Color indicators are small circles (size-3) inside buttons, one per platform
       const colorIndicators = container.querySelectorAll(
-        '.w-3.h-3.rounded-full',
+        '.size-3.rounded-full',
       );
       expect(colorIndicators.length).toBe(4);
     });

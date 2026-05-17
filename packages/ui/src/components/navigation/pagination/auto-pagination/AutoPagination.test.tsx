@@ -3,6 +3,14 @@ import { render, screen } from '@testing-library/react';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/library',
+  useRouter: () => ({
+    replace: vi.fn(),
+  }),
+  useSearchParams: () => new URLSearchParams('page=2'),
+}));
+
 // Mock PagesService
 vi.mock('@genfeedai/services/content/pages.service', () => ({
   PagesService: {
