@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'bun:test';
 import type {
+  IDesktopAsset,
   IDesktopGenerationOptions,
   IDesktopGenerationProviderConfig,
 } from '@genfeedai/desktop-contracts';
@@ -18,8 +19,15 @@ const createDatabaseMock = () => {
     deleteValue: async (key: string) => {
       kv.delete(key);
     },
+    getSyncJob: async (jobId: string) => syncJobs.get(jobId) ?? null,
     getValue: async (key: string) => kv.get(key) ?? null,
     kv,
+    listSyncJobs: async (type: string, workspaceId?: string) =>
+      Array.from(syncJobs.values()).filter(
+        (job) =>
+          job.type === type &&
+          (!workspaceId || job.workspaceId === workspaceId),
+      ),
     syncJobs,
     setValue: async (key: string, value: string) => {
       kv.set(key, value);
@@ -28,6 +36,59 @@ const createDatabaseMock = () => {
       syncJobs.set(row.id, row);
     },
   };
+};
+
+const createAssetWriterMock = () => {
+  const assets: IDesktopAsset[] = [];
+
+  return {
+    assets,
+    writeGeneratedAsset: async (options: {
+      bytes: Uint8Array;
+      jobId: string;
+      mimeType: string;
+      model: string;
+      provider: string;
+      uploadPolicy?: IDesktopAsset['uploadPolicy'];
+      workspaceId: string;
+    }): Promise<IDesktopAsset> => {
+      const asset: IDesktopAsset = {
+        createdAt: '2026-05-17T00:00:00.000Z',
+        displayName: `${options.provider} ${options.model}`,
+        id: `asset-${String(assets.length + 1)}`,
+        kind: 'image',
+        localPath: `/tmp/${options.jobId}.png`,
+        mimeType: options.mimeType,
+        organizationId: 'local-org',
+        origin: 'local-generation',
+        originalFileName: `${options.jobId}.png`,
+        residency: 'local-only',
+        sha256: 'sha',
+        sizeBytes: options.bytes.byteLength,
+        updatedAt: '2026-05-17T00:00:00.000Z',
+        uploadPolicy: options.uploadPolicy ?? 'never',
+        workspaceId: options.workspaceId,
+      };
+      assets.push(asset);
+      return asset;
+    },
+  };
+};
+
+const waitForJobStatus = async (
+  service: DesktopGenerationService,
+  jobId: string,
+  expectedStatus: string,
+) => {
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const job = await service.getGenerationJob(jobId);
+    if (job?.status === expectedStatus) {
+      return job;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+
+  throw new Error(`Timed out waiting for ${expectedStatus}`);
 };
 
 const generationParams: IDesktopGenerationOptions = {
@@ -381,5 +442,184 @@ describe('DesktopGenerationService', () => {
         'http://localhost:1234/v1/chat/completions',
       ),
     ).toBe('http://localhost:1234/v1/chat/completions');
+  });
+
+  it('extracts generated image URLs from provider payloads', () => {
+    expect(
+      __desktopGenerationServiceTestUtils.extractFirstImageUrl({
+        output: [
+          {
+            url: 'https://cdn.example.com/generated.webp',
+          },
+        ],
+      }),
+    ).toBe('https://cdn.example.com/generated.webp');
+    expect(
+      __desktopGenerationServiceTestUtils.extractFirstImageUrl({
+        images: [{ image_url: 'https://cdn.example.com/generated.png' }],
+      }),
+    ).toBe('https://cdn.example.com/generated.png');
+  });
+
+  it('rejects generated asset downloads with non-image MIME types', async () => {
+    globalThis.fetch = (async () =>
+      new Response('not an image', {
+        headers: { 'content-type': 'text/plain' },
+        status: 200,
+      })) as typeof fetch;
+
+    await expect(
+      __desktopGenerationServiceTestUtils.downloadGeneratedImage(
+        'https://cdn.example.com/not-image.txt',
+      ),
+    ).rejects.toThrow('instead of an image');
+  });
+
+  it('generates a Replicate image asset through the queued desktop path', async () => {
+    const database = createDatabaseMock();
+    const assetWriter = createAssetWriterMock();
+    const service = new DesktopGenerationService(
+      database as unknown as DesktopGenerationStore,
+      assetWriter,
+    );
+    const calls: string[] = [];
+
+    await service.saveProviderConfig({
+      apiKey: 'replicate-secret',
+      baseUrl: 'https://api.replicate.com/v1',
+      model: 'black-forest-labs/flux-schnell',
+      provider: 'replicate',
+    });
+
+    globalThis.fetch = (async (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ) => {
+      calls.push(String(input));
+
+      if (calls.length === 1) {
+        const body = JSON.parse(String(init?.body)) as {
+          input: { prompt: string };
+        };
+        expect(body.input.prompt).toBe('local image prompt');
+        return new Response(
+          JSON.stringify({
+            output: ['https://cdn.example.com/image.png'],
+            status: 'succeeded',
+          }),
+          { status: 200 },
+        );
+      }
+
+      return new Response(new Uint8Array([1, 2, 3]), {
+        headers: { 'content-type': 'image/png' },
+        status: 200,
+      });
+    }) as typeof fetch;
+
+    const job = await service.enqueueAssetGeneration({
+      model: 'black-forest-labs/flux-schnell',
+      prompt: 'local image prompt',
+      provider: 'replicate',
+      workspaceId: 'ws-1',
+    });
+
+    await expect(
+      waitForJobStatus(service, job.id, 'succeeded'),
+    ).resolves.toMatchObject({
+      assetIds: ['asset-1'],
+      provider: 'replicate',
+      status: 'succeeded',
+    });
+    expect(assetWriter.assets[0]).toMatchObject({
+      origin: 'local-generation',
+      residency: 'local-only',
+      uploadPolicy: 'never',
+    });
+  });
+
+  it('generates a fal image asset through the queued desktop path', async () => {
+    const database = createDatabaseMock();
+    const assetWriter = createAssetWriterMock();
+    const service = new DesktopGenerationService(
+      database as unknown as DesktopGenerationStore,
+      assetWriter,
+    );
+    const calls: string[] = [];
+
+    await service.saveProviderConfig({
+      apiKey: 'fal-secret',
+      baseUrl: 'https://queue.fal.run',
+      model: 'fal-ai/flux/schnell',
+      provider: 'fal',
+    });
+
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      calls.push(String(input));
+
+      if (calls.length === 1) {
+        return new Response(
+          JSON.stringify({
+            images: [{ url: 'https://cdn.example.com/fal.png' }],
+          }),
+          { status: 200 },
+        );
+      }
+
+      return new Response(new Uint8Array([1, 2, 3]), {
+        headers: { 'content-type': 'image/png' },
+        status: 200,
+      });
+    }) as typeof fetch;
+
+    const job = await service.enqueueAssetGeneration({
+      model: 'fal-ai/flux/schnell',
+      prompt: 'local fal prompt',
+      provider: 'fal',
+      workspaceId: 'ws-1',
+    });
+
+    await expect(
+      waitForJobStatus(service, job.id, 'succeeded'),
+    ).resolves.toMatchObject({
+      assetIds: ['asset-1'],
+      provider: 'fal',
+      status: 'succeeded',
+    });
+  });
+
+  it('requeues running asset jobs on desktop restart', async () => {
+    const database = createDatabaseMock();
+    const service = new DesktopGenerationService(
+      database as unknown as DesktopGenerationStore,
+    );
+
+    database.syncJobs.set('job-running', {
+      createdAt: '2026-05-17T00:00:00.000Z',
+      error: null,
+      id: 'job-running',
+      payload: JSON.stringify({
+        assetIds: [],
+        kind: 'asset-generation',
+        request: {
+          model: 'black-forest-labs/flux-schnell',
+          prompt: 'resume prompt',
+          provider: 'replicate',
+          workspaceId: 'ws-1',
+        },
+      }),
+      retryCount: 0,
+      status: 'running',
+      type: 'asset-generation',
+      updatedAt: '2026-05-17T00:00:00.000Z',
+      workspaceId: 'ws-1',
+    });
+
+    await service.resumeAssetGenerationJobs();
+
+    expect(database.syncJobs.get('job-running')).toMatchObject({
+      error: 'Desktop restarted before this asset generation finished.',
+      status: 'queued',
+    });
   });
 });

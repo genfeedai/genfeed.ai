@@ -18,6 +18,10 @@
       "default": "./dist/models/index.js",
       "types": "./dist/models/index.d.ts"
     },
+    "./models/social": {
+      "default": "./dist/models/social/index.js",
+      "types": "./dist/models/social/index.d.ts"
+    },
     "./models/*": {
       "default": "./dist/models/*.js",
       "types": "./dist/models/*.d.ts"
@@ -58,6 +62,9 @@
     "*": {
       "models": [
         "dist/models/index.d.ts"
+      ],
+      "models/social": [
+        "dist/models/social/index.d.ts"
       ],
       "models/*": [
         "dist/models/*"

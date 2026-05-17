@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type {
   DesktopSyncCursorScope,
+  IDesktopAssetGenerationRequest,
   IDesktopAssetSyncUpdate,
   IDesktopBootstrap,
   IDesktopBrandManifest,
@@ -513,6 +514,42 @@ const registerIpcHandlers = (): void => {
       return importedAssets;
     },
   );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.filesListAssets,
+    async (_event: unknown, workspaceId?: string) =>
+      filesService.listAssets(workspaceId),
+  );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.filesGetAssetUrl,
+    async (_event: unknown, assetId: string) =>
+      filesService.getAssetUrl(assetId),
+  );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.generationEnqueueAssetGeneration,
+    async (_event: unknown, request: IDesktopAssetGenerationRequest) => {
+      const job = await generationService.enqueueAssetGeneration(request);
+      await emitBootstrap();
+      return job;
+    },
+  );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.generationGetGenerationJob,
+    async (_event: unknown, jobId: string) =>
+      generationService.getGenerationJob(jobId),
+  );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.generationListGenerationJobs,
+    async (_event: unknown, workspaceId?: string) =>
+      generationService.listGenerationJobs(workspaceId),
+  );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.generationCancelAssetGeneration,
+    async (_event: unknown, jobId: string) => {
+      const job = await generationService.cancelGenerationJob(jobId);
+      await emitBootstrap();
+      return job;
+    },
+  );
   ipcMain.handle(DESKTOP_IPC_CHANNELS.generationGetProviderConfig, async () =>
     generationService.getPublicProviderConfig(),
   );
@@ -746,20 +783,42 @@ app.whenReady().then(async () => {
   await workspaceService.init();
   syncService = new DesktopSyncService(prismaClient);
   await syncService.init();
-  filesService = new DesktopFilesService(workspaceService);
+  filesService = new DesktopFilesService(workspaceService, prismaClient);
   terminalService = new DesktopTerminalService(workspaceService);
-  generationService = new DesktopGenerationService({
-    deleteValue: (key) => kvService.deleteValue(key),
-    getValue: (key) => kvService.getValue(key),
-    setValue: (key, value) => kvService.setValue(key, value),
-    upsertSyncJob: async (row) => {
-      await prismaClient.desktopSyncJob.upsert({
-        create: row,
-        update: row,
-        where: { id: row.id },
-      });
+  generationService = new DesktopGenerationService(
+    {
+      deleteValue: (key) => kvService.deleteValue(key),
+      getSyncJob: async (jobId) => {
+        const row = await prismaClient.desktopSyncJob.findUnique({
+          where: { id: jobId },
+        });
+        return row;
+      },
+      getValue: (key) => kvService.getValue(key),
+      listSyncJobs: async (type, workspaceId) => {
+        const rows = await prismaClient.desktopSyncJob.findMany({
+          orderBy: {
+            updatedAt: 'desc',
+          },
+          where: {
+            type,
+            ...(workspaceId ? { workspaceId } : {}),
+          },
+        });
+        return rows;
+      },
+      setValue: (key, value) => kvService.setValue(key, value),
+      upsertSyncJob: async (row) => {
+        await prismaClient.desktopSyncJob.upsert({
+          create: row,
+          update: row,
+          where: { id: row.id },
+        });
+      },
     },
-  });
+    filesService,
+  );
+  await generationService.resumeAssetGenerationJobs();
   cloudService = new DesktopCloudService(environment, () =>
     sessionService.getSession(),
   );

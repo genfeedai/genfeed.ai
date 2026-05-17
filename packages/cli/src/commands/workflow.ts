@@ -9,7 +9,7 @@ import {
   type JsonApiSingleResponse,
 } from '@/api/json-api.js';
 import { formatHeader, formatLabel, print, printJson } from '@/ui/theme.js';
-import { handleError } from '@/utils/errors.js';
+import { GenfeedError, handleError } from '@/utils/errors.js';
 
 interface Workflow {
   id: string;
@@ -31,6 +31,15 @@ interface WorkflowStep {
 
 interface WorkflowExecution {
   id: string;
+}
+
+function parseInputsOption(value: string): Record<string, unknown> {
+  const parsed = JSON.parse(value) as unknown;
+  if (parsed === null || Array.isArray(parsed) || typeof parsed !== 'object') {
+    throw new GenfeedError('--inputs must be a JSON object');
+  }
+
+  return parsed as Record<string, unknown>;
 }
 
 export const workflowCommand = new Command('workflow')
@@ -104,7 +113,7 @@ export const workflowCommand = new Command('workflow')
 
           let inputs: Record<string, unknown> | undefined;
           if (options.inputs) {
-            inputs = JSON.parse(options.inputs) as Record<string, unknown>;
+            inputs = parseInputsOption(options.inputs);
           }
 
           const spinner = ora('Executing workflow...').start();

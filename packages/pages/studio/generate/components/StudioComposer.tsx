@@ -132,7 +132,7 @@ export function StudioComposer({
         )}
 
         <PromptBar
-          shellMode="studio-unified"
+          features={{ collapsible: false, dragDrop: false }}
           promptText={promptText}
           onTextChange={onTextChange}
           promptConfig={promptConfig}

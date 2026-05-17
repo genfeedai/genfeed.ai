@@ -1,5 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import type {
+  IDesktopAsset,
+  IDesktopAssetGenerationRequest,
+  IDesktopGenerationJob,
   IDesktopGenerationOptions,
   IDesktopGenerationProviderConfig,
   IDesktopGenerationProviderPublicConfig,
@@ -28,12 +31,20 @@ export interface GenerationSyncJobRow {
 export interface DesktopGenerationStore {
   deleteValue: (key: string) => Promise<void>;
   getValue: (key: string) => Promise<string | null>;
+  getSyncJob?: (jobId: string) => Promise<GenerationSyncJobRow | null>;
+  listSyncJobs?: (
+    type: string,
+    workspaceId?: string,
+  ) => Promise<GenerationSyncJobRow[]>;
   setValue: (key: string, value: string) => Promise<void>;
   upsertSyncJob: (row: GenerationSyncJobRow) => Promise<void>;
 }
 
 const PROVIDER_CONFIG_KEY = 'desktop.generation.provider';
 const GENERATION_JOB_TYPE = 'generation';
+const ASSET_GENERATION_JOB_TYPE = 'asset-generation';
+const MAX_GENERATED_ASSET_BYTES = 50 * 1024 * 1024;
+const MAX_ASSET_JOB_RETRIES = 2;
 
 type ChatCompletionMessage = {
   content?: unknown;
@@ -65,7 +76,39 @@ type ProviderOutputPayload = {
   };
 };
 
+export interface ProviderGeneratedAsset {
+  bytes: Uint8Array;
+  metadata: Record<string, unknown>;
+  mimeType: string;
+  model: string;
+  originalUrl?: string;
+  provider: 'fal' | 'replicate';
+}
+
+export interface DesktopGeneratedAssetWriter {
+  writeGeneratedAsset: (options: {
+    bytes: Uint8Array;
+    displayName?: string;
+    jobId: string;
+    mimeType: string;
+    model: string;
+    provider: string;
+    uploadPolicy?: IDesktopAssetGenerationRequest['uploadPolicy'];
+    workspaceId: string;
+  }) => Promise<IDesktopAsset>;
+}
+
+type AssetGenerationJobPayload = {
+  assetIds: string[];
+  kind: 'asset-generation';
+  providerMetadata?: Record<string, unknown>;
+  request: IDesktopAssetGenerationRequest;
+};
+
 const toIso = (): string => new Date().toISOString();
+
+const sleep = (durationMs: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, durationMs));
 
 const isReplicatePendingStatus = (status: string): boolean =>
   ['queued', 'processing', 'starting'].includes(status.toLowerCase());
@@ -299,6 +342,250 @@ const buildGenerationPayload = (params: IDesktopGenerationOptions): string =>
     type: params.type,
   });
 
+const buildAssetGenerationPayload = (
+  request: IDesktopAssetGenerationRequest,
+  assetIds: string[] = [],
+  providerMetadata?: Record<string, unknown>,
+): string =>
+  JSON.stringify({
+    assetIds,
+    kind: ASSET_GENERATION_JOB_TYPE,
+    providerMetadata,
+    request: {
+      ...request,
+      kind: 'image',
+      uploadPolicy: request.uploadPolicy ?? 'never',
+    },
+  } satisfies AssetGenerationJobPayload);
+
+const parseAssetGenerationPayload = (
+  payload: string,
+): AssetGenerationJobPayload | null => {
+  try {
+    const parsed = JSON.parse(payload) as Partial<AssetGenerationJobPayload>;
+    const request = parsed.request as
+      | Partial<IDesktopAssetGenerationRequest>
+      | undefined;
+
+    if (
+      parsed.kind !== ASSET_GENERATION_JOB_TYPE ||
+      !request?.workspaceId ||
+      !request.model ||
+      !request.prompt ||
+      (request.provider !== 'replicate' && request.provider !== 'fal')
+    ) {
+      return null;
+    }
+
+    return {
+      assetIds: Array.isArray(parsed.assetIds)
+        ? parsed.assetIds.filter(
+            (assetId): assetId is string => typeof assetId === 'string',
+          )
+        : [],
+      kind: ASSET_GENERATION_JOB_TYPE,
+      providerMetadata:
+        parsed.providerMetadata && typeof parsed.providerMetadata === 'object'
+          ? (parsed.providerMetadata as Record<string, unknown>)
+          : undefined,
+      request: {
+        aspectRatio:
+          typeof request.aspectRatio === 'string'
+            ? request.aspectRatio
+            : undefined,
+        height:
+          typeof request.height === 'number' && Number.isFinite(request.height)
+            ? request.height
+            : undefined,
+        inputAssetIds: Array.isArray(request.inputAssetIds)
+          ? request.inputAssetIds.filter(
+              (assetId): assetId is string => typeof assetId === 'string',
+            )
+          : undefined,
+        kind: 'image',
+        model: request.model,
+        negativePrompt:
+          typeof request.negativePrompt === 'string'
+            ? request.negativePrompt
+            : undefined,
+        prompt: request.prompt,
+        provider: request.provider,
+        seed:
+          typeof request.seed === 'number' && Number.isFinite(request.seed)
+            ? request.seed
+            : undefined,
+        uploadPolicy:
+          request.uploadPolicy === 'full' ||
+          request.uploadPolicy === 'metadata-only'
+            ? request.uploadPolicy
+            : 'never',
+        width:
+          typeof request.width === 'number' && Number.isFinite(request.width)
+            ? request.width
+            : undefined,
+        workspaceId: request.workspaceId,
+      },
+    };
+  } catch {
+    return null;
+  }
+};
+
+const toGenerationJob = (
+  row: GenerationSyncJobRow,
+): IDesktopGenerationJob | null => {
+  const payload = parseAssetGenerationPayload(row.payload);
+  if (!payload) {
+    return null;
+  }
+
+  const status =
+    row.status === 'pending'
+      ? 'queued'
+      : row.status === 'completed'
+        ? 'succeeded'
+        : row.status;
+
+  if (
+    status !== 'queued' &&
+    status !== 'running' &&
+    status !== 'succeeded' &&
+    status !== 'failed' &&
+    status !== 'cancelled'
+  ) {
+    return null;
+  }
+
+  return {
+    assetIds: payload.assetIds,
+    createdAt: row.createdAt,
+    error: row.error ?? undefined,
+    id: row.id,
+    kind: ASSET_GENERATION_JOB_TYPE,
+    model: payload.request.model,
+    provider: payload.request.provider,
+    status,
+    updatedAt: row.updatedAt,
+    workspaceId: payload.request.workspaceId,
+  };
+};
+
+const sanitizeProviderError = (
+  error: unknown,
+  config?: IDesktopGenerationProviderConfig,
+): string => {
+  const message =
+    error instanceof Error ? error.message : 'Asset generation failed.';
+
+  return config?.apiKey
+    ? message.replaceAll(config.apiKey, '[redacted]')
+    : message;
+};
+
+const getProviderJson = async <T>(response: Response): Promise<T> => {
+  const responseText = await response.text();
+  if (!response.ok) {
+    throw new Error(
+      `Provider request failed (${String(response.status)}): ${
+        responseText || response.statusText
+      }`,
+    );
+  }
+
+  return JSON.parse(responseText) as T;
+};
+
+const extractFirstImageUrl = (payload: unknown): string => {
+  const urls: string[] = [];
+
+  const visit = (value: unknown): void => {
+    if (typeof value === 'string') {
+      if (/^https?:\/\//i.test(value)) {
+        urls.push(value);
+      }
+      return;
+    }
+
+    if (Array.isArray(value)) {
+      for (const entry of value) {
+        visit(entry);
+      }
+      return;
+    }
+
+    if (!value || typeof value !== 'object') {
+      return;
+    }
+
+    const record = value as Record<string, unknown>;
+    for (const key of ['url', 'image_url', 'file_url']) {
+      visit(record[key]);
+    }
+    for (const key of ['images', 'output', 'files', 'artifacts']) {
+      visit(record[key]);
+    }
+  };
+
+  visit(payload);
+
+  const imageUrl = urls.find((url) =>
+    /\.(avif|gif|jpe?g|png|webp)(\?|#|$)/i.test(url),
+  );
+
+  if (imageUrl) {
+    return imageUrl;
+  }
+
+  if (urls[0]) {
+    return urls[0];
+  }
+
+  throw new Error('Provider response did not include a generated image URL.');
+};
+
+const downloadGeneratedImage = async (
+  url: string,
+): Promise<{
+  bytes: Uint8Array;
+  mimeType: string;
+}> => {
+  const response = await fetch(url);
+  const mimeType =
+    response.headers.get('content-type')?.split(';')[0]?.trim() ?? '';
+
+  if (!response.ok) {
+    throw new Error(
+      `Generated image download failed (${String(response.status)}): ${
+        response.statusText || url
+      }`,
+    );
+  }
+
+  if (!mimeType.startsWith('image/')) {
+    throw new Error(
+      `Generated asset download returned ${mimeType || 'an unknown content type'} instead of an image.`,
+    );
+  }
+
+  const contentLength = response.headers.get('content-length');
+  if (
+    contentLength &&
+    Number.parseInt(contentLength, 10) > MAX_GENERATED_ASSET_BYTES
+  ) {
+    throw new Error('Generated image is larger than the desktop size limit.');
+  }
+
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  if (bytes.byteLength > MAX_GENERATED_ASSET_BYTES) {
+    throw new Error('Generated image is larger than the desktop size limit.');
+  }
+
+  return {
+    bytes,
+    mimeType,
+  };
+};
+
 const buildProviderHeaders = (
   config: IDesktopGenerationProviderConfig,
 ): Record<string, string> => ({
@@ -307,7 +594,12 @@ const buildProviderHeaders = (
 });
 
 export class DesktopGenerationService {
-  constructor(private readonly database: DesktopGenerationStore) {}
+  private isProcessingAssetQueue = false;
+
+  constructor(
+    private readonly database: DesktopGenerationStore,
+    private readonly generatedAssetWriter?: DesktopGeneratedAssetWriter,
+  ) {}
 
   async clearProviderConfig(): Promise<void> {
     await this.database.deleteValue(PROVIDER_CONFIG_KEY);
@@ -417,6 +709,105 @@ export class DesktopGenerationService {
     };
   }
 
+  async resumeAssetGenerationJobs(): Promise<void> {
+    const rows =
+      (await this.database.listSyncJobs?.(ASSET_GENERATION_JOB_TYPE)) ?? [];
+    const now = toIso();
+
+    for (const row of rows) {
+      if (row.status !== 'running') {
+        continue;
+      }
+
+      await this.database.upsertSyncJob({
+        ...row,
+        error: 'Desktop restarted before this asset generation finished.',
+        status: 'queued',
+        updatedAt: now,
+      });
+    }
+
+    void this.processAssetQueue();
+  }
+
+  async enqueueAssetGeneration(
+    request: IDesktopAssetGenerationRequest,
+  ): Promise<IDesktopGenerationJob> {
+    if (!this.generatedAssetWriter) {
+      throw new Error('Desktop asset generation is not configured.');
+    }
+
+    const normalizedRequest = this.normalizeAssetGenerationRequest(request);
+    const now = toIso();
+    const row: GenerationSyncJobRow = {
+      createdAt: now,
+      error: null,
+      id: randomUUID(),
+      payload: buildAssetGenerationPayload(normalizedRequest),
+      retryCount: 0,
+      status: 'queued',
+      type: ASSET_GENERATION_JOB_TYPE,
+      updatedAt: now,
+      workspaceId: normalizedRequest.workspaceId,
+    };
+
+    await this.database.upsertSyncJob(row);
+    void this.processAssetQueue();
+
+    const job = toGenerationJob(row);
+    if (!job) {
+      throw new Error('Failed to create local asset generation job.');
+    }
+
+    return job;
+  }
+
+  async getGenerationJob(jobId: string): Promise<IDesktopGenerationJob | null> {
+    const row = await this.database.getSyncJob?.(jobId);
+    return row ? toGenerationJob(row) : null;
+  }
+
+  async listGenerationJobs(
+    workspaceId?: string,
+  ): Promise<IDesktopGenerationJob[]> {
+    const rows =
+      (await this.database.listSyncJobs?.(
+        ASSET_GENERATION_JOB_TYPE,
+        workspaceId,
+      )) ?? [];
+
+    return rows
+      .map(toGenerationJob)
+      .filter((job): job is IDesktopGenerationJob => Boolean(job));
+  }
+
+  async cancelGenerationJob(jobId: string): Promise<IDesktopGenerationJob> {
+    const row = await this.database.getSyncJob?.(jobId);
+    const job = row ? toGenerationJob(row) : null;
+    if (!row || !job) {
+      throw new Error('Asset generation job was not found.');
+    }
+
+    if (job.status === 'succeeded' || job.status === 'failed') {
+      return job;
+    }
+
+    const updatedRow = {
+      ...row,
+      error: null,
+      status: 'cancelled',
+      updatedAt: toIso(),
+    };
+    await this.database.upsertSyncJob(updatedRow);
+
+    const updatedJob = toGenerationJob(updatedRow);
+    if (!updatedJob) {
+      throw new Error('Failed to cancel asset generation job.');
+    }
+
+    return updatedJob;
+  }
+
   private async createGenerationJob(
     params: IDesktopGenerationOptions,
   ): Promise<GenerationSyncJobRow> {
@@ -435,6 +826,154 @@ export class DesktopGenerationService {
 
     await this.database.upsertSyncJob(row);
     return row;
+  }
+
+  private normalizeAssetGenerationRequest(
+    request: IDesktopAssetGenerationRequest,
+  ): IDesktopAssetGenerationRequest {
+    const prompt = request.prompt.trim();
+    const model = request.model.trim();
+    const workspaceId = request.workspaceId.trim();
+
+    if (!workspaceId) {
+      throw new Error('Workspace is required for asset generation.');
+    }
+
+    if (!prompt) {
+      throw new Error('Prompt is required for asset generation.');
+    }
+
+    if (!model) {
+      throw new Error('Model is required for asset generation.');
+    }
+
+    if (request.provider !== 'replicate' && request.provider !== 'fal') {
+      throw new Error(
+        'Desktop asset generation currently supports Replicate and fal.ai.',
+      );
+    }
+
+    return {
+      aspectRatio: request.aspectRatio?.trim() || undefined,
+      height: request.height,
+      inputAssetIds: request.inputAssetIds,
+      kind: 'image',
+      model,
+      negativePrompt: request.negativePrompt?.trim() || undefined,
+      prompt,
+      provider: request.provider,
+      seed: request.seed,
+      uploadPolicy: request.uploadPolicy ?? 'never',
+      width: request.width,
+      workspaceId,
+    };
+  }
+
+  private async processAssetQueue(): Promise<void> {
+    if (this.isProcessingAssetQueue || !this.generatedAssetWriter) {
+      return;
+    }
+
+    this.isProcessingAssetQueue = true;
+
+    try {
+      while (true) {
+        const rows =
+          (await this.database.listSyncJobs?.(ASSET_GENERATION_JOB_TYPE)) ?? [];
+        const nextRow = rows
+          .filter((row) => row.status === 'queued')
+          .sort((left, right) => left.createdAt.localeCompare(right.createdAt))
+          .at(0);
+
+        if (!nextRow) {
+          return;
+        }
+
+        await this.runAssetGenerationJob(nextRow);
+      }
+    } finally {
+      this.isProcessingAssetQueue = false;
+    }
+  }
+
+  private async runAssetGenerationJob(
+    row: GenerationSyncJobRow,
+  ): Promise<void> {
+    const payload = parseAssetGenerationPayload(row.payload);
+    if (!payload || !this.generatedAssetWriter) {
+      return;
+    }
+
+    const startedRow = {
+      ...row,
+      error: null,
+      status: 'running',
+      updatedAt: toIso(),
+    };
+    await this.database.upsertSyncJob(startedRow);
+
+    let config: IDesktopGenerationProviderConfig | undefined;
+
+    try {
+      config = await this.requireProviderConfig();
+      if (config.provider !== payload.request.provider) {
+        throw new Error(
+          `Configured provider is ${providerDisplayName(config)}, but this job requires ${payload.request.provider}.`,
+        );
+      }
+
+      const generatedAsset = await this.requestAssetGeneration(
+        config,
+        payload.request,
+      );
+      const asset = await this.generatedAssetWriter.writeGeneratedAsset({
+        bytes: generatedAsset.bytes,
+        displayName: `${payload.request.provider} ${payload.request.model}`,
+        jobId: row.id,
+        mimeType: generatedAsset.mimeType,
+        model: payload.request.model,
+        provider: payload.request.provider,
+        uploadPolicy: payload.request.uploadPolicy ?? 'never',
+        workspaceId: payload.request.workspaceId,
+      });
+
+      await this.database.upsertSyncJob({
+        ...startedRow,
+        payload: buildAssetGenerationPayload(payload.request, [asset.id], {
+          ...generatedAsset.metadata,
+          mimeType: generatedAsset.mimeType,
+          originalUrl: generatedAsset.originalUrl,
+        }),
+        status: 'succeeded',
+        updatedAt: toIso(),
+      });
+    } catch (error) {
+      const errorMessage = sanitizeProviderError(error, config);
+      const shouldRetry = row.retryCount < MAX_ASSET_JOB_RETRIES;
+
+      await this.database.upsertSyncJob({
+        ...startedRow,
+        error: errorMessage,
+        retryCount: row.retryCount + 1,
+        status: shouldRetry ? 'queued' : 'failed',
+        updatedAt: toIso(),
+      });
+
+      if (shouldRetry) {
+        await sleep(250);
+      }
+    }
+  }
+
+  private async requestAssetGeneration(
+    config: IDesktopGenerationProviderConfig,
+    request: IDesktopAssetGenerationRequest,
+  ): Promise<ProviderGeneratedAsset> {
+    if (request.provider === 'replicate') {
+      return this.requestReplicateAssetGeneration(config, request);
+    }
+
+    return this.requestFalAssetGeneration(config, request);
   }
 
   private async requestCompletion(
@@ -530,6 +1069,123 @@ export class DesktopGenerationService {
 
     const payload = JSON.parse(responseText) as ProviderOutputPayload;
     return this.resolveReplicatePrediction(config, payload);
+  }
+
+  private buildAssetProviderInput(
+    request: IDesktopAssetGenerationRequest,
+  ): Record<string, unknown> {
+    return {
+      ...(request.aspectRatio ? { aspect_ratio: request.aspectRatio } : {}),
+      ...(request.height ? { height: request.height } : {}),
+      ...(request.negativePrompt
+        ? { negative_prompt: request.negativePrompt }
+        : {}),
+      ...(typeof request.seed === 'number' ? { seed: request.seed } : {}),
+      ...(request.width ? { width: request.width } : {}),
+      prompt: request.prompt,
+    };
+  }
+
+  private async requestReplicateAssetGeneration(
+    config: IDesktopGenerationProviderConfig,
+    request: IDesktopAssetGenerationRequest,
+  ): Promise<ProviderGeneratedAsset> {
+    if (!config.apiKey) {
+      throw new Error('Replicate provider requires an API key.');
+    }
+
+    const [owner, modelName] = request.model.split('/');
+    if (!owner || !modelName) {
+      throw new Error('Replicate model must use owner/model format.');
+    }
+
+    const response = await fetch(
+      `${config.baseUrl}/models/${encodeURIComponent(owner)}/${encodeURIComponent(modelName)}/predictions`,
+      {
+        body: JSON.stringify({
+          input: this.buildAssetProviderInput(request),
+        }),
+        headers: {
+          Authorization: `Bearer ${config.apiKey}`,
+          'Content-Type': 'application/json',
+          Prefer: 'wait=60',
+        },
+        method: 'POST',
+      },
+    );
+
+    const payload = await getProviderJson<ProviderOutputPayload>(response);
+    const resolved = await this.resolveReplicateAssetPrediction(
+      config,
+      payload,
+    );
+    const imageUrl = extractFirstImageUrl(resolved.output ?? resolved);
+    const downloaded = await downloadGeneratedImage(imageUrl);
+
+    return {
+      bytes: downloaded.bytes,
+      metadata: {
+        predictionId: resolved.id,
+        providerStatus: resolved.status,
+      },
+      mimeType: downloaded.mimeType,
+      model: request.model,
+      originalUrl: imageUrl,
+      provider: 'replicate',
+    };
+  }
+
+  private async resolveReplicateAssetPrediction(
+    config: IDesktopGenerationProviderConfig,
+    payload: ProviderOutputPayload,
+  ): Promise<ProviderOutputPayload> {
+    let current = payload;
+
+    for (let attempt = 0; attempt < 30; attempt += 1) {
+      const status = typeof current.status === 'string' ? current.status : '';
+
+      if (current.error || isReplicateFailedStatus(status)) {
+        throw new Error(
+          `Replicate generation failed: ${String(current.error ?? current.detail ?? 'unknown error')}`,
+        );
+      }
+
+      if (!status || isReplicateSucceededStatus(status)) {
+        return current;
+      }
+
+      if (!isReplicatePendingStatus(status)) {
+        return current;
+      }
+
+      const statusUrl =
+        typeof current.urls?.get === 'string'
+          ? current.urls.get
+          : typeof current.id === 'string'
+            ? `${config.baseUrl}/predictions/${encodeURIComponent(current.id)}`
+            : undefined;
+
+      if (!statusUrl) {
+        throw new Error(
+          `Replicate generation is ${status} but did not return a status URL.`,
+        );
+      }
+
+      if (attempt > 0) {
+        await sleep(1000);
+      }
+
+      const statusResponse = await fetch(statusUrl, {
+        headers: {
+          Authorization: `Bearer ${config.apiKey}`,
+        },
+      });
+      current = await getProviderJson<ProviderOutputPayload>(statusResponse);
+    }
+
+    throw new Error(
+      'Replicate generation timed out waiting for the prediction result.',
+    );
   }
 
   private async resolveReplicatePrediction(
@@ -692,6 +1348,97 @@ export class DesktopGenerationService {
     throw new Error('fal generation timed out waiting for the queued result.');
   }
 
+  private async requestFalAssetGeneration(
+    config: IDesktopGenerationProviderConfig,
+    request: IDesktopAssetGenerationRequest,
+  ): Promise<ProviderGeneratedAsset> {
+    if (!config.apiKey) {
+      throw new Error('fal provider requires an API key.');
+    }
+
+    const createResponse = await fetch(`${config.baseUrl}/${request.model}`, {
+      body: JSON.stringify(this.buildAssetProviderInput(request)),
+      headers: {
+        Authorization: `Key ${config.apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      method: 'POST',
+    });
+    const created =
+      await getProviderJson<ProviderOutputPayload>(createResponse);
+    const resolved = await this.resolveFalAssetResult(config, request, created);
+    const imageUrl = extractFirstImageUrl(resolved.output ?? resolved);
+    const downloaded = await downloadGeneratedImage(imageUrl);
+
+    return {
+      bytes: downloaded.bytes,
+      metadata: {
+        providerStatus: resolved.status,
+        requestId: resolved.request_id ?? created.request_id,
+      },
+      mimeType: downloaded.mimeType,
+      model: request.model,
+      originalUrl: imageUrl,
+      provider: 'fal',
+    };
+  }
+
+  private async resolveFalAssetResult(
+    config: IDesktopGenerationProviderConfig,
+    request: IDesktopAssetGenerationRequest,
+    created: ProviderOutputPayload,
+  ): Promise<ProviderOutputPayload> {
+    const requestId =
+      typeof created.request_id === 'string' ? created.request_id : undefined;
+
+    if (!requestId) {
+      return created;
+    }
+
+    const statusUrl =
+      typeof created.status_url === 'string'
+        ? created.status_url
+        : `${config.baseUrl}/${request.model}/requests/${requestId}/status`;
+    const resultUrl =
+      typeof created.response_url === 'string'
+        ? created.response_url
+        : `${config.baseUrl}/${request.model}/requests/${requestId}`;
+
+    for (let attempt = 0; attempt < 30; attempt += 1) {
+      const statusResponse = await fetch(statusUrl, {
+        headers: {
+          Authorization: `Key ${config.apiKey}`,
+        },
+      });
+      const statusPayload =
+        await getProviderJson<ProviderOutputPayload>(statusResponse);
+      const status =
+        typeof statusPayload.status === 'string'
+          ? statusPayload.status.toUpperCase()
+          : '';
+
+      if (status === 'COMPLETED') {
+        const resultResponse = await fetch(resultUrl, {
+          headers: {
+            Authorization: `Key ${config.apiKey}`,
+          },
+        });
+
+        return getProviderJson<ProviderOutputPayload>(resultResponse);
+      }
+
+      if (status === 'FAILED' || statusPayload.error) {
+        throw new Error(
+          `fal generation failed: ${String(statusPayload.error ?? statusPayload.detail ?? 'unknown error')}`,
+        );
+      }
+
+      await sleep(1000);
+    }
+
+    throw new Error('fal generation timed out waiting for the queued result.');
+  }
+
   private async requireProviderConfig(): Promise<IDesktopGenerationProviderConfig> {
     const config = await this.getProviderConfig();
     if (!config) {
@@ -719,8 +1466,11 @@ export class DesktopGenerationService {
 
 export const __desktopGenerationServiceTestUtils = {
   buildCompletionUrl,
+  downloadGeneratedImage,
+  extractFirstImageUrl,
   extractProviderOutputText,
   buildUserPrompt,
   extractCompletionText,
   normalizeProviderConfig,
+  parseAssetGenerationPayload,
 };

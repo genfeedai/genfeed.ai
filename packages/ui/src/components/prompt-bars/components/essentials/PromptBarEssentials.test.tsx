@@ -199,7 +199,10 @@ describe('PromptBarEssentials', () => {
 
   it('renders outputs beside the generate button in unified shell', () => {
     const { container } = render(
-      <PromptBarEssentials {...defaultProps} shellMode="studio-unified" />,
+      <PromptBarEssentials
+        {...defaultProps}
+        features={{ collapsible: false, dragDrop: false }}
+      />,
     );
 
     const outputsButton = screen.getByTestId('outputs-button');
@@ -222,7 +225,7 @@ describe('PromptBarEssentials', () => {
     render(
       <PromptBarEssentials
         {...defaultProps}
-        shellMode="studio-unified"
+        features={{ collapsible: false, dragDrop: false }}
         generateLabel="Generate Image"
       />,
     );

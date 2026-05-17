@@ -118,15 +118,35 @@ const desktopBridge: IGenfeedDesktopBridge = {
       ),
   },
   generation: {
+    cancelGenerationJob: async (jobId) =>
+      ipcRenderer.invoke(
+        DESKTOP_IPC_CHANNELS.generationCancelAssetGeneration,
+        jobId,
+      ),
     clearProviderConfig: async () =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.generationClearProviderConfig),
+    enqueueAssetGeneration: async (request) =>
+      ipcRenderer.invoke(
+        DESKTOP_IPC_CHANNELS.generationEnqueueAssetGeneration,
+        request,
+      ),
     generateWorkflow: async (params) =>
       ipcRenderer.invoke(
         DESKTOP_IPC_CHANNELS.generationGenerateWorkflow,
         params,
       ),
+    getGenerationJob: async (jobId) =>
+      ipcRenderer.invoke(
+        DESKTOP_IPC_CHANNELS.generationGetGenerationJob,
+        jobId,
+      ),
     getProviderConfig: async () =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.generationGetProviderConfig),
+    listGenerationJobs: async (workspaceId) =>
+      ipcRenderer.invoke(
+        DESKTOP_IPC_CHANNELS.generationListGenerationJobs,
+        workspaceId,
+      ),
     saveProviderConfig: async (config) =>
       ipcRenderer.invoke(
         DESKTOP_IPC_CHANNELS.generationSaveProviderConfig,

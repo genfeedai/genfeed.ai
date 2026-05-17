@@ -7,6 +7,7 @@
 - [BullMQ Refactor](project_bullmq.md) — 32 @Processor decorators in API need moving to Workers (#84)
 - [Migration Status](project_migration.md) — cloud + core → genfeed.ai migration complete, all pages/tests present
 - [Settings Routing](project_settings_routing.md) — canonical personal/org/brand settings URL shapes
+- [Desktop BYOK Generation](project_desktop_byok_generation.md) — desktop local/BYOK generation works without Clerk; Clerk is sync-only
 
 ## Feedback (user corrections — permanent)
 - [Never lose code](feedback_never_lose_code.md) — Always branch+push WIP before destructive git ops

@@ -1103,6 +1103,7 @@
       "dependencies": {
         "@genfeedai/constants": "workspace:*",
         "@genfeedai/contexts": "workspace:*",
+        "@genfeedai/enums": "workspace:*",
         "@genfeedai/helpers": "workspace:*",
         "@genfeedai/hooks": "workspace:*",
         "@genfeedai/interfaces": "workspace:*",
@@ -1127,10 +1128,10 @@
         "@tiptap/react": "3.23.4",
         "@tiptap/starter-kit": "3.23.4",
         "html-react-parser": "6.1.1",
+        "react-icons": "5.6.0",
       },
       "devDependencies": {
         "@genfeedai/client": "workspace:*",
-        "@genfeedai/enums": "workspace:*",
         "@tanstack/react-query-devtools": "5.100.10",
         "@testing-library/jest-dom": "6.9.1",
         "@testing-library/react": "16.3.2",
@@ -1178,6 +1179,7 @@
         "class-variance-authority": "0.7.1",
         "clsx": "2.1.1",
         "lucide-react": "1.7.0",
+        "next": ">=14.0.0",
         "react": ">=18",
         "react-dom": ">=18",
         "tailwind-merge": "3.5.0",
