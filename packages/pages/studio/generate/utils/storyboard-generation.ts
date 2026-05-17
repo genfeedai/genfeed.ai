@@ -1,4 +1,5 @@
-import { IngredientFormat } from '@genfeedai/enums';
+import { hasInterpolation } from '@genfeedai/constants';
+import { IngredientFormat, ModelCategory } from '@genfeedai/enums';
 import type { IImage, IModel } from '@genfeedai/interfaces';
 import type { CameraMovementPreset } from '@genfeedai/interfaces/studio/camera-movement.interface';
 
@@ -75,11 +76,30 @@ export function resolveStoryboardFormat(format: unknown): IngredientFormat {
     : IngredientFormat.PORTRAIT;
 }
 
+export function isStoryboardInterpolationModel(model: IModel): boolean {
+  if (model.category !== ModelCategory.VIDEO) {
+    return false;
+  }
+
+  if (typeof model.hasInterpolation === 'boolean') {
+    return model.hasInterpolation;
+  }
+
+  return hasInterpolation(model.key);
+}
+
+export function getStoryboardInterpolationModels(models: IModel[]): IModel[] {
+  return models.filter(isStoryboardInterpolationModel);
+}
+
 export function resolveStoryboardModelKey(
   models: IModel[],
   configuredModelKeys?: string[],
 ): string {
-  const explicitModel = configuredModelKeys?.find(Boolean);
+  const availableModelKeys = new Set(models.map((model) => model.key));
+  const explicitModel = configuredModelKeys?.find(
+    (key) => key && availableModelKeys.has(key),
+  );
   if (explicitModel) {
     return explicitModel;
   }

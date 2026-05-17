@@ -99,10 +99,6 @@ export class ElementsScenesController extends BaseCRUDController<
     return super.remove(request, user, sceneId);
   }
 
-  /**
-   * Override the base pipeline to load scenes
-   * Load items with: (no org AND no user) OR (user's org) OR (user's user)
-   */
   public buildFindAllQuery(user: User, query: BaseQueryDto) {
     const publicMetadata = getPublicMetadata(user);
     const adminFilter = CollectionFilterUtil.buildAdminFilter(
@@ -110,19 +106,12 @@ export class ElementsScenesController extends BaseCRUDController<
       query,
     );
 
-    // Build OR conditions: global items OR user's org items OR user's items
-    const orConditions: unknown[] = [
-      { organization: null, user: null }, // global items
-    ];
+    const orConditions: Record<string, unknown>[] = [];
 
     if (publicMetadata.organization) {
       orConditions.push({
-        organization: publicMetadata.organization,
+        organizationId: publicMetadata.organization,
       });
-    }
-
-    if (publicMetadata.user) {
-      orConditions.push({ user: publicMetadata.user });
     }
 
     return {
@@ -131,7 +120,8 @@ export class ElementsScenesController extends BaseCRUDController<
         ...(typeof query.isFavorite === 'boolean' && {
           isFavorite: query.isFavorite,
         }),
-        ...(adminFilter ?? { OR: orConditions }),
+        ...(adminFilter ??
+          (orConditions.length > 0 ? { OR: orConditions } : {})),
       },
       orderBy: query.sort
         ? handleQuerySort(query.sort)

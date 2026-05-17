@@ -137,7 +137,7 @@ function WorkflowStep({
     >
       <div
         className={cn(
-          'mb-3 flex h-14 w-14 items-center justify-center rounded-xl border transition-all duration-500',
+          'mb-3 flex size-14 items-center justify-center rounded-xl border transition-all duration-500',
           isActive
             ? 'gen-card-featured shadow-[var(--shadow-glow-sm)] scale-110'
             : 'bg-fill/[0.03] gen-border',
@@ -145,7 +145,7 @@ function WorkflowStep({
       >
         <Icon
           className={cn(
-            'h-6 w-6 transition-colors duration-500',
+            'size-6 transition-colors duration-500',
             isActive ? 'text-inv-fg' : 'gen-icon',
           )}
         />
@@ -222,7 +222,7 @@ export default function HomeWorkflow(): React.ReactElement {
         <div className="max-w-6xl mx-auto">
           {/* Section header */}
           <HStack className="items-center gap-3 mb-3">
-            <HiArrowPath className="h-4 w-4 gen-icon" />
+            <HiArrowPath className="size-4 gen-icon" />
             <Text className="gen-label gen-text-accent">How It Works</Text>
           </HStack>
           <Heading

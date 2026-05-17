@@ -45,7 +45,7 @@ function renderItems(
 
 function SkeletonListItem({ id }: SkeletonRenderItem): React.ReactNode {
   return (
-    <div key={id} className="flex items-center space-x-4">
+    <div key={id} className="flex items-center gap-x-4">
       <Skeleton variant="circular" width={40} height={40} />
       <div className="flex-1 space-y-2">
         <Skeleton variant="text" height={16} className="w-1/3" />
@@ -59,7 +59,7 @@ function SkeletonVideoGridItem({ id }: SkeletonRenderItem): React.ReactNode {
   return (
     <div key={id} className="space-y-3">
       <Skeleton variant="rounded" className="aspect-video w-full" />
-      <div className="flex items-center space-x-2">
+      <div className="flex items-center gap-x-2">
         <Skeleton variant="circular" width={32} height={32} />
         <div className="flex-1 space-y-1">
           <Skeleton variant="text" height={14} className="w-3/4" />
@@ -247,7 +247,7 @@ export function SkeletonBrandsList({ count = 5 }: SkeletonListProps) {
             className="overflow-hidden rounded border border-white/[0.08] bg-card shadow-[0_24px_60px_-40px_rgba(0,0,0,0.8)]"
           >
             <div className="p-4">
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center gap-x-4">
                 <Skeleton variant="circular" width={48} height={48} />
                 <div className="flex-1 space-y-2">
                   <Skeleton variant="text" height={16} className="w-1/3" />

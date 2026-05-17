@@ -59,7 +59,7 @@ export default function IngredientPosts({
       {/* Ingredient header */}
       <div className="mb-8 flex flex-col md:flex-row gap-6 items-start">
         {/* Thumbnail */}
-        <div className="relative w-32 h-32 bg-background overflow-hidden flex-shrink-0">
+        <div className="relative size-32 bg-background overflow-hidden flex-shrink-0">
           {ingredient.thumbnailUrl ? (
             <Image
               src={ingredient.thumbnailUrl}
@@ -77,7 +77,7 @@ export default function IngredientPosts({
 
         {/* Info */}
         <div className="flex-1">
-          <h1 className="text-3xl font-bold mb-2">
+          <h1 className="text-3xl font-semibold mb-2">
             {ingredient.metadataLabel || 'Untitled Ingredient'}
           </h1>
 
@@ -123,7 +123,9 @@ export default function IngredientPosts({
         />
       ) : (
         <div className="space-y-6">
-          <h2 className="text-2xl font-bold">Posts using this ingredient</h2>
+          <h2 className="text-2xl font-semibold">
+            Posts using this ingredient
+          </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {posts.map((post) => (
@@ -131,7 +133,7 @@ export default function IngredientPosts({
                 key={post.id}
                 className="p-4 hover:shadow-lg transition-shadow duration-300"
               >
-                <div className="flex flex-col space-y-3">
+                <div className="flex flex-col gap-y-3">
                   <div className="flex items-center justify-between">
                     <h3 className="font-semibold truncate flex-1">
                       {post.label || 'Untitled Post'}

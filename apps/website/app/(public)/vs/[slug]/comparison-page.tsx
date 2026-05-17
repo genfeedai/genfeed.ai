@@ -25,9 +25,9 @@ function ComparisonCell({
 }: ComparisonCellProps): React.ReactElement {
   if (typeof value === 'boolean') {
     return value ? (
-      <FaCheck className="w-4 h-4 text-success mx-auto" />
+      <FaCheck className="size-4 text-success mx-auto" />
     ) : (
-      <HiXMark className="w-4 h-4 text-error mx-auto" />
+      <HiXMark className="size-4 text-error mx-auto" />
     );
   }
   return (
@@ -46,7 +46,7 @@ export default function ComparisonPage({
       description={`Why Genfeed tracks revenue and ${competitor.name} doesn't. Compare features and pricing.`}
     >
       <section className="max-w-4xl mx-auto py-20 text-center">
-        <h1 className="text-5xl font-bold mb-4">
+        <h1 className="text-5xl font-semibold mb-4">
           Genfeed vs {competitor.name}
         </h1>
         <p className="text-xl text-muted-foreground">{competitor.tagline}</p>
@@ -88,7 +88,7 @@ export default function ComparisonPage({
           <ul className="space-y-2 mb-6 text-left max-w-md mx-auto">
             {competitor.genfeedAdvantages.map((advantage: string) => (
               <li key={advantage} className="flex items-start gap-2">
-                <FaCheck className="w-4 h-4 text-success mt-1 flex-shrink-0" />
+                <FaCheck className="size-4 text-success mt-1 flex-shrink-0" />
                 <span className="text-sm">{advantage}</span>
               </li>
             ))}

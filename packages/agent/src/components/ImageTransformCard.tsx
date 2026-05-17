@@ -1,4 +1,5 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import Image from 'next/image';
 import type { ReactElement } from 'react';
 import { HiArrowsPointingOut, HiPhoto, HiSparkles } from 'react-icons/hi2';
 
@@ -26,10 +27,12 @@ export function ImageTransformCard({
       )}
       {previewUrl && (
         <div className="rounded overflow-hidden mb-3 bg-muted">
-          <img
+          <Image
             src={previewUrl}
             alt="Transform preview"
-            className="w-full h-auto max-h-48 object-contain"
+            width={640}
+            height={360}
+            className="h-auto max-h-48 w-full object-contain"
           />
         </div>
       )}

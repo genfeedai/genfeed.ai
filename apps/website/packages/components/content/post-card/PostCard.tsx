@@ -16,6 +16,39 @@ export default function PostCard({ post, className = '' }: PostCardProps) {
   const ingredients = (post.ingredients || []) as IIngredient[];
   const primaryIngredient = ingredients[0];
   const credential = post.credential as ICredential;
+  const postDates = [
+    {
+      date: post.uploadedAt,
+      icon: FaCalendarAlt,
+      iconColor: 'text-muted-foreground',
+      label: 'Uploaded',
+    },
+    {
+      date: post.scheduledDate,
+      icon: FaCalendarAlt,
+      iconColor: 'text-muted-foreground',
+      label: 'Scheduled',
+    },
+    {
+      date: post.publicationDate,
+      icon: FaCalendarCheck,
+      iconColor: 'text-green-500',
+      label: 'Published',
+    },
+  ].reduce<
+    Array<{
+      date: string;
+      icon: typeof FaCalendarAlt;
+      iconColor: string;
+      label: string;
+    }>
+  >((items, item) => {
+    if (item.date) {
+      items.push({ ...item, date: item.date });
+    }
+
+    return items;
+  }, []);
 
   const externalUrl =
     post.url ||
@@ -115,41 +148,14 @@ export default function PostCard({ post, className = '' }: PostCardProps) {
       )}
 
       <div className="space-y-2 mb-4">
-        {[
-          {
-            date: post.uploadedAt,
-            icon: FaCalendarAlt,
-            iconColor: 'text-muted-foreground',
-            label: 'Uploaded',
-          },
-          {
-            date: post.scheduledDate,
-            icon: FaCalendarAlt,
-            iconColor: 'text-muted-foreground',
-            label: 'Scheduled',
-          },
-          {
-            date: post.publicationDate,
-            icon: FaCalendarCheck,
-            iconColor: 'text-green-500',
-            label: 'Published',
-          },
-        ]
-          .filter(
-            (
-              item,
-            ): item is typeof item & {
-              date: string;
-            } => Boolean(item.date),
-          )
-          .map(({ date, icon: Icon, iconColor, label }) => (
-            <div key={label} className="flex items-center gap-2 text-sm">
-              <Icon className={`${iconColor} w-4 h-4`} />
-              <span className="text-foreground/70">
-                {label}: {formatDate(date)}
-              </span>
-            </div>
-          ))}
+        {postDates.map(({ date, icon: Icon, iconColor, label }) => (
+          <div key={label} className="flex items-center gap-2 text-sm">
+            <Icon className={`${iconColor} size-4`} />
+            <span className="text-foreground/70">
+              {label}: {formatDate(date)}
+            </span>
+          </div>
+        ))}
       </div>
     </Card>
   );

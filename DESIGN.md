@@ -1,31 +1,45 @@
 ---
 version: alpha
 name: Genfeed.ai
-description: Dark-first operator interface for an open source AI OS for content creation.
+description: >
+  Design system for Genfeed.ai — an AI-powered content creation OS.
+  Dark-first, information-dense UI aligned with ShipCode/Linear visual language.
+  Layered depth through background shifts, semantic status colors, and
+  inset-shadow containment on elevated surfaces.
+
 colors:
-  background-dark: "#030303"
-  background-dark-secondary: "#0F0F0F"
-  background-dark-tertiary: "#1A1A1A"
-  foreground-dark: "#FAFAFA"
-  card-dark: "#080808"
-  border-dark: "#262626"
-  muted-dark: "#949494"
-  background-light: "#FAFAF9"
-  background-light-secondary: "#F6F6F4"
-  background-light-tertiary: "#F1F1EF"
-  foreground-light: "#0D0D0D"
-  card-light: "#F6F6F4"
-  border-light: "#DAD9D6"
-  muted-light: "#707070"
-  primary: "#FFFFFF"
-  primary-light: "#2563EB"
-  primary-foreground: "#000000"
-  destructive: "#DC2626"
-  success: "#10B981"
-  warning: "#F59E0B"
-  info: "#3B82F6"
-  agent: "#38BDF8"
-  done: "#A855F7"
+  # Backgrounds — layered depth from deepest to elevated
+  bg-primary: "#050607"
+  bg-secondary: "#0c0d10"
+  bg-tertiary: "#131518"
+  bg-elevated: "#1a1c21"
+  bg-hover: "#20232a"
+
+  # Borders — rgba(255,255,255) at varying opacity on dark bg
+  border: "rgba(255, 255, 255, 0.10)"
+  border-strong: "rgba(255, 255, 255, 0.18)"
+
+  # Text — three-tier hierarchy
+  text-primary: "#f4f4f5"
+  text-secondary: "#b4b4bc"
+  text-muted: "#6b6b78"
+
+  # Accent — inverted for dark mode (white CTA on dark bg)
+  accent: "#fafafa"
+  accent-foreground: "#050607"
+  accent-hover: "#e4e4e7"
+
+  # Semantic status
+  success: "#10b981"
+  warning: "#f59e0b"
+  danger: "#ef4444"
+  info: "#3b82f6"
+
+  # Domain-specific
+  agent: "#38bdf8"
+  done: "#a855f7"
+
+  # Platform brand identifiers
   beehiiv: "#FCD34D"
   discord: "#5865F2"
   facebook: "#1877F2"
@@ -50,336 +64,235 @@ colors:
   whatsapp: "#25D366"
   wordpress: "#21759B"
   youtube: "#FF0000"
+
 typography:
-  display:
-    fontFamily: Zodiak, Georgia, Times New Roman, serif
-    fontSize: 3rem
-    fontWeight: 600
-    lineHeight: 1.08
-    letterSpacing: 0
-  h1:
-    fontFamily: Satoshi, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif
-    fontSize: 1.625rem
-    fontWeight: 600
-    lineHeight: 1.16
-    letterSpacing: 0
-  h2:
-    fontFamily: Satoshi, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif
-    fontSize: 1.5rem
-    fontWeight: 600
-    lineHeight: 1.2
-    letterSpacing: 0
-  body-md:
-    fontFamily: Satoshi, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif
-    fontSize: 0.8125rem
+  app-sans:
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+    fontSize: 13px
     fontWeight: 400
     lineHeight: 1.5
-    letterSpacing: 0
-  body-sm:
-    fontFamily: Satoshi, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif
-    fontSize: 0.75rem
+    letterSpacing: -0.01em
+  app-mono:
+    fontFamily: '"SF Mono", SFMono-Regular, Consolas, Menlo, monospace'
+    fontSize: 12px
     fontWeight: 400
-    lineHeight: 1.45
-    letterSpacing: 0
-  label:
-    fontFamily: Satoshi, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif
-    fontSize: 0.6875rem
-    fontWeight: 500
-    lineHeight: 1.25
-    letterSpacing: 0
+    lineHeight: 1.5
+  heading-section:
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif'
+    fontSize: 1.875rem
+    fontWeight: 600
+    lineHeight: 1.2
+    letterSpacing: -0.03em
+
 rounded:
-  none: 0px
-  sm: 4px
+  sm: 2px
   md: 6px
   lg: 8px
   xl: 10px
-  xxl: 12px
-  xxxl: 16px
-  full: 9999px
+
 spacing:
-  xs: 4px
-  sm: 8px
-  md: 12px
-  lg: 16px
-  xl: 20px
-  xxl: 24px
-  xxxl: 32px
-  xxxxl: 48px
+  base: 4px
+
 components:
-  app-shell-dark:
-    backgroundColor: "{colors.background-dark}"
-    textColor: "{colors.foreground-dark}"
-    typography: "{typography.body-md}"
-  app-shell-light:
-    backgroundColor: "{colors.background-light}"
-    textColor: "{colors.foreground-light}"
-    typography: "{typography.body-md}"
-  surface-dark-secondary:
-    backgroundColor: "{colors.background-dark-secondary}"
-    textColor: "{colors.foreground-dark}"
-    rounded: "{rounded.none}"
-    padding: "{spacing.lg}"
-  surface-dark-tertiary:
-    backgroundColor: "{colors.background-dark-tertiary}"
-    textColor: "{colors.muted-dark}"
+  button-default:
+    backgroundColor: "{colors.accent}"
+    textColor: "{colors.accent-foreground}"
+    rounded: "{rounded.md}"
+    height: 32px
+  button-secondary:
+    backgroundColor: "{colors.bg-tertiary}"
+    textColor: "{colors.text-primary}"
+    rounded: "{rounded.md}"
+    height: 32px
+  button-ghost:
+    backgroundColor: transparent
+    textColor: "{colors.text-secondary}"
+    rounded: "{rounded.md}"
+    height: 32px
+  button-destructive:
+    backgroundColor: "{colors.danger}"
+    textColor: "#ffffff"
+    rounded: "{rounded.md}"
+    height: 32px
+  card:
+    backgroundColor: "{colors.bg-secondary}"
+    textColor: "{colors.text-primary}"
+    rounded: "{rounded.md}"
+    shadow: "inset 0 0 0 1px {colors.border}"
+  dialog:
+    backgroundColor: "{colors.bg-primary}"
+    textColor: "{colors.text-primary}"
+    rounded: "{rounded.xl}"
+  badge-default:
+    backgroundColor: "{colors.bg-hover}"
+    textColor: "{colors.text-secondary}"
     rounded: "{rounded.sm}"
-    padding: "{spacing.md}"
-  surface-light-secondary:
-    backgroundColor: "{colors.background-light-secondary}"
-    textColor: "{colors.foreground-light}"
-    rounded: "{rounded.none}"
-    padding: "{spacing.lg}"
-  surface-light-tertiary:
-    backgroundColor: "{colors.background-light-tertiary}"
-    textColor: "{colors.foreground-light}"
+  badge-success:
+    backgroundColor: "{colors.bg-secondary}"
+    textColor: "{colors.success}"
     rounded: "{rounded.sm}"
-    padding: "{spacing.md}"
-  muted-light-text:
-    backgroundColor: "{colors.background-light}"
-    textColor: "{colors.muted-light}"
-    typography: "{typography.body-sm}"
-    rounded: "{rounded.none}"
-    padding: "{spacing.sm}"
-  border-dark-swatch:
-    backgroundColor: "{colors.border-dark}"
-    textColor: "{colors.primary}"
+  badge-warning:
+    backgroundColor: "{colors.bg-secondary}"
+    textColor: "{colors.warning}"
     rounded: "{rounded.sm}"
-    padding: "{spacing.sm}"
-  border-light-swatch:
-    backgroundColor: "{colors.border-light}"
-    textColor: "{colors.foreground-light}"
+  badge-danger:
+    backgroundColor: "{colors.bg-secondary}"
+    textColor: "{colors.danger}"
     rounded: "{rounded.sm}"
-    padding: "{spacing.sm}"
-  panel-dark:
-    backgroundColor: "{colors.card-dark}"
-    textColor: "{colors.foreground-dark}"
-    rounded: "{rounded.sm}"
-    padding: "{spacing.lg}"
-  panel-light:
-    backgroundColor: "{colors.card-light}"
-    textColor: "{colors.foreground-light}"
-    rounded: "{rounded.sm}"
-    padding: "{spacing.lg}"
-  button-primary-dark:
-    backgroundColor: "{colors.primary}"
-    textColor: "{colors.primary-foreground}"
-    typography: "{typography.label}"
-    rounded: "{rounded.sm}"
-    padding: "{spacing.md}"
-  button-primary-light:
-    backgroundColor: "{colors.primary-light}"
-    textColor: "{colors.primary}"
-    typography: "{typography.label}"
-    rounded: "{rounded.sm}"
-    padding: "{spacing.md}"
-  button-danger:
-    backgroundColor: "{colors.destructive}"
-    textColor: "{colors.primary}"
-    typography: "{typography.label}"
-    rounded: "{rounded.sm}"
-    padding: "{spacing.md}"
-  status-success:
-    backgroundColor: "{colors.success}"
-    textColor: "{colors.primary-foreground}"
-    typography: "{typography.label}"
-    rounded: "{rounded.full}"
-    padding: "{spacing.sm}"
-  status-warning:
-    backgroundColor: "{colors.warning}"
-    textColor: "{colors.primary-foreground}"
-    typography: "{typography.label}"
-    rounded: "{rounded.full}"
-    padding: "{spacing.sm}"
-  status-info:
-    backgroundColor: "{colors.info}"
-    textColor: "{colors.primary-foreground}"
-    typography: "{typography.label}"
-    rounded: "{rounded.full}"
-    padding: "{spacing.sm}"
-  workflow-agent:
-    backgroundColor: "{colors.agent}"
-    textColor: "{colors.primary-foreground}"
-    typography: "{typography.label}"
-    rounded: "{rounded.sm}"
-    padding: "{spacing.sm}"
-  workflow-done:
-    backgroundColor: "{colors.done}"
-    textColor: "{colors.primary-foreground}"
-    typography: "{typography.label}"
-    rounded: "{rounded.sm}"
-    padding: "{spacing.sm}"
-  platform-beehiiv:
-    backgroundColor: "{colors.beehiiv}"
-    textColor: "{colors.primary-foreground}"
-    rounded: "{rounded.full}"
-    padding: "{spacing.sm}"
-  platform-discord:
-    backgroundColor: "{colors.discord}"
-    textColor: "{colors.primary}"
-    rounded: "{rounded.full}"
-    padding: "{spacing.sm}"
-  platform-facebook:
-    backgroundColor: "{colors.facebook}"
-    textColor: "{colors.primary-foreground}"
-    rounded: "{rounded.full}"
-    padding: "{spacing.sm}"
-  platform-fanvue:
-    backgroundColor: "{colors.fanvue}"
-    textColor: "{colors.primary-foreground}"
-    rounded: "{rounded.full}"
-    padding: "{spacing.sm}"
-  platform-ghost:
-    backgroundColor: "{colors.ghost}"
-    textColor: "{colors.primary}"
-    rounded: "{rounded.full}"
-    padding: "{spacing.sm}"
-  platform-instagram:
-    backgroundColor: "{colors.instagram}"
-    textColor: "{colors.primary-foreground}"
-    rounded: "{rounded.full}"
-    padding: "{spacing.sm}"
-  platform-linkedin:
-    backgroundColor: "{colors.linkedin}"
-    textColor: "{colors.primary}"
-    rounded: "{rounded.full}"
-    padding: "{spacing.sm}"
-  platform-mastodon:
-    backgroundColor: "{colors.mastodon}"
-    textColor: "{colors.primary-foreground}"
-    rounded: "{rounded.full}"
-    padding: "{spacing.sm}"
-  platform-medium:
-    backgroundColor: "{colors.medium}"
-    textColor: "{colors.primary-foreground}"
-    rounded: "{rounded.full}"
-    padding: "{spacing.sm}"
-  platform-notion:
-    backgroundColor: "{colors.notion}"
-    textColor: "{colors.primary}"
-    rounded: "{rounded.full}"
-    padding: "{spacing.sm}"
-  platform-pinterest:
-    backgroundColor: "{colors.pinterest}"
-    textColor: "{colors.primary}"
-    rounded: "{rounded.full}"
-    padding: "{spacing.sm}"
-  platform-reddit:
-    backgroundColor: "{colors.reddit}"
-    textColor: "{colors.primary-foreground}"
-    rounded: "{rounded.full}"
-    padding: "{spacing.sm}"
-  platform-shopify:
-    backgroundColor: "{colors.shopify}"
-    textColor: "{colors.primary-foreground}"
-    rounded: "{rounded.full}"
-    padding: "{spacing.sm}"
-  platform-slack:
-    backgroundColor: "{colors.slack}"
-    textColor: "{colors.primary}"
-    rounded: "{rounded.full}"
-    padding: "{spacing.sm}"
-  platform-snapchat:
-    backgroundColor: "{colors.snapchat}"
-    textColor: "{colors.primary-foreground}"
-    rounded: "{rounded.full}"
-    padding: "{spacing.sm}"
-  platform-substack:
-    backgroundColor: "{colors.substack}"
-    textColor: "{colors.primary-foreground}"
-    rounded: "{rounded.full}"
-    padding: "{spacing.sm}"
-  platform-telegram:
-    backgroundColor: "{colors.telegram}"
-    textColor: "{colors.primary-foreground}"
-    rounded: "{rounded.full}"
-    padding: "{spacing.sm}"
-  platform-threads:
-    backgroundColor: "{colors.threads}"
-    textColor: "{colors.primary}"
-    rounded: "{rounded.full}"
-    padding: "{spacing.sm}"
-  platform-tiktok:
-    backgroundColor: "{colors.tiktok}"
-    textColor: "{colors.primary-foreground}"
-    rounded: "{rounded.full}"
-    padding: "{spacing.sm}"
-  platform-twitch:
-    backgroundColor: "{colors.twitch}"
-    textColor: "{colors.primary}"
-    rounded: "{rounded.full}"
-    padding: "{spacing.sm}"
-  platform-twitter:
-    backgroundColor: "{colors.twitter}"
-    textColor: "{colors.primary-foreground}"
-    rounded: "{rounded.full}"
-    padding: "{spacing.sm}"
-  platform-whatsapp:
-    backgroundColor: "{colors.whatsapp}"
-    textColor: "{colors.primary-foreground}"
-    rounded: "{rounded.full}"
-    padding: "{spacing.sm}"
-  platform-wordpress:
-    backgroundColor: "{colors.wordpress}"
-    textColor: "{colors.primary}"
-    rounded: "{rounded.full}"
-    padding: "{spacing.sm}"
-  platform-youtube:
-    backgroundColor: "{colors.youtube}"
-    textColor: "{colors.primary-foreground}"
-    rounded: "{rounded.full}"
-    padding: "{spacing.sm}"
+  tooltip:
+    backgroundColor: "{colors.bg-elevated}"
+    textColor: "{colors.text-primary}"
+    rounded: "{rounded.md}"
+  select:
+    backgroundColor: "{colors.bg-tertiary}"
+    textColor: "{colors.text-primary}"
+    rounded: "{rounded.md}"
+  dropdown-menu:
+    backgroundColor: "{colors.bg-secondary}"
+    textColor: "{colors.text-primary}"
+    rounded: "{rounded.md}"
+    shadow: "inset 0 0 0 1px {colors.border}, 0 10px 15px -3px rgba(0,0,0,0.3)"
+  sidebar:
+    backgroundColor: "{colors.bg-primary}"
+    textColor: "{colors.text-secondary}"
+    borderRight: "1px solid {colors.border}"
+  popover:
+    backgroundColor: "{colors.bg-elevated}"
+    textColor: "{colors.text-primary}"
+    rounded: "{rounded.md}"
+  stat-card:
+    backgroundColor: "{colors.bg-secondary}"
+    textColor: "{colors.text-primary}"
+    rounded: "{rounded.md}"
+  input:
+    backgroundColor: "{colors.bg-tertiary}"
+    textColor: "{colors.text-primary}"
+    rounded: "{rounded.md}"
+    height: 32px
 ---
 
 ## Overview
 
-Genfeed.ai uses a dark-first operator interface: dense, quiet, high-contrast, and built for repeated work in content operations. The UI should feel like a production console for AI workflows, not a marketing surface. Favor strong information hierarchy, compact controls, restrained color, and visible system state.
+Genfeed.ai uses a dark-first design system aligned with ShipCode and Linear's visual
+language. The system prioritizes information density, clear status hierarchy, and layered
+depth through background tones rather than heavy borders.
 
-This document describes the whole repository, not a single app. It covers the product web app, public website, docs, mobile app, desktop shell, browser and IDE extensions, workflow UI, and CLI. The implementation sources that must stay aligned with this file are `packages/ui/web-tokens.scss`, `packages/ui/src/core/*`, `packages/ui/src/semantic/*`, `packages/styles/globals.scss`, `packages/styles/shadcn-theme.scss`, `packages/next-config/tailwind.config.base.ts`, `apps/docs/styles/globals.css`, and `packages/cli/src/ui/theme.ts`.
-
-The default product theme is dark. Light mode exists for readability and public surfaces, but new product UI should be designed dark-first and verified in both themes.
+The visual identity is minimal and high-contrast: near-black backgrounds with white
+accent CTAs, layered depth through subtle background shifts, and semantic colors that
+map directly to content and workflow states.
 
 ## Colors
 
-The product palette is monochrome-first. In dark mode, surfaces step from near-black backgrounds to subtle raised panels and low-contrast borders. In light mode, surfaces use warm off-white neutrals rather than pure white.
+### Background layers
 
-Use `primary` as white-on-black interaction in dark mode. Use `primary-light` for the light-mode primary action color, matching the shared shadcn `--primary` token. Reserve semantic colors for state: success, warning, destructive, info, workflow agent, and workflow done. Platform colors are brand identifiers only; do not let them dominate layout chrome.
+Five background tones create depth without borders. From deepest to most elevated:
+`bg-primary` (main canvas, sidebar) -> `bg-secondary` (cards, panels) ->
+`bg-tertiary` (inputs, nested surfaces) -> `bg-elevated` (popovers, dropdowns) ->
+`bg-hover` (interactive hover states).
 
-Status and platform chips must meet text contrast with their foreground token. Use black text on bright status colors and platform colors unless the contrast table requires white text.
+### Accent
+
+Dark mode inverts the typical accent pattern: `accent` is near-white (#fafafa) for
+maximum contrast CTAs on dark backgrounds. `accent-foreground` matches `bg-primary`
+for text on accent surfaces.
+
+### Semantic status
+
+Four standard status colors:
+- **Success** (#10b981) -- completed, passing, published
+- **Warning** (#f59e0b) -- needs attention, awaiting approval
+- **Danger** (#ef4444) -- failed, errored, rejected
+- **Info** (#3b82f6) -- informational, neutral status
+
+### Domain colors
+
+- **Agent** (#38bdf8, sky-400) -- AI agent activity states
+- **Done** (#a855f7, purple) -- completed workflows
+
+### Platform colors
+
+Platform brand colors are identifiers only. Do not use them for layout chrome or
+primary actions. They appear on platform icons, connection badges, and analytics
+breakdowns.
 
 ## Typography
 
-Product UI uses Satoshi through `--font-sans`, with system fallbacks. Editorial and brand moments may use Zodiak through `--font-serif`; keep this limited to true headings, empty states, public site hero copy, or content previews. App controls, tables, sidebars, modals, forms, and workflow nodes should use compact sans-serif text.
+### Scale (app)
 
-The root app shell runs at a dense 13px base, so component typography must be explicit when larger text is needed. Letter spacing is zero by default. Do not scale font size with viewport width.
+| Element         | Size   |
+|-----------------|--------|
+| Badge / chip    | 10px   |
+| Table head      | 11px   |
+| Table cell      | 12px   |
+| Body / button   | 13px   |
+| Card title      | 14px   |
+
+Body text uses `-0.01em` letter-spacing. Headings use `-0.03em`.
 
 ## Layout
 
-Spacing follows the shared token scale: 4, 8, 12, 16, 20, 24, 32, and 48px. Use the smaller steps for product controls and docked panels. Use 32 and 48px for page sections, public website composition, and large empty states.
+### Border radius
 
-Panels and tools should align to predictable grids and stable dimensions. Avoid decorative cards around whole page sections. Cards are for repeated items, modals, and genuinely framed tools.
+Four-step scale matching ShipCode/Linear:
+- `sm` (2px) -- badges, tags, inline chips
+- `md` (6px) -- cards, buttons, inputs, tooltips, popovers, dropdowns
+- `lg` (8px) -- toasts, overlay panels
+- `xl` (10px) -- dialogs, command palette
 
-## Elevation & Depth
+### Shadows
 
-Elevation is mostly expressed through borders, surface steps, and occasional inset highlights. Box shadows are restrained and should not become the main visual language. In dark mode, prefer subtle border contrast over glow. In light mode, use soft shadows only when a panel must separate from an off-white background.
+Elevated surfaces use inset box-shadow for containment instead of CSS border:
+- `shadow-border`: `inset 0 0 0 1px hsl(var(--border))`
+- `shadow-border-strong`: `inset 0 0 0 1px hsl(var(--border-strong))`
+- `shadow-dropdown`: `inset 0 0 0 1px hsl(var(--border)), 0 10px 15px -3px rgba(0,0,0,0.3), 0 4px 6px -4px rgba(0,0,0,0.3)`
+- `shadow-dialog`: `inset 0 0 0 1px hsl(var(--border)), 0 25px 50px -12px rgba(0,0,0,0.4)`
 
-## Shapes
-
-The default web radius is small. Interactive elements should generally use 4px. Medium surfaces may use 6px, 8px, or 10px. Larger radii are reserved for images, media previews, large marketing surfaces, or native controls where touch targets need more softness. Use `rounded-full` only for avatars, badges, status pills, toggles, and circular icon buttons.
+Reserve CSS `border` for structural dividers only (sidebar edges, header/footer
+separators).
 
 ## Components
 
-Use the existing shared UI primitives and package boundaries. In production TSX, use `@ui/primitives/*` for controls such as buttons, inputs, selects, dialogs, tables, separators, toggles, and textareas. Navigation should use links; commands should use buttons.
+### Button
 
-Buttons should be compact, direct, and stateful. Icon buttons should use lucide icons when available. Panels should not nest cards inside cards. Workflow surfaces should make current state, inputs, outputs, cost, and errors easy to scan.
+Four primary variants: default (white accent), secondary (tertiary bg), ghost
+(transparent), destructive (danger red). All use `rounded-md` (6px).
 
-## Surfaces
+Ghost buttons are the standard for toolbar/topbar icon actions -- transparent
+background, no border, `hover:bg-hover` on interaction.
 
-Product web and workflow UI should use the shared Tailwind preset, semantic CSS variables, `@genfeedai/styles`, and `@ui/primitives`. Website and marketing pages may use larger editorial type and media-forward composition, but they still use the same surface, spacing, radius, and platform-color language.
+### Card
 
-Docs should look like the product’s public reference surface: warm light mode, near-black dark mode, compact tables, restrained borders, and API method colors only inside Swagger/OpenAPI blocks. Mobile should consume `nativeTokenMap` rather than screen-local palettes. Desktop boot UI should stay minimal and dark, using the wordmark as the brand signal. Extensions should respect host-platform constraints while preserving Genfeed status, spacing, and platform-color semantics. CLI output should be quiet, semantic, and monochrome-first; accent color is for primary Genfeed actions only.
+`bg-secondary` background with `shadow-border` containment. Hover lifts to
+`shadow-border-strong`. Stat cards support semantic tones via `bg-{color}/5` tinting.
+
+### Sidebar
+
+`bg-primary` background with `border-r border-border` structural divider. Menu items
+use ghost button semantics: transparent bg, `hover:bg-white/[0.06]`, active state =
+`bg-white/[0.06] text-foreground`. Section labels: `10px uppercase tracking-[0.15em]
+text-white/30`.
+
+### App Switcher
+
+Google-style popover grid (3 columns). Icon + label per cell. Opens from topbar ghost
+trigger button. Grouped into Content and Tools sections with a subtle divider.
+
+### Dropdown
+
+`bg-secondary` with `shadow-dropdown`. Items use `rounded-sm` (2px) with `hover:bg-hover`.
+Inline margin `mx-1` insets items from panel edges.
 
 ## Do's and Don'ts
 
-Do use semantic tokens from `@genfeedai/ui`, `@genfeedai/styles`, and the shared Tailwind preset. Do keep product UI dark-first. Do check light mode when adding public or shared components. Do use platform colors only as identifiers.
-
-Don't add raw HTML form/control elements in production TSX. Don't introduce a second theme system, hard-code broad palettes, or use large decorative gradients as the core product surface. Don't make app workflows feel like landing pages.
+- **Do** use background layering for hierarchy instead of heavy borders.
+- **Do** use inset `box-shadow` borders on elevated surfaces (cards, dialogs, dropdowns).
+- **Do** use `border-border` token for structural dividers (sidebar edges, header bottoms).
+- **Do** use ghost buttons for toolbar/topbar actions.
+- **Do** use semantic status colors consistently across all surfaces.
+- **Do** use `-0.01em` letter-spacing on body, tighter on headings.
+- **Don't** use CSS `border` for card/dialog/dropdown containment -- use inset `box-shadow`.
+- **Don't** mix hardcoded colors with token references.
+- **Don't** use `accent` for status indication -- it's for primary CTAs only.
+- **Don't** add new semantic colors without updating this DESIGN.md.
+- **Don't** use large decorative gradients as core product surfaces.
+- **Don't** nest cards inside cards.

@@ -24,8 +24,8 @@ import { HiOutlineUsers, HiUserPlus } from 'react-icons/hi2';
 function MembersListContent() {
   const notificationsService = NotificationsService.getInstance();
   const { organizationId } = useBrand();
-  const { get } = useSearchParams();
-  const currentPage = Number(get('page')) || 1;
+  const searchParams = useSearchParams();
+  const currentPage = Number(searchParams.get('page')) || 1;
 
   const getMembersService = useAuthedService(
     useCallback((token: string) => MembersService.getInstance(token), []),

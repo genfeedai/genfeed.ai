@@ -398,20 +398,38 @@ export default function ModalPostPlatformsTab({
                         }}
                       >
                         {/* Image Post */}
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <RadioGroupItem value="image" />
+                        <label
+                          className="flex items-center gap-2 cursor-pointer"
+                          htmlFor={`${config.credentialId}-instagram-image`}
+                        >
+                          <RadioGroupItem
+                            id={`${config.credentialId}-instagram-image`}
+                            value="image"
+                          />
                           <span className="text-sm">Image Post</span>
                         </label>
 
                         {/* Reel Only */}
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <RadioGroupItem value="video-only" />
+                        <label
+                          className="flex items-center gap-2 cursor-pointer"
+                          htmlFor={`${config.credentialId}-instagram-video-only`}
+                        >
+                          <RadioGroupItem
+                            id={`${config.credentialId}-instagram-video-only`}
+                            value="video-only"
+                          />
                           <span className="text-sm">Reel only</span>
                         </label>
 
                         {/* Reel + Feed */}
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <RadioGroupItem value="video-feed" />
+                        <label
+                          className="flex items-center gap-2 cursor-pointer"
+                          htmlFor={`${config.credentialId}-instagram-video-feed`}
+                        >
+                          <RadioGroupItem
+                            id={`${config.credentialId}-instagram-video-feed`}
+                            value="video-feed"
+                          />
                           <span className="text-sm">Reel + Feed</span>
                         </label>
                       </RadioGroup>

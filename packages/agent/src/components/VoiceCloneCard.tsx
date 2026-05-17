@@ -370,7 +370,7 @@ export function VoiceCloneCard({
       {status === 'cloning' && progress > 0 && progress < 100 && (
         <div className="mt-3">
           <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
-            <span>Cloning in progress...</span>
+            <span>Cloning in progress…</span>
             <span>{progress}%</span>
           </div>
           <div className="h-2 overflow-hidden rounded-full bg-muted">

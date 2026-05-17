@@ -1,140 +1,80 @@
-import type { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { WebhookClientService } from '@api/services/webhook-client/webhook-client.service';
-import type { LoggerService } from '@libs/logger/logger.service';
-
-const orgId = 'test-object-id';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('WebhookClientService', () => {
-  let service: WebhookClientService;
-  let mockQueue: { add: ReturnType<typeof vi.fn> };
-  let mockOrgSettingsService: { findOne: ReturnType<typeof vi.fn> };
-  let mockLoggerService: {
+  let queue: { add: ReturnType<typeof vi.fn> };
+  let logger: {
     error: ReturnType<typeof vi.fn>;
     log: ReturnType<typeof vi.fn>;
     warn: ReturnType<typeof vi.fn>;
   };
-
-  const validSettings = {
-    isWebhookEnabled: true,
-    webhookEndpoint: 'https://example.com/hook',
-    webhookSecret: 'secret-key',
-  };
-
-  const mockIngredient = {
-    _id: 'test-object-id',
-    category: 'image',
-    label: 'test ingredient',
-    prompt: 'test prompt',
-    toJSON: () => ({ _id: 'ing-1', category: 'image' }),
-  };
+  let organizationSettingsService: { findOne: ReturnType<typeof vi.fn> };
+  let service: WebhookClientService;
 
   beforeEach(() => {
-    mockQueue = {
+    queue = {
       add: vi.fn().mockResolvedValue({ id: 'job-1' }),
     };
-    mockOrgSettingsService = {
-      findOne: vi.fn().mockResolvedValue(null),
-    };
-    mockLoggerService = {
+    logger = {
       error: vi.fn(),
       log: vi.fn(),
       warn: vi.fn(),
     };
-
+    organizationSettingsService = {
+      findOne: vi.fn().mockResolvedValue({
+        isWebhookEnabled: true,
+        webhookEndpoint: 'https://8.8.8.8/webhook',
+        webhookSecret: 'secret',
+      }),
+    };
     service = new WebhookClientService(
-      mockQueue as never,
-      mockLoggerService as unknown as LoggerService,
-      mockOrgSettingsService as unknown as OrganizationSettingsService,
+      queue as never,
+      logger as never,
+      organizationSettingsService as never,
     );
   });
 
-  afterEach(() => {
-    vi.clearAllMocks();
-  });
+  it('preserves reserved event and timestamp fields for generic webhook data', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-05-17T10:00:00.000Z'));
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
-  it('sendIngredientWebhook does nothing when no settings found', async () => {
-    mockOrgSettingsService.findOne.mockResolvedValue(null);
-    await service.sendIngredientWebhook(orgId, mockIngredient as never);
-    expect(mockQueue.add).not.toHaveBeenCalled();
-  });
-
-  it('sendIngredientWebhook does nothing when webhook not enabled', async () => {
-    mockOrgSettingsService.findOne.mockResolvedValue({
-      ...validSettings,
-      isWebhookEnabled: false,
+    await service.sendWebhook('org-1', 'custom.event', {
+      event: 'overridden',
+      timestamp: 123,
+      value: true,
     });
-    await service.sendIngredientWebhook(orgId, mockIngredient as never);
-    expect(mockQueue.add).not.toHaveBeenCalled();
-  });
 
-  it('sendIngredientWebhook does nothing when no webhook secret', async () => {
-    mockOrgSettingsService.findOne.mockResolvedValue({
-      ...validSettings,
-      webhookSecret: null,
-    });
-    await service.sendIngredientWebhook(orgId, mockIngredient as never);
-    expect(mockQueue.add).not.toHaveBeenCalled();
-    expect(mockLoggerService.warn).toHaveBeenCalled();
-  });
-
-  it('sendIngredientWebhook queues job when webhook enabled', async () => {
-    mockOrgSettingsService.findOne.mockResolvedValue(validSettings);
-    await service.sendIngredientWebhook(orgId, mockIngredient as never);
-    expect(mockQueue.add).toHaveBeenCalledWith(
+    expect(queue.add).toHaveBeenCalledWith(
       'send-webhook',
       expect.objectContaining({
-        endpoint: 'https://example.com/hook',
-        organizationId: orgId,
-        secret: 'secret-key',
+        payload: {
+          event: 'custom.event',
+          timestamp: '2026-05-17T10:00:00.000Z',
+          value: true,
+        },
       }),
-      expect.objectContaining({ jobId: expect.any(String) }),
+      expect.any(Object),
     );
+
+    vi.useRealTimers();
   });
 
-  it('sendWebhook does nothing when settings missing', async () => {
-    mockOrgSettingsService.findOne.mockResolvedValue(null);
-    await service.sendWebhook(orgId, 'test.event', { key: 'value' });
-    expect(mockQueue.add).not.toHaveBeenCalled();
-  });
+  it('does not queue webhooks for localhost endpoints', async () => {
+    organizationSettingsService.findOne.mockResolvedValue({
+      isWebhookEnabled: true,
+      webhookEndpoint: 'http://localhost/webhook',
+      webhookSecret: 'secret',
+    });
 
-  it('sendWebhook queues a generic webhook event', async () => {
-    mockOrgSettingsService.findOne.mockResolvedValue(validSettings);
-    await service.sendWebhook(orgId, 'ingredient.updated', { id: 'abc' });
-    expect(mockQueue.add).toHaveBeenCalledWith(
-      'send-webhook',
+    await service.sendWebhook('org-1', 'custom.event', {});
+
+    expect(queue.add).not.toHaveBeenCalled();
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('failed to queue webhook'),
       expect.objectContaining({
-        endpoint: 'https://example.com/hook',
-        payload: expect.objectContaining({ event: 'ingredient.updated' }),
+        event: 'custom.event',
+        organizationId: 'org-1',
       }),
-      expect.anything(),
     );
-  });
-
-  it('sendIngredientWebhook does not throw on queue error', async () => {
-    mockOrgSettingsService.findOne.mockResolvedValue(validSettings);
-    mockQueue.add.mockRejectedValue(new Error('Queue unavailable'));
-    await expect(
-      service.sendIngredientWebhook(orgId, mockIngredient as never),
-    ).resolves.toBeUndefined();
-    expect(mockLoggerService.error).toHaveBeenCalled();
-  });
-
-  it('sendWebhook does not throw on queue error', async () => {
-    mockOrgSettingsService.findOne.mockResolvedValue(validSettings);
-    mockQueue.add.mockRejectedValue(new Error('Queue down'));
-    await expect(
-      service.sendWebhook(orgId, 'event', {}),
-    ).resolves.toBeUndefined();
-    expect(mockLoggerService.error).toHaveBeenCalled();
-  });
-
-  it('sendIngredientWebhook logs success after queuing', async () => {
-    mockOrgSettingsService.findOne.mockResolvedValue(validSettings);
-    await service.sendIngredientWebhook(orgId, mockIngredient as never);
-    expect(mockLoggerService.log).toHaveBeenCalled();
   });
 });

@@ -99,7 +99,7 @@ export default function HostContent() {
               <div className="text-surface/20 text-xs font-black uppercase tracking-widest mb-6">
                 01 / Quick Start
               </div>
-              <h2 className="text-2xl font-bold mb-4">
+              <h2 className="text-2xl font-semibold mb-4">
                 Get running in under 5 minutes
               </h2>
               <p className="text-surface/50 mb-8 max-w-xl">
@@ -143,7 +143,7 @@ export default function HostContent() {
                   rel="noopener noreferrer"
                 >
                   View Full Guide
-                  <LuArrowRight className="h-4 w-4" />
+                  <LuArrowRight className="size-4" />
                 </a>
               </Button>
             </NeuralGridItem>
@@ -189,7 +189,7 @@ export default function HostContent() {
                   padding="lg"
                   tierLabel={`${String(index + 1).padStart(2, '0')} / ${req.shortLabel}`}
                 >
-                  <h3 className="text-2xl font-bold mb-6">{req.label}</h3>
+                  <h3 className="text-2xl font-semibold mb-6">{req.label}</h3>
                   <FeatureList
                     features={[
                       `CPU: ${req.cpu}`,
@@ -219,7 +219,7 @@ export default function HostContent() {
                 align="center"
                 tierLabel={String(index + 1).padStart(2, '0')}
               >
-                <h3 className="text-lg font-bold mb-4">{option.name}</h3>
+                <h3 className="text-lg font-semibold mb-4">{option.name}</h3>
                 <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-fill/10 text-surface/60">
                   {option.difficulty}
                 </span>

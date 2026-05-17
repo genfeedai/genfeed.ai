@@ -4,6 +4,7 @@ export {
 } from '@ui/shell/AppHtmlDocument';
 export { default as AppShell } from '@ui/shell/AppShell';
 export { AppSwitcher } from '@ui/shell/app-switcher/AppSwitcher';
+export { MergedSwitcher } from '@ui/shell/merged-switcher/MergedSwitcher';
 export {
   type CreateAppMetadataOptions,
   createAppMetadata,

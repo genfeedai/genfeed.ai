@@ -17,6 +17,7 @@ import SidebarBrandRail from '@ui/menus/sidebar-brand-rail/SidebarBrandRail';
 import SidebarNested from '@ui/menus/sidebar-nested/SidebarNested';
 import UserDropdown from '@ui/menus/user-dropdown/UserDropdown';
 import { Button } from '@ui/primitives/button';
+import { AppSwitcher } from '@ui/shell/app-switcher/AppSwitcher';
 
 import Image from 'next/image';
 import Link from 'next/link';
@@ -35,7 +36,6 @@ import {
   HiOutlineDocumentText,
   HiPlus,
 } from 'react-icons/hi2';
-import { PiSidebarSimple, PiSidebarSimpleFill } from 'react-icons/pi';
 
 /** Single-column sidebar width */
 const SIDEBAR_WIDTH = 240;
@@ -87,6 +87,7 @@ function WorkspaceInboxMenuItem({
 
 export default function MenuShared({
   config,
+  currentApp,
   onClose,
   renderTopSlot,
   renderBody,
@@ -305,7 +306,7 @@ export default function MenuShared({
         {groups.map((group, groupIndex) => (
           <div key={group.group || `ungrouped-${groupIndex}`}>
             {group.items[0]?.hasDividerAbove && (
-              <div className="my-2 border-t border-white/[0.08]" />
+              <div className="my-2 border-t border-border" />
             )}
             <CollapsibleGroup
               label={group.group}
@@ -320,12 +321,15 @@ export default function MenuShared({
                 />
               ) : (
                 <ul className="flex flex-col gap-px">
-                  {group.items.map((item, index) =>
-                    isWorkspaceShell &&
-                    item.href?.startsWith('/workspace/inbox') ? (
+                  {group.items.map((item, index) => {
+                    const itemHref = prefixHref(item);
+                    const itemKey = itemHref ?? `${item.label}-${index}`;
+
+                    return isWorkspaceShell &&
+                      item.href?.startsWith('/workspace/inbox') ? (
                       <WorkspaceInboxMenuItem
-                        key={item.href || `item-${index}`}
-                        href={prefixHref(item)}
+                        key={itemKey}
+                        href={itemHref}
                         isActive={isActiveItem(item)}
                         isComingSoon={item.isComingSoon}
                         label={item.label}
@@ -335,8 +339,8 @@ export default function MenuShared({
                       />
                     ) : (
                       <MenuItem
-                        key={item.href || `item-${index}`}
-                        href={prefixHref(item)}
+                        key={itemKey}
+                        href={itemHref}
                         label={item.label}
                         icon={item.icon}
                         outline={item.outline}
@@ -347,8 +351,8 @@ export default function MenuShared({
                         variant="icon"
                         isCollapsed={false}
                       />
-                    ),
-                  )}
+                    );
+                  })}
                 </ul>
               )}
             </CollapsibleGroup>
@@ -394,24 +398,28 @@ export default function MenuShared({
     secondaryItems.length > 0 ? (
       <div
         data-testid="sidebar-secondary-items"
-        className="mt-3 border-t border-white/[0.08] pt-2"
+        className="mt-3 border-t border-border pt-2"
       >
         <ul className="flex flex-col gap-px">
-          {secondaryItems.map((item, index) => (
-            <MenuItem
-              key={item.href || `secondary-${index}`}
-              href={prefixHref(item)}
-              label={item.label}
-              icon={item.icon}
-              outline={item.outline}
-              solid={item.solid}
-              isActive={isActiveItem(item)}
-              isComingSoon={item.isComingSoon}
-              onClick={handleLinkClick}
-              variant="icon"
-              isCollapsed={false}
-            />
-          ))}
+          {secondaryItems.map((item, index) => {
+            const itemHref = prefixHref(item);
+
+            return (
+              <MenuItem
+                key={itemHref ?? `${item.label}-${index}`}
+                href={itemHref}
+                label={item.label}
+                icon={item.icon}
+                outline={item.outline}
+                solid={item.solid}
+                isActive={isActiveItem(item)}
+                isComingSoon={item.isComingSoon}
+                onClick={handleLinkClick}
+                variant="icon"
+                isCollapsed={false}
+              />
+            );
+          })}
         </ul>
       </div>
     ) : null;
@@ -470,7 +478,7 @@ export default function MenuShared({
       variant={ButtonVariant.UNSTYLED}
       withWrapper={false}
       onClick={onToggleCollapse}
-      className="group flex size-7 flex-shrink-0 items-center justify-center rounded border border-border bg-background-secondary text-foreground/56 cursor-pointer transition-colors hover:border-border-strong hover:bg-background-tertiary"
+      className="flex size-7 flex-shrink-0 items-center justify-center rounded-md bg-transparent text-foreground/72 cursor-pointer transition-colors hover:bg-white/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
       ariaLabel={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
     >
       <span className="relative flex size-4 items-center justify-center">
@@ -478,17 +486,14 @@ export default function MenuShared({
           <Image
             src={logoUrl}
             alt={EnvironmentService.LOGO_ALT}
-            className="size-4 object-contain dark:invert transition-opacity duration-200 group-hover:opacity-0"
+            className="size-4 object-contain dark:invert"
             width={16}
             height={16}
             sizes="16px"
           />
-        ) : isCollapsed ? (
-          <PiSidebarSimple className="size-4 transition-opacity duration-200 group-hover:opacity-0" />
         ) : (
-          <PiSidebarSimpleFill className="size-4 transition-opacity duration-200 group-hover:opacity-0" />
+          <span className="text-sm font-bold leading-none">G</span>
         )}
-        <PiSidebarSimple className="absolute size-4 opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
       </span>
     </Button>
   ) : null;
@@ -497,24 +502,23 @@ export default function MenuShared({
   return (
     <div
       data-testid="sidebar-shell"
-      className="flex h-full min-h-0 flex-1 flex-shrink-0 bg-transparent"
+      className={cn(
+        'flex h-full min-h-0 flex-1 flex-shrink-0',
+        shellChromeVariant === 'transparent'
+          ? 'bg-transparent'
+          : 'bg-background',
+      )}
       style={{
         minWidth:
-          isWorkspaceShell && isCollapsed
-            ? WORKSPACE_BRAND_RAIL_WIDTH
-            : (isWorkspaceShell ? WORKSPACE_BRAND_RAIL_WIDTH : 0) +
-              SIDEBAR_WIDTH,
+          (isWorkspaceShell ? WORKSPACE_BRAND_RAIL_WIDTH : 0) + SIDEBAR_WIDTH,
         width:
-          isWorkspaceShell && isCollapsed
-            ? WORKSPACE_BRAND_RAIL_WIDTH
-            : (isWorkspaceShell ? WORKSPACE_BRAND_RAIL_WIDTH : 0) +
-              SIDEBAR_WIDTH,
+          (isWorkspaceShell ? WORKSPACE_BRAND_RAIL_WIDTH : 0) + SIDEBAR_WIDTH,
       }}
     >
       {isWorkspaceShell ? (
         <div
           data-testid="sidebar-brand-rail"
-          className="flex h-full w-16 flex-col border-r border-white/[0.06] bg-transparent"
+          className="flex h-full w-16 flex-col border-r border-border bg-transparent"
         >
           <div className="flex h-12 items-center justify-center border-b border-border">
             {sharedCollapseControl}
@@ -535,19 +539,34 @@ export default function MenuShared({
             : undefined
         }
       >
-        {!isWorkspaceShell ? (
+        {!isWorkspaceShell && (
           <div
             data-testid="sidebar-header-shell"
             className={cn(
               'flex h-12 flex-shrink-0 items-center gap-2 px-3',
-              shellChromeVariant === 'default' &&
-                'border-b border-white/[0.06]',
+              shellChromeVariant === 'default' && 'border-b border-border',
             )}
           >
             {sharedCollapseControl}
             <div className="flex-1" />
+            {currentApp && orgSlug && (
+              <AppSwitcher
+                currentApp={currentApp}
+                orgSlug={orgSlug}
+                brandSlug={brandSlug}
+              />
+            )}
           </div>
-        ) : null}
+        )}
+        {isWorkspaceShell && currentApp && orgSlug && (
+          <div className="flex h-12 flex-shrink-0 items-center justify-end px-3 border-b border-border">
+            <AppSwitcher
+              currentApp={currentApp}
+              orgSlug={orgSlug}
+              brandSlug={brandSlug}
+            />
+          </div>
+        )}
 
         {/* Body — fades out when collapsed, pointer-events disabled */}
         <div
@@ -629,21 +648,25 @@ export default function MenuShared({
           ) : showPrimaryItems && primaryItems.length > 0 ? (
             <div className="px-3 pt-2 pb-1">
               <ul className="flex flex-col gap-1">
-                {primaryItems.map((item, index) => (
-                  <MenuItem
-                    key={item.href || `primary-${index}`}
-                    href={prefixHref(item)}
-                    label={item.label}
-                    icon={item.icon}
-                    outline={item.outline}
-                    solid={item.solid}
-                    isActive={isActiveItem(item)}
-                    isComingSoon={item.isComingSoon}
-                    onClick={handleLinkClick}
-                    variant="icon"
-                    isCollapsed={false}
-                  />
-                ))}
+                {primaryItems.map((item, index) => {
+                  const itemHref = prefixHref(item);
+
+                  return (
+                    <MenuItem
+                      key={itemHref ?? `${item.label}-${index}`}
+                      href={itemHref}
+                      label={item.label}
+                      icon={item.icon}
+                      outline={item.outline}
+                      solid={item.solid}
+                      isActive={isActiveItem(item)}
+                      isComingSoon={item.isComingSoon}
+                      onClick={handleLinkClick}
+                      variant="icon"
+                      isCollapsed={false}
+                    />
+                  );
+                })}
               </ul>
             </div>
           ) : null}
@@ -728,7 +751,7 @@ export default function MenuShared({
                           </span>
                           <Kbd
                             variant="ghost"
-                            className="ml-auto rounded-md border border-white/[0.08] bg-white/[0.03] text-[10px] text-foreground/36 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+                            className="ml-auto rounded-md border border-border bg-white/[0.03] text-[10px] text-foreground/36 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
                           >
                             ⌘⇧N
                           </Kbd>
@@ -773,14 +796,14 @@ function SidebarUserProfile({
 
   if (isCollapsed) {
     return (
-      <div className="border-t border-white/[0.06] p-3 flex justify-center">
+      <div className="border-t border-border p-3 flex justify-center">
         {isSignedIn ? <UserButton /> : null}
       </div>
     );
   }
 
   return (
-    <div className="border-t border-white/[0.06] p-3">
+    <div className="border-t border-border p-3">
       <div className="flex items-center gap-2.5">
         {isSignedIn ? <UserButton /> : null}
         <div className="min-w-0 flex-1">

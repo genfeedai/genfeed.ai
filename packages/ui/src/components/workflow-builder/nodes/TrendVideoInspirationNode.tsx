@@ -171,7 +171,7 @@ function TrendVideoInspirationNodeComponent({
 
       {/* Options */}
       <div className="space-y-2">
-        <label className="flex items-center gap-2 text-sm">
+        <div className="flex items-center gap-2 text-sm">
           <Checkbox
             checked={data.auto}
             onCheckedChange={(checked) =>
@@ -179,9 +179,9 @@ function TrendVideoInspirationNodeComponent({
             }
             aria-label="Auto-select top trend"
           />
-          Auto-select top trend
-        </label>
-        <label className="flex items-center gap-2 text-sm">
+          <span>Auto-select top trend</span>
+        </div>
+        <div className="flex items-center gap-2 text-sm">
           <Checkbox
             checked={data.includeOriginalHook}
             onCheckedChange={(checked) =>
@@ -189,8 +189,8 @@ function TrendVideoInspirationNodeComponent({
             }
             aria-label="Include original hook as reference"
           />
-          Include original hook as reference
-        </label>
+          <span>Include original hook as reference</span>
+        </div>
       </div>
 
       {/* Generate Button */}

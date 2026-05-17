@@ -84,4 +84,37 @@ describe('RolesGuard', () => {
     await expect(guard.canActivate(context)).rejects.toThrow(HttpException);
     expect(mockMembersService.findOne).not.toHaveBeenCalled();
   });
+
+  it('accepts cuid2 organization and user context', async () => {
+    vi.spyOn(reflector, 'get').mockReturnValue(undefined);
+    mockMembersService.findOne.mockResolvedValue({ id: 'member-1' });
+
+    const organizationId = 'b13yktd0f1e38me3f55swu0n';
+    const userId = 'hkh2jbovtpcsrzw3oyxr11oj';
+    const context = {
+      getClass: vi.fn(),
+      getHandler: vi.fn(),
+      switchToHttp: () => ({
+        getRequest: () => ({
+          body: {},
+          params: { organizationId },
+          user: {
+            publicMetadata: {
+              organization: organizationId,
+              user: userId,
+            },
+          },
+        }),
+      }),
+    } as unknown as ExecutionContext;
+
+    await expect(guard.canActivate(context)).resolves.toBe(true);
+    expect(mockMembersService.findOne).toHaveBeenCalledWith(
+      expect.objectContaining({
+        organization: organizationId,
+        user: userId,
+      }),
+      expect.any(Array),
+    );
+  });
 });

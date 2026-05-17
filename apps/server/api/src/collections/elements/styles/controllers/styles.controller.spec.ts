@@ -98,7 +98,7 @@ describe('ElementsStylesController', () => {
           isDeleted: false,
           OR: expect.arrayContaining([
             expect.objectContaining({
-              organization: expect.any(String),
+              organizationId: expect.any(String),
             }),
           ]),
         }),

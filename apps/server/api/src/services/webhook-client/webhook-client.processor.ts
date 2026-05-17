@@ -4,8 +4,8 @@ import { HttpService } from '@nestjs/axios';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { firstValueFrom } from 'rxjs';
-
 import type { WebhookJobData } from './webhook-client-job.interface';
+import { assertSafeWebhookEndpoint } from './webhook-endpoint.validator';
 
 @Processor('webhook-client')
 export class WebhookClientProcessor extends WorkerHost {
@@ -31,6 +31,7 @@ export class WebhookClientProcessor extends WorkerHost {
     });
 
     try {
+      await assertSafeWebhookEndpoint(endpoint);
       await job.updateProgress(10);
 
       const payloadString = JSON.stringify(payload);
@@ -52,6 +53,7 @@ export class WebhookClientProcessor extends WorkerHost {
             'X-Genfeed-Event': payload.event,
             'X-Genfeed-Signature': `sha256=${signature}`,
           },
+          maxRedirects: 0,
           timeout: 30000, // 30 second timeout
           validateStatus: (status) => status < 500, // Retry on 5xx, not 4xx
         }),

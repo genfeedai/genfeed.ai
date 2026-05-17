@@ -15,7 +15,13 @@ export async function generateStaticParams(): Promise<{ slug: string }[]> {
       sortBy: 'publishedAt',
       sortOrder: 'desc',
     });
-    return articles.filter((a) => a.slug).map((a) => ({ slug: a.slug }));
+    return articles.reduce<Array<{ slug: string }>>((params, article) => {
+      if (article.slug) {
+        params.push({ slug: article.slug });
+      }
+
+      return params;
+    }, []);
   } catch {
     return [];
   }

@@ -20,9 +20,9 @@ export default function LandingTopbar({
     <header
       className="fixed inset-x-0 top-0 z-50 w-full border-b border-white/10"
       style={{
-        backdropFilter: 'blur(24px)',
+        backdropFilter: 'blur(8px)',
         backgroundColor: 'rgba(9, 9, 11, 0.72)',
-        WebkitBackdropFilter: 'blur(24px)',
+        WebkitBackdropFilter: 'blur(8px)',
       }}
     >
       <div className="container mx-auto flex h-20 items-center justify-between px-6">

@@ -115,7 +115,7 @@ export default function FeaturesNew() {
               >
                 <div className="flex items-center justify-center mb-6">
                   <div className="p-4 bg-fill/10">
-                    <Icon className="h-8 w-8 text-surface" />
+                    <Icon className="size-8 text-surface" />
                   </div>
                 </div>
 
@@ -142,7 +142,7 @@ export default function FeaturesNew() {
           >
             <Link href="/features">
               See all features
-              <HiArrowRight className="h-4 w-4" />
+              <HiArrowRight className="size-4" />
             </Link>
           </Button>
         </div>

@@ -598,9 +598,13 @@ function PostsWritePageContent() {
             />
           </div>
 
-          <label className="grid gap-2 text-sm text-foreground/75">
+          <label
+            className="grid gap-2 text-sm text-foreground/75"
+            htmlFor="post-compose-prompt"
+          >
             <span>Prompt</span>
             <Textarea
+              id="post-compose-prompt"
               value={prompt}
               onChange={(event) => setPrompt(event.target.value)}
               placeholder="Describe the post you want to generate..."
@@ -608,9 +612,13 @@ function PostsWritePageContent() {
             />
           </label>
 
-          <label className="grid gap-2 text-sm text-foreground/75">
+          <label
+            className="grid gap-2 text-sm text-foreground/75"
+            htmlFor="post-compose-draft-content"
+          >
             <span>Draft content</span>
             <Textarea
+              id="post-compose-draft-content"
               value={localContent}
               onChange={(event) => setLocalContent(event.target.value)}
               placeholder="Write the post here if you just want a clean composer and a copy button."

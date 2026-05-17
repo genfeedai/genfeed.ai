@@ -15,8 +15,8 @@ import { Suspense, useCallback, useEffect, useState } from 'react';
 
 function ScenesListContent() {
   const notificationsService = NotificationsService.getInstance();
-  const { get } = useSearchParams();
-  const currentPage = Number(get('page')) || 1;
+  const searchParams = useSearchParams();
+  const currentPage = Number(searchParams.get('page')) || 1;
 
   const getScenesService = useAuthedService(
     useCallback((token: string) => ScenesService.getInstance(token), []),

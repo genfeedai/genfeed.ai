@@ -3,10 +3,13 @@
 import { SidebarNavigationProvider } from '@genfeedai/contexts/ui/sidebar-navigation-context';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { useThemeLogo } from '@genfeedai/hooks/ui/use-theme-logo/use-theme-logo';
 import type { AppLayoutProps } from '@genfeedai/props/layout/app-layout.props';
 import type { TopbarProps } from '@genfeedai/props/navigation/topbar.props';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
 import { Button } from '@ui/primitives/button';
+import Image from 'next/image';
 import {
   type CSSProperties,
   cloneElement,
@@ -22,7 +25,7 @@ import {
 const EMPTY_ARRAY: never[] = [];
 
 const SIDEBAR_WIDTH = 240;
-const SIDEBAR_COLLAPSED_WIDTH = 48;
+const SIDEBAR_COLLAPSED_WIDTH = 0;
 const AGENT_PANEL_HEIGHT = 380;
 const DESKTOP_TITLEBAR_HEIGHT = 32;
 const SIDEBAR_TRANSITION_DURATION_MS = 300;
@@ -128,19 +131,17 @@ function persistAgentPanelHeight(nextHeight: number): void {
   }
 }
 
-/**
- * Desktop sidebar wrapper — animates width between 240px and 48px with overflow:hidden.
- * MenuShared always renders at full 240px; this container clips content during collapse.
- */
 function DesktopSidebar({
   children,
   collapsedWidth = SIDEBAR_COLLAPSED_WIDTH,
   isCollapsed,
+  shellChromeVariant = 'default',
   width = SIDEBAR_WIDTH,
 }: {
   children: ReactNode;
   collapsedWidth?: number;
   isCollapsed: boolean;
+  shellChromeVariant?: AppLayoutProps['shellChromeVariant'];
   width?: number;
 }) {
   const targetWidth = isCollapsed ? collapsedWidth : width;
@@ -150,7 +151,12 @@ function DesktopSidebar({
       data-testid="desktop-sidebar-rail"
       className={cn(
         'fixed bottom-0 left-0 z-30 hidden flex-col overflow-hidden md:flex',
-        'bg-transparent',
+        shellChromeVariant === 'transparent'
+          ? 'bg-transparent'
+          : 'bg-background',
+        !isCollapsed &&
+          shellChromeVariant !== 'transparent' &&
+          'border-r border-border',
       )}
       style={{
         minWidth: targetWidth,
@@ -161,6 +167,35 @@ function DesktopSidebar({
     >
       {children}
     </aside>
+  );
+}
+
+function CollapsedSidebarLogoToggle({ onClick }: { onClick: () => void }) {
+  const logoUrl = useThemeLogo();
+
+  return (
+    <Button
+      type="button"
+      variant={ButtonVariant.UNSTYLED}
+      withWrapper={false}
+      onClick={onClick}
+      ariaLabel="Expand sidebar"
+      className="fixed left-2 z-[60] hidden size-8 items-center justify-center rounded-md bg-background text-foreground shadow-sm transition-colors hover:bg-background-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 md:flex"
+      style={{ top: 'calc(var(--desktop-titlebar-height) + 0.5rem)' }}
+    >
+      {logoUrl ? (
+        <Image
+          src={logoUrl}
+          alt={EnvironmentService.LOGO_ALT}
+          className="size-4 object-contain dark:invert"
+          width={16}
+          height={16}
+          sizes="16px"
+        />
+      ) : (
+        <span className="text-sm font-bold leading-none">G</span>
+      )}
+    </Button>
   );
 }
 
@@ -283,6 +318,7 @@ export default function AppLayout({
 
       const element = menuComponent as ReactElement<{
         collapsedSidebarWidth?: number;
+        currentApp?: string;
         isCollapsed?: boolean;
         mobileSidebarWidth?: number;
         onClose?: (...args: unknown[]) => void;
@@ -297,6 +333,7 @@ export default function AppLayout({
       return cloneElement(element, {
         ...(element.props as Record<string, unknown>),
         ...extraProps,
+        currentApp,
         isCollapsed:
           (extraProps.isCollapsed as boolean | undefined) ?? isDesktopCollapsed,
         onClose: (...args: unknown[]) => {
@@ -311,7 +348,7 @@ export default function AppLayout({
         onToggleCollapse: handleToggleDesktopSidebar,
       });
     },
-    [menuComponent, handleToggleDesktopSidebar, isDesktopCollapsed],
+    [menuComponent, handleToggleDesktopSidebar, isDesktopCollapsed, currentApp],
   );
 
   const topbarProps: TopbarProps | undefined = useMemo(() => {
@@ -431,10 +468,16 @@ export default function AppLayout({
             <DesktopSidebar
               collapsedWidth={desktopSidebarCollapsedWidth}
               isCollapsed={isDesktopCollapsed}
+              shellChromeVariant={shellChromeVariant}
               width={desktopSidebarExpandedWidth}
             >
               {desktopMenuContent}
             </DesktopSidebar>
+            {isDesktopCollapsed ? (
+              <CollapsedSidebarLogoToggle
+                onClick={handleToggleDesktopSidebar}
+              />
+            ) : null}
 
             {/* Mobile sidebar drawer */}
             <div

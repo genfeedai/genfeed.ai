@@ -196,7 +196,6 @@ import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ServeStaticModule } from '@nestjs/serve-static';
-import { TerminusModule } from '@nestjs/terminus';
 import { SentryModule } from '@sentry/nestjs/setup';
 
 @Module({
@@ -216,7 +215,6 @@ import { SentryModule } from '@sentry/nestjs/setup';
     EventBusModule,
     SentryModule.forRoot(),
     ScheduleModule.forRoot(),
-    TerminusModule,
     FeatureFlagModule,
     SystemModule,
     ServeStaticModule.forRoot({

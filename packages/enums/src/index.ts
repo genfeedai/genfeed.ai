@@ -47,6 +47,7 @@ export * from './file.enum';
 export * from './file-input-type.enum';
 export * from './font.enum';
 export * from './form.enum';
+export * from './generation-type.enum';
 export * from './health.enum';
 export * from './image-format.enum';
 export * from './ingredient.enum';

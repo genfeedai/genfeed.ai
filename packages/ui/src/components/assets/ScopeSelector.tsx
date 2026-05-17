@@ -50,7 +50,7 @@ export function ScopeSelector({
         )}
       >
         {SCOPE_OPTIONS.map((option) => (
-          <label
+          <div
             key={option.value}
             className={cn(
               'flex cursor-pointer items-start gap-3 px-4 py-3 transition-colors',
@@ -99,7 +99,7 @@ export function ScopeSelector({
                 {option.description}
               </p>
             </div>
-          </label>
+          </div>
         ))}
       </RadioGroup>
     </fieldset>

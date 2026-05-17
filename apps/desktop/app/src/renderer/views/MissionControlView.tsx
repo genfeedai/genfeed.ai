@@ -387,7 +387,7 @@ function AgentLabSurface({
           ariaLabel="Close agent lab surface"
           className="text-foreground/60 hover:text-foreground"
         >
-          <HiOutlineXMark className="h-4 w-4" />
+          <HiOutlineXMark className="size-4" />
         </Button>
       </div>
 
@@ -409,13 +409,13 @@ function AgentLabSurface({
 
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto px-4 py-4 pb-44"
+        className="flex-1 overflow-y-auto p-4 pb-44"
         data-testid="agent-lab-messages"
       >
         {messages.length === 0 ? (
           <div className="mx-auto mt-20 max-w-sm text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-              <HiOutlineSparkles className="h-6 w-6" />
+            <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <HiOutlineSparkles className="size-6" />
             </div>
             <h3 className="mt-5 text-xl font-semibold text-foreground">
               Open the conversation from the page
@@ -444,7 +444,7 @@ function AgentLabSurface({
         >
           <AgentChatInput
             onSend={onSend}
-            placeholder="Ask about this Mission Control context..."
+            placeholder="Ask about this Mission Control context…"
           />
         </PromptBarSurfaceRenderer>
       </div>
@@ -457,6 +457,13 @@ function AgentLabSurface({
         <div
           className="pointer-events-auto absolute inset-0 bg-black/45"
           onClick={onClose}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') {
+              onClose();
+            }
+          }}
+          role="button"
+          tabIndex={-1}
         />
         <div className="pointer-events-auto absolute inset-y-0 right-0 flex justify-end">
           {shell}
@@ -723,7 +730,7 @@ export function MissionControlView({
                   onClick={() => setMode('rail')}
                 >
                   <span className="inline-flex items-center gap-2">
-                    <HiOutlineRectangleStack className="h-4 w-4" />
+                    <HiOutlineRectangleStack className="size-4" />
                     Right Rail
                   </span>
                 </Button>
@@ -736,7 +743,7 @@ export function MissionControlView({
                   onClick={() => setMode('overlay')}
                 >
                   <span className="inline-flex items-center gap-2">
-                    <HiOutlineTableCells className="h-4 w-4" />
+                    <HiOutlineTableCells className="size-4" />
                     Overlay Sheet
                   </span>
                 </Button>
@@ -754,7 +761,7 @@ export function MissionControlView({
                   }
                 >
                   <span className="inline-flex items-center gap-2">
-                    <HiOutlineChatBubbleBottomCenterText className="h-4 w-4" />
+                    <HiOutlineChatBubbleBottomCenterText className="size-4" />
                     Ask About This Table
                   </span>
                 </Button>
@@ -781,9 +788,13 @@ export function MissionControlView({
           <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex flex-1 flex-col gap-3 md:flex-row md:items-center">
-                <label className="relative flex-1">
-                  <HiOutlineMagnifyingGlass className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/35" />
+                <label
+                  className="relative flex-1"
+                  htmlFor="mission-control-search"
+                >
+                  <HiOutlineMagnifyingGlass className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-foreground/35" />
                   <Input
+                    id="mission-control-search"
                     value={search}
                     onChange={(event) => setSearch(event.target.value)}
                     className="w-full rounded-xl border border-white/[0.08] bg-background px-10 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-primary/40"
@@ -803,7 +814,7 @@ export function MissionControlView({
                       onClick={() => setStatusFilter(option.value)}
                     >
                       <span className="inline-flex items-center gap-2">
-                        <HiOutlineFunnel className="h-4 w-4" />
+                        <HiOutlineFunnel className="size-4" />
                         {option.label}
                       </span>
                     </Button>
@@ -831,7 +842,7 @@ export function MissionControlView({
                   }}
                 >
                   <span className="inline-flex items-center gap-2">
-                    <HiOutlineCommandLine className="h-4 w-4" />
+                    <HiOutlineCommandLine className="size-4" />
                     Open Empty Surface
                   </span>
                 </Button>
@@ -857,7 +868,7 @@ export function MissionControlView({
                 }
               >
                 <span className="inline-flex items-center gap-2">
-                  <HiOutlineBolt className="h-4 w-4" />
+                  <HiOutlineBolt className="size-4" />
                   Ask Agent About Selected Rows
                 </span>
               </Button>

@@ -51,13 +51,11 @@ interface ExecutionHistoryPanelProps {
 }
 
 const STATUS_ICONS: Record<string, React.ReactNode> = {
-  cancelled: <HiOutlineXMark className="h-4 w-4 text-muted-foreground" />,
-  completed: <HiOutlineCheck className="h-4 w-4 text-green-500" />,
-  failed: <HiOutlineXMark className="h-4 w-4 text-red-500" />,
-  pending: <HiOutlineClock className="h-4 w-4 text-muted-foreground" />,
-  running: (
-    <HiOutlineArrowPath className="h-4 w-4 text-blue-500 animate-spin" />
-  ),
+  cancelled: <HiOutlineXMark className="size-4 text-muted-foreground" />,
+  completed: <HiOutlineCheck className="size-4 text-green-500" />,
+  failed: <HiOutlineXMark className="size-4 text-red-500" />,
+  pending: <HiOutlineClock className="size-4 text-muted-foreground" />,
+  running: <HiOutlineArrowPath className="size-4 text-blue-500 animate-spin" />,
 };
 
 const STATUS_VARIANTS: Record<string, 'ghost' | 'success' | 'error' | 'info'> =
@@ -106,7 +104,7 @@ function ExecutionItem({
             >
               {execution.status}
             </Badge>
-            <span className="text-xs opacity-60">
+            <span className="text-xs opacity-60" suppressHydrationWarning>
               {formatDistanceToNow(new Date(execution.createdAt), {
                 addSuffix: true,
               })}
@@ -132,9 +130,9 @@ function ExecutionItem({
           />
         )}
         {isExpanded ? (
-          <HiOutlineChevronUp className="h-4 w-4" />
+          <HiOutlineChevronUp className="size-4" />
         ) : (
-          <HiOutlineChevronDown className="h-4 w-4" />
+          <HiOutlineChevronDown className="size-4" />
         )}
       </Button>
 
@@ -250,7 +248,7 @@ export default function ExecutionHistoryPanel({
         onClick={onToggleCollapse}
       >
         <div className="flex items-center gap-2">
-          <HiOutlinePlay className="h-4 w-4" />
+          <HiOutlinePlay className="size-4" />
           <span className="font-semibold text-sm">Execution History</span>
         </div>
         <div className="flex items-center gap-2">
@@ -258,9 +256,9 @@ export default function ExecutionHistoryPanel({
             {executions.length}
           </Badge>
           {isCollapsed ? (
-            <HiOutlineChevronDown className="h-4 w-4" />
+            <HiOutlineChevronDown className="size-4" />
           ) : (
-            <HiOutlineChevronUp className="h-4 w-4" />
+            <HiOutlineChevronUp className="size-4" />
           )}
         </div>
       </Button>
@@ -269,7 +267,7 @@ export default function ExecutionHistoryPanel({
         <div className="max-h-80 overflow-y-auto p-4 pt-0 space-y-2">
           {isLoading ? (
             <div className="flex justify-center py-4">
-              <span className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full" />
+              <span className="animate-spin size-4 border-2 border-primary border-t-transparent rounded-full" />
             </div>
           ) : error ? (
             <div className="text-sm text-error text-center py-4">{error}</div>

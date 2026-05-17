@@ -120,7 +120,6 @@ export class ElementsLightingsController extends BaseCRUDController<
       includeStateFilters: true,
       metadata: {
         organization: publicMetadata.organization,
-        user: publicMetadata.user,
       },
       query,
       searchableFields: ['label', 'description', 'key'],

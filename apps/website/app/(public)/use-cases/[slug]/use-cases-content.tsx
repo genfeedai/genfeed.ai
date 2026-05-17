@@ -63,7 +63,7 @@ export default function UseCasesContent({ useCase }: { useCase: UseCase }) {
             <ul className="space-y-4">
               {useCase.painPoints.map((pain: string) => (
                 <li key={pain} className="flex items-start gap-3">
-                  <HiXMark className="w-4 h-4 text-error mt-0.5 shrink-0" />
+                  <HiXMark className="size-4 text-error mt-0.5 shrink-0" />
                   <Text className="text-sm text-surface/65">{pain}</Text>
                 </li>
               ))}
@@ -76,7 +76,7 @@ export default function UseCasesContent({ useCase }: { useCase: UseCase }) {
             <ul className="space-y-4">
               {useCase.solutions.map((solution: string) => (
                 <li key={solution} className="flex items-start gap-3">
-                  <FaCheck className="w-4 h-4 text-success mt-0.5 shrink-0" />
+                  <FaCheck className="size-4 text-success mt-0.5 shrink-0" />
                   <Text className="text-sm text-surface/65">{solution}</Text>
                 </li>
               ))}
@@ -95,7 +95,7 @@ export default function UseCasesContent({ useCase }: { useCase: UseCase }) {
               key={step.step}
               className={`flex items-start gap-5 p-6 ${index > 0 ? 'border-t border-edge/5' : ''}`}
             >
-              <div className="shrink-0 w-8 h-8 flex items-center justify-center bg-fill/10 text-sm font-bold text-surface/50">
+              <div className="shrink-0 size-8 flex items-center justify-center bg-fill/10 text-sm font-bold text-surface/50">
                 {step.step}
               </div>
               <div>
@@ -125,7 +125,7 @@ export default function UseCasesContent({ useCase }: { useCase: UseCase }) {
                 key={result}
                 className="flex items-start gap-3 bg-background p-5"
               >
-                <FaCheck className="w-4 h-4 text-success mt-0.5 shrink-0" />
+                <FaCheck className="size-4 text-success mt-0.5 shrink-0" />
                 <Text className="text-sm text-surface/65">{result}</Text>
               </div>
             ))}

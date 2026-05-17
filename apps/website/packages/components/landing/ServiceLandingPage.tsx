@@ -61,7 +61,7 @@ export default function ServiceLandingPage({
 
             <div className="border border-edge/10 bg-black/30 p-6">
               <div className="mb-4 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-surface/35">
-                <LuCalendarRange className="h-4 w-4" />
+                <LuCalendarRange className="size-4" />
                 {config.fitLabel}
               </div>
               <ul className="space-y-4">
@@ -70,7 +70,7 @@ export default function ServiceLandingPage({
                     key={signal}
                     className="flex gap-3 text-sm text-surface/65"
                   >
-                    <LuBadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-surface/35" />
+                    <LuBadgeCheck className="mt-0.5 size-4 shrink-0 text-surface/35" />
                     <span>{signal}</span>
                   </li>
                 ))}
@@ -132,7 +132,7 @@ export default function ServiceLandingPage({
             {config.includes.map((item) => (
               <div
                 key={item}
-                className="border border-edge/10 px-4 py-4 text-sm text-surface/60"
+                className="border border-edge/10 p-4 text-sm text-surface/60"
               >
                 {item}
               </div>

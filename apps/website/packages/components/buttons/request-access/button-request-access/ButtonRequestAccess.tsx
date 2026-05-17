@@ -39,7 +39,7 @@ export default function ButtonRequestAccess({
     >
       <a href={href} target="_blank" rel="noopener noreferrer">
         {displayLabel}
-        <LuArrowRight className="h-4 w-4" />
+        <LuArrowRight className="size-4" />
       </a>
     </ButtonTracked>
   );

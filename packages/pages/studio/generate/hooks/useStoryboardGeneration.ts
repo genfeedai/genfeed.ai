@@ -15,6 +15,7 @@ import type {
 import {
   buildStoryboardInterpolationPairs,
   getStoryboardCameraPrompt,
+  getStoryboardInterpolationModels,
   resolveStoryboardDuration,
   resolveStoryboardFormat,
   resolveStoryboardModelKey,
@@ -60,6 +61,10 @@ export function useStoryboardGeneration({
     useState<CameraMovementPreset>(DEFAULT_STORYBOARD_PRESET);
   const [customCameraPrompt, setCustomCameraPrompt] = useState('');
   const [isStoryboardGenerating, setIsStoryboardGenerating] = useState(false);
+  const storyboardModels = useMemo(
+    () => getStoryboardInterpolationModels(currentModels),
+    [currentModels],
+  );
 
   useEffect(() => {
     return () => {
@@ -103,10 +108,15 @@ export function useStoryboardGeneration({
       Array.isArray(promptConfig.models) && promptConfig.models.length > 0
         ? promptConfig.models
         : undefined;
-    const modelKey = resolveStoryboardModelKey(currentModels, configuredModels);
+    const modelKey = resolveStoryboardModelKey(
+      storyboardModels,
+      configuredModels,
+    );
 
     if (!modelKey) {
-      notificationsService.error('No video model available for storyboard');
+      notificationsService.error(
+        'No interpolation-capable video model available for storyboard',
+      );
       return;
     }
 
@@ -261,7 +271,6 @@ export function useStoryboardGeneration({
     addToGenerationQueue,
     brandId,
     cameraMovementPreset,
-    currentModels,
     customCameraPrompt,
     findAllAssets,
     frames,
@@ -276,6 +285,7 @@ export function useStoryboardGeneration({
     promptText,
     setGeneratedAssetId,
     subscribe,
+    storyboardModels,
     updateGenerationStatus,
   ]);
 
@@ -286,6 +296,7 @@ export function useStoryboardGeneration({
     customCameraPrompt,
     frames,
     handleGenerateStoryboard,
+    hasInterpolationModel: storyboardModels.length > 0,
     isStoryboardGenerating,
     setCameraMovementPreset,
     setCustomCameraPrompt,

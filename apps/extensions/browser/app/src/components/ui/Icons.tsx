@@ -4,9 +4,7 @@ interface IconProps {
   className?: string;
 }
 
-export function RefreshIcon({
-  className = 'w-4 h-4',
-}: IconProps): ReactElement {
+export function RefreshIcon({ className = 'size-4' }: IconProps): ReactElement {
   return (
     <svg
       aria-hidden="true"
@@ -26,7 +24,7 @@ export function RefreshIcon({
 }
 
 export function ExternalLinkIcon({
-  className = 'w-4 h-4',
+  className = 'size-4',
 }: IconProps): ReactElement {
   return (
     <svg
@@ -46,7 +44,7 @@ export function ExternalLinkIcon({
   );
 }
 
-export function CloseIcon({ className = 'w-4 h-4' }: IconProps): ReactElement {
+export function CloseIcon({ className = 'size-4' }: IconProps): ReactElement {
   return (
     <svg
       aria-hidden="true"
@@ -66,7 +64,7 @@ export function CloseIcon({ className = 'w-4 h-4' }: IconProps): ReactElement {
 }
 
 export function VideoIcon({
-  className = 'h-12 w-12 text-gray-400',
+  className = 'size-12 text-zinc-400',
 }: IconProps): ReactElement {
   return (
     <svg
@@ -87,7 +85,7 @@ export function VideoIcon({
 }
 
 export function PostsIcon({
-  className = 'h-12 w-12 text-gray-400',
+  className = 'size-12 text-zinc-400',
 }: IconProps): ReactElement {
   return (
     <svg
@@ -107,7 +105,7 @@ export function PostsIcon({
   );
 }
 
-export function ViewIcon({ className = 'w-4 h-4' }: IconProps): ReactElement {
+export function ViewIcon({ className = 'size-4' }: IconProps): ReactElement {
   return (
     <svg
       aria-hidden="true"
@@ -126,7 +124,7 @@ export function ViewIcon({ className = 'w-4 h-4' }: IconProps): ReactElement {
   );
 }
 
-export function ReplyIcon({ className = 'w-4 h-4' }: IconProps): ReactElement {
+export function ReplyIcon({ className = 'size-4' }: IconProps): ReactElement {
   return (
     <svg
       aria-hidden="true"
@@ -145,7 +143,7 @@ export function ReplyIcon({ className = 'w-4 h-4' }: IconProps): ReactElement {
   );
 }
 
-export function CreateIcon({ className = 'w-4 h-4' }: IconProps): ReactElement {
+export function CreateIcon({ className = 'size-4' }: IconProps): ReactElement {
   return (
     <svg
       aria-hidden="true"

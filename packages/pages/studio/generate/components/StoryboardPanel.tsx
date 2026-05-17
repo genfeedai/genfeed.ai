@@ -17,6 +17,7 @@ interface StoryboardPanelProps {
   customCameraPrompt: string;
   format: IngredientFormat;
   frames: IImage[];
+  hasInterpolationModel: boolean;
   isGenerating: boolean;
   onCameraMovementPresetChange: (preset: CameraMovementPreset) => void;
   onClear: () => void;
@@ -30,6 +31,7 @@ export function StoryboardPanel({
   customCameraPrompt,
   format,
   frames,
+  hasInterpolationModel,
   isGenerating,
   onCameraMovementPresetChange,
   onClear,
@@ -38,6 +40,11 @@ export function StoryboardPanel({
   onGenerate,
 }: StoryboardPanelProps) {
   const transitionCount = Math.max(0, frames.length - 1);
+  const generateTooltip = !hasInterpolationModel
+    ? 'Select an interpolation-capable video model'
+    : transitionCount === 0
+      ? 'Select at least two frames'
+      : undefined;
 
   return (
     <section className="mb-5 space-y-3" data-testid="storyboard-panel">
@@ -77,10 +84,13 @@ export function StoryboardPanel({
             variant={ButtonVariant.GENERATE}
             size={ButtonSize.SM}
             onClick={onGenerate}
-            isDisabled={isGenerating || transitionCount === 0}
+            isDisabled={
+              isGenerating || transitionCount === 0 || !hasInterpolationModel
+            }
             isLoading={isGenerating}
             icon={<HiSparkles />}
             label="Generate transitions"
+            tooltip={generateTooltip}
           />
         </div>
       </div>

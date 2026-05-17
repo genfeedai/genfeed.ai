@@ -70,9 +70,18 @@ const PAYG_RULES = [
 ] as const;
 
 function getOrderedPlans() {
-  return PLAN_ORDER.map((label) =>
-    websitePlans.find((plan) => plan.label === label),
-  ).filter((plan): plan is (typeof websitePlans)[number] => Boolean(plan));
+  const plansByLabel = new Map(websitePlans.map((plan) => [plan.label, plan]));
+  const orderedPlans: (typeof websitePlans)[number][] = [];
+
+  for (const label of PLAN_ORDER) {
+    const plan = plansByLabel.get(label);
+
+    if (plan) {
+      orderedPlans.push(plan);
+    }
+  }
+
+  return orderedPlans;
 }
 
 function getDisplayName(label: string): string {
@@ -129,7 +138,7 @@ export default function PricingContent() {
             {PAYG_RULES.map((rule) => (
               <div key={rule} className="bg-background px-5 py-4">
                 <div className="flex items-center gap-2 text-sm text-surface/65">
-                  <HiCheckCircle className="h-4 w-4 text-success" />
+                  <HiCheckCircle className="size-4 text-success" />
                   {rule}
                 </div>
               </div>
@@ -172,7 +181,7 @@ export default function PricingContent() {
                 >
                   {isFeatured ? (
                     <div className="absolute right-6 top-6">
-                      <span className="bg-black px-3 py-1 text-[10px] font-black uppercase tracking-widest text-surface">
+                      <span className="bg-zinc-950 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-surface">
                         Default
                       </span>
                     </div>
@@ -212,7 +221,7 @@ export default function PricingContent() {
                       <li key={feature} className="flex items-start gap-3">
                         <HiCheckCircle
                           className={cn(
-                            'mt-0.5 h-4 w-4 shrink-0',
+                            'mt-0.5 size-4 shrink-0',
                             isFeatured ? 'text-inv-fg/35' : 'text-surface/40',
                           )}
                         />
@@ -272,7 +281,7 @@ export default function PricingContent() {
           <Button size={ButtonSize.PUBLIC} asChild>
             <a href={signUpHref} target="_blank" rel="noopener noreferrer">
               Start Cloud App
-              <LuArrowRight className="h-4 w-4" />
+              <LuArrowRight className="size-4" />
             </a>
           </Button>
           <Button

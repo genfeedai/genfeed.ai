@@ -29,7 +29,7 @@ function GitHubLink({
   return (
     <Button variant={variant} asChild className={className}>
       <Link href={href} target="_blank" rel="noopener noreferrer">
-        <FaGithub className="w-5 h-5" />
+        <FaGithub className="size-5" />
         {children}
       </Link>
     </Button>
@@ -168,7 +168,7 @@ export default function ProductPage({ product }: { product: Product }) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div>
                   <div className="flex items-start gap-2 mb-2">
-                    <HiXMark className="w-6 h-6 text-error mt-1 flex-shrink-0" />
+                    <HiXMark className="size-6 text-error mt-1 flex-shrink-0" />
                     <Text weight="bold" className="text-error">
                       Problem
                     </Text>
@@ -179,7 +179,7 @@ export default function ProductPage({ product }: { product: Product }) {
                 </div>
                 <div>
                   <div className="flex items-start gap-2 mb-2">
-                    <FaCheck className="w-6 h-6 text-success mt-1 flex-shrink-0" />
+                    <FaCheck className="size-6 text-success mt-1 flex-shrink-0" />
                     <Text weight="bold" className="text-success">
                       Solution
                     </Text>
@@ -220,7 +220,7 @@ export default function ProductPage({ product }: { product: Product }) {
           <VStack gap={2}>
             {product.targetAudience.map((audience) => (
               <li key={audience} className="flex items-start gap-2 list-none">
-                <FaCheck className="w-4 h-4 text-success mt-1 flex-shrink-0" />
+                <FaCheck className="size-4 text-success mt-1 flex-shrink-0" />
                 <span>{audience}</span>
               </li>
             ))}
@@ -269,7 +269,7 @@ export default function ProductPage({ product }: { product: Product }) {
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    <FaGithub className="w-5 h-5" />
+                    <FaGithub className="size-5" />
                     View Source
                   </Link>
                 </Button>
@@ -285,7 +285,7 @@ export default function ProductPage({ product }: { product: Product }) {
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  <FaGithub className="w-5 h-5" />
+                  <FaGithub className="size-5" />
                   View on GitHub
                 </Link>
               </Button>
@@ -365,7 +365,7 @@ export default function ProductPage({ product }: { product: Product }) {
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  <FaGithub className="w-5 h-5" />
+                  <FaGithub className="size-5" />
                   View on GitHub →
                 </Link>
               </Button>

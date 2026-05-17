@@ -97,7 +97,7 @@ function VerificationPanelInner() {
       {evidence.length === 0 ? (
         <div className="rounded-lg border border-dashed border-white/10 p-6 text-center">
           <p className="text-sm text-white/40">
-            Waiting for verification evidence from the agent...
+            Waiting for verification evidence from the agent…
           </p>
         </div>
       ) : (

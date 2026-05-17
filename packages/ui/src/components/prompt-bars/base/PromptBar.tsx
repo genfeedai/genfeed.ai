@@ -10,6 +10,7 @@ import {
   useUploadModal,
 } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
 import { useAssetSelection } from '@genfeedai/contexts/ui/asset-selection-context';
+import { PromptBarInternalContext } from '@genfeedai/contexts/ui/prompt-bar-internal-context';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { useCurrentUser } from '@genfeedai/contexts/user/user-context/user-context';
 import {
@@ -46,7 +47,6 @@ import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import PromptBarCollapsedView from '@ui/prompt-bars/components/collapsed-view/PromptBarCollapsedView';
 import PromptBarExpandedView from '@ui/prompt-bars/components/expanded-view/PromptBarExpandedView';
-import PromptBarUnifiedView from '@ui/prompt-bars/components/unified-view/PromptBarUnifiedView';
 import {
   getConfigForCategoryType,
   getConfigForRoute,
@@ -81,14 +81,18 @@ function resizeTextarea(
   if (!textarea) {
     return;
   }
-  textarea.style.height = 'auto';
+  Object.assign(textarea.style, { height: 'auto' });
 
   if (textarea.scrollHeight > maxHeight) {
-    textarea.style.height = `${maxHeight}px`;
-    textarea.style.overflowY = 'auto';
+    Object.assign(textarea.style, {
+      height: `${maxHeight}px`,
+      overflowY: 'auto',
+    });
   } else {
-    textarea.style.height = `${textarea.scrollHeight}px`;
-    textarea.style.overflowY = 'hidden';
+    Object.assign(textarea.style, {
+      height: `${textarea.scrollHeight}px`,
+      overflowY: 'hidden',
+    });
   }
 }
 
@@ -180,14 +184,15 @@ function PromptBar({
   onTextChange,
   promptConfig,
   onConfigChange,
-  shellMode = 'legacy-collapsible',
+  features = {},
   suggestions,
   onSuggestionSelect,
   showSuggestionsWhenEmpty = true,
   maxSuggestions = 3,
 }: PromptBarProps) {
   const useSplitState = promptText !== undefined && promptConfig !== undefined;
-  const isUnifiedShell = shellMode === 'studio-unified';
+  const isCollapsible = features.collapsible ?? true;
+  const hasDragDrop = features.dragDrop ?? true;
   const pathname = usePathname();
   const { push } = useRouter();
 
@@ -209,7 +214,7 @@ function PromptBar({
 
   const [selectedPreset, setSelectedPreset] = useState('');
   const [selectedProfile, setSelectedProfile] = useState('');
-  const [isCollapsed, setIsCollapsed] = useState(!isUnifiedShell);
+  const [isCollapsed, setIsCollapsed] = useState(isCollapsible);
   const isAdvancedMode = currentUser?.settings?.isAdvancedMode ?? true;
   const [isAutoMode, setIsAutoMode] = useState(!isAdvancedMode);
   const isAdvancedControlsEnabled = !isAutoMode;
@@ -235,7 +240,7 @@ function PromptBar({
   const [dragError, setDragError] = useState<string | null>(null);
   const dragDepthRef = useRef(0);
 
-  const textareaMaxHeight = isUnifiedShell ? 240 : 300;
+  const textareaMaxHeight = isCollapsible ? 300 : 240;
   const resizePromptTextarea = useCallback(
     (textarea: HTMLTextAreaElement | null) => {
       resizeTextarea(textarea, textareaMaxHeight);
@@ -538,7 +543,7 @@ function PromptBar({
   }, [brandId, form]);
 
   useEffect(() => {
-    if (isUnifiedShell || hasExpandedRef.current) {
+    if (!isCollapsible || hasExpandedRef.current) {
       return;
     }
     const isDataReady = models.length > 0 && currentConfig.defaultModel;
@@ -549,7 +554,7 @@ function PromptBar({
       }, 100);
       return () => clearTimeout(timeoutId);
     }
-  }, [currentConfig.defaultModel, isCollapsed, isUnifiedShell, models.length]);
+  }, [currentConfig.defaultModel, isCollapsed, isCollapsible, models.length]);
 
   useEffect(() => {
     if (filteredBlacklists?.length > 0) {
@@ -816,12 +821,23 @@ function PromptBar({
   const handleSubmitForm = useCallback(
     (e?: FormEvent) => {
       e?.preventDefault();
-      if (onSubmit && !isGenerateDisabled && !isGenerating) {
+      if (
+        onSubmit &&
+        !isGenerateBlocked &&
+        !isGenerateDisabled &&
+        !isGenerating
+      ) {
         flushConfigChange();
         onSubmit();
       }
     },
-    [isGenerateDisabled, isGenerating, onSubmit, flushConfigChange],
+    [
+      isGenerateBlocked,
+      isGenerateDisabled,
+      isGenerating,
+      onSubmit,
+      flushConfigChange,
+    ],
   );
 
   const videoDurations = useMemo(() => {
@@ -851,325 +867,320 @@ function PromptBar({
     'size-9 p-0 flex items-center justify-center !border-transparent !bg-transparent !shadow-none text-white/70 hover:!bg-white/5 hover:!text-white';
   const textareaRegister = form.register('text');
 
+  const internalContextValue = useMemo(
+    () => ({
+      currentConfig,
+      pathname,
+      categoryType,
+      currentModelCategory,
+      features: { collapsible: isCollapsible, dragDrop: hasDragDrop },
+      form,
+      isDisabledState,
+      isGenerateBlocked,
+      controlClass,
+      iconButtonClass,
+      isAdvancedMode,
+      isAdvancedControlsEnabled,
+      isAutoMode,
+      setIsAutoMode,
+      models,
+      trainings,
+      selectedModels,
+      trainingIds,
+      normalizedWatchedModels,
+      watchedModels,
+      watchedModel,
+      watchedFormat,
+      watchedWidth,
+      watchedHeight,
+      watchedDuration,
+      watchedSpeech,
+      watchedQuality,
+      subscriptionTier,
+      isModelNotSet,
+      hasAudioToggleValue: hasAudioToggle,
+      hasSpeechValue: hasSpeech,
+      hasModelWithoutDurationEditingValue: hasModelWithoutDurationEditing,
+      hasAnyResolutionOptionsValue: hasAnyResolutionOptions,
+      hasEndFrameValue: hasEndFrame,
+      hasAnyImagenModelValue: hasAnyImagenModel,
+      isOnlyImagenModelsValue: isOnlyImagenModels,
+      supportsInterpolation,
+      supportsMultipleReferences,
+      requiresReferences,
+      maxReferenceCount,
+      formatIcon,
+      videoDurations,
+      references,
+      setReferences,
+      endFrame,
+      setEndFrame,
+      referenceSource,
+      setReferenceSource,
+      folders,
+      profiles,
+      filteredPresets,
+      filteredScenes,
+      filteredFontFamilies,
+      filteredStyles,
+      filteredCameras,
+      filteredLightings,
+      filteredLenses,
+      filteredCameraMovements,
+      filteredMoods,
+      selectedPreset,
+      setSelectedPreset,
+      selectedProfile,
+      setSelectedProfile,
+      triggerConfigChange,
+      refocusTextarea,
+      handleTextareaChange,
+      onTextChange: handleTextChange,
+      handleCopy,
+      enhancePrompt,
+      handleUndo,
+      handleSubmitForm,
+      suggestions,
+      onSuggestionSelect,
+      showSuggestionsWhenEmpty,
+      maxSuggestions,
+      openGallery: openGallery as unknown as (
+        options: GalleryModalOptions,
+      ) => void,
+      openUpload,
+      textareaRef,
+      textareaRegister,
+      modelDropdownRef,
+      promptBarHeight,
+      getModelDefaultDuration,
+      getDefaultVideoResolution,
+      getMinFromAllModels,
+      getModelMaxOutputs,
+      setTextValue,
+      isSupported: isSupported && settings?.isVoiceControlEnabled !== false,
+      toggleVoice,
+      isRecording,
+      isProcessing,
+      isGenerating,
+      isEnhancing,
+      isGenerateDisabled,
+      previousPrompt,
+      selectedModelCost,
+      activeGenerations,
+      generateLabel,
+      avatars,
+      voices,
+      isDragActive,
+      dragError,
+      attachedPromptAssets,
+      onDragEnter: handlePromptBarDragEnter,
+      onDragLeave: handlePromptBarDragLeave,
+      onDropFiles: handleDroppedFiles,
+      onRemoveAttachedAsset: handleRemoveAttachedAsset,
+      onBrowseAssets: openAttachedAssetsBrowser,
+      isCollapsed,
+      setIsCollapsed,
+    }),
+    [
+      currentConfig,
+      pathname,
+      categoryType,
+      currentModelCategory,
+      isCollapsible,
+      hasDragDrop,
+      form,
+      isDisabledState,
+      isGenerateBlocked,
+      isAdvancedMode,
+      isAdvancedControlsEnabled,
+      isAutoMode,
+      setIsAutoMode,
+      models,
+      trainings,
+      selectedModels,
+      trainingIds,
+      normalizedWatchedModels,
+      watchedModels,
+      watchedModel,
+      watchedFormat,
+      watchedWidth,
+      watchedHeight,
+      watchedDuration,
+      watchedSpeech,
+      watchedQuality,
+      subscriptionTier,
+      isModelNotSet,
+      hasAudioToggle,
+      hasSpeech,
+      hasModelWithoutDurationEditing,
+      hasAnyResolutionOptions,
+      hasEndFrame,
+      hasAnyImagenModel,
+      isOnlyImagenModels,
+      supportsInterpolation,
+      supportsMultipleReferences,
+      requiresReferences,
+      maxReferenceCount,
+      formatIcon,
+      videoDurations,
+      references,
+      setReferences,
+      endFrame,
+      setEndFrame,
+      referenceSource,
+      setReferenceSource,
+      folders,
+      profiles,
+      filteredPresets,
+      filteredScenes,
+      filteredFontFamilies,
+      filteredStyles,
+      filteredCameras,
+      filteredLightings,
+      filteredLenses,
+      filteredCameraMovements,
+      filteredMoods,
+      selectedPreset,
+      setSelectedPreset,
+      selectedProfile,
+      setSelectedProfile,
+      triggerConfigChange,
+      refocusTextarea,
+      handleTextareaChange,
+      handleTextChange,
+      handleCopy,
+      enhancePrompt,
+      handleUndo,
+      handleSubmitForm,
+      suggestions,
+      onSuggestionSelect,
+      showSuggestionsWhenEmpty,
+      maxSuggestions,
+      openGallery,
+      openUpload,
+      textareaRef,
+      textareaRegister,
+      modelDropdownRef,
+      promptBarHeight,
+      getMinFromAllModels,
+      setTextValue,
+      isSupported,
+      settings?.isVoiceControlEnabled,
+      toggleVoice,
+      isRecording,
+      isProcessing,
+      isGenerating,
+      isEnhancing,
+      isGenerateDisabled,
+      previousPrompt,
+      selectedModelCost,
+      activeGenerations,
+      generateLabel,
+      avatars,
+      voices,
+      isDragActive,
+      dragError,
+      attachedPromptAssets,
+      handlePromptBarDragEnter,
+      handlePromptBarDragLeave,
+      handleDroppedFiles,
+      handleRemoveAttachedAsset,
+      openAttachedAssetsBrowser,
+      isCollapsed,
+      setIsCollapsed,
+    ],
+  );
+
   return (
-    <div className="size-full flex flex-col min-h-0 relative">
-      <form
-        onSubmit={handleSubmitForm}
-        className="flex-1 flex flex-col min-h-0"
-      >
-        <div
-          ref={promptBarRef}
-          className={cn(
-            'sticky bottom-0 flex-shrink-0 z-50 flex flex-col transition-all duration-300',
-            isCollapsed ? 'overflow-hidden' : 'overflow-visible',
-          )}
+    <PromptBarInternalContext.Provider value={internalContextValue}>
+      <div className="size-full flex flex-col min-h-0 relative">
+        <form
+          onSubmit={handleSubmitForm}
+          className="flex-1 flex flex-col min-h-0"
         >
-          {isUnifiedShell ? (
-            <PromptBarUnifiedView
-              currentConfig={currentConfig}
-              pathname={pathname}
-              categoryType={categoryType}
-              currentModelCategory={currentModelCategory}
-              form={form}
-              isAutoMode={isAutoMode}
-              setIsAutoMode={setIsAutoMode}
-              isDisabledState={isDisabledState}
-              isGenerateBlocked={isGenerateBlocked}
-              controlClass={controlClass}
-              iconButtonClass={iconButtonClass}
-              isAdvancedMode={isAdvancedMode}
-              isAdvancedControlsEnabled={isAdvancedControlsEnabled}
-              models={models}
-              trainings={trainings}
-              selectedModels={selectedModels}
-              trainingIds={trainingIds}
-              normalizedWatchedModels={normalizedWatchedModels}
-              watchedModels={watchedModels}
-              watchedModel={watchedModel}
-              watchedFormat={watchedFormat}
-              watchedWidth={watchedWidth}
-              watchedHeight={watchedHeight}
-              watchedDuration={watchedDuration}
-              watchedSpeech={watchedSpeech}
-              watchedQuality={watchedQuality}
-              subscriptionTier={subscriptionTier}
-              isModelNotSet={isModelNotSet}
-              hasAudioToggleValue={hasAudioToggle}
-              hasSpeechValue={hasSpeech}
-              hasModelWithoutDurationEditingValue={
-                hasModelWithoutDurationEditing
-              }
-              hasAnyResolutionOptionsValue={hasAnyResolutionOptions}
-              hasEndFrameValue={hasEndFrame}
-              hasAnyImagenModelValue={hasAnyImagenModel}
-              isOnlyImagenModelsValue={isOnlyImagenModels}
-              supportsInterpolation={supportsInterpolation}
-              supportsMultipleReferences={supportsMultipleReferences}
-              requiresReferences={requiresReferences}
-              maxReferenceCount={maxReferenceCount}
-              folders={folders}
-              profiles={profiles}
-              filteredPresets={filteredPresets}
-              filteredScenes={filteredScenes}
-              filteredFontFamilies={filteredFontFamilies}
-              filteredStyles={filteredStyles}
-              filteredCameras={filteredCameras}
-              filteredLightings={filteredLightings}
-              filteredLenses={filteredLenses}
-              filteredCameraMovements={filteredCameraMovements}
-              filteredMoods={filteredMoods}
-              filteredSounds={filteredSounds}
-              filteredBlacklists={filteredBlacklists}
-              references={references}
-              setReferences={setReferences}
-              endFrame={endFrame}
-              setEndFrame={setEndFrame}
-              referenceSource={referenceSource}
-              setReferenceSource={setReferenceSource}
-              selectedPreset={selectedPreset}
-              setSelectedPreset={setSelectedPreset}
-              selectedProfile={selectedProfile}
-              setSelectedProfile={setSelectedProfile}
-              formatIcon={formatIcon}
-              videoDurations={videoDurations}
-              triggerConfigChange={triggerConfigChange}
-              refocusTextarea={refocusTextarea}
-              handleTextareaChange={handleTextareaChange}
-              onTextChange={onTextChange}
-              handleCopy={handleCopy}
-              enhancePrompt={enhancePrompt}
-              handleUndo={handleUndo}
-              handleSubmitForm={handleSubmitForm}
-              suggestions={suggestions}
-              onSuggestionSelect={onSuggestionSelect}
-              showSuggestionsWhenEmpty={showSuggestionsWhenEmpty}
-              maxSuggestions={maxSuggestions}
-              openGallery={
-                openGallery as unknown as (options: GalleryModalOptions) => void
-              }
-              openUpload={openUpload}
-              isDragActive={isDragActive}
-              dragError={dragError}
-              attachedPromptAssets={attachedPromptAssets}
-              onDragEnter={handlePromptBarDragEnter}
-              onDragLeave={handlePromptBarDragLeave}
-              onDropFiles={handleDroppedFiles}
-              onRemoveAttachedAsset={handleRemoveAttachedAsset}
-              onBrowseAssets={openAttachedAssetsBrowser}
-              textareaRef={textareaRef}
-              textareaRegister={textareaRegister}
-              modelDropdownRef={modelDropdownRef}
-              promptBarHeight={promptBarHeight}
-              getModelDefaultDuration={getModelDefaultDuration}
-              getDefaultVideoResolution={getDefaultVideoResolution}
-              getMinFromAllModels={getMinFromAllModels}
-              getModelMaxOutputs={getModelMaxOutputs}
-              setTextValue={setTextValue}
-              isSupported={
-                isSupported && settings?.isVoiceControlEnabled !== false
-              }
-              toggleVoice={toggleVoice}
-              isRecording={isRecording}
-              isProcessing={isProcessing}
-              isGenerating={isGenerating}
-              isEnhancing={isEnhancing}
-              isGenerateDisabled={isGenerateDisabled}
-              previousPrompt={previousPrompt}
-              selectedModelCost={selectedModelCost}
-              activeGenerations={activeGenerations}
-              generateLabel={generateLabel}
-              avatars={avatars}
-              voices={voices}
-            />
-          ) : isCollapsed ? (
-            <PromptBarCollapsedView
-              collapsedInputRef={collapsedInputRef}
-              form={form}
-              placeholder={currentConfig.placeholder}
-              isDisabled={isDisabledState}
-              isGenerateBlocked={isGenerateBlocked}
-              isGenerateDisabled={isGenerateDisabled}
-              isGenerating={isGenerating}
-              selectedModelCost={selectedModelCost}
-              onSubmit={handleSubmitForm}
-              generateLabel={generateLabel}
-              activeGenerationsCount={activeGenerations.length}
-              onExpand={() => setIsCollapsed(false)}
-              isFormValid={form.formState.isValid}
-              isInternalUpdateRef={isInternalUpdateRef}
-              onTextChange={handleTextChange}
-              watchedModel={watchedModel}
-              formatIcon={formatIcon}
-              references={references}
-              referenceSource={referenceSource}
-              outputs={form.watch('outputs') || 1}
-              onOutputsChange={(count) => {
-                form.setValue('outputs', count, { shouldValidate: true });
-                triggerConfigChange();
-              }}
-              categoryType={categoryType}
-              currentModelCategory={currentModelCategory}
-              onCreateVariation={
-                categoryType === IngredientCategory.IMAGE
-                  ? (reference) => {
-                      if (!reference) {
-                        return;
-                      }
-                      const format = watchedFormat || IngredientFormat.PORTRAIT;
-                      push(
-                        buildHref(
-                          `/studio/image?referenceImageId=${reference.id}&format=${format}`,
-                        ),
-                      );
-                    }
-                  : undefined
-              }
-              onFormatChange={
-                categoryType === IngredientCategory.IMAGE ||
-                categoryType === IngredientCategory.VIDEO
-                  ? (nextFormat) => {
-                      if (categoryType === IngredientCategory.IMAGE) {
-                        push(buildHref(`/studio/image?format=${nextFormat}`));
-                      } else if (categoryType === IngredientCategory.VIDEO) {
-                        const aspectRatio =
-                          getAspectRatioFromFormat(nextFormat);
+          <div
+            ref={promptBarRef}
+            className={cn(
+              'sticky bottom-0 flex-shrink-0 z-50 flex flex-col transition-all duration-300',
+              isCollapsed ? 'overflow-hidden' : 'overflow-visible',
+            )}
+          >
+            {isCollapsed && isCollapsible ? (
+              <PromptBarCollapsedView
+                collapsedInputRef={collapsedInputRef}
+                form={form}
+                placeholder={currentConfig.placeholder}
+                isDisabled={isDisabledState}
+                isGenerateBlocked={isGenerateBlocked}
+                isGenerateDisabled={isGenerateDisabled}
+                isGenerating={isGenerating}
+                selectedModelCost={selectedModelCost}
+                onSubmit={handleSubmitForm}
+                generateLabel={generateLabel}
+                activeGenerationsCount={activeGenerations.length}
+                onExpand={() => setIsCollapsed(false)}
+                isFormValid={form.formState.isValid}
+                isInternalUpdateRef={isInternalUpdateRef}
+                onTextChange={handleTextChange}
+                watchedModel={watchedModel}
+                formatIcon={formatIcon}
+                references={references}
+                referenceSource={referenceSource}
+                outputs={form.watch('outputs') || 1}
+                onOutputsChange={(count) => {
+                  form.setValue('outputs', count, { shouldValidate: true });
+                  triggerConfigChange();
+                }}
+                categoryType={categoryType}
+                currentModelCategory={currentModelCategory}
+                onCreateVariation={
+                  categoryType === IngredientCategory.IMAGE
+                    ? (reference) => {
+                        if (!reference) {
+                          return;
+                        }
+                        const format =
+                          watchedFormat || IngredientFormat.PORTRAIT;
                         push(
-                          buildHref(`/studio/video?aspectRatio=${aspectRatio}`),
+                          buildHref(
+                            `/studio/image?referenceImageId=${reference.id}&format=${format}`,
+                          ),
                         );
                       }
-                    }
-                  : undefined
-              }
-              isSupported={
-                isSupported && settings?.isVoiceControlEnabled !== false
-              }
-              toggleVoice={toggleVoice}
-              isRecording={isRecording}
-              isProcessing={isProcessing}
-            />
-          ) : (
-            <PromptBarExpandedView
-              currentConfig={currentConfig}
-              pathname={pathname}
-              categoryType={categoryType}
-              form={form}
-              isCollapsed={isCollapsed}
-              setIsCollapsed={setIsCollapsed}
-              isAutoMode={isAutoMode}
-              setIsAutoMode={setIsAutoMode}
-              isDisabledState={isDisabledState}
-              isGenerateBlocked={isGenerateBlocked}
-              controlClass={controlClass}
-              iconButtonClass={iconButtonClass}
-              isAdvancedMode={isAdvancedMode}
-              isAdvancedControlsEnabled={isAdvancedControlsEnabled}
-              models={models}
-              trainings={trainings}
-              selectedModels={selectedModels}
-              trainingIds={trainingIds}
-              normalizedWatchedModels={normalizedWatchedModels}
-              watchedModels={watchedModels}
-              watchedModel={watchedModel}
-              watchedFormat={watchedFormat}
-              watchedWidth={watchedWidth}
-              watchedHeight={watchedHeight}
-              watchedDuration={watchedDuration}
-              watchedSpeech={watchedSpeech}
-              watchedQuality={watchedQuality}
-              subscriptionTier={subscriptionTier}
-              isModelNotSet={isModelNotSet}
-              hasAudioToggleValue={hasAudioToggle}
-              hasSpeechValue={hasSpeech}
-              hasModelWithoutDurationEditingValue={
-                hasModelWithoutDurationEditing
-              }
-              hasAnyResolutionOptionsValue={hasAnyResolutionOptions}
-              hasEndFrameValue={hasEndFrame}
-              hasAnyImagenModelValue={hasAnyImagenModel}
-              isOnlyImagenModelsValue={isOnlyImagenModels}
-              supportsInterpolation={supportsInterpolation}
-              supportsMultipleReferences={supportsMultipleReferences}
-              requiresReferences={requiresReferences}
-              maxReferenceCount={maxReferenceCount}
-              folders={folders}
-              profiles={profiles}
-              filteredPresets={filteredPresets}
-              filteredScenes={filteredScenes}
-              filteredFontFamilies={filteredFontFamilies}
-              filteredStyles={filteredStyles}
-              filteredCameras={filteredCameras}
-              filteredLightings={filteredLightings}
-              filteredLenses={filteredLenses}
-              filteredCameraMovements={filteredCameraMovements}
-              filteredMoods={filteredMoods}
-              filteredSounds={filteredSounds}
-              filteredBlacklists={filteredBlacklists}
-              references={references}
-              setReferences={setReferences}
-              endFrame={endFrame}
-              setEndFrame={setEndFrame}
-              referenceSource={referenceSource}
-              setReferenceSource={setReferenceSource}
-              selectedPreset={selectedPreset}
-              setSelectedPreset={setSelectedPreset}
-              selectedProfile={selectedProfile}
-              setSelectedProfile={setSelectedProfile}
-              formatIcon={formatIcon}
-              videoDurations={videoDurations}
-              triggerConfigChange={triggerConfigChange}
-              refocusTextarea={refocusTextarea}
-              handleTextareaChange={handleTextareaChange}
-              onTextChange={onTextChange}
-              handleCopy={handleCopy}
-              enhancePrompt={enhancePrompt}
-              handleUndo={handleUndo}
-              handleSubmitForm={handleSubmitForm}
-              suggestions={suggestions}
-              onSuggestionSelect={onSuggestionSelect}
-              showSuggestionsWhenEmpty={showSuggestionsWhenEmpty}
-              maxSuggestions={maxSuggestions}
-              openGallery={
-                openGallery as unknown as (options: GalleryModalOptions) => void
-              }
-              openUpload={openUpload}
-              isDragActive={isDragActive}
-              dragError={dragError}
-              attachedPromptAssets={attachedPromptAssets}
-              onDragEnter={handlePromptBarDragEnter}
-              onDragLeave={handlePromptBarDragLeave}
-              onDropFiles={handleDroppedFiles}
-              onRemoveAttachedAsset={handleRemoveAttachedAsset}
-              onBrowseAssets={openAttachedAssetsBrowser}
-              textareaRef={textareaRef}
-              textareaRegister={textareaRegister}
-              modelDropdownRef={modelDropdownRef}
-              promptBarHeight={promptBarHeight}
-              getModelDefaultDuration={getModelDefaultDuration}
-              getDefaultVideoResolution={getDefaultVideoResolution}
-              getMinFromAllModels={getMinFromAllModels}
-              getModelMaxOutputs={getModelMaxOutputs}
-              setTextValue={setTextValue}
-              isSupported={
-                isSupported && settings?.isVoiceControlEnabled !== false
-              }
-              toggleVoice={toggleVoice}
-              isRecording={isRecording}
-              isProcessing={isProcessing}
-              isGenerating={isGenerating}
-              isEnhancing={isEnhancing}
-              isGenerateDisabled={isGenerateDisabled}
-              previousPrompt={previousPrompt}
-              selectedModelCost={selectedModelCost}
-              activeGenerations={activeGenerations}
-              generateLabel={generateLabel}
-              currentModelCategory={currentModelCategory}
-              avatars={avatars}
-              voices={voices}
-            />
-          )}
-        </div>
-      </form>
-    </div>
+                    : undefined
+                }
+                onFormatChange={
+                  categoryType === IngredientCategory.IMAGE ||
+                  categoryType === IngredientCategory.VIDEO
+                    ? (nextFormat) => {
+                        if (categoryType === IngredientCategory.IMAGE) {
+                          push(buildHref(`/studio/image?format=${nextFormat}`));
+                        } else if (categoryType === IngredientCategory.VIDEO) {
+                          const aspectRatio =
+                            getAspectRatioFromFormat(nextFormat);
+                          push(
+                            buildHref(
+                              `/studio/video?aspectRatio=${aspectRatio}`,
+                            ),
+                          );
+                        }
+                      }
+                    : undefined
+                }
+                isSupported={
+                  isSupported && settings?.isVoiceControlEnabled !== false
+                }
+                toggleVoice={toggleVoice}
+                isRecording={isRecording}
+                isProcessing={isProcessing}
+              />
+            ) : (
+              <PromptBarExpandedView />
+            )}
+          </div>
+        </form>
+      </div>
+    </PromptBarInternalContext.Provider>
   );
 }
 

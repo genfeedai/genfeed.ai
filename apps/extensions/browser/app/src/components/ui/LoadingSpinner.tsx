@@ -6,9 +6,9 @@ interface LoadingSpinnerProps {
 }
 
 const SIZES = {
-  lg: 'h-12 w-12',
-  md: 'h-8 w-8',
-  sm: 'h-4 w-4',
+  lg: 'size-12',
+  md: 'size-8',
+  sm: 'size-4',
 };
 
 export function LoadingSpinner({

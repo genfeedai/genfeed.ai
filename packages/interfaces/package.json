@@ -4,13 +4,13 @@
     "@genfeedai/enums": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "25.6.0",
+    "@types/node": "25.8.0",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
-    "next": "16.2.4",
-    "react": "19.2.5",
-    "react-dom": "19.2.5",
-    "react-hook-form": "7.74.0",
+    "next": "16.2.6",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "react-hook-form": "7.76.0",
     "react-icons": "5.6.0",
     "typescript": "6.0.2"
   },

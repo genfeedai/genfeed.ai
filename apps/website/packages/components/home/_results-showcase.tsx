@@ -188,7 +188,7 @@ function ResultCard({
             {/* Play button overlay */}
             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
               <div className="p-4 rounded-full bg-fill/20 backdrop-blur-sm">
-                <HiPlay className="h-8 w-8 text-surface" />
+                <HiPlay className="size-8 text-surface" />
               </div>
             </div>
 
@@ -196,12 +196,12 @@ function ResultCard({
             <div
               className={`absolute top-3 left-3 p-2 rounded-full bg-gradient-to-r ${color}`}
             >
-              <PlatformIcon className="h-4 w-4 text-surface" />
+              <PlatformIcon className="size-4 text-surface" />
             </div>
 
             {/* View count */}
             <HStack className="absolute bottom-3 left-3 items-center gap-2 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-sm">
-              <HiEye className="h-4 w-4 text-surface" />
+              <HiEye className="size-4 text-surface" />
               <Text className="text-sm font-semibold text-surface">
                 {metric}
               </Text>
@@ -237,7 +237,7 @@ export default function ResultsShowcase(): React.ReactElement {
           {/* Header */}
           <VStack className="text-center mb-12 items-center">
             <HStack className="inline-flex items-center gap-2 mb-4">
-              <HiHeart className="h-6 w-6 text-primary" />
+              <HiHeart className="size-6 text-primary" />
               <Text className="text-sm font-semibold uppercase tracking-wide text-primary">
                 Creator Results
               </Text>

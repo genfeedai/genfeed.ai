@@ -199,8 +199,10 @@ export default function SidebarNested({
             const isFirstDynamic =
               item.isDynamic && (index === 0 || !items[index - 1]?.isDynamic);
 
+            const itemHref = prefixHref(item);
+
             return (
-              <Fragment key={item.href || `nested-item-${index}`}>
+              <Fragment key={itemHref ?? `${item.label}-${index}`}>
                 {item.hasDividerAbove && (
                   <li className="my-2">
                     <div className="border-t border-white/[0.08]" />
@@ -215,7 +217,7 @@ export default function SidebarNested({
                   </li>
                 )}
                 <MenuItem
-                  href={prefixHref(item)}
+                  href={itemHref}
                   label={item.label}
                   icon={item.icon}
                   outline={item.outline}

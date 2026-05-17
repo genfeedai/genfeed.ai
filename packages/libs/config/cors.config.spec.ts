@@ -46,6 +46,34 @@ describe('CORS Configuration', () => {
         expect(localPattern.test('http://localhost:2999')).toBe(false);
       });
 
+      it('should allow portless genfeed localhost hosts', () => {
+        const origins = getGenfeedCorsOrigins({
+          isDevelopment: true,
+        });
+
+        const portlessPattern = origins.find(
+          (o) =>
+            o instanceof RegExp &&
+            o.source.includes('genfeed') &&
+            o.source.includes('localhost') &&
+            o.test('https://app.genfeed.localhost'),
+        ) as RegExp;
+
+        expect(portlessPattern).toBeDefined();
+        expect(portlessPattern.test('https://app.genfeed.localhost')).toBe(
+          true,
+        );
+        expect(
+          portlessPattern.test('https://feat-123.app.genfeed.localhost'),
+        ).toBe(true);
+        expect(portlessPattern.test('http://app.genfeed.localhost')).toBe(
+          false,
+        );
+        expect(portlessPattern.test('https://app.example.localhost')).toBe(
+          false,
+        );
+      });
+
       it('should allow all Chrome extensions in development', () => {
         const origins = getGenfeedCorsOrigins({
           isDevelopment: true,

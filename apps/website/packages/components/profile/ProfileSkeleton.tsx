@@ -16,7 +16,7 @@ export default function ProfileSkeleton(): React.ReactElement {
       </div>
 
       {/* Profile Info Skeleton */}
-      <div className="flex flex-col items-center pt-14 space-y-3">
+      <div className="flex flex-col items-center pt-14 gap-y-3">
         <Skeleton variant="text" height={24} className="w-32" />
         <Skeleton variant="text" className="w-48" />
       </div>

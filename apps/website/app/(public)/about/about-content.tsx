@@ -51,27 +51,27 @@ export default function AboutContent() {
         {/* The Problem */}
         <section className="about-content max-w-4xl mx-auto pb-20 space-y-8">
           <div className="about-card node-card bg-card border border-edge/[0.08] p-8">
-            <h2 className="text-2xl font-bold mb-4">The Problem</h2>
+            <h2 className="text-2xl font-semibold mb-4">The Problem</h2>
             <p className="text-foreground/70">
               SMBs and marketing agencies use 5+ tools. Nobody tracks what
-              drives revenue. Content creation is slow and manual—taking days or
-              weeks instead of minutes.
+              drives revenue. Content creation is slow and manual, taking days
+              or weeks instead of minutes.
             </p>
           </div>
 
           <div className="about-card node-card bg-card border border-edge/[0.08] p-8">
-            <h2 className="text-2xl font-bold mb-4">Why Now?</h2>
+            <h2 className="text-2xl font-semibold mb-4">Why Now?</h2>
             <p className="text-foreground/70">
               AI content generation just hit a critical threshold: quality now
               matches human output while production costs dropped 95%. This
               technology inflection point enables what was previously
-              impossible—creating professional, on-brand content at scale
+              impossible: creating professional, on-brand content at scale
               without scaling headcount.
             </p>
           </div>
 
           <div className="about-card node-card bg-card border border-edge/[0.08] p-8">
-            <h2 className="text-2xl font-bold mb-4">The Solution</h2>
+            <h2 className="text-2xl font-semibold mb-4">The Solution</h2>
             <p className="text-foreground/70">
               Genfeed: Discover trends → Generate content in minutes → Publish
               everywhere → Track ROI → Optimize. All in one content intelligence
@@ -83,7 +83,7 @@ export default function AboutContent() {
         {/* CTA */}
         <section className="max-w-4xl mx-auto pb-20">
           <div className="bg-card border border-edge/[0.08] shadow-[0_0_100px_rgba(255,255,255,0.2),inset_0_0_40px_rgba(255,255,255,0.05)] p-8 text-center">
-            <h2 className="text-2xl font-bold mb-4">Get Started</h2>
+            <h2 className="text-2xl font-semibold mb-4">Get Started</h2>
             <p className="text-foreground/70 mb-6">
               Sign up, pick a plan, and start creating content at scale.
             </p>

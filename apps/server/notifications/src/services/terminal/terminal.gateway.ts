@@ -22,6 +22,7 @@ const LOCAL_ORIGIN_HOSTS = new Set([
   'localhost',
   'local.genfeed.ai',
 ]);
+const PORTLESS_LOCALHOST_SUFFIX = '.genfeed.localhost';
 
 @WebSocketGateway({
   namespace: '/terminal',
@@ -124,7 +125,12 @@ export class TerminalGateway
     }
 
     try {
-      return LOCAL_ORIGIN_HOSTS.has(new URL(origin).hostname);
+      const hostname = new URL(origin).hostname;
+
+      return (
+        LOCAL_ORIGIN_HOSTS.has(hostname) ||
+        hostname.endsWith(PORTLESS_LOCALHOST_SUFFIX)
+      );
     } catch {
       return false;
     }

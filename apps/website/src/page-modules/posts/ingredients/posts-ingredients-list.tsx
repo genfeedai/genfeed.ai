@@ -11,7 +11,6 @@ import Loading from '@ui/loading/default/Loading';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { HiDocumentText, HiEye, HiOutlinePhoto } from 'react-icons/hi2';
 
@@ -22,9 +21,13 @@ type IngredientWithMetrics = Ingredient & {
   totalViews?: number;
 };
 
-export default function PostsIngredientsList() {
-  const searchParams = useSearchParams();
-  const page = parseInt(searchParams?.get('page') || '1', 10);
+interface PostsIngredientsListProps {
+  page: number;
+}
+
+export default function PostsIngredientsList({
+  page,
+}: PostsIngredientsListProps) {
   const [ingredients, setIngredients] = useState<IngredientWithMetrics[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 

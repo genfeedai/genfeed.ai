@@ -14,6 +14,10 @@ import { memo, useCallback, useState } from 'react';
 
 export type { RssFeedItem, RssInputNodeData, RssInputNodeProps };
 
+function formatFeedItemDate(pubDate: string): string {
+  return new Date(pubDate).toLocaleDateString();
+}
+
 function RssInputNodeComponent({ id, data, onUpdate }: RssInputNodeProps) {
   const [isFetching, _setIsFetching] = useState(false);
 
@@ -87,7 +91,7 @@ function RssInputNodeComponent({ id, data, onUpdate }: RssInputNodeProps) {
               : 'text-muted-foreground hover:text-foreground'
           }`}
         >
-          <Link className="w-3 h-3" />
+          <Link className="size-3" />
           URL
         </Button>
         <Button
@@ -100,7 +104,7 @@ function RssInputNodeComponent({ id, data, onUpdate }: RssInputNodeProps) {
               : 'text-muted-foreground hover:text-foreground'
           }`}
         >
-          <Type className="w-3 h-3" />
+          <Type className="size-3" />
           XML
         </Button>
       </div>
@@ -123,8 +127,8 @@ function RssInputNodeComponent({ id, data, onUpdate }: RssInputNodeProps) {
           >
             {isFetching ? (
               <>
-                <Loader2 className="w-3 h-3 animate-spin" />
-                Fetching...
+                <Loader2 className="size-3 animate-spin" />
+                Fetching…
               </>
             ) : (
               'Fetch Feed'
@@ -139,7 +143,7 @@ function RssInputNodeComponent({ id, data, onUpdate }: RssInputNodeProps) {
           <Textarea
             value={data.rawXml || ''}
             onChange={handleRawXmlChange}
-            placeholder="Paste RSS XML here..."
+            placeholder="Paste RSS XML here…"
             className="w-full h-20 px-2 py-1.5 text-sm bg-background border border-white/[0.08] resize-none focus:outline-none focus:ring-1 focus:ring-primary font-mono text-xs"
           />
           <Button
@@ -151,8 +155,8 @@ function RssInputNodeComponent({ id, data, onUpdate }: RssInputNodeProps) {
           >
             {isFetching ? (
               <>
-                <Loader2 className="w-3 h-3 animate-spin" />
-                Parsing...
+                <Loader2 className="size-3 animate-spin" />
+                Parsing…
               </>
             ) : (
               'Parse Feed'
@@ -180,7 +184,7 @@ function RssInputNodeComponent({ id, data, onUpdate }: RssInputNodeProps) {
               variant={ButtonVariant.UNSTYLED}
               className="p-1 hover:bg-border disabled:opacity-30 disabled:cursor-not-allowed"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="size-4" />
             </Button>
             <span className="text-xs text-muted-foreground">
               {data.selectedItemIndex + 1} / {data.feedItems.length}
@@ -192,7 +196,7 @@ function RssInputNodeComponent({ id, data, onUpdate }: RssInputNodeProps) {
               variant={ButtonVariant.UNSTYLED}
               className="p-1 hover:bg-border disabled:opacity-30 disabled:cursor-not-allowed"
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="size-4" />
             </Button>
           </div>
 
@@ -206,8 +210,11 @@ function RssInputNodeComponent({ id, data, onUpdate }: RssInputNodeProps) {
                 {selectedItem.description}
               </div>
               {selectedItem.pubDate && (
-                <div className="text-xs text-muted-foreground">
-                  {new Date(selectedItem.pubDate).toLocaleDateString()}
+                <div
+                  className="text-xs text-muted-foreground"
+                  suppressHydrationWarning
+                >
+                  {formatFeedItemDate(selectedItem.pubDate)}
                 </div>
               )}
             </div>

@@ -205,10 +205,14 @@ export class DesktopLocalService implements IDesktopDataService {
       );
     }
 
-    const topPlatform =
-      [...totalsByPlatform.entries()].sort(
-        (left, right) => right[1] - left[1],
-      )[0]?.[0] ?? 'unknown';
+    let topPlatform = 'unknown';
+    let topPlatformCount = -1;
+    for (const [platform, count] of totalsByPlatform.entries()) {
+      if (count > topPlatformCount) {
+        topPlatform = platform;
+        topPlatformCount = count;
+      }
+    }
 
     return {
       data: {

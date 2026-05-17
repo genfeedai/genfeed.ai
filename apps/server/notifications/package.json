@@ -2,7 +2,7 @@
   "dependencies": {
     "@genfeedai/config": "workspace:*",
     "@genfeedai/enums": "workspace:*",
-    "@slack/web-api": "7.15.1",
+    "@slack/web-api": "7.16.0",
     "node-pty": "1.1.0"
   },
   "description": "Genfeed Notifications Service",
@@ -15,6 +15,8 @@
     "build:prod": "cd .. && nest build notifications && cd notifications && (bun run sentry:sourcemaps || true)",
     "deps:update": "bunx npm-check-updates -u --reject typescript && bun install",
     "dev": "cd .. && NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" nest start notifications --watch",
+    "dev:direct": "cd .. && NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" nest start notifications --watch",
+    "dev:portless": "portless run --name notifications.genfeed bun run dev:direct",
     "dev:bun": "cd .. && NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" nest start notifications --watch",
     "dev:nest": "cd .. && NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" nest start notifications --watch",
     "lint": "biome lint --write src --no-errors-on-unmatched",

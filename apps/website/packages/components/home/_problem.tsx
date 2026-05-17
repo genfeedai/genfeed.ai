@@ -43,7 +43,7 @@ function ProblemCard({
         className="flex items-center gap-3 text-lg font-semibold mb-3"
       >
         <div className="p-2 bg-warning/10">
-          <Icon className="h-5 w-5 text-warning" />
+          <Icon className="size-5 text-warning" />
         </div>
         {label}
       </Heading>
@@ -132,7 +132,7 @@ export default function HomeProblem() {
               <VStack className="space-y-6">
                 {SOLUTIONS.map((point) => (
                   <div key={point.highlight} className="flex items-start gap-4">
-                    <HiOutlineCheckCircle className="h-6 w-6 text-primary flex-shrink-0 mt-0.5" />
+                    <HiOutlineCheckCircle className="size-6 text-primary flex-shrink-0 mt-0.5" />
                     <Text as="p" className="text-foreground/80">
                       <Text as="span" className="text-foreground font-semibold">
                         {point.highlight}

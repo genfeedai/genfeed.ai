@@ -12,8 +12,11 @@ vi.mock('next/image', () => ({
     fill?: boolean;
     priority?: boolean;
   }) => (
-    // biome-ignore lint/performance/noImgElement: next/image is mocked to a basic DOM element in jsdom tests.
-    <img {...props} alt={props.alt ?? ''} />
+    <span
+      aria-label={props.alt ?? ''}
+      data-src={typeof props.src === 'string' ? props.src : undefined}
+      role="img"
+    />
   ),
 }));
 

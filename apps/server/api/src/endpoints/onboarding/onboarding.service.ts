@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process';
+import process from 'node:process';
 import type { UpdateBrandDto } from '@api/collections/brands/dto/update-brand.dto';
 import type {
   BrandAgentConfig,
@@ -9,6 +10,7 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { LinksService } from '@api/collections/links/services/links.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
+import { UserSetupService } from '@api/collections/users/services/user-setup.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
@@ -102,6 +104,12 @@ export interface InstallReadinessResponse {
   };
 }
 
+interface OnboardingWorkspaceContext {
+  brandId: string | null;
+  organizationId: string;
+  userId: string;
+}
+
 /**
  * OnboardingService
  *
@@ -132,10 +140,81 @@ export class OnboardingService {
     private readonly proactiveOnboardingService: ProactiveOnboardingService,
     private readonly requestContextCacheService: RequestContextCacheService,
     private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
+    private readonly userSetupService: UserSetupService,
   ) {}
+
+  private getEntityId(record: unknown): string {
+    if (!record || typeof record !== 'object') {
+      return '';
+    }
+
+    const entity = record as Record<string, unknown>;
+    const id = entity._id ?? entity.id;
+
+    return typeof id === 'string' ? id : '';
+  }
 
   private isConfigured(value: unknown): boolean {
     return typeof value === 'string' && value.trim().length > 0;
+  }
+
+  private async ensureOnboardingWorkspace(
+    user: User,
+    category?: OrganizationCategory,
+  ): Promise<OnboardingWorkspaceContext> {
+    const publicMetadata = getPublicMetadata(user);
+    let userId = publicMetadata.user?.toString() ?? '';
+
+    let dbUser = userId
+      ? await this.usersService.findOne({ _id: userId, isDeleted: false }, [])
+      : null;
+
+    if (!dbUser && user.id) {
+      dbUser = await this.usersService.findOne(
+        { clerkId: user.id, isDeleted: false },
+        [],
+      );
+    }
+
+    userId = this.getEntityId(dbUser) || userId;
+    if (!userId) {
+      throw new HttpException(
+        {
+          detail: 'Missing local user account for Clerk authorization',
+          title: 'Bad Request',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    let organizationId = publicMetadata.organization?.toString() ?? '';
+    let brandId = publicMetadata.brand?.toString() ?? null;
+
+    if (!organizationId) {
+      const setupResult = await this.userSetupService.initializeUserResources(
+        userId,
+        category,
+      );
+
+      organizationId = this.getEntityId(setupResult.organization);
+      brandId = this.getEntityId(setupResult.brand) || null;
+    }
+
+    try {
+      await this.clerkService.updateUserPublicMetadata(user.id, {
+        brand: brandId || undefined,
+        organization: organizationId,
+        user: userId,
+      });
+    } catch (error: unknown) {
+      this.loggerService.warn('Failed to repair Clerk onboarding metadata', {
+        error: error instanceof Error ? error.message : error,
+        organizationId,
+        userId,
+      });
+    }
+
+    return { brandId, organizationId, userId };
   }
 
   private getProviderReadiness() {
@@ -389,11 +468,6 @@ export class OnboardingService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${caller} starting`, { brandUrl: dto.brandUrl });
 
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization;
-    const userId = publicMetadata.user;
-    const metadataBrandId = publicMetadata.brand?.toString() ?? null;
-
     try {
       // 1. Validate URL
       const validation = this.brandScraperService.validateUrl(dto.brandUrl);
@@ -403,6 +477,11 @@ export class OnboardingService {
           HttpStatus.BAD_REQUEST,
         );
       }
+
+      const workspace = await this.ensureOnboardingWorkspace(user);
+      const organizationId = workspace.organizationId;
+      const userId = workspace.userId;
+      const metadataBrandId = workspace.brandId;
 
       // 2. Find existing brand for user (created during signup)
       const existingBrand = await this.resolveOnboardingBrand(
@@ -769,10 +848,8 @@ export class OnboardingService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${caller} starting`);
 
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization;
-
     try {
+      const { organizationId } = await this.ensureOnboardingWorkspace(user);
       // Mark onboarding as skipped
       await this.completeOnboarding(organizationId);
 
@@ -798,8 +875,7 @@ export class OnboardingService {
   async getOnboardingStatus(
     user: User,
   ): Promise<{ isFirstLogin: boolean; hasCompletedOnboarding: boolean }> {
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization;
+    const { organizationId } = await this.ensureOnboardingWorkspace(user);
 
     const settings = await this.organizationSettingsService.findOne({
       isDeleted: false,
@@ -813,10 +889,10 @@ export class OnboardingService {
   }
 
   async getInstallReadiness(user: User): Promise<InstallReadinessResponse> {
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization?.toString() ?? null;
-    const brandId = publicMetadata.brand?.toString() ?? null;
-    const userId = publicMetadata.user?.toString() ?? null;
+    const workspace = await this.ensureOnboardingWorkspace(user);
+    const organizationId = workspace.organizationId;
+    const brandId = workspace.brandId;
+    const userId = workspace.userId;
     const providers = this.getProviderReadiness();
     const showBillingUi = isEEEnabled();
 
@@ -913,10 +989,11 @@ export class OnboardingService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${caller} starting`, { category });
 
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization;
-
     try {
+      const { organizationId } = await this.ensureOnboardingWorkspace(
+        user,
+        category,
+      );
       await this.organizationsService.patch(organizationId.toString(), {
         accountType: category,
         category,
@@ -958,9 +1035,10 @@ export class OnboardingService {
     this.loggerService.log(`${caller} starting`);
 
     try {
+      const workspace = await this.ensureOnboardingWorkspace(user);
       const publicMetadata = getPublicMetadata(user);
       const proactiveLeadId = publicMetadata.proactiveLeadId?.toString();
-      const organizationId = publicMetadata.organization?.toString();
+      const organizationId = workspace.organizationId;
 
       if (proactiveLeadId && organizationId) {
         await this.proactiveOnboardingService.markPaymentMade(
@@ -1288,11 +1366,11 @@ export class OnboardingService {
       brandName: dto.brandName,
     });
 
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization;
-    const userId = publicMetadata.user;
-
     try {
+      const workspace = await this.ensureOnboardingWorkspace(user);
+      const organizationId = workspace.organizationId;
+      const userId = workspace.userId;
+
       const brand = await this.brandsService.findOne(
         {
           isDeleted: false,

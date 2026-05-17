@@ -93,6 +93,7 @@ describe('Validation Utils', () => {
       expect(validateObjectId('507f191e810c19729de860ea')).toBe(true);
       expect(validateObjectId('000000000000000000000000')).toBe(true);
       expect(validateObjectId('clv2f9w8d000008l4h9a1b2c3')).toBe(true);
+      expect(validateObjectId('b13yktd0f1e38me3f55swu0n')).toBe(true);
       expect(validateObjectId('550e8400-e29b-41d4-a716-446655440000')).toBe(
         true,
       );

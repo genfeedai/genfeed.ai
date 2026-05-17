@@ -301,6 +301,7 @@ export default function StudioGenerateLayout({
     customCameraPrompt,
     frames: storyboardFrames,
     handleGenerateStoryboard,
+    hasInterpolationModel,
     isStoryboardGenerating,
     setCameraMovementPreset,
     setCustomCameraPrompt,
@@ -840,7 +841,7 @@ export default function StudioGenerateLayout({
 
           const message =
             categoryType === IngredientCategory.VIDEO
-              ? 'Image set as video reference.'
+              ? 'Image added to storyboard.'
               : 'Image set as reference.';
           notificationsService.success(message);
         } else {
@@ -972,6 +973,7 @@ export default function StudioGenerateLayout({
                 customCameraPrompt={customCameraPrompt}
                 format={storyboardFormat}
                 frames={storyboardFrames}
+                hasInterpolationModel={hasInterpolationModel}
                 isGenerating={isStoryboardGenerating}
                 onCameraMovementPresetChange={setCameraMovementPreset}
                 onClear={clearStoryboard}

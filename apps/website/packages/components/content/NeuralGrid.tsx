@@ -125,7 +125,7 @@ const NeuralGridItem = forwardRef<HTMLDivElement, NeuralGridItemProps>(
       {Icon && (
         <Icon
           className={cn(
-            'h-8 w-8 mb-4 group-hover:text-surface transition-colors',
+            'size-8 mb-4 group-hover:text-surface transition-colors',
             inverted ? 'text-inv-fg/40' : 'text-surface/40',
           )}
         />

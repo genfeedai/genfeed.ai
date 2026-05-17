@@ -7,6 +7,7 @@
 - [BullMQ Refactor](project_bullmq.md) — 32 @Processor decorators in API need moving to Workers (#84)
 - [Migration Status](project_migration.md) — cloud + core → genfeed.ai migration complete, all pages/tests present
 - [Settings Routing](project_settings_routing.md) — canonical personal/org/brand settings URL shapes
+- [Desktop BYOK Generation](project_desktop_byok_generation.md) — desktop local/BYOK generation works without Clerk; Clerk is sync-only
 
 ## Feedback (user corrections — permanent)
 - [Never lose code](feedback_never_lose_code.md) — Always branch+push WIP before destructive git ops
@@ -45,6 +46,9 @@
 - [Cross-Project Rules](system/CROSS-PROJECT-RULES.md) — rules shared across repos
 - [Open Source Context](system/OPEN-SOURCE-CONTEXT.md) — OSS licensing, contribution
 - [Self-Hosted Guide](system/SELF-HOSTED-GUIDE.md) — Docker deployment guide
+
+## Plans (UI design outputs)
+- **MergedSwitcher** (2026-05-17) — Merged AppSwitcher + ContentTypeSwitcher. Generate section: 4×2 colored icon grid (GenerationType enum). Navigate section: 2-col grid (Overview, Workflows, Library, Calendar, Analytics). Component: `packages/ui/src/components/shell/merged-switcher/MergedSwitcher.tsx`. HTML mockups gitignored under `.agents/plans/`.
 
 ## Architecture Decisions
 - [Dynamic Scheduling](architecture/ADR-DYNAMIC-SCHEDULING-WORKFLOW-CANONICAL.md) — scheduling via workflow engine

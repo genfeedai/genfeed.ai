@@ -738,13 +738,25 @@ export default function ModalUpload({
                 }
                 value={voiceCloneProvider}
               >
-                <label className="flex cursor-pointer items-center gap-2 text-sm">
-                  <RadioGroupItem value={VoiceProvider.ELEVENLABS} />
+                <label
+                  className="flex cursor-pointer items-center gap-2 text-sm"
+                  htmlFor="voice-provider-elevenlabs"
+                >
+                  <RadioGroupItem
+                    id="voice-provider-elevenlabs"
+                    value={VoiceProvider.ELEVENLABS}
+                  />
                   <span>ElevenLabs</span>
                 </label>
                 {isSelfHostedVoiceAvailable && (
-                  <label className="flex cursor-pointer items-center gap-2 text-sm">
-                    <RadioGroupItem value={VoiceProvider.GENFEED_AI} />
+                  <label
+                    className="flex cursor-pointer items-center gap-2 text-sm"
+                    htmlFor="voice-provider-genfeed-ai"
+                  >
+                    <RadioGroupItem
+                      id="voice-provider-genfeed-ai"
+                      value={VoiceProvider.GENFEED_AI}
+                    />
                     <span>Genfeed AI</span>
                   </label>
                 )}

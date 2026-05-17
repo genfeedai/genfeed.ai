@@ -98,6 +98,7 @@ function BrandContentContent() {
   const { getToken } = useAuth();
   const { push } = useRouter();
   const searchParams = useSearchParams();
+  const isAutoRequested = searchParams.get('auto') === 'true';
 
   const [brandName, setBrandName] = useState('');
   const [websiteUrl, setWebsiteUrl] = useState('');
@@ -284,7 +285,6 @@ function BrandContentContent() {
       return;
     }
 
-    const isAuto = searchParams.get('auto') === 'true';
     const storedDomain = localStorage.getItem(
       ONBOARDING_STORAGE_KEYS.brandDomain,
     );
@@ -292,7 +292,7 @@ function BrandContentContent() {
       ONBOARDING_STORAGE_KEYS.brandName,
     );
 
-    if (isAuto && storedDomain) {
+    if (isAutoRequested && storedDomain) {
       const inferredBrandName =
         storedBrandName?.trim() || deriveBrandNameFromDomain(storedDomain);
       autoScanRef.current = true;
@@ -305,7 +305,7 @@ function BrandContentContent() {
         logger.error('Failed to continue auto onboarding flow', error);
       });
     }
-  }, [handleContinue, searchParams]);
+  }, [handleContinue, isAutoRequested]);
 
   return (
     <div ref={sectionRef}>

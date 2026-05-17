@@ -15,7 +15,8 @@ import GenerationFeatureGuard from './GenerationFeatureGuard';
 function StudioPageContentInner() {
   const { replace } = useRouter();
   const params = useParams<{ type?: string }>();
-  const { get } = useSearchParams();
+  const searchParams = useSearchParams();
+  const requestedType = searchParams.get('type');
   const { isEnabled, defaultCategory, isLoading } = useEnabledCategories();
   const hasRedirectedRef = useRef(false);
 
@@ -26,8 +27,8 @@ function StudioPageContentInner() {
       return paramToCategory(fromPath);
     }
 
-    return paramToCategory(get('type'));
-  }, [params.type, get]);
+    return paramToCategory(requestedType);
+  }, [params.type, requestedType]);
 
   // Redirect to default if current category is disabled
   useEffect(() => {

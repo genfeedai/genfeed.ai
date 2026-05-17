@@ -108,9 +108,9 @@ const CALENDLY_URL =
 function ComparisonValue({ value }: { value: boolean | string }) {
   if (typeof value === 'boolean') {
     return value ? (
-      <HiCheck className="h-5 w-5 text-green-500 mx-auto" />
+      <HiCheck className="size-5 text-green-500 mx-auto" />
     ) : (
-      <HiXMark className="h-5 w-5 text-surface/20 mx-auto" />
+      <HiXMark className="size-5 text-surface/20 mx-auto" />
     );
   }
   return <span className="text-sm">{value}</span>;
@@ -155,9 +155,9 @@ export default function CloudContent() {
             <div className="bg-fill/[0.03] px-4 py-3 border-b border-edge/5">
               <div className="flex items-center gap-2">
                 <div className="flex gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-fill/20" />
-                  <div className="w-3 h-3 rounded-full bg-fill/20" />
-                  <div className="w-3 h-3 rounded-full bg-fill/20" />
+                  <div className="size-3 rounded-full bg-fill/20" />
+                  <div className="size-3 rounded-full bg-fill/20" />
+                  <div className="size-3 rounded-full bg-fill/20" />
                 </div>
                 <div className="flex-1 mx-4">
                   <div className="bg-fill/[0.03] border border-edge/5 px-3 py-1.5 text-xs text-surface/30 text-center font-mono uppercase tracking-widest">
@@ -205,7 +205,7 @@ export default function CloudContent() {
         <WebSection maxWidth="xl" className="gsap-section">
           <div className="text-center mb-16">
             <div className="flex items-center justify-center gap-3 mb-6">
-              <HiUserGroup className="h-5 w-5 text-surface/40" />
+              <HiUserGroup className="size-5 text-surface/40" />
               <span className="text-xs font-black uppercase tracking-widest text-surface/20">
                 Built for Growing Teams
               </span>
@@ -243,13 +243,13 @@ export default function CloudContent() {
                   </TableHead>
                   <TableHead className="text-center py-4 px-6 text-xs font-black uppercase tracking-widest text-surface/30">
                     <div className="flex items-center justify-center gap-2">
-                      <HiCpuChip className="h-4 w-4" />
+                      <HiCpuChip className="size-4" />
                       Core
                     </div>
                   </TableHead>
                   <TableHead className="text-center py-4 px-6 text-xs font-black uppercase tracking-widest text-surface/30">
                     <div className="flex items-center justify-center gap-2">
-                      <HiCloud className="h-4 w-4" />
+                      <HiCloud className="size-4" />
                       Cloud
                     </div>
                   </TableHead>
@@ -285,7 +285,7 @@ export default function CloudContent() {
           <Button size={ButtonSize.PUBLIC} asChild>
             <a href={signUpHref} target="_blank" rel="noopener noreferrer">
               Start Cloud App
-              <LuArrowRight className="h-4 w-4" />
+              <LuArrowRight className="size-4" />
             </a>
           </Button>
           <Button

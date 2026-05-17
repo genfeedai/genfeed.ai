@@ -16,8 +16,8 @@ import { Suspense, useCallback, useEffect, useState } from 'react';
 
 function CaptionsListContent() {
   const notificationsService = NotificationsService.getInstance();
-  const { get } = useSearchParams();
-  const currentPage = Number(get('page')) || 1;
+  const searchParams = useSearchParams();
+  const currentPage = Number(searchParams.get('page')) || 1;
 
   const getCaptionsService = useAuthedService(
     useCallback((token: string) => CaptionsService.getInstance(token), []),

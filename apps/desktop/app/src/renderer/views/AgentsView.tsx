@@ -54,7 +54,7 @@ const AgentCard = ({
               </span>
               {isRunning && (
                 <span className="status-badge status-generating">
-                  Generating...
+                  Generating…
                 </span>
               )}
               {agent.platforms.map((p) => (
@@ -80,7 +80,7 @@ const AgentCard = ({
             type="button"
             variant={ButtonVariant.DEFAULT}
           >
-            {isRunning ? 'Running...' : '▶ Run'}
+            {isRunning ? 'Running…' : '▶ Run'}
           </Button>
         </div>
       </div>
@@ -195,7 +195,7 @@ export const AgentsView = () => {
         </Button>
       </div>
 
-      {loading && <p className="muted-text">Loading agents...</p>}
+      {loading && <p className="muted-text">Loading agents…</p>}
       {error && <div className="error-banner">{error}</div>}
 
       {!loading && agents.length === 0 && (

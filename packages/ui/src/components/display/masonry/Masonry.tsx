@@ -40,8 +40,10 @@ export default function Masonry({
       return;
     }
 
-    containerRef.current.style.display = 'grid';
-    containerRef.current.style.gap = `${gap}px`;
+    Object.assign(containerRef.current.style, {
+      display: 'grid',
+      gap: `${gap}px`,
+    });
 
     const updateColumns = (): void => {
       if (!containerRef.current) {

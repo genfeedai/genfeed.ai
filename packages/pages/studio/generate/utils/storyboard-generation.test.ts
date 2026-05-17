@@ -1,9 +1,12 @@
-import { IngredientFormat } from '@genfeedai/enums';
+import { MODEL_KEYS } from '@genfeedai/constants';
+import { IngredientFormat, ModelCategory } from '@genfeedai/enums';
 import type { IImage, IModel } from '@genfeedai/interfaces';
 import { describe, expect, it } from 'vitest';
 import {
   buildStoryboardInterpolationPairs,
   getStoryboardCameraPrompt,
+  getStoryboardInterpolationModels,
+  isStoryboardInterpolationModel,
   resolveStoryboardDuration,
   resolveStoryboardFormat,
   resolveStoryboardModelKey,
@@ -57,14 +60,49 @@ describe('storyboard generation utils', () => {
     expect(
       resolveStoryboardModelKey(
         [
-          { key: 'fallback-model' },
-          { isDefault: true, key: 'default-model' },
+          { category: ModelCategory.VIDEO, key: 'fallback-model' },
+          {
+            category: ModelCategory.VIDEO,
+            isDefault: true,
+            key: 'default-model',
+          },
         ] as IModel[],
         [],
       ),
     ).toBe('default-model');
     expect(
       resolveStoryboardModelKey([] as IModel[], ['configured-model']),
-    ).toBe('configured-model');
+    ).toBe('');
+  });
+
+  it('filters and resolves only interpolation-capable video models', () => {
+    const models = [
+      {
+        category: ModelCategory.VIDEO,
+        hasInterpolation: false,
+        isDefault: true,
+        key: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1,
+      },
+      {
+        category: ModelCategory.IMAGE,
+        hasInterpolation: true,
+        key: 'image-model',
+      },
+      {
+        category: ModelCategory.VIDEO,
+        hasInterpolation: true,
+        key: 'interpolation-model',
+      },
+    ] as IModel[];
+
+    expect(isStoryboardInterpolationModel(models[0])).toBe(false);
+    expect(isStoryboardInterpolationModel(models[2])).toBe(true);
+    expect(getStoryboardInterpolationModels(models)).toEqual([models[2]]);
+    expect(
+      resolveStoryboardModelKey(
+        [models[2]],
+        [MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1],
+      ),
+    ).toBe('interpolation-model');
   });
 });
