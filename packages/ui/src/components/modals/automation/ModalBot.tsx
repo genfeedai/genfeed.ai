@@ -167,7 +167,7 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
     handleDelete: deleteModalBot,
   } = useCrudModal<IBot, BotSchema>({
     defaultValues: {
-      category: 'chat',
+      category: BotCategory.CHAT,
       description: '',
       label: '',
       platforms: [],
@@ -354,7 +354,8 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
 
   const platforms = form.watch('platforms') || [];
   // Cast to extended BotCategory type since schema only has 'chat' | 'comment'
-  const category = (formExtended.watch('category') as BotCategory) || 'chat';
+  const category =
+    (formExtended.watch('category') as BotCategory) || BotCategory.CHAT;
   const settings = form.watch('settings') || {
     messagesPerMinute: 5,
     responseDelaySeconds: 10,

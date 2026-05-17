@@ -234,7 +234,7 @@ describe('TimeSeriesChart', () => {
         />,
       );
       const colorIndicators = container.querySelectorAll(
-        '.rounded-full.w-3.h-3',
+        '.rounded-full.size-3',
       );
       expect(colorIndicators.length).toBe(2);
     });

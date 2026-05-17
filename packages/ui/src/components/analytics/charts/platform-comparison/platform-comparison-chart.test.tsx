@@ -178,7 +178,7 @@ describe('PlatformComparisonChart', () => {
       const { container } = render(<PlatformComparisonChart data={mockData} />);
       // Color indicators are small circles (size-3) inside buttons, one per metric
       const colorIndicators = container.querySelectorAll(
-        '.w-3.h-3.rounded-full',
+        '.size-3.rounded-full',
       );
       expect(colorIndicators.length).toBe(4);
     });

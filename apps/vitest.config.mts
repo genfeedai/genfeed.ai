@@ -97,6 +97,14 @@ export default defineConfig({
         replacement: path.resolve(repoRoot, './packages/constants/src/$1'),
       },
       {
+        find: /^@genfeedai\/core$/,
+        replacement: path.resolve(repoRoot, './packages/core/src/index.ts'),
+      },
+      {
+        find: /^@genfeedai\/core\/(.*)$/,
+        replacement: path.resolve(repoRoot, './packages/core/src/$1'),
+      },
+      {
         find: /^@genfeedai\/contexts$/,
         replacement: path.resolve(repoRoot, './packages/contexts/index.ts'),
       },
@@ -250,6 +258,76 @@ export default defineConfig({
       {
         find: /^@genfeedai\/workflow-saas\/(.*)$/,
         replacement: path.resolve(repoRoot, './packages/workflow-saas/src/$1'),
+      },
+      {
+        find: /^@genfeedai\/workflow-ui$/,
+        replacement: path.resolve(
+          repoRoot,
+          './packages/workflow-ui/src/index.ts',
+        ),
+      },
+      {
+        find: /^@genfeedai\/workflow-ui\/canvas$/,
+        replacement: path.resolve(
+          repoRoot,
+          './packages/workflow-ui/src/canvas/index.ts',
+        ),
+      },
+      {
+        find: /^@genfeedai\/workflow-ui\/hooks$/,
+        replacement: path.resolve(
+          repoRoot,
+          './packages/workflow-ui/src/hooks/index.ts',
+        ),
+      },
+      {
+        find: /^@genfeedai\/workflow-ui\/lib$/,
+        replacement: path.resolve(
+          repoRoot,
+          './packages/workflow-ui/src/lib/index.ts',
+        ),
+      },
+      {
+        find: /^@genfeedai\/workflow-ui\/nodes$/,
+        replacement: path.resolve(
+          repoRoot,
+          './packages/workflow-ui/src/nodes/index.ts',
+        ),
+      },
+      {
+        find: /^@genfeedai\/workflow-ui\/panels$/,
+        replacement: path.resolve(
+          repoRoot,
+          './packages/workflow-ui/src/panels/index.ts',
+        ),
+      },
+      {
+        find: /^@genfeedai\/workflow-ui\/provider$/,
+        replacement: path.resolve(
+          repoRoot,
+          './packages/workflow-ui/src/provider/index.ts',
+        ),
+      },
+      {
+        find: /^@genfeedai\/workflow-ui\/stores$/,
+        replacement: path.resolve(
+          repoRoot,
+          './packages/workflow-ui/src/stores/index.ts',
+        ),
+      },
+      {
+        find: /^@genfeedai\/workflow-ui\/toolbar$/,
+        replacement: path.resolve(
+          repoRoot,
+          './packages/workflow-ui/src/toolbar/index.ts',
+        ),
+      },
+      {
+        find: /^@genfeedai\/workflow-ui\/ui$/,
+        replacement: path.resolve(
+          repoRoot,
+          './packages/workflow-ui/src/ui/index.ts',
+        ),
       },
       {
         find: /^@workflow-saas$/,
