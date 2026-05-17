@@ -8,6 +8,10 @@ vi.mock('@clerk/backend', () => ({
   verifyToken: verifyTokenMock,
 }));
 
+vi.mock('./terminal.service', () => ({
+  TerminalService: class TerminalService {},
+}));
+
 function createSocket(origin?: string, token?: string): Socket {
   return {
     disconnect: vi.fn(),
