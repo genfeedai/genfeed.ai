@@ -20,7 +20,7 @@ export interface UseActiveAgentRunsOptions {
 export function useActiveAgentRuns(
   options: UseActiveAgentRunsOptions = {},
 ): UseActiveAgentRunsReturn {
-  const { getToken } = useAuth();
+  const { getToken, orgId, userId } = useAuth();
 
   const {
     data: activeRuns = [] as IAgentRun[],
@@ -36,7 +36,7 @@ export function useActiveAgentRuns(
       const service = AgentRunsService.getInstance(token);
       return service.getActive();
     },
-    queryKey: ['active-agent-runs'],
+    queryKey: ['active-agent-runs', userId ?? 'anonymous', orgId ?? 'no-org'],
     refetchInterval: (query) => {
       const data = query.state.data;
       return data && data.length > 0 ? 5000 : false;

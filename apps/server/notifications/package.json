@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@clerk/backend": "3.4.1",
     "@genfeedai/config": "workspace:*",
     "@genfeedai/enums": "workspace:*",
     "@slack/web-api": "7.16.0",

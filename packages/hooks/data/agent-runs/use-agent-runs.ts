@@ -10,7 +10,7 @@ import type {
 } from '@genfeedai/types';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
 import { useQuery } from '@tanstack/react-query';
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 
 export interface UseAgentRunsOptions extends AgentRunListQueryParams {
   initialRuns?: IAgentRun[];
@@ -30,21 +30,24 @@ export interface UseAgentRunsReturn {
 export function useAgentRuns(
   options: UseAgentRunsOptions = {},
 ): UseAgentRunsReturn {
-  const { getToken } = useAuth();
-  const [stats, setStats] = useState<AgentRunStats | null>(
-    options.initialStats ?? null,
-  );
+  const { getToken, orgId, userId } = useAuth();
 
-  const {
-    data: runs = [] as IAgentRun[],
-    isLoading,
-    refetch,
-  } = useQuery({
-    initialData: options.initialRuns ?? undefined,
-    initialDataUpdatedAt: options.initialRuns ? 0 : undefined,
+  const hasInitialData =
+    options.initialRuns !== undefined || options.initialStats !== undefined;
+
+  const { data, isLoading, refetch } = useQuery({
+    initialData: hasInitialData
+      ? {
+          runs: options.initialRuns ?? [],
+          stats: options.initialStats ?? null,
+        }
+      : undefined,
+    initialDataUpdatedAt: hasInitialData ? 0 : undefined,
     queryFn: async () => {
       const token = await resolveClerkToken(getToken);
-      if (!token) return [];
+      if (!token) {
+        return { runs: [] as IAgentRun[], stats: null };
+      }
 
       const service = AgentRunsService.getInstance(token);
 
@@ -64,11 +67,15 @@ export function useAgentRuns(
         service.getStats({ timeRange: options.timeRange }),
       ]);
 
-      setStats(fetchedStats);
-      return fetchedRuns;
+      return {
+        runs: fetchedRuns,
+        stats: fetchedStats,
+      };
     },
     queryKey: [
       'agent-runs',
+      userId ?? 'anonymous',
+      orgId ?? 'no-org',
       options.historyOnly,
       options.model,
       options.page,
@@ -103,7 +110,7 @@ export function useAgentRuns(
     cancelRun,
     isLoading,
     refresh,
-    runs,
-    stats,
+    runs: data?.runs ?? [],
+    stats: data?.stats ?? null,
   };
 }

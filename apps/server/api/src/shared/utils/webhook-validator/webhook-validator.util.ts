@@ -1,4 +1,5 @@
 import * as dns from 'node:dns/promises';
+import { Agent as HttpsAgent } from 'node:https';
 import * as net from 'node:net';
 import { BadRequestException } from '@nestjs/common';
 
@@ -99,14 +100,15 @@ function isBlockedAddress(address: string, family: 4 | 6): boolean {
   return isBlockedIpv6(address);
 }
 
-/**
- * Validates a user-supplied webhook URL for SSRF safety.
- *
- * - Requires HTTPS scheme.
- * - Resolves the hostname via DNS and blocks private/reserved IP ranges.
- * - Throws `BadRequestException` with a descriptive message on failure.
- */
-export async function assertSafeWebhookUrl(url: string): Promise<void> {
+interface SafeWebhookResolution {
+  address: string;
+  family: 4 | 6;
+  hostname: string;
+}
+
+async function resolveSafeWebhookUrl(
+  url: string,
+): Promise<SafeWebhookResolution> {
   let parsed: URL;
 
   try {
@@ -129,37 +131,85 @@ export async function assertSafeWebhookUrl(url: string): Promise<void> {
         'webhookUrl resolves to a private or reserved IP address',
       );
     }
-    return;
+    return { address: hostname, family: 4, hostname };
   }
 
-  if (net.isIPv6(hostname)) {
-    const bare = hostname.startsWith('[') ? hostname.slice(1, -1) : hostname;
-    if (isBlockedIpv6(bare)) {
+  const bareIpv6 = hostname.startsWith('[') ? hostname.slice(1, -1) : hostname;
+
+  if (net.isIPv6(bareIpv6)) {
+    if (isBlockedIpv6(bareIpv6)) {
       throw new BadRequestException(
         'webhookUrl resolves to a private or reserved IP address',
       );
     }
-    return;
+    return { address: bareIpv6, family: 6, hostname };
   }
 
-  let address: string;
-  let family: 4 | 6;
+  let records: dns.LookupAddress[];
 
   try {
-    const result = await dns.lookup(hostname);
-    address = result.address;
-    family = result.family as 4 | 6;
+    records = await dns.lookup(hostname, { all: true });
   } catch {
     throw new BadRequestException(
       'webhookUrl hostname could not be resolved — please provide a valid public endpoint',
     );
   }
 
-  if (isBlockedAddress(address, family)) {
+  if (records.length === 0) {
     throw new BadRequestException(
-      'webhookUrl resolves to a private or reserved IP address',
+      'webhookUrl hostname could not be resolved — please provide a valid public endpoint',
     );
   }
+
+  for (const record of records) {
+    const family = record.family as 4 | 6;
+    if (isBlockedAddress(record.address, family)) {
+      throw new BadRequestException(
+        'webhookUrl resolves to a private or reserved IP address',
+      );
+    }
+  }
+
+  const firstRecord = records[0];
+  if (!firstRecord) {
+    throw new BadRequestException(
+      'webhookUrl hostname could not be resolved — please provide a valid public endpoint',
+    );
+  }
+
+  return {
+    address: firstRecord.address,
+    family: firstRecord.family as 4 | 6,
+    hostname,
+  };
+}
+
+/**
+ * Validates a user-supplied webhook URL for SSRF safety.
+ *
+ * - Requires HTTPS scheme.
+ * - Resolves the hostname via DNS and blocks private/reserved IP ranges.
+ * - Throws `BadRequestException` with a descriptive message on failure.
+ */
+export async function assertSafeWebhookUrl(url: string): Promise<void> {
+  await resolveSafeWebhookUrl(url);
+}
+
+export async function createSafeWebhookHttpsAgent(
+  url: string,
+): Promise<HttpsAgent> {
+  const resolution = await resolveSafeWebhookUrl(url);
+
+  return new HttpsAgent({
+    lookup: (hostname, _options, callback) => {
+      if (hostname === resolution.hostname) {
+        callback(null, resolution.address, resolution.family);
+        return;
+      }
+
+      callback(new Error('Unsafe webhook redirect hostname rejected'));
+    },
+  });
 }
 
 /**

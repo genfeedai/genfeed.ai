@@ -192,7 +192,7 @@ function attachTerminalSocketHandlers({
 }
 
 export function AgentCliTerminal({
-  apiService: _apiService,
+  apiService,
 }: AgentCliTerminalProps): ReactElement {
   const [activeKind, setActiveKind] = useState<TerminalSessionKind>('shell');
   const [cwdInput, setCwdInput] = useState(readPersistedTerminalCwd);
@@ -361,7 +361,15 @@ export function AgentCliTerminal({
 
       terminal.writeln('Connecting to local terminal gateway...');
 
+      const token = await apiService.getToken();
+      if (!token) {
+        terminal.writeln('Authenticated session required.');
+        setStatus('authenticated session required');
+        return;
+      }
+
       const socket = io(`${resolveTerminalEndpoint()}/terminal`, {
+        auth: { token },
         reconnectionAttempts: 3,
         timeout: 8_000,
         transports: ['websocket'],
@@ -404,7 +412,7 @@ export function AgentCliTerminal({
       socketRef.current = null;
       sessionRef.current = null;
     };
-  }, [fitAndSyncSize, startSession]);
+  }, [apiService, fitAndSyncSize, startSession]);
 
   return (
     <div

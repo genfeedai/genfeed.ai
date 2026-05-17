@@ -25,6 +25,12 @@ vi.mock('node-pty', () => ({
   spawn: spawnMock,
 }));
 
+vi.mock('node:module', () => ({
+  createRequire: () => ({
+    resolve: vi.fn(() => '/tmp/node-pty/package.json'),
+  }),
+}));
+
 function createConfigService(values: Record<string, string | undefined>) {
   return {
     get: vi.fn((key: string) => values[key]),
