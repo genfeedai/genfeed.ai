@@ -227,7 +227,7 @@ const GeneratedContentCard = ({
           {publishResult
             ? 'Published'
             : isPublishing
-              ? 'Publishing...'
+              ? 'Publishing…'
               : '🚀 Publish'}
         </Button>
       </div>
@@ -903,9 +903,7 @@ export const ConversationView = ({
             iterate from one native surface.
           </p>
         </div>
-        {isGenerating && (
-          <span className="generating-badge">Generating...</span>
-        )}
+        {isGenerating && <span className="generating-badge">Generating…</span>}
       </div>
 
       {error && (
@@ -966,7 +964,7 @@ export const ConversationView = ({
           )}
 
           {workspaceId && isLoadingDrafts && (
-            <p className="muted-text">Loading drafts...</p>
+            <p className="muted-text">Loading drafts…</p>
           )}
 
           {workspaceId && drafts.length === 0 && !isLoadingDrafts && (
@@ -1102,7 +1100,7 @@ export const ConversationView = ({
                 type="button"
                 variant={ButtonVariant.GHOST}
               >
-                {isSavingProvider ? 'Saving...' : 'Save'}
+                {isSavingProvider ? 'Saving…' : 'Save'}
               </Button>
               <Button
                 className="small"
@@ -1111,7 +1109,7 @@ export const ConversationView = ({
                 type="button"
                 variant={ButtonVariant.GHOST}
               >
-                {isTestingProvider ? 'Testing...' : 'Test'}
+                {isTestingProvider ? 'Testing…' : 'Test'}
               </Button>
               <Button
                 className="small"
@@ -1298,7 +1296,7 @@ export const ConversationView = ({
               className="conversation-input"
               onChange={(event) => setInput(event.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Describe the content run you want to execute... (⌘+Enter to send)"
+              placeholder="Describe the content run you want to execute… (⌘+Enter to send)"
               ref={inputRef}
               rows={3}
               value={input}
@@ -1315,7 +1313,7 @@ export const ConversationView = ({
                 type="button"
                 variant={ButtonVariant.DEFAULT}
               >
-                {isGenerating ? 'Generating...' : 'Generate'}
+                {isGenerating ? 'Generating…' : 'Generate'}
               </Button>
             </div>
           </div>

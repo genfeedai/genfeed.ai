@@ -719,7 +719,7 @@ export function CreatePanel({ onStartChat }: CreatePanelProps): ReactElement {
           <Textarea
             value={generatePrompt}
             onChange={(event) => setGeneratePrompt(event.target.value)}
-            placeholder="Write a prompt for generated content..."
+            placeholder="Write a prompt for generated content…"
             className="min-h-20 w-full border border-border bg-background px-3 py-2 text-xs text-foreground focus:border-primary focus:outline-none"
           />
           <Button
@@ -730,7 +730,7 @@ export function CreatePanel({ onStartChat }: CreatePanelProps): ReactElement {
             className="mt-2 w-full text-xs"
           >
             {isRunning && currentRun?.actionType === 'generate'
-              ? 'Running Generate...'
+              ? 'Running Generate…'
               : 'Run Generate'}
           </Button>
         </section>
@@ -742,7 +742,7 @@ export function CreatePanel({ onStartChat }: CreatePanelProps): ReactElement {
           <Textarea
             value={previewContent}
             onChange={(event) => setPreviewContent(event.target.value)}
-            placeholder="Generated preview appears here..."
+            placeholder="Generated preview appears here…"
             className="min-h-24 w-full border border-border bg-background px-3 py-2 text-xs text-foreground focus:border-primary focus:outline-none"
           />
           <div className="mt-2 grid grid-cols-2 gap-2">
@@ -807,7 +807,7 @@ export function CreatePanel({ onStartChat }: CreatePanelProps): ReactElement {
             className="mt-2 w-full text-xs"
           >
             {isRunning && currentRun?.actionType === 'post'
-              ? 'Running Post...'
+              ? 'Running Post…'
               : 'Run Post'}
           </Button>
 
@@ -862,7 +862,7 @@ export function CreatePanel({ onStartChat }: CreatePanelProps): ReactElement {
             className="mt-2 w-full text-xs"
           >
             {isRunning && currentRun?.actionType === 'analytics'
-              ? 'Running Analytics...'
+              ? 'Running Analytics…'
               : 'Run Analytics'}
           </Button>
 
@@ -914,7 +914,7 @@ export function CreatePanel({ onStartChat }: CreatePanelProps): ReactElement {
 
       {isRunning && currentRun && !TERMINAL_STATUSES.has(currentRun.status) ? (
         <div className="border-t border-border px-3 py-2 text-[11px] text-muted-foreground">
-          Processing {currentRun.actionType} run...
+          Processing {currentRun.actionType} run…
         </div>
       ) : null}
     </div>

@@ -27,7 +27,7 @@ function ExploringView() {
         <Loader2 className="size-4 text-violet-400 animate-spin absolute -top-1 -right-1" />
       </div>
       <p className="text-sm text-white/60 text-center max-w-xs">
-        Agent is exploring context and reading relevant files...
+        Agent is exploring context and reading relevant files…
       </p>
     </div>
   );
@@ -63,7 +63,7 @@ function ClarifyingView() {
       ) : questions.length === 0 ? (
         <div className="rounded-lg border border-dashed border-white/10 p-6 text-center">
           <p className="text-sm text-white/40">
-            Waiting for agent to ask questions...
+            Waiting for agent to ask questions…
           </p>
         </div>
       ) : (
@@ -101,7 +101,7 @@ function ProposingView() {
     <div className="flex flex-col items-center justify-center py-8 gap-3">
       <Sparkles className="size-8 text-amber-400" />
       <p className="text-sm text-white/60 text-center max-w-xs">
-        Agent is crafting approaches based on your answers...
+        Agent is crafting approaches based on your answers…
       </p>
     </div>
   );
@@ -115,7 +115,7 @@ function ImplementingView() {
         <Loader2 className="size-4 text-blue-400 animate-spin absolute -top-1 -right-1" />
       </div>
       <p className="text-sm text-white/60 text-center max-w-xs">
-        Agent is implementing the approved approach...
+        Agent is implementing the approved approach…
       </p>
     </div>
   );

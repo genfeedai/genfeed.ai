@@ -1205,9 +1205,17 @@ export function getRelatedProducts(currentSlug: string): Product[] {
     return [];
   }
 
-  return product.relatedProducts
-    .map((slug) => getProductBySlug(slug))
-    .filter((p): p is Product => p !== undefined);
+  const relatedProducts: Product[] = [];
+
+  for (const slug of product.relatedProducts) {
+    const relatedProduct = getProductBySlug(slug);
+
+    if (relatedProduct) {
+      relatedProducts.push(relatedProduct);
+    }
+  }
+
+  return relatedProducts;
 }
 
 export function getOpenSourceProducts(): Product[] {

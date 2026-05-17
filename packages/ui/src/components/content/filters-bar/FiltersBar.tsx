@@ -96,21 +96,25 @@ const DEFAULT_MODEL_OPTIONS = [{ label: 'All Models', value: '' }];
 
 const DEFAULT_ACCOUNT_OPTIONS = [{ label: 'All Brands', value: '' }];
 
+const DEFAULT_FILTER_OPTIONS = {};
+
+const DEFAULT_VISIBLE_FILTERS = {
+  favorite: false,
+  format: true,
+  model: false,
+  provider: true,
+  search: true,
+  sort: true,
+  status: true,
+  type: true,
+};
+
 export default function FiltersBar({
   filters,
   onFiltersChange,
   className = '',
-  filterOptions = {},
-  visibleFilters = {
-    favorite: false,
-    format: true,
-    model: false,
-    provider: true,
-    search: true,
-    sort: true,
-    status: true,
-    type: true,
-  },
+  filterOptions = DEFAULT_FILTER_OPTIONS,
+  visibleFilters = DEFAULT_VISIBLE_FILTERS,
 }: FiltersBarProps) {
   const [searchValue, setSearchValue] = useState(filters.search ?? '');
   const isInternalUpdateRef = useRef(false);

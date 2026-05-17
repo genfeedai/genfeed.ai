@@ -103,14 +103,14 @@ function DemoCard({
             {/* Center icon */}
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="scale-100 rounded-full bg-black/30 p-4 backdrop-blur-sm transition-all duration-300 group-hover:scale-110">
-                <CenterIcon className="h-8 w-8 text-surface" />
+                <CenterIcon className="size-8 text-surface" />
               </div>
             </div>
 
             {/* Type badge */}
             <div className="absolute top-3 left-3">
               <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-black/50 backdrop-blur-sm text-surface text-xs font-medium">
-                <TypeIcon className="h-3 w-3" />
+                <TypeIcon className="size-3" />
                 {typeLabel}
               </div>
             </div>
@@ -118,15 +118,15 @@ function DemoCard({
             {/* AI badge */}
             <div className="absolute top-3 right-3">
               <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-primary/80 backdrop-blur-sm text-primary-foreground text-xs font-medium">
-                <HiSparkles className="h-3 w-3" />
+                <HiSparkles className="size-3" />
                 AI
               </div>
             </div>
 
             {/* Floating particles when hovered */}
-            <div className="absolute bottom-1/4 left-1/4 h-2 w-2 rounded-full bg-fill/30 opacity-0 transition-opacity group-hover:opacity-100 animate-ping" />
-            <div className="absolute top-1/3 right-1/3 h-1.5 w-1.5 rounded-full bg-fill/20 opacity-0 transition-opacity group-hover:opacity-100 animate-ping animation-delay-200" />
-            <div className="absolute bottom-1/3 right-1/4 h-1 w-1 rounded-full bg-fill/40 opacity-0 transition-opacity group-hover:opacity-100 animate-ping animation-delay-400" />
+            <div className="absolute bottom-1/4 left-1/4 size-2 rounded-full bg-fill/30 opacity-0 transition-opacity group-hover:opacity-100 animate-ping" />
+            <div className="absolute top-1/3 right-1/3 size-1.5 rounded-full bg-fill/20 opacity-0 transition-opacity group-hover:opacity-100 animate-ping" />
+            <div className="absolute bottom-1/3 right-1/4 size-1 rounded-full bg-fill/40 opacity-0 transition-opacity group-hover:opacity-100 animate-ping animation-delay-400" />
           </div>
 
           {/* Card info */}
@@ -142,11 +142,11 @@ function DemoCard({
             </Heading>
             <HStack className="items-center gap-4 text-xs text-foreground/60">
               <Text className="flex items-center gap-1">
-                <HiEye className="h-3 w-3" />
+                <HiEye className="size-3" />
                 {views}
               </Text>
               <Text className="flex items-center gap-1">
-                <HiHeart className="h-3 w-3" />
+                <HiHeart className="size-3" />
                 {likes}
               </Text>
             </HStack>
@@ -163,17 +163,17 @@ function GeneratingIndicator() {
       <div className="relative">
         <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full animate-pulse" />
         <div className="relative p-4 bg-card border border-primary/30">
-          <HiSparkles className="h-8 w-8 text-primary animate-pulse" />
+          <HiSparkles className="size-8 text-primary animate-pulse" />
         </div>
       </div>
       <VStack className="text-center">
         <HStack className="items-center gap-2 justify-center mb-2">
-          <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" />
-          <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce animation-delay-100" />
-          <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce animation-delay-200" />
+          <div className="size-1.5 bg-primary rounded-full" />
+          <div className="size-1.5 bg-primary rounded-full" />
+          <div className="size-1.5 bg-primary rounded-full" />
         </HStack>
         <Text as="p" className="text-sm text-foreground/60">
-          Generating...
+          Generating…
         </Text>
       </VStack>
     </div>
@@ -251,7 +251,7 @@ export default function DemoShowcase() {
           {/* Header */}
           <VStack className="text-center mb-12">
             <HStack className="inline-flex items-center gap-2 mb-4">
-              <HiSparkles className="h-6 w-6 text-primary" />
+              <HiSparkles className="size-6 text-primary" />
               <Text className="text-sm font-semibold uppercase tracking-wide text-primary">
                 AI Generated Content
               </Text>

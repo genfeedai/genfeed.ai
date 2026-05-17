@@ -139,7 +139,7 @@ function TrendHashtagInspirationNodeComponent({
       </div>
 
       {/* Auto-select toggle */}
-      <label className="flex items-center gap-2 text-sm">
+      <div className="flex items-center gap-2 text-sm">
         <Checkbox
           checked={data.auto}
           onCheckedChange={(checked) =>
@@ -147,8 +147,8 @@ function TrendHashtagInspirationNodeComponent({
           }
           aria-label="Auto-select top trending hashtag"
         />
-        Auto-select top trending hashtag
-      </label>
+        <span>Auto-select top trending hashtag</span>
+      </div>
 
       {/* Manual hashtag input */}
       {!data.auto && (

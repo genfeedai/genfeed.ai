@@ -124,7 +124,7 @@ export default function SiteFooter({
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-12">
             {sections.map((section) => (
               <div key={section.title}>
-                <h4 className="text-[10px] font-black uppercase tracking-[0.3em] mb-10">
+                <h4 className="text-[10px] font-semibold uppercase tracking-[0.3em] mb-10">
                   {section.title}
                 </h4>
                 <ul className="space-y-6 text-xs text-white/30 font-semibold uppercase tracking-widest">
@@ -149,7 +149,7 @@ export default function SiteFooter({
             {/* Newsletter Column */}
             {showNewsletter && (
               <div>
-                <h4 className="text-[10px] font-black uppercase tracking-[0.3em] mb-10 flex items-center gap-2">
+                <h4 className="text-[10px] font-semibold uppercase tracking-[0.3em] mb-10 flex items-center gap-2">
                   <HiEnvelope className="size-4" />
                   Newsletter
                 </h4>
@@ -184,7 +184,7 @@ export default function SiteFooter({
                 </div>
 
                 <div>
-                  <h4 className="text-xl font-black uppercase tracking-wide mb-1 text-black">
+                  <h4 className="text-xl font-semibold uppercase tracking-wide mb-1 text-black">
                     Want to chat?
                   </h4>
 

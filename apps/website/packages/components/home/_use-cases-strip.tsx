@@ -51,7 +51,7 @@ export default function UseCasesStrip() {
   return (
     <section className="py-20 px-4">
       <div className="max-w-6xl mx-auto">
-        <h2 className="text-3xl font-bold text-center mb-4">
+        <h2 className="text-3xl font-semibold text-center mb-4">
           Built for teams running multiple brands
         </h2>
         <p className="text-center text-foreground/60 mb-12 max-w-2xl mx-auto">
@@ -66,7 +66,7 @@ export default function UseCasesStrip() {
                 <Card className="h-full text-center transition-colors group-hover:border-primary/30">
                   <div className="flex justify-center mb-3">
                     <div className="rounded-xl bg-primary/10 p-3">
-                      <Icon className="h-6 w-6 text-primary" />
+                      <Icon className="size-6 text-primary" />
                     </div>
                   </div>
                   <h3 className="font-semibold mb-1">{uc.label}</h3>
@@ -74,7 +74,7 @@ export default function UseCasesStrip() {
                     {uc.description}
                   </p>
                   <span className="inline-flex items-center gap-1 text-xs text-primary font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-                    Learn more <LuArrowRight className="h-3 w-3" />
+                    Learn more <LuArrowRight className="size-3" />
                   </span>
                 </Card>
               </Link>

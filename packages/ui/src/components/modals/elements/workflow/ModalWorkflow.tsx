@@ -175,7 +175,7 @@ export default function ModalWorkflow({
                 {AVAILABLE_TASKS.map((task) => (
                   <label
                     key={task.value}
-                    className="flex items-center space-x-3 cursor-pointer hover:bg-background p-2"
+                    className="flex items-center gap-x-3 cursor-pointer hover:bg-background p-2"
                   >
                     <Checkbox
                       isChecked={selectedTasks.includes(task.value)}
@@ -206,7 +206,7 @@ export default function ModalWorkflow({
                         key={taskValue}
                         className="flex items-center justify-between p-2 bg-card"
                       >
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center gap-x-2">
                           <span className="text-xs text-foreground/60">
                             {index + 1}.
                           </span>

@@ -166,10 +166,10 @@ export default function AiInfluencersContent() {
         {/* Platform Icons */}
         <section className="gsap-hero max-w-4xl mx-auto pb-8">
           <div className="flex justify-center gap-6 text-foreground/40">
-            <FaInstagram className="h-6 w-6" />
-            <FaTiktok className="h-6 w-6" />
-            <FaYoutube className="h-6 w-6" />
-            <FaXTwitter className="h-6 w-6" />
+            <FaInstagram className="size-6" />
+            <FaTiktok className="size-6" />
+            <FaYoutube className="size-6" />
+            <FaXTwitter className="size-6" />
           </div>
         </section>
 
@@ -185,7 +185,7 @@ export default function AiInfluencersContent() {
                   <p className="text-foreground/50 line-through">
                     {metric.before}
                   </p>
-                  <p className="text-3xl font-bold text-primary">
+                  <p className="text-3xl font-semibold text-primary">
                     {metric.after}
                   </p>
                 </div>
@@ -200,11 +200,11 @@ export default function AiInfluencersContent() {
             <div className="flex flex-col md:flex-row items-center gap-8">
               <div className="flex-shrink-0">
                 <div className="p-6 bg-primary/10">
-                  <HiSparkles className="h-16 w-16 text-primary" />
+                  <HiSparkles className="size-16 text-primary" />
                 </div>
               </div>
               <div>
-                <h3 className="text-2xl font-bold mb-2">
+                <h3 className="text-2xl font-semibold mb-2">
                   Your Brand, Always On
                 </h3>
                 <p className="text-foreground/70 mb-4">
@@ -266,7 +266,7 @@ export default function AiInfluencersContent() {
 
         {/* Features Grid */}
         <section className="gsap-section max-w-6xl mx-auto pb-16">
-          <h3 className="text-2xl font-bold text-center mb-8">
+          <h3 className="text-2xl font-semibold text-center mb-8">
             Everything You Need to Build Virtual Influencers
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -276,7 +276,7 @@ export default function AiInfluencersContent() {
                 <Card key={feature.title} className="text-center">
                   <div className="flex justify-center mb-4">
                     <div className="p-3 bg-primary/10">
-                      <Icon className="h-6 w-6 text-primary" />
+                      <Icon className="size-6 text-primary" />
                     </div>
                   </div>
                   <h4 className="font-semibold mb-2">{feature.title}</h4>
@@ -291,15 +291,15 @@ export default function AiInfluencersContent() {
 
         {/* How It Works */}
         <section className="gsap-section max-w-4xl mx-auto pb-16">
-          <h3 className="text-2xl font-bold text-center mb-8">
+          <h3 className="text-2xl font-semibold text-center mb-8">
             How to Create an AI Influencer
           </h3>
           <div className="space-y-4">
             {STEPS.map((step, index) => (
               <Card key={step.title}>
                 <div className="flex items-start gap-4">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                    <span className="text-sm font-bold text-primary">
+                  <div className="flex-shrink-0 size-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <span className="text-sm font-semibold text-primary">
                       {index + 1}
                     </span>
                   </div>
@@ -315,7 +315,7 @@ export default function AiInfluencersContent() {
 
         {/* Use Cases */}
         <section className="max-w-4xl mx-auto pb-16">
-          <h3 className="text-2xl font-bold text-center mb-8">
+          <h3 className="text-2xl font-semibold text-center mb-8">
             AI Influencer Marketing Use Cases
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -343,12 +343,12 @@ export default function AiInfluencersContent() {
         {/* CTA Section */}
         <section className="max-w-4xl mx-auto pb-16">
           <Card className="text-center bg-background/50">
-            <h3 className="text-2xl font-bold mb-2">
+            <h3 className="text-2xl font-semibold mb-2">
               Build Your AI Influencer
             </h3>
             <p className="text-foreground/70 mb-6 max-w-lg mx-auto">
               Launch your first virtual influencer today. Create content, grow
-              audiences, and drive conversions — all on autopilot.
+              audiences, and drive conversions, all on autopilot.
             </p>
             <PricingStrip className="mb-6" />
             <div className="flex flex-wrap gap-4 justify-center">
@@ -357,7 +357,7 @@ export default function AiInfluencersContent() {
                 className="inline-flex items-center justify-center bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 gap-2 font-medium transition-colors"
               >
                 View Pricing
-                <HiArrowRight className="h-4 w-4" />
+                <HiArrowRight className="size-4" />
               </Link>
               <Link
                 href="https://attentionntwrk.com"
@@ -366,7 +366,7 @@ export default function AiInfluencersContent() {
                 className="inline-flex items-center justify-center border border-input hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 gap-2 font-medium transition-colors"
               >
                 Explore AI Influencer Network
-                <HiArrowRight className="h-4 w-4" />
+                <HiArrowRight className="size-4" />
               </Link>
               <Link
                 href="/demo"

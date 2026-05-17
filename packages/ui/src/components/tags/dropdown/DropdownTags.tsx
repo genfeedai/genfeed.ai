@@ -503,8 +503,9 @@ export default function DropdownTags({
                   setSearchQuery('');
                 }}
                 className="h-6 px-2 text-xs hover:bg-accent hover:text-accent-foreground"
+                aria-label="Apply selected tags"
               >
-                Done
+                Apply tags
               </Button>
             </div>
           </div>,

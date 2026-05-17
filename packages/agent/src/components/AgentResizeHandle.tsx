@@ -19,8 +19,10 @@ export function AgentResizeHandle({
     (e: React.MouseEvent) => {
       e.preventDefault();
       startXRef.current = e.clientX;
-      document.body.style.userSelect = 'none';
-      document.body.style.cursor = 'col-resize';
+      Object.assign(document.body.style, {
+        cursor: 'col-resize',
+        userSelect: 'none',
+      });
 
       function onMouseMove(moveEvent: MouseEvent) {
         const deltaX = startXRef.current - moveEvent.clientX;
@@ -29,8 +31,10 @@ export function AgentResizeHandle({
       }
 
       function onMouseUp() {
-        document.body.style.userSelect = '';
-        document.body.style.cursor = '';
+        Object.assign(document.body.style, {
+          cursor: '',
+          userSelect: '',
+        });
         document.removeEventListener('mousemove', onMouseMove);
         document.removeEventListener('mouseup', onMouseUp);
         onResizeEnd();

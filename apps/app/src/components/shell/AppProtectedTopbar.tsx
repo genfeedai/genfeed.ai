@@ -28,11 +28,11 @@ function AppProtectedTopbarContent({
   isAgentCollapsed,
   onAgentToggle,
 }: TopbarProps = {}) {
-  const searchParams = useSearchParams();
+  const { get } = useSearchParams();
   const { href, orgHref } = useOrgUrl();
 
-  const taskId = searchParams.get('taskId');
-  const taskTitle = searchParams.get('taskTitle');
+  const taskId = get('taskId');
+  const taskTitle = get('taskTitle');
   const ToggleIcon = isMenuOpen ? HiXMark : HiBars3;
   const backToTaskHref = taskId
     ? href(

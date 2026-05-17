@@ -67,7 +67,7 @@ export const TrendsView = ({ onGenerateFromTrend }: TrendsViewProps) => {
         ))}
       </div>
 
-      {loading && <p className="muted-text">Loading trends...</p>}
+      {loading && <p className="muted-text">Loading trends…</p>}
       {error && <div className="error-banner">{error}</div>}
 
       {!loading && !error && trends.length === 0 && (

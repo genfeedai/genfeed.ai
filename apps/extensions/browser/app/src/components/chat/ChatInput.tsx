@@ -82,7 +82,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps): ReactElement {
         onClick={handleSend}
         disabled={disabled || !value.trim()}
         aria-label="Send message"
-        className="flex h-9 w-9 shrink-0 items-center justify-center"
+        className="flex size-9 shrink-0 items-center justify-center"
       >
         <svg
           aria-hidden="true"

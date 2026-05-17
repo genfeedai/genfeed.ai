@@ -10,6 +10,17 @@ interface ArticlesListProps {
   articles: Article[];
 }
 
+const articleDateFormatter = new Intl.DateTimeFormat('en-US', {
+  day: 'numeric',
+  month: 'short',
+  timeZone: 'UTC',
+  year: 'numeric',
+});
+
+function formatArticleDate(publishedAt: string): string {
+  return articleDateFormatter.format(new Date(publishedAt));
+}
+
 export default function ArticlesList({ articles }: ArticlesListProps) {
   if (articles.length === 0) {
     return <CardEmpty label="No articles published yet" />;
@@ -34,7 +45,7 @@ export default function ArticlesList({ articles }: ArticlesListProps) {
               className="group block"
             >
               <Card className="h-full border border-edge/[0.08] transition-all hover:shadow-lg">
-                <h2 className="mb-2 text-2xl font-bold transition-colors group-hover:text-primary">
+                <h2 className="mb-2 text-2xl font-semibold transition-colors group-hover:text-primary">
                   {article.label}
                 </h2>
 
@@ -61,22 +72,13 @@ export default function ArticlesList({ articles }: ArticlesListProps) {
                 <div className="flex flex-wrap items-center gap-4 border-t border-edge/[0.08] pt-4 text-sm text-foreground/60">
                   {article.publishedAt && (
                     <div className="flex items-center gap-2">
-                      <HiCalendar className="h-4 w-4" />
-                      <span>
-                        {new Date(article.publishedAt).toLocaleDateString(
-                          'en-US',
-                          {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric',
-                          },
-                        )}
-                      </span>
+                      <HiCalendar className="size-4" />
+                      <span>{formatArticleDate(article.publishedAt)}</span>
                     </div>
                   )}
                   {article.readingTime && (
                     <div className="flex items-center gap-2">
-                      <HiClock className="h-4 w-4" />
+                      <HiClock className="size-4" />
                       <span>{article.readingTime} min read</span>
                     </div>
                   )}

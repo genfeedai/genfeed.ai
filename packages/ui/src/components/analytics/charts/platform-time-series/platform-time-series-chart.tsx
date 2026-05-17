@@ -110,7 +110,7 @@ export function PlatformTimeSeriesChart({
             } ${isLoading || isEmpty ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             <span
-              className="inline-block size-3 h-3 w-3 rounded-full mr-2"
+              className="inline-block size-3 rounded-full mr-2"
               style={{ backgroundColor: PLATFORM_COLORS[platform] }}
             />
             {PLATFORM_LABELS[platform]}

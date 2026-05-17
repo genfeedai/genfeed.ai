@@ -27,8 +27,11 @@ vi.mock('@services/external/public.service', () => ({
 
 vi.mock('next/image', () => ({
   default: (props: ImgHTMLAttributes<HTMLImageElement>) => (
-    // biome-ignore lint/performance/noImgElement: next/image is mocked to a basic DOM element in jsdom tests.
-    <img alt={props.alt} src={props.src} />
+    <span
+      aria-label={props.alt ?? ''}
+      data-src={typeof props.src === 'string' ? props.src : undefined}
+      role="img"
+    />
   ),
 }));
 
@@ -48,7 +51,7 @@ describe('PostsIngredientsList', () => {
       },
     ]);
 
-    render(<PostsIngredientsList />);
+    render(<PostsIngredientsList page={1} />);
 
     await waitFor(() => {
       expect(screen.getByRole('link', { name: /collagen/i })).toHaveAttribute(

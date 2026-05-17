@@ -73,7 +73,7 @@ export const WorkflowsView = () => {
         </Button>
       </div>
 
-      {loading && <p className="muted-text">Loading workflows...</p>}
+      {loading && <p className="muted-text">Loading workflows…</p>}
       {error && <div className="error-banner">{error}</div>}
 
       {!loading && workflows.length === 0 && (
@@ -124,7 +124,7 @@ export const WorkflowsView = () => {
                 type="button"
                 variant={ButtonVariant.DEFAULT}
               >
-                {runningId === wf.id ? 'Running...' : '▶ Run'}
+                {runningId === wf.id ? 'Running…' : '▶ Run'}
               </Button>
               {wf.supportsBatch && (
                 <Button

@@ -18,7 +18,7 @@ import Loading from '@ui/loading/default/Loading';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { HiMusicalNote, HiPause, HiPlay, HiXMark } from 'react-icons/hi2';
 
 export default function ModalMusic({
@@ -30,9 +30,7 @@ export default function ModalMusic({
   const [availableMusic, setAvailableMusic] = useState<Music[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [playingId, setPlayingId] = useState<string>('');
-  const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(
-    null,
-  );
+  const audioElementRef = useRef<HTMLAudioElement | null>(null);
 
   const getMusicsService = useAuthedService((token: string) =>
     MusicsService.getInstance(token),
@@ -65,14 +63,16 @@ export default function ModalMusic({
 
     return () => {
       // Clean up audio on unmount
-      if (audioElement) {
-        audioElement.pause();
-        audioElement.src = '';
+      if (audioElementRef.current) {
+        audioElementRef.current.pause();
+        audioElementRef.current.src = '';
       }
     };
-  }, [audioElement, findAllMusics]);
+  }, [findAllMusics]);
 
   const handlePlayPause = (musicId: string, musicUrl: string) => {
+    const audioElement = audioElementRef.current;
+
     if (playingId === musicId) {
       // Pause current
       if (audioElement) {
@@ -88,21 +88,21 @@ export default function ModalMusic({
       const audio = new Audio(musicUrl);
       audio.play();
       audio.onended = () => setPlayingId('');
-      setAudioElement(audio);
+      audioElementRef.current = audio;
       setPlayingId(musicId);
     }
   };
 
   const closeModalMusic = () => {
-    if (audioElement) {
-      audioElement.pause();
+    if (audioElementRef.current) {
+      audioElementRef.current.pause();
     }
     closeModal(ModalEnum.MUSIC);
   };
 
   const handleConfirm = () => {
-    if (audioElement) {
-      audioElement.pause();
+    if (audioElementRef.current) {
+      audioElementRef.current.pause();
     }
 
     const music = selectedMusic

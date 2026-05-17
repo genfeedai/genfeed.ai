@@ -72,7 +72,7 @@ export default function HomeFeatures(): React.ReactElement {
       <div className="container mx-auto px-6">
         {/* Section header */}
         <HStack className="items-center gap-3 mb-3">
-          <HiSparkles className="h-4 w-4 gen-icon" />
+          <HiSparkles className="size-4 gen-icon" />
           <Text className="gen-label gen-text-accent">Capabilities</Text>
         </HStack>
         <Heading
@@ -104,7 +104,7 @@ export default function HomeFeatures(): React.ReactElement {
                   <div className="relative z-10 h-full flex flex-col">
                     <div
                       className={cn(
-                        'w-10 h-10 flex items-center justify-center mb-4 border',
+                        'size-10 flex items-center justify-center mb-4 border',
                         feature.inverted
                           ? 'bg-inv-fg/10 border-inv-fg/20'
                           : 'gen-badge',
@@ -112,7 +112,7 @@ export default function HomeFeatures(): React.ReactElement {
                     >
                       <Icon
                         className={cn(
-                          'h-5 w-5',
+                          'size-5',
                           feature.inverted ? 'text-inv-fg' : 'gen-icon',
                         )}
                       />

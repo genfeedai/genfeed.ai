@@ -47,7 +47,7 @@ export const LibraryView = ({ workspaceId }: LibraryViewProps) => {
     void loadIngredients();
   }, [loadIngredients]);
 
-  const sortedIngredients = [...ingredients].sort((a, b) => {
+  const sortedIngredients = ingredients.toSorted((a, b) => {
     if (sortBy === 'votes') return b.totalVotes - a.totalVotes;
     return 0;
   });

@@ -673,7 +673,7 @@ export default function ModalTrainingNew({ onSuccess }: ModalTrainingNewProps) {
           </div>
 
           {/* Right Column - Uploaded Files List */}
-          <div className="flex flex-col space-y-4">
+          <div className="flex flex-col gap-y-4">
             <div className="flex items-center justify-between">
               <h4 className="text-sm font-semibold">Uploaded Files</h4>
               {files.length > 0 && (

@@ -130,7 +130,7 @@ export default function PostSaverPage() {
 
   return (
     <div className="space-y-3">
-      <h3 className="text-sm font-medium text-gray-700 mb-3">
+      <h3 className="text-sm font-medium text-zinc-700 mb-3">
         Saved Posts ({savedPosts.length})
       </h3>
 
@@ -138,21 +138,21 @@ export default function PostSaverPage() {
         {savedPosts.map((post) => (
           <div
             key={post.id}
-            className="border border-gray-200 p-3 hover:border-gray-300 transition-colors"
+            className="border border-zinc-200 p-3 hover:border-zinc-300 transition-colors"
           >
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0">
                 {post.author && (
-                  <p className="text-sm font-medium text-gray-900 truncate">
+                  <p className="text-sm font-medium text-zinc-900 truncate">
                     @{post.author}
                   </p>
                 )}
                 {post.content && (
-                  <p className="text-sm text-gray-600 line-clamp-2 mt-1">
+                  <p className="text-sm text-zinc-600 line-clamp-2 mt-1">
                     {post.content}
                   </p>
                 )}
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-xs text-zinc-400 mt-1">
                   {new Date(post.savedAt).toLocaleDateString()}
                 </p>
               </div>
@@ -180,7 +180,7 @@ export default function PostSaverPage() {
                   type="button"
                   variant={ButtonVariant.GHOST}
                   onClick={() => chrome.tabs.create({ url: post.url })}
-                  className="p-1.5 text-gray-500 hover:bg-gray-50"
+                  className="p-1.5 text-zinc-500 hover:bg-zinc-50"
                   title="View post"
                 >
                   <ViewIcon />

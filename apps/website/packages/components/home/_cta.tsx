@@ -48,7 +48,7 @@ export default function HomeCTA(): React.ReactElement {
             >
               <a href={signUpHref} target="_blank" rel="noopener noreferrer">
                 Start Cloud App
-                <LuArrowRight className="h-4 w-4" />
+                <LuArrowRight className="size-4" />
               </a>
             </ButtonTracked>
 

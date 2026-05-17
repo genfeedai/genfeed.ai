@@ -39,7 +39,10 @@ export default function PlatformAnalyticsBreakdown({
         <h3 className="text-lg font-semibold mb-4">Platform Breakdown</h3>
         <div className="space-y-4">
           {Object.entries(platforms).map(([platform, stats]) => (
-            <div key={platform} className="border-l-4 border-primary pl-4">
+            <div
+              key={platform}
+              className="border-l border-primary/40 pl-4 shadow-[inset_2px_0_0_hsl(var(--primary)/0.28)]"
+            >
               <h4 className="font-semibold capitalize mb-2">{platform}</h4>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
                 <div>

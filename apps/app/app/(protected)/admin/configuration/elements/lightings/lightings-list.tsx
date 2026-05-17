@@ -44,7 +44,7 @@ function LightingsListContent({
     () => new URLSearchParams(searchParamsString),
     [searchParamsString],
   );
-  const currentPage = Number(searchParams.get('page')) || 1;
+  const currentPage = Number(parsedSearchParams.get('page')) || 1;
 
   // Admin org/brand filter state (superadmin only)
   const [adminOrg, setAdminOrg] = useState(

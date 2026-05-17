@@ -52,7 +52,7 @@ function HighlightCard({
           <div
             className={`relative p-4 bg-gradient-to-br ${color} transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3`}
           >
-            <Icon className="h-8 w-8 text-surface" />
+            <Icon className="size-8 text-surface" />
           </div>
         </div>
 
@@ -75,7 +75,7 @@ function HighlightCard({
                 className="flex items-center gap-2 text-sm text-foreground/60 transition-all duration-300"
                 style={{ transitionDelay: `${index * 100}ms` }}
               >
-                <HiCheckCircle className="h-4 w-4 text-primary flex-shrink-0" />
+                <HiCheckCircle className="size-4 text-primary flex-shrink-0" />
                 {feature}
               </li>
             ))}
@@ -141,7 +141,7 @@ export default function HomeValueProps() {
           >
             <Link href="/features">
               See all features
-              <HiArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+              <HiArrowRight className="size-5 transition-transform group-hover:translate-x-1" />
             </Link>
           </Button>
         </div>

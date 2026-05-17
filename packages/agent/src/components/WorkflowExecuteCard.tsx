@@ -235,7 +235,7 @@ export function WorkflowExecuteCard({
 
         {isLoadingInterface && (
           <div className="border border-border px-3 py-2 text-xs text-muted-foreground">
-            Loading workflow inputs...
+            Loading workflow inputs…
           </div>
         )}
 
@@ -345,7 +345,7 @@ export function WorkflowExecuteCard({
           <div className="flex items-center justify-center gap-2 border border-border px-4 py-3">
             <div className="size-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
             <span className="text-sm text-muted-foreground">
-              Executing workflow...
+              Executing workflow…
             </span>
           </div>
         )}

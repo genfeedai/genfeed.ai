@@ -141,11 +141,12 @@ export function OnboardingConversationCard({
       </div>
 
       <div className="mt-6 grid gap-4 md:grid-cols-[1.15fr_0.85fr]">
-        <label className="block">
+        <label className="block" htmlFor="onboarding-source-url">
           <span className="mb-2 block text-sm font-medium text-foreground">
             Website, X, or LinkedIn
           </span>
           <Input
+            id="onboarding-source-url"
             value={sourceUrl}
             onChange={(event) => setSourceUrl(event.target.value)}
             placeholder="https://your-site.com or https://x.com/yourhandle"
@@ -165,11 +166,12 @@ export function OnboardingConversationCard({
         </div>
       </div>
 
-      <label className="mt-4 block">
+      <label className="mt-4 block" htmlFor="onboarding-creator-context">
         <span className="mb-2 block text-sm font-medium text-foreground">
           What do you create?
         </span>
         <Textarea
+          id="onboarding-creator-context"
           value={context}
           onChange={(event) => setContext(event.target.value)}
           placeholder="Describe your niche, audience, style, offer, or what you want the first image to communicate."

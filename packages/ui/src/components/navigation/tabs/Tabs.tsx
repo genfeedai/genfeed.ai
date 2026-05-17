@@ -96,39 +96,40 @@ function TabsContent({
       return activeTab;
     }
 
-    const activeNavTab = normalizedTabs
-      .reduce<{ score: number; tab: (typeof normalizedTabs)[number] }[]>(
-        (acc, tab) => {
-          if (!isNavigationTab(tab)) return acc;
-          const routeParts = getRouteParts(tab.href);
-          const exactMatch =
-            tab.matchPaths?.includes(pathname || '') ||
-            tab.matchPaths?.includes(currentRoute) ||
-            currentRoute === routeParts.full ||
-            pathname === routeParts.path;
-          const prefixMatch =
-            pathname === routeParts.path ||
-            Boolean(pathname?.startsWith(`${routeParts.path}/`));
+    const activeNavTab = normalizedTabs.reduce<{
+      score: number;
+      tab: (typeof normalizedTabs)[number] | null;
+    }>(
+      (best, tab) => {
+        if (!isNavigationTab(tab)) return best;
+        const routeParts = getRouteParts(tab.href);
+        const exactMatch =
+          tab.matchPaths?.includes(pathname || '') ||
+          tab.matchPaths?.includes(currentRoute) ||
+          currentRoute === routeParts.full ||
+          pathname === routeParts.path;
+        const prefixMatch =
+          pathname === routeParts.path ||
+          Boolean(pathname?.startsWith(`${routeParts.path}/`));
 
-          let score: number;
-          if (tab.matchMode === 'exact') {
-            score = exactMatch ? 3 : -1;
-          } else if (exactMatch) {
-            score = 2;
-          } else if (prefixMatch) {
-            score = 1;
-          } else {
-            score = -1;
-          }
+        let score: number;
+        if (tab.matchMode === 'exact') {
+          score = exactMatch ? 3 : -1;
+        } else if (exactMatch) {
+          score = 2;
+        } else if (prefixMatch) {
+          score = 1;
+        } else {
+          score = -1;
+        }
 
-          if (score >= 0) {
-            acc.push({ score, tab });
-          }
-          return acc;
-        },
-        [],
-      )
-      .sort((left, right) => right.score - left.score)[0]?.tab;
+        if (score > best.score) {
+          return { score, tab };
+        }
+        return best;
+      },
+      { score: -1, tab: null },
+    ).tab;
 
     return activeNavTab ? getTabId(activeNavTab) : activeTab;
   };

@@ -54,7 +54,7 @@ export default function HomePricing(): React.ReactElement {
         <div className="mb-12 grid gap-8 lg:grid-cols-[minmax(0,0.8fr)_minmax(320px,0.55fr)] lg:items-end">
           <VStack className="gap-4">
             <HStack className="items-center gap-3">
-              <HiCurrencyDollar className="h-4 w-4 gen-icon" />
+              <HiCurrencyDollar className="size-4 gen-icon" />
               <Text className="gen-label gen-text-accent">Pricing</Text>
             </HStack>
             <Heading
@@ -74,7 +74,7 @@ export default function HomePricing(): React.ReactElement {
             <VStack className="gap-4">
               {PAYG_EXPLAINERS.map((item) => (
                 <HStack key={item} className="items-start gap-3">
-                  <LuCheck className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+                  <LuCheck className="mt-0.5 size-4 shrink-0 text-success" />
                   <Text className="text-sm leading-6 text-surface/60">
                     {item}
                   </Text>
@@ -116,9 +116,9 @@ export default function HomePricing(): React.ReactElement {
                     )}
                   >
                     {isTeamCloud ? (
-                      <HiServerStack className="h-4 w-4" />
+                      <HiServerStack className="size-4" />
                     ) : (
-                      <HiCloud className="h-4 w-4" />
+                      <HiCloud className="size-4" />
                     )}
                     <Text>{isCloudApp ? 'Cloud App' : plan.label}</Text>
                   </HStack>
@@ -142,7 +142,7 @@ export default function HomePricing(): React.ReactElement {
                 <ul className="flex-1 space-y-2">
                   {plan.features.slice(0, 4).map((feature) => (
                     <li key={feature} className="flex items-start gap-2">
-                      <LuCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-surface/30" />
+                      <LuCheck className="mt-0.5 size-3.5 shrink-0 text-surface/30" />
                       <Text className="text-xs leading-5 text-surface/50">
                         {feature}
                       </Text>
@@ -160,7 +160,7 @@ export default function HomePricing(): React.ReactElement {
                 >
                   <a href={ctaHref} rel="noopener noreferrer" target="_blank">
                     {ctaLabel}
-                    <LuArrowRight className="h-3 w-3" />
+                    <LuArrowRight className="size-3" />
                   </a>
                 </ButtonTracked>
               </div>
@@ -177,7 +177,7 @@ export default function HomePricing(): React.ReactElement {
           >
             <Link href="/pricing">
               Compare Plans
-              <LuArrowRight className="h-3 w-3" />
+              <LuArrowRight className="size-3" />
             </Link>
           </ButtonTracked>
           <ButtonTracked

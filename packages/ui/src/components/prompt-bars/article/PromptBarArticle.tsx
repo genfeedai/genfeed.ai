@@ -178,7 +178,7 @@ export default function PromptBarArticle({
             />
           </div>
 
-          <form onSubmit={handleSubmit} className="flex flex-col space-y-2">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-y-2">
             <Textarea
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}

@@ -125,7 +125,7 @@ export default function StudioContent() {
             >
               <Link href="/pricing">
                 View Plans
-                <LuArrowRight className="h-4 w-4" />
+                <LuArrowRight className="size-4" />
               </Link>
             </ButtonTracked>
             <ButtonTracked
@@ -198,8 +198,8 @@ export default function StudioContent() {
           <div className="p-8 border border-[var(--gen-accent-border)] bg-gradient-to-r from-[var(--gen-accent-bg)] to-transparent">
             <HStack className="flex-col md:flex-row items-center gap-8">
               <div className="flex-shrink-0">
-                <div className="w-20 h-20 flex items-center justify-center bg-[hsl(var(--gen-accent))]">
-                  <HiSparkles className="h-10 w-10 text-inv-fg" />
+                <div className="size-20 flex items-center justify-center bg-[hsl(var(--gen-accent))]">
+                  <HiSparkles className="size-10 text-inv-fg" />
                 </div>
               </div>
               <VStack className="gap-3">
@@ -262,8 +262,8 @@ export default function StudioContent() {
                   className="gsap-card gen-card-spotlight p-8 bg-fill/[0.02] text-center"
                 >
                   <div className="flex justify-center mb-4">
-                    <div className="w-12 h-12 flex items-center justify-center border border-[var(--gen-accent-border)] bg-[var(--gen-accent-bg)]">
-                      <Icon className="h-6 w-6 text-[color:hsl(var(--gen-accent))]" />
+                    <div className="size-12 flex items-center justify-center border border-[var(--gen-accent-border)] bg-[var(--gen-accent-bg)]">
+                      <Icon className="size-6 text-[color:hsl(var(--gen-accent))]" />
                     </div>
                   </div>
                   <Heading
@@ -292,8 +292,8 @@ export default function StudioContent() {
               return (
                 <div key={step.label}>
                   <HStack className="items-center gap-6 py-6">
-                    <div className="flex-shrink-0 w-14 h-14 flex items-center justify-center border border-[var(--gen-accent-border)] bg-[var(--gen-accent-bg)]">
-                      <Icon className="h-6 w-6 text-[color:hsl(var(--gen-accent))]" />
+                    <div className="flex-shrink-0 size-14 flex items-center justify-center border border-[var(--gen-accent-border)] bg-[var(--gen-accent-bg)]">
+                      <Icon className="size-6 text-[color:hsl(var(--gen-accent))]" />
                     </div>
                     <VStack className="gap-1">
                       <Text className="text-lg font-bold text-surface/90">
@@ -317,7 +317,7 @@ export default function StudioContent() {
         <section className="max-w-4xl mx-auto pb-16 px-6">
           <div className="text-center p-12 bg-[hsl(var(--gen-accent))] shadow-[var(--shadow-glow-md)]">
             <div className="flex justify-center mb-4">
-              <HiSparkles className="h-8 w-8 text-inv-fg" />
+              <HiSparkles className="size-8 text-inv-fg" />
             </div>
             <Heading as="h3" className="text-2xl font-bold mb-2 text-inv-fg">
               Start Creating Today
@@ -337,7 +337,7 @@ export default function StudioContent() {
               >
                 <Link href="/pricing">
                   View Plans
-                  <LuArrowRight className="h-4 w-4" />
+                  <LuArrowRight className="size-4" />
                 </Link>
               </ButtonTracked>
               <ButtonTracked
@@ -349,7 +349,7 @@ export default function StudioContent() {
                 trackingData={{ action: 'explore_studio' }}
               >
                 <Link href="/demo">
-                  <LuArrowRight className="h-4 w-4" />
+                  <LuArrowRight className="size-4" />
                   Explore Studio
                 </Link>
               </ButtonTracked>

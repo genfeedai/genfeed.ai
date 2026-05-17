@@ -108,7 +108,7 @@ export function ReviewGateCard({
             <Checkbox
               isChecked={selected.has(item.id)}
               onChange={() => toggleItem(item.id)}
-              className="rounded border-gray-300 text-blue-600"
+              className="rounded border-zinc-300 text-primary"
             />
             <div className="flex-1 min-w-0">
               <span className="text-sm font-medium truncate block">

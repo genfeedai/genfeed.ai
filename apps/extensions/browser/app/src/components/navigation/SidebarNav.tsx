@@ -194,7 +194,7 @@ export function SidebarNav({
             variant={ButtonVariant.UNSTYLED}
             onClick={() => onTabChange(id)}
             title={label}
-            className={`flex h-9 w-9 items-center justify-center rounded transition-colors ${
+            className={`flex size-9 items-center justify-center rounded transition-colors ${
               isActive
                 ? 'bg-primary/10 text-primary'
                 : 'text-muted-foreground hover:bg-accent hover:text-foreground'

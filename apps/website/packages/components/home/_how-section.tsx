@@ -66,13 +66,13 @@ function HowStep({
         className="h-full relative overflow-hidden group p-6"
       >
         {/* Step number */}
-        <div className="absolute top-4 right-4 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+        <div className="absolute top-4 right-4 size-8 rounded-full bg-primary/10 flex items-center justify-center">
           <Text className="text-sm font-bold text-primary">{step}</Text>
         </div>
 
         {/* Icon */}
         <div className="p-3 bg-primary/10 w-fit mb-4">
-          <Icon className="h-6 w-6 text-primary" />
+          <Icon className="size-6 text-primary" />
         </div>
 
         {/* Content */}
@@ -103,7 +103,7 @@ export default function HowSection(): React.ReactElement {
           {/* Header */}
           <VStack className="text-center mb-12">
             <HStack className="inline-flex items-center gap-2 mb-4">
-              <HiSparkles className="h-6 w-6 text-primary" />
+              <HiSparkles className="size-6 text-primary" />
               <Text className="text-sm font-semibold uppercase tracking-wide text-primary">
                 How It Works
               </Text>

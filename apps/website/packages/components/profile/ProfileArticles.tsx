@@ -23,6 +23,7 @@ export default function ProfileArticles({ articles }: ProfileArticlesProps) {
                 src={article.bannerUrl}
                 alt={article.label}
                 fill
+                sizes="(max-width: 768px) 100vw, 50vw"
               />
             </div>
           )}

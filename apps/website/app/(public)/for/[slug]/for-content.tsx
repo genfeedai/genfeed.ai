@@ -53,7 +53,7 @@ export default function ForContent({ useCase }: { useCase: UseCase }) {
             <ul className="space-y-2">
               {useCase.painPoints.map((pain: string) => (
                 <li key={pain} className="flex items-start gap-2">
-                  <HiXMark className="w-4 h-4 text-error mt-1 flex-shrink-0" />
+                  <HiXMark className="size-4 text-error mt-1 flex-shrink-0" />
                   <span className="text-sm">{pain}</span>
                 </li>
               ))}
@@ -64,7 +64,7 @@ export default function ForContent({ useCase }: { useCase: UseCase }) {
             <ul className="space-y-2">
               {useCase.solutions.map((solution: string) => (
                 <li key={solution} className="flex items-start gap-2">
-                  <FaCheck className="w-4 h-4 text-success mt-1 flex-shrink-0" />
+                  <FaCheck className="size-4 text-success mt-1 flex-shrink-0" />
                   <span className="text-sm">{solution}</span>
                 </li>
               ))}

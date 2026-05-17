@@ -106,7 +106,7 @@ export default function VideosPage() {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-medium text-gray-700">
+        <h3 className="text-sm font-medium text-zinc-700">
           Your Videos ({videos.length})
         </h3>
         <Button
@@ -126,7 +126,7 @@ export default function VideosPage() {
             type="button"
             variant={ButtonVariant.UNSTYLED}
             key={video.id}
-            className="w-full text-left border border-gray-200 p-3 hover:border-gray-300 transition-colors cursor-pointer"
+            className="w-full text-left border border-zinc-200 p-3 hover:border-zinc-300 transition-colors cursor-pointer"
             onClick={() => openVideo(video.url)}
           >
             <div className="flex gap-3">
@@ -139,11 +139,11 @@ export default function VideosPage() {
               )}
 
               <div className="flex-1 min-w-0">
-                <h4 className="text-sm font-medium text-gray-900 line-clamp-2">
+                <h4 className="text-sm font-medium text-zinc-900 line-clamp-2">
                   {video.title}
                 </h4>
 
-                <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
+                <div className="flex items-center gap-3 mt-1 text-xs text-zinc-500">
                   {video.views !== undefined && (
                     <span>{formatViews(video.views)} views</span>
                   )}

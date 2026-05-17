@@ -110,7 +110,7 @@ export function ManualUrlInput(): ReactElement {
             type="url"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            placeholder="Paste YouTube, Twitter, LinkedIn, Instagram, or TikTok URL..."
+            placeholder="Paste YouTube, Twitter, LinkedIn, Instagram, or TikTok URL…"
             className="flex h-8 w-full border border-input bg-transparent px-3 py-1 text-xs shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 mb-2"
           />
           <Button
@@ -123,7 +123,7 @@ export function ManualUrlInput(): ReactElement {
             {isProcessing ? (
               <>
                 <LoadingSpinner size="sm" />
-                Processing...
+                Processing…
               </>
             ) : (
               'Process URL'

@@ -81,14 +81,18 @@ function resizeTextarea(
   if (!textarea) {
     return;
   }
-  textarea.style.height = 'auto';
+  Object.assign(textarea.style, { height: 'auto' });
 
   if (textarea.scrollHeight > maxHeight) {
-    textarea.style.height = `${maxHeight}px`;
-    textarea.style.overflowY = 'auto';
+    Object.assign(textarea.style, {
+      height: `${maxHeight}px`,
+      overflowY: 'auto',
+    });
   } else {
-    textarea.style.height = `${textarea.scrollHeight}px`;
-    textarea.style.overflowY = 'hidden';
+    Object.assign(textarea.style, {
+      height: `${textarea.scrollHeight}px`,
+      overflowY: 'hidden',
+    });
   }
 }
 

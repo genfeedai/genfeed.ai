@@ -53,7 +53,7 @@ export default function ContentFeatures() {
             {feature.icon}
           </div>
 
-          <h3 className="text-xl font-bold text-center mb-2">
+          <h3 className="text-xl font-semibold text-center mb-2">
             {feature.label}
           </h3>
 

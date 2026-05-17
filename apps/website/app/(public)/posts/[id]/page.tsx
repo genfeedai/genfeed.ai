@@ -66,8 +66,7 @@ export default async function IngredientPostsPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ page?: string }>;
 }) {
-  const { id } = await params;
-  const { page: rawPage } = await searchParams;
+  const [{ id }, { page: rawPage }] = await Promise.all([params, searchParams]);
   const parsedPage = Number.parseInt(rawPage ?? '1', 10);
   const page = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
   const { ingredient, posts } = await getPublicIngredientPostsPageData(

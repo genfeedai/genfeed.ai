@@ -6,8 +6,12 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('next/image', () => ({
   default: ({ src, alt, ...props }: ComponentProps<'img'>) => (
-    // biome-ignore lint/performance/noImgElement: next/image is mocked to a basic DOM element in jsdom tests.
-    <img src={src} alt={alt} {...props} />
+    <span
+      aria-label={alt ?? ''}
+      data-next-image={props.className}
+      data-src={typeof src === 'string' ? src : undefined}
+      role="img"
+    />
   ),
 }));
 

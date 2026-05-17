@@ -9,10 +9,18 @@ export const generateMetadata = createPageMetadataWithCanonical(
   '/posts',
 );
 
-export default function PostsByIngredientsPage() {
+export default async function PostsByIngredientsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const { page: rawPage } = await searchParams;
+  const parsedPage = Number.parseInt(rawPage ?? '1', 10);
+  const page = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+
   return (
     <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
-      <PostsIngredientsList />
+      <PostsIngredientsList page={page} />
     </Suspense>
   );
 }

@@ -17,7 +17,7 @@ export default function HomeTestimonial(): React.ReactElement {
             {/* Stars */}
             <HStack className="gap-1">
               {[1, 2, 3, 4, 5].map((star) => (
-                <HiStar key={star} className="h-5 w-5 gen-icon" />
+                <HiStar key={star} className="size-5 gen-icon" />
               ))}
             </HStack>
 
