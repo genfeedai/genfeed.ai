@@ -107,7 +107,9 @@ export class CampaignExecutorService {
       // Get credential
       const credential = await this.credentialsService.findOne({
         _id: campaign.credential,
+        ...(campaign.brand ? { brandId: campaign.brand } : {}),
         isDeleted: false,
+        organizationId: campaign.organization,
       });
 
       if (!credential) {

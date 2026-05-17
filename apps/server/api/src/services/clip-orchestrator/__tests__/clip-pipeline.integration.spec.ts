@@ -1,4 +1,5 @@
 import { CLIP_ORCHESTRATOR_EVENTS } from '@api/services/clip-orchestrator/clip-orchestrator.events';
+import { ClipOrchestratorStateStore } from '@api/services/clip-orchestrator/clip-orchestrator-state.store';
 import {
   ClipRunObserverService,
   type ClipRunStep,
@@ -56,6 +57,21 @@ function createMockServices() {
   };
 }
 
+function createStateStore(): ClipOrchestratorStateStore {
+  const values = new Map<string, unknown>();
+  return {
+    delete: vi.fn(async (namespace: string, id: string) => {
+      values.delete(`${namespace}:${id}`);
+    }),
+    get: vi.fn(async <T>(namespace: string, id: string) => {
+      return values.get(`${namespace}:${id}`) as T | undefined;
+    }),
+    set: vi.fn(async <T>(namespace: string, id: string, value: T) => {
+      values.set(`${namespace}:${id}`, value);
+    }),
+  } as unknown as ClipOrchestratorStateStore;
+}
+
 /** Simulate a full pipeline run step by step. */
 async function runPipeline(
   observer: ClipRunObserverService,
@@ -69,48 +85,48 @@ async function runPipeline(
     confirmationGate?: boolean;
   } = {},
 ) {
-  observer.initRun(runId);
+  await observer.initRun(runId);
   let failures = 0;
 
   // Step 1: Generate
-  observer.emitStepProgress(runId, 'generate', 'running');
+  await observer.emitStepProgress(runId, 'generate', 'running');
   if (options.failAt === 'generate') {
     failures++;
-    observer.emitStepProgress(runId, 'generate', 'failed', {
+    await observer.emitStepProgress(runId, 'generate', 'failed', {
       errorMessage: 'Generation failed',
       retryable: true,
     });
     if (failures <= (options.failCount ?? 1)) {
       // Retry
-      observer.emitStepProgress(runId, 'generate', 'running');
+      await observer.emitStepProgress(runId, 'generate', 'running');
     }
   }
   const genResult = await services.generation.generate(runId);
-  observer.emitStepProgress(runId, 'generate', 'done', {
+  await observer.emitStepProgress(runId, 'generate', 'done', {
     outputUrl: genResult.url,
   });
 
   // Step 2: Merge (optional)
   if (options.skipMerge) {
-    observer.emitStepProgress(runId, 'merge', 'skipped');
+    await observer.emitStepProgress(runId, 'merge', 'skipped');
   } else {
-    observer.emitStepProgress(runId, 'merge', 'running');
+    await observer.emitStepProgress(runId, 'merge', 'running');
     const mergeResult = await services.merge.merge([genResult.url]);
-    observer.emitStepProgress(runId, 'merge', 'done', {
+    await observer.emitStepProgress(runId, 'merge', 'done', {
       outputUrl: mergeResult.url,
     });
   }
 
   // Step 3: Reframe
   if (options.skipReframe) {
-    observer.emitStepProgress(runId, 'reframe', 'skipped');
+    await observer.emitStepProgress(runId, 'reframe', 'skipped');
   } else {
-    observer.emitStepProgress(runId, 'reframe', 'running');
+    await observer.emitStepProgress(runId, 'reframe', 'running');
     const reframeResult = await services.reframe.reframe(
       genResult.url,
       'portrait',
     );
-    observer.emitStepProgress(runId, 'reframe', 'done', {
+    await observer.emitStepProgress(runId, 'reframe', 'done', {
       outputUrl: reframeResult.url,
     });
   }
@@ -121,9 +137,9 @@ async function runPipeline(
   }
 
   // Step 4: Publish handoff
-  observer.emitStepProgress(runId, 'publish-handoff', 'running');
+  await observer.emitStepProgress(runId, 'publish-handoff', 'running');
   const pubResult = await services.publish.handoff(genResult.url, 'org-1');
-  observer.emitStepProgress(runId, 'publish-handoff', 'done', {
+  await observer.emitStepProgress(runId, 'publish-handoff', 'done', {
     outputUrl: `https://app.test/publish/${pubResult.publishId}`,
   });
 
@@ -137,7 +153,7 @@ describe('Clip Pipeline Integration', () => {
 
   beforeEach(() => {
     eventEmitter = new EventEmitter2();
-    observer = new ClipRunObserverService(eventEmitter);
+    observer = new ClipRunObserverService(eventEmitter, createStateStore());
     services = createMockServices();
   });
 
@@ -239,9 +255,9 @@ describe('Clip Pipeline Integration', () => {
     ).toBe('pending');
 
     // Now confirm and continue publish
-    observer.emitStepProgress('confirm-1', 'publish-handoff', 'running');
+    await observer.emitStepProgress('confirm-1', 'publish-handoff', 'running');
     await services.publish.handoff('https://cdn.test/clip-1.mp4', 'org-1');
-    observer.emitStepProgress('confirm-1', 'publish-handoff', 'done');
+    await observer.emitStepProgress('confirm-1', 'publish-handoff', 'done');
 
     const updatedProgress = await observer.getRunProgress('confirm-1');
     expect(updatedProgress!.overallStatus).toBe('done');
@@ -250,12 +266,12 @@ describe('Clip Pipeline Integration', () => {
   // ── Tenant isolation: org A cannot access org B clip runs ──
   it('should enforce tenant isolation between organisations', async () => {
     // Org A run
-    observer.initRun('org-a-run');
-    observer.emitStepProgress('org-a-run', 'generate', 'done');
+    await observer.initRun('org-a-run');
+    await observer.emitStepProgress('org-a-run', 'generate', 'done');
 
     // Org B run
-    observer.initRun('org-b-run');
-    observer.emitStepProgress('org-b-run', 'generate', 'running');
+    await observer.initRun('org-b-run');
+    await observer.emitStepProgress('org-b-run', 'generate', 'running');
 
     // Each run is isolated — org A's progress is independent of org B
     const orgAProgress = await observer.getRunProgress('org-a-run');
@@ -265,7 +281,7 @@ describe('Clip Pipeline Integration', () => {
     expect(orgBProgress!.clipRunId).toBe('org-b-run');
 
     // Mutating org B does not affect org A
-    observer.emitStepProgress('org-b-run', 'generate', 'failed', {
+    await observer.emitStepProgress('org-b-run', 'generate', 'failed', {
       errorMessage: 'boom',
     });
 

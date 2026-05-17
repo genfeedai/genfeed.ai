@@ -51,9 +51,9 @@ vi.mock('@ui/primitives/command', async () => {
       onSelect?: (value: string) => void;
       value?: string;
     }) => (
-      <div role="button" tabIndex={0} onClick={() => onSelect?.(value ?? '')}>
+      <button type="button" onClick={() => onSelect?.(value ?? '')}>
         {children}
-      </div>
+      </button>
     ),
     CommandList: ({ children }: { children: React.ReactNode }) => (
       <div>{children}</div>

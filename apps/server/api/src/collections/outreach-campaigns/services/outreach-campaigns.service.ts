@@ -5,9 +5,14 @@ import type {
   OutreachCampaignDocument,
 } from '@api/collections/outreach-campaigns/schemas/outreach-campaign.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { PrismaFindAllInput } from '@api/shared/services/base/base.service';
 import { CampaignStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 
 // ---------------------------------------------------------------------------
 // Helper: defensively parse the `config` JSON column
@@ -57,6 +62,10 @@ function normalizeDocs(rows: unknown[]): OutreachCampaignDocument[] {
   return rows.map((r) => normalizeDoc(r as Record<string, unknown>));
 }
 
+function toPrismaCredentialPlatform(platform: string): string {
+  return platform.toUpperCase();
+}
+
 @Injectable()
 export class OutreachCampaignsService {
   constructor(
@@ -93,6 +102,69 @@ export class OutreachCampaignsService {
   // CRUD
   // -------------------------------------------------------------------------
 
+  private async assertBrandAccess(
+    brandId: string | undefined,
+    organizationId: string,
+  ): Promise<string | undefined> {
+    if (!brandId) return undefined;
+
+    const brand = await this.prisma.brand.findFirst({
+      where: {
+        OR: [{ id: brandId }, { mongoId: brandId }],
+        isDeleted: false,
+        organizationId,
+      },
+    });
+
+    if (!brand) {
+      throw new NotFoundException('Brand not found');
+    }
+
+    return brand.id;
+  }
+
+  private async assertCredentialAccess(
+    credentialId: string,
+    organizationId: string,
+    brandId: string | undefined,
+    platform: string,
+  ): Promise<void> {
+    const credential = await this.prisma.credential.findFirst({
+      where: {
+        OR: [{ id: credentialId }, { mongoId: credentialId }],
+        isConnected: true,
+        isDeleted: false,
+        organizationId,
+        platform: toPrismaCredentialPlatform(platform) as never,
+        ...(brandId ? { brandId } : {}),
+      },
+    });
+
+    if (!credential) {
+      throw new NotFoundException('Credential not found');
+    }
+  }
+
+  async createScoped(
+    createDto: CreateOutreachCampaignDto,
+    scope: {
+      brandId?: string;
+      organizationId?: string;
+      userId?: string;
+    },
+  ): Promise<OutreachCampaignDocument> {
+    if (!scope.organizationId) {
+      throw new BadRequestException('Organization context is required');
+    }
+
+    return this.create({
+      ...createDto,
+      brand: scope.brandId,
+      organization: scope.organizationId,
+      user: scope.userId,
+    });
+  }
+
   async create(
     createDto: CreateOutreachCampaignDto,
   ): Promise<OutreachCampaignDocument> {
@@ -119,6 +191,21 @@ export class OutreachCampaignsService {
       ...rest
     } = createDto as CreateOutreachCampaignDto & Record<string, unknown>;
 
+    if (!organization || typeof organization !== 'string') {
+      throw new BadRequestException('Organization context is required');
+    }
+
+    const brandId = await this.assertBrandAccess(
+      typeof brand === 'string' ? brand : undefined,
+      organization,
+    );
+    await this.assertCredentialAccess(
+      credential,
+      organization,
+      brandId,
+      platform,
+    );
+
     const config: Record<string, unknown> = {
       ...rest,
       aiConfig: aiConfig ?? null,
@@ -138,8 +225,8 @@ export class OutreachCampaignsService {
 
     const row = await this.prisma.outreachCampaign.create({
       data: {
-        ...(brand ? { brandId: brand as string } : {}),
-        ...(organization ? { organizationId: organization as string } : {}),
+        ...(brandId ? { brandId } : {}),
+        organizationId: organization,
         ...(user ? { userId: user as string } : {}),
         config: config as never,
         status: CampaignStatus.DRAFT,
@@ -393,7 +480,7 @@ export class OutreachCampaignsService {
 
     if (!campaign) return;
 
-    const doc = campaign as unknown as OutreachCampaignDocument;
+    const doc = normalizeDoc(campaign as unknown as Record<string, unknown>);
     const rateLimits = this.normalizeRateLimits(doc.rateLimits);
     const now = new Date();
     const nextHour = new Date(now.getTime() + 3600 * 1000);
@@ -423,7 +510,7 @@ export class OutreachCampaignsService {
     });
     if (!campaign) return;
     // No rate-limit counters need incrementing for failures — only log the bump.
-    const doc = campaign as unknown as OutreachCampaignDocument;
+    const doc = normalizeDoc(campaign as unknown as Record<string, unknown>);
     await this.patch(id, {
       totalFailed: (doc.totalFailed ?? 0) + 1,
     } as UpdateOutreachCampaignDto);
@@ -439,7 +526,7 @@ export class OutreachCampaignsService {
 
     if (!campaign) return;
 
-    const doc = campaign as unknown as OutreachCampaignDocument;
+    const doc = normalizeDoc(campaign as unknown as Record<string, unknown>);
     const rateLimits = this.normalizeRateLimits(doc.rateLimits);
     const now = new Date();
     const nextHour = new Date(now.getTime() + 3600 * 1000);
@@ -512,7 +599,7 @@ export class OutreachCampaignsService {
     });
     if (!campaign) return;
 
-    const doc = campaign as unknown as OutreachCampaignDocument;
+    const doc = normalizeDoc(campaign as unknown as Record<string, unknown>);
     const rateLimits = this.normalizeRateLimits(doc.rateLimits);
 
     await this.patch(id, {
@@ -536,7 +623,7 @@ export class OutreachCampaignsService {
     });
     if (!campaign) return;
 
-    const doc = campaign as unknown as OutreachCampaignDocument;
+    const doc = normalizeDoc(campaign as unknown as Record<string, unknown>);
     const rateLimits = this.normalizeRateLimits(doc.rateLimits);
 
     await this.patch(id, {
@@ -606,5 +693,101 @@ export class OutreachCampaignsService {
       where,
     });
     return normalizeDocs(rows);
+  }
+
+  async findOne(
+    query: Record<string, unknown>,
+  ): Promise<OutreachCampaignDocument | null> {
+    const where = this.toPrismaWhere(query);
+    const row = await this.prisma.outreachCampaign.findFirst({ where });
+    return row ? normalizeDoc(row as unknown as Record<string, unknown>) : null;
+  }
+
+  async findAll(
+    query: PrismaFindAllInput,
+    options: {
+      limit?: number;
+      page?: number;
+      pagination?: boolean;
+    } = {},
+  ): Promise<{
+    docs: OutreachCampaignDocument[];
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+    limit: number;
+    page: number;
+    totalDocs: number;
+    totalPages: number;
+  }> {
+    const where = this.toPrismaWhere(query.where ?? {});
+    const limit = options.limit ?? 10;
+    const page = options.page ?? 1;
+    const skip = options.pagination === false ? undefined : (page - 1) * limit;
+    const take = options.pagination === false ? undefined : limit;
+
+    const [rows, totalDocs] = await Promise.all([
+      this.prisma.outreachCampaign.findMany({
+        orderBy: query.orderBy as never,
+        skip,
+        take,
+        where,
+      }),
+      this.prisma.outreachCampaign.count({ where }),
+    ]);
+
+    const totalPages = limit > 0 ? Math.ceil(totalDocs / limit) : 1;
+
+    return {
+      docs: normalizeDocs(rows),
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+      limit,
+      page,
+      totalDocs,
+      totalPages,
+    };
+  }
+
+  async remove(id: string): Promise<OutreachCampaignDocument | null> {
+    const existing = await this.findOne({ _id: id, isDeleted: false });
+
+    if (!existing) {
+      return null;
+    }
+
+    const row = await this.prisma.outreachCampaign.update({
+      data: { isDeleted: true } as never,
+      where: { id: existing.id },
+    });
+
+    return normalizeDoc(row as unknown as Record<string, unknown>);
+  }
+
+  private toPrismaWhere(
+    query: Record<string, unknown>,
+  ): Record<string, unknown> {
+    const where: Record<string, unknown> = {};
+    const id = query.id ?? query._id;
+
+    if (typeof id === 'string') {
+      where.OR = [{ id }, { mongoId: id }];
+    }
+
+    if (query.organizationId !== undefined) {
+      where.organizationId = query.organizationId;
+    } else if (query.organization !== undefined) {
+      where.organizationId = query.organization;
+    }
+
+    if (query.brandId !== undefined) {
+      where.brandId = query.brandId;
+    } else if (query.brand !== undefined) {
+      where.brandId = query.brand;
+    }
+
+    if (query.status !== undefined) where.status = query.status;
+    if (query.isDeleted !== undefined) where.isDeleted = query.isDeleted;
+
+    return where;
   }
 }

@@ -9,7 +9,7 @@ export function AutoFillToggle(): ReactElement {
   const setAutoFill = useSettingsStore((s) => s.setAutoFill);
 
   return (
-    <label className="flex items-center justify-between">
+    <div className="flex items-center justify-between">
       <div>
         <span className="text-sm text-foreground">Auto-fill compose box</span>
         <p className="text-[11px] text-muted-foreground">
@@ -32,6 +32,6 @@ export function AutoFillToggle(): ReactElement {
           }`}
         />
       </Button>
-    </label>
+    </div>
   );
 }

@@ -2,12 +2,14 @@ import type { PromptBarInternalContextValue } from '@genfeedai/contexts/ui/promp
 import { PromptBarInternalContext } from '@genfeedai/contexts/ui/prompt-bar-internal-context';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import PromptBarExpandedView from '@ui/prompt-bars/components/expanded-view/PromptBarExpandedView';
+import type { ReactElement } from 'react';
+import type { FieldValues, UseFormReturn } from 'react-hook-form';
 import { useForm } from 'react-hook-form';
 
 function createMockContext(
+  mockForm: UseFormReturn<FieldValues>,
   overrides: Partial<PromptBarInternalContextValue> = {},
 ): PromptBarInternalContextValue {
-  const mockForm = useForm();
   return {
     activeGenerations: [],
     attachedPromptAssets: [],
@@ -114,6 +116,21 @@ function createMockContext(
   };
 }
 
+function PromptBarExpandedViewStory({
+  overrides,
+}: {
+  overrides: Partial<PromptBarInternalContextValue>;
+}): ReactElement {
+  const mockForm = useForm();
+  const ctx = createMockContext(mockForm, overrides);
+
+  return (
+    <PromptBarInternalContext.Provider value={ctx}>
+      <PromptBarExpandedView />
+    </PromptBarInternalContext.Provider>
+  );
+}
+
 const meta: Meta<typeof PromptBarExpandedView> = {
   component: PromptBarExpandedView,
   parameters: { layout: 'fullscreen' },
@@ -125,27 +142,17 @@ export default meta;
 type Story = StoryObj<typeof PromptBarExpandedView>;
 
 export const Collapsible: Story = {
-  render: () => {
-    const ctx = createMockContext({
-      features: { collapsible: true, dragDrop: true },
-    });
-    return (
-      <PromptBarInternalContext.Provider value={ctx}>
-        <PromptBarExpandedView />
-      </PromptBarInternalContext.Provider>
-    );
-  },
+  render: () => (
+    <PromptBarExpandedViewStory
+      overrides={{ features: { collapsible: true, dragDrop: true } }}
+    />
+  ),
 };
 
 export const Unified: Story = {
-  render: () => {
-    const ctx = createMockContext({
-      features: { collapsible: false, dragDrop: false },
-    });
-    return (
-      <PromptBarInternalContext.Provider value={ctx}>
-        <PromptBarExpandedView />
-      </PromptBarInternalContext.Provider>
-    );
-  },
+  render: () => (
+    <PromptBarExpandedViewStory
+      overrides={{ features: { collapsible: false, dragDrop: false } }}
+    />
+  ),
 };

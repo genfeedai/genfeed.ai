@@ -336,6 +336,19 @@ export const platforms: Record<string, PlatformConfig> = {
   },
 };
 
+const hostnamePatternCache = new Map<string, RegExp>();
+
+function getHostnamePattern(hostname: string): RegExp {
+  const cached = hostnamePatternCache.get(hostname);
+  if (cached) {
+    return cached;
+  }
+
+  const pattern = new RegExp(hostname.replaceAll('.', '\\.'));
+  hostnamePatternCache.set(hostname, pattern);
+  return pattern;
+}
+
 // Get current platform based on hostname and URL patterns
 export function getCurrentPlatform(): PlatformConfig | null {
   const hostname = window.location.hostname;
@@ -345,7 +358,7 @@ export function getCurrentPlatform(): PlatformConfig | null {
   for (const [_key, platform] of Object.entries(platforms)) {
     // Check hostname match
     const hostnameMatches = platform.hostnames.some((h) =>
-      hostname.includes(h),
+      getHostnamePattern(h).test(hostname),
     );
 
     // Check URL pattern match (if patterns are defined)

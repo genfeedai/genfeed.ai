@@ -1,3 +1,4 @@
+import { ClipOrchestratorStateStore } from '@api/services/clip-orchestrator/clip-orchestrator-state.store';
 import { ClipRunState } from '@api/services/clip-orchestrator/clip-run-state.enum';
 import {
   MergeJobStatus,
@@ -16,13 +17,28 @@ const createLogger = () => ({
   warn: vi.fn(),
 });
 
+function createStateStore(): ClipOrchestratorStateStore {
+  const values = new Map<string, unknown>();
+  return {
+    delete: vi.fn(async (namespace: string, id: string) => {
+      values.delete(`${namespace}:${id}`);
+    }),
+    get: vi.fn(async <T>(namespace: string, id: string) => {
+      return values.get(`${namespace}:${id}`) as T | undefined;
+    }),
+    set: vi.fn(async <T>(namespace: string, id: string, value: T) => {
+      values.set(`${namespace}:${id}`, value);
+    }),
+  } as unknown as ClipOrchestratorStateStore;
+}
+
 describe('VideoMergeService', () => {
   let service: VideoMergeService;
   let logger: ReturnType<typeof createLogger>;
 
   beforeEach(() => {
     logger = createLogger();
-    service = new VideoMergeService(logger as any);
+    service = new VideoMergeService(logger as any, createStateStore());
   });
 
   // -----------------------------------------------------------------------
@@ -138,9 +154,13 @@ describe('VideoMergeService', () => {
     };
     const job = await service.queueMerge(queue);
 
-    const updated = service.updateJobStatus(job.jobId, MergeJobStatus.Done, {
-      outputUrl: 'https://cdn.genfeed.ai/merged/output.mp4',
-    });
+    const updated = await service.updateJobStatus(
+      job.jobId,
+      MergeJobStatus.Done,
+      {
+        outputUrl: 'https://cdn.genfeed.ai/merged/output.mp4',
+      },
+    );
 
     expect(updated.status).toBe(MergeJobStatus.Done);
     expect(updated.outputUrl).toBe('https://cdn.genfeed.ai/merged/output.mp4');
@@ -180,7 +200,7 @@ describe('VideoMergeService', () => {
       ],
     };
     const job = await service.queueMerge(queue);
-    const failedJob = service.updateJobStatus(
+    const failedJob = await service.updateJobStatus(
       job.jobId,
       MergeJobStatus.Failed,
       { error: 'ffmpeg crashed' },

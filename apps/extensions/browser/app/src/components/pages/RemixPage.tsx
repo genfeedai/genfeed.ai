@@ -32,6 +32,25 @@ interface RemixResult {
   rawContent?: string;
 }
 
+interface RemixResultViewProps {
+  copiedIndex: number | null;
+  result: RemixResult;
+  onBack: () => void;
+  onCopy: (text: string, index: number) => void;
+  onSaveDraft: (text: string) => void;
+}
+
+interface RemixInputFormProps {
+  content: string;
+  error: string | null;
+  platform: SocialPlatform;
+  url: string;
+  onContentChange: (value: string) => void;
+  onPlatformChange: (value: SocialPlatform) => void;
+  onRemix: () => void;
+  onUrlChange: (value: string) => void;
+}
+
 const PLATFORMS: { value: SocialPlatform; label: string }[] = [
   { label: 'TikTok', value: 'tiktok' },
   { label: 'Twitter / X', value: 'twitter' },
@@ -39,6 +58,183 @@ const PLATFORMS: { value: SocialPlatform; label: string }[] = [
   { label: 'Instagram', value: 'instagram' },
   { label: 'YouTube', value: 'youtube' },
 ];
+
+function RemixLoadingView(): ReactElement {
+  return (
+    <div className="flex h-full flex-col items-center justify-center gap-3">
+      <LoadingSpinner size="md" className="text-primary" />
+      <p className="text-sm text-muted-foreground">Remixing content…</p>
+    </div>
+  );
+}
+
+function getRemixItems(result: RemixResult): string[] {
+  return [
+    ...(result.hooks ?? []),
+    ...(result.angles ?? []),
+    result.script ? result.script : [],
+  ].flat();
+}
+
+function RemixResultView({
+  copiedIndex,
+  result,
+  onBack,
+  onCopy,
+  onSaveDraft,
+}: RemixResultViewProps): ReactElement {
+  const remixItems = getRemixItems(result);
+
+  return (
+    <div className="flex h-full flex-col gap-3 overflow-y-auto p-3">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-foreground">
+          {result.title ?? 'Remix Results'}
+        </h2>
+        <Button
+          type="button"
+          variant={ButtonVariant.GHOST}
+          onClick={onBack}
+          className="text-xs"
+        >
+          ← Back
+        </Button>
+      </div>
+
+      {remixItems.length > 0 ? (
+        <div className="flex flex-col gap-2">
+          {remixItems.map((item, i) => (
+            <div
+              key={item}
+              className="rounded-xl border border-border bg-card p-3 text-sm text-foreground"
+            >
+              <p className="mb-2">{item}</p>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant={ButtonVariant.GHOST}
+                  onClick={() => onCopy(item, i)}
+                  className="flex-1 rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary hover:bg-primary/20"
+                >
+                  {copiedIndex === i ? '✓ Copied' : 'Copy'}
+                </Button>
+                <Button
+                  type="button"
+                  variant={ButtonVariant.GHOST}
+                  onClick={() => onSaveDraft(item)}
+                  className="flex-1 rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-muted/80"
+                >
+                  Save Draft
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-xl border border-border bg-card p-3">
+          <p className="text-sm text-foreground whitespace-pre-wrap">
+            {result.rawContent}
+          </p>
+          <Button
+            type="button"
+            variant={ButtonVariant.GHOST}
+            onClick={() => onCopy(result.rawContent ?? '', 0)}
+            className="mt-2 w-full rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary hover:bg-primary/20"
+          >
+            {copiedIndex === 0 ? '✓ Copied' : 'Copy'}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RemixInputForm({
+  content,
+  error,
+  platform,
+  url,
+  onContentChange,
+  onPlatformChange,
+  onRemix,
+  onUrlChange,
+}: RemixInputFormProps): ReactElement {
+  return (
+    <div className="flex h-full flex-col gap-3 p-3">
+      <h2 className="text-sm font-semibold text-foreground">Remix Content</h2>
+
+      {error && (
+        <div className="rounded bg-destructive/10 px-3 py-2 text-xs text-destructive">
+          {error}
+        </div>
+      )}
+
+      <div className="flex flex-col gap-1">
+        <label
+          className="text-xs font-medium text-muted-foreground"
+          htmlFor="remix-source-url"
+        >
+          Source URL (optional)
+        </label>
+        <Input
+          id="remix-source-url"
+          type="url"
+          value={url}
+          onChange={(e) => onUrlChange(e.target.value)}
+          placeholder="https://..."
+        />
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <label
+          className="text-xs font-medium text-muted-foreground"
+          htmlFor="remix-content"
+        >
+          Content to remix
+        </label>
+        <Textarea
+          id="remix-content"
+          value={content}
+          onChange={(e) => onContentChange(e.target.value)}
+          placeholder="Paste or type the content you want to remix…"
+          rows={6}
+          className="resize-none"
+        />
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <label
+          className="text-xs font-medium text-muted-foreground"
+          htmlFor="remix-platform"
+        >
+          Target platform
+        </label>
+        <Select value={platform} onValueChange={onPlatformChange}>
+          <SelectTrigger id="remix-platform">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {PLATFORMS.map((p) => (
+              <SelectItem key={p.value} value={p.value}>
+                {p.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <Button
+        type="button"
+        variant={ButtonVariant.DEFAULT}
+        onClick={onRemix}
+        disabled={!content.trim()}
+        className="mt-auto"
+      >
+        Remix →
+      </Button>
+    </div>
+  );
+}
 
 export function RemixPage({
   initialContent = '',
@@ -190,155 +386,40 @@ export function RemixPage({
   }
 
   if (step === 'loading') {
-    return (
-      <div className="flex h-full flex-col items-center justify-center gap-3">
-        <LoadingSpinner size="md" className="text-primary" />
-        <p className="text-sm text-muted-foreground">Remixing content…</p>
-      </div>
-    );
+    return <RemixLoadingView />;
   }
 
   if (step === 'result' && result) {
-    const remixItems: string[] = [
-      ...(result.hooks ?? []),
-      ...(result.angles ?? []),
-      result.script ? result.script : [],
-    ].flat();
-
     return (
-      <div className="flex h-full flex-col gap-3 overflow-y-auto p-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-foreground">
-            {result.title ?? 'Remix Results'}
-          </h2>
-          <Button
-            type="button"
-            variant={ButtonVariant.GHOST}
-            onClick={() => {
-              setStep('input');
-              setResult(null);
-            }}
-            className="text-xs"
-          >
-            ← Back
-          </Button>
-        </div>
-
-        {remixItems.length > 0 ? (
-          <div className="flex flex-col gap-2">
-            {remixItems.map((item, i) => (
-              <div
-                key={item}
-                className="rounded-xl border border-border bg-card p-3 text-sm text-foreground"
-              >
-                <p className="mb-2">{item}</p>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant={ButtonVariant.GHOST}
-                    onClick={() => {
-                      void handleCopy(item, i);
-                    }}
-                    className="flex-1 rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary hover:bg-primary/20"
-                  >
-                    {copiedIndex === i ? '✓ Copied' : 'Copy'}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={ButtonVariant.GHOST}
-                    onClick={() => handleSaveDraft(item)}
-                    className="flex-1 rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-muted/80"
-                  >
-                    Save Draft
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-xl border border-border bg-card p-3">
-            <p className="text-sm text-foreground whitespace-pre-wrap">
-              {result.rawContent}
-            </p>
-            <Button
-              type="button"
-              variant={ButtonVariant.GHOST}
-              onClick={() => handleCopy(result.rawContent ?? '', 0)}
-              className="mt-2 w-full rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary hover:bg-primary/20"
-            >
-              {copiedIndex === 0 ? '✓ Copied' : 'Copy'}
-            </Button>
-          </div>
-        )}
-      </div>
+      <RemixResultView
+        copiedIndex={copiedIndex}
+        result={result}
+        onBack={() => {
+          setStep('input');
+          setResult(null);
+        }}
+        onCopy={(text, index) => {
+          void handleCopy(text, index);
+        }}
+        onSaveDraft={(text) => {
+          void handleSaveDraft(text);
+        }}
+      />
     );
   }
 
   return (
-    <div className="flex h-full flex-col gap-3 p-3">
-      <h2 className="text-sm font-semibold text-foreground">Remix Content</h2>
-
-      {error && (
-        <div className="rounded bg-destructive/10 px-3 py-2 text-xs text-destructive">
-          {error}
-        </div>
-      )}
-
-      <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium text-muted-foreground">
-          Source URL (optional)
-        </label>
-        <Input
-          type="url"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          placeholder="https://..."
-        />
-      </div>
-
-      <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium text-muted-foreground">
-          Content to remix
-        </label>
-        <Textarea
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder="Paste or type the content you want to remix…"
-          rows={6}
-          className="resize-none"
-        />
-      </div>
-
-      <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium text-muted-foreground">
-          Target platform
-        </label>
-        <Select
-          value={platform}
-          onValueChange={(value) => setPlatform(value as SocialPlatform)}
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {PLATFORMS.map((p) => (
-              <SelectItem key={p.value} value={p.value}>
-                {p.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <Button
-        type="button"
-        variant={ButtonVariant.DEFAULT}
-        onClick={handleRemix}
-        disabled={!content.trim()}
-        className="mt-auto"
-      >
-        Remix →
-      </Button>
-    </div>
+    <RemixInputForm
+      content={content}
+      error={error}
+      platform={platform}
+      url={url}
+      onContentChange={setContent}
+      onPlatformChange={setPlatform}
+      onRemix={() => {
+        void handleRemix();
+      }}
+      onUrlChange={setUrl}
+    />
   );
 }
