@@ -2,6 +2,7 @@ import type { TeamMentionItem } from '@genfeedai/agent/types/mention.types';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
+import Image from 'next/image';
 import {
   type ReactElement,
   type Ref,
@@ -76,9 +77,11 @@ export function TeamMentionList({
           )}
         >
           {item.avatar && (
-            <img
+            <Image
               src={item.avatar}
               alt={item.displayName}
+              width={24}
+              height={24}
               className="size-6 rounded-full object-cover"
             />
           )}

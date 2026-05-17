@@ -30,7 +30,7 @@ export default async function TopBrands() {
       <div className="container mx-auto px-4 md:px-8">
         <VStack className="text-center mb-12">
           <HStack className="inline-flex items-center gap-2 mb-4">
-            <HiStar className="h-6 w-6 text-primary" />
+            <HiStar className="size-6 text-primary" />
             <Text className="text-sm font-semibold uppercase tracking-wide text-primary">
               Success Stories
             </Text>
@@ -58,7 +58,7 @@ export default async function TopBrands() {
               >
                 <div className="flex items-center gap-3 mb-3">
                   <div className="avatar">
-                    <div className="w-12 h-12 bg-muted relative overflow-hidden">
+                    <div className="size-12 bg-muted relative overflow-hidden">
                       {brand.logoUrl ? (
                         <Image
                           src={brand.logoUrl}

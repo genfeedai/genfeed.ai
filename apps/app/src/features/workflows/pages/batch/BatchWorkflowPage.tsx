@@ -191,8 +191,9 @@ function getWorkflowLabel(
 function BatchWorkflowPageContent() {
   const { push, replace } = useRouter();
   const pathname = usePathname();
-  const { get, toString: getSearchParamsString } = useSearchParams();
-  const requestedJobId = get('job') ?? null;
+  const searchParams = useSearchParams();
+  const searchParamsString = searchParams.toString();
+  const requestedJobId = searchParams.get('job') ?? null;
 
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [workflows, setWorkflows] = useState<WorkflowSummary[]>([]);
@@ -250,7 +251,7 @@ function BatchWorkflowPageContent() {
 
   const replaceJobQuery = useCallback(
     (batchJobId: string | null) => {
-      const nextSearchParams = new URLSearchParams(getSearchParamsString());
+      const nextSearchParams = new URLSearchParams(searchParamsString);
 
       if (batchJobId) {
         nextSearchParams.set('job', batchJobId);
@@ -261,7 +262,7 @@ function BatchWorkflowPageContent() {
       const query = nextSearchParams.toString();
       replace(query ? `${pathname}?${query}` : pathname);
     },
-    [pathname, replace, getSearchParamsString],
+    [pathname, replace, searchParamsString],
   );
 
   const loadBatchJob = useCallback(

@@ -39,7 +39,7 @@ export default function SkillsSuccessContent() {
         <WebSection maxWidth="md" className="gsap-hero">
           <div className="text-center mb-12">
             <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full bg-fill/5 border border-edge/10 mb-8">
-              <LuCheck className="h-4 w-4 text-emerald-400" />
+              <LuCheck className="size-4 text-emerald-400" />
               <span className="text-surface/60 text-sm">Payment confirmed</span>
             </div>
           </div>
@@ -48,9 +48,9 @@ export default function SkillsSuccessContent() {
           <div className="overflow-hidden border border-edge/10 bg-black/40">
             <div className="flex items-center gap-2 px-4 py-3 bg-fill/5 border-b border-edge/10">
               <div className="flex gap-2">
-                <div className="w-3 h-3 rounded-full bg-fill/20" />
-                <div className="w-3 h-3 rounded-full bg-fill/20" />
-                <div className="w-3 h-3 rounded-full bg-fill/20" />
+                <div className="size-3 rounded-full bg-fill/20" />
+                <div className="size-3 rounded-full bg-fill/20" />
+                <div className="size-3 rounded-full bg-fill/20" />
               </div>
               <div className="flex-1 text-center text-xs text-surface/30 font-mono uppercase tracking-widest">
                 terminal
@@ -71,7 +71,7 @@ export default function SkillsSuccessContent() {
                   title="Copy install command"
                   className="shrink-0 p-2 text-surface/30 hover:text-surface transition-colors"
                 >
-                  <LuCopy className="h-4 w-4" />
+                  <LuCopy className="size-4" />
                 </Button>
               </div>
             </div>
@@ -79,7 +79,7 @@ export default function SkillsSuccessContent() {
 
           <div className="mt-8 space-y-4 text-sm text-surface/40">
             <div className="flex items-start gap-3">
-              <LuTerminal className="h-4 w-4 mt-0.5 shrink-0 text-surface/30" />
+              <LuTerminal className="size-4 mt-0.5 shrink-0 text-surface/30" />
               <span>
                 Replace{' '}
                 <Code className="text-surface/60 bg-fill/5">sk_rcpt_xxx</Code>{' '}
@@ -87,7 +87,7 @@ export default function SkillsSuccessContent() {
               </span>
             </div>
             <div className="flex items-start gap-3">
-              <LuTerminal className="h-4 w-4 mt-0.5 shrink-0 text-surface/30" />
+              <LuTerminal className="size-4 mt-0.5 shrink-0 text-surface/30" />
               <span>
                 Skills are installed to{' '}
                 <Code className="text-surface/60 bg-fill/5">skills/</Code> in

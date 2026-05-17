@@ -3,6 +3,7 @@ import { ObjectIdValidator } from '@api/helpers/validation/object-id.validator';
 describe('ObjectIdValidator', () => {
   const validObjectId = '507f1f77bcf86cd799439011';
   const validCuid = 'clv2f9w8d000008l4h9a1b2c3';
+  const validCuid2 = 'b13yktd0f1e38me3f55swu0n';
   const validUuid = '550e8400-e29b-41d4-a716-446655440000';
   const invalidIds = [
     '',
@@ -21,6 +22,7 @@ describe('ObjectIdValidator', () => {
     it('should return true for supported entity IDs', () => {
       expect(ObjectIdValidator.isValid(validObjectId)).toBe(true);
       expect(ObjectIdValidator.isValid(validCuid)).toBe(true);
+      expect(ObjectIdValidator.isValid(validCuid2)).toBe(true);
       expect(ObjectIdValidator.isValid(validUuid)).toBe(true);
     });
 
@@ -52,7 +54,12 @@ describe('ObjectIdValidator', () => {
 
   describe('areAllValid', () => {
     it('should return true for array of valid entity IDs', () => {
-      const validIds = ['507f1f77bcf86cd799439011', validCuid, validUuid];
+      const validIds = [
+        '507f1f77bcf86cd799439011',
+        validCuid,
+        validCuid2,
+        validUuid,
+      ];
       expect(ObjectIdValidator.areAllValid(validIds)).toBe(true);
     });
 

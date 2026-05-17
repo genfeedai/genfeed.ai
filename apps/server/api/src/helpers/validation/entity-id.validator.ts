@@ -8,6 +8,7 @@ const LEGACY_OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const CUID_REGEX = /^c[a-z0-9]{8,}$/i;
+const CUID2_REGEX = /^[a-z][a-z0-9]{23}$/;
 const ULID_REGEX = /^[0-9A-HJKMNP-TV-Z]{26}$/i;
 
 export const IS_ENTITY_ID = 'isEntityId';
@@ -26,6 +27,7 @@ export function isEntityId(value: unknown): value is string {
     LEGACY_OBJECT_ID_REGEX.test(id) ||
     UUID_REGEX.test(id) ||
     CUID_REGEX.test(id) ||
+    CUID2_REGEX.test(id) ||
     ULID_REGEX.test(id)
   );
 }

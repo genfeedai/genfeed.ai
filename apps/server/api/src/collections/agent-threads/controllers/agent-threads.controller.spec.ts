@@ -33,8 +33,8 @@ describe('AgentThreadsController', () => {
   const mockUser = {
     id: 'clerk_123',
     publicMetadata: {
-      organization: '507f191e810c19729de860ee'.toString(),
-      user: '507f191e810c19729de860ee'.toString(),
+      organization: 'org_current',
+      user: 'user_current',
     },
   } as unknown as User;
 
@@ -128,8 +128,8 @@ describe('AgentThreadsController', () => {
       );
     });
 
-    it('should resolve mongo user id from users collection when metadata id is invalid', async () => {
-      const resolvedMongoUserId = '507f191e810c19729de860ee'.toString();
+    it('should resolve user id from users collection when metadata id is missing', async () => {
+      const resolvedMongoUserId = 'user_resolved';
       usersService.findOne.mockResolvedValueOnce({ _id: resolvedMongoUserId });
       service.getUserThreads.mockResolvedValue([]);
 
@@ -139,7 +139,7 @@ describe('AgentThreadsController', () => {
           ...mockUser,
           publicMetadata: {
             ...mockUser.publicMetadata,
-            user: 'invalid-user-id',
+            user: '',
           },
         } as unknown as User,
       );
@@ -169,7 +169,13 @@ describe('AgentThreadsController', () => {
     it('should create a new thread', async () => {
       service.create.mockResolvedValue({ _id: 'new' });
       await controller.createThread({} as never, { title: 'Test' }, mockUser);
-      expect(service.create).toHaveBeenCalled();
+      expect(service.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          organizationId: 'org_current',
+          title: 'Test',
+          userId: 'user_current',
+        }),
+      );
     });
   });
 

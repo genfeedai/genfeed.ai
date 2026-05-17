@@ -59,11 +59,11 @@ export default function IntegrationContent({
       }
     >
       <section className="max-w-6xl mx-auto pb-20">
-        <h2 className="text-3xl font-bold text-center mb-12">Features</h2>
+        <h2 className="text-3xl font-semibold text-center mb-12">Features</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {integration.features.map((feature: string) => (
             <div key={feature} className="flex items-start gap-3">
-              <FaCheck className="w-5 h-5 text-success mt-1 flex-shrink-0" />
+              <FaCheck className="size-5 text-success mt-1 flex-shrink-0" />
               <span className="text-lg">{feature}</span>
             </div>
           ))}
@@ -71,7 +71,9 @@ export default function IntegrationContent({
       </section>
 
       <section className="max-w-4xl mx-auto pb-20">
-        <h2 className="text-3xl font-bold text-center mb-12">How It Works</h2>
+        <h2 className="text-3xl font-semibold text-center mb-12">
+          How It Works
+        </h2>
         <div className="space-y-8">
           {integration.workflow.map(
             (
@@ -79,7 +81,7 @@ export default function IntegrationContent({
               index: number,
             ) => (
               <div key={step.step} className="flex items-start gap-6">
-                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-lg">
+                <div className="flex-shrink-0 size-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold text-lg">
                   {index + 1}
                 </div>
                 <div>
@@ -94,7 +96,7 @@ export default function IntegrationContent({
 
       <section className="max-w-4xl mx-auto pb-20">
         <Card bodyClassName="text-center">
-          <h2 className="text-3xl font-bold text-primary mb-2">
+          <h2 className="text-3xl font-semibold text-primary mb-2">
             {integration.cta}
           </h2>
           <p className="text-muted-foreground mb-6">

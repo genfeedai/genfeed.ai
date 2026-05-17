@@ -26,11 +26,11 @@ describe('ClipRunObserverService', () => {
   });
 
   // ── Test 2: emitStepProgress updates the correct step ──
-  it('should update a specific step status', () => {
+  it('should update a specific step status', async () => {
     service.initRun('run-2');
     service.emitStepProgress('run-2', 'generate', 'running');
 
-    const progress = service['runs'].get('run-2')!;
+    const progress = (await service.getRunProgress('run-2'))!;
     const genStep = progress.steps.find((s) => s.step === 'generate')!;
     expect(genStep.status).toBe('running');
     expect(genStep.startedAt).toBeDefined();
@@ -52,14 +52,14 @@ describe('ClipRunObserverService', () => {
   });
 
   // ── Test 4: failed status records error details ──
-  it('should record errorMessage and retryable on failure', () => {
+  it('should record errorMessage and retryable on failure', async () => {
     service.initRun('run-4');
     service.emitStepProgress('run-4', 'merge', 'failed', {
       errorMessage: 'Merge timeout',
       retryable: true,
     });
 
-    const progress = service['runs'].get('run-4')!;
+    const progress = (await service.getRunProgress('run-4'))!;
     const mergeStep = progress.steps.find((s) => s.step === 'merge')!;
     expect(mergeStep.status).toBe('failed');
     expect(mergeStep.errorMessage).toBe('Merge timeout');
@@ -68,41 +68,41 @@ describe('ClipRunObserverService', () => {
   });
 
   // ── Test 5: done status with outputUrl ──
-  it('should attach outputUrl when step completes with one', () => {
+  it('should attach outputUrl when step completes with one', async () => {
     service.initRun('run-5');
     service.emitStepProgress('run-5', 'publish-handoff', 'done', {
       outputUrl: 'https://cdn.example.com/clip.mp4',
     });
 
-    const progress = service['runs'].get('run-5')!;
+    const progress = (await service.getRunProgress('run-5'))!;
     const pubStep = progress.steps.find((s) => s.step === 'publish-handoff')!;
     expect(pubStep.outputUrl).toBe('https://cdn.example.com/clip.mp4');
   });
 
   // ── Test 6: overall status computation ──
-  it('should compute overall status as running when some steps are done', () => {
+  it('should compute overall status as running when some steps are done', async () => {
     service.initRun('run-6');
     service.emitStepProgress('run-6', 'generate', 'done');
     service.emitStepProgress('run-6', 'merge', 'running');
 
-    const progress = service['runs'].get('run-6')!;
+    const progress = (await service.getRunProgress('run-6'))!;
     expect(progress.overallStatus).toBe('running');
   });
 
   // ── Test 7: overall status becomes done when all steps done/skipped ──
-  it('should compute overall status as done when all steps are done or skipped', () => {
+  it('should compute overall status as done when all steps are done or skipped', async () => {
     service.initRun('run-7');
     service.emitStepProgress('run-7', 'generate', 'done');
     service.emitStepProgress('run-7', 'merge', 'skipped');
     service.emitStepProgress('run-7', 'reframe', 'done');
     service.emitStepProgress('run-7', 'publish-handoff', 'done');
 
-    const progress = service['runs'].get('run-7')!;
+    const progress = (await service.getRunProgress('run-7'))!;
     expect(progress.overallStatus).toBe('done');
   });
 
   // ── Test 8: overall status becomes failed if any step fails ──
-  it('should compute overall status as failed if any step has failed', () => {
+  it('should compute overall status as failed if any step has failed', async () => {
     service.initRun('run-8');
     service.emitStepProgress('run-8', 'generate', 'done');
     service.emitStepProgress('run-8', 'reframe', 'failed', {
@@ -110,7 +110,7 @@ describe('ClipRunObserverService', () => {
       retryable: false,
     });
 
-    const progress = service['runs'].get('run-8')!;
+    const progress = (await service.getRunProgress('run-8'))!;
     expect(progress.overallStatus).toBe('failed');
   });
 
@@ -121,10 +121,10 @@ describe('ClipRunObserverService', () => {
   });
 
   // ── Test 10: emitStepProgress auto-inits if run not found ──
-  it('should auto-initialise a run when emitting progress for unknown runId', () => {
+  it('should auto-initialise a run when emitting progress for unknown runId', async () => {
     service.emitStepProgress('auto-init', 'generate', 'running');
 
-    const progress = service['runs'].get('auto-init');
+    const progress = await service.getRunProgress('auto-init');
     expect(progress).toBeDefined();
     expect(progress!.steps.find((s) => s.step === 'generate')!.status).toBe(
       'running',
@@ -140,12 +140,26 @@ describe('ClipRunObserverService', () => {
     expect(result).toBeNull();
   });
 
+  it('should retain progress across service instances', async () => {
+    service.initRun('run-retained');
+    service.emitStepProgress('run-retained', 'generate', 'running');
+
+    const nextService = new ClipRunObserverService(new EventEmitter2());
+    const progress = await nextService.getRunProgress('run-retained');
+
+    expect(
+      progress?.steps.find((step) => step.step === 'generate'),
+    ).toMatchObject({
+      status: 'running',
+    });
+  });
+
   // ── Test 12: default error message when none provided ──
-  it('should use default error message when meta has no errorMessage', () => {
+  it('should use default error message when meta has no errorMessage', async () => {
     service.initRun('run-12');
     service.emitStepProgress('run-12', 'generate', 'failed');
 
-    const progress = service['runs'].get('run-12')!;
+    const progress = (await service.getRunProgress('run-12'))!;
     const step = progress.steps.find((s) => s.step === 'generate')!;
     expect(step.errorMessage).toBe('Unknown error');
     expect(step.retryable).toBe(false);

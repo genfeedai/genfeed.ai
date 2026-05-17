@@ -28,36 +28,36 @@ export default function TopbarBreadcrumbs({
   }
 
   return (
-    <nav className="flex items-center gap-2 text-sm" aria-label="Breadcrumb">
+    <nav
+      className="flex items-center gap-1.5 text-[13px]"
+      aria-label="Breadcrumb"
+    >
       {groupLabel && activePageLabel ? (
         <Button
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}
           onClick={exitNestedGroup}
           className={cn(
-            'hidden sm:inline text-foreground/50 hover:text-foreground/80 transition-colors duration-150',
+            'text-foreground/50 hover:text-foreground/80 transition-colors duration-150 font-medium',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:rounded-sm',
           )}
         >
           {groupLabel}
         </Button>
       ) : groupLabel ? (
-        <span className="text-foreground/70 font-medium truncate max-w-truncate-lg">
+        <span className="text-foreground font-semibold truncate max-w-truncate-lg">
           {groupLabel}
         </span>
       ) : null}
 
       {groupLabel && activePageLabel && (
-        <span
-          aria-hidden="true"
-          className="hidden sm:inline text-foreground/30 select-none"
-        >
+        <span aria-hidden="true" className="text-foreground/30 select-none">
           /
         </span>
       )}
 
       {activePageLabel && (
-        <span className="text-foreground/70 font-medium truncate max-w-truncate-lg">
+        <span className="truncate max-w-truncate-lg text-foreground font-semibold">
           {activePageLabel}
         </span>
       )}

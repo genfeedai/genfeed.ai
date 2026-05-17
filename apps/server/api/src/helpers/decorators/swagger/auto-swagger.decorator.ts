@@ -1,11 +1,19 @@
 import { PATH_METADATA } from '@nestjs/common/constants';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { DECORATORS } from '@nestjs/swagger/dist/constants';
+
+const SWAGGER_DECORATORS = {
+  API_OPERATION: 'swagger/apiOperation',
+  API_RESPONSE: 'swagger/apiResponse',
+  API_TAGS: 'swagger/apiUseTags',
+} as const;
 
 export function AutoSwagger(tag?: string): ClassDecorator {
   return (target: Function) => {
     const controllerPath = Reflect.getMetadata(PATH_METADATA, target);
-    if (controllerPath && !Reflect.getMetadata(DECORATORS.API_TAGS, target)) {
+    if (
+      controllerPath &&
+      !Reflect.getMetadata(SWAGGER_DECORATORS.API_TAGS, target)
+    ) {
       const tagName =
         tag ||
         (Array.isArray(controllerPath) ? controllerPath[0] : controllerPath);
@@ -23,14 +31,18 @@ export function AutoSwagger(tag?: string): ClassDecorator {
         return;
       }
 
-      if (!Reflect.getMetadata(DECORATORS.API_OPERATION, descriptor.value)) {
+      if (
+        !Reflect.getMetadata(SWAGGER_DECORATORS.API_OPERATION, descriptor.value)
+      ) {
         ApiOperation({ summary: methodName })(
           prototype,
           methodName,
           descriptor,
         );
       }
-      if (!Reflect.getMetadata(DECORATORS.API_RESPONSE, descriptor.value)) {
+      if (
+        !Reflect.getMetadata(SWAGGER_DECORATORS.API_RESPONSE, descriptor.value)
+      ) {
         ApiResponse({ status: 200 })(prototype, methodName, descriptor);
       }
     });

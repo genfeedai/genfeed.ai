@@ -14,6 +14,8 @@
     "build:prod": "cd .. && nest build files && cd files && (bun run sentry:sourcemaps || true)",
     "deps:update": "bunx npm-check-updates -u --reject typescript && bun install",
     "dev": "cd .. && NODE_OPTIONS=\"--max-old-space-size=4096 --expose-gc\" nest start files --watch",
+    "dev:direct": "cd .. && NODE_OPTIONS=\"--max-old-space-size=4096 --expose-gc\" nest start files --watch",
+    "dev:portless": "portless run --name files.genfeed bun run dev:direct",
     "dev:webpack": "cd .. && NODE_OPTIONS=\"--max-old-space-size=4096 --expose-gc\" nest start files --watch",
     "lint": "biome lint --write src --no-errors-on-unmatched",
     "sentry:inject": "sentry-cli sourcemaps inject --org genfeedai --project files-genfeed-ai ../dist",

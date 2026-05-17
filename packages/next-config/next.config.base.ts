@@ -29,7 +29,12 @@ export function createAppNextConfig(options: AppNextConfigOptions): NextConfig {
 
   const isProduction = process.env.NODE_ENV === 'production';
   const config: NextConfig = {
-    allowedDevOrigins: ['127.0.0.1', 'local.genfeed.ai', 'localhost'],
+    allowedDevOrigins: [
+      '127.0.0.1',
+      '*.genfeed.localhost',
+      'local.genfeed.ai',
+      'localhost',
+    ],
     distDir: process.env.NEXT_DIST_DIR || undefined,
     experimental: {
       optimizePackageImports: [

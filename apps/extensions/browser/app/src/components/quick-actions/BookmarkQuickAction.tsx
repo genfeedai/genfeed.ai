@@ -125,7 +125,7 @@ export function BookmarkQuickAction({
         <div className="flex items-center gap-2 mb-2">
           <svg
             aria-hidden="true"
-            className={`w-5 h-5 ${config.iconColor || ''}`}
+            className={`size-5 ${config.iconColor || ''}`}
             fill="currentColor"
             viewBox="0 0 24 24"
           >
@@ -155,7 +155,7 @@ export function BookmarkQuickAction({
           {isSaving ? (
             <>
               <LoadingSpinner size="sm" />
-              Saving...
+              Saving…
             </>
           ) : (
             config.buttonText

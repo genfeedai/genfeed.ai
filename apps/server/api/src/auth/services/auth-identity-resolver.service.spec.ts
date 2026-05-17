@@ -89,6 +89,7 @@ describe('AuthIdentityResolverService', () => {
     ]);
     organizationsService.findOne
       .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
       .mockResolvedValueOnce({
         _id: 'org_current',
         userId: 'user_current',
@@ -116,6 +117,54 @@ describe('AuthIdentityResolverService', () => {
     });
     expect(clerkService.updateUserPublicMetadata).toHaveBeenCalledWith(
       'user_clerk_2',
+      {
+        brand: 'brand_current',
+        organization: 'org_current',
+        user: 'user_current',
+      },
+    );
+  });
+
+  it('resolves active Clerk organization metadata via clerkOrganizationId', async () => {
+    usersService.findOne.mockResolvedValueOnce({
+      _id: 'user_current',
+    });
+    membersService.find.mockResolvedValue([
+      {
+        lastUsedBrandId: 'brand_current',
+        organizationId: 'org_current',
+      },
+    ]);
+    organizationsService.findOne
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({
+        _id: 'org_current',
+        clerkOrganizationId: 'org_clerk_current',
+        userId: 'user_current',
+      });
+    brandsService.findOne.mockResolvedValueOnce({
+      _id: 'brand_current',
+    });
+    clerkService.updateUserPublicMetadata.mockResolvedValue(undefined);
+
+    const result = await service.resolve({
+      id: 'user_clerk_4',
+      publicMetadata: {
+        brand: 'brand_current',
+        organization: 'org_clerk_current',
+        user: 'user_current',
+      },
+    } as never);
+
+    expect(result).toEqual({
+      brandId: 'brand_current',
+      clerkUserId: 'user_clerk_4',
+      organizationId: 'org_current',
+      resolvedBy: 'metadata',
+      userId: 'user_current',
+    });
+    expect(clerkService.updateUserPublicMetadata).toHaveBeenCalledWith(
+      'user_clerk_4',
       {
         brand: 'brand_current',
         organization: 'org_current',

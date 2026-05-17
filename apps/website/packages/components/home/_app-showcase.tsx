@@ -41,7 +41,7 @@ function FeatureItem({
       label={title}
       description={description}
       iconWrapperClassName={`p-2 ${color}`}
-      iconClassName="w-5 h-5 text-surface"
+      iconClassName="size-5 text-surface"
       bodyClassName="p-4"
       className={`transition-all duration-500 ${
         visible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'
@@ -57,9 +57,9 @@ function BrowserMockup() {
       <div className="bg-card/50 px-4 py-3">
         <div className="flex items-center gap-2">
           <div className="flex gap-1.5">
-            <div className="w-3 h-3 rounded-full bg-red-500/80" />
-            <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
-            <div className="w-3 h-3 rounded-full bg-green-500/80" />
+            <div className="size-3 rounded-full bg-red-500/80" />
+            <div className="size-3 rounded-full bg-yellow-500/80" />
+            <div className="size-3 rounded-full bg-green-500/80" />
           </div>
           <div className="flex-1 mx-4">
             <div className="bg-muted/50 px-3 py-1.5 text-xs text-foreground/50 text-center">
@@ -82,10 +82,10 @@ function BrowserMockup() {
           {/* Sidebar */}
           <div className="absolute left-0 top-0 bottom-0 w-16 bg-card/30 backdrop-blur-sm">
             <div className="flex flex-col items-center gap-4 py-6">
-              <div className="w-8 h-8 bg-primary/20" />
-              <div className="w-8 h-8 bg-fill/10" />
-              <div className="w-8 h-8 bg-fill/10" />
-              <div className="w-8 h-8 bg-fill/10" />
+              <div className="size-8 bg-primary/20" />
+              <div className="size-8 bg-fill/10" />
+              <div className="size-8 bg-fill/10" />
+              <div className="size-8 bg-fill/10" />
             </div>
           </div>
 
@@ -142,7 +142,7 @@ function BrowserMockup() {
 
         {/* Floating sparkle indicator */}
         <div className="absolute top-4 right-4 flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/80 text-primary-foreground text-xs font-medium">
-          <HiSparkles className="h-3 w-3" />
+          <HiSparkles className="size-3" />
           AI Generating
         </div>
       </div>
@@ -194,7 +194,7 @@ export default function AppShowcase() {
           {/* Header */}
           <VStack className="text-center mb-12">
             <HStack className="inline-flex items-center gap-2 mb-4">
-              <HiCog6Tooth className="h-6 w-6 text-primary" />
+              <HiCog6Tooth className="size-6 text-primary" />
               <Text className="text-sm font-semibold uppercase tracking-wide text-primary">
                 The Platform
               </Text>

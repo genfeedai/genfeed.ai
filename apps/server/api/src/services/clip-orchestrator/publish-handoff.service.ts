@@ -43,6 +43,11 @@ export interface PrepareHandoffOptions {
   schedule?: 'immediate' | 'scheduled';
   /** Extra metadata for the publish UI. */
   metadata?: Record<string, unknown>;
+  /** Resolved media details keyed by asset id. */
+  assets?: Record<
+    string,
+    { mediaUrl: string; mimeType: string; caption?: string }
+  >;
 }
 
 // ---------------------------------------------------------------------------
@@ -84,13 +89,11 @@ export class PublishHandoffService {
     const platforms = options?.platforms ?? ['instagram'];
     const schedule = options?.schedule ?? 'immediate';
 
-    // Build asset stubs. In the real implementation the service would look up
-    // each asset's media URL and MIME type from the clip results / merged
-    // output collections.
     const assets: PublishAsset[] = assetIds.map((assetId) => ({
+      caption: options?.assets?.[assetId]?.caption,
       assetId,
-      mediaUrl: '', // resolved by the orchestrator / asset lookup
-      mimeType: 'video/mp4',
+      mediaUrl: options?.assets?.[assetId]?.mediaUrl ?? assetId,
+      mimeType: options?.assets?.[assetId]?.mimeType ?? 'video/mp4',
     }));
 
     const payload: PublishHandoffPayload = {
@@ -131,6 +134,18 @@ export class PublishHandoffService {
     }
     if (!payload.assets || payload.assets.length === 0) {
       errors.push('At least one asset is required');
+    } else {
+      payload.assets.forEach((asset, index) => {
+        if (!asset.assetId) {
+          errors.push(`assets[${index}].assetId is required`);
+        }
+        if (!asset.mediaUrl) {
+          errors.push(`assets[${index}].mediaUrl is required`);
+        }
+        if (!asset.mimeType) {
+          errors.push(`assets[${index}].mimeType is required`);
+        }
+      });
     }
     if (!payload.platforms || payload.platforms.length === 0) {
       errors.push('At least one platform is required');

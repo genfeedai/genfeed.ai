@@ -12,6 +12,7 @@ import { monitoredAccountSchema } from '@genfeedai/client/schemas/automation/mon
 import { replyBotConfigSchema } from '@genfeedai/client/schemas/automation/reply-bot-config.schema';
 import { workflowSchema } from '@genfeedai/client/schemas/automation/workflow.schema';
 import {
+  BotCategory,
   BotPlatform,
   EngagementAction,
   ReplyBotActionType,
@@ -200,6 +201,7 @@ describe('automation schemas', () => {
     it('accepts livestream settings with dual-platform targets', () => {
       expect(
         botSchema.safeParse({
+          category: BotCategory.LIVESTREAM_CHAT,
           label: 'Ship Shit Show Bot',
           livestreamSettings: {
             links: [

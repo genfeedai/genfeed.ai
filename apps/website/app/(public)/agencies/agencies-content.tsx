@@ -115,7 +115,7 @@ export default function AgenciesContent() {
                   <p className="text-foreground/50 line-through">
                     {metric.before}
                   </p>
-                  <p className="text-3xl font-bold text-primary">
+                  <p className="text-3xl font-semibold text-primary">
                     {metric.after}
                   </p>
                 </div>
@@ -130,11 +130,11 @@ export default function AgenciesContent() {
             <div className="flex flex-col md:flex-row items-center gap-8">
               <div className="flex-shrink-0">
                 <div className="p-6 bg-primary/10">
-                  <HiChartBar className="h-16 w-16 text-primary" />
+                  <HiChartBar className="size-16 text-primary" />
                 </div>
               </div>
               <div>
-                <h3 className="text-2xl font-bold mb-2">
+                <h3 className="text-2xl font-semibold mb-2">
                   More Clients, Same Team
                 </h3>
                 <p className="text-foreground/70 mb-4">
@@ -160,7 +160,7 @@ export default function AgenciesContent() {
 
         {/* Features */}
         <section className="gsap-section max-w-6xl mx-auto pb-16">
-          <h3 className="text-2xl font-bold text-center mb-8">
+          <h3 className="text-2xl font-semibold text-center mb-8">
             Built for Agency Workflows
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -170,7 +170,7 @@ export default function AgenciesContent() {
                 <Card key={feature.title} className="text-center">
                   <div className="flex justify-center mb-4">
                     <div className="p-3 bg-primary/10">
-                      <Icon className="h-6 w-6 text-primary" />
+                      <Icon className="size-6 text-primary" />
                     </div>
                   </div>
                   <h4 className="font-semibold mb-2">{feature.title}</h4>
@@ -185,7 +185,7 @@ export default function AgenciesContent() {
 
         {/* Use Cases */}
         <section className="gsap-section max-w-4xl mx-auto pb-16">
-          <h3 className="text-2xl font-bold text-center mb-8">
+          <h3 className="text-2xl font-semibold text-center mb-8">
             How Agencies Use Genfeed
           </h3>
           <div className="space-y-4">
@@ -214,7 +214,7 @@ export default function AgenciesContent() {
         {/* Enterprise CTA */}
         <section className="max-w-4xl mx-auto pb-16">
           <Card className="text-center bg-background/50">
-            <h3 className="text-2xl font-bold mb-2">Ready to Scale?</h3>
+            <h3 className="text-2xl font-semibold mb-2">Ready to Scale?</h3>
             <p className="text-foreground/70 mb-6 max-w-lg mx-auto">
               Get a custom demo for your agency. We&apos;ll show you how to
               onboard your first 5 clients in a week.
@@ -226,7 +226,7 @@ export default function AgenciesContent() {
                 className="inline-flex items-center justify-center bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 gap-2 font-medium transition-colors"
               >
                 Talk to Sales
-                <HiArrowRight className="h-4 w-4" />
+                <HiArrowRight className="size-4" />
               </Link>
               <Link
                 href="/pricing"

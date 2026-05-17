@@ -40,7 +40,7 @@ import { forwardRef, Module } from '@nestjs/common';
     CacheModule,
     ConfigModule,
     forwardRef(() => CreditsModule),
-    CredentialsModule,
+    forwardRef(() => CredentialsModule),
     InstagramModule,
     LinkedInModule,
     forwardRef(() => ModelsModule),

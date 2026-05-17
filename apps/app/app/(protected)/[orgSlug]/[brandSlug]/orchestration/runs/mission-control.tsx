@@ -50,6 +50,7 @@ function MissionControlContent() {
   const pathname = usePathname();
   const { replace } = useRouter();
   const searchParams = useSearchParams();
+  const searchParamsString = searchParams.toString();
 
   const [searchQuery, setSearchQuery] = useState(
     () => searchParams.get('q') ?? '',
@@ -78,7 +79,7 @@ function MissionControlContent() {
   }, [refresh, refreshActive]);
 
   useEffect(() => {
-    const nextParams = new URLSearchParams(searchParams.toString());
+    const nextParams = new URLSearchParams(searchParamsString);
 
     if (searchQuery.trim().length > 0) {
       nextParams.set('q', searchQuery.trim());
@@ -105,7 +106,7 @@ function MissionControlContent() {
     }
 
     const nextQuery = nextParams.toString();
-    const currentQuery = searchParams.toString();
+    const currentQuery = searchParamsString;
 
     if (nextQuery !== currentQuery) {
       replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, {
@@ -115,7 +116,7 @@ function MissionControlContent() {
   }, [
     pathname,
     replace,
-    searchParams,
+    searchParamsString,
     searchQuery,
     selectedModel,
     sortMode,

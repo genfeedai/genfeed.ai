@@ -1,8 +1,8 @@
 {
   "dependencies": {
-    "@anthropic-ai/sdk": "0.91.1",
-    "@aws-sdk/client-cloudfront": "3.1038.0",
-    "@aws-sdk/client-ec2": "3.1038.0",
+    "@anthropic-ai/sdk": "0.96.0",
+    "@aws-sdk/client-cloudfront": "3.1048.0",
+    "@aws-sdk/client-ec2": "3.1048.0",
     "@genfeedai/config": "workspace:*",
     "@genfeedai/constants": "workspace:*",
     "@genfeedai/enums": "workspace:*",
@@ -19,7 +19,7 @@
     "@genfeedai/workflows": "workspace:*",
     "@nestjs/event-emitter": "3.1.0",
     "@prisma/adapter-pg": "7.8.0",
-    "archiver": "7.0.1",
+    "archiver": "8.0.0",
     "bcrypt": "6.0.0",
     "compression": "1.8.1",
     "cookie-parser": "1.4.7",
@@ -28,13 +28,13 @@
     "jsonapi-serializer": "3.6.9",
     "jsonwebtoken": "9.0.3",
     "multer": "2.1.1",
-    "openai": "6.35.0",
+    "openai": "6.38.0",
     "rss": "1.2.2",
     "twitter-text": "3.1.0"
   },
   "description": "Genfeed API Service",
   "devDependencies": {
-    "@nestjs/testing": "11.1.19",
+    "@nestjs/testing": "11.1.21",
     "@types/archiver": "7.0.0",
     "@types/bcrypt": "6.0.0",
     "@types/compression": "1.8.1",
@@ -45,7 +45,7 @@
     "@types/rss": "0.0.32",
     "@types/twitter-text": "3.1.10",
     "unplugin-swc": "1.5.9",
-    "vitest": "4.1.5"
+    "vitest": "4.1.6"
   },
   "main": "../dist/apps/api/main.js",
   "name": "@genfeedai/api",
@@ -55,6 +55,8 @@
     "build:prod": "cd .. && nest build api && cd api && (bun run sentry:sourcemaps || true)",
     "deps:update": "bunx npm-check-updates -u --reject typescript && bun install",
     "dev": "cd .. && NODE_OPTIONS=\"--max-old-space-size=4096 --expose-gc\" nest start api --watch",
+    "dev:direct": "cd .. && NODE_OPTIONS=\"--max-old-space-size=4096 --expose-gc\" nest start api --watch",
+    "dev:portless": "portless run --name api.genfeed bun run dev:direct",
     "dev:webpack": "cd .. && NODE_OPTIONS=\"--max-old-space-size=4096 --expose-gc\" nest start api --watch",
     "lint": "bun run scripts/check-request-context-usage.ts && biome lint --write src --no-errors-on-unmatched",
     "seed:workflows": "bun run scripts/seeds/workflows.seed.ts",

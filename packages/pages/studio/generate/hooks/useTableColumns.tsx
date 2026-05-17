@@ -444,7 +444,7 @@ export function useTableActions({
         isDisabled: (item: IIngredient) =>
           item.status === IngredientStatus.PROCESSING,
         onClick: handleConvertImageToVideo,
-        tooltip: 'Set as Video Reference',
+        tooltip: 'Add to Storyboard',
         variant: ButtonVariant.SECONDARY,
       });
     }

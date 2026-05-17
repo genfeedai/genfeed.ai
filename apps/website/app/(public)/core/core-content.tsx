@@ -53,9 +53,9 @@ function TerminalWindow(): React.ReactElement {
     <div className=" overflow-hidden border border-edge/10 bg-black/40">
       <div className="flex items-center gap-2 px-4 py-3 bg-fill/5 border-b border-edge/10">
         <div className="flex gap-2">
-          <div className="w-3 h-3 rounded-full bg-fill/20" />
-          <div className="w-3 h-3 rounded-full bg-fill/20" />
-          <div className="w-3 h-3 rounded-full bg-fill/20" />
+          <div className="size-3 rounded-full bg-fill/20" />
+          <div className="size-3 rounded-full bg-fill/20" />
+          <div className="size-3 rounded-full bg-fill/20" />
         </div>
         <div className="flex-1 text-center text-xs text-surface/30 font-mono uppercase tracking-widest">
           genfeed-core
@@ -89,7 +89,7 @@ function TerminalWindow(): React.ReactElement {
         )}
         {!isTyping && (
           <div className="pt-4 text-surface/50 flex items-center gap-2">
-            <LuTerminal className="h-4 w-4" />
+            <LuTerminal className="size-4" />
             Ready to generate content!
           </div>
         )}
@@ -192,7 +192,7 @@ export default function CoreContent() {
                       <div className="text-surface/20 text-xs font-black uppercase tracking-widest">
                         {String(index + 1).padStart(2, '0')}
                       </div>
-                      <Icon className="h-6 w-6 text-surface/40 group-hover:text-surface transition-colors" />
+                      <Icon className="size-6 text-surface/40 group-hover:text-surface transition-colors" />
                       <div>
                         <div className="text-3xl font-bold">{stat.value}</div>
                         <div className="text-sm text-surface/40">
@@ -255,7 +255,7 @@ export default function CoreContent() {
                   <div className="text-surface/20 text-xs font-black uppercase tracking-widest mb-6">
                     {String(index + 1).padStart(2, '0')}
                   </div>
-                  <Icon className="h-8 w-8 mx-auto text-surface/40 mb-4 group-hover:text-surface transition-colors" />
+                  <Icon className="size-8 mx-auto text-surface/40 mb-4 group-hover:text-surface transition-colors" />
                   <span className="text-sm font-bold">{cta.label}</span>
                 </Link>
               );
@@ -272,7 +272,7 @@ export default function CoreContent() {
           <Button size={ButtonSize.PUBLIC} asChild>
             <Link href="https://docs.genfeed.ai/core" target="_blank">
               Read Documentation
-              <LuArrowRight className="h-4 w-4" />
+              <LuArrowRight className="size-4" />
             </Link>
           </Button>
           <Button

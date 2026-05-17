@@ -96,4 +96,20 @@ describe('TerminalGateway', () => {
     expect(socket.disconnect).toHaveBeenCalledWith(true);
     expect(terminalService.createSession).not.toHaveBeenCalled();
   });
+
+  it('accepts portless worktree origins with a verified session token when the terminal service is available', async () => {
+    const terminalService = createTerminalService();
+    const gateway = new TerminalGateway(terminalService as never);
+    const socket = createSocket(
+      'https://feat-123.app.genfeed.localhost',
+      'session-token',
+    );
+
+    await gateway.handleConnection(socket);
+
+    expect(socket.emit).toHaveBeenCalledWith('terminal:ready', {
+      socketId: 'socket-1',
+    });
+    expect(socket.disconnect).not.toHaveBeenCalled();
+  });
 });

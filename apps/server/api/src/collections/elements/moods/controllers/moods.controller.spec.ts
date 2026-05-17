@@ -258,9 +258,9 @@ describe('ElementsMoodsController', () => {
       expect(pipeline).toHaveLength(2);
       const matchStage = asMatchStage(pipeline[0]);
       expect(matchStage.$match.$or).toBeDefined();
-      expect(
-        (matchStage.$match.$or as unknown[]).length,
-      ).toBeGreaterThanOrEqual(2);
+      expect(matchStage.$match.$or).toEqual([
+        { organizationId: mockUser.publicMetadata.organization },
+      ]);
       expect(matchStage.$match.isDeleted).toBe(false);
     });
 
@@ -272,8 +272,7 @@ describe('ElementsMoodsController', () => {
       );
 
       const matchStage = asMatchStage(pipeline[0]);
-      // Without org, falls back to $or with global items and user items
-      expect(matchStage.$match.$or).toBeDefined();
+      expect(matchStage.$match.$or).toBeUndefined();
       expect(matchStage.$match.isDeleted).toBe(false);
     });
 
@@ -304,7 +303,7 @@ describe('ElementsMoodsController', () => {
       expect(sortStage.$sort).toBeDefined();
     });
 
-    it('should load organization moods or defaults', () => {
+    it('should load organization moods', () => {
       const query = createBaseQuery();
       const pipeline = controller.buildFindAllPipeline(mockUser, query);
 
@@ -313,18 +312,13 @@ describe('ElementsMoodsController', () => {
         Record<string, unknown>
       >;
 
-      // orConditions[0] = global (no org, no user)
-      // orConditions[1] = org condition
-      expect(orConditions[0]).toEqual({
-        organization: { $exists: false },
-        user: { $exists: false },
-      });
-      expect(orConditions[1].organization).toEqual(
+      expect(orConditions).toHaveLength(1);
+      expect(orConditions[0].organizationId).toEqual(
         mockUser.publicMetadata.organization as string,
       );
     });
 
-    it('should only load defaults when no organization', () => {
+    it('should not add tenant filter when no organization is available', () => {
       const query = createBaseQuery();
       const pipeline = controller.buildFindAllPipeline(
         mockUserWithoutOrg,
@@ -332,14 +326,8 @@ describe('ElementsMoodsController', () => {
       );
 
       const matchStage = asMatchStage(pipeline[0]);
-      // Without org, global items condition is in $or array
-      expect(matchStage.$match.$or).toBeDefined();
-      expect(
-        (matchStage.$match.$or as Array<Record<string, unknown>>)[0],
-      ).toEqual({
-        organization: { $exists: false },
-        user: { $exists: false },
-      });
+      expect(matchStage.$match.$or).toBeUndefined();
+      expect(matchStage.$match.isDeleted).toBe(false);
     });
   });
 

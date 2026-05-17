@@ -153,8 +153,10 @@ export default function MenuAppSwitcher() {
   useIsomorphicLayoutEffect(() => {
     if (isOpen && buttonRef.current && dropdownRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
-      dropdownRef.current.style.top = `${rect.bottom + 8}px`;
-      dropdownRef.current.style.left = `${rect.left}px`;
+      Object.assign(dropdownRef.current.style, {
+        left: `${rect.left}px`,
+        top: `${rect.bottom + 8}px`,
+      });
     }
   }, [isOpen]);
 
@@ -353,6 +355,7 @@ export default function MenuAppSwitcher() {
           <ul
             ref={dropdownRef}
             onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
             className={cn(
               BG_BLUR,
               BORDER_WHITE_30,

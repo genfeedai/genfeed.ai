@@ -3,12 +3,14 @@ import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@genfeedai/enums', () => ({
-  ButtonVariant: { UNSTYLED: 'unstyled' },
+  ButtonSize: { ICON: 'icon' },
+  ButtonVariant: { GHOST: 'ghost', UNSTYLED: 'unstyled' },
 }));
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({
     href: (nextHref: string) => nextHref,
+    orgHref: (nextHref: string) => `/acme/~${nextHref.replace(/^\//, '')}`,
   }),
 }));
 
@@ -33,10 +35,6 @@ vi.mock('@ui/primitives/button', () => ({
       {children}
     </button>
   ),
-}));
-
-vi.mock('@ui/shell/app-switcher/AppSwitcher', () => ({
-  AppSwitcher: () => <div data-testid="app-switcher">App Switcher</div>,
 }));
 
 vi.mock('@ui/topbars/breadcrumbs/TopbarBreadcrumbs', () => ({
@@ -78,16 +76,15 @@ vi.mock('next/navigation', () => ({
 const { default: AppProtectedTopbar } = await import('./AppProtectedTopbar');
 
 describe('AppProtectedTopbar', () => {
-  it('places the app switcher before breadcrumbs', () => {
+  it('renders breadcrumbs before the right-side controls', () => {
     render(<AppProtectedTopbar currentApp="workspace" orgSlug="acme" />);
 
-    const appSwitcher = screen.getByTestId('app-switcher');
     const breadcrumbs = screen.getByTestId('breadcrumbs');
+    const cloudSyncIndicator = screen.getByTestId('cloud-sync-indicator');
 
-    expect(appSwitcher).toBeInTheDocument();
     expect(breadcrumbs).toBeInTheDocument();
     expect(
-      appSwitcher.compareDocumentPosition(breadcrumbs) &
+      breadcrumbs.compareDocumentPosition(cloudSyncIndicator) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });

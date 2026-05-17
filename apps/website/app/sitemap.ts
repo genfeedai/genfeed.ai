@@ -228,14 +228,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       sortBy: 'publishedAt',
       sortOrder: 'desc',
     });
-    articleRoutes = articles
-      .filter((a) => a.slug)
-      .map((a) => ({
-        changeFrequency: 'weekly' as const,
-        lastModified: a.updatedAt ? new Date(a.updatedAt) : new Date(),
-        priority: 0.8,
-        url: `https://genfeed.ai/articles/${a.slug}`,
-      }));
+    articleRoutes = articles.reduce<MetadataRoute.Sitemap>(
+      (routes, article) => {
+        if (!article.slug) {
+          return routes;
+        }
+
+        routes.push({
+          changeFrequency: 'weekly' as const,
+          lastModified: article.updatedAt
+            ? new Date(article.updatedAt)
+            : new Date(),
+          priority: 0.8,
+          url: `https://genfeed.ai/articles/${article.slug}`,
+        });
+
+        return routes;
+      },
+      [],
+    );
   } catch {
     // API unavailable at build time — article URLs omitted from sitemap
   }

@@ -1,31 +1,35 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { TopbarProps } from '@props/navigation/topbar.props';
 import { Button } from '@ui/primitives/button';
-import { AppSwitcher } from '@ui/shell/app-switcher/AppSwitcher';
 import TopbarBreadcrumbs from '@ui/topbars/breadcrumbs/TopbarBreadcrumbs';
 import TopbarCreditsBar from '@ui/topbars/credits-bar/TopbarCreditsBar';
 import TopbarEnd from '@ui/topbars/end/TopbarEnd';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
-import { HiBars3, HiOutlineCommandLine, HiXMark } from 'react-icons/hi2';
+import {
+  HiBars3,
+  HiOutlineCog6Tooth,
+  HiOutlineCommandLine,
+  HiXMark,
+} from 'react-icons/hi2';
+import { PiSidebarSimple } from 'react-icons/pi';
 import CloudSyncIndicator from '@/components/cloud-sync-indicator/CloudSyncIndicator';
 import { appendSearchParamsToHref } from '@/lib/navigation/operator-shell';
 
 function AppProtectedTopbarContent({
   isMenuOpen,
   onMenuToggle,
-  currentApp,
-  orgSlug,
-  brandSlug,
+  isSidebarCollapsed,
+  onSidebarToggle,
   isAgentCollapsed,
   onAgentToggle,
 }: TopbarProps = {}) {
   const searchParams = useSearchParams();
-  const { href } = useOrgUrl();
+  const { href, orgHref } = useOrgUrl();
 
   const taskId = searchParams.get('taskId');
   const taskTitle = searchParams.get('taskTitle');
@@ -46,8 +50,9 @@ function AppProtectedTopbarContent({
           {onMenuToggle ? (
             <Button
               type="button"
-              variant={ButtonVariant.UNSTYLED}
-              className="inline-flex size-7 items-center justify-center rounded border border-border bg-background-secondary transition-colors hover:border-border-strong hover:bg-background-tertiary md:hidden"
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.ICON}
+              className="size-7 md:hidden"
               data-active={isMenuOpen ? 'true' : 'false'}
               ariaLabel={
                 isMenuOpen ? 'Close navigation menu' : 'Open navigation menu'
@@ -58,21 +63,21 @@ function AppProtectedTopbarContent({
             </Button>
           ) : null}
 
-          {currentApp && orgSlug ? (
-            <div className="shrink-0">
-              <AppSwitcher
-                currentApp={currentApp}
-                orgSlug={orgSlug}
-                brandSlug={brandSlug}
-                preservedSearch={searchParams.toString()}
-              />
-            </div>
+          {isSidebarCollapsed && onSidebarToggle ? (
+            <Button
+              type="button"
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.ICON}
+              className="hidden size-7 md:flex"
+              ariaLabel="Expand sidebar"
+              onClick={onSidebarToggle}
+            >
+              <PiSidebarSimple className="size-4" />
+            </Button>
           ) : null}
 
-          <div className="hidden min-w-0 md:flex">
-            <div className="flex h-7 min-w-0 items-center rounded px-2">
-              <TopbarBreadcrumbs />
-            </div>
+          <div className="min-w-0">
+            <TopbarBreadcrumbs />
           </div>
         </div>
 
@@ -101,8 +106,9 @@ function AppProtectedTopbarContent({
           {onAgentToggle ? (
             <Button
               type="button"
-              variant={ButtonVariant.UNSTYLED}
-              className="inline-flex size-7 items-center justify-center rounded border border-border bg-background-secondary transition-colors hover:border-border-strong hover:bg-background-tertiary"
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.ICON}
+              className="size-7"
               data-active={isAgentCollapsed ? 'false' : 'true'}
               ariaLabel={
                 isAgentCollapsed ? 'Open terminal dock' : 'Close terminal dock'
@@ -116,6 +122,14 @@ function AppProtectedTopbarContent({
           <CloudSyncIndicator />
 
           <TopbarCreditsBar />
+
+          <Link
+            href={orgHref('/settings')}
+            className="inline-flex size-7 items-center justify-center rounded-md bg-transparent text-foreground/56 transition-colors hover:bg-hover hover:text-foreground"
+            title="Settings"
+          >
+            <HiOutlineCog6Tooth className="size-4" />
+          </Link>
 
           <TopbarEnd />
         </div>

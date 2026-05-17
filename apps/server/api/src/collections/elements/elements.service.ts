@@ -24,17 +24,12 @@ export class ElementsService {
   ) {}
 
   async findAllElements(organizationId: string | null | undefined) {
-    // Build findAll query to get both default (no org) and org-specific elements
     const buildQuery = (): Record<string, unknown> => {
-      // Always filter by isDeleted: false, and add org logic
       const baseMatch: Record<string, unknown> = { isDeleted: false };
 
-      // Common: default elements (no org)
-      const defaultOrgConditions = [{ organization: null }];
-
-      baseMatch.OR = organizationId
-        ? [{ organization: organizationId }, ...defaultOrgConditions]
-        : defaultOrgConditions;
+      if (organizationId) {
+        baseMatch.OR = [{ organizationId }];
+      }
 
       return { where: baseMatch, orderBy: { createdAt: -1, key: 1 } };
     };

@@ -303,6 +303,129 @@ function buildProtectedAppBootstrapPayload() {
   };
 }
 
+function buildInstallReadinessPayload() {
+  return {
+    access: {
+      byokConfiguredProviders: ['openai'],
+      byokEnabled: true,
+      runtimeMode: 'byok',
+      selectedMode: 'server',
+      serverDefaultsReady: true,
+    },
+    authMode: 'clerk',
+    billingMode: 'oss_local',
+    localTools: {
+      anyDetected: true,
+      claude: true,
+      codex: true,
+      detected: ['Claude Code', 'Codex'],
+    },
+    providers: {
+      anyConfigured: true,
+      configured: ['OpenAI'],
+      fal: false,
+      imageGenerationReady: true,
+      openai: true,
+      replicate: false,
+      textGenerationReady: true,
+    },
+    ui: {
+      showBilling: false,
+      showCloudUpgradeCta: true,
+      showCredits: false,
+      showPricing: false,
+    },
+    workspace: {
+      brandId: 'brand-1',
+      hasBrand: true,
+      hasOrganization: true,
+      organizationId: 'mock-org-id-e2e-test',
+    },
+  };
+}
+
+function buildProactiveWorkspacePayload() {
+  return {
+    brand: {
+      colors: ['#111827', '#f9fafb'],
+      id: 'brand-1',
+      name: 'Brand 1',
+      voiceTone: 'clear, direct, practical',
+    },
+    claimedAt: new Date().toISOString(),
+    organization: {
+      id: 'mock-org-id-e2e-test',
+      label: 'Test Organization',
+    },
+    outputs: [
+      {
+        description: 'A launch-ready social draft prepared for testing.',
+        id: 'post-1',
+        label: 'Launch draft',
+        platform: 'tiktok',
+      },
+    ],
+    prepPercent: 100,
+    prepStage: 'ready',
+    proactiveStatus: 'ready',
+    success: true,
+    summary: 'Your starter workspace is ready.',
+  };
+}
+
+function buildAnalyticsSummary() {
+  return {
+    avgEngagementRate: 4.2,
+    clicks: 128,
+    comments: 18,
+    engagementRate: 4.2,
+    engagements: 420,
+    followers: 2400,
+    impressions: 12_400,
+    likes: 240,
+    posts: 12,
+    reach: 9_800,
+    shares: 36,
+    views: 18_200,
+  };
+}
+
+function buildTimeSeriesPoints() {
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(Date.now() - (6 - index) * 86_400_000)
+      .toISOString()
+      .slice(0, 10);
+
+    return {
+      date,
+      engagementRate: 3.5 + index * 0.1,
+      engagements: 80 + index * 8,
+      impressions: 1_000 + index * 120,
+      platform: 'tiktok',
+      posts: 1 + (index % 2),
+      reach: 800 + index * 95,
+      views: 1_500 + index * 150,
+    };
+  });
+}
+
+function buildMockTrend(overrides: Record<string, unknown> = {}) {
+  return {
+    category: 'creator_tools',
+    createdAt: new Date().toISOString(),
+    description: 'A reusable creative pattern for short-form content.',
+    hashtags: ['#genfeed', '#creator'],
+    id: 'mock-id',
+    platform: 'tiktok',
+    score: 82,
+    status: 'active',
+    title: 'Fast workflow demos',
+    updatedAt: new Date().toISOString(),
+    viralityScore: 82,
+    ...overrides,
+  };
+}
+
 // ----------------------------------------------------------------------------
 // Route Handlers
 // ----------------------------------------------------------------------------
@@ -981,6 +1104,32 @@ async function handleBrandsRoute(route: Route): Promise<void> {
     primaryColor: '#111827',
   };
 
+  if (method === 'GET' && url.includes('/analytics/timeseries')) {
+    await route.fulfill({
+      body: JSON.stringify(
+        wrapCollectionInJsonApi(
+          buildTimeSeriesPoints(),
+          'analytics-timeseries',
+          'brand-timeseries',
+        ),
+      ),
+      contentType: 'application/json',
+      status: 200,
+    });
+    return;
+  }
+
+  if (method === 'GET' && url.includes('/analytics')) {
+    await route.fulfill({
+      body: JSON.stringify(
+        wrapInJsonApi(buildAnalyticsSummary(), 'analytics', 'brand-analytics'),
+      ),
+      contentType: 'application/json',
+      status: 200,
+    });
+    return;
+  }
+
   if (method === 'GET' && /\/brands\/[^/?]+/.test(url)) {
     await route.fulfill({
       body: JSON.stringify(wrapInJsonApi(brand, 'brands', brand.id)),
@@ -1014,6 +1163,231 @@ async function handleTasksRoute(route: Route): Promise<void> {
   });
 }
 
+async function handleOnboardingRoute(route: Route): Promise<void> {
+  const url = route.request().url();
+
+  if (url.includes('/install-readiness')) {
+    await route.fulfill({
+      body: JSON.stringify(buildInstallReadinessPayload()),
+      contentType: 'application/json',
+      status: 200,
+    });
+    return;
+  }
+
+  if (
+    url.includes('/proactive-workspace') ||
+    url.includes('/proactive-claim')
+  ) {
+    await route.fulfill({
+      body: JSON.stringify(buildProactiveWorkspacePayload()),
+      contentType: 'application/json',
+      status: 200,
+    });
+    return;
+  }
+
+  if (
+    url.includes('/complete-funnel') ||
+    url.includes('/account-type') ||
+    url.includes('/brand-setup') ||
+    url.includes('/brand-name') ||
+    url.includes('/skip')
+  ) {
+    await route.fulfill({
+      body: JSON.stringify({ message: 'ok', success: true }),
+      contentType: 'application/json',
+      status: 200,
+    });
+    return;
+  }
+
+  await route.fulfill({
+    body: JSON.stringify({ message: 'ok', success: true }),
+    contentType: 'application/json',
+    status: 200,
+  });
+}
+
+async function handleTrendsRoute(route: Route): Promise<void> {
+  const url = route.request().url();
+  const method = route.request().method();
+
+  if (method === 'POST') {
+    await route.fulfill({
+      body: JSON.stringify({ count: 1, message: 'refreshed', success: true }),
+      contentType: 'application/json',
+      status: 200,
+    });
+    return;
+  }
+
+  if (url.includes('/discovery')) {
+    await route.fulfill({
+      body: JSON.stringify({
+        summary: {
+          connectedPlatforms: ['tiktok'],
+          lockedPlatforms: [],
+          totalTrends: 1,
+        },
+        trends: [buildMockTrend()],
+      }),
+      contentType: 'application/json',
+      status: 200,
+    });
+    return;
+  }
+
+  if (url.includes('/content')) {
+    await route.fulfill({
+      body: JSON.stringify({
+        items: [
+          {
+            id: 'trend-content-1',
+            platform: 'tiktok',
+            title: 'Workflow demo clip',
+            url: 'https://cdn.genfeed.ai/mock/trends/demo.mp4',
+          },
+        ],
+        summary: {
+          connectedPlatforms: ['tiktok'],
+          lockedPlatforms: [],
+          totalItems: 1,
+          totalTrends: 1,
+        },
+      }),
+      contentType: 'application/json',
+      status: 200,
+    });
+    return;
+  }
+
+  if (url.includes('/turnover')) {
+    await route.fulfill({
+      body: JSON.stringify({
+        byPlatform: [
+          {
+            alive: 8,
+            appeared: 4,
+            avgLifespanDays: 12,
+            died: 1,
+            platform: 'tiktok',
+            turnoverRate: 0.2,
+          },
+        ],
+        days: 30,
+        timeline: buildTimeSeriesPoints().map((point) => ({
+          appeared: 1,
+          date: point.date,
+          died: 0,
+        })),
+        totals: {
+          alive: 8,
+          appeared: 4,
+          avgLifespanDays: 12,
+          died: 1,
+          turnoverRate: 0.2,
+        },
+      }),
+      contentType: 'application/json',
+      status: 200,
+    });
+    return;
+  }
+
+  if (url.includes('/videos')) {
+    await route.fulfill({
+      body: JSON.stringify({
+        videos: [
+          {
+            id: 'trend-video-1',
+            platform: 'tiktok',
+            title: 'Workflow demo',
+            viralScore: 88,
+          },
+        ],
+      }),
+      contentType: 'application/json',
+      status: 200,
+    });
+    return;
+  }
+
+  if (url.includes('/leaderboard')) {
+    await route.fulfill({
+      body: JSON.stringify({ leaderboard: [buildMockTrend()] }),
+      contentType: 'application/json',
+      status: 200,
+    });
+    return;
+  }
+
+  if (url.includes('/hashtags')) {
+    await route.fulfill({
+      body: JSON.stringify({
+        hashtags: [{ hashtag: '#genfeed', posts: 1200, score: 82 }],
+      }),
+      contentType: 'application/json',
+      status: 200,
+    });
+    return;
+  }
+
+  if (url.includes('/sounds')) {
+    await route.fulfill({
+      body: JSON.stringify({
+        sounds: [{ id: 'sound-1', title: 'Demo sound', usageCount: 1200 }],
+      }),
+      contentType: 'application/json',
+      status: 200,
+    });
+    return;
+  }
+
+  if (url.match(/\/trends\/[^/?]+\/sources/)) {
+    await route.fulfill({
+      body: JSON.stringify({
+        items: [
+          {
+            id: 'source-1',
+            platform: 'tiktok',
+            title: 'Source clip',
+            url: 'https://example.com/source',
+          },
+        ],
+      }),
+      contentType: 'application/json',
+      status: 200,
+    });
+    return;
+  }
+
+  if (url.match(/\/trends\/[^/?]+/)) {
+    await route.fulfill({
+      body: JSON.stringify({
+        content: {
+          examples: [],
+          hooks: ['Show the before, then the workflow'],
+        },
+        related: [],
+        sources: [],
+        trend: buildMockTrend(),
+      }),
+      contentType: 'application/json',
+      status: 200,
+    });
+    return;
+  }
+
+  await route.fulfill({
+    body: JSON.stringify(
+      wrapCollectionInJsonApi([buildMockTrend()], 'trends', 'trend'),
+    ),
+    contentType: 'application/json',
+    status: 200,
+  });
+}
+
 export async function setupApiMocks(
   page: Page,
   customMocks?: Record<string, (route: Route) => Promise<void>>,
@@ -1028,6 +1402,28 @@ export async function setupApiMocks(
   const LOCAL_API = 'http://local.genfeed.ai:3010';
   const PROD_API = '**/api.genfeed.ai';
   const PROD_API_V1 = '**/api.genfeed.ai/v1';
+
+  // Register broad local fallback first so later specific mocks win. This keeps
+  // route smoke tests from leaking to a real local API when a page asks for a
+  // low-risk collection that does not need bespoke fixture data.
+  await page.route(/local\.genfeed\.ai:3010\/v1\/.+/, async (r) => {
+    const url = r.request().url();
+
+    if (url.includes('/v1/health')) {
+      await r.fulfill({
+        body: JSON.stringify({ status: 'ok' }),
+        contentType: 'application/json',
+        status: 200,
+      });
+      return;
+    }
+
+    await r.fulfill({
+      body: JSON.stringify({ data: [], meta: { totalCount: 0 } }),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
 
   const routeApi = async (
     pathPattern: string,
@@ -1059,6 +1455,33 @@ export async function setupApiMocks(
 
   await routeApi('/tasks**', async (r) => {
     await handleTasksRoute(r);
+  });
+
+  await routeApi('/onboarding/**', async (r) => {
+    await handleOnboardingRoute(r);
+  });
+
+  await routeApi('/trends**', async (r) => {
+    await handleTrendsRoute(r);
+  });
+
+  await page.route('**/api/creative-patterns**', async (r) => {
+    await r.fulfill({
+      body: JSON.stringify({
+        data: [],
+        meta: { page: 1, pageSize: 0, totalCount: 0 },
+      }),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
+
+  await page.route('**/services/*/verify**', async (r) => {
+    await r.fulfill({
+      body: JSON.stringify({ success: true }),
+      contentType: 'application/json',
+      status: 200,
+    });
   });
 
   // Agent panel chrome requests made from the protected layout.
@@ -1248,6 +1671,16 @@ export async function setupApiMocks(
         contentType: 'application/json',
         status: 200,
       });
+      return;
+    }
+
+    if (url.includes('/v1/onboarding/')) {
+      await handleOnboardingRoute(r);
+      return;
+    }
+
+    if (url.includes('/v1/trends')) {
+      await handleTrendsRoute(r);
       return;
     }
 

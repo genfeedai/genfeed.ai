@@ -101,16 +101,20 @@ function useTextareaSizing(
       return;
     }
 
-    ref.style.height = 'auto';
+    Object.assign(ref.style, { height: 'auto' });
 
     if (maxHeight > 0 && ref.scrollHeight > maxHeight) {
-      ref.style.height = `${maxHeight}px`;
-      ref.style.overflowY = 'auto';
+      Object.assign(ref.style, {
+        height: `${maxHeight}px`,
+        overflowY: 'auto',
+      });
       return;
     }
 
-    ref.style.height = `${ref.scrollHeight}px`;
-    ref.style.overflowY = 'hidden';
+    Object.assign(ref.style, {
+      height: `${ref.scrollHeight}px`,
+      overflowY: 'hidden',
+    });
   }, [maxHeight, textareaRef]);
 }
 

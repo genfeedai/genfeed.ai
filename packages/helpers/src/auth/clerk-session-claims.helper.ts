@@ -16,6 +16,7 @@ export type ClerkSessionPublicMetadata = {
 export type ClerkSessionClaims = {
   brandId?: string;
   category?: string;
+  clerkOrgId?: string;
   clerkUserId?: string;
   email?: string;
   firstName?: string;
@@ -230,12 +231,13 @@ export function resolveClerkSessionClaims(source: unknown): ClerkSessionClaims {
         'userId',
         'user_id',
       ]),
+    clerkOrgId:
+      getStringValue(topLevel.org_id) ??
+      getStringValue(asRecord(topLevel.o)?.id),
     organizationId: getFirstStringFromRecords(metadataRecords, [
       'organizationId',
       'organization_id',
       'organization',
-      'orgId',
-      'org_id',
     ]),
     role: getFirstStringFromRecords(metadataRecords, ['role']),
     stripeSubscriptionStatus: getFirstStringFromRecords(metadataRecords, [
@@ -254,7 +256,9 @@ export function hasClerkHotPathClaims(
   options: { requireBrand?: boolean } = {},
 ): boolean {
   const hasBaseClaims = Boolean(
-    claims.clerkUserId && claims.mongoUserId && claims.organizationId,
+    claims.clerkUserId &&
+      claims.mongoUserId &&
+      (claims.organizationId || claims.clerkOrgId),
   );
 
   if (!hasBaseClaims) {

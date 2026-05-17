@@ -1,15 +1,15 @@
 {
   "dependencies": {
-    "next": "16.2.4",
+    "next": "16.2.6",
     "nextra": "4.6.1",
     "nextra-theme-docs": "4.6.1",
-    "react": "19.2.5",
-    "react-dom": "19.2.5",
-    "swagger-ui-react": "5.32.5"
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "swagger-ui-react": "5.32.6"
   },
   "description": "Genfeed.ai documentation site built with Nextra",
   "devDependencies": {
-    "@types/node": "25.6.0",
+    "@types/node": "25.8.0",
     "@types/react": "19.2.14",
     "prettier": "3.8.3",
     "typescript": "6.0.2"
@@ -19,6 +19,8 @@
   "scripts": {
     "build": "next build",
     "dev": "next dev --turbopack --port 3001",
+    "dev:direct": "next dev --turbopack",
+    "dev:portless": "portless run --name docs.genfeed bun run dev:direct",
     "format:check": "prettier --check .",
     "format:fix": "prettier --write .",
     "lint": "biome check app components content mdx-components.tsx next.config.mjs package.json tsconfig.json types styles README.md",

@@ -79,7 +79,7 @@ export default function IntegrationsContent() {
           >
             <Link href="/pricing">
               Get Started Free
-              <LuArrowRight className="h-4 w-4" />
+              <LuArrowRight className="size-4" />
             </Link>
           </ButtonTracked>
         }
@@ -143,9 +143,9 @@ export default function IntegrationsContent() {
                   href={`/integrations/${integration.slug}`}
                   className="gsap-card group relative flex flex-col border border-edge/5 bg-fill/[0.02] p-8 transition-all duration-300 hover:border-[var(--gen-accent-hover)] hover:bg-fill/[0.05] hover:shadow-[0_8px_40px_rgba(0,0,0,0.25)]"
                 >
-                  <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-xl border border-edge/10 bg-fill/[0.06] transition-colors group-hover:border-[var(--gen-accent-border)] group-hover:bg-[var(--gen-accent-bg)]">
+                  <div className="mb-5 flex size-14 items-center justify-center rounded-xl border border-edge/10 bg-fill/[0.06] transition-colors group-hover:border-[var(--gen-accent-border)] group-hover:bg-[var(--gen-accent-bg)]">
                     {Icon && (
-                      <Icon className="h-7 w-7 text-surface/50 transition-colors group-hover:text-[color:hsl(var(--gen-accent))]" />
+                      <Icon className="size-7 text-surface/50 transition-colors group-hover:text-[color:hsl(var(--gen-accent))]" />
                     )}
                   </div>
                   <Heading
@@ -159,7 +159,7 @@ export default function IntegrationsContent() {
                   </Text>
                   <HStack className="items-center gap-1.5 text-xs font-medium text-surface/25 transition-colors group-hover:text-[color:hsl(var(--gen-accent))]">
                     <Text>Explore</Text>
-                    <LuArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+                    <LuArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
                   </HStack>
                 </Link>
               );
@@ -171,7 +171,7 @@ export default function IntegrationsContent() {
         <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">
           <div className="text-center p-12 bg-[hsl(var(--gen-accent))] shadow-[var(--shadow-glow-md)]">
             <div className="flex justify-center mb-4">
-              <HiSparkles className="h-8 w-8 text-inv-fg" />
+              <HiSparkles className="size-8 text-inv-fg" />
             </div>
             <Heading as="h3" className="text-2xl font-bold mb-2 text-inv-fg">
               One Platform, Every Channel
@@ -189,7 +189,7 @@ export default function IntegrationsContent() {
             >
               <Link href="/pricing">
                 Get Started Free
-                <LuArrowRight className="h-4 w-4" />
+                <LuArrowRight className="size-4" />
               </Link>
             </ButtonTracked>
           </div>

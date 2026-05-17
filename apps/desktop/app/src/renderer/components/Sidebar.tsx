@@ -311,7 +311,7 @@ export const Sidebar = ({
         {!isCollapsed && isSyncing && (
           <div className="sync-indicator">
             <span className="sync-dot sync-dot-active" />
-            Syncing...
+            Syncing…
           </div>
         )}
         {!isCollapsed && !isSyncing && syncErrors.length > 0 && (

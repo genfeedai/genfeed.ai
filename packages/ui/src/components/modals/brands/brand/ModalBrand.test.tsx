@@ -244,9 +244,13 @@ describe('ModalBrand', () => {
     onConfirm: vi.fn(),
   };
 
-  it('renders brand form', () => {
+  it('renders the create brand form in a dialog', () => {
     render(<ModalBrand {...defaultProps} />);
-    expect(screen.getByTestId('entity-overlay')).toBeInTheDocument();
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Create brand' }),
+    ).toBeInTheDocument();
   });
 
   it('opens the canonical brand detail page from the overlay header', () => {

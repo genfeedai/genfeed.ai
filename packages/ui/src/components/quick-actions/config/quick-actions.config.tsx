@@ -430,9 +430,9 @@ export const createUseAsVideoReferenceAction = (
     {
       icon: <HiSparkles className={ICON_CLASS} />,
       id: 'use-as-video-reference',
-      label: 'Set as Video Reference',
+      label: 'Add to Storyboard',
       showInMenu: true,
-      tooltip: 'Set as Video Reference',
+      tooltip: 'Add to Storyboard',
       tooltipPosition: 'top',
     },
     isLoading,

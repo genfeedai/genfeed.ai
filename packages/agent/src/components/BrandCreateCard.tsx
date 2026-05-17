@@ -57,10 +57,14 @@ export function BrandCreateCard({
 
       {/* Name input */}
       <div className="mb-3">
-        <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+        <label
+          className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
+          htmlFor="brand-create-name"
+        >
           Brand Name
         </label>
         <Input
+          id="brand-create-name"
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -70,10 +74,14 @@ export function BrandCreateCard({
 
       {/* Description input */}
       <div className="mb-3">
-        <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+        <label
+          className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
+          htmlFor="brand-create-description"
+        >
           Description
         </label>
         <Textarea
+          id="brand-create-description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={2}

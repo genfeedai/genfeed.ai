@@ -519,8 +519,8 @@ export function useQuickActions({
 
     return selectPrimaryActions(
       actionMap,
-      ['see-details', 'create-variation', 'convert-to-video'],
-      'download',
+      ['see-details', 'create-variation', 'use-as-video-reference'],
+      'convert-to-video',
       ['download', 'publish', 'share'],
     );
   }, [

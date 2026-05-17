@@ -146,9 +146,13 @@ export default function NewsletterComposerPanel() {
         </div>
 
         <div className="grid gap-4">
-          <label className="grid gap-2 text-sm text-foreground/75">
+          <label
+            className="grid gap-2 text-sm text-foreground/75"
+            htmlFor="newsletter-topic"
+          >
             <span>Topic</span>
             <Input
+              id="newsletter-topic"
               value={topic}
               onChange={(event) => setTopic(event.target.value)}
               placeholder="What should this issue cover?"
@@ -156,9 +160,13 @@ export default function NewsletterComposerPanel() {
             />
           </label>
 
-          <label className="grid gap-2 text-sm text-foreground/75">
+          <label
+            className="grid gap-2 text-sm text-foreground/75"
+            htmlFor="newsletter-angle"
+          >
             <span>Angle</span>
             <Input
+              id="newsletter-angle"
               value={angle}
               onChange={(event) => setAngle(event.target.value)}
               placeholder="Optional framing or thesis"
@@ -175,9 +183,13 @@ export default function NewsletterComposerPanel() {
             className="min-h-28 rounded-xl border-white/10 bg-black/20"
           />
 
-          <label className="grid gap-2 text-sm text-foreground/75">
+          <label
+            className="grid gap-2 text-sm text-foreground/75"
+            htmlFor="newsletter-draft-label"
+          >
             <span>Draft label</span>
             <Input
+              id="newsletter-draft-label"
               value={label}
               onChange={(event) => setLabel(event.target.value)}
               placeholder="Newsletter title"

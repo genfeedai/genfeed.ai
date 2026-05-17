@@ -43,7 +43,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
   currentConfig,
   categoryType,
   currentModelCategory,
-  shellMode = 'legacy-collapsible',
+  features = {},
   form,
   isDisabledState,
   isGenerateBlocked,
@@ -106,7 +106,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
   avatars = [],
   voices = [],
 }: PromptBarEssentialsProps) {
-  const isUnifiedShell = shellMode === 'studio-unified';
+  const isCollapsible = features.collapsible ?? true;
   const watchedTextTrimmed = form.watch('text')?.trim();
   const hasVisibleReferences = references.length > 0;
   const firstReference = hasVisibleReferences ? references[0] : null;
@@ -167,10 +167,10 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
               handleSubmitForm();
             }
           }}
-          maxHeight={isUnifiedShell ? 240 : 300}
+          maxHeight={isCollapsible ? 300 : 240}
           className={cn(
             'w-full resize-none border-0 bg-transparent px-2 py-2 text-sm shadow-none focus-visible:border-transparent focus-visible:ring-0',
-            isUnifiedShell ? 'min-h-[96px] pr-12' : 'min-h-[72px] pr-24',
+            isCollapsible ? 'min-h-[72px] pr-24' : 'min-h-[96px] pr-12',
           )}
           data-testid="prompt-textarea"
         />
@@ -312,11 +312,11 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
                 />
               )}
 
-            {isUnifiedShell ? null : (
+            {isCollapsible ? (
               <PromptBarDivider className="h-5 bg-white/10" />
-            )}
+            ) : null}
 
-            {isUnifiedShell && hasVisibleReferences && firstReference && (
+            {!isCollapsible && hasVisibleReferences && firstReference && (
               <Button
                 onClick={onToggleQuickOptions}
                 variant={ButtonVariant.GHOST}
@@ -399,7 +399,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
           </div>
 
           <div className="ml-auto flex items-center gap-1.5">
-            {isUnifiedShell && (
+            {!isCollapsible && (
               <Button
                 label={`${form.watch('outputs') || 1}x`}
                 variant={ButtonVariant.GHOST}
@@ -424,7 +424,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
               />
             )}
 
-            {!isUnifiedShell && (
+            {isCollapsible && (
               <>
                 <Button
                   label={`${form.watch('outputs') || 1}x`}
@@ -453,7 +453,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
               </>
             )}
 
-            {isSupported && (isUnifiedShell || !watchedTextTrimmed) ? (
+            {isSupported && (!isCollapsible || !watchedTextTrimmed) ? (
               <Button
                 onClick={toggleVoice}
                 variant={
@@ -468,7 +468,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
                 tooltipPosition="top"
                 icon={<HiMicrophone className="size-4" />}
               >
-                {isUnifiedShell ? null : 'Voice'}
+                {isCollapsible ? 'Voice' : null}
               </Button>
             ) : null}
 

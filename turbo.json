@@ -27,6 +27,11 @@
       "dependsOn": ["//#env:check"],
       "persistent": true
     },
+    "dev:portless": {
+      "cache": false,
+      "dependsOn": ["//#env:check"],
+      "persistent": true
+    },
     "lint": {
       "dependsOn": ["^build"]
     },

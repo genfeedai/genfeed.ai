@@ -77,7 +77,7 @@ export function ChatContainer(): ReactElement {
               <div className="flex items-center gap-2 py-3">
                 <LoadingSpinner size="sm" className="text-primary" />
                 <span className="text-xs text-muted-foreground">
-                  Generating...
+                  Generating…
                 </span>
               </div>
             )}

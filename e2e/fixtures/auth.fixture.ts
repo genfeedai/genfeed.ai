@@ -78,7 +78,7 @@ const MOCK_ADMIN_SESSION = {
 };
 
 const APP_AUTH_BOOTSTRAP_PATH = '/workspace';
-const ADMIN_AUTH_BOOTSTRAP_PATH = '/overview/dashboard';
+const ADMIN_AUTH_BOOTSTRAP_PATH = '/admin/overview/dashboard';
 const AUTOMATION_AUTH_BOOTSTRAP_PATH = '/workflows';
 
 // ----------------------------------------------------------------------------

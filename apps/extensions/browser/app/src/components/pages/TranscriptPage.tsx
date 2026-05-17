@@ -82,7 +82,7 @@ export function TranscriptPage() {
   return (
     <div className="p-4">
       <h2 className="text-lg font-bold mb-4">YouTube to Article</h2>
-      <p className="text-sm text-gray-600 mb-4">
+      <p className="text-sm text-zinc-600 mb-4">
         Convert any YouTube video into a blog article
       </p>
 
@@ -117,7 +117,7 @@ export function TranscriptPage() {
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
-              className="stroke-current shrink-0 w-6 h-6"
+              className="stroke-current shrink-0 size-6"
             >
               <path
                 strokeLinecap="round"
@@ -136,7 +136,7 @@ export function TranscriptPage() {
           <svg
             aria-hidden="true"
             xmlns="http://www.w3.org/2000/svg"
-            className="stroke-current shrink-0 h-6 w-6"
+            className="stroke-current shrink-0 size-6"
             fill="none"
             viewBox="0 0 24 24"
           >

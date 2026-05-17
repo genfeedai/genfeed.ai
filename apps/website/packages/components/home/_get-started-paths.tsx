@@ -49,7 +49,7 @@ export default function HomeGetStartedPaths() {
         <div className="max-w-5xl mx-auto">
           <VStack className="text-center mb-12">
             <HStack className="inline-flex items-center gap-2 mb-4">
-              <HiMap className="h-6 w-6 gen-icon" />
+              <HiMap className="size-6 gen-icon" />
               <Text className="gen-label gen-text-accent">
                 Deployment Options
               </Text>
@@ -76,7 +76,7 @@ export default function HomeGetStartedPaths() {
                   )}
                 >
                   <HStack className="items-center gap-3 mb-2">
-                    <Icon className="h-5 w-5 text-surface/50" />
+                    <Icon className="size-5 text-surface/50" />
                     <Heading as="h3" className="text-2xl font-bold">
                       {path.title}
                     </Heading>
@@ -89,7 +89,7 @@ export default function HomeGetStartedPaths() {
                   <ul className="space-y-3 mb-8">
                     {path.features.map((feature) => (
                       <li key={feature} className="flex items-start gap-2">
-                        <LuCheck className="h-4 w-4 mt-0.5 shrink-0 text-surface/30" />
+                        <LuCheck className="size-4 mt-0.5 shrink-0 text-surface/30" />
                         <Text className="text-sm text-surface/60">
                           {feature}
                         </Text>

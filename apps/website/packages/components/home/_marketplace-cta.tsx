@@ -45,7 +45,7 @@ function FloatingCard({
       <div className="p-4 bg-card/80 backdrop-blur-sm border border-edge/[0.08] shadow-lg hover:shadow-xl transition-all hover:scale-105">
         <div className="flex items-center gap-3">
           <div className={`p-2 ${color}`}>
-            <Icon className="h-5 w-5 text-surface" />
+            <Icon className="size-5 text-surface" />
           </div>
           <div>
             <div className="text-xl font-bold">{count}</div>
@@ -124,7 +124,7 @@ export default function MarketplaceCTA() {
           <HStack className="inline-flex items-center gap-2 mb-4">
             <div className="relative">
               <div className="absolute inset-0 bg-fill/30 blur-lg animate-pulse" />
-              <HiSparkles className="relative h-6 w-6 text-surface" />
+              <HiSparkles className="relative size-6 text-surface" />
             </div>
             <Text className="text-xs font-bold uppercase tracking-widest text-surface/60">
               See What&apos;s Possible
@@ -156,7 +156,7 @@ export default function MarketplaceCTA() {
                 variant={ButtonVariant.SECONDARY}
               >
                 <a href={`${EnvironmentService.apps.marketplace}/${item.path}`}>
-                  <item.icon className="h-4 w-4 text-surface" />
+                  <item.icon className="size-4 text-surface" />
                   <Text className="text-xs font-bold uppercase tracking-wide">
                     {item.label}
                   </Text>
@@ -178,7 +178,7 @@ export default function MarketplaceCTA() {
                 rel="noopener noreferrer"
               >
                 Explore Marketplace
-                <HiArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                <HiArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
               </a>
             </Button>
           </div>

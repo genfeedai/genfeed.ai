@@ -1,4 +1,8 @@
 import { CLIP_ORCHESTRATOR_EVENTS } from '@api/services/clip-orchestrator/clip-orchestrator.events';
+import {
+  loadClipOrchestratorMap,
+  saveClipOrchestratorMap,
+} from '@api/services/clip-orchestrator/clip-orchestrator-store';
 import { Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
@@ -45,9 +49,6 @@ const ORDERED_STEPS: ClipRunStep[] = [
  */
 @Injectable()
 export class ClipRunObserverService {
-  /** In-memory progress map keyed by clipRunId. */
-  private readonly runs = new Map<string, ClipRunProgress>();
-
   constructor(private readonly eventEmitter: EventEmitter2) {}
 
   /**
@@ -64,7 +65,9 @@ export class ClipRunObserverService {
       })),
       updatedAt: new Date().toISOString(),
     };
-    this.runs.set(clipRunId, progress);
+    const runs = this.loadProgress();
+    runs.set(clipRunId, progress);
+    this.persistProgress(runs);
     return progress;
   }
 
@@ -78,9 +81,11 @@ export class ClipRunObserverService {
     status: StepStatus,
     meta?: Record<string, unknown>,
   ): void {
-    let progress = this.runs.get(clipRunId);
+    const runs = this.loadProgress();
+    let progress = runs.get(clipRunId);
     if (!progress) {
-      progress = this.initRun(clipRunId);
+      progress = this.createInitialProgress(clipRunId);
+      runs.set(clipRunId, progress);
     }
 
     const stepEntry = progress.steps.find((s) => s.step === step);
@@ -112,6 +117,8 @@ export class ClipRunObserverService {
     // Recompute overall status
     progress.overallStatus = this.computeOverallStatus(progress.steps);
     progress.updatedAt = new Date().toISOString();
+    runs.set(clipRunId, progress);
+    this.persistProgress(runs);
 
     // Emit event for real-time consumers
     this.eventEmitter.emit(CLIP_ORCHESTRATOR_EVENTS.STEP_COMPLETED, {
@@ -127,14 +134,36 @@ export class ClipRunObserverService {
    * Get the full progress snapshot for a clip run.
    */
   async getRunProgress(clipRunId: string): Promise<ClipRunProgress | null> {
-    return this.runs.get(clipRunId) ?? null;
+    return this.loadProgress().get(clipRunId) ?? null;
   }
 
   /**
    * Remove tracking for a completed/abandoned run.
    */
   clearRun(clipRunId: string): void {
-    this.runs.delete(clipRunId);
+    const runs = this.loadProgress();
+    runs.delete(clipRunId);
+    this.persistProgress(runs);
+  }
+
+  private createInitialProgress(clipRunId: string): ClipRunProgress {
+    return {
+      clipRunId,
+      overallStatus: 'pending',
+      steps: ORDERED_STEPS.map((step) => ({
+        status: 'pending' as StepStatus,
+        step,
+      })),
+      updatedAt: new Date().toISOString(),
+    };
+  }
+
+  private loadProgress(): Map<string, ClipRunProgress> {
+    return loadClipOrchestratorMap<ClipRunProgress>('progress');
+  }
+
+  private persistProgress(runs: Map<string, ClipRunProgress>): void {
+    saveClipOrchestratorMap('progress', runs);
   }
 
   /** Derive overall status from individual steps. */

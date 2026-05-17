@@ -36,7 +36,7 @@ export function YouTubeQuickAction({ content }: { content: DetectedContent }) {
         <div className="flex items-center gap-2 mb-2">
           <svg
             aria-hidden="true"
-            className="w-5 h-5 text-red-600"
+            className="size-5 text-red-600"
             fill="currentColor"
             viewBox="0 0 24 24"
           >
@@ -78,7 +78,7 @@ export function YouTubeQuickAction({ content }: { content: DetectedContent }) {
           {isProcessing ? (
             <>
               <LoadingSpinner size="sm" />
-              Processing...
+              Processing…
             </>
           ) : (
             'Generate Transcript & Article'

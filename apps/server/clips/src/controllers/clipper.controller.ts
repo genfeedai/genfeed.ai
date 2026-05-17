@@ -20,6 +20,19 @@ interface CreateProjectBody {
   };
 }
 
+function unwrapData<T>(value: T): T {
+  let current = value as unknown;
+  while (
+    current &&
+    typeof current === 'object' &&
+    'data' in current &&
+    Object.keys(current).length === 1
+  ) {
+    current = (current as { data: unknown }).data;
+  }
+  return current as T;
+}
+
 @Controller('v1/clips')
 export class ClipperController {
   private readonly constructorName = String(this.constructor.name);
@@ -108,8 +121,8 @@ export class ClipperController {
 
       return {
         data: {
-          clips: clipsRes.data?.data || clipsRes.data,
-          project: projectRes.data?.data || projectRes.data,
+          clips: unwrapData(clipsRes.data),
+          project: unwrapData(projectRes.data),
         },
         success: true,
       };

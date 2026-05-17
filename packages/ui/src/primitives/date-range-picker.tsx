@@ -138,9 +138,9 @@ export default function DateRangePicker({
             mode="range"
             selected={dateRange}
             onSelect={handleDateChange}
-            toDate={yesterday}
+            endMonth={yesterday}
+            disabled={{ after: yesterday }}
             numberOfMonths={2}
-            initialFocus
           />
         </PopoverContent>
       </Popover>

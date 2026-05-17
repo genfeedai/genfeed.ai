@@ -140,7 +140,7 @@ function QualityBadge({
 
   // Score 6-7: neutral display
   return (
-    <div className="flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+    <div className="flex items-center gap-1 rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
       Quality: {score}/10
     </div>
   );
@@ -257,8 +257,8 @@ export function GenerationActionCard({
   useEffect(() => {
     const el = textareaRef.current;
     if (el) {
-      el.style.height = 'auto';
-      el.style.height = `${el.scrollHeight}px`;
+      Object.assign(el.style, { height: 'auto' });
+      Object.assign(el.style, { height: `${el.scrollHeight}px` });
     }
   }, []);
 
@@ -417,7 +417,7 @@ export function GenerationActionCard({
             disabled={isDisabled}
             rows={2}
             className="w-full resize-none"
-            placeholder="Describe what you want to generate..."
+            placeholder="Describe what you want to generate…"
           />
         </div>
 
@@ -430,11 +430,11 @@ export function GenerationActionCard({
             {modelsLoading ? (
               <Select disabled value="loading-models">
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Loading Genfeed models..." />
+                  <SelectValue placeholder="Loading Genfeed models…" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="loading-models">
-                    Loading Genfeed models...
+                    Loading Genfeed models…
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -538,7 +538,7 @@ export function GenerationActionCard({
         {status === 'generating' && (
           <div className="flex items-center justify-center gap-2 border border-border px-4 py-3">
             <div className="size-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-            <span className="text-sm text-muted-foreground">Generating...</span>
+            <span className="text-sm text-muted-foreground">Generating…</span>
           </div>
         )}
 

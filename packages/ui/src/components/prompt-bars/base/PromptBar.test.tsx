@@ -1,3 +1,4 @@
+import { PromptBarInternalContext } from '@genfeedai/contexts/ui/prompt-bar-internal-context';
 import { IngredientCategory, IngredientFormat } from '@genfeedai/enums';
 import {
   getDefaultVideoResolution,
@@ -11,7 +12,8 @@ import {
   waitFor,
 } from '@testing-library/react';
 import PromptBar from '@ui/prompt-bars/base/PromptBar';
-import type { ReactElement, RefObject } from 'react';
+import type { ReactElement } from 'react';
+import { useContext } from 'react';
 import { MdOutlineCropLandscape, MdOutlineCropSquare } from 'react-icons/md';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -46,7 +48,6 @@ const mockNotifications = { error: vi.fn(), success: vi.fn() };
 const mockClipboard = { copy: vi.fn() };
 let collapsedViewProps: Record<string, unknown> | undefined;
 let expandedViewProps: Record<string, unknown> | undefined;
-let unifiedViewProps: Record<string, unknown> | undefined;
 let speechHandlers: { onTranscription?: (result: any) => void } = {};
 
 // Mock next/navigation
@@ -258,17 +259,15 @@ vi.mock(
 vi.mock(
   '@ui/prompt-bars/components/expanded-view/PromptBarExpandedView',
   () => ({
-    default: (props: {
-      handleSubmitForm: () => void;
-      textareaRef?: RefObject<HTMLTextAreaElement>;
-    }) => {
-      expandedViewProps = props;
+    default: function MockExpandedView() {
+      const ctx = useContext(PromptBarInternalContext);
+      expandedViewProps = ctx as unknown as Record<string, unknown>;
       return (
         <div data-testid="expanded-view">
-          <textarea data-testid="textarea" ref={props.textareaRef} />
+          <textarea data-testid="textarea" ref={ctx?.textareaRef} />
           <button
             type="button"
-            onClick={props.handleSubmitForm}
+            onClick={ctx?.handleSubmitForm}
             data-testid="submit-button"
           >
             Generate
@@ -278,27 +277,6 @@ vi.mock(
     },
   }),
 );
-
-vi.mock('@ui/prompt-bars/components/unified-view/PromptBarUnifiedView', () => ({
-  default: (props: {
-    handleSubmitForm: () => void;
-    textareaRef?: RefObject<HTMLTextAreaElement>;
-  }) => {
-    unifiedViewProps = props;
-    return (
-      <div data-testid="unified-view">
-        <textarea data-testid="unified-textarea" ref={props.textareaRef} />
-        <button
-          type="button"
-          onClick={props.handleSubmitForm}
-          data-testid="unified-submit-button"
-        >
-          Generate
-        </button>
-      </div>
-    );
-  },
-}));
 
 describe('PromptBar', () => {
   const defaultProps = {
@@ -330,7 +308,6 @@ describe('PromptBar', () => {
     vi.clearAllMocks();
     collapsedViewProps = undefined;
     expandedViewProps = undefined;
-    unifiedViewProps = undefined;
     speechHandlers = {};
 
     mockUsePromptBarFilters.mockReturnValue({
@@ -465,15 +442,33 @@ describe('PromptBar', () => {
     }
   });
 
-  it('should render unified view without collapsed shell in studio-unified mode', () => {
-    render(<PromptBar {...(defaultProps as any)} shellMode="studio-unified" />);
+  it('should render expanded view without collapsed shell in studio-unified mode', () => {
+    render(
+      <PromptBar
+        {...(defaultProps as any)}
+        features={{ collapsible: false, dragDrop: false }}
+      />,
+    );
 
     expect(screen.queryByTestId('collapsed-view')).not.toBeInTheDocument();
-    expect(screen.getByTestId('unified-view')).toBeInTheDocument();
+    expect(screen.getByTestId('expanded-view')).toBeInTheDocument();
   });
 
   it('should handle submit correctly', () => {
     const mockOnSubmit = vi.fn();
+    mockUseWatch.mockImplementation(({ name }) => {
+      if (name === 'models') {
+        return ['test-model'];
+      }
+      if (name === 'format') {
+        return IngredientFormat.PORTRAIT;
+      }
+      if (name === 'outputs') {
+        return 1;
+      }
+      return null;
+    });
+
     render(<PromptBar {...(defaultProps as any)} onSubmit={mockOnSubmit} />);
     const submitButton = screen.queryByTestId('submit-button');
     if (submitButton) {
@@ -868,7 +863,7 @@ describe('PromptBar', () => {
       expect(props?.formatIcon?.type).toBe(MdOutlineCropSquare);
     });
 
-    it('passes watched quality from the form to the unified view', () => {
+    it('passes watched quality from the form to the expanded view in studio-unified mode', () => {
       mockUseWatch.mockImplementation(({ name }) => {
         if (name === 'quality') {
           return 'standard';
@@ -883,11 +878,14 @@ describe('PromptBar', () => {
       });
 
       render(
-        <PromptBar {...(defaultProps as any)} shellMode="studio-unified" />,
+        <PromptBar
+          {...(defaultProps as any)}
+          features={{ collapsible: false, dragDrop: false }}
+        />,
       );
 
-      const props = unifiedViewProps as { watchedQuality?: string };
-      expect(props?.watchedQuality).toBe('standard');
+      const ctx = expandedViewProps as { watchedQuality?: string };
+      expect(ctx?.watchedQuality).toBe('standard');
     });
 
     it('passes ultra quality from the form to the expanded view', async () => {
@@ -924,6 +922,19 @@ describe('PromptBar', () => {
 
     it('skips submit when generate is disabled', () => {
       const mockOnSubmit = vi.fn();
+      mockUseWatch.mockImplementation(({ name }) => {
+        if (name === 'models') {
+          return ['test-model'];
+        }
+        if (name === 'format') {
+          return IngredientFormat.PORTRAIT;
+        }
+        if (name === 'outputs') {
+          return 1;
+        }
+        return null;
+      });
+
       render(
         <PromptBar
           {...(defaultProps as any)}
@@ -931,6 +942,50 @@ describe('PromptBar', () => {
           isGenerateDisabled={true}
         />,
       );
+
+      const submitButton = screen.queryByTestId('submit-button');
+      if (submitButton) {
+        fireEvent.click(submitButton);
+      }
+
+      expect(mockOnSubmit).not.toHaveBeenCalled();
+    });
+
+    it('skips submit when the prompt bar is disabled', () => {
+      const mockOnSubmit = vi.fn();
+      mockUseWatch.mockImplementation(({ name }) => {
+        if (name === 'models') {
+          return ['test-model'];
+        }
+        if (name === 'format') {
+          return IngredientFormat.PORTRAIT;
+        }
+        if (name === 'outputs') {
+          return 1;
+        }
+        return null;
+      });
+
+      render(
+        <PromptBar
+          {...(defaultProps as any)}
+          isDisabled={true}
+          onSubmit={mockOnSubmit}
+        />,
+      );
+
+      const submitButton = screen.queryByTestId('submit-button');
+      if (submitButton) {
+        fireEvent.click(submitButton);
+      }
+
+      expect(mockOnSubmit).not.toHaveBeenCalled();
+    });
+
+    it('skips submit when model selection is required but unset', () => {
+      const mockOnSubmit = vi.fn();
+
+      render(<PromptBar {...(defaultProps as any)} onSubmit={mockOnSubmit} />);
 
       const submitButton = screen.queryByTestId('submit-button');
       if (submitButton) {

@@ -41,8 +41,8 @@ function FontFamiliesListContent({
 
   const { replace } = useRouter();
   const pathname = usePathname();
-  const { get, toString: getSearchParamsString } = useSearchParams();
-  const searchParamsString = getSearchParamsString() ?? '';
+  const searchParams = useSearchParams();
+  const searchParamsString = searchParams.toString();
   const parsedSearchParams = useMemo(
     () => new URLSearchParams(searchParamsString),
     [searchParamsString],
@@ -152,7 +152,7 @@ function FontFamiliesListContent({
       : [];
 
   // Extract page from URL to use as dependency (triggers re-fetch when page changes)
-  const currentPage = Number(get('page')) || 1;
+  const currentPage = Number(searchParams.get('page')) || 1;
 
   const findAllFontFamilies = useCallback(
     async (isRefreshing = false) => {
@@ -215,7 +215,7 @@ function FontFamiliesListContent({
     ],
   );
 
-  // Fetch data on mount and when get, getSearchParamsString change
+  // Fetch data on mount and when search params change
   useEffect(() => {
     findAllFontFamilies();
   }, [findAllFontFamilies]);

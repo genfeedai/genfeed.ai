@@ -75,7 +75,7 @@ export default function ContentTestimonials() {
         <Card key={testimonial.name}>
           <div className="flex items-center mb-4">
             <div className="avatar">
-              <div className="w-12 h-12 rounded-full">
+              <div className="size-12 rounded-full">
                 <Image
                   src={testimonial.avatar}
                   alt="User avatar"
@@ -86,11 +86,11 @@ export default function ContentTestimonials() {
               </div>
             </div>
             <div className="ml-4">
-              <h3 className="font-bold">{testimonial.name}</h3>
-              <p className="text-sm text-gray-400">{testimonial.role}</p>
+              <h3 className="font-semibold">{testimonial.name}</h3>
+              <p className="text-sm text-zinc-400">{testimonial.role}</p>
             </div>
           </div>
-          <p className="text-gray-400">&ldquo;{testimonial.quote}&rdquo;</p>
+          <p className="text-zinc-400">&ldquo;{testimonial.quote}&rdquo;</p>
         </Card>
       ))}
     </>

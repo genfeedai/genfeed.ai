@@ -25,11 +25,11 @@ import {
 
 // Map category names to icons
 const CATEGORY_ICONS: Record<string, ReactNode> = {
-  'Content Creation': <HiOutlineSparkles className="w-5 h-5" />,
-  'Features & Access': <HiOutlineCubeTransparent className="w-5 h-5" />,
-  General: <HiOutlineBookOpen className="w-5 h-5" />,
-  Pricing: <HiOutlineCreditCard className="w-5 h-5" />,
-  Technical: <HiOutlineCog6Tooth className="w-5 h-5" />,
+  'Content Creation': <HiOutlineSparkles className="size-5" />,
+  'Features & Access': <HiOutlineCubeTransparent className="size-5" />,
+  General: <HiOutlineBookOpen className="size-5" />,
+  Pricing: <HiOutlineCreditCard className="size-5" />,
+  Technical: <HiOutlineCog6Tooth className="size-5" />,
 };
 
 // Combine shared data with icons
@@ -60,7 +60,7 @@ export default function FAQContent() {
             {/* Left column - FAQ content */}
             <div className="space-y-12">
               <div className="gsap-hero">
-                <h1 className="text-4xl font-bold mb-4">
+                <h1 className="text-4xl font-semibold mb-4">
                   Frequently Asked Questions
                 </h1>
                 <p className="text-lg text-muted-foreground">
@@ -78,7 +78,9 @@ export default function FAQContent() {
                     <div className="p-2 bg-primary/10 text-primary">
                       {category.icon}
                     </div>
-                    <h2 className="text-2xl font-bold">{category.category}</h2>
+                    <h2 className="text-2xl font-semibold">
+                      {category.category}
+                    </h2>
                   </div>
 
                   <Accordion type="single" collapsible className="space-y-3">
@@ -88,7 +90,7 @@ export default function FAQContent() {
                         value={item.question}
                         className="bg-fill/5 border border-edge/10 px-2 data-[state=open]:bg-fill/[0.07]"
                       >
-                        <AccordionTrigger className="px-4 py-4 text-base font-medium hover:no-underline text-left">
+                        <AccordionTrigger className="p-4 text-base font-medium hover:no-underline text-left">
                           {item.question}
                         </AccordionTrigger>
                         <AccordionContent className="px-4 pb-4 text-muted-foreground leading-relaxed">
@@ -138,7 +140,7 @@ export default function FAQContent() {
                 <div className="bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 p-6">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="p-2 bg-primary/20 text-primary">
-                      <HiOutlineChatBubbleLeftRight className="w-5 h-5" />
+                      <HiOutlineChatBubbleLeftRight className="size-5" />
                     </div>
                     <h3 className="font-semibold">Still have questions?</h3>
                   </div>
@@ -157,7 +159,7 @@ export default function FAQContent() {
                     href="mailto:hello@genfeed.ai"
                     className="flex items-center gap-3 text-sm text-muted-foreground hover:text-surface transition-colors"
                   >
-                    <HiOutlineEnvelope className="w-5 h-5" />
+                    <HiOutlineEnvelope className="size-5" />
                     hello@genfeed.ai
                   </a>
                 </div>
@@ -171,7 +173,7 @@ export default function FAQContent() {
           <div className="bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 p-6 text-center">
             <div className="flex items-center justify-center gap-3 mb-4">
               <div className="p-2 bg-primary/20 text-primary">
-                <HiOutlineChatBubbleLeftRight className="w-5 h-5" />
+                <HiOutlineChatBubbleLeftRight className="size-5" />
               </div>
               <h3 className="font-semibold">Still have questions?</h3>
             </div>

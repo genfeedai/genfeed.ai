@@ -80,15 +80,15 @@ export default function FeaturesPage(): React.ReactElement {
                     <div className="text-surface/20 text-xs font-black uppercase tracking-widest mb-12">
                       {feature.number} / {feature.label}
                     </div>
-                    <Icon className="h-10 w-10 mb-8 text-surface/40 group-hover:text-surface transition-all" />
-                    <h3 className="text-xl font-black uppercase tracking-tight mb-4">
+                    <Icon className="size-10 mb-8 text-surface/40 group-hover:text-surface transition-all" />
+                    <h3 className="text-xl font-semibold uppercase tracking-tight mb-4">
                       {feature.title}
                     </h3>
                     <p className="text-surface/40 text-sm leading-relaxed mb-8">
                       {feature.description}
                     </p>
                     <span className="mt-auto text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:gap-4 transition-all cursor-pointer">
-                      Learn More <LuArrowRight className="h-3 w-3" />
+                      Learn More <LuArrowRight className="size-3" />
                     </span>
                   </div>
                 );
@@ -127,7 +127,7 @@ export default function FeaturesPage(): React.ReactElement {
                   </h2>
                   <p className="text-lg text-surface/40 leading-relaxed">
                     Genfeed uses 50+ AI models optimized for content creation.
-                    Each model is selected automatically based on your prompt —
+                    Each model is selected automatically based on your prompt,
                     so you get the best quality without choosing between
                     providers or settings.
                   </p>

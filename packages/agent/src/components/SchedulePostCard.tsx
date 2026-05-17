@@ -88,11 +88,15 @@ export function SchedulePostCard({
 
       {/* Date/Time input */}
       <div className="mb-3">
-        <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+        <label
+          className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
+          htmlFor="schedule-post-date-time"
+        >
           <HiClock className="mr-1 inline size-3" />
           Date & Time
         </label>
         <Input
+          id="schedule-post-date-time"
           type="datetime-local"
           value={dateTime}
           onChange={(e) => setDateTime(e.target.value)}
@@ -101,13 +105,14 @@ export function SchedulePostCard({
 
       {/* Platform checkboxes */}
       <div className="mb-3">
-        <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+        <div className="mb-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
           Platforms
-        </label>
+        </div>
         <div className="flex flex-wrap gap-2">
           {AVAILABLE_PLATFORMS.map((platform) => (
             <label
               key={platform}
+              htmlFor={`schedule-post-platform-${platform}`}
               className={`flex cursor-pointer items-center gap-1.5 border px-2.5 py-1 text-xs transition-colors ${
                 selectedPlatforms.has(platform)
                   ? 'border-primary bg-primary/5 text-foreground'
@@ -115,6 +120,7 @@ export function SchedulePostCard({
               }`}
             >
               <Input
+                id={`schedule-post-platform-${platform}`}
                 type="checkbox"
                 isChecked={selectedPlatforms.has(platform)}
                 onChange={() => togglePlatform(platform)}

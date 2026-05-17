@@ -87,29 +87,13 @@ export default function ModalModel({
 
   useEffect(() => {
     if (model) {
-      form.setValue('label', model.label, { shouldValidate: true });
-      form.setValue('description', model.description, {
-        shouldValidate: true,
-      });
-
-      form.setValue(
-        'key',
-        (model.key || defaultModelValues.key) as IModel['key'],
-        {
-          shouldValidate: true,
-        },
-      );
-
-      form.setValue('category', model.category || defaultModelValues.category, {
-        shouldValidate: true,
-      });
-
-      form.setValue('provider', model.provider || defaultModelValues.provider, {
-        shouldValidate: true,
-      });
-
-      form.setValue('cost', model.cost ?? defaultModelValues.cost, {
-        shouldValidate: true,
+      form.reset({
+        category: model.category || defaultModelValues.category,
+        cost: model.cost ?? defaultModelValues.cost,
+        description: model.description,
+        key: (model.key || defaultModelValues.key) as IModel['key'],
+        label: model.label,
+        provider: model.provider || defaultModelValues.provider,
       });
     }
   }, [defaultModelValues, form, model]);

@@ -59,7 +59,7 @@ describe('StudioComposer', () => {
     expect(screen.getByTestId('low-credits-banner')).toBeInTheDocument();
     expect(promptBarSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        shellMode: 'studio-unified',
+        features: { collapsible: false, dragDrop: false },
       }),
     );
     expect(promptBarSurfaceSpy).toHaveBeenLastCalledWith(

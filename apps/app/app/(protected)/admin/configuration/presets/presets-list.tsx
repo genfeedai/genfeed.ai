@@ -49,8 +49,8 @@ function PresetsListContent({
 
   const { replace } = useRouter();
   const pathname = usePathname();
-  const { get, toString: getSearchParamsString } = useSearchParams();
-  const searchParamsString = getSearchParamsString() ?? '';
+  const searchParams = useSearchParams();
+  const searchParamsString = searchParams.toString();
   const parsedSearchParams = useMemo(
     () => new URLSearchParams(searchParamsString),
     [searchParamsString],
@@ -115,7 +115,7 @@ function PresetsListContent({
   });
 
   // Extract page from URL to use as dependency (triggers re-fetch when page changes)
-  const currentPage = Number(get('page')) || 1;
+  const currentPage = Number(searchParams.get('page')) || 1;
 
   const {
     data: presets = [] as Preset[],

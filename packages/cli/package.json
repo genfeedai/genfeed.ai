@@ -7,22 +7,22 @@
   "dependencies": {
     "@genfeedai/serializers": "workspace:*",
     "@genfeedai/tools": "workspace:*",
-    "@inquirer/prompts": "8.4.2",
+    "@inquirer/prompts": "8.4.3",
     "chalk": "5.6.2",
     "commander": "14.0.3",
     "ofetch": "1.5.1",
     "ora": "9.4.0",
     "socket.io-client": "4.8.3",
-    "zod": "4.3.6"
+    "zod": "4.4.3"
   },
   "description": "Unified CLI for Genfeed.ai - Generate, train, publish, and manage AI content from your terminal",
   "devDependencies": {
-    "@biomejs/biome": "2.4.13",
-    "@types/bun": "1.3.13",
-    "@types/node": "25.6.0",
-    "@vitest/coverage-v8": "4.1.5",
+    "@biomejs/biome": "2.4.15",
+    "@types/bun": "1.3.14",
+    "@types/node": "25.8.0",
+    "@vitest/coverage-v8": "4.1.6",
     "typescript": "6.0.2",
-    "vitest": "4.1.5"
+    "vitest": "4.1.6"
   },
   "engines": {
     "node": ">=18.0.0"

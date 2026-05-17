@@ -36,7 +36,9 @@ type WorkspacePackPaths = {
   sourceEntry: string;
 };
 
-type NativeImport = (specifier: string) => Promise<PackModule>;
+const runtimeImport = new Function('specifier', 'return import(specifier)') as (
+  specifier: string,
+) => Promise<unknown>;
 
 const API_PACKAGE_NAME = '@genfeedai/api';
 const WORKSPACE_PACK_PATHS: Record<string, WorkspacePackPaths> = {
@@ -46,7 +48,9 @@ const WORKSPACE_PACK_PATHS: Record<string, WorkspacePackPaths> = {
   },
 };
 
-const nativeImport: NativeImport = (specifier) => import(specifier);
+async function nativeImport(specifier: string): Promise<PackModule> {
+  return (await runtimeImport(specifier)) as PackModule;
+}
 
 function runtimeRequireModule(
   requireFn: NodeJS.Require,

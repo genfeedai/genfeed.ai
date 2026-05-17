@@ -92,7 +92,7 @@ test.describe('Admin Content Management', () => {
       await mockCrmCompanyDetail(adminPage, 'company-1');
       await mockCrmLeads(adminPage, 4);
 
-      await adminPage.goto('/crm/companies/company-1');
+      await adminPage.goto('/admin/content/companies/company-1');
       const admin = new AdminPage(adminPage);
 
       await admin.assertPageVisible();

@@ -33,8 +33,12 @@ export const DESKTOP_IPC_CHANNELS = {
   filesRead: 'desktop:files:read',
   filesWrite: 'desktop:files:write',
   generationClearProviderConfig: 'desktop:generation:clearProviderConfig',
+  generationCancelAssetGeneration: 'desktop:generation:cancelAssetGeneration',
+  generationEnqueueAssetGeneration: 'desktop:generation:enqueueAssetGeneration',
   generationGenerateWorkflow: 'desktop:generation:generateWorkflow',
+  generationGetGenerationJob: 'desktop:generation:getGenerationJob',
   generationGetProviderConfig: 'desktop:generation:getProviderConfig',
+  generationListGenerationJobs: 'desktop:generation:listGenerationJobs',
   generationSaveProviderConfig: 'desktop:generation:saveProviderConfig',
   generationTestProviderConfig: 'desktop:generation:testProviderConfig',
   getPlatform: 'desktop:getPlatform',
@@ -351,6 +355,46 @@ export interface IDesktopWorkflowGenerationOptions {
 export interface IDesktopWorkflowGenerationResult {
   tokensUsed: number;
   workflow: Record<string, unknown>;
+}
+
+export type DesktopGenerationAssetKind = 'image';
+
+export type DesktopAssetGenerationProviderKind = 'fal' | 'replicate';
+
+export type DesktopGenerationJobStatus =
+  | 'cancelled'
+  | 'failed'
+  | 'queued'
+  | 'running'
+  | 'succeeded';
+
+export interface IDesktopAssetGenerationRequest {
+  aspectRatio?: string;
+  height?: number;
+  inputAssetIds?: string[];
+  kind?: DesktopGenerationAssetKind;
+  model: string;
+  negativePrompt?: string;
+  prompt: string;
+  provider: DesktopAssetGenerationProviderKind;
+  seed?: number;
+  uploadPolicy?: DesktopAssetUploadPolicy;
+  width?: number;
+  workspaceId: string;
+}
+
+export interface IDesktopGenerationJob {
+  assetIds: string[];
+  createdAt: string;
+  error?: string;
+  id: string;
+  kind: 'asset-generation';
+  model: string;
+  progress?: number;
+  provider: DesktopAssetGenerationProviderKind;
+  status: DesktopGenerationJobStatus;
+  updatedAt: string;
+  workspaceId: string;
 }
 
 /* ─── Recents ─── */
@@ -720,11 +764,19 @@ export interface IGenfeedDesktopBridge {
     ) => Promise<void>;
   };
   generation: {
+    cancelGenerationJob: (jobId: string) => Promise<IDesktopGenerationJob>;
     clearProviderConfig: () => Promise<void>;
+    enqueueAssetGeneration: (
+      request: IDesktopAssetGenerationRequest,
+    ) => Promise<IDesktopGenerationJob>;
     generateWorkflow: (
       params: IDesktopWorkflowGenerationOptions,
     ) => Promise<IDesktopWorkflowGenerationResult>;
+    getGenerationJob: (jobId: string) => Promise<IDesktopGenerationJob | null>;
     getProviderConfig: () => Promise<IDesktopGenerationProviderPublicConfig | null>;
+    listGenerationJobs: (
+      workspaceId?: string,
+    ) => Promise<IDesktopGenerationJob[]>;
     saveProviderConfig: (
       config: IDesktopGenerationProviderConfig,
     ) => Promise<IDesktopGenerationProviderPublicConfig>;

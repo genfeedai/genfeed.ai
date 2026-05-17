@@ -1,4 +1,5 @@
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
+import { WebhookClientProcessor } from '@api/services/webhook-client/webhook-client.processor';
 import { WebhookClientService } from '@api/services/webhook-client/webhook-client.service';
 import { HttpModule } from '@nestjs/axios';
 import { BullModule } from '@nestjs/bullmq';
@@ -22,6 +23,6 @@ import { Module } from '@nestjs/common';
       name: 'webhook-client',
     }),
   ],
-  providers: [WebhookClientService],
+  providers: [WebhookClientService, WebhookClientProcessor],
 })
 export class WebhookClientModule {}

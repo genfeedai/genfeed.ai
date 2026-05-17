@@ -104,7 +104,7 @@ export default function ServicesContent() {
                 >
                   {isFeatured && (
                     <div className="absolute top-6 right-6">
-                      <span className="px-3 py-1 bg-black text-surface text-[10px] font-black uppercase tracking-widest rounded-full">
+                      <span className="px-3 py-1 bg-zinc-950 text-surface text-[10px] font-black uppercase tracking-widest rounded-full">
                         Most Popular
                       </span>
                     </div>
@@ -153,7 +153,7 @@ export default function ServicesContent() {
                       <li key={feature} className="flex items-start gap-3">
                         <LuCheck
                           className={cn(
-                            'h-4 w-4 mt-0.5 shrink-0',
+                            'size-4 mt-0.5 shrink-0',
                             isFeatured ? 'text-inv-fg/30' : 'text-surface/40',
                           )}
                         />

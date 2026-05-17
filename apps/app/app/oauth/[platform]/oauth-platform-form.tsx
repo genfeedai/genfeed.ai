@@ -19,7 +19,12 @@ const REDIRECT_DELAY_MS = 3000;
 const DEFAULT_RETURN_PATH = '/settings/api-keys';
 
 function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
-  const { get } = useSearchParams();
+  const searchParams = useSearchParams();
+  const code = searchParams.get('code');
+  const oauthToken = searchParams.get('oauth_token');
+  const oauthVerifier = searchParams.get('oauth_verifier');
+  const returnTo = searchParams.get('return_to');
+  const state = searchParams.get('state');
   const { push } = useRouter();
   const [status, setStatus] = useState<VerifyStatus>('loading');
   const [errorMessage, setErrorMessage] = useState<string>('');
@@ -44,12 +49,12 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
 
       const body = isOAuth1
         ? {
-            oauth_token: get('oauth_token'),
-            oauth_verifier: get('oauth_verifier'),
+            oauth_token: oauthToken,
+            oauth_verifier: oauthVerifier,
           }
         : {
-            code: get('code'),
-            state: get('state'),
+            code,
+            state,
           };
 
       await service.postVerify(body);
@@ -57,7 +62,6 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
       logger.info(`${url} success`);
       setStatus('success');
 
-      const returnTo = get('return_to');
       setTimeout(() => {
         push(returnTo || DEFAULT_RETURN_PATH);
       }, REDIRECT_DELAY_MS);
@@ -66,7 +70,16 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
       setStatus('error');
       setErrorMessage('Failed to verify your account. Please try again.');
     }
-  }, [getServicesService, platform, push, get]);
+  }, [
+    code,
+    getServicesService,
+    oauthToken,
+    oauthVerifier,
+    platform,
+    push,
+    returnTo,
+    state,
+  ]);
 
   useEffect(() => {
     verify();
@@ -104,7 +117,7 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
             <h2 className="text-lg font-semibold">Connection Failed</h2>
             <p className="text-sm text-muted-foreground">{errorMessage}</p>
             <a
-              href={get('return_to') || DEFAULT_RETURN_PATH}
+              href={returnTo || DEFAULT_RETURN_PATH}
               className="inline-block text-sm text-primary underline"
             >
               Go back

@@ -1,4 +1,5 @@
 import {
+  BotCategory,
   BotPlatform,
   EngagementAction,
   MonitoringAlertType,
@@ -141,8 +142,15 @@ export const publishingBotSettingsSchema = z.object({
 
 export const botSchema = z.object({
   category: z
-    .enum(['chat', 'comment', 'engagement', 'monitoring', 'publishing'])
-    .default('chat'),
+    .enum([
+      BotCategory.CHAT,
+      BotCategory.COMMENT,
+      BotCategory.ENGAGEMENT,
+      BotCategory.LIVESTREAM_CHAT,
+      BotCategory.MONITORING,
+      BotCategory.PUBLISHING,
+    ])
+    .default(BotCategory.CHAT),
   description: z.string().optional(),
   engagementSettings: engagementBotSettingsSchema.optional(),
   label: z.string().min(1, 'Label is required'),

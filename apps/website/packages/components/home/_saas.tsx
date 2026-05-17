@@ -84,7 +84,7 @@ function ComparisonSection({
   const linkContent = (
     <>
       {ctaLabel}
-      <HiArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+      <HiArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
     </>
   );
 
@@ -169,8 +169,8 @@ export default function HomeSaaS() {
                   className="hover:-translate-y-1 hover:border-primary/30 transition-transform"
                   bodyClassName="p-6"
                 >
-                  <div className="w-12 h-12 bg-primary/10 flex items-center justify-center mb-4">
-                    <Icon className="h-6 w-6 text-primary" />
+                  <div className="size-12 bg-primary/10 flex items-center justify-center mb-4">
+                    <Icon className="size-6 text-primary" />
                   </div>
                   <Heading size="lg" className="text-lg font-semibold mb-2">
                     {feature.title}

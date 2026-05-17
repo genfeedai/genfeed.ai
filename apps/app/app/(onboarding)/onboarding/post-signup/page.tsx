@@ -24,6 +24,7 @@ function PostSignupPageContent() {
   const { user: clerkUser } = useUser();
   const { currentUser, isLoading } = useCurrentUser();
   const searchParams = useSearchParams();
+  const requestedCreditsParam = searchParams.get('credits');
   const calledRef = useRef(false);
   const [showFallback, setShowFallback] = useState(false);
   const [statusMessage, setStatusMessage] = useState(
@@ -86,9 +87,7 @@ function PostSignupPageContent() {
     }, 12_000);
 
     const route = async () => {
-      const requestedCredits = parseSelectedCredits(
-        searchParams.get('credits'),
-      );
+      const requestedCredits = parseSelectedCredits(requestedCreditsParam);
       if (requestedCredits) {
         localStorage.removeItem(ONBOARDING_STORAGE_KEYS.selectedPlan);
         localStorage.setItem(
@@ -214,8 +213,8 @@ function PostSignupPageContent() {
     currentUser,
     getToken,
     isLoading,
+    requestedCreditsParam,
     resolveOnboardingHref,
-    searchParams,
   ]);
 
   return (

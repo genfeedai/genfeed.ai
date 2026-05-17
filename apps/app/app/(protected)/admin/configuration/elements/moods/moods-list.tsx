@@ -38,13 +38,13 @@ function MoodsListContent({
   const { openConfirm } = useConfirmModal();
   const { replace } = useRouter();
   const pathname = usePathname();
-  const { get, toString: getSearchParamsString } = useSearchParams();
-  const searchParamsString = getSearchParamsString() ?? '';
+  const searchParams = useSearchParams();
+  const searchParamsString = searchParams.toString();
   const parsedSearchParams = useMemo(
     () => new URLSearchParams(searchParamsString),
     [searchParamsString],
   );
-  const currentPage = Number(get('page')) || 1;
+  const currentPage = Number(searchParams.get('page')) || 1;
 
   // Admin org/brand filter state (superadmin only)
   const [adminOrg, setAdminOrg] = useState(
