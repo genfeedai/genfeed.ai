@@ -74,7 +74,7 @@ function collectFiles(dir: string, extensions: Set<string>): string[] {
 
 function checkDesignLint(failures: string[]): void {
   try {
-    execFileSync('bunx', ['design.md', 'lint', 'DESIGN.md'], {
+    execFileSync('bunx', ['@google/design.md', 'lint', 'DESIGN.md'], {
       cwd: rootDir,
       stdio: 'pipe',
     });
