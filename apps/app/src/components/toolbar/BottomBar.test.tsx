@@ -1,7 +1,13 @@
 // @vitest-environment jsdom
 
 import type { PromptNodeData } from '@genfeedai/types';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { RunWorkflowConfirmationModal } from '@/components/RunWorkflowConfirmationModal';
 import { useExecutionStore } from '@/store/executionStore';
@@ -60,7 +66,9 @@ describe('BottomBar', () => {
     expect(screen.getByText('Run entire workflow?')).toBeInTheDocument();
     expect(executeWorkflow).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Run workflow' }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Run workflow' }));
+    });
 
     await waitFor(() => {
       expect(executeWorkflow).toHaveBeenCalledTimes(1);
@@ -121,11 +129,17 @@ describe('BottomBar', () => {
     expect(screen.getByText('Run entire workflow?')).toBeInTheDocument();
     expect(executeWorkflow).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Run workflow' }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Run workflow' }));
+    });
 
     await waitFor(() => {
       expect(executeWorkflow).toHaveBeenCalledTimes(1);
     });
-    expect(screen.queryByText('Run entire workflow?')).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.queryByText('Run entire workflow?'),
+      ).not.toBeInTheDocument();
+    });
   });
 });

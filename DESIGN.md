@@ -15,9 +15,9 @@ colors:
   bg-elevated: "#1a1c21"
   bg-hover: "#20232a"
 
-  # Borders — rgba(255,255,255) at varying opacity on dark bg
-  border: "rgba(255, 255, 255, 0.10)"
-  border-strong: "rgba(255, 255, 255, 0.18)"
+  # Borders — hex approximations of translucent white on the dark canvas
+  border: "#1e2022"
+  border-strong: "#333538"
 
   # Text — three-tier hierarchy
   text-primary: "#f4f4f5"
@@ -169,6 +169,54 @@ components:
     textColor: "{colors.text-primary}"
     rounded: "{rounded.md}"
     height: 32px
+  platform-beehiiv:
+    backgroundColor: "{colors.beehiiv}"
+  platform-discord:
+    backgroundColor: "{colors.discord}"
+  platform-facebook:
+    backgroundColor: "{colors.facebook}"
+  platform-fanvue:
+    backgroundColor: "{colors.fanvue}"
+  platform-ghost:
+    backgroundColor: "{colors.ghost}"
+  platform-instagram:
+    backgroundColor: "{colors.instagram}"
+  platform-linkedin:
+    backgroundColor: "{colors.linkedin}"
+  platform-mastodon:
+    backgroundColor: "{colors.mastodon}"
+  platform-medium:
+    backgroundColor: "{colors.medium}"
+  platform-notion:
+    backgroundColor: "{colors.notion}"
+  platform-pinterest:
+    backgroundColor: "{colors.pinterest}"
+  platform-reddit:
+    backgroundColor: "{colors.reddit}"
+  platform-shopify:
+    backgroundColor: "{colors.shopify}"
+  platform-slack:
+    backgroundColor: "{colors.slack}"
+  platform-snapchat:
+    backgroundColor: "{colors.snapchat}"
+  platform-substack:
+    backgroundColor: "{colors.substack}"
+  platform-telegram:
+    backgroundColor: "{colors.telegram}"
+  platform-threads:
+    backgroundColor: "{colors.threads}"
+  platform-tiktok:
+    backgroundColor: "{colors.tiktok}"
+  platform-twitch:
+    backgroundColor: "{colors.twitch}"
+  platform-twitter:
+    backgroundColor: "{colors.twitter}"
+  platform-whatsapp:
+    backgroundColor: "{colors.whatsapp}"
+  platform-wordpress:
+    backgroundColor: "{colors.wordpress}"
+  platform-youtube:
+    backgroundColor: "{colors.youtube}"
 ---
 
 ## Overview
