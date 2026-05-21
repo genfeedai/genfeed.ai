@@ -1,5 +1,6 @@
 export { useAgentChat } from '@genfeedai/agent/hooks/use-agent-chat';
 export { useAgentChatStream } from '@genfeedai/agent/hooks/use-agent-chat-stream';
+export { useAgentDraftContext } from '@genfeedai/agent/hooks/use-agent-draft-context';
 export { useAgentPageContext } from '@genfeedai/agent/hooks/use-agent-page-context';
 export { useBrandMentions } from '@genfeedai/agent/hooks/use-brand-mentions';
 export { useContentMentions } from '@genfeedai/agent/hooks/use-content-mentions';

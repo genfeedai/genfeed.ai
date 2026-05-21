@@ -64,6 +64,7 @@ export class MemberCreditsGuard extends CreditsGuard implements CanActivate {
         },
       },
       { pagination: false },
+      false,
     );
 
     const activeMembersCount = activeMembers.docs.length;

@@ -1,7 +1,13 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import CliAuthPage from './page';
@@ -84,6 +90,7 @@ vi.mock('@/components/ui/card', () => ({
 
 describe('CliAuthPage', () => {
   const originalFetch = globalThis.fetch;
+  const originalClipboard = navigator.clipboard;
 
   beforeEach(() => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
@@ -116,12 +123,202 @@ describe('CliAuthPage', () => {
       },
     });
     resolveClerkTokenMock.mockResolvedValue('clerk-session-token');
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: vi.fn().mockResolvedValue(undefined),
+      },
+    });
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
     vi.useRealTimers();
     globalThis.fetch = originalFetch;
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: originalClipboard,
+    });
+  });
+
+  it('renders the Clerk sign-in flow with a port-preserving redirect', async () => {
+    useSearchParamsMock.mockReturnValue(new URLSearchParams('port=4321'));
+    useAuthMock.mockReturnValue({
+      getToken: vi.fn(),
+      isLoaded: true,
+      isSignedIn: false,
+    });
+
+    render(<CliAuthPage />);
+
+    expect(await screen.findByTestId('clerk-signin')).toBeInTheDocument();
+    expect(signInMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        forceRedirectUrl: '/oauth/cli?port=4321',
+        routing: 'hash',
+      }),
+    );
+  });
+
+  it('validates the required localhost callback port', async () => {
+    useSearchParamsMock.mockReturnValue(new URLSearchParams('port=bad'));
+
+    render(<CliAuthPage />);
+
+    expect(
+      await screen.findByText('Authentication failed'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Invalid port "bad". Port must be a number between 1024 and 65535.',
+      ),
+    ).toBeInTheDocument();
+
+    useSearchParamsMock.mockReturnValue(new URLSearchParams());
+    render(<CliAuthPage />);
+
+    expect(
+      await screen.findByText(
+        'Missing port parameter. The CLI should open this page with a ?port= query parameter.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('completes legacy CLI token auth and supports copying the fallback key', async () => {
+    useSearchParamsMock.mockReturnValue(new URLSearchParams('port=4321'));
+    globalThis.fetch = vi.fn(async () => {
+      return new Response(JSON.stringify({ key: 'gf_cli_key' }), {
+        headers: { 'content-type': 'application/json' },
+        status: 200,
+      });
+    }) as typeof fetch;
+
+    render(<CliAuthPage />);
+
+    await waitFor(() => {
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        'https://api.genfeed.ai/v1/auth/cli/token',
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: 'Bearer clerk-session-token',
+          }),
+          method: 'POST',
+        }),
+      );
+      expect(redirectToCallbackMock).toHaveBeenCalledWith(
+        expect.stringMatching(
+          /^http:\/\/127\.0\.0\.1:4321\/callback\?key=gf_cli_key&state=/,
+        ),
+      );
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(2_100);
+    });
+
+    expect(
+      await screen.findByText('Authentication complete'),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Copy' }));
+
+    await waitFor(() => {
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith('gf_cli_key');
+      expect(
+        screen.getByRole('button', { name: 'Copied' }),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it('completes CLI PKCE auth through the desktop authorize endpoint', async () => {
+    useSearchParamsMock.mockReturnValue(
+      new URLSearchParams(
+        'port=4321&code_challenge=cli-challenge&code_challenge_method=S256&state=cli-state',
+      ),
+    );
+    globalThis.fetch = vi.fn(async () => {
+      return new Response(JSON.stringify({ code: 'gf_cli_code' }), {
+        headers: { 'content-type': 'application/json' },
+        status: 200,
+      });
+    }) as typeof fetch;
+
+    render(<CliAuthPage />);
+
+    await waitFor(() => {
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        'https://api.genfeed.ai/v1/auth/desktop/authorize',
+        expect.objectContaining({
+          body: JSON.stringify({
+            codeChallenge: 'cli-challenge',
+            codeChallengeMethod: 'S256',
+            state: 'cli-state',
+          }),
+        }),
+      );
+      expect(redirectToCallbackMock).toHaveBeenCalledWith(
+        'http://127.0.0.1:4321/callback?code=gf_cli_code&state=cli-state',
+      );
+    });
+  });
+
+  it('shows formatted server and token errors', async () => {
+    useSearchParamsMock.mockReturnValue(new URLSearchParams('port=4321'));
+    resolveClerkTokenMock.mockResolvedValueOnce(null);
+
+    render(<CliAuthPage />);
+
+    expect(
+      await screen.findByText(
+        'Failed to retrieve authentication token. Please try again.',
+      ),
+    ).toBeInTheDocument();
+
+    resolveClerkTokenMock.mockResolvedValue('clerk-session-token');
+    globalThis.fetch = vi.fn(async () => {
+      return new Response(
+        JSON.stringify({ errors: [{ message: 'Rate limit' }] }),
+        {
+          status: 429,
+        },
+      );
+    }) as typeof fetch;
+
+    render(<CliAuthPage />);
+
+    expect(
+      await screen.findByText(
+        'Too many requests. Please wait a moment and try again.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('handles missing credentials and redirect exceptions', async () => {
+    useSearchParamsMock.mockReturnValue(new URLSearchParams('port=4321'));
+    globalThis.fetch = vi.fn(async () => {
+      return new Response(JSON.stringify({}), { status: 200 });
+    }) as typeof fetch;
+
+    render(<CliAuthPage />);
+
+    expect(
+      await screen.findByText(
+        'Server did not return an API key. Please try again.',
+      ),
+    ).toBeInTheDocument();
+
+    globalThis.fetch = vi.fn(async () => {
+      return new Response(JSON.stringify({ key: 'gf_cli_key' }), {
+        headers: { 'content-type': 'application/json' },
+        status: 200,
+      });
+    }) as typeof fetch;
+    redirectToCallbackMock.mockImplementationOnce(() => {
+      throw new Error('callback blocked');
+    });
+
+    render(<CliAuthPage />);
+
+    expect(await screen.findByText('callback blocked')).toBeInTheDocument();
   });
 
   it('shows an explicit error when the desktop callback target is invalid', async () => {

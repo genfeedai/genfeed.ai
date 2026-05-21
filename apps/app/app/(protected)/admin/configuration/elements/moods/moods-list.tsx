@@ -163,7 +163,8 @@ function MoodsListContent({
     [
       currentPage,
       getMoodsService,
-      notificationsService,
+      notificationsService.error,
+      notificationsService.success,
       scope,
       adminOrg,
       adminBrand,
@@ -185,14 +186,14 @@ function MoodsListContent({
     openModal(modalId);
   }
 
-  async function handleDelete(): Promise<void> {
-    if (!selectedMood) {
+  async function handleDelete(mood: IElementMood | null): Promise<void> {
+    if (!mood) {
       return;
     }
 
     try {
       const service = await getMoodsService();
-      await service.delete(selectedMood.id);
+      await service.delete(mood.id);
       notificationsService.success('Mood deleted');
       setSelectedMood(null);
       findAllMoods(true);
@@ -210,7 +211,7 @@ function MoodsListContent({
       isError: true,
       label: 'Delete Mood',
       message: `Are you sure you want to delete "${mood.label}"? This action cannot be undone.`,
-      onConfirm: handleDelete,
+      onConfirm: () => handleDelete(mood),
     });
   }
 

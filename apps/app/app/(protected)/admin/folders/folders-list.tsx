@@ -182,23 +182,22 @@ function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
     [getFoldersService, refreshFolders, notificationsService],
   );
 
-  const handleDelete = useCallback(async () => {
-    if (!selectedFolder) {
-      return;
-    }
-
-    try {
-      const service = await getFoldersService();
-      await service.delete(selectedFolder.id);
-      notificationsService.success('Folder deleted');
-      setSelectedFolder(null);
-      refreshFolders();
-    } catch (error) {
-      logger.error('Failed to delete folder', error);
-      notificationsService.error('Failed to delete folder');
-      setSelectedFolder(null);
-    }
-  }, [selectedFolder, getFoldersService, notificationsService, refreshFolders]);
+  const handleDelete = useCallback(
+    async (folder: IFolder) => {
+      try {
+        const service = await getFoldersService();
+        await service.delete(folder.id);
+        notificationsService.success('Folder deleted');
+        setSelectedFolder(null);
+        refreshFolders();
+      } catch (error) {
+        logger.error('Failed to delete folder', error);
+        notificationsService.error('Failed to delete folder');
+        setSelectedFolder(null);
+      }
+    },
+    [getFoldersService, notificationsService, refreshFolders],
+  );
 
   const openFoldersModal = useCallback(
     (modalId: ModalEnum, folder?: IFolder) => {
@@ -255,7 +254,7 @@ function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
             isError: true,
             label: 'Delete Folder',
             message: `Are you sure you want to delete "${folder.label}"? This action cannot be undone.`,
-            onConfirm: () => handleDelete(),
+            onConfirm: () => handleDelete(folder),
           });
         },
         tooltip: 'Delete',

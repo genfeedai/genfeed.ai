@@ -9,8 +9,8 @@
  * 🟢 You can import this file directly.
  */
 import type * as runtime from "@prisma/client/runtime/client"
-import type * as $Enums from "../enums.js"
-import type * as Prisma from "../internal/prismaNamespace.js"
+import type * as $Enums from "../enums"
+import type * as Prisma from "../internal/prismaNamespace"
 
 /**
  * Model DesktopAsset
@@ -328,8 +328,6 @@ export type DesktopAssetWhereInput = {
   deletedAt?: Prisma.StringNullableFilter<"DesktopAsset"> | string | null
   createdAt?: Prisma.StringFilter<"DesktopAsset"> | string
   updatedAt?: Prisma.StringFilter<"DesktopAsset"> | string
-  organization?: Prisma.XOR<Prisma.DesktopOrganizationScalarRelationFilter, Prisma.DesktopOrganizationWhereInput>
-  brand?: Prisma.XOR<Prisma.DesktopBrandNullableScalarRelationFilter, Prisma.DesktopBrandWhereInput> | null
 }
 
 export type DesktopAssetOrderByWithRelationInput = {
@@ -352,8 +350,6 @@ export type DesktopAssetOrderByWithRelationInput = {
   deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
-  organization?: Prisma.DesktopOrganizationOrderByWithRelationInput
-  brand?: Prisma.DesktopBrandOrderByWithRelationInput
 }
 
 export type DesktopAssetWhereUniqueInput = Prisma.AtLeast<{
@@ -379,8 +375,6 @@ export type DesktopAssetWhereUniqueInput = Prisma.AtLeast<{
   deletedAt?: Prisma.StringNullableFilter<"DesktopAsset"> | string | null
   createdAt?: Prisma.StringFilter<"DesktopAsset"> | string
   updatedAt?: Prisma.StringFilter<"DesktopAsset"> | string
-  organization?: Prisma.XOR<Prisma.DesktopOrganizationScalarRelationFilter, Prisma.DesktopOrganizationWhereInput>
-  brand?: Prisma.XOR<Prisma.DesktopBrandNullableScalarRelationFilter, Prisma.DesktopBrandWhereInput> | null
 }, "id" | "cloudId">
 
 export type DesktopAssetOrderByWithAggregationInput = {
@@ -437,6 +431,8 @@ export type DesktopAssetScalarWhereWithAggregatesInput = {
 
 export type DesktopAssetCreateInput = {
   id: string
+  organizationId: string
+  brandId?: string | null
   workspaceId?: string | null
   cloudId?: string | null
   cloudObjectKey?: string | null
@@ -453,8 +449,6 @@ export type DesktopAssetCreateInput = {
   deletedAt?: string | null
   createdAt: string
   updatedAt: string
-  organization: Prisma.DesktopOrganizationCreateNestedOneWithoutAssetsInput
-  brand?: Prisma.DesktopBrandCreateNestedOneWithoutAssetsInput
 }
 
 export type DesktopAssetUncheckedCreateInput = {
@@ -481,6 +475,8 @@ export type DesktopAssetUncheckedCreateInput = {
 
 export type DesktopAssetUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  organizationId?: Prisma.StringFieldUpdateOperationsInput | string
+  brandId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   workspaceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cloudId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cloudObjectKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -497,8 +493,6 @@ export type DesktopAssetUpdateInput = {
   deletedAt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.StringFieldUpdateOperationsInput | string
   updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
-  organization?: Prisma.DesktopOrganizationUpdateOneRequiredWithoutAssetsNestedInput
-  brand?: Prisma.DesktopBrandUpdateOneWithoutAssetsNestedInput
 }
 
 export type DesktopAssetUncheckedUpdateInput = {
@@ -547,6 +541,8 @@ export type DesktopAssetCreateManyInput = {
 
 export type DesktopAssetUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  organizationId?: Prisma.StringFieldUpdateOperationsInput | string
+  brandId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   workspaceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cloudId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cloudObjectKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -585,16 +581,6 @@ export type DesktopAssetUncheckedUpdateManyInput = {
   deletedAt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.StringFieldUpdateOperationsInput | string
   updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
-}
-
-export type DesktopAssetListRelationFilter = {
-  every?: Prisma.DesktopAssetWhereInput
-  some?: Prisma.DesktopAssetWhereInput
-  none?: Prisma.DesktopAssetWhereInput
-}
-
-export type DesktopAssetOrderByRelationAggregateInput = {
-  _count?: Prisma.SortOrder
 }
 
 export type DesktopAssetCountOrderByAggregateInput = {
@@ -671,419 +657,6 @@ export type DesktopAssetSumOrderByAggregateInput = {
   sizeBytes?: Prisma.SortOrder
 }
 
-export type DesktopAssetCreateNestedManyWithoutOrganizationInput = {
-  create?: Prisma.XOR<Prisma.DesktopAssetCreateWithoutOrganizationInput, Prisma.DesktopAssetUncheckedCreateWithoutOrganizationInput> | Prisma.DesktopAssetCreateWithoutOrganizationInput[] | Prisma.DesktopAssetUncheckedCreateWithoutOrganizationInput[]
-  connectOrCreate?: Prisma.DesktopAssetCreateOrConnectWithoutOrganizationInput | Prisma.DesktopAssetCreateOrConnectWithoutOrganizationInput[]
-  createMany?: Prisma.DesktopAssetCreateManyOrganizationInputEnvelope
-  connect?: Prisma.DesktopAssetWhereUniqueInput | Prisma.DesktopAssetWhereUniqueInput[]
-}
-
-export type DesktopAssetUncheckedCreateNestedManyWithoutOrganizationInput = {
-  create?: Prisma.XOR<Prisma.DesktopAssetCreateWithoutOrganizationInput, Prisma.DesktopAssetUncheckedCreateWithoutOrganizationInput> | Prisma.DesktopAssetCreateWithoutOrganizationInput[] | Prisma.DesktopAssetUncheckedCreateWithoutOrganizationInput[]
-  connectOrCreate?: Prisma.DesktopAssetCreateOrConnectWithoutOrganizationInput | Prisma.DesktopAssetCreateOrConnectWithoutOrganizationInput[]
-  createMany?: Prisma.DesktopAssetCreateManyOrganizationInputEnvelope
-  connect?: Prisma.DesktopAssetWhereUniqueInput | Prisma.DesktopAssetWhereUniqueInput[]
-}
-
-export type DesktopAssetUpdateManyWithoutOrganizationNestedInput = {
-  create?: Prisma.XOR<Prisma.DesktopAssetCreateWithoutOrganizationInput, Prisma.DesktopAssetUncheckedCreateWithoutOrganizationInput> | Prisma.DesktopAssetCreateWithoutOrganizationInput[] | Prisma.DesktopAssetUncheckedCreateWithoutOrganizationInput[]
-  connectOrCreate?: Prisma.DesktopAssetCreateOrConnectWithoutOrganizationInput | Prisma.DesktopAssetCreateOrConnectWithoutOrganizationInput[]
-  upsert?: Prisma.DesktopAssetUpsertWithWhereUniqueWithoutOrganizationInput | Prisma.DesktopAssetUpsertWithWhereUniqueWithoutOrganizationInput[]
-  createMany?: Prisma.DesktopAssetCreateManyOrganizationInputEnvelope
-  set?: Prisma.DesktopAssetWhereUniqueInput | Prisma.DesktopAssetWhereUniqueInput[]
-  disconnect?: Prisma.DesktopAssetWhereUniqueInput | Prisma.DesktopAssetWhereUniqueInput[]
-  delete?: Prisma.DesktopAssetWhereUniqueInput | Prisma.DesktopAssetWhereUniqueInput[]
-  connect?: Prisma.DesktopAssetWhereUniqueInput | Prisma.DesktopAssetWhereUniqueInput[]
-  update?: Prisma.DesktopAssetUpdateWithWhereUniqueWithoutOrganizationInput | Prisma.DesktopAssetUpdateWithWhereUniqueWithoutOrganizationInput[]
-  updateMany?: Prisma.DesktopAssetUpdateManyWithWhereWithoutOrganizationInput | Prisma.DesktopAssetUpdateManyWithWhereWithoutOrganizationInput[]
-  deleteMany?: Prisma.DesktopAssetScalarWhereInput | Prisma.DesktopAssetScalarWhereInput[]
-}
-
-export type DesktopAssetUncheckedUpdateManyWithoutOrganizationNestedInput = {
-  create?: Prisma.XOR<Prisma.DesktopAssetCreateWithoutOrganizationInput, Prisma.DesktopAssetUncheckedCreateWithoutOrganizationInput> | Prisma.DesktopAssetCreateWithoutOrganizationInput[] | Prisma.DesktopAssetUncheckedCreateWithoutOrganizationInput[]
-  connectOrCreate?: Prisma.DesktopAssetCreateOrConnectWithoutOrganizationInput | Prisma.DesktopAssetCreateOrConnectWithoutOrganizationInput[]
-  upsert?: Prisma.DesktopAssetUpsertWithWhereUniqueWithoutOrganizationInput | Prisma.DesktopAssetUpsertWithWhereUniqueWithoutOrganizationInput[]
-  createMany?: Prisma.DesktopAssetCreateManyOrganizationInputEnvelope
-  set?: Prisma.DesktopAssetWhereUniqueInput | Prisma.DesktopAssetWhereUniqueInput[]
-  disconnect?: Prisma.DesktopAssetWhereUniqueInput | Prisma.DesktopAssetWhereUniqueInput[]
-  delete?: Prisma.DesktopAssetWhereUniqueInput | Prisma.DesktopAssetWhereUniqueInput[]
-  connect?: Prisma.DesktopAssetWhereUniqueInput | Prisma.DesktopAssetWhereUniqueInput[]
-  update?: Prisma.DesktopAssetUpdateWithWhereUniqueWithoutOrganizationInput | Prisma.DesktopAssetUpdateWithWhereUniqueWithoutOrganizationInput[]
-  updateMany?: Prisma.DesktopAssetUpdateManyWithWhereWithoutOrganizationInput | Prisma.DesktopAssetUpdateManyWithWhereWithoutOrganizationInput[]
-  deleteMany?: Prisma.DesktopAssetScalarWhereInput | Prisma.DesktopAssetScalarWhereInput[]
-}
-
-export type DesktopAssetCreateNestedManyWithoutBrandInput = {
-  create?: Prisma.XOR<Prisma.DesktopAssetCreateWithoutBrandInput, Prisma.DesktopAssetUncheckedCreateWithoutBrandInput> | Prisma.DesktopAssetCreateWithoutBrandInput[] | Prisma.DesktopAssetUncheckedCreateWithoutBrandInput[]
-  connectOrCreate?: Prisma.DesktopAssetCreateOrConnectWithoutBrandInput | Prisma.DesktopAssetCreateOrConnectWithoutBrandInput[]
-  createMany?: Prisma.DesktopAssetCreateManyBrandInputEnvelope
-  connect?: Prisma.DesktopAssetWhereUniqueInput | Prisma.DesktopAssetWhereUniqueInput[]
-}
-
-export type DesktopAssetUncheckedCreateNestedManyWithoutBrandInput = {
-  create?: Prisma.XOR<Prisma.DesktopAssetCreateWithoutBrandInput, Prisma.DesktopAssetUncheckedCreateWithoutBrandInput> | Prisma.DesktopAssetCreateWithoutBrandInput[] | Prisma.DesktopAssetUncheckedCreateWithoutBrandInput[]
-  connectOrCreate?: Prisma.DesktopAssetCreateOrConnectWithoutBrandInput | Prisma.DesktopAssetCreateOrConnectWithoutBrandInput[]
-  createMany?: Prisma.DesktopAssetCreateManyBrandInputEnvelope
-  connect?: Prisma.DesktopAssetWhereUniqueInput | Prisma.DesktopAssetWhereUniqueInput[]
-}
-
-export type DesktopAssetUpdateManyWithoutBrandNestedInput = {
-  create?: Prisma.XOR<Prisma.DesktopAssetCreateWithoutBrandInput, Prisma.DesktopAssetUncheckedCreateWithoutBrandInput> | Prisma.DesktopAssetCreateWithoutBrandInput[] | Prisma.DesktopAssetUncheckedCreateWithoutBrandInput[]
-  connectOrCreate?: Prisma.DesktopAssetCreateOrConnectWithoutBrandInput | Prisma.DesktopAssetCreateOrConnectWithoutBrandInput[]
-  upsert?: Prisma.DesktopAssetUpsertWithWhereUniqueWithoutBrandInput | Prisma.DesktopAssetUpsertWithWhereUniqueWithoutBrandInput[]
-  createMany?: Prisma.DesktopAssetCreateManyBrandInputEnvelope
-  set?: Prisma.DesktopAssetWhereUniqueInput | Prisma.DesktopAssetWhereUniqueInput[]
-  disconnect?: Prisma.DesktopAssetWhereUniqueInput | Prisma.DesktopAssetWhereUniqueInput[]
-  delete?: Prisma.DesktopAssetWhereUniqueInput | Prisma.DesktopAssetWhereUniqueInput[]
-  connect?: Prisma.DesktopAssetWhereUniqueInput | Prisma.DesktopAssetWhereUniqueInput[]
-  update?: Prisma.DesktopAssetUpdateWithWhereUniqueWithoutBrandInput | Prisma.DesktopAssetUpdateWithWhereUniqueWithoutBrandInput[]
-  updateMany?: Prisma.DesktopAssetUpdateManyWithWhereWithoutBrandInput | Prisma.DesktopAssetUpdateManyWithWhereWithoutBrandInput[]
-  deleteMany?: Prisma.DesktopAssetScalarWhereInput | Prisma.DesktopAssetScalarWhereInput[]
-}
-
-export type DesktopAssetUncheckedUpdateManyWithoutBrandNestedInput = {
-  create?: Prisma.XOR<Prisma.DesktopAssetCreateWithoutBrandInput, Prisma.DesktopAssetUncheckedCreateWithoutBrandInput> | Prisma.DesktopAssetCreateWithoutBrandInput[] | Prisma.DesktopAssetUncheckedCreateWithoutBrandInput[]
-  connectOrCreate?: Prisma.DesktopAssetCreateOrConnectWithoutBrandInput | Prisma.DesktopAssetCreateOrConnectWithoutBrandInput[]
-  upsert?: Prisma.DesktopAssetUpsertWithWhereUniqueWithoutBrandInput | Prisma.DesktopAssetUpsertWithWhereUniqueWithoutBrandInput[]
-  createMany?: Prisma.DesktopAssetCreateManyBrandInputEnvelope
-  set?: Prisma.DesktopAssetWhereUniqueInput | Prisma.DesktopAssetWhereUniqueInput[]
-  disconnect?: Prisma.DesktopAssetWhereUniqueInput | Prisma.DesktopAssetWhereUniqueInput[]
-  delete?: Prisma.DesktopAssetWhereUniqueInput | Prisma.DesktopAssetWhereUniqueInput[]
-  connect?: Prisma.DesktopAssetWhereUniqueInput | Prisma.DesktopAssetWhereUniqueInput[]
-  update?: Prisma.DesktopAssetUpdateWithWhereUniqueWithoutBrandInput | Prisma.DesktopAssetUpdateWithWhereUniqueWithoutBrandInput[]
-  updateMany?: Prisma.DesktopAssetUpdateManyWithWhereWithoutBrandInput | Prisma.DesktopAssetUpdateManyWithWhereWithoutBrandInput[]
-  deleteMany?: Prisma.DesktopAssetScalarWhereInput | Prisma.DesktopAssetScalarWhereInput[]
-}
-
-export type DesktopAssetCreateWithoutOrganizationInput = {
-  id: string
-  workspaceId?: string | null
-  cloudId?: string | null
-  cloudObjectKey?: string | null
-  localPath?: string | null
-  sha256: string
-  sizeBytes: number
-  mimeType: string
-  kind: string
-  origin: string
-  residency: string
-  uploadPolicy?: string
-  originalFileName: string
-  displayName: string
-  deletedAt?: string | null
-  createdAt: string
-  updatedAt: string
-  brand?: Prisma.DesktopBrandCreateNestedOneWithoutAssetsInput
-}
-
-export type DesktopAssetUncheckedCreateWithoutOrganizationInput = {
-  id: string
-  brandId?: string | null
-  workspaceId?: string | null
-  cloudId?: string | null
-  cloudObjectKey?: string | null
-  localPath?: string | null
-  sha256: string
-  sizeBytes: number
-  mimeType: string
-  kind: string
-  origin: string
-  residency: string
-  uploadPolicy?: string
-  originalFileName: string
-  displayName: string
-  deletedAt?: string | null
-  createdAt: string
-  updatedAt: string
-}
-
-export type DesktopAssetCreateOrConnectWithoutOrganizationInput = {
-  where: Prisma.DesktopAssetWhereUniqueInput
-  create: Prisma.XOR<Prisma.DesktopAssetCreateWithoutOrganizationInput, Prisma.DesktopAssetUncheckedCreateWithoutOrganizationInput>
-}
-
-export type DesktopAssetCreateManyOrganizationInputEnvelope = {
-  data: Prisma.DesktopAssetCreateManyOrganizationInput | Prisma.DesktopAssetCreateManyOrganizationInput[]
-  skipDuplicates?: boolean
-}
-
-export type DesktopAssetUpsertWithWhereUniqueWithoutOrganizationInput = {
-  where: Prisma.DesktopAssetWhereUniqueInput
-  update: Prisma.XOR<Prisma.DesktopAssetUpdateWithoutOrganizationInput, Prisma.DesktopAssetUncheckedUpdateWithoutOrganizationInput>
-  create: Prisma.XOR<Prisma.DesktopAssetCreateWithoutOrganizationInput, Prisma.DesktopAssetUncheckedCreateWithoutOrganizationInput>
-}
-
-export type DesktopAssetUpdateWithWhereUniqueWithoutOrganizationInput = {
-  where: Prisma.DesktopAssetWhereUniqueInput
-  data: Prisma.XOR<Prisma.DesktopAssetUpdateWithoutOrganizationInput, Prisma.DesktopAssetUncheckedUpdateWithoutOrganizationInput>
-}
-
-export type DesktopAssetUpdateManyWithWhereWithoutOrganizationInput = {
-  where: Prisma.DesktopAssetScalarWhereInput
-  data: Prisma.XOR<Prisma.DesktopAssetUpdateManyMutationInput, Prisma.DesktopAssetUncheckedUpdateManyWithoutOrganizationInput>
-}
-
-export type DesktopAssetScalarWhereInput = {
-  AND?: Prisma.DesktopAssetScalarWhereInput | Prisma.DesktopAssetScalarWhereInput[]
-  OR?: Prisma.DesktopAssetScalarWhereInput[]
-  NOT?: Prisma.DesktopAssetScalarWhereInput | Prisma.DesktopAssetScalarWhereInput[]
-  id?: Prisma.StringFilter<"DesktopAsset"> | string
-  organizationId?: Prisma.StringFilter<"DesktopAsset"> | string
-  brandId?: Prisma.StringNullableFilter<"DesktopAsset"> | string | null
-  workspaceId?: Prisma.StringNullableFilter<"DesktopAsset"> | string | null
-  cloudId?: Prisma.StringNullableFilter<"DesktopAsset"> | string | null
-  cloudObjectKey?: Prisma.StringNullableFilter<"DesktopAsset"> | string | null
-  localPath?: Prisma.StringNullableFilter<"DesktopAsset"> | string | null
-  sha256?: Prisma.StringFilter<"DesktopAsset"> | string
-  sizeBytes?: Prisma.IntFilter<"DesktopAsset"> | number
-  mimeType?: Prisma.StringFilter<"DesktopAsset"> | string
-  kind?: Prisma.StringFilter<"DesktopAsset"> | string
-  origin?: Prisma.StringFilter<"DesktopAsset"> | string
-  residency?: Prisma.StringFilter<"DesktopAsset"> | string
-  uploadPolicy?: Prisma.StringFilter<"DesktopAsset"> | string
-  originalFileName?: Prisma.StringFilter<"DesktopAsset"> | string
-  displayName?: Prisma.StringFilter<"DesktopAsset"> | string
-  deletedAt?: Prisma.StringNullableFilter<"DesktopAsset"> | string | null
-  createdAt?: Prisma.StringFilter<"DesktopAsset"> | string
-  updatedAt?: Prisma.StringFilter<"DesktopAsset"> | string
-}
-
-export type DesktopAssetCreateWithoutBrandInput = {
-  id: string
-  workspaceId?: string | null
-  cloudId?: string | null
-  cloudObjectKey?: string | null
-  localPath?: string | null
-  sha256: string
-  sizeBytes: number
-  mimeType: string
-  kind: string
-  origin: string
-  residency: string
-  uploadPolicy?: string
-  originalFileName: string
-  displayName: string
-  deletedAt?: string | null
-  createdAt: string
-  updatedAt: string
-  organization: Prisma.DesktopOrganizationCreateNestedOneWithoutAssetsInput
-}
-
-export type DesktopAssetUncheckedCreateWithoutBrandInput = {
-  id: string
-  organizationId: string
-  workspaceId?: string | null
-  cloudId?: string | null
-  cloudObjectKey?: string | null
-  localPath?: string | null
-  sha256: string
-  sizeBytes: number
-  mimeType: string
-  kind: string
-  origin: string
-  residency: string
-  uploadPolicy?: string
-  originalFileName: string
-  displayName: string
-  deletedAt?: string | null
-  createdAt: string
-  updatedAt: string
-}
-
-export type DesktopAssetCreateOrConnectWithoutBrandInput = {
-  where: Prisma.DesktopAssetWhereUniqueInput
-  create: Prisma.XOR<Prisma.DesktopAssetCreateWithoutBrandInput, Prisma.DesktopAssetUncheckedCreateWithoutBrandInput>
-}
-
-export type DesktopAssetCreateManyBrandInputEnvelope = {
-  data: Prisma.DesktopAssetCreateManyBrandInput | Prisma.DesktopAssetCreateManyBrandInput[]
-  skipDuplicates?: boolean
-}
-
-export type DesktopAssetUpsertWithWhereUniqueWithoutBrandInput = {
-  where: Prisma.DesktopAssetWhereUniqueInput
-  update: Prisma.XOR<Prisma.DesktopAssetUpdateWithoutBrandInput, Prisma.DesktopAssetUncheckedUpdateWithoutBrandInput>
-  create: Prisma.XOR<Prisma.DesktopAssetCreateWithoutBrandInput, Prisma.DesktopAssetUncheckedCreateWithoutBrandInput>
-}
-
-export type DesktopAssetUpdateWithWhereUniqueWithoutBrandInput = {
-  where: Prisma.DesktopAssetWhereUniqueInput
-  data: Prisma.XOR<Prisma.DesktopAssetUpdateWithoutBrandInput, Prisma.DesktopAssetUncheckedUpdateWithoutBrandInput>
-}
-
-export type DesktopAssetUpdateManyWithWhereWithoutBrandInput = {
-  where: Prisma.DesktopAssetScalarWhereInput
-  data: Prisma.XOR<Prisma.DesktopAssetUpdateManyMutationInput, Prisma.DesktopAssetUncheckedUpdateManyWithoutBrandInput>
-}
-
-export type DesktopAssetCreateManyOrganizationInput = {
-  id: string
-  brandId?: string | null
-  workspaceId?: string | null
-  cloudId?: string | null
-  cloudObjectKey?: string | null
-  localPath?: string | null
-  sha256: string
-  sizeBytes: number
-  mimeType: string
-  kind: string
-  origin: string
-  residency: string
-  uploadPolicy?: string
-  originalFileName: string
-  displayName: string
-  deletedAt?: string | null
-  createdAt: string
-  updatedAt: string
-}
-
-export type DesktopAssetUpdateWithoutOrganizationInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  workspaceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  cloudId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  cloudObjectKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  localPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sha256?: Prisma.StringFieldUpdateOperationsInput | string
-  sizeBytes?: Prisma.IntFieldUpdateOperationsInput | number
-  mimeType?: Prisma.StringFieldUpdateOperationsInput | string
-  kind?: Prisma.StringFieldUpdateOperationsInput | string
-  origin?: Prisma.StringFieldUpdateOperationsInput | string
-  residency?: Prisma.StringFieldUpdateOperationsInput | string
-  uploadPolicy?: Prisma.StringFieldUpdateOperationsInput | string
-  originalFileName?: Prisma.StringFieldUpdateOperationsInput | string
-  displayName?: Prisma.StringFieldUpdateOperationsInput | string
-  deletedAt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  createdAt?: Prisma.StringFieldUpdateOperationsInput | string
-  updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
-  brand?: Prisma.DesktopBrandUpdateOneWithoutAssetsNestedInput
-}
-
-export type DesktopAssetUncheckedUpdateWithoutOrganizationInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  brandId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  workspaceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  cloudId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  cloudObjectKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  localPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sha256?: Prisma.StringFieldUpdateOperationsInput | string
-  sizeBytes?: Prisma.IntFieldUpdateOperationsInput | number
-  mimeType?: Prisma.StringFieldUpdateOperationsInput | string
-  kind?: Prisma.StringFieldUpdateOperationsInput | string
-  origin?: Prisma.StringFieldUpdateOperationsInput | string
-  residency?: Prisma.StringFieldUpdateOperationsInput | string
-  uploadPolicy?: Prisma.StringFieldUpdateOperationsInput | string
-  originalFileName?: Prisma.StringFieldUpdateOperationsInput | string
-  displayName?: Prisma.StringFieldUpdateOperationsInput | string
-  deletedAt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  createdAt?: Prisma.StringFieldUpdateOperationsInput | string
-  updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
-}
-
-export type DesktopAssetUncheckedUpdateManyWithoutOrganizationInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  brandId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  workspaceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  cloudId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  cloudObjectKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  localPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sha256?: Prisma.StringFieldUpdateOperationsInput | string
-  sizeBytes?: Prisma.IntFieldUpdateOperationsInput | number
-  mimeType?: Prisma.StringFieldUpdateOperationsInput | string
-  kind?: Prisma.StringFieldUpdateOperationsInput | string
-  origin?: Prisma.StringFieldUpdateOperationsInput | string
-  residency?: Prisma.StringFieldUpdateOperationsInput | string
-  uploadPolicy?: Prisma.StringFieldUpdateOperationsInput | string
-  originalFileName?: Prisma.StringFieldUpdateOperationsInput | string
-  displayName?: Prisma.StringFieldUpdateOperationsInput | string
-  deletedAt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  createdAt?: Prisma.StringFieldUpdateOperationsInput | string
-  updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
-}
-
-export type DesktopAssetCreateManyBrandInput = {
-  id: string
-  organizationId: string
-  workspaceId?: string | null
-  cloudId?: string | null
-  cloudObjectKey?: string | null
-  localPath?: string | null
-  sha256: string
-  sizeBytes: number
-  mimeType: string
-  kind: string
-  origin: string
-  residency: string
-  uploadPolicy?: string
-  originalFileName: string
-  displayName: string
-  deletedAt?: string | null
-  createdAt: string
-  updatedAt: string
-}
-
-export type DesktopAssetUpdateWithoutBrandInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  workspaceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  cloudId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  cloudObjectKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  localPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sha256?: Prisma.StringFieldUpdateOperationsInput | string
-  sizeBytes?: Prisma.IntFieldUpdateOperationsInput | number
-  mimeType?: Prisma.StringFieldUpdateOperationsInput | string
-  kind?: Prisma.StringFieldUpdateOperationsInput | string
-  origin?: Prisma.StringFieldUpdateOperationsInput | string
-  residency?: Prisma.StringFieldUpdateOperationsInput | string
-  uploadPolicy?: Prisma.StringFieldUpdateOperationsInput | string
-  originalFileName?: Prisma.StringFieldUpdateOperationsInput | string
-  displayName?: Prisma.StringFieldUpdateOperationsInput | string
-  deletedAt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  createdAt?: Prisma.StringFieldUpdateOperationsInput | string
-  updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
-  organization?: Prisma.DesktopOrganizationUpdateOneRequiredWithoutAssetsNestedInput
-}
-
-export type DesktopAssetUncheckedUpdateWithoutBrandInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  organizationId?: Prisma.StringFieldUpdateOperationsInput | string
-  workspaceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  cloudId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  cloudObjectKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  localPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sha256?: Prisma.StringFieldUpdateOperationsInput | string
-  sizeBytes?: Prisma.IntFieldUpdateOperationsInput | number
-  mimeType?: Prisma.StringFieldUpdateOperationsInput | string
-  kind?: Prisma.StringFieldUpdateOperationsInput | string
-  origin?: Prisma.StringFieldUpdateOperationsInput | string
-  residency?: Prisma.StringFieldUpdateOperationsInput | string
-  uploadPolicy?: Prisma.StringFieldUpdateOperationsInput | string
-  originalFileName?: Prisma.StringFieldUpdateOperationsInput | string
-  displayName?: Prisma.StringFieldUpdateOperationsInput | string
-  deletedAt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  createdAt?: Prisma.StringFieldUpdateOperationsInput | string
-  updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
-}
-
-export type DesktopAssetUncheckedUpdateManyWithoutBrandInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  organizationId?: Prisma.StringFieldUpdateOperationsInput | string
-  workspaceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  cloudId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  cloudObjectKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  localPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sha256?: Prisma.StringFieldUpdateOperationsInput | string
-  sizeBytes?: Prisma.IntFieldUpdateOperationsInput | number
-  mimeType?: Prisma.StringFieldUpdateOperationsInput | string
-  kind?: Prisma.StringFieldUpdateOperationsInput | string
-  origin?: Prisma.StringFieldUpdateOperationsInput | string
-  residency?: Prisma.StringFieldUpdateOperationsInput | string
-  uploadPolicy?: Prisma.StringFieldUpdateOperationsInput | string
-  originalFileName?: Prisma.StringFieldUpdateOperationsInput | string
-  displayName?: Prisma.StringFieldUpdateOperationsInput | string
-  deletedAt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  createdAt?: Prisma.StringFieldUpdateOperationsInput | string
-  updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
-}
-
 
 
 export type DesktopAssetSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1106,8 +679,6 @@ export type DesktopAssetSelect<ExtArgs extends runtime.Types.Extensions.Internal
   deletedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  organization?: boolean | Prisma.DesktopOrganizationDefaultArgs<ExtArgs>
-  brand?: boolean | Prisma.DesktopAsset$brandArgs<ExtArgs>
 }, ExtArgs["result"]["desktopAsset"]>
 
 export type DesktopAssetSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1130,8 +701,6 @@ export type DesktopAssetSelectCreateManyAndReturn<ExtArgs extends runtime.Types.
   deletedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  organization?: boolean | Prisma.DesktopOrganizationDefaultArgs<ExtArgs>
-  brand?: boolean | Prisma.DesktopAsset$brandArgs<ExtArgs>
 }, ExtArgs["result"]["desktopAsset"]>
 
 export type DesktopAssetSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1154,8 +723,6 @@ export type DesktopAssetSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.
   deletedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  organization?: boolean | Prisma.DesktopOrganizationDefaultArgs<ExtArgs>
-  brand?: boolean | Prisma.DesktopAsset$brandArgs<ExtArgs>
 }, ExtArgs["result"]["desktopAsset"]>
 
 export type DesktopAssetSelectScalar = {
@@ -1181,25 +748,10 @@ export type DesktopAssetSelectScalar = {
 }
 
 export type DesktopAssetOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "brandId" | "workspaceId" | "cloudId" | "cloudObjectKey" | "localPath" | "sha256" | "sizeBytes" | "mimeType" | "kind" | "origin" | "residency" | "uploadPolicy" | "originalFileName" | "displayName" | "deletedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["desktopAsset"]>
-export type DesktopAssetInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  organization?: boolean | Prisma.DesktopOrganizationDefaultArgs<ExtArgs>
-  brand?: boolean | Prisma.DesktopAsset$brandArgs<ExtArgs>
-}
-export type DesktopAssetIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  organization?: boolean | Prisma.DesktopOrganizationDefaultArgs<ExtArgs>
-  brand?: boolean | Prisma.DesktopAsset$brandArgs<ExtArgs>
-}
-export type DesktopAssetIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  organization?: boolean | Prisma.DesktopOrganizationDefaultArgs<ExtArgs>
-  brand?: boolean | Prisma.DesktopAsset$brandArgs<ExtArgs>
-}
 
 export type $DesktopAssetPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "DesktopAsset"
-  objects: {
-    organization: Prisma.$DesktopOrganizationPayload<ExtArgs>
-    brand: Prisma.$DesktopBrandPayload<ExtArgs> | null
-  }
+  objects: {}
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     organizationId: string
@@ -1614,8 +1166,6 @@ readonly fields: DesktopAssetFieldRefs;
  */
 export interface Prisma__DesktopAssetClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  organization<T extends Prisma.DesktopOrganizationDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DesktopOrganizationDefaultArgs<ExtArgs>>): Prisma.Prisma__DesktopOrganizationClient<runtime.Types.Result.GetResult<Prisma.$DesktopOrganizationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  brand<T extends Prisma.DesktopAsset$brandArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DesktopAsset$brandArgs<ExtArgs>>): Prisma.Prisma__DesktopBrandClient<runtime.Types.Result.GetResult<Prisma.$DesktopBrandPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1681,10 +1231,6 @@ export type DesktopAssetFindUniqueArgs<ExtArgs extends runtime.Types.Extensions.
    */
   omit?: Prisma.DesktopAssetOmit<ExtArgs> | null
   /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.DesktopAssetInclude<ExtArgs> | null
-  /**
    * Filter, which DesktopAsset to fetch.
    */
   where: Prisma.DesktopAssetWhereUniqueInput
@@ -1703,10 +1249,6 @@ export type DesktopAssetFindUniqueOrThrowArgs<ExtArgs extends runtime.Types.Exte
    */
   omit?: Prisma.DesktopAssetOmit<ExtArgs> | null
   /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.DesktopAssetInclude<ExtArgs> | null
-  /**
    * Filter, which DesktopAsset to fetch.
    */
   where: Prisma.DesktopAssetWhereUniqueInput
@@ -1724,10 +1266,6 @@ export type DesktopAssetFindFirstArgs<ExtArgs extends runtime.Types.Extensions.I
    * Omit specific fields from the DesktopAsset
    */
   omit?: Prisma.DesktopAssetOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.DesktopAssetInclude<ExtArgs> | null
   /**
    * Filter, which DesktopAsset to fetch.
    */
@@ -1777,10 +1315,6 @@ export type DesktopAssetFindFirstOrThrowArgs<ExtArgs extends runtime.Types.Exten
    */
   omit?: Prisma.DesktopAssetOmit<ExtArgs> | null
   /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.DesktopAssetInclude<ExtArgs> | null
-  /**
    * Filter, which DesktopAsset to fetch.
    */
   where?: Prisma.DesktopAssetWhereInput
@@ -1828,10 +1362,6 @@ export type DesktopAssetFindManyArgs<ExtArgs extends runtime.Types.Extensions.In
    * Omit specific fields from the DesktopAsset
    */
   omit?: Prisma.DesktopAssetOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.DesktopAssetInclude<ExtArgs> | null
   /**
    * Filter, which DesktopAssets to fetch.
    */
@@ -1881,10 +1411,6 @@ export type DesktopAssetCreateArgs<ExtArgs extends runtime.Types.Extensions.Inte
    */
   omit?: Prisma.DesktopAssetOmit<ExtArgs> | null
   /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.DesktopAssetInclude<ExtArgs> | null
-  /**
    * The data needed to create a DesktopAsset.
    */
   data: Prisma.XOR<Prisma.DesktopAssetCreateInput, Prisma.DesktopAssetUncheckedCreateInput>
@@ -1918,10 +1444,6 @@ export type DesktopAssetCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Ex
    */
   data: Prisma.DesktopAssetCreateManyInput | Prisma.DesktopAssetCreateManyInput[]
   skipDuplicates?: boolean
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.DesktopAssetIncludeCreateManyAndReturn<ExtArgs> | null
 }
 
 /**
@@ -1936,10 +1458,6 @@ export type DesktopAssetUpdateArgs<ExtArgs extends runtime.Types.Extensions.Inte
    * Omit specific fields from the DesktopAsset
    */
   omit?: Prisma.DesktopAssetOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.DesktopAssetInclude<ExtArgs> | null
   /**
    * The data needed to update a DesktopAsset.
    */
@@ -1992,10 +1510,6 @@ export type DesktopAssetUpdateManyAndReturnArgs<ExtArgs extends runtime.Types.Ex
    * Limit how many DesktopAssets to update.
    */
   limit?: number
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.DesktopAssetIncludeUpdateManyAndReturn<ExtArgs> | null
 }
 
 /**
@@ -2010,10 +1524,6 @@ export type DesktopAssetUpsertArgs<ExtArgs extends runtime.Types.Extensions.Inte
    * Omit specific fields from the DesktopAsset
    */
   omit?: Prisma.DesktopAssetOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.DesktopAssetInclude<ExtArgs> | null
   /**
    * The filter to search for the DesktopAsset to update in case it exists.
    */
@@ -2041,10 +1551,6 @@ export type DesktopAssetDeleteArgs<ExtArgs extends runtime.Types.Extensions.Inte
    */
   omit?: Prisma.DesktopAssetOmit<ExtArgs> | null
   /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.DesktopAssetInclude<ExtArgs> | null
-  /**
    * Filter which DesktopAsset to delete.
    */
   where: Prisma.DesktopAssetWhereUniqueInput
@@ -2065,25 +1571,6 @@ export type DesktopAssetDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.
 }
 
 /**
- * DesktopAsset.brand
- */
-export type DesktopAsset$brandArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the DesktopBrand
-   */
-  select?: Prisma.DesktopBrandSelect<ExtArgs> | null
-  /**
-   * Omit specific fields from the DesktopBrand
-   */
-  omit?: Prisma.DesktopBrandOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.DesktopBrandInclude<ExtArgs> | null
-  where?: Prisma.DesktopBrandWhereInput
-}
-
-/**
  * DesktopAsset without action
  */
 export type DesktopAssetDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2095,8 +1582,4 @@ export type DesktopAssetDefaultArgs<ExtArgs extends runtime.Types.Extensions.Int
    * Omit specific fields from the DesktopAsset
    */
   omit?: Prisma.DesktopAssetOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.DesktopAssetInclude<ExtArgs> | null
 }

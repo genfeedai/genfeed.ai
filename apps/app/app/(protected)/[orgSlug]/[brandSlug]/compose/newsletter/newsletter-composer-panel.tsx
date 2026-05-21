@@ -1,5 +1,6 @@
 'use client';
 
+import { useAgentDraftContext } from '@genfeedai/agent';
 import { ButtonVariant } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { NewslettersService } from '@services/content/newsletters.service';
@@ -48,6 +49,14 @@ export default function NewsletterComposerPanel() {
   const getService = useAuthedService((token: string) =>
     NewslettersService.getInstance(token),
   );
+
+  useAgentDraftContext({
+    body: content,
+    draftType: 'newsletter',
+    instructions: [angle, instructions].filter(Boolean).join('\n\n'),
+    summary,
+    title: label || topic,
+  });
 
   async function handleGenerateDraft() {
     if (!topic.trim()) {

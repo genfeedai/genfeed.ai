@@ -178,7 +178,7 @@ function SoundsListContent({
                 isError: true,
                 label: 'Delete Sound',
                 message: `Are you sure you want to delete "${sound.label}"? This action cannot be undone.`,
-                onConfirm: () => handleDelete(),
+                onConfirm: () => handleDelete(sound),
               });
             },
             tooltip: 'Delete',
@@ -293,14 +293,10 @@ function SoundsListContent({
     }
   };
 
-  const handleDelete = async () => {
-    if (!selectedSound) {
-      return;
-    }
-
+  const handleDelete = async (sound: Sound) => {
     try {
       const service = await getSoundsService();
-      await service.delete(selectedSound.id);
+      await service.delete(sound.id);
       notificationsService.success('Sound deleted');
       setSelectedSound(null);
       findAllSounds(true);

@@ -190,7 +190,7 @@ function LensesListContent({
                 isError: true,
                 label: 'Delete Lens',
                 message: `Are you sure you want to delete "${lens.label}"? This action cannot be undone.`,
-                onConfirm: () => handleDelete(),
+                onConfirm: () => handleDelete(lens),
               });
             },
             tooltip: 'Delete',
@@ -210,14 +210,10 @@ function LensesListContent({
     openModal(modalId);
   };
 
-  const handleDelete = async () => {
-    if (!selectedLens) {
-      return;
-    }
-
+  const handleDelete = async (lens: IElementLens) => {
     try {
       const service = await getLensesService();
-      await service.delete(selectedLens.id);
+      await service.delete(lens.id);
       notificationsService.success('Lens deleted');
       setSelectedLens(null);
       refreshLenses();

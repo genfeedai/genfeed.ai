@@ -44,6 +44,7 @@ export function useAgentChat(options: UseAgentChatOptions): UseAgentChatReturn {
   const setLatestProposedPlan = useAgentChatStore(
     (s) => s.setLatestProposedPlan,
   );
+  const pageContext = useAgentChatStore((s) => s.pageContext);
   const abortRef = useRef<AbortController | null>(null);
 
   const sendMessage = useCallback(
@@ -79,6 +80,7 @@ export function useAgentChat(options: UseAgentChatOptions): UseAgentChatReturn {
               attachments: sendOptions?.attachments,
               content,
               model: resolvedModel,
+              pageContext,
               planModeEnabled: sendOptions?.planModeEnabled,
               source: sendOptions?.source,
               threadId: activeThreadId ?? undefined,
@@ -172,6 +174,7 @@ export function useAgentChat(options: UseAgentChatOptions): UseAgentChatReturn {
       upsertThread,
       setLatestProposedPlan,
       onOnboardingCompleted,
+      pageContext,
     ],
   );
 

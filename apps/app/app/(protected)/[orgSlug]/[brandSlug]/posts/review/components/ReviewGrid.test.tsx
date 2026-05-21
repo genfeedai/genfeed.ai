@@ -1,6 +1,9 @@
 import { BatchItemStatus, BatchStatus, ContentFormat } from '@genfeedai/enums';
-import { render, screen } from '@testing-library/react';
-import ReviewGrid from './ReviewGrid';
+import { fireEvent, render, screen } from '@testing-library/react';
+import ReviewGrid, {
+  getReviewFilterCounts,
+  getVisibleReviewItems,
+} from './ReviewGrid';
 import '@testing-library/jest-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -196,5 +199,176 @@ describe('ReviewGrid', () => {
           (link) => link.getAttribute('href') === 'https://example.com/post-1',
         ),
     ).toBe(true);
+  });
+
+  it('counts review filters from status and review decisions', () => {
+    const items = [
+      { id: 'ready', status: BatchItemStatus.COMPLETED },
+      {
+        id: 'approved',
+        reviewDecision: 'approved',
+        status: BatchItemStatus.COMPLETED,
+      },
+      {
+        id: 'changes',
+        reviewDecision: 'request_changes',
+        status: BatchItemStatus.COMPLETED,
+      },
+      { id: 'failed', status: BatchItemStatus.FAILED },
+      { id: 'pending', status: BatchItemStatus.PENDING },
+      { id: 'generating', status: BatchItemStatus.GENERATING },
+      { id: 'skipped', status: BatchItemStatus.SKIPPED },
+      {
+        id: 'rejected',
+        reviewDecision: 'rejected',
+        status: BatchItemStatus.COMPLETED,
+      },
+    ];
+
+    expect(getReviewFilterCounts(items as never)).toEqual({
+      all: 8,
+      approved: 1,
+      changes_requested: 1,
+      failed: 1,
+      pending: 2,
+      ready: 1,
+      skipped: 2,
+    });
+  });
+
+  it('filters visible review items for every review filter', () => {
+    const items = [
+      { id: 'ready', status: BatchItemStatus.COMPLETED },
+      {
+        id: 'approved',
+        reviewDecision: 'approved',
+        status: BatchItemStatus.COMPLETED,
+      },
+      {
+        id: 'changes',
+        reviewDecision: 'request_changes',
+        status: BatchItemStatus.COMPLETED,
+      },
+      { id: 'failed', status: BatchItemStatus.FAILED },
+      { id: 'pending', status: BatchItemStatus.PENDING },
+      { id: 'skipped', status: BatchItemStatus.SKIPPED },
+    ];
+
+    expect(getVisibleReviewItems(items as never, 'all')).toHaveLength(6);
+    expect(getVisibleReviewItems(items as never, 'ready')).toHaveLength(1);
+    expect(getVisibleReviewItems(items as never, 'approved')).toHaveLength(1);
+    expect(
+      getVisibleReviewItems(items as never, 'changes_requested'),
+    ).toHaveLength(1);
+    expect(getVisibleReviewItems(items as never, 'failed')).toHaveLength(1);
+    expect(getVisibleReviewItems(items as never, 'pending')).toHaveLength(1);
+    expect(getVisibleReviewItems(items as never, 'skipped')).toHaveLength(1);
+  });
+
+  it('routes filter, item, selection, and bulk actions', () => {
+    const onFilterChange = vi.fn();
+    const onSelectItem = vi.fn();
+    const onToggleSelect = vi.fn();
+    const onBulkApprove = vi.fn();
+    const onBulkReject = vi.fn();
+
+    render(
+      <ReviewGrid
+        activeFilter="ready"
+        activeItem={mockItems[0]}
+        batch={mockBatch}
+        filterCounts={{
+          all: 1,
+          approved: 0,
+          changes_requested: 0,
+          failed: 0,
+          pending: 0,
+          ready: 1,
+          skipped: 0,
+        }}
+        isActioning={false}
+        items={mockItems}
+        selectedIds={new Set(['item-1'])}
+        onApprove={vi.fn()}
+        onBulkApprove={onBulkApprove}
+        onBulkReject={onBulkReject}
+        onFilterChange={onFilterChange}
+        onRequestChanges={vi.fn()}
+        onReject={vi.fn()}
+        onSelectItem={onSelectItem}
+        onToggleSelect={onToggleSelect}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Approved0/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Draft caption/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Deselect item/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^Approve$/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^Reject$/i }));
+
+    expect(onFilterChange).toHaveBeenCalledWith('approved');
+    expect(onSelectItem).toHaveBeenCalledWith('item-1');
+    expect(onToggleSelect).toHaveBeenCalledWith('item-1');
+    expect(onBulkApprove).toHaveBeenCalledTimes(1);
+    expect(onBulkReject).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows a completed review as non-actionable with saved reviewer context', () => {
+    render(
+      <ReviewGrid
+        activeFilter="approved"
+        activeItem={
+          {
+            ...mockItems[0],
+            postId: undefined,
+            postUrl: undefined,
+            reviewDecision: 'approved',
+            reviewEvents: [
+              {
+                decision: 'approved',
+                feedback: 'Ship this one.',
+                reviewedAt: '2026-03-09T12:00:00.000Z',
+                reviewerId: 'user-1',
+              },
+            ],
+            reviewFeedback: 'Final approved notes',
+            scheduledDate: '2026-03-10T16:00:00.000Z',
+            sourceActionId: undefined,
+          } as never
+        }
+        batch={mockBatch}
+        filterCounts={{
+          all: 1,
+          approved: 1,
+          changes_requested: 0,
+          failed: 0,
+          pending: 0,
+          ready: 0,
+          skipped: 0,
+        }}
+        isActioning={false}
+        items={mockItems}
+        selectedIds={new Set()}
+        onApprove={vi.fn()}
+        onBulkApprove={vi.fn()}
+        onBulkReject={vi.fn()}
+        onFilterChange={vi.fn()}
+        onRequestChanges={vi.fn()}
+        onReject={vi.fn()}
+        onSelectItem={vi.fn()}
+        onToggleSelect={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByText('This item has already been approved.'),
+    ).toBeVisible();
+    expect(screen.getByText('Review history')).toBeVisible();
+    expect(screen.getByText('Ship this one.')).toBeVisible();
+    expect(screen.getByText('Saved reviewer notes')).toBeVisible();
+    expect(screen.getAllByText('Final approved notes')).toHaveLength(2);
+    expect(
+      screen.queryByRole('link', { name: 'Open draft' }),
+    ).not.toBeInTheDocument();
   });
 });

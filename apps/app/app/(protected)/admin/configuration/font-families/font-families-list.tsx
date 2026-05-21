@@ -143,7 +143,7 @@ function FontFamiliesListContent({
                 isError: true,
                 label: 'Delete Font Family',
                 message: `Are you sure you want to delete "${fontFamily.label}"? This action cannot be undone.`,
-                onConfirm: () => handleDelete(),
+                onConfirm: () => handleDelete(fontFamily),
               });
             },
             tooltip: 'Delete',
@@ -235,14 +235,10 @@ function FontFamiliesListContent({
     openModal(modalId);
   };
 
-  const handleDelete = async () => {
-    if (!selectedFontFamily) {
-      return;
-    }
-
+  const handleDelete = async (fontFamily: IFontFamily) => {
     try {
       const service = await getFontFamiliesService();
-      await service.delete(selectedFontFamily.id);
+      await service.delete(fontFamily.id);
       notificationsService.success('Font family deleted');
       setSelectedFontFamily(null);
       findAllFontFamilies(true);

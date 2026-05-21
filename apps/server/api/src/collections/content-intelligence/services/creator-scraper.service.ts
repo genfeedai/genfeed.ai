@@ -5,6 +5,12 @@ import {
   ContentIntelligencePlatform,
   CreatorAnalysisStatus,
 } from '@genfeedai/enums';
+import {
+  extractBoolean,
+  extractFirstString,
+  extractHashtags,
+  extractStringArray,
+} from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -336,7 +342,7 @@ export class CreatorScraperService {
         return {
           comments,
           engagementRate: Math.round(engagementRate * 100) / 100,
-          hashtags: this.extractHashtags(tweet.text || ''),
+          hashtags: extractHashtags(tweet.text || ''),
           id: tweet.id,
           likes,
           publishedAt: new Date(tweet.createdAt || Date.now()),
@@ -398,7 +404,7 @@ export class CreatorScraperService {
           return {
             comments,
             engagementRate: Math.round(engagementRate * 100) / 100,
-            hashtags: this.extractHashtags(post.text || ''),
+            hashtags: extractHashtags(post.text || ''),
             id: post.postUrl || String(Date.now()),
             likes,
             publishedAt: new Date(post.postedAt || Date.now()),
@@ -553,14 +559,8 @@ export class CreatorScraperService {
     }
   }
 
-  private extractHashtags(text: string): string[] {
-    const hashtagRegex = /#(\w+)/g;
-    const matches = text.match(hashtagRegex);
-    return matches ? matches.map((tag) => tag.slice(1)) : [];
-  }
-
   private extractMediaUrl(record: unknown): string | undefined {
-    const candidate = this.extractString(
+    const candidate = extractFirstString(
       record,
       'displayUrl',
       'displayUrlHD',
@@ -579,16 +579,12 @@ export class CreatorScraperService {
       return candidate;
     }
 
-    const imageCandidates = this.extractStringArray(
-      record,
-      'images',
-      'imageUrls',
-    );
+    const imageCandidates = extractStringArray(record, 'images', 'imageUrls');
     if (imageCandidates.length > 0) {
       return imageCandidates[0];
     }
 
-    const videoCandidates = this.extractStringArray(record, 'videoUrls');
+    const videoCandidates = extractStringArray(record, 'videoUrls');
     if (videoCandidates.length > 0) {
       return videoCandidates[0];
     }
@@ -597,7 +593,7 @@ export class CreatorScraperService {
   }
 
   private extractMediaType(record: unknown): 'image' | 'video' | undefined {
-    const explicitType = this.extractString(record, 'type', 'mediaType');
+    const explicitType = extractFirstString(record, 'type', 'mediaType');
     if (explicitType?.toLowerCase().includes('video')) {
       return 'video';
     }
@@ -606,7 +602,7 @@ export class CreatorScraperService {
     }
 
     const hasVideoUrl =
-      this.extractString(
+      extractFirstString(
         record,
         'videoUrl',
         'video_url',
@@ -615,12 +611,12 @@ export class CreatorScraperService {
         'downloadAddr',
       ) !== undefined;
 
-    if (hasVideoUrl || this.extractBoolean(record, 'isVideo')) {
+    if (hasVideoUrl || extractBoolean(record, 'isVideo')) {
       return 'video';
     }
 
     const hasImageUrl =
-      this.extractString(
+      extractFirstString(
         record,
         'displayUrl',
         'displayUrlHD',
@@ -632,57 +628,12 @@ export class CreatorScraperService {
 
     if (
       hasImageUrl ||
-      this.extractStringArray(record, 'images', 'imageUrls').length > 0
+      extractStringArray(record, 'images', 'imageUrls').length > 0
     ) {
       return 'image';
     }
 
     return undefined;
-  }
-
-  private extractString(
-    record: unknown,
-    ...keys: string[]
-  ): string | undefined {
-    if (!record || typeof record !== 'object') {
-      return undefined;
-    }
-
-    const map = record as Record<string, unknown>;
-    for (const key of keys) {
-      const value = map[key];
-      if (typeof value === 'string' && value !== '') {
-        return value;
-      }
-    }
-
-    return undefined;
-  }
-
-  private extractStringArray(record: unknown, ...keys: string[]): string[] {
-    if (!record || typeof record !== 'object') {
-      return [];
-    }
-
-    const map = record as Record<string, unknown>;
-    for (const key of keys) {
-      const value = map[key];
-      if (Array.isArray(value)) {
-        return value.filter(
-          (item): item is string => typeof item === 'string' && item !== '',
-        );
-      }
-    }
-
-    return [];
-  }
-
-  private extractBoolean(record: unknown, key: string): boolean {
-    if (!record || typeof record !== 'object') {
-      return false;
-    }
-
-    return (record as Record<string, unknown>)[key] === true;
   }
 
   calculateAggregateMetrics(posts: ScrapedPost[]): {

@@ -200,6 +200,30 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
       },
     ],
   },
+  '/compose': {
+    placeholder: 'Ask the co-pilot to improve this draft...',
+    suggestedActions: [
+      {
+        icon: HiOutlinePencilSquare({
+          className: 'size-5 text-foreground/50',
+        }),
+        label: 'Improve',
+        prompt: 'Review the current draft and suggest concrete improvements.',
+      },
+      {
+        icon: HiOutlineSparkles({ className: 'size-5 text-foreground/50' }),
+        label: 'Rewrite',
+        prompt: 'Rewrite this draft in a sharper brand voice.',
+      },
+      {
+        icon: HiOutlineClipboardDocumentCheck({
+          className: 'size-5 text-foreground/50',
+        }),
+        label: 'Ready?',
+        prompt: 'Check whether this draft is ready to publish.',
+      },
+    ],
+  },
   '/library': {
     placeholder: 'Ask about your library...',
     suggestedActions: [
@@ -543,6 +567,18 @@ function getContextForRoute(pathname: string): PageContextConfig {
   return DEFAULT_CONTEXT;
 }
 
+function normalizeAgentContextPathname(rawPathname: string): string {
+  const parts = rawPathname.split('/').filter(Boolean);
+
+  if (parts.length >= 3) {
+    return parts[1] === '~'
+      ? `/${parts.slice(2).join('/')}`
+      : `/${parts.slice(2).join('/')}`;
+  }
+
+  return rawPathname;
+}
+
 /**
  * Reads the current pathname and syncs contextual suggested actions
  * and placeholder text into the agent chat store.
@@ -551,16 +587,25 @@ function getContextForRoute(pathname: string): PageContextConfig {
 export function useAgentPageContext(role?: MemberRole): PageContextConfig {
   const pathname = usePathname();
   const setPageContext = useAgentChatStore((s) => s.setPageContext);
+  const contextPathname = useMemo(
+    () => normalizeAgentContextPathname(pathname),
+    [pathname],
+  );
 
   const config = useMemo(() => {
-    const base = getContextForRoute(pathname);
+    const base = getContextForRoute(contextPathname);
     return {
       ...base,
       suggestedActions: filterActionsByRole(base.suggestedActions, role),
     };
-  }, [pathname, role]);
+  }, [contextPathname, role]);
 
   useEffect(() => {
+    const currentContext = useAgentChatStore.getState().pageContext;
+    if (currentContext?.route === pathname && currentContext.draftType) {
+      return;
+    }
+
     setPageContext({
       placeholder: config.placeholder,
       route: pathname,

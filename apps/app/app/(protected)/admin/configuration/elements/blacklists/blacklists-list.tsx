@@ -166,7 +166,7 @@ function BlacklistsListContent({
                 isError: true,
                 label: 'Delete Blacklist',
                 message: `Are you sure you want to delete "${blacklist.label}"? This action cannot be undone.`,
-                onConfirm: () => handleDelete(),
+                onConfirm: () => handleDelete(blacklist),
               });
             },
             tooltip: 'Delete',
@@ -273,14 +273,10 @@ function BlacklistsListContent({
     }
   };
 
-  const handleDelete = async () => {
-    if (!selectedBlacklist) {
-      return;
-    }
-
+  const handleDelete = async (blacklist: ElementBlacklist) => {
     try {
       const service = await getBlacklistsService();
-      await service.delete(selectedBlacklist.id);
+      await service.delete(blacklist.id);
       notificationsService.success('Blacklist deleted');
       setSelectedBlacklist(null);
       findAllBlacklists(true);

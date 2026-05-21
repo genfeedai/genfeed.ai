@@ -1,6 +1,7 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { useAgentDraftContext } from '@genfeedai/agent';
 import type {
   DesktopContentPlatform,
   DesktopContentType,
@@ -485,6 +486,14 @@ function PostsWritePageContent() {
   );
   const generatePostLabel =
     desktop && !selectedCredential ? 'Generate' : 'Generate in Genfeed';
+
+  useAgentDraftContext({
+    body: localContent,
+    contentFormat: SOCIAL_FORMAT_LABELS[selectedFormat],
+    draftType: selectedFormat === 'thread' ? 'thread' : 'post',
+    instructions: prompt,
+    title: workingTitle,
+  });
 
   return (
     <section className="grid gap-6 lg:grid-cols-[1.25fr_0.75fr]">

@@ -285,7 +285,7 @@ function PresetsListContent({
                 isError: true,
                 label: 'Delete Preset',
                 message: `Are you sure you want to delete "${preset.label}"? This action cannot be undone.`,
-                onConfirm: () => handleDelete(),
+                onConfirm: () => handleDelete(preset),
               });
             },
             tooltip: 'Delete',
@@ -318,14 +318,10 @@ function PresetsListContent({
     }
   };
 
-  const handleDelete = async () => {
-    if (!selectedPreset) {
-      return;
-    }
-
+  const handleDelete = async (preset: Preset) => {
     try {
       const service = await getPresetsService();
-      await service.delete(selectedPreset.id);
+      await service.delete(preset.id);
       notificationsService.success('Preset deleted');
 
       setSelectedPreset(null);

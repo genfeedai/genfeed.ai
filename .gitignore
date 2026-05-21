@@ -24,6 +24,7 @@ packages/prisma/generated/
 .env.*.local
 .DS_Store
 coverage/
+apps/*/.vitest-reports/
 .vercel
 out/
 *.log

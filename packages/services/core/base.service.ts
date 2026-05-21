@@ -18,141 +18,14 @@ import { PagesService } from '@services/content/pages.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import { logger } from '@services/core/logger.service';
+import {
+  buildInstanceKey,
+  ServiceInstanceManager,
+} from '@services/core/service-instance-manager';
 
 export type { JsonApiResponseDocument } from '@genfeedai/helpers/data/json-api/json-api.helper';
 
-/**
- * Global singleton instance manager
- * Maps service class name + token to cached instances
- */
-class ServiceInstanceManager {
-  private static instances = new Map<
-    unknown,
-    Map<string, BaseService<unknown>>
-  >();
-
-  private static getInstanceMap(
-    serviceKey: unknown,
-  ): Map<string, BaseService<unknown>> {
-    let instanceMap = ServiceInstanceManager.instances.get(serviceKey);
-    if (!instanceMap) {
-      instanceMap = new Map<string, BaseService<unknown>>();
-      ServiceInstanceManager.instances.set(serviceKey, instanceMap);
-    }
-
-    return instanceMap;
-  }
-
-  static get<T extends BaseService<unknown>>(
-    serviceKey: unknown,
-    token: string,
-  ): T | undefined {
-    return ServiceInstanceManager.instances.get(serviceKey)?.get(token) as
-      | T
-      | undefined;
-  }
-
-  static set<T extends BaseService<unknown>>(
-    serviceKey: unknown,
-    token: string,
-    instance: T,
-  ): void {
-    ServiceInstanceManager.getInstanceMap(serviceKey).set(token, instance);
-  }
-
-  static clear(serviceKey?: unknown, token?: string): void {
-    if (!serviceKey) {
-      ServiceInstanceManager.instances.clear();
-      return;
-    }
-
-    const instancesForService =
-      ServiceInstanceManager.instances.get(serviceKey);
-    if (!instancesForService) {
-      return;
-    }
-
-    if (token) {
-      instancesForService.delete(token);
-      if (instancesForService.size === 0) {
-        ServiceInstanceManager.instances.delete(serviceKey);
-      }
-      return;
-    }
-
-    ServiceInstanceManager.instances.delete(serviceKey);
-  }
-
-  static clearAll(): void {
-    ServiceInstanceManager.instances.clear();
-  }
-
-  static clearByToken(serviceKey: unknown, token: string): void {
-    const instancesForService =
-      ServiceInstanceManager.instances.get(serviceKey);
-    if (!instancesForService) {
-      return;
-    }
-
-    for (const key of [...instancesForService.keys()]) {
-      if (keyIncludesTokenPart(key, token)) {
-        ServiceInstanceManager.clear(serviceKey, key);
-      }
-    }
-  }
-}
-
-const INSTANCE_KEY_SEPARATOR = '\u0001';
-
-function serializeInstanceKeyPart(part: unknown): string {
-  if (part === undefined) {
-    return 'undefined:';
-  }
-
-  if (part === null) {
-    return 'null:';
-  }
-
-  if (
-    typeof part === 'string' ||
-    typeof part === 'number' ||
-    typeof part === 'boolean' ||
-    typeof part === 'bigint'
-  ) {
-    return `${typeof part}:${String(part)}`;
-  }
-
-  if (part instanceof Date) {
-    return `date:${part.toISOString()}`;
-  }
-
-  if (typeof part === 'object') {
-    try {
-      return `json:${JSON.stringify(part)}`;
-    } catch {
-      return `object:${Object.prototype.toString.call(part)}`;
-    }
-  }
-
-  return `${typeof part}:${String(part)}`;
-}
-
-function buildInstanceKey(parts: unknown[]): string {
-  return parts.map(serializeInstanceKeyPart).join(INSTANCE_KEY_SEPARATOR);
-}
-
-function keyIncludesTokenPart(key: string, token: string): boolean {
-  const tokenKey = serializeInstanceKeyPart(token);
-
-  return (
-    key === tokenKey ||
-    key.startsWith(`${tokenKey}${INSTANCE_KEY_SEPARATOR}`) ||
-    key.endsWith(`${INSTANCE_KEY_SEPARATOR}${tokenKey}`) ||
-    key.includes(
-      `${INSTANCE_KEY_SEPARATOR}${tokenKey}${INSTANCE_KEY_SEPARATOR}`,
-    )
-  );
-}
+const serviceInstances = new ServiceInstanceManager<BaseService<unknown>>();
 
 /**
  * Base service class for API operations with type-safe request payloads.
@@ -194,7 +67,7 @@ export abstract class BaseService<
     const serviceKey = serviceConstructor;
 
     // Check if we have a cached instance for this service + token
-    const cached = ServiceInstanceManager.get<BaseService<unknown>>(
+    const cached = serviceInstances.get<BaseService<unknown>>(
       serviceKey,
       token,
     );
@@ -206,7 +79,7 @@ export abstract class BaseService<
     }
 
     const instance = new serviceConstructor(token);
-    ServiceInstanceManager.set(serviceKey, token, instance);
+    serviceInstances.set(serviceKey, token, instance);
 
     return instance;
   }
@@ -218,7 +91,7 @@ export abstract class BaseService<
     const instanceKey = buildInstanceKey(args);
     const serviceKey = serviceConstructor;
 
-    const cached = ServiceInstanceManager.get<T>(serviceKey, instanceKey);
+    const cached = serviceInstances.get<T>(serviceKey, instanceKey);
     if (
       cached &&
       Object.getPrototypeOf(cached) === serviceConstructor.prototype
@@ -227,7 +100,7 @@ export abstract class BaseService<
     }
 
     const instance = new serviceConstructor(...args);
-    ServiceInstanceManager.set(serviceKey, instanceKey, instance);
+    serviceInstances.set(serviceKey, instanceKey, instance);
 
     return instance;
   }
@@ -248,18 +121,18 @@ export abstract class BaseService<
       : (firstArg as string | undefined);
 
     if (!token) {
-      ServiceInstanceManager.clear(serviceConstructor);
+      serviceInstances.clear(serviceConstructor);
       return;
     }
 
-    ServiceInstanceManager.clearByToken(serviceConstructor, token);
+    serviceInstances.clearByToken(serviceConstructor, token);
   }
 
   /**
    * Clear all singleton instances (useful for testing)
    */
   static clearAllInstances(): void {
-    ServiceInstanceManager.clearAll();
+    serviceInstances.clearAll();
   }
 
   protected extractResource<D>(document: JsonApiResponseDocument): D {

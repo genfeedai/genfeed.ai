@@ -28,6 +28,7 @@ import {
   print,
 } from '@/ui/theme.js';
 import { setReplMode } from '@/utils/errors.js';
+import { extractString, isRecord } from '@/utils/extract.js';
 
 interface AgentShellOptions {
   initialThreadId?: string;
@@ -40,10 +41,6 @@ interface AgentShellState {
   model?: string;
   pendingInputRequest: AgentPendingInputRequest | null;
   threadId?: string;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
 }
 
 function shortId(value?: string): string {
@@ -168,14 +165,6 @@ async function attachThread(
       chalk.dim(`Last assistant message: ${snapshot.lastAssistantMessage.content.slice(0, 120)}`)
     );
   }
-}
-
-function extractString(
-  record: Record<string, unknown> | undefined,
-  key: string
-): string | undefined {
-  const value = record?.[key];
-  return typeof value === 'string' ? value : undefined;
 }
 
 async function handleThreadEvent(

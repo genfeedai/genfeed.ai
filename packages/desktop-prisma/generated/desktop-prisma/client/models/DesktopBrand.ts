@@ -9,8 +9,8 @@
  * 🟢 You can import this file directly.
  */
 import type * as runtime from "@prisma/client/runtime/client"
-import type * as $Enums from "../enums.js"
-import type * as Prisma from "../internal/prismaNamespace.js"
+import type * as $Enums from "../enums"
+import type * as Prisma from "../internal/prismaNamespace"
 
 /**
  * Model DesktopBrand
@@ -222,10 +222,6 @@ export type DesktopBrandWhereInput = {
   lastPulledAt?: Prisma.StringNullableFilter<"DesktopBrand"> | string | null
   createdAt?: Prisma.StringFilter<"DesktopBrand"> | string
   updatedAt?: Prisma.StringFilter<"DesktopBrand"> | string
-  organization?: Prisma.XOR<Prisma.DesktopOrganizationScalarRelationFilter, Prisma.DesktopOrganizationWhereInput>
-  assets?: Prisma.DesktopAssetListRelationFilter
-  contentItems?: Prisma.DesktopContentItemListRelationFilter
-  ingredients?: Prisma.DesktopIngredientListRelationFilter
 }
 
 export type DesktopBrandOrderByWithRelationInput = {
@@ -239,10 +235,6 @@ export type DesktopBrandOrderByWithRelationInput = {
   lastPulledAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
-  organization?: Prisma.DesktopOrganizationOrderByWithRelationInput
-  assets?: Prisma.DesktopAssetOrderByRelationAggregateInput
-  contentItems?: Prisma.DesktopContentItemOrderByRelationAggregateInput
-  ingredients?: Prisma.DesktopIngredientOrderByRelationAggregateInput
 }
 
 export type DesktopBrandWhereUniqueInput = Prisma.AtLeast<{
@@ -260,10 +252,6 @@ export type DesktopBrandWhereUniqueInput = Prisma.AtLeast<{
   lastPulledAt?: Prisma.StringNullableFilter<"DesktopBrand"> | string | null
   createdAt?: Prisma.StringFilter<"DesktopBrand"> | string
   updatedAt?: Prisma.StringFilter<"DesktopBrand"> | string
-  organization?: Prisma.XOR<Prisma.DesktopOrganizationScalarRelationFilter, Prisma.DesktopOrganizationWhereInput>
-  assets?: Prisma.DesktopAssetListRelationFilter
-  contentItems?: Prisma.DesktopContentItemListRelationFilter
-  ingredients?: Prisma.DesktopIngredientListRelationFilter
 }, "id" | "cloudId" | "organizationId_slug">
 
 export type DesktopBrandOrderByWithAggregationInput = {
@@ -300,6 +288,7 @@ export type DesktopBrandScalarWhereWithAggregatesInput = {
 
 export type DesktopBrandCreateInput = {
   id: string
+  organizationId: string
   cloudId?: string | null
   name: string
   slug: string
@@ -308,10 +297,6 @@ export type DesktopBrandCreateInput = {
   lastPulledAt?: string | null
   createdAt: string
   updatedAt: string
-  organization: Prisma.DesktopOrganizationCreateNestedOneWithoutBrandsInput
-  assets?: Prisma.DesktopAssetCreateNestedManyWithoutBrandInput
-  contentItems?: Prisma.DesktopContentItemCreateNestedManyWithoutBrandInput
-  ingredients?: Prisma.DesktopIngredientCreateNestedManyWithoutBrandInput
 }
 
 export type DesktopBrandUncheckedCreateInput = {
@@ -325,13 +310,11 @@ export type DesktopBrandUncheckedCreateInput = {
   lastPulledAt?: string | null
   createdAt: string
   updatedAt: string
-  assets?: Prisma.DesktopAssetUncheckedCreateNestedManyWithoutBrandInput
-  contentItems?: Prisma.DesktopContentItemUncheckedCreateNestedManyWithoutBrandInput
-  ingredients?: Prisma.DesktopIngredientUncheckedCreateNestedManyWithoutBrandInput
 }
 
 export type DesktopBrandUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  organizationId?: Prisma.StringFieldUpdateOperationsInput | string
   cloudId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.StringFieldUpdateOperationsInput | string
@@ -340,10 +323,6 @@ export type DesktopBrandUpdateInput = {
   lastPulledAt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.StringFieldUpdateOperationsInput | string
   updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
-  organization?: Prisma.DesktopOrganizationUpdateOneRequiredWithoutBrandsNestedInput
-  assets?: Prisma.DesktopAssetUpdateManyWithoutBrandNestedInput
-  contentItems?: Prisma.DesktopContentItemUpdateManyWithoutBrandNestedInput
-  ingredients?: Prisma.DesktopIngredientUpdateManyWithoutBrandNestedInput
 }
 
 export type DesktopBrandUncheckedUpdateInput = {
@@ -357,9 +336,6 @@ export type DesktopBrandUncheckedUpdateInput = {
   lastPulledAt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.StringFieldUpdateOperationsInput | string
   updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
-  assets?: Prisma.DesktopAssetUncheckedUpdateManyWithoutBrandNestedInput
-  contentItems?: Prisma.DesktopContentItemUncheckedUpdateManyWithoutBrandNestedInput
-  ingredients?: Prisma.DesktopIngredientUncheckedUpdateManyWithoutBrandNestedInput
 }
 
 export type DesktopBrandCreateManyInput = {
@@ -377,6 +353,7 @@ export type DesktopBrandCreateManyInput = {
 
 export type DesktopBrandUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  organizationId?: Prisma.StringFieldUpdateOperationsInput | string
   cloudId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.StringFieldUpdateOperationsInput | string
@@ -398,16 +375,6 @@ export type DesktopBrandUncheckedUpdateManyInput = {
   lastPulledAt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.StringFieldUpdateOperationsInput | string
   updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
-}
-
-export type DesktopBrandListRelationFilter = {
-  every?: Prisma.DesktopBrandWhereInput
-  some?: Prisma.DesktopBrandWhereInput
-  none?: Prisma.DesktopBrandWhereInput
-}
-
-export type DesktopBrandOrderByRelationAggregateInput = {
-  _count?: Prisma.SortOrder
 }
 
 export type DesktopBrandOrganizationIdSlugCompoundUniqueInput = {
@@ -454,502 +421,6 @@ export type DesktopBrandMinOrderByAggregateInput = {
   updatedAt?: Prisma.SortOrder
 }
 
-export type DesktopBrandNullableScalarRelationFilter = {
-  is?: Prisma.DesktopBrandWhereInput | null
-  isNot?: Prisma.DesktopBrandWhereInput | null
-}
-
-export type DesktopBrandCreateNestedManyWithoutOrganizationInput = {
-  create?: Prisma.XOR<Prisma.DesktopBrandCreateWithoutOrganizationInput, Prisma.DesktopBrandUncheckedCreateWithoutOrganizationInput> | Prisma.DesktopBrandCreateWithoutOrganizationInput[] | Prisma.DesktopBrandUncheckedCreateWithoutOrganizationInput[]
-  connectOrCreate?: Prisma.DesktopBrandCreateOrConnectWithoutOrganizationInput | Prisma.DesktopBrandCreateOrConnectWithoutOrganizationInput[]
-  createMany?: Prisma.DesktopBrandCreateManyOrganizationInputEnvelope
-  connect?: Prisma.DesktopBrandWhereUniqueInput | Prisma.DesktopBrandWhereUniqueInput[]
-}
-
-export type DesktopBrandUncheckedCreateNestedManyWithoutOrganizationInput = {
-  create?: Prisma.XOR<Prisma.DesktopBrandCreateWithoutOrganizationInput, Prisma.DesktopBrandUncheckedCreateWithoutOrganizationInput> | Prisma.DesktopBrandCreateWithoutOrganizationInput[] | Prisma.DesktopBrandUncheckedCreateWithoutOrganizationInput[]
-  connectOrCreate?: Prisma.DesktopBrandCreateOrConnectWithoutOrganizationInput | Prisma.DesktopBrandCreateOrConnectWithoutOrganizationInput[]
-  createMany?: Prisma.DesktopBrandCreateManyOrganizationInputEnvelope
-  connect?: Prisma.DesktopBrandWhereUniqueInput | Prisma.DesktopBrandWhereUniqueInput[]
-}
-
-export type DesktopBrandUpdateManyWithoutOrganizationNestedInput = {
-  create?: Prisma.XOR<Prisma.DesktopBrandCreateWithoutOrganizationInput, Prisma.DesktopBrandUncheckedCreateWithoutOrganizationInput> | Prisma.DesktopBrandCreateWithoutOrganizationInput[] | Prisma.DesktopBrandUncheckedCreateWithoutOrganizationInput[]
-  connectOrCreate?: Prisma.DesktopBrandCreateOrConnectWithoutOrganizationInput | Prisma.DesktopBrandCreateOrConnectWithoutOrganizationInput[]
-  upsert?: Prisma.DesktopBrandUpsertWithWhereUniqueWithoutOrganizationInput | Prisma.DesktopBrandUpsertWithWhereUniqueWithoutOrganizationInput[]
-  createMany?: Prisma.DesktopBrandCreateManyOrganizationInputEnvelope
-  set?: Prisma.DesktopBrandWhereUniqueInput | Prisma.DesktopBrandWhereUniqueInput[]
-  disconnect?: Prisma.DesktopBrandWhereUniqueInput | Prisma.DesktopBrandWhereUniqueInput[]
-  delete?: Prisma.DesktopBrandWhereUniqueInput | Prisma.DesktopBrandWhereUniqueInput[]
-  connect?: Prisma.DesktopBrandWhereUniqueInput | Prisma.DesktopBrandWhereUniqueInput[]
-  update?: Prisma.DesktopBrandUpdateWithWhereUniqueWithoutOrganizationInput | Prisma.DesktopBrandUpdateWithWhereUniqueWithoutOrganizationInput[]
-  updateMany?: Prisma.DesktopBrandUpdateManyWithWhereWithoutOrganizationInput | Prisma.DesktopBrandUpdateManyWithWhereWithoutOrganizationInput[]
-  deleteMany?: Prisma.DesktopBrandScalarWhereInput | Prisma.DesktopBrandScalarWhereInput[]
-}
-
-export type DesktopBrandUncheckedUpdateManyWithoutOrganizationNestedInput = {
-  create?: Prisma.XOR<Prisma.DesktopBrandCreateWithoutOrganizationInput, Prisma.DesktopBrandUncheckedCreateWithoutOrganizationInput> | Prisma.DesktopBrandCreateWithoutOrganizationInput[] | Prisma.DesktopBrandUncheckedCreateWithoutOrganizationInput[]
-  connectOrCreate?: Prisma.DesktopBrandCreateOrConnectWithoutOrganizationInput | Prisma.DesktopBrandCreateOrConnectWithoutOrganizationInput[]
-  upsert?: Prisma.DesktopBrandUpsertWithWhereUniqueWithoutOrganizationInput | Prisma.DesktopBrandUpsertWithWhereUniqueWithoutOrganizationInput[]
-  createMany?: Prisma.DesktopBrandCreateManyOrganizationInputEnvelope
-  set?: Prisma.DesktopBrandWhereUniqueInput | Prisma.DesktopBrandWhereUniqueInput[]
-  disconnect?: Prisma.DesktopBrandWhereUniqueInput | Prisma.DesktopBrandWhereUniqueInput[]
-  delete?: Prisma.DesktopBrandWhereUniqueInput | Prisma.DesktopBrandWhereUniqueInput[]
-  connect?: Prisma.DesktopBrandWhereUniqueInput | Prisma.DesktopBrandWhereUniqueInput[]
-  update?: Prisma.DesktopBrandUpdateWithWhereUniqueWithoutOrganizationInput | Prisma.DesktopBrandUpdateWithWhereUniqueWithoutOrganizationInput[]
-  updateMany?: Prisma.DesktopBrandUpdateManyWithWhereWithoutOrganizationInput | Prisma.DesktopBrandUpdateManyWithWhereWithoutOrganizationInput[]
-  deleteMany?: Prisma.DesktopBrandScalarWhereInput | Prisma.DesktopBrandScalarWhereInput[]
-}
-
-export type DesktopBrandCreateNestedOneWithoutContentItemsInput = {
-  create?: Prisma.XOR<Prisma.DesktopBrandCreateWithoutContentItemsInput, Prisma.DesktopBrandUncheckedCreateWithoutContentItemsInput>
-  connectOrCreate?: Prisma.DesktopBrandCreateOrConnectWithoutContentItemsInput
-  connect?: Prisma.DesktopBrandWhereUniqueInput
-}
-
-export type DesktopBrandUpdateOneWithoutContentItemsNestedInput = {
-  create?: Prisma.XOR<Prisma.DesktopBrandCreateWithoutContentItemsInput, Prisma.DesktopBrandUncheckedCreateWithoutContentItemsInput>
-  connectOrCreate?: Prisma.DesktopBrandCreateOrConnectWithoutContentItemsInput
-  upsert?: Prisma.DesktopBrandUpsertWithoutContentItemsInput
-  disconnect?: Prisma.DesktopBrandWhereInput | boolean
-  delete?: Prisma.DesktopBrandWhereInput | boolean
-  connect?: Prisma.DesktopBrandWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.DesktopBrandUpdateToOneWithWhereWithoutContentItemsInput, Prisma.DesktopBrandUpdateWithoutContentItemsInput>, Prisma.DesktopBrandUncheckedUpdateWithoutContentItemsInput>
-}
-
-export type DesktopBrandCreateNestedOneWithoutAssetsInput = {
-  create?: Prisma.XOR<Prisma.DesktopBrandCreateWithoutAssetsInput, Prisma.DesktopBrandUncheckedCreateWithoutAssetsInput>
-  connectOrCreate?: Prisma.DesktopBrandCreateOrConnectWithoutAssetsInput
-  connect?: Prisma.DesktopBrandWhereUniqueInput
-}
-
-export type DesktopBrandUpdateOneWithoutAssetsNestedInput = {
-  create?: Prisma.XOR<Prisma.DesktopBrandCreateWithoutAssetsInput, Prisma.DesktopBrandUncheckedCreateWithoutAssetsInput>
-  connectOrCreate?: Prisma.DesktopBrandCreateOrConnectWithoutAssetsInput
-  upsert?: Prisma.DesktopBrandUpsertWithoutAssetsInput
-  disconnect?: Prisma.DesktopBrandWhereInput | boolean
-  delete?: Prisma.DesktopBrandWhereInput | boolean
-  connect?: Prisma.DesktopBrandWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.DesktopBrandUpdateToOneWithWhereWithoutAssetsInput, Prisma.DesktopBrandUpdateWithoutAssetsInput>, Prisma.DesktopBrandUncheckedUpdateWithoutAssetsInput>
-}
-
-export type DesktopBrandCreateNestedOneWithoutIngredientsInput = {
-  create?: Prisma.XOR<Prisma.DesktopBrandCreateWithoutIngredientsInput, Prisma.DesktopBrandUncheckedCreateWithoutIngredientsInput>
-  connectOrCreate?: Prisma.DesktopBrandCreateOrConnectWithoutIngredientsInput
-  connect?: Prisma.DesktopBrandWhereUniqueInput
-}
-
-export type DesktopBrandUpdateOneWithoutIngredientsNestedInput = {
-  create?: Prisma.XOR<Prisma.DesktopBrandCreateWithoutIngredientsInput, Prisma.DesktopBrandUncheckedCreateWithoutIngredientsInput>
-  connectOrCreate?: Prisma.DesktopBrandCreateOrConnectWithoutIngredientsInput
-  upsert?: Prisma.DesktopBrandUpsertWithoutIngredientsInput
-  disconnect?: Prisma.DesktopBrandWhereInput | boolean
-  delete?: Prisma.DesktopBrandWhereInput | boolean
-  connect?: Prisma.DesktopBrandWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.DesktopBrandUpdateToOneWithWhereWithoutIngredientsInput, Prisma.DesktopBrandUpdateWithoutIngredientsInput>, Prisma.DesktopBrandUncheckedUpdateWithoutIngredientsInput>
-}
-
-export type DesktopBrandCreateWithoutOrganizationInput = {
-  id: string
-  cloudId?: string | null
-  name: string
-  slug: string
-  syncPolicy?: string
-  cloudVersion?: string | null
-  lastPulledAt?: string | null
-  createdAt: string
-  updatedAt: string
-  assets?: Prisma.DesktopAssetCreateNestedManyWithoutBrandInput
-  contentItems?: Prisma.DesktopContentItemCreateNestedManyWithoutBrandInput
-  ingredients?: Prisma.DesktopIngredientCreateNestedManyWithoutBrandInput
-}
-
-export type DesktopBrandUncheckedCreateWithoutOrganizationInput = {
-  id: string
-  cloudId?: string | null
-  name: string
-  slug: string
-  syncPolicy?: string
-  cloudVersion?: string | null
-  lastPulledAt?: string | null
-  createdAt: string
-  updatedAt: string
-  assets?: Prisma.DesktopAssetUncheckedCreateNestedManyWithoutBrandInput
-  contentItems?: Prisma.DesktopContentItemUncheckedCreateNestedManyWithoutBrandInput
-  ingredients?: Prisma.DesktopIngredientUncheckedCreateNestedManyWithoutBrandInput
-}
-
-export type DesktopBrandCreateOrConnectWithoutOrganizationInput = {
-  where: Prisma.DesktopBrandWhereUniqueInput
-  create: Prisma.XOR<Prisma.DesktopBrandCreateWithoutOrganizationInput, Prisma.DesktopBrandUncheckedCreateWithoutOrganizationInput>
-}
-
-export type DesktopBrandCreateManyOrganizationInputEnvelope = {
-  data: Prisma.DesktopBrandCreateManyOrganizationInput | Prisma.DesktopBrandCreateManyOrganizationInput[]
-  skipDuplicates?: boolean
-}
-
-export type DesktopBrandUpsertWithWhereUniqueWithoutOrganizationInput = {
-  where: Prisma.DesktopBrandWhereUniqueInput
-  update: Prisma.XOR<Prisma.DesktopBrandUpdateWithoutOrganizationInput, Prisma.DesktopBrandUncheckedUpdateWithoutOrganizationInput>
-  create: Prisma.XOR<Prisma.DesktopBrandCreateWithoutOrganizationInput, Prisma.DesktopBrandUncheckedCreateWithoutOrganizationInput>
-}
-
-export type DesktopBrandUpdateWithWhereUniqueWithoutOrganizationInput = {
-  where: Prisma.DesktopBrandWhereUniqueInput
-  data: Prisma.XOR<Prisma.DesktopBrandUpdateWithoutOrganizationInput, Prisma.DesktopBrandUncheckedUpdateWithoutOrganizationInput>
-}
-
-export type DesktopBrandUpdateManyWithWhereWithoutOrganizationInput = {
-  where: Prisma.DesktopBrandScalarWhereInput
-  data: Prisma.XOR<Prisma.DesktopBrandUpdateManyMutationInput, Prisma.DesktopBrandUncheckedUpdateManyWithoutOrganizationInput>
-}
-
-export type DesktopBrandScalarWhereInput = {
-  AND?: Prisma.DesktopBrandScalarWhereInput | Prisma.DesktopBrandScalarWhereInput[]
-  OR?: Prisma.DesktopBrandScalarWhereInput[]
-  NOT?: Prisma.DesktopBrandScalarWhereInput | Prisma.DesktopBrandScalarWhereInput[]
-  id?: Prisma.StringFilter<"DesktopBrand"> | string
-  organizationId?: Prisma.StringFilter<"DesktopBrand"> | string
-  cloudId?: Prisma.StringNullableFilter<"DesktopBrand"> | string | null
-  name?: Prisma.StringFilter<"DesktopBrand"> | string
-  slug?: Prisma.StringFilter<"DesktopBrand"> | string
-  syncPolicy?: Prisma.StringFilter<"DesktopBrand"> | string
-  cloudVersion?: Prisma.StringNullableFilter<"DesktopBrand"> | string | null
-  lastPulledAt?: Prisma.StringNullableFilter<"DesktopBrand"> | string | null
-  createdAt?: Prisma.StringFilter<"DesktopBrand"> | string
-  updatedAt?: Prisma.StringFilter<"DesktopBrand"> | string
-}
-
-export type DesktopBrandCreateWithoutContentItemsInput = {
-  id: string
-  cloudId?: string | null
-  name: string
-  slug: string
-  syncPolicy?: string
-  cloudVersion?: string | null
-  lastPulledAt?: string | null
-  createdAt: string
-  updatedAt: string
-  organization: Prisma.DesktopOrganizationCreateNestedOneWithoutBrandsInput
-  assets?: Prisma.DesktopAssetCreateNestedManyWithoutBrandInput
-  ingredients?: Prisma.DesktopIngredientCreateNestedManyWithoutBrandInput
-}
-
-export type DesktopBrandUncheckedCreateWithoutContentItemsInput = {
-  id: string
-  organizationId: string
-  cloudId?: string | null
-  name: string
-  slug: string
-  syncPolicy?: string
-  cloudVersion?: string | null
-  lastPulledAt?: string | null
-  createdAt: string
-  updatedAt: string
-  assets?: Prisma.DesktopAssetUncheckedCreateNestedManyWithoutBrandInput
-  ingredients?: Prisma.DesktopIngredientUncheckedCreateNestedManyWithoutBrandInput
-}
-
-export type DesktopBrandCreateOrConnectWithoutContentItemsInput = {
-  where: Prisma.DesktopBrandWhereUniqueInput
-  create: Prisma.XOR<Prisma.DesktopBrandCreateWithoutContentItemsInput, Prisma.DesktopBrandUncheckedCreateWithoutContentItemsInput>
-}
-
-export type DesktopBrandUpsertWithoutContentItemsInput = {
-  update: Prisma.XOR<Prisma.DesktopBrandUpdateWithoutContentItemsInput, Prisma.DesktopBrandUncheckedUpdateWithoutContentItemsInput>
-  create: Prisma.XOR<Prisma.DesktopBrandCreateWithoutContentItemsInput, Prisma.DesktopBrandUncheckedCreateWithoutContentItemsInput>
-  where?: Prisma.DesktopBrandWhereInput
-}
-
-export type DesktopBrandUpdateToOneWithWhereWithoutContentItemsInput = {
-  where?: Prisma.DesktopBrandWhereInput
-  data: Prisma.XOR<Prisma.DesktopBrandUpdateWithoutContentItemsInput, Prisma.DesktopBrandUncheckedUpdateWithoutContentItemsInput>
-}
-
-export type DesktopBrandUpdateWithoutContentItemsInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  cloudId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  slug?: Prisma.StringFieldUpdateOperationsInput | string
-  syncPolicy?: Prisma.StringFieldUpdateOperationsInput | string
-  cloudVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  lastPulledAt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  createdAt?: Prisma.StringFieldUpdateOperationsInput | string
-  updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
-  organization?: Prisma.DesktopOrganizationUpdateOneRequiredWithoutBrandsNestedInput
-  assets?: Prisma.DesktopAssetUpdateManyWithoutBrandNestedInput
-  ingredients?: Prisma.DesktopIngredientUpdateManyWithoutBrandNestedInput
-}
-
-export type DesktopBrandUncheckedUpdateWithoutContentItemsInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  organizationId?: Prisma.StringFieldUpdateOperationsInput | string
-  cloudId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  slug?: Prisma.StringFieldUpdateOperationsInput | string
-  syncPolicy?: Prisma.StringFieldUpdateOperationsInput | string
-  cloudVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  lastPulledAt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  createdAt?: Prisma.StringFieldUpdateOperationsInput | string
-  updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
-  assets?: Prisma.DesktopAssetUncheckedUpdateManyWithoutBrandNestedInput
-  ingredients?: Prisma.DesktopIngredientUncheckedUpdateManyWithoutBrandNestedInput
-}
-
-export type DesktopBrandCreateWithoutAssetsInput = {
-  id: string
-  cloudId?: string | null
-  name: string
-  slug: string
-  syncPolicy?: string
-  cloudVersion?: string | null
-  lastPulledAt?: string | null
-  createdAt: string
-  updatedAt: string
-  organization: Prisma.DesktopOrganizationCreateNestedOneWithoutBrandsInput
-  contentItems?: Prisma.DesktopContentItemCreateNestedManyWithoutBrandInput
-  ingredients?: Prisma.DesktopIngredientCreateNestedManyWithoutBrandInput
-}
-
-export type DesktopBrandUncheckedCreateWithoutAssetsInput = {
-  id: string
-  organizationId: string
-  cloudId?: string | null
-  name: string
-  slug: string
-  syncPolicy?: string
-  cloudVersion?: string | null
-  lastPulledAt?: string | null
-  createdAt: string
-  updatedAt: string
-  contentItems?: Prisma.DesktopContentItemUncheckedCreateNestedManyWithoutBrandInput
-  ingredients?: Prisma.DesktopIngredientUncheckedCreateNestedManyWithoutBrandInput
-}
-
-export type DesktopBrandCreateOrConnectWithoutAssetsInput = {
-  where: Prisma.DesktopBrandWhereUniqueInput
-  create: Prisma.XOR<Prisma.DesktopBrandCreateWithoutAssetsInput, Prisma.DesktopBrandUncheckedCreateWithoutAssetsInput>
-}
-
-export type DesktopBrandUpsertWithoutAssetsInput = {
-  update: Prisma.XOR<Prisma.DesktopBrandUpdateWithoutAssetsInput, Prisma.DesktopBrandUncheckedUpdateWithoutAssetsInput>
-  create: Prisma.XOR<Prisma.DesktopBrandCreateWithoutAssetsInput, Prisma.DesktopBrandUncheckedCreateWithoutAssetsInput>
-  where?: Prisma.DesktopBrandWhereInput
-}
-
-export type DesktopBrandUpdateToOneWithWhereWithoutAssetsInput = {
-  where?: Prisma.DesktopBrandWhereInput
-  data: Prisma.XOR<Prisma.DesktopBrandUpdateWithoutAssetsInput, Prisma.DesktopBrandUncheckedUpdateWithoutAssetsInput>
-}
-
-export type DesktopBrandUpdateWithoutAssetsInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  cloudId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  slug?: Prisma.StringFieldUpdateOperationsInput | string
-  syncPolicy?: Prisma.StringFieldUpdateOperationsInput | string
-  cloudVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  lastPulledAt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  createdAt?: Prisma.StringFieldUpdateOperationsInput | string
-  updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
-  organization?: Prisma.DesktopOrganizationUpdateOneRequiredWithoutBrandsNestedInput
-  contentItems?: Prisma.DesktopContentItemUpdateManyWithoutBrandNestedInput
-  ingredients?: Prisma.DesktopIngredientUpdateManyWithoutBrandNestedInput
-}
-
-export type DesktopBrandUncheckedUpdateWithoutAssetsInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  organizationId?: Prisma.StringFieldUpdateOperationsInput | string
-  cloudId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  slug?: Prisma.StringFieldUpdateOperationsInput | string
-  syncPolicy?: Prisma.StringFieldUpdateOperationsInput | string
-  cloudVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  lastPulledAt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  createdAt?: Prisma.StringFieldUpdateOperationsInput | string
-  updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
-  contentItems?: Prisma.DesktopContentItemUncheckedUpdateManyWithoutBrandNestedInput
-  ingredients?: Prisma.DesktopIngredientUncheckedUpdateManyWithoutBrandNestedInput
-}
-
-export type DesktopBrandCreateWithoutIngredientsInput = {
-  id: string
-  cloudId?: string | null
-  name: string
-  slug: string
-  syncPolicy?: string
-  cloudVersion?: string | null
-  lastPulledAt?: string | null
-  createdAt: string
-  updatedAt: string
-  organization: Prisma.DesktopOrganizationCreateNestedOneWithoutBrandsInput
-  assets?: Prisma.DesktopAssetCreateNestedManyWithoutBrandInput
-  contentItems?: Prisma.DesktopContentItemCreateNestedManyWithoutBrandInput
-}
-
-export type DesktopBrandUncheckedCreateWithoutIngredientsInput = {
-  id: string
-  organizationId: string
-  cloudId?: string | null
-  name: string
-  slug: string
-  syncPolicy?: string
-  cloudVersion?: string | null
-  lastPulledAt?: string | null
-  createdAt: string
-  updatedAt: string
-  assets?: Prisma.DesktopAssetUncheckedCreateNestedManyWithoutBrandInput
-  contentItems?: Prisma.DesktopContentItemUncheckedCreateNestedManyWithoutBrandInput
-}
-
-export type DesktopBrandCreateOrConnectWithoutIngredientsInput = {
-  where: Prisma.DesktopBrandWhereUniqueInput
-  create: Prisma.XOR<Prisma.DesktopBrandCreateWithoutIngredientsInput, Prisma.DesktopBrandUncheckedCreateWithoutIngredientsInput>
-}
-
-export type DesktopBrandUpsertWithoutIngredientsInput = {
-  update: Prisma.XOR<Prisma.DesktopBrandUpdateWithoutIngredientsInput, Prisma.DesktopBrandUncheckedUpdateWithoutIngredientsInput>
-  create: Prisma.XOR<Prisma.DesktopBrandCreateWithoutIngredientsInput, Prisma.DesktopBrandUncheckedCreateWithoutIngredientsInput>
-  where?: Prisma.DesktopBrandWhereInput
-}
-
-export type DesktopBrandUpdateToOneWithWhereWithoutIngredientsInput = {
-  where?: Prisma.DesktopBrandWhereInput
-  data: Prisma.XOR<Prisma.DesktopBrandUpdateWithoutIngredientsInput, Prisma.DesktopBrandUncheckedUpdateWithoutIngredientsInput>
-}
-
-export type DesktopBrandUpdateWithoutIngredientsInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  cloudId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  slug?: Prisma.StringFieldUpdateOperationsInput | string
-  syncPolicy?: Prisma.StringFieldUpdateOperationsInput | string
-  cloudVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  lastPulledAt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  createdAt?: Prisma.StringFieldUpdateOperationsInput | string
-  updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
-  organization?: Prisma.DesktopOrganizationUpdateOneRequiredWithoutBrandsNestedInput
-  assets?: Prisma.DesktopAssetUpdateManyWithoutBrandNestedInput
-  contentItems?: Prisma.DesktopContentItemUpdateManyWithoutBrandNestedInput
-}
-
-export type DesktopBrandUncheckedUpdateWithoutIngredientsInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  organizationId?: Prisma.StringFieldUpdateOperationsInput | string
-  cloudId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  slug?: Prisma.StringFieldUpdateOperationsInput | string
-  syncPolicy?: Prisma.StringFieldUpdateOperationsInput | string
-  cloudVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  lastPulledAt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  createdAt?: Prisma.StringFieldUpdateOperationsInput | string
-  updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
-  assets?: Prisma.DesktopAssetUncheckedUpdateManyWithoutBrandNestedInput
-  contentItems?: Prisma.DesktopContentItemUncheckedUpdateManyWithoutBrandNestedInput
-}
-
-export type DesktopBrandCreateManyOrganizationInput = {
-  id: string
-  cloudId?: string | null
-  name: string
-  slug: string
-  syncPolicy?: string
-  cloudVersion?: string | null
-  lastPulledAt?: string | null
-  createdAt: string
-  updatedAt: string
-}
-
-export type DesktopBrandUpdateWithoutOrganizationInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  cloudId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  slug?: Prisma.StringFieldUpdateOperationsInput | string
-  syncPolicy?: Prisma.StringFieldUpdateOperationsInput | string
-  cloudVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  lastPulledAt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  createdAt?: Prisma.StringFieldUpdateOperationsInput | string
-  updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
-  assets?: Prisma.DesktopAssetUpdateManyWithoutBrandNestedInput
-  contentItems?: Prisma.DesktopContentItemUpdateManyWithoutBrandNestedInput
-  ingredients?: Prisma.DesktopIngredientUpdateManyWithoutBrandNestedInput
-}
-
-export type DesktopBrandUncheckedUpdateWithoutOrganizationInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  cloudId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  slug?: Prisma.StringFieldUpdateOperationsInput | string
-  syncPolicy?: Prisma.StringFieldUpdateOperationsInput | string
-  cloudVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  lastPulledAt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  createdAt?: Prisma.StringFieldUpdateOperationsInput | string
-  updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
-  assets?: Prisma.DesktopAssetUncheckedUpdateManyWithoutBrandNestedInput
-  contentItems?: Prisma.DesktopContentItemUncheckedUpdateManyWithoutBrandNestedInput
-  ingredients?: Prisma.DesktopIngredientUncheckedUpdateManyWithoutBrandNestedInput
-}
-
-export type DesktopBrandUncheckedUpdateManyWithoutOrganizationInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  cloudId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  slug?: Prisma.StringFieldUpdateOperationsInput | string
-  syncPolicy?: Prisma.StringFieldUpdateOperationsInput | string
-  cloudVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  lastPulledAt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  createdAt?: Prisma.StringFieldUpdateOperationsInput | string
-  updatedAt?: Prisma.StringFieldUpdateOperationsInput | string
-}
-
-
-/**
- * Count Type DesktopBrandCountOutputType
- */
-
-export type DesktopBrandCountOutputType = {
-  assets: number
-  contentItems: number
-  ingredients: number
-}
-
-export type DesktopBrandCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  assets?: boolean | DesktopBrandCountOutputTypeCountAssetsArgs
-  contentItems?: boolean | DesktopBrandCountOutputTypeCountContentItemsArgs
-  ingredients?: boolean | DesktopBrandCountOutputTypeCountIngredientsArgs
-}
-
-/**
- * DesktopBrandCountOutputType without action
- */
-export type DesktopBrandCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the DesktopBrandCountOutputType
-   */
-  select?: Prisma.DesktopBrandCountOutputTypeSelect<ExtArgs> | null
-}
-
-/**
- * DesktopBrandCountOutputType without action
- */
-export type DesktopBrandCountOutputTypeCountAssetsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.DesktopAssetWhereInput
-}
-
-/**
- * DesktopBrandCountOutputType without action
- */
-export type DesktopBrandCountOutputTypeCountContentItemsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.DesktopContentItemWhereInput
-}
-
-/**
- * DesktopBrandCountOutputType without action
- */
-export type DesktopBrandCountOutputTypeCountIngredientsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.DesktopIngredientWhereInput
-}
 
 
 export type DesktopBrandSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -963,11 +434,6 @@ export type DesktopBrandSelect<ExtArgs extends runtime.Types.Extensions.Internal
   lastPulledAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  organization?: boolean | Prisma.DesktopOrganizationDefaultArgs<ExtArgs>
-  assets?: boolean | Prisma.DesktopBrand$assetsArgs<ExtArgs>
-  contentItems?: boolean | Prisma.DesktopBrand$contentItemsArgs<ExtArgs>
-  ingredients?: boolean | Prisma.DesktopBrand$ingredientsArgs<ExtArgs>
-  _count?: boolean | Prisma.DesktopBrandCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["desktopBrand"]>
 
 export type DesktopBrandSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -981,7 +447,6 @@ export type DesktopBrandSelectCreateManyAndReturn<ExtArgs extends runtime.Types.
   lastPulledAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  organization?: boolean | Prisma.DesktopOrganizationDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["desktopBrand"]>
 
 export type DesktopBrandSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -995,7 +460,6 @@ export type DesktopBrandSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.
   lastPulledAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  organization?: boolean | Prisma.DesktopOrganizationDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["desktopBrand"]>
 
 export type DesktopBrandSelectScalar = {
@@ -1012,28 +476,10 @@ export type DesktopBrandSelectScalar = {
 }
 
 export type DesktopBrandOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "cloudId" | "name" | "slug" | "syncPolicy" | "cloudVersion" | "lastPulledAt" | "createdAt" | "updatedAt", ExtArgs["result"]["desktopBrand"]>
-export type DesktopBrandInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  organization?: boolean | Prisma.DesktopOrganizationDefaultArgs<ExtArgs>
-  assets?: boolean | Prisma.DesktopBrand$assetsArgs<ExtArgs>
-  contentItems?: boolean | Prisma.DesktopBrand$contentItemsArgs<ExtArgs>
-  ingredients?: boolean | Prisma.DesktopBrand$ingredientsArgs<ExtArgs>
-  _count?: boolean | Prisma.DesktopBrandCountOutputTypeDefaultArgs<ExtArgs>
-}
-export type DesktopBrandIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  organization?: boolean | Prisma.DesktopOrganizationDefaultArgs<ExtArgs>
-}
-export type DesktopBrandIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  organization?: boolean | Prisma.DesktopOrganizationDefaultArgs<ExtArgs>
-}
 
 export type $DesktopBrandPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "DesktopBrand"
-  objects: {
-    organization: Prisma.$DesktopOrganizationPayload<ExtArgs>
-    assets: Prisma.$DesktopAssetPayload<ExtArgs>[]
-    contentItems: Prisma.$DesktopContentItemPayload<ExtArgs>[]
-    ingredients: Prisma.$DesktopIngredientPayload<ExtArgs>[]
-  }
+  objects: {}
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     organizationId: string
@@ -1439,10 +885,6 @@ readonly fields: DesktopBrandFieldRefs;
  */
 export interface Prisma__DesktopBrandClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  organization<T extends Prisma.DesktopOrganizationDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DesktopOrganizationDefaultArgs<ExtArgs>>): Prisma.Prisma__DesktopOrganizationClient<runtime.Types.Result.GetResult<Prisma.$DesktopOrganizationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  assets<T extends Prisma.DesktopBrand$assetsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DesktopBrand$assetsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DesktopAssetPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-  contentItems<T extends Prisma.DesktopBrand$contentItemsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DesktopBrand$contentItemsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DesktopContentItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-  ingredients<T extends Prisma.DesktopBrand$ingredientsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DesktopBrand$ingredientsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DesktopIngredientPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1499,10 +941,6 @@ export type DesktopBrandFindUniqueArgs<ExtArgs extends runtime.Types.Extensions.
    */
   omit?: Prisma.DesktopBrandOmit<ExtArgs> | null
   /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.DesktopBrandInclude<ExtArgs> | null
-  /**
    * Filter, which DesktopBrand to fetch.
    */
   where: Prisma.DesktopBrandWhereUniqueInput
@@ -1521,10 +959,6 @@ export type DesktopBrandFindUniqueOrThrowArgs<ExtArgs extends runtime.Types.Exte
    */
   omit?: Prisma.DesktopBrandOmit<ExtArgs> | null
   /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.DesktopBrandInclude<ExtArgs> | null
-  /**
    * Filter, which DesktopBrand to fetch.
    */
   where: Prisma.DesktopBrandWhereUniqueInput
@@ -1542,10 +976,6 @@ export type DesktopBrandFindFirstArgs<ExtArgs extends runtime.Types.Extensions.I
    * Omit specific fields from the DesktopBrand
    */
   omit?: Prisma.DesktopBrandOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.DesktopBrandInclude<ExtArgs> | null
   /**
    * Filter, which DesktopBrand to fetch.
    */
@@ -1595,10 +1025,6 @@ export type DesktopBrandFindFirstOrThrowArgs<ExtArgs extends runtime.Types.Exten
    */
   omit?: Prisma.DesktopBrandOmit<ExtArgs> | null
   /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.DesktopBrandInclude<ExtArgs> | null
-  /**
    * Filter, which DesktopBrand to fetch.
    */
   where?: Prisma.DesktopBrandWhereInput
@@ -1646,10 +1072,6 @@ export type DesktopBrandFindManyArgs<ExtArgs extends runtime.Types.Extensions.In
    * Omit specific fields from the DesktopBrand
    */
   omit?: Prisma.DesktopBrandOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.DesktopBrandInclude<ExtArgs> | null
   /**
    * Filter, which DesktopBrands to fetch.
    */
@@ -1699,10 +1121,6 @@ export type DesktopBrandCreateArgs<ExtArgs extends runtime.Types.Extensions.Inte
    */
   omit?: Prisma.DesktopBrandOmit<ExtArgs> | null
   /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.DesktopBrandInclude<ExtArgs> | null
-  /**
    * The data needed to create a DesktopBrand.
    */
   data: Prisma.XOR<Prisma.DesktopBrandCreateInput, Prisma.DesktopBrandUncheckedCreateInput>
@@ -1736,10 +1154,6 @@ export type DesktopBrandCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Ex
    */
   data: Prisma.DesktopBrandCreateManyInput | Prisma.DesktopBrandCreateManyInput[]
   skipDuplicates?: boolean
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.DesktopBrandIncludeCreateManyAndReturn<ExtArgs> | null
 }
 
 /**
@@ -1754,10 +1168,6 @@ export type DesktopBrandUpdateArgs<ExtArgs extends runtime.Types.Extensions.Inte
    * Omit specific fields from the DesktopBrand
    */
   omit?: Prisma.DesktopBrandOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.DesktopBrandInclude<ExtArgs> | null
   /**
    * The data needed to update a DesktopBrand.
    */
@@ -1810,10 +1220,6 @@ export type DesktopBrandUpdateManyAndReturnArgs<ExtArgs extends runtime.Types.Ex
    * Limit how many DesktopBrands to update.
    */
   limit?: number
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.DesktopBrandIncludeUpdateManyAndReturn<ExtArgs> | null
 }
 
 /**
@@ -1828,10 +1234,6 @@ export type DesktopBrandUpsertArgs<ExtArgs extends runtime.Types.Extensions.Inte
    * Omit specific fields from the DesktopBrand
    */
   omit?: Prisma.DesktopBrandOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.DesktopBrandInclude<ExtArgs> | null
   /**
    * The filter to search for the DesktopBrand to update in case it exists.
    */
@@ -1859,10 +1261,6 @@ export type DesktopBrandDeleteArgs<ExtArgs extends runtime.Types.Extensions.Inte
    */
   omit?: Prisma.DesktopBrandOmit<ExtArgs> | null
   /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.DesktopBrandInclude<ExtArgs> | null
-  /**
    * Filter which DesktopBrand to delete.
    */
   where: Prisma.DesktopBrandWhereUniqueInput
@@ -1883,78 +1281,6 @@ export type DesktopBrandDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.
 }
 
 /**
- * DesktopBrand.assets
- */
-export type DesktopBrand$assetsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the DesktopAsset
-   */
-  select?: Prisma.DesktopAssetSelect<ExtArgs> | null
-  /**
-   * Omit specific fields from the DesktopAsset
-   */
-  omit?: Prisma.DesktopAssetOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.DesktopAssetInclude<ExtArgs> | null
-  where?: Prisma.DesktopAssetWhereInput
-  orderBy?: Prisma.DesktopAssetOrderByWithRelationInput | Prisma.DesktopAssetOrderByWithRelationInput[]
-  cursor?: Prisma.DesktopAssetWhereUniqueInput
-  take?: number
-  skip?: number
-  distinct?: Prisma.DesktopAssetScalarFieldEnum | Prisma.DesktopAssetScalarFieldEnum[]
-}
-
-/**
- * DesktopBrand.contentItems
- */
-export type DesktopBrand$contentItemsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the DesktopContentItem
-   */
-  select?: Prisma.DesktopContentItemSelect<ExtArgs> | null
-  /**
-   * Omit specific fields from the DesktopContentItem
-   */
-  omit?: Prisma.DesktopContentItemOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.DesktopContentItemInclude<ExtArgs> | null
-  where?: Prisma.DesktopContentItemWhereInput
-  orderBy?: Prisma.DesktopContentItemOrderByWithRelationInput | Prisma.DesktopContentItemOrderByWithRelationInput[]
-  cursor?: Prisma.DesktopContentItemWhereUniqueInput
-  take?: number
-  skip?: number
-  distinct?: Prisma.DesktopContentItemScalarFieldEnum | Prisma.DesktopContentItemScalarFieldEnum[]
-}
-
-/**
- * DesktopBrand.ingredients
- */
-export type DesktopBrand$ingredientsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the DesktopIngredient
-   */
-  select?: Prisma.DesktopIngredientSelect<ExtArgs> | null
-  /**
-   * Omit specific fields from the DesktopIngredient
-   */
-  omit?: Prisma.DesktopIngredientOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.DesktopIngredientInclude<ExtArgs> | null
-  where?: Prisma.DesktopIngredientWhereInput
-  orderBy?: Prisma.DesktopIngredientOrderByWithRelationInput | Prisma.DesktopIngredientOrderByWithRelationInput[]
-  cursor?: Prisma.DesktopIngredientWhereUniqueInput
-  take?: number
-  skip?: number
-  distinct?: Prisma.DesktopIngredientScalarFieldEnum | Prisma.DesktopIngredientScalarFieldEnum[]
-}
-
-/**
  * DesktopBrand without action
  */
 export type DesktopBrandDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1966,8 +1292,4 @@ export type DesktopBrandDefaultArgs<ExtArgs extends runtime.Types.Extensions.Int
    * Omit specific fields from the DesktopBrand
    */
   omit?: Prisma.DesktopBrandOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.DesktopBrandInclude<ExtArgs> | null
 }

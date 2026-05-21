@@ -14,6 +14,7 @@ import {
   formatHarnessBrief,
 } from '@api/services/harness/harness-brief.util';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
+import { extractHashtags } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 
@@ -255,7 +256,7 @@ export class ContentGeneratorService {
         body: parsed.body,
         content: parsed.content,
         cta: parsed.cta,
-        hashtags: dto.hashtags ?? this.extractHashtags(parsed.content),
+        hashtags: dto.hashtags ?? extractHashtags(parsed.content),
         hook: parsed.hook,
         patternId: pattern._id?.toString(),
         patternUsed: pattern.extractedFormula ?? 'pattern',
@@ -283,7 +284,7 @@ export class ContentGeneratorService {
       for (const variation of variations.slice(0, count)) {
         results.push({
           content: variation,
-          hashtags: dto.hashtags ?? this.extractHashtags(variation),
+          hashtags: dto.hashtags ?? extractHashtags(variation),
           patternUsed: 'freeform',
         });
       }
@@ -489,10 +490,5 @@ Respond with JSON array:
       patternId: pattern._id?.toString(),
       patternUsed: pattern.extractedFormula ?? 'pattern',
     };
-  }
-
-  private extractHashtags(text: string): string[] {
-    const matches = text.match(/#\w+/g);
-    return matches ? matches.map((tag) => tag.slice(1)) : [];
   }
 }

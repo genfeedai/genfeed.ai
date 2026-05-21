@@ -90,10 +90,11 @@ export class AuthCliController {
       },
     };
 
-    const existingKeys = await this.apiKeysService.findAll(existingKeysQuery, {
-      limit: 100,
-      page: 1,
-    });
+    const existingKeys = await this.apiKeysService.findAll(
+      existingKeysQuery,
+      { limit: 100, page: 1 },
+      false,
+    );
 
     for (const existingKey of existingKeys.docs) {
       await this.apiKeysService.revoke(existingKey.id.toString());

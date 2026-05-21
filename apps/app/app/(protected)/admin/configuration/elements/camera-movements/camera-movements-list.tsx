@@ -147,7 +147,7 @@ function CameraMovementsListContent({
                 isError: true,
                 label: 'Delete Camera Movement',
                 message: `Are you sure you want to delete "${movement.label}"? This action cannot be undone.`,
-                onConfirm: () => handleDelete(),
+                onConfirm: () => handleDelete(movement),
               });
             },
             tooltip: 'Delete',
@@ -228,14 +228,10 @@ function CameraMovementsListContent({
     openModal(modalId);
   };
 
-  const handleDelete = async () => {
-    if (!selectedCameraMovement) {
-      return;
-    }
-
+  const handleDelete = async (movement: IElementCameraMovement) => {
     try {
       const service = await getCameraMovementsService();
-      await service.delete(selectedCameraMovement.id);
+      await service.delete(movement.id);
       notificationsService.success('Camera movement deleted');
       setSelectedCameraMovement(null);
       findAllCameraMovements(true);

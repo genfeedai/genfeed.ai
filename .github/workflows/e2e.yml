@@ -39,7 +39,7 @@ jobs:
       # Mock all external service keys
       REPLICATE_API_TOKEN: test-mock-key
       STRIPE_SECRET_KEY: test-mock-key
-      CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY || 'sk_test_lGlxOC4Eb3Tu9w8zILZg9woi97tuo49IWsx7P3E986' }}
+      CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY || 'test-mock-clerk-key' }}
     steps:
       - uses: actions/checkout@v5
 
@@ -73,7 +73,7 @@ jobs:
         run: bun install
 
       - name: Build packages
-        run: bunx turbo build --filter="./packages/*"
+        run: bunx turbo run build --filter="./packages/*"
 
       - name: Run API E2E smoke tests
         run: bun run --cwd apps/server/api test:e2e:ci
@@ -133,9 +133,9 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Build app
-        run: bunx turbo build --filter=@genfeedai/app
+        run: bunx turbo run build --filter=@genfeedai/app
         env:
-          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY || 'sk_test_lGlxOC4Eb3Tu9w8zILZg9woi97tuo49IWsx7P3E986' }}
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY || 'test-mock-clerk-key' }}
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_ZW5nYWdlZC1wYW50aGVyLTcxLmNsZXJrLmFjY291bnRzLmRldiQ' }}
           NEXT_PUBLIC_API_URL: http://localhost:3010
 
@@ -144,7 +144,7 @@ jobs:
         env:
           CI: true
           APP_BASE_URL: http://localhost:3000
-          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY || 'sk_test_lGlxOC4Eb3Tu9w8zILZg9woi97tuo49IWsx7P3E986' }}
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY || 'test-mock-clerk-key' }}
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_ZW5nYWdlZC1wYW50aGVyLTcxLmNsZXJrLmFjY291bnRzLmRldiQ' }}
 
       - name: Upload Playwright report

@@ -6,7 +6,10 @@ import { UsersService } from '@api/collections/users/services/users.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
-import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
+import {
+  AgentOrchestratorService,
+  type AgentPageContext,
+} from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { AGENT_MODEL_TURN_COSTS } from '@api/services/agent-orchestrator/constants/agent-credit-costs.constant';
 import type { User } from '@clerk/backend';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -32,6 +35,7 @@ interface AgentChatAttachment {
 
 interface AgentChatBody {
   content: string;
+  pageContext?: AgentPageContext;
   planModeEnabled?: boolean;
   threadId?: string;
   model?: string;
@@ -67,6 +71,7 @@ export class AgentOrchestratorController {
           attachments: body.attachments,
           content: body.content,
           model: body.model,
+          pageContext: body.pageContext,
           planModeEnabled: body.planModeEnabled,
           source: body.source,
           threadId: body.threadId,
@@ -101,6 +106,7 @@ export class AgentOrchestratorController {
           attachments: body.attachments,
           content: body.content,
           model: body.model,
+          pageContext: body.pageContext,
           planModeEnabled: body.planModeEnabled,
           source: body.source,
           threadId: body.threadId,

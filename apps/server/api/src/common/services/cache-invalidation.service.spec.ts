@@ -1,5 +1,6 @@
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { CacheClientService } from '@api/services/cache/services/cache-client.service';
+import { CacheTagsService } from '@api/services/cache/services/cache-tags.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 
@@ -20,6 +21,10 @@ describe('CacheInvalidationService', () => {
     },
   };
 
+  const mockCacheTagsService = {
+    invalidateByTags: vi.fn(),
+  };
+
   const mockLogger = {
     debug: vi.fn(),
     error: vi.fn(),
@@ -33,6 +38,10 @@ describe('CacheInvalidationService', () => {
         {
           provide: CacheClientService,
           useValue: mockCacheClientService,
+        },
+        {
+          provide: CacheTagsService,
+          useValue: mockCacheTagsService,
         },
         {
           provide: LoggerService,
@@ -129,6 +138,55 @@ describe('CacheInvalidationService', () => {
         service.invalidatePattern('brands:*'),
       ).resolves.not.toThrow();
       expect(mockLogger.error).toHaveBeenCalled();
+    });
+  });
+
+  describe('invalidateByTags', () => {
+    it('should delegate to CacheTagsService and return count', async () => {
+      mockCacheTagsService.invalidateByTags.mockResolvedValue(5);
+
+      const count = await service.invalidateByTags(['user', 'profile']);
+
+      expect(mockCacheTagsService.invalidateByTags).toHaveBeenCalledWith([
+        'user',
+        'profile',
+      ]);
+      expect(count).toBe(5);
+    });
+
+    it('should return 0 and log on error', async () => {
+      mockCacheTagsService.invalidateByTags.mockRejectedValue(
+        new Error('Redis unavailable'),
+      );
+
+      const count = await service.invalidateByTags(['user']);
+
+      expect(count).toBe(0);
+      expect(mockLogger.error).toHaveBeenCalled();
+    });
+  });
+
+  describe('invalidateForUser', () => {
+    it('should invalidate with user tag', async () => {
+      mockCacheTagsService.invalidateByTags.mockResolvedValue(3);
+
+      await service.invalidateForUser('user-123');
+
+      expect(mockCacheTagsService.invalidateByTags).toHaveBeenCalledWith([
+        'user:user-123',
+      ]);
+    });
+  });
+
+  describe('invalidateForController', () => {
+    it('should invalidate with lowercased controller name', async () => {
+      mockCacheTagsService.invalidateByTags.mockResolvedValue(10);
+
+      await service.invalidateForController('UserController');
+
+      expect(mockCacheTagsService.invalidateByTags).toHaveBeenCalledWith([
+        'usercontroller',
+      ]);
     });
   });
 });

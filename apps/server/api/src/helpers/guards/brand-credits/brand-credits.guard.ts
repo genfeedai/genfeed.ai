@@ -61,6 +61,7 @@ export class BrandCreditsGuard extends CreditsGuard implements CanActivate {
         },
       },
       { pagination: false },
+      false,
     );
 
     const brandCount = existingBrands.docs.length;

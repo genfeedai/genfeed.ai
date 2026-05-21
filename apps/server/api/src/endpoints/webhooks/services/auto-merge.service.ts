@@ -204,9 +204,11 @@ export class AutoMergeService {
       orderBy: { groupIndex: 1 as const },
     };
 
-    const result = await this.ingredientsService.findAll(groupAggregate, {
-      pagination: false,
-    });
+    const result = await this.ingredientsService.findAll(
+      groupAggregate,
+      { pagination: false },
+      false,
+    );
     return result.docs || [];
   }
 

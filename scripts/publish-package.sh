@@ -16,7 +16,7 @@
 # Requirements:
 #   - bun >= 1.2 (for workspace:* resolution)
 #   - NPM_TOKEN env var or ~/.npmrc with auth
-#   - Clean git working tree
+#   - Clean git working tree unless PUBLISH_SKIP_CLEAN_CHECK=true
 
 set -euo pipefail
 
@@ -65,18 +65,29 @@ fi
 echo "=== Publishing $PKG_NAME ==="
 
 # Ensure clean working tree before publishing
-if ! git diff-index --quiet HEAD --; then
+if [ "${PUBLISH_SKIP_CLEAN_CHECK:-false}" != "true" ] && ! git diff-index --quiet HEAD --; then
   echo "Error: Working tree must be clean before publishing."
   exit 1
 fi
 
-# Build first
-echo "Building $PKG_NAME..."
 cd "$PKG_DIR"
 ORIGINAL_VERSION=$(grep '"version"' package.json | head -1 | sed 's/.*"\([0-9][^"]*\)".*/\1/')
+ROLLBACK_VERSION=false
 
-if grep -q '"build"' package.json; then
-  bun run build
+restore_original_version() {
+  if [ "$ROLLBACK_VERSION" = true ]; then
+    node -e '
+      const fs = require("node:fs");
+      const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8"));
+      packageJson.version = process.argv[1];
+      fs.writeFileSync("package.json", `${JSON.stringify(packageJson, null, 2)}\n`);
+    ' "$ORIGINAL_VERSION"
+  fi
+}
+
+if [ "$DRY_RUN" = true ] && [ "$BUMP" != "--no-bump" ]; then
+  ROLLBACK_VERSION=true
+  trap restore_original_version EXIT
 fi
 
 # Bump version (unless --no-bump)
@@ -119,6 +130,13 @@ fi
 VERSION=$(grep '"version"' package.json | head -1 | sed 's/.*"\([0-9][^"]*\)".*/\1/')
 echo "Version: $VERSION"
 
+# Build after the version bump so any versioned artifacts match the package
+# version that will be published.
+echo "Building $PKG_NAME..."
+if grep -q '"build"' package.json; then
+  bun run build
+fi
+
 # Publish with bun (resolves workspace:* → real versions)
 if [ "$DRY_RUN" = true ]; then
   echo "Dry-run publishing $PKG_NAME@$VERSION..."
@@ -131,12 +149,9 @@ fi
 echo ""
 if [ "$DRY_RUN" = true ]; then
   if [ "$BUMP" != "--no-bump" ]; then
-    node -e '
-      const fs = require("node:fs");
-      const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8"));
-      packageJson.version = process.argv[1];
-      fs.writeFileSync("package.json", `${JSON.stringify(packageJson, null, 2)}\n`);
-    ' "$ORIGINAL_VERSION"
+    restore_original_version
+    ROLLBACK_VERSION=false
+    trap - EXIT
   fi
   echo "=== Dry run complete for $PKG_NAME@$VERSION ==="
 else

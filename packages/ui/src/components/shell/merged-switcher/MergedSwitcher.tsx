@@ -13,8 +13,6 @@ import {
   HiOutlineChartBar,
   HiOutlineChatBubbleLeftRight,
   HiOutlineChevronDown,
-  HiOutlineDocumentText,
-  HiOutlineEnvelope,
   HiOutlineFilm,
   HiOutlineFolderOpen,
   HiOutlineMicrophone,
@@ -50,20 +48,6 @@ interface NavItemConfig {
 
 const GENERATION_TYPES: GenerationTypeConfig[] = [
   {
-    type: GenerationType.POST,
-    icon: HiOutlineDocumentText,
-    label: 'Post',
-    iconClass: 'text-indigo-400',
-    wrapClass: 'bg-indigo-500/20 border-indigo-500/25',
-  },
-  {
-    type: GenerationType.NEWSLETTER,
-    icon: HiOutlineEnvelope,
-    label: 'Newsletter',
-    iconClass: 'text-amber-400',
-    wrapClass: 'bg-amber-500/20 border-amber-500/25',
-  },
-  {
     type: GenerationType.VIDEO,
     icon: HiOutlineVideoCamera,
     label: 'Video',
@@ -78,25 +62,11 @@ const GENERATION_TYPES: GenerationTypeConfig[] = [
     wrapClass: 'bg-emerald-500/20 border-emerald-500/25',
   },
   {
-    type: GenerationType.BLOG,
-    icon: HiOutlinePencilSquare,
-    label: 'Blog',
-    iconClass: 'text-sky-400',
-    wrapClass: 'bg-sky-500/20 border-sky-500/25',
-  },
-  {
     type: GenerationType.PODCAST,
     icon: HiOutlineMicrophone,
-    label: 'Podcast',
+    label: 'Audio',
     iconClass: 'text-purple-400',
     wrapClass: 'bg-purple-500/20 border-purple-500/25',
-  },
-  {
-    type: GenerationType.THREAD,
-    icon: HiOutlineChatBubbleLeftRight,
-    label: 'Thread',
-    iconClass: 'text-orange-400',
-    wrapClass: 'bg-orange-500/20 border-orange-500/25',
   },
   {
     type: GenerationType.CLIP,
@@ -115,6 +85,14 @@ const NAV_ITEMS: NavItemConfig[] = [
     description: 'Workspace & dashboard',
     route: (org, brand) =>
       brand ? `/${org}/${brand}/workspace` : `/${org}/~/overview`,
+  },
+  {
+    id: 'compose',
+    icon: HiOutlinePencilSquare,
+    label: 'Write',
+    description: 'Drafts & editor',
+    route: (org, brand) =>
+      brand ? `/${org}/${brand}/compose/post` : `/${org}/~/overview`,
   },
   {
     id: 'workflows',
@@ -149,6 +127,13 @@ const NAV_ITEMS: NavItemConfig[] = [
       brand
         ? `/${org}/${brand}/analytics/overview`
         : `/${org}/~/analytics/overview`,
+  },
+  {
+    id: 'agent',
+    icon: HiOutlineChatBubbleLeftRight,
+    label: 'Agent',
+    description: 'Full thread',
+    route: (org) => `/${org}/~/chat`,
   },
 ];
 
@@ -186,6 +171,7 @@ export function MergedSwitcher({
     (g) => g.type === currentGenerationType,
   );
   const activeNavItem = NAV_ITEMS.find((n) => n.id === currentApp);
+  const writeNavItem = NAV_ITEMS.find((item) => item.id === 'compose');
 
   const TriggerIcon = activeGenType?.icon ?? TbGridDots;
   const triggerLabel = activeGenType?.label ?? activeNavItem?.label ?? 'Switch';
@@ -230,14 +216,7 @@ export function MergedSwitcher({
           <span className="text-[9.5px] font-bold uppercase tracking-[0.07em] text-foreground/25">
             Generate
           </span>
-          <Button
-            type="button"
-            variant={ButtonVariant.UNSTYLED}
-            withWrapper={false}
-            className="text-[10.5px] text-foreground/25 hover:text-foreground/50 transition-colors"
-          >
-            Manage types
-          </Button>
+          <span className="text-[10.5px] text-foreground/25">Media modes</span>
         </div>
 
         <div className="grid grid-cols-4 gap-0.5 px-1.5 pb-2">
@@ -358,14 +337,15 @@ export function MergedSwitcher({
 
         {/* ── Footer ── */}
         <div className="border-t border-white/[0.06] px-2.5 py-1.5">
-          <Button
-            type="button"
-            variant={ButtonVariant.UNSTYLED}
-            withWrapper={false}
-            className="text-[10.5px] text-foreground/22 hover:text-foreground/45 transition-colors"
-          >
-            + Custom type
-          </Button>
+          {writeNavItem ? (
+            <Link
+              href={getNavHref(writeNavItem)}
+              onClick={() => setIsOpen(false)}
+              className="text-[10.5px] text-foreground/35 transition-colors hover:text-foreground/60"
+            >
+              Open Write
+            </Link>
+          ) : null}
         </div>
       </DropdownMenuContent>
     </DropdownMenu>

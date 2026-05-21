@@ -432,9 +432,16 @@ export interface AgentThreadSnapshot {
 }
 
 export interface AgentPageContext {
-  url?: string;
+  contentFormat?: string;
+  draftBody?: string;
+  draftInstructions?: string;
+  draftSummary?: string;
+  draftTitle?: string;
+  draftType?: string;
   postContent?: string;
   postAuthor?: string;
+  route?: string;
+  url?: string;
 }
 
 export interface SendMessagePayload {
@@ -468,6 +475,7 @@ export interface AgentChatPayload {
   model?: string;
   source?: 'agent' | 'proactive' | 'onboarding';
   attachments?: ChatAttachment[];
+  pageContext?: AgentPageContext;
   planModeEnabled?: boolean;
   brandIds?: string[];
   teamMemberIds?: string[];

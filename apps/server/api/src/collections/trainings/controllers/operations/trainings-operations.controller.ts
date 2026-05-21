@@ -126,6 +126,7 @@ export class TrainingsOperationsController {
           {
             pagination: false,
           },
+          false,
         );
 
         sourceImages = ((sourceResult.docs as TrainingSourceImage[]) ?? []).map(

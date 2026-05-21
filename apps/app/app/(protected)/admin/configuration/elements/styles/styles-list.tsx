@@ -235,21 +235,17 @@ function StylesListContent({
         isError: true,
         label: 'Delete Style',
         message: `Are you sure you want to delete "${style.label}"? This action cannot be undone.`,
-        onConfirm: handleDelete,
+        onConfirm: () => handleDelete(style),
       });
     }
 
     openModal(modalId);
   };
 
-  const handleDelete = async () => {
-    if (!selectedStyle) {
-      return;
-    }
-
+  const handleDelete = async (style: IElementStyle) => {
     try {
       const service = await getStylesService();
-      await service.delete(selectedStyle.id);
+      await service.delete(style.id);
       notificationsService.success('Style deleted');
       setSelectedStyle(null);
       findAllStyles(true);

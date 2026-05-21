@@ -132,14 +132,14 @@ const TASK_MODE_OPTIONS: Array<{
   },
 ];
 
-function getBrandDisplayLabel(brand?: {
+export function getBrandDisplayLabel(brand?: {
   label?: string;
   name?: string | null;
 }) {
   return brand?.label || brand?.name || 'Selected brand';
 }
 
-function extractBrandMentionMatch(
+export function extractBrandMentionMatch(
   node: JSONContent | null | undefined,
 ): WorkspaceBrandMentionMatch | null {
   if (!node) {
@@ -163,7 +163,7 @@ function extractBrandMentionMatch(
   return null;
 }
 
-function WorkspaceBrandMentionList({
+export function WorkspaceBrandMentionList({
   command,
   items,
   ref,

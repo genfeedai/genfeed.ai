@@ -108,6 +108,84 @@ jobs:
           flags: hooks
           fail_ci_if_error: false
 
+  # ── App — sharded 4-way to keep Next/Vitest memory bounded ──
+  coverage-app:
+    name: Coverage — apps/app (shard ${{ matrix.shard }}/4)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+        with:
+          node-version: "22.x"
+          install-command: "bun install --frozen-lockfile"
+
+      - name: Build workspace
+        run: bunx turbo run build --filter='./apps/app...'
+
+      - name: Run coverage
+        run: cd apps/app && bun run test:cov:shard -- --reporter=blob --shard=${{ matrix.shard }}/4
+        env:
+          NODE_ENV: test
+
+      - name: Upload blob report artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-app-blob-${{ matrix.shard }}
+          path: apps/app/.vitest-reports/
+          retention-days: 7
+
+  coverage-app-merge:
+    name: Coverage — apps/app (merge)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: coverage-app
+    if: always()
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+        with:
+          node-version: "22.x"
+          install-command: "bun install --frozen-lockfile"
+
+      - name: Download blob report artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: coverage-app-blob-*
+          path: apps/app/.vitest-reports
+          merge-multiple: true
+
+      - name: Merge coverage reports
+        run: cd apps/app && bunx vitest --merge-reports .vitest-reports --coverage --config ./vitest.config.mts
+        env:
+          NODE_ENV: test
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-app
+          path: apps/app/coverage/
+          retention-days: 7
+
+      - name: Report coverage to Codecov
+        uses: codecov/codecov-action@v6
+        if: always()
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          directory: apps/app/coverage
+          flags: app
+          fail_ci_if_error: false
+
   # ── API — sharded 4-way; needs CLERK_SECRET_KEY env ──
   coverage-api:
     name: Coverage — apps/server/api (shard ${{ matrix.shard }}/4)

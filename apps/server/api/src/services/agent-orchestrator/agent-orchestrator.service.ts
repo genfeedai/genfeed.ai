@@ -283,10 +283,24 @@ export interface AgentChatAttachment {
   name?: string;
 }
 
+export interface AgentPageContext {
+  contentFormat?: string;
+  draftBody?: string;
+  draftInstructions?: string;
+  draftSummary?: string;
+  draftTitle?: string;
+  draftType?: string;
+  postAuthor?: string;
+  postContent?: string;
+  route?: string;
+  url?: string;
+}
+
 export interface AgentChatRequest {
   agentType?: AgentType;
   attachments?: AgentChatAttachment[];
   content: string;
+  pageContext?: AgentPageContext;
   planModeEnabled?: boolean;
   threadId?: string;
   model?: string;
@@ -337,7 +351,50 @@ export interface AgentThreadUiActionRequest {
   threadId: string;
 }
 
+const MAX_PAGE_CONTEXT_FIELD_LENGTH = 4_000;
 const RESULT_SUMMARY_MAX_LENGTH = 500;
+
+function clampPageContextField(value?: string): string | null {
+  const normalized = value?.replace(/\s+/g, ' ').trim();
+
+  if (!normalized) {
+    return null;
+  }
+
+  if (normalized.length <= MAX_PAGE_CONTEXT_FIELD_LENGTH) {
+    return normalized;
+  }
+
+  return `${normalized.slice(0, MAX_PAGE_CONTEXT_FIELD_LENGTH)}...`;
+}
+
+function buildPageContextPrompt(pageContext?: AgentPageContext): string {
+  if (!pageContext) {
+    return '';
+  }
+
+  const fields = [
+    ['Route', pageContext.route || pageContext.url],
+    ['Draft type', pageContext.draftType],
+    ['Format', pageContext.contentFormat],
+    ['Title', pageContext.draftTitle],
+    ['Summary', pageContext.draftSummary],
+    ['Instructions', pageContext.draftInstructions],
+    ['Draft body', pageContext.draftBody || pageContext.postContent],
+  ]
+    .map(([label, value]) => {
+      const clamped = clampPageContextField(value);
+      return clamped ? `- ${label}: ${clamped}` : null;
+    })
+    .filter(Boolean)
+    .join('\n');
+
+  if (!fields) {
+    return '';
+  }
+
+  return `\n\n## Current Page Context\nThe user is working in a visible Genfeed surface. Use this context when answering, especially for writing co-pilot requests. Propose edits, structure, or next actions against the current draft instead of starting from scratch unless asked.\n${fields}`;
+}
 
 function summarizeToolResult(result: {
   success: boolean;
@@ -3591,9 +3648,13 @@ export class AgentOrchestratorService {
     }
 
     if (thread?.systemPrompt) {
-      const prompt = skillPromptSuffix
-        ? `${thread.systemPrompt}\n\n${skillPromptSuffix}`
-        : thread.systemPrompt;
+      const prompt = [
+        thread.systemPrompt,
+        skillPromptSuffix,
+        buildPageContextPrompt(request.pageContext),
+      ]
+        .filter(Boolean)
+        .join('\n\n');
       return {
         memories,
         model: resolveModel(brandContext?.defaultModel),
@@ -3604,9 +3665,13 @@ export class AgentOrchestratorService {
     }
 
     if (request.systemPromptOverride) {
-      const prompt = skillPromptSuffix
-        ? `${request.systemPromptOverride}\n\n${skillPromptSuffix}`
-        : request.systemPromptOverride;
+      const prompt = [
+        request.systemPromptOverride,
+        skillPromptSuffix,
+        buildPageContextPrompt(request.pageContext),
+      ]
+        .filter(Boolean)
+        .join('\n\n');
       return {
         memories,
         model: resolveModel(brandContext?.defaultModel),
@@ -3623,7 +3688,8 @@ export class AgentOrchestratorService {
     const basePrompt =
       SYSTEM_PROMPT +
       (typeSuffix || platformSuffix) +
-      (skillPromptSuffix ? `\n\n${skillPromptSuffix}` : '');
+      (skillPromptSuffix ? `\n\n${skillPromptSuffix}` : '') +
+      buildPageContextPrompt(request.pageContext);
 
     if (brandContext) {
       const systemPrompt = this.contextAssemblyService.buildSystemPrompt(

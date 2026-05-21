@@ -111,6 +111,7 @@ export function useAgentChatStream(
     (s) => s.setSocketConnectionState,
   );
   const updateThread = useAgentChatStore((s) => s.updateThread);
+  const pageContext = useAgentChatStore((s) => s.pageContext);
 
   const appendStreamToken = useAgentChatStore((s) => s.appendStreamToken);
   const setStreamingReasoning = useAgentChatStore(
@@ -987,6 +988,7 @@ export function useAgentChatStream(
               attachments: sendOptions?.attachments,
               content,
               model: resolvedModel,
+              pageContext,
               planModeEnabled: sendOptions?.planModeEnabled,
               source: sendOptions?.source,
               threadId: currentActiveThreadId ?? undefined,
@@ -1047,6 +1049,7 @@ export function useAgentChatStream(
     },
     [
       model,
+      pageContext,
       apiService,
       isReady,
       subscribe,

@@ -1920,309 +1920,307 @@ function WorkspacePageContentContent({
         </section>
       ) : null}
 
-      {isOverviewSection ? null : (
+      <div className={WORKSPACE_SECTION_STACK_CLASS}>
         <div className={WORKSPACE_SECTION_STACK_CLASS}>
-          <div className={WORKSPACE_SECTION_STACK_CLASS}>
-            {isOverviewSection ? (
-              <section id="task-queue" data-testid="workspace-task-list">
-                <Card
-                  label="Task queue"
-                  description="Recent task requests across triage, active work, review, and completed output."
-                  bodyClassName="space-y-3 p-4"
-                >
-                  {renderTaskStream(
-                    activityItems,
-                    'No tasks yet. Start the first one from New Task.',
-                  )}
-                </Card>
-              </section>
-            ) : null}
-
-            {shouldShowInbox ? (
-              <section data-testid="workspace-inbox" className="space-y-3">
-                <h2 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/35">
-                  {section === 'inbox' ? defaultInboxView : 'Inbox'}
-                </h2>
-                <AppTable<Task>
-                  items={
-                    section === 'inbox'
-                      ? visibleInboxTasks
-                      : reviewInboxTasks.slice(0, 5)
-                  }
-                  emptyLabel={
-                    section === 'inbox' && defaultInboxView === 'unread'
-                      ? 'No unread inbox items right now.'
-                      : 'No inbox items yet.'
-                  }
-                  getRowKey={(task) => task.id}
-                  getItemId={(task) => task.id}
-                  onRowClick={(task) => {
-                    setSelectedTaskId(task.id);
-                    replaceTaskSearchParam(task.id);
-                  }}
-                  columns={[
-                    {
-                      key: 'title',
-                      header: 'Task',
-                      render: (task) => (
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <span
-                            className={cn(
-                              'h-2 w-2 shrink-0 rounded-full',
-                              getTaskStateDotClass(task),
-                            )}
-                          />
-                          <span className="truncate font-medium text-foreground">
-                            {task.title}
-                          </span>
-                        </div>
-                      ),
-                    },
-                    {
-                      key: 'status',
-                      header: 'Status',
-                      className: 'w-32',
-                      render: (task) => (
-                        <span className="text-xs text-foreground/60">
-                          {formatTaskStatus(task)}
-                        </span>
-                      ),
-                    },
-                    {
-                      key: 'executionPathUsed',
-                      header: 'Path',
-                      className: 'w-36 hidden lg:table-cell',
-                      render: (task) => (
-                        <span className="text-xs text-foreground/45">
-                          {task.executionPathUsed?.replaceAll('_', ' ') ?? ':'}
-                        </span>
-                      ),
-                    },
-                    {
-                      key: 'updatedAt',
-                      header: 'Updated',
-                      className: 'w-28 text-right',
-                      render: (task) => (
-                        <span className="text-xs text-foreground/40">
-                          {formatTaskTimestamp(task)}
-                        </span>
-                      ),
-                    },
-                  ]}
-                />
-              </section>
-            ) : null}
-
-            {shouldShowHistory ? (
-              <section data-testid="workspace-activity" className="space-y-3">
-                <h2 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/35">
-                  Activity
-                </h2>
-                <AppTable<Task>
-                  items={activityItems}
-                  emptyLabel="Activity will appear here once tasks start running."
-                  getRowKey={(task) => task.id}
-                  getItemId={(task) => task.id}
-                  onRowClick={(task) => {
-                    setSelectedTaskId(task.id);
-                    replaceTaskSearchParam(task.id);
-                  }}
-                  columns={[
-                    {
-                      key: 'title',
-                      header: 'Task',
-                      render: (task) => (
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <span
-                            className={cn(
-                              'h-2 w-2 shrink-0 rounded-full',
-                              getTaskStateDotClass(task),
-                            )}
-                          />
-                          <span className="truncate font-medium text-foreground">
-                            {task.title}
-                          </span>
-                        </div>
-                      ),
-                    },
-                    {
-                      key: 'status',
-                      header: 'Status',
-                      className: 'w-32',
-                      render: (task) => (
-                        <span className="text-xs text-foreground/60">
-                          {formatTaskStatus(task)}
-                        </span>
-                      ),
-                    },
-                    {
-                      key: 'executionPathUsed',
-                      header: 'Path',
-                      className: 'w-36 hidden lg:table-cell',
-                      render: (task) => (
-                        <span className="text-xs text-foreground/45">
-                          {task.executionPathUsed?.replaceAll('_', ' ') ?? ':'}
-                        </span>
-                      ),
-                    },
-                    {
-                      key: 'updatedAt',
-                      header: 'Updated',
-                      className: 'w-28 text-right',
-                      render: (task) => (
-                        <span className="text-xs text-foreground/40">
-                          {formatTaskTimestamp(task)}
-                        </span>
-                      ),
-                    },
-                  ]}
-                />
-              </section>
-            ) : null}
-          </div>
-
           {isOverviewSection ? (
-            <div className={WORKSPACE_SECTION_STACK_CLASS}>
-              <section data-testid="workspace-in-progress">
-                <Card
-                  label="In progress"
-                  description="Active workspace tasks and live execution state."
-                  bodyClassName="space-y-3 p-4"
-                >
-                  {renderTaskStream(
-                    inProgressTasks,
-                    'No active workspace tasks right now.',
-                  )}
+            <section id="task-queue" data-testid="workspace-task-list">
+              <Card
+                label="Task queue"
+                description="Recent task requests across triage, active work, review, and completed output."
+                bodyClassName="space-y-3 p-4"
+              >
+                {renderTaskStream(
+                  activityItems,
+                  'No tasks yet. Start the first one from New Task.',
+                )}
+              </Card>
+            </section>
+          ) : null}
 
-                  <div className="border-t border-white/[0.06] pt-4">
-                    <div className="flex items-center justify-between text-sm text-foreground/55">
-                      <span>Live runs</span>
-                      <span>{initialActiveRuns.length}</span>
-                    </div>
-                  </div>
-                </Card>
-              </section>
-
-              <section data-testid="workspace-recent-outputs">
-                <Card
-                  label="Recent outputs"
-                  description="Latest generated ingredients and posts."
-                  bodyClassName="p-4"
-                >
-                  {initialReviewInbox.recentItems.length > 0 ? (
-                    <div className="divide-y divide-white/[0.06]">
-                      {initialReviewInbox.recentItems.map((item) => (
-                        <div
-                          key={item.id}
-                          className="flex items-start justify-between gap-4 py-4 first:pt-0 last:pb-0"
-                        >
-                          <div className="space-y-1">
-                            <p className="text-sm font-semibold text-foreground">
-                              {item.summary}
-                            </p>
-                            <p className="text-sm text-foreground/55">
-                              {item.format}
-                              {item.platform ? ` on ${item.platform}` : ''}
-                            </p>
-                            <p className="text-xs text-foreground/40">
-                              <ClientFormattedDate value={item.createdAt} />
-                            </p>
-                          </div>
-                          {item.reviewDecision === 'approved' ? (
-                            <HiOutlineCheckCircle className="size-5 text-emerald-300" />
-                          ) : item.reviewDecision === 'request_changes' ? (
-                            <HiOutlineClipboardDocumentCheck className="size-5 text-amber-300" />
-                          ) : (
-                            <HiOutlineInboxStack className="size-5 text-foreground/40" />
+          {shouldShowInbox ? (
+            <section data-testid="workspace-inbox" className="space-y-3">
+              <h2 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/35">
+                {section === 'inbox' ? defaultInboxView : 'Inbox'}
+              </h2>
+              <AppTable<Task>
+                items={
+                  section === 'inbox'
+                    ? visibleInboxTasks
+                    : reviewInboxTasks.slice(0, 5)
+                }
+                emptyLabel={
+                  section === 'inbox' && defaultInboxView === 'unread'
+                    ? 'No unread inbox items right now.'
+                    : 'No inbox items yet.'
+                }
+                getRowKey={(task) => task.id}
+                getItemId={(task) => task.id}
+                onRowClick={(task) => {
+                  setSelectedTaskId(task.id);
+                  replaceTaskSearchParam(task.id);
+                }}
+                columns={[
+                  {
+                    key: 'title',
+                    header: 'Task',
+                    render: (task) => (
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span
+                          className={cn(
+                            'h-2 w-2 shrink-0 rounded-full',
+                            getTaskStateDotClass(task),
                           )}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-foreground/45">
-                      Recent outputs will appear here once the workspace starts
-                      routing work.
-                    </p>
-                  )}
-                </Card>
-              </section>
+                        />
+                        <span className="truncate font-medium text-foreground">
+                          {task.title}
+                        </span>
+                      </div>
+                    ),
+                  },
+                  {
+                    key: 'status',
+                    header: 'Status',
+                    className: 'w-32',
+                    render: (task) => (
+                      <span className="text-xs text-foreground/60">
+                        {formatTaskStatus(task)}
+                      </span>
+                    ),
+                  },
+                  {
+                    key: 'executionPathUsed',
+                    header: 'Path',
+                    className: 'w-36 hidden lg:table-cell',
+                    render: (task) => (
+                      <span className="text-xs text-foreground/45">
+                        {task.executionPathUsed?.replaceAll('_', ' ') ?? ':'}
+                      </span>
+                    ),
+                  },
+                  {
+                    key: 'updatedAt',
+                    header: 'Updated',
+                    className: 'w-28 text-right',
+                    render: (task) => (
+                      <span className="text-xs text-foreground/40">
+                        {formatTaskTimestamp(task)}
+                      </span>
+                    ),
+                  },
+                ]}
+              />
+            </section>
+          ) : null}
 
-              <section data-testid="workspace-history-preview">
-                <Card
-                  label="Recent activity"
-                  description="Execution logs stay available without owning the main navigation."
-                  headerAction={
-                    <Button
-                      asChild
-                      variant={ButtonVariant.SECONDARY}
-                      size={ButtonSize.SM}
-                    >
-                      <Link href="/workspace/inbox/unread">Open Inbox</Link>
-                    </Button>
-                  }
-                  bodyClassName="p-4"
-                >
-                  {renderTaskRows(
-                    historyPreviewItems,
-                    'Activity will appear here once the workspace starts routing work.',
-                  )}
-                </Card>
-              </section>
-
-              <section data-testid="workspace-library-snapshot">
-                <Card
-                  label="Library snapshot"
-                  description="Keep the ingredient library one click away from the dashboard."
-                  bodyClassName="p-4"
-                >
-                  <div className="divide-y divide-white/[0.06]">
-                    {LIBRARY_SNAPSHOT_LINKS.map((item) => (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        className="block py-4 first:pt-0 last:pb-0"
-                      >
-                        <p className="text-sm font-semibold text-foreground">
-                          {item.label}
-                        </p>
-                        <p className="mt-1 text-sm text-foreground/55">
-                          {item.description}
-                        </p>
-                      </Link>
-                    ))}
-                  </div>
-                </Card>
-              </section>
-
-              <section data-testid="workspace-advanced-tools">
-                <Card
-                  label="Operator tools"
-                  description="Manual and expert surfaces stay available without owning the main navigation."
-                  bodyClassName="p-4"
-                >
-                  <div className="divide-y divide-white/[0.06]">
-                    {ADVANCED_TOOLS.map((tool) => (
-                      <Link
-                        key={tool.href}
-                        href={tool.href}
-                        aria-label={tool.label}
-                        className="block py-4 first:pt-0 last:pb-0"
-                      >
-                        <p className="text-sm font-semibold text-foreground">
-                          {tool.label}
-                        </p>
-                        <p className="mt-1 text-sm text-foreground/55">
-                          {tool.description}
-                        </p>
-                      </Link>
-                    ))}
-                  </div>
-                </Card>
-              </section>
-            </div>
+          {shouldShowHistory ? (
+            <section data-testid="workspace-activity" className="space-y-3">
+              <h2 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/35">
+                Activity
+              </h2>
+              <AppTable<Task>
+                items={activityItems}
+                emptyLabel="Activity will appear here once tasks start running."
+                getRowKey={(task) => task.id}
+                getItemId={(task) => task.id}
+                onRowClick={(task) => {
+                  setSelectedTaskId(task.id);
+                  replaceTaskSearchParam(task.id);
+                }}
+                columns={[
+                  {
+                    key: 'title',
+                    header: 'Task',
+                    render: (task) => (
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span
+                          className={cn(
+                            'h-2 w-2 shrink-0 rounded-full',
+                            getTaskStateDotClass(task),
+                          )}
+                        />
+                        <span className="truncate font-medium text-foreground">
+                          {task.title}
+                        </span>
+                      </div>
+                    ),
+                  },
+                  {
+                    key: 'status',
+                    header: 'Status',
+                    className: 'w-32',
+                    render: (task) => (
+                      <span className="text-xs text-foreground/60">
+                        {formatTaskStatus(task)}
+                      </span>
+                    ),
+                  },
+                  {
+                    key: 'executionPathUsed',
+                    header: 'Path',
+                    className: 'w-36 hidden lg:table-cell',
+                    render: (task) => (
+                      <span className="text-xs text-foreground/45">
+                        {task.executionPathUsed?.replaceAll('_', ' ') ?? ':'}
+                      </span>
+                    ),
+                  },
+                  {
+                    key: 'updatedAt',
+                    header: 'Updated',
+                    className: 'w-28 text-right',
+                    render: (task) => (
+                      <span className="text-xs text-foreground/40">
+                        {formatTaskTimestamp(task)}
+                      </span>
+                    ),
+                  },
+                ]}
+              />
+            </section>
           ) : null}
         </div>
-      )}
+
+        {isOverviewSection ? (
+          <div className={WORKSPACE_SECTION_STACK_CLASS}>
+            <section data-testid="workspace-in-progress">
+              <Card
+                label="In progress"
+                description="Active workspace tasks and live execution state."
+                bodyClassName="space-y-3 p-4"
+              >
+                {renderTaskStream(
+                  inProgressTasks,
+                  'No active workspace tasks right now.',
+                )}
+
+                <div className="border-t border-white/[0.06] pt-4">
+                  <div className="flex items-center justify-between text-sm text-foreground/55">
+                    <span>Live runs</span>
+                    <span>{initialActiveRuns.length}</span>
+                  </div>
+                </div>
+              </Card>
+            </section>
+
+            <section data-testid="workspace-recent-outputs">
+              <Card
+                label="Recent outputs"
+                description="Latest generated ingredients and posts."
+                bodyClassName="p-4"
+              >
+                {initialReviewInbox.recentItems.length > 0 ? (
+                  <div className="divide-y divide-white/[0.06]">
+                    {initialReviewInbox.recentItems.map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex items-start justify-between gap-4 py-4 first:pt-0 last:pb-0"
+                      >
+                        <div className="space-y-1">
+                          <p className="text-sm font-semibold text-foreground">
+                            {item.summary}
+                          </p>
+                          <p className="text-sm text-foreground/55">
+                            {item.format}
+                            {item.platform ? ` on ${item.platform}` : ''}
+                          </p>
+                          <p className="text-xs text-foreground/40">
+                            <ClientFormattedDate value={item.createdAt} />
+                          </p>
+                        </div>
+                        {item.reviewDecision === 'approved' ? (
+                          <HiOutlineCheckCircle className="size-5 text-emerald-300" />
+                        ) : item.reviewDecision === 'request_changes' ? (
+                          <HiOutlineClipboardDocumentCheck className="size-5 text-amber-300" />
+                        ) : (
+                          <HiOutlineInboxStack className="size-5 text-foreground/40" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-foreground/45">
+                    Recent outputs will appear here once the workspace starts
+                    routing work.
+                  </p>
+                )}
+              </Card>
+            </section>
+
+            <section data-testid="workspace-history-preview">
+              <Card
+                label="Recent activity"
+                description="Execution logs stay available without owning the main navigation."
+                headerAction={
+                  <Button
+                    asChild
+                    variant={ButtonVariant.SECONDARY}
+                    size={ButtonSize.SM}
+                  >
+                    <Link href="/workspace/inbox/unread">Open Inbox</Link>
+                  </Button>
+                }
+                bodyClassName="p-4"
+              >
+                {renderTaskRows(
+                  historyPreviewItems,
+                  'Activity will appear here once the workspace starts routing work.',
+                )}
+              </Card>
+            </section>
+
+            <section data-testid="workspace-library-snapshot">
+              <Card
+                label="Library snapshot"
+                description="Keep the ingredient library one click away from the dashboard."
+                bodyClassName="p-4"
+              >
+                <div className="divide-y divide-white/[0.06]">
+                  {LIBRARY_SNAPSHOT_LINKS.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className="block py-4 first:pt-0 last:pb-0"
+                    >
+                      <p className="text-sm font-semibold text-foreground">
+                        {item.label}
+                      </p>
+                      <p className="mt-1 text-sm text-foreground/55">
+                        {item.description}
+                      </p>
+                    </Link>
+                  ))}
+                </div>
+              </Card>
+            </section>
+
+            <section data-testid="workspace-advanced-tools">
+              <Card
+                label="Operator tools"
+                description="Manual and expert surfaces stay available without owning the main navigation."
+                bodyClassName="p-4"
+              >
+                <div className="divide-y divide-white/[0.06]">
+                  {ADVANCED_TOOLS.map((tool) => (
+                    <Link
+                      key={tool.href}
+                      href={tool.href}
+                      aria-label={tool.label}
+                      className="block py-4 first:pt-0 last:pb-0"
+                    >
+                      <p className="text-sm font-semibold text-foreground">
+                        {tool.label}
+                      </p>
+                      <p className="mt-1 text-sm text-foreground/55">
+                        {tool.description}
+                      </p>
+                    </Link>
+                  ))}
+                </div>
+              </Card>
+            </section>
+          </div>
+        ) : null}
+      </div>
 
       <WorkspaceTaskInspector
         task={selectedTask}

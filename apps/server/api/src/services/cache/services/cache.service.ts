@@ -158,6 +158,53 @@ export class CacheService {
     }
   }
 
+  async getOrSetWithLock<T>(
+    key: string,
+    factory: () => Promise<T | undefined>,
+    options: ServiceCacheOptions = {},
+    lockTtlSeconds: number = 5,
+  ): Promise<T | undefined> {
+    const cached = await this.get<T>(key);
+    if (cached !== null) {
+      return cached;
+    }
+
+    const lockKey = `cache-populate:${key}`;
+    const acquired = await this.acquireLock(lockKey, lockTtlSeconds);
+
+    if (acquired) {
+      try {
+        const doubleCheck = await this.get<T>(key);
+        if (doubleCheck !== null) {
+          return doubleCheck;
+        }
+
+        const value = await factory();
+        if (value !== undefined) {
+          await this.set(key, value, options);
+        }
+        return value;
+      } finally {
+        await this.releaseLock(lockKey);
+      }
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    const retryCache = await this.get<T>(key);
+    if (retryCache !== null) {
+      return retryCache;
+    }
+
+    this.logger.debug(
+      `${this.constructorName} getOrSetWithLock fallback for ${key}`,
+    );
+    const value = await factory();
+    if (value !== undefined) {
+      await this.set(key, value, options);
+    }
+    return value;
+  }
+
   async flush(): Promise<boolean> {
     try {
       await this.client.flushDb();
