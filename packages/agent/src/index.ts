@@ -55,7 +55,11 @@ export {
 export { useAgentChat } from '@genfeedai/agent/hooks/use-agent-chat';
 export { useAgentChatStream } from '@genfeedai/agent/hooks/use-agent-chat-stream';
 export { useAgentDashboardPersistence } from '@genfeedai/agent/hooks/use-agent-dashboard-persistence';
-export { useAgentDraftContext } from '@genfeedai/agent/hooks/use-agent-draft-context';
+export {
+  AGENT_DRAFT_SUGGESTION_EVENT,
+  type AgentDraftSuggestionPayload,
+  useAgentDraftContext,
+} from '@genfeedai/agent/hooks/use-agent-draft-context';
 export { useAgentPageContext } from '@genfeedai/agent/hooks/use-agent-page-context';
 export type {
   AgentChatMessage as AgentChatMessageModel,

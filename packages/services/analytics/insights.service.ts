@@ -4,11 +4,6 @@
  */
 
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
-import {
-  deserializeCollection,
-  deserializeResource,
-  type JsonApiResponseDocument,
-} from '@genfeedai/helpers/data/json-api/json-api.helper';
 import type {
   IDateRange,
   IInsightResponse,
@@ -17,6 +12,11 @@ import type {
 import type { Insight } from '@genfeedai/props/analytics/insights.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
+import {
+  deserializeCollection,
+  deserializeResource,
+  type JsonApiResponseDocument,
+} from '@services/core/json-api';
 import { logger } from '@services/core/logger.service';
 
 class InsightsServiceClass extends HTTPBaseService {

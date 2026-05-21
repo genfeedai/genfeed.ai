@@ -1,9 +1,4 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
-import {
-  deserializeCollection,
-  deserializeResource,
-  type JsonApiResponseDocument,
-} from '@genfeedai/helpers/data/json-api/json-api.helper';
 import type { DefaultVoiceRef } from '@genfeedai/helpers/voice/default-voice-ref.helper';
 import type {
   IActivity,
@@ -26,6 +21,11 @@ import { Link } from '@genfeedai/models/social/link.model';
 import { BrandSerializer } from '@genfeedai/serializers';
 import { PagesService } from '@services/content/pages.service';
 import { BaseService } from '@services/core/base.service';
+import {
+  deserializeCollection,
+  deserializeResource,
+  type JsonApiResponseDocument,
+} from '@services/core/json-api';
 
 export class BrandsService extends BaseService<Brand> {
   constructor(token: string) {

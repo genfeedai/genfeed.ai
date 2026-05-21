@@ -293,6 +293,7 @@ export interface AgentPageContext {
   postAuthor?: string;
   postContent?: string;
   route?: string;
+  selectedText?: string;
   url?: string;
 }
 
@@ -380,6 +381,7 @@ function buildPageContextPrompt(pageContext?: AgentPageContext): string {
     ['Title', pageContext.draftTitle],
     ['Summary', pageContext.draftSummary],
     ['Instructions', pageContext.draftInstructions],
+    ['Selected text', pageContext.selectedText],
     ['Draft body', pageContext.draftBody || pageContext.postContent],
   ]
     .map(([label, value]) => {

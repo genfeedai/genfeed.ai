@@ -54,6 +54,7 @@ export default function NewsletterComposerPanel() {
     body: content,
     draftType: 'newsletter',
     instructions: [angle, instructions].filter(Boolean).join('\n\n'),
+    selectionRootId: 'newsletter-compose-workspace',
     summary,
     title: label || topic,
   });
@@ -142,7 +143,10 @@ export default function NewsletterComposerPanel() {
   }
 
   return (
-    <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+    <section
+      id="newsletter-compose-workspace"
+      className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]"
+    >
       <Card className="space-y-5 p-6">
         <div className="space-y-2">
           <h2 className="text-xl font-semibold text-foreground">

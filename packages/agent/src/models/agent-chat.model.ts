@@ -441,6 +441,7 @@ export interface AgentPageContext {
   postContent?: string;
   postAuthor?: string;
   route?: string;
+  selectedText?: string;
   url?: string;
 }
 

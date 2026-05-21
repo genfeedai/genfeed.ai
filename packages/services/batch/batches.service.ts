@@ -1,13 +1,13 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import type { BatchStatus } from '@genfeedai/enums';
+import type { IBatchSummary } from '@genfeedai/interfaces';
+import { EnvironmentService } from '@services/core/environment.service';
+import { HTTPBaseService } from '@services/core/interceptor.service';
 import {
   deserializeCollection,
   deserializeResource,
   type JsonApiResponseDocument,
-} from '@genfeedai/helpers/data/json-api/json-api.helper';
-import type { IBatchSummary } from '@genfeedai/interfaces';
-import { EnvironmentService } from '@services/core/environment.service';
-import { HTTPBaseService } from '@services/core/interceptor.service';
+} from '@services/core/json-api';
 import { logger } from '@services/core/logger.service';
 
 export interface BatchListQuery {

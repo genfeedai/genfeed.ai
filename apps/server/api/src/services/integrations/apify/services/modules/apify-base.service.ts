@@ -3,6 +3,7 @@ import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-fac
 import { ApifyActorRunResponse } from '@api/services/integrations/apify/interfaces/apify.interfaces';
 import { ByokProvider } from '@genfeedai/enums';
 import type { ByokResolutionResult } from '@genfeedai/interfaces';
+import { extractHashtags } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Injectable, Optional } from '@nestjs/common';
@@ -364,7 +365,6 @@ export class ApifyBaseService {
    * Extract hashtags from text
    */
   extractHashtags(text: string): string[] {
-    const matches = text.match(/#[\w]+/g);
-    return matches ? matches.map((h) => h.substring(1)) : [];
+    return extractHashtags(text);
   }
 }

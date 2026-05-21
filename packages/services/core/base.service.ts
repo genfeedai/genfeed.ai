@@ -1,9 +1,3 @@
-import {
-  deserializeCollection,
-  deserializeResource,
-  type JsonApiResponseDocument,
-} from '@genfeedai/helpers/data/json-api/json-api.helper';
-import { normalizeJsonApiRelationshipGraph } from '@genfeedai/helpers/data/json-api/relationship.helper';
 import type {
   IHttpError,
   IServiceSerializer,
@@ -17,13 +11,18 @@ import {
 import { PagesService } from '@services/content/pages.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
+import {
+  extractCollection,
+  extractResource,
+  type JsonApiResponseDocument,
+} from '@services/core/json-api';
 import { logger } from '@services/core/logger.service';
 import {
   buildInstanceKey,
   ServiceInstanceManager,
 } from '@services/core/service-instance-manager';
 
-export type { JsonApiResponseDocument } from '@genfeedai/helpers/data/json-api/json-api.helper';
+export type { JsonApiResponseDocument } from '@services/core/json-api';
 
 const serviceInstances = new ServiceInstanceManager<BaseService<unknown>>();
 
@@ -136,13 +135,11 @@ export abstract class BaseService<
   }
 
   protected extractResource<D>(document: JsonApiResponseDocument): D {
-    return normalizeJsonApiRelationshipGraph(deserializeResource<D>(document));
+    return extractResource<D>(document);
   }
 
   protected extractCollection<D>(document: JsonApiResponseDocument): D[] {
-    return normalizeJsonApiRelationshipGraph(
-      deserializeCollection<D>(document),
-    );
+    return extractCollection<D>(document);
   }
 
   protected mapMany = async (

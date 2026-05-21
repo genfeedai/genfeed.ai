@@ -1,5 +1,4 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
-import { deserializeResource } from '@genfeedai/helpers/data/json-api/json-api.helper';
 import { Bot } from '@genfeedai/models/automation/bot.model';
 import { LivestreamSession } from '@genfeedai/models/automation/livestream-session.model';
 import { BotSerializer } from '@genfeedai/serializers';
@@ -7,6 +6,7 @@ import {
   BaseService,
   type JsonApiResponseDocument,
 } from '@services/core/base.service';
+import { deserializeResource } from '@services/core/json-api';
 
 export class BotsService extends BaseService<Bot> {
   constructor(token: string) {

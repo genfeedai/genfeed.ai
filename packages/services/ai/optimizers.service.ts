@@ -5,8 +5,8 @@
  * Backend: /optimizers API
  */
 
-import { deserializeCollection } from '@genfeedai/helpers/data/json-api/json-api.helper';
 import { EnvironmentService } from '@services/core/environment.service';
+import { deserializeCollection } from '@services/core/json-api';
 import { logger } from '@services/core/logger.service';
 
 export interface IContentScore {

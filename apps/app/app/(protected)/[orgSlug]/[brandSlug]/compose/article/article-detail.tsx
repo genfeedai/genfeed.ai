@@ -1,5 +1,6 @@
 'use client';
 
+import { useAgentDraftContext } from '@genfeedai/agent';
 import {
   ArticleCategory,
   ArticleStatus,
@@ -134,6 +135,16 @@ export default function ArticleDetail({
   const canArchive = !!article && isPublished;
   const plainTextContent = form.content.replace(/<[^>]*>/g, '').trim();
   const canGenerateTeaser = !!article && hasXArticleSections && !!credentialId;
+
+  useAgentDraftContext({
+    body: form.content,
+    contentFormat: isXArticle ? 'X Article' : 'Article',
+    draftType: 'article',
+    selectionRootId: 'article-compose-workspace',
+    summary: form.summary,
+    title: form.label,
+  });
+
   const handleGenerateTeaser = useCallback(
     async (format: TeaserFormat) => {
       if (!article || !credentialId || generatingTeaserFormat) {
@@ -220,7 +231,7 @@ export default function ArticleDetail({
   }
 
   return (
-    <div className="container mx-auto p-6">
+    <div id="article-compose-workspace" className="container mx-auto p-6">
       {/* Header */}
       <Breadcrumb
         segments={[

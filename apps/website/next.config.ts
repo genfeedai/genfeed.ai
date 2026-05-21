@@ -75,11 +75,13 @@ config.turbopack = {
   ...(config.turbopack ?? {}),
   resolveAlias: {
     ...(config.turbopack?.resolveAlias ?? {}),
+    '@genfeedai/constants': '../../packages/constants/src/index.ts',
+    '@genfeedai/helpers': '../../packages/helpers/src/index.ts',
+    '@genfeedai/interfaces': '../../packages/interfaces/src/index.ts',
     '@genfeedai/serializers': '../../packages/serializers/src/index.ts',
     '@genfeedai/types': '../../packages/types/src/index.ts',
-    '@genfeedai/helpers': '../../packages/helpers/src/index.ts',
   },
-  root: path.resolve(__dirname, '../../..'),
+  root: path.resolve(__dirname, '../..'),
 };
 
 config.transpilePackages = [

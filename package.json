@@ -143,6 +143,7 @@
     "react-dom": "19.2.6",
     "portless": "0.13.0",
     "secretlint": "13.0.2",
+    "swc-loader": "0.2.7",
     "tailwind-merge": "3.6.0",
     "ts-loader": "9.5.7",
     "tsconfig-paths-webpack-plugin": "4.2.0",

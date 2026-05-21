@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mockGet = vi.fn();
 const mockPost = vi.fn();
 
-vi.mock('@genfeedai/helpers/data/json-api/json-api.helper', () => ({
+vi.mock('@services/core/json-api', () => ({
   deserializeCollection: vi.fn(
     (document: { data: unknown[] }) => document.data,
   ),

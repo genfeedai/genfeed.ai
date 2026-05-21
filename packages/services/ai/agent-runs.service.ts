@@ -4,11 +4,6 @@
  * Backend: /runs API
  */
 
-import {
-  deserializeCollection,
-  deserializeResource,
-  type JsonApiResponseDocument,
-} from '@genfeedai/helpers/data/json-api/json-api.helper';
 import type { IAgentRun, IAgentRunContent } from '@genfeedai/interfaces';
 import type {
   AgentRunListQueryParams,
@@ -16,6 +11,11 @@ import type {
   AgentRunStatsQueryParams,
 } from '@genfeedai/types';
 import { EnvironmentService } from '@services/core/environment.service';
+import {
+  deserializeCollection,
+  deserializeResource,
+  type JsonApiResponseDocument,
+} from '@services/core/json-api';
 import { logger } from '@services/core/logger.service';
 
 type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE';

@@ -36,6 +36,10 @@ import { VoiceCloneCard } from '@genfeedai/agent/components/VoiceCloneCard';
 import { WorkflowCreatedCard } from '@genfeedai/agent/components/WorkflowCreatedCard';
 import { WorkflowExecuteCard } from '@genfeedai/agent/components/WorkflowExecuteCard';
 import { WorkflowTriggerCard } from '@genfeedai/agent/components/WorkflowTriggerCard';
+import {
+  AGENT_DRAFT_SUGGESTION_EVENT,
+  type AgentDraftSuggestionPayload,
+} from '@genfeedai/agent/hooks/use-agent-draft-context';
 import { useAnimatedText } from '@genfeedai/agent/hooks/use-animated-text';
 import type {
   AgentChatMessage as AgentChatMessageType,
@@ -470,7 +474,17 @@ export function UiActionRenderer({
     case 'livestream_bot_status_card':
       return <LivestreamBotCard action={action} onUiAction={onUiAction} />;
     case 'ai_text_action_card':
-      return <AiTextActionCard action={action} />;
+      return (
+        <AiTextActionCard
+          action={action}
+          onApply={({ text, selectedAction }) =>
+            onUiAction?.('apply_to_draft', {
+              sourceAction: selectedAction,
+              text,
+            })
+          }
+        />
+      );
     default:
       return null;
   }
@@ -604,6 +618,15 @@ export function AgentChatMessage({
   const visibleMessageContent = shouldAnimateAssistantText
     ? animatedMessageContent
     : message.content;
+  const handleInsertGeneratedContent = useCallback(
+    (content: string) => {
+      void onUiAction?.('apply_to_draft', {
+        sourceAction: 'generated_content',
+        text: content,
+      });
+    },
+    [onUiAction],
+  );
 
   return (
     <div
@@ -706,6 +729,7 @@ export function AgentChatMessage({
             title={generatedContentTitle}
             content={generatedContent ?? ''}
             onCopy={onCopy}
+            onInsert={onUiAction ? handleInsertGeneratedContent : undefined}
             onRegenerate={
               onRegenerate ? () => onRegenerate(message) : undefined
             }

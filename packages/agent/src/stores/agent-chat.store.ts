@@ -38,6 +38,7 @@ interface AgentPageContext {
   draftTitle?: string;
   draftType?: string;
   route: string;
+  selectedText?: string;
   suggestedActions: SuggestedAction[];
   placeholder?: string;
 }
