@@ -25,8 +25,11 @@ interface ModuleNode {
 
 function extractModuleName(filePath: string): string {
   const content = readFileSync(filePath, 'utf-8');
-  const match = content.match(/export class (\w+Module)/);
-  return match ? match[1] : relative(SRC_ROOT, filePath);
+  const classMatch = content.match(/export class (\w+Module)/);
+  if (classMatch) return classMatch[1];
+  const constMatch = content.match(/export const (\w+Module)\s*=/);
+  if (constMatch) return constMatch[1];
+  return relative(SRC_ROOT, filePath);
 }
 
 function extractImportedModules(filePath: string): string[] {
@@ -122,7 +125,7 @@ describe('Module dependency graph', () => {
 
   it('should have no circular dependencies (current baseline — decrease this)', () => {
     // Track cycle count as a ratchet — it should only go down
-    const MAX_ALLOWED_CYCLES = 200;
+    const MAX_ALLOWED_CYCLES = 35;
     console.log(`Found ${cycles.length} cycles across ${graph.size} modules`);
     if (cycles.length > 0) {
       const uniquePairs = new Set<string>();
@@ -142,17 +145,19 @@ describe('Module dependency graph', () => {
 
   it('should track forwardRef count (ratchet — decrease only)', () => {
     const count = countForwardRefs();
-    const MAX_ALLOWED_FORWARD_REFS = 460;
+    const MAX_ALLOWED_FORWARD_REFS = 30;
     console.log(`Total forwardRef() calls in module files: ${count}`);
     expect(count).toBeLessThanOrEqual(MAX_ALLOWED_FORWARD_REFS);
   });
 
   it('leaf modules should not be wrapped in forwardRef by callers', () => {
     const LEAF_MODULES = [
-      'MetadataModule',
-      'SettingsModule',
       'ClerkModule',
+      'CredentialsCoreModule',
+      'MetadataModule',
+      'OrganizationSettingsModule',
       'RolesModule',
+      'SettingsModule',
       'TagsModule',
     ];
 

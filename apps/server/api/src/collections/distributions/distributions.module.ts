@@ -1,4 +1,4 @@
-import { CredentialsModule } from '@api/collections/credentials/credentials.module';
+import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { DistributionsController } from '@api/collections/distributions/controllers/distributions.controller';
 import { DistributionsService } from '@api/collections/distributions/services/distributions.service';
 import { ConfigModule } from '@api/config/config.module';
@@ -12,7 +12,7 @@ import { forwardRef, Module } from '@nestjs/common';
   imports: [
     ConfigModule,
     LoggerModule,
-    forwardRef(() => CredentialsModule),
+    CredentialsCoreModule,
     forwardRef(() => TelegramDistributionModule),
   ],
   providers: [DistributionsService],

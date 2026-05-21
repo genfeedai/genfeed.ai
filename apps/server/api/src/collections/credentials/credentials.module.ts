@@ -1,12 +1,11 @@
 /**
- * Credentials Module
- * Third-party credentials: store API keys for external services (OpenAI, Replicate, etc),
-encrypted credential storage, and credential rotation.
+ * Credentials Module (Full)
+ * Includes CredentialsController with platform token refresh + quota endpoints.
+ * Most callers should import CredentialsCoreModule instead.
  */
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CredentialsController } from '@api/collections/credentials/controllers/credentials.controller';
-import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
 import { TagsModule } from '@api/collections/tags/tags.module';
 import { FacebookModule } from '@api/services/integrations/facebook/facebook.module';
@@ -19,27 +18,26 @@ import { TiktokModule } from '@api/services/integrations/tiktok/tiktok.module';
 import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
 import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module';
 import { QuotaModule } from '@api/services/quota/quota.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [CredentialsController],
-  exports: [AccountPublishingContextService, CredentialsService],
+  exports: [CredentialsCoreModule],
   imports: [
-    forwardRef(() => QuotaModule),
-
-    forwardRef(() => BrandsModule),
-    forwardRef(() => FacebookModule),
-    forwardRef(() => GoogleAdsModule),
-    forwardRef(() => InstagramModule),
-    forwardRef(() => LinkedInModule),
-    forwardRef(() => OrganizationsModule),
-    forwardRef(() => PinterestModule),
-    forwardRef(() => RedditModule),
+    BrandsModule,
+    CredentialsCoreModule,
+    FacebookModule,
+    GoogleAdsModule,
+    InstagramModule,
+    LinkedInModule,
+    OrganizationsModule,
+    PinterestModule,
+    QuotaModule,
+    RedditModule,
     TagsModule,
-    forwardRef(() => TiktokModule),
-    forwardRef(() => TwitterModule),
-    forwardRef(() => YoutubeModule),
+    TiktokModule,
+    TwitterModule,
+    YoutubeModule,
   ],
-  providers: [AccountPublishingContextService, CredentialsService],
 })
 export class CredentialsModule {}

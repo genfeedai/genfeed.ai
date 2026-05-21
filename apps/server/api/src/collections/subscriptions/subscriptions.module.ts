@@ -19,10 +19,10 @@ import { forwardRef, Module } from '@nestjs/common';
   exports: [SubscriptionsService],
   imports: [
     ClerkModule,
-    forwardRef(() => CreditsModule),
-    forwardRef(() => CustomersModule),
+    CreditsModule,
+    CustomersModule,
     forwardRef(() => OrganizationsModule),
-    forwardRef(() => StripeModule),
+    StripeModule,
     forwardRef(() => UsersModule),
   ],
   providers: [SubscriptionsService],

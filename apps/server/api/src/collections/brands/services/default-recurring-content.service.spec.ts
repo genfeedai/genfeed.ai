@@ -1,14 +1,14 @@
 import { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import {
-  type Brand,
-  type Credential,
-  type Workflow,
-  type WorkflowExecution,
+import type {
+  Brand,
+  Credential,
+  Workflow,
+  WorkflowExecution,
 } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('DefaultRecurringContentService', () => {
   let service: DefaultRecurringContentService;

@@ -19,7 +19,7 @@ import { forwardRef, Module } from '@nestjs/common';
   controllers: [UsersController],
   exports: [UsersService],
   imports: [
-    forwardRef(() => BrandsModule),
+    BrandsModule,
     ClerkModule,
     CommonModule,
     FilesClientModule,

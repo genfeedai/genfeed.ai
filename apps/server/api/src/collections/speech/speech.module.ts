@@ -5,7 +5,7 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 /**
  * Speech Module
@@ -14,12 +14,7 @@ import { forwardRef, Module } from '@nestjs/common';
 @Module({
   controllers: [SpeechController],
   exports: [],
-  imports: [
-    ByokModule,
-    CreditsModule,
-    forwardRef(() => ModelsModule),
-    ReplicateModule,
-  ],
+  imports: [ByokModule, CreditsModule, ModelsModule, ReplicateModule],
   providers: [CreditsGuard, CreditsInterceptor],
 })
 export class SpeechModule {}

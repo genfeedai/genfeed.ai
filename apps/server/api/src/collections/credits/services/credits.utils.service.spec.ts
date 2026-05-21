@@ -1,17 +1,14 @@
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
-import { SubscriptionsService } from '@api/collections/subscriptions/services/subscriptions.service';
-import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { BusinessLogicException } from '@api/helpers/exceptions/business/business-logic.exception';
 import { TransactionUtil } from '@api/helpers/utils/transaction/transaction.util';
 import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { EventBusService } from '@api/shared/services/event-bus/event-bus.service';
 import { ActivitySource, CreditTransactionCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 
@@ -25,12 +22,23 @@ describe('CreditsUtilsService', () => {
     warn: vi.fn(),
   };
 
-  const mockActivitiesService = {
-    create: vi.fn().mockResolvedValue({}),
+  const mockEventBusService = {
+    emit: vi.fn(),
   };
 
-  const mockBrandsService = {
-    findOne: vi.fn().mockResolvedValue({ _id: 'test-object-id' }),
+  const mockPrisma = {
+    brand: {
+      findFirst: vi.fn().mockResolvedValue({ id: 'test-brand-id' }),
+    },
+    organization: {
+      findFirst: vi.fn(),
+    },
+    subscription: {
+      findFirst: vi.fn().mockResolvedValue(null),
+    },
+    user: {
+      findFirst: vi.fn().mockResolvedValue(null),
+    },
   };
 
   const mockCreditBalanceService = {
@@ -46,21 +54,9 @@ describe('CreditsUtilsService', () => {
     getOrganizationTransactionsInRange: vi.fn().mockResolvedValue([]),
   };
 
-  const mockOrganizationsService = {
-    findOne: vi.fn(),
-  };
-
   const mockOrganizationSettingsService = {
     findOne: vi.fn().mockResolvedValue(null),
     patch: vi.fn().mockResolvedValue({}),
-  };
-
-  const mockSubscriptionsService = {
-    findByOrganizationId: vi.fn().mockResolvedValue(null),
-  };
-
-  const mockUsersService = {
-    findOne: vi.fn().mockResolvedValue(null),
   };
 
   const mockClerkService = {
@@ -79,14 +75,11 @@ describe('CreditsUtilsService', () => {
   beforeEach(() => {
     service = new CreditsUtilsService(
       mockLogger as unknown as LoggerService,
-      mockActivitiesService as unknown as ActivitiesService,
-      mockBrandsService as unknown as BrandsService,
+      mockEventBusService as unknown as EventBusService,
+      mockPrisma as unknown as PrismaService,
       mockCreditBalanceService as unknown as CreditBalanceService,
       mockCreditTransactionsService as unknown as CreditTransactionsService,
       mockOrganizationSettingsService as unknown as OrganizationSettingsService,
-      mockOrganizationsService as unknown as OrganizationsService,
-      mockSubscriptionsService as unknown as SubscriptionsService,
-      mockUsersService as unknown as UsersService,
       mockClerkService as unknown as ClerkService,
       mockWebsocketService as unknown as NotificationsPublisherService,
       mockAccessBootstrapCacheService as unknown as AccessBootstrapCacheService,
@@ -107,7 +100,7 @@ describe('CreditsUtilsService', () => {
     const userId = '507f1f77bcf86cd799439012';
 
     beforeEach(() => {
-      mockOrganizationsService.findOne.mockResolvedValue({
+      mockPrisma.organization.findFirst.mockResolvedValue({
         _id: orgId,
         label: 'Test Org',
       });
@@ -143,7 +136,7 @@ describe('CreditsUtilsService', () => {
     });
 
     it('should throw when organization not found', async () => {
-      mockOrganizationsService.findOne.mockResolvedValue(null);
+      mockPrisma.organization.findFirst.mockResolvedValue(null);
 
       await expect(
         service.deductCreditsFromOrganization(orgId, userId, 10, 'desc'),
@@ -225,7 +218,7 @@ describe('CreditsUtilsService', () => {
       mockCreditBalanceService.findByOrganization.mockResolvedValue({
         balance: 100,
       });
-      mockUsersService.findOne.mockResolvedValue({
+      mockPrisma.user.findFirst.mockResolvedValue({
         _id: userId,
         clerkId: 'clerk_abc',
       });
@@ -242,7 +235,7 @@ describe('CreditsUtilsService', () => {
       mockCreditBalanceService.findByOrganization.mockResolvedValue({
         balance: 100,
       });
-      mockUsersService.findOne.mockResolvedValue({
+      mockPrisma.user.findFirst.mockResolvedValue({
         _id: userId,
         clerkId: null,
       });
@@ -252,18 +245,18 @@ describe('CreditsUtilsService', () => {
       expect(mockClerkService.updateUserPublicMetadata).not.toHaveBeenCalled();
     });
 
-    it('should create activity log after deduction', async () => {
+    it('should emit activity event after deduction', async () => {
       mockCreditBalanceService.findByOrganization.mockResolvedValue({
         balance: 100,
       });
-      const defaultBrand = { _id: 'test-object-id' };
-      mockBrandsService.findOne.mockResolvedValue(defaultBrand);
+      mockPrisma.brand.findFirst.mockResolvedValue({ id: 'test-brand-id' });
 
       await service.deductCreditsFromOrganization(orgId, userId, 10, 'desc');
 
-      expect(mockActivitiesService.create).toHaveBeenCalledWith(
+      expect(mockEventBusService.emit).toHaveBeenCalledWith(
+        'credits.activity',
         expect.objectContaining({
-          brand: defaultBrand._id,
+          brandId: 'test-brand-id',
           value: '10',
         }),
       );
@@ -390,7 +383,7 @@ describe('CreditsUtilsService', () => {
     const expiresAt = new Date('2027-01-01');
 
     beforeEach(() => {
-      mockOrganizationsService.findOne.mockResolvedValue({
+      mockPrisma.organization.findFirst.mockResolvedValue({
         _id: orgId,
       });
       mockCreditBalanceService.findByOrganization.mockResolvedValue({
@@ -426,7 +419,7 @@ describe('CreditsUtilsService', () => {
     });
 
     it('should throw when organization not found', async () => {
-      mockOrganizationsService.findOne.mockResolvedValue(null);
+      mockPrisma.organization.findFirst.mockResolvedValue(null);
 
       await expect(
         service.addOrganizationCreditsWithExpiration(
@@ -460,7 +453,7 @@ describe('CreditsUtilsService', () => {
     const expiresAt = new Date('2027-01-01');
 
     beforeEach(() => {
-      mockOrganizationsService.findOne.mockResolvedValue({
+      mockPrisma.organization.findFirst.mockResolvedValue({
         _id: orgId,
       });
       mockCreditBalanceService.findByOrganization.mockResolvedValue({
@@ -496,7 +489,7 @@ describe('CreditsUtilsService', () => {
     });
 
     it('should throw when org not found for refund', async () => {
-      mockOrganizationsService.findOne.mockResolvedValue(null);
+      mockPrisma.organization.findFirst.mockResolvedValue(null);
 
       await expect(
         service.refundOrganizationCredits(orgId, 50, 'src', 'desc', expiresAt),
@@ -508,7 +501,7 @@ describe('CreditsUtilsService', () => {
     const orgId = '507f1f77bcf86cd799439011';
 
     beforeEach(() => {
-      mockOrganizationsService.findOne.mockResolvedValue({
+      mockPrisma.organization.findFirst.mockResolvedValue({
         _id: orgId,
       });
       mockCreditBalanceService.findByOrganization.mockResolvedValue({
@@ -541,7 +534,7 @@ describe('CreditsUtilsService', () => {
     const orgId = '507f1f77bcf86cd799439011';
 
     beforeEach(() => {
-      mockOrganizationsService.findOne.mockResolvedValue({
+      mockPrisma.organization.findFirst.mockResolvedValue({
         _id: orgId,
       });
       mockCreditBalanceService.findByOrganization.mockResolvedValue({
@@ -563,7 +556,7 @@ describe('CreditsUtilsService', () => {
     });
 
     it('should throw when org not found', async () => {
-      mockOrganizationsService.findOne.mockResolvedValue(null);
+      mockPrisma.organization.findFirst.mockResolvedValue(null);
 
       await expect(
         service.removeAllOrganizationCredits(orgId, 'src', 'desc'),

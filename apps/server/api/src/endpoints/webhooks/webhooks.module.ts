@@ -56,7 +56,7 @@ import { StripeModule } from '@api/services/integrations/stripe/stripe.module';
 import { MicroservicesModule } from '@api/services/microservices/microservices.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [
@@ -76,14 +76,14 @@ import { forwardRef, Module } from '@nestjs/common';
     ActivitiesModule,
     ApiKeysModule,
     AssetsModule,
-    forwardRef(() => BotGatewayModule),
+    BotGatewayModule,
     BrandsModule,
     ClerkModule,
     ClipProjectsModule,
     ClipResultsModule,
     CommonModule,
     CreditsModule,
-    forwardRef(() => EvaluationsModule),
+    EvaluationsModule,
     FileQueueModule,
     FilesClientModule,
     IngredientsModule,

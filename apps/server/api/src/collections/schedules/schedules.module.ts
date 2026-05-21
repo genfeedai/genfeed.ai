@@ -13,7 +13,7 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [SchedulesController],
@@ -21,8 +21,8 @@ import { forwardRef, Module } from '@nestjs/common';
   imports: [
     ByokModule,
     ConfigModule,
-    forwardRef(() => CreditsModule),
-    forwardRef(() => ModelsModule),
+    CreditsModule,
+    ModelsModule,
     ReplicateModule,
   ],
   providers: [SchedulesService, CreditsGuard, CreditsInterceptor],

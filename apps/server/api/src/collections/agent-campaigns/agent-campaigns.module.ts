@@ -10,17 +10,12 @@ import { AgentRunsModule } from '@api/collections/agent-runs/agent-runs.module';
 import { AgentStrategiesModule } from '@api/collections/agent-strategies/agent-strategies.module';
 import { UsersModule } from '@api/collections/users/users.module';
 import { QueuesModule } from '@api/queues/core/queues.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [AgentCampaignsController],
   exports: [AgentCampaignsService, AgentCampaignExecutionService],
-  imports: [
-    forwardRef(() => AgentStrategiesModule),
-    forwardRef(() => AgentRunsModule),
-    forwardRef(() => QueuesModule),
-    forwardRef(() => UsersModule),
-  ],
+  imports: [AgentStrategiesModule, AgentRunsModule, QueuesModule, UsersModule],
   providers: [AgentCampaignsService, AgentCampaignExecutionService],
 })
 export class AgentCampaignsModule {}

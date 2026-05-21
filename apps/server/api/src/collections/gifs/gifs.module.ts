@@ -15,20 +15,20 @@ import { ConfigModule } from '@api/config/config.module';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { ByokModule } from '@api/services/byok/byok.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [GifsController],
   exports: [GifsService],
   imports: [
-    forwardRef(() => BrandsModule),
+    BrandsModule,
     ByokModule,
     ConfigModule,
-    forwardRef(() => CreditsModule),
+    CreditsModule,
     IngredientsModule,
     MetadataModule,
-    forwardRef(() => ModelsModule),
-    forwardRef(() => VotesModule),
+    ModelsModule,
+    VotesModule,
   ],
   providers: [GifsService, CreditsGuard, CreditsInterceptor],
 })

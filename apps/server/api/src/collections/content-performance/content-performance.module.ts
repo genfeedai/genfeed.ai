@@ -14,7 +14,7 @@ import { UsersModule } from '@api/collections/users/users.module';
 import { QueuesModule } from '@api/queues/core/queues.module';
 import { BrandMemorySyncService } from '@api/services/brand-memory/brand-memory-sync.service';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [
@@ -35,9 +35,9 @@ import { forwardRef, Module } from '@nestjs/common';
     BrandMemoryModule,
     PostsModule,
     NotificationsModule,
-    forwardRef(() => QueuesModule),
-    forwardRef(() => OrganizationsModule),
-    forwardRef(() => UsersModule),
+    QueuesModule,
+    OrganizationsModule,
+    UsersModule,
   ],
   providers: [
     ContentPerformanceService,

@@ -1,6 +1,6 @@
 import { AdPerformanceModule } from '@api/collections/ad-performance/ad-performance.module';
 import { CreativePatternsModule } from '@api/collections/creative-patterns/creative-patterns.module';
-import { CredentialsModule } from '@api/collections/credentials/credentials.module';
+import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { AdsResearchController } from '@api/endpoints/ads-research/ads-research.controller';
 import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
@@ -12,7 +12,7 @@ import { Module } from '@nestjs/common';
   imports: [
     AdPerformanceModule,
     CreativePatternsModule,
-    CredentialsModule,
+    CredentialsCoreModule,
     AdsGatewayModule,
     WorkflowsModule,
   ],

@@ -1,4 +1,4 @@
-import { CredentialsModule } from '@api/collections/credentials/credentials.module';
+import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { ConfigModule } from '@api/config/config.module';
 import { BeehiivModule } from '@api/services/integrations/beehiiv/beehiiv.module';
@@ -88,7 +88,7 @@ import { Module } from '@nestjs/common';
     YoutubeModule,
 
     // Data modules
-    CredentialsModule,
+    CredentialsCoreModule,
     PostsModule,
   ],
   providers: [

@@ -6,7 +6,7 @@
  * - CampaignExecutorService - Target execution and reply posting
  */
 import { CampaignTargetsModule } from '@api/collections/campaign-targets/campaign-targets.module';
-import { CredentialsModule } from '@api/collections/credentials/credentials.module';
+import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { OutreachCampaignsModule } from '@api/collections/outreach-campaigns/outreach-campaigns.module';
 import { CampaignDiscoveryService } from '@api/services/campaign/campaign-discovery.service';
 import { CampaignExecutorService } from '@api/services/campaign/campaign-executor.service';
@@ -21,10 +21,10 @@ import { forwardRef, Module } from '@nestjs/common';
     DmCampaignExecutorService,
   ],
   imports: [
-    forwardRef(() => CampaignTargetsModule),
+    CampaignTargetsModule,
     forwardRef(() => OutreachCampaignsModule),
-    forwardRef(() => CredentialsModule),
-    forwardRef(() => ReplyBotModule),
+    CredentialsCoreModule,
+    ReplyBotModule,
   ],
   providers: [
     CampaignDiscoveryService,

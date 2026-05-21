@@ -5,7 +5,7 @@ store platform post IDs/URLs, and multi-platform publishing.
  */
 
 import { ActivitiesModule } from '@api/collections/activities/activities.module';
-import { CredentialsModule } from '@api/collections/credentials/credentials.module';
+import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { ModelsModule } from '@api/collections/models/models.module';
@@ -25,7 +25,7 @@ import { ReplicateModule } from '@api/services/integrations/replicate/replicate.
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder.module';
 import { QuotaModule } from '@api/services/quota/quota.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [
@@ -35,18 +35,18 @@ import { forwardRef, Module } from '@nestjs/common';
   ],
   exports: [AnalyticsAggregationService, PostAnalyticsService, PostsService],
   imports: [
-    forwardRef(() => ActivitiesModule),
+    ActivitiesModule,
     ByokModule,
-    forwardRef(() => CredentialsModule),
-    forwardRef(() => CreditsModule),
+    CredentialsCoreModule,
+    CreditsModule,
     IngredientsModule,
-    forwardRef(() => ModelsModule),
+    ModelsModule,
     NotificationsPublisherModule,
     OrganizationSettingsModule,
-    forwardRef(() => PromptBuilderModule),
-    forwardRef(() => QuotaModule),
-    forwardRef(() => ReplicateModule),
-    forwardRef(() => TemplatesModule),
+    PromptBuilderModule,
+    QuotaModule,
+    ReplicateModule,
+    TemplatesModule,
     TrendsModule,
   ],
   providers: [

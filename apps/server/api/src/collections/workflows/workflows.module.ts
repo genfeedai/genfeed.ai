@@ -5,7 +5,7 @@ dependency management, and workflow execution tracking.
  */
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CaptionsModule } from '@api/collections/captions/captions.module';
-import { CredentialsModule } from '@api/collections/credentials/credentials.module';
+import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
@@ -62,27 +62,27 @@ import { forwardRef, Module } from '@nestjs/common';
     WorkflowGenerationService,
   ],
   imports: [
-    forwardRef(() => BrandsModule),
-    forwardRef(() => CaptionsModule),
-    forwardRef(() => CredentialsModule),
-    forwardRef(() => CreditsModule),
+    BrandsModule,
+    CaptionsModule,
+    CredentialsCoreModule,
+    CreditsModule,
+    ElevenLabsModule,
+    HeyGenModule,
     IngredientsModule,
-    MetadataModule,
-    forwardRef(() => MusicsModule),
-    forwardRef(() => NewslettersModule),
+    InstagramModule,
     forwardRef(() => MarketplaceIntegrationModule),
+    MetadataModule,
+    MusicsModule,
+    NewslettersModule,
     NotificationsPublisherModule,
-    forwardRef(() => PostsModule),
-    forwardRef(() => SharedModule),
-    forwardRef(() => VideosModule),
-    forwardRef(() => VideoGenerationModule),
+    OpenRouterModule,
+    PostsModule,
+    SharedModule,
+    TwitterModule,
+    VideoGenerationModule,
+    VideosModule,
+    WhisperModule,
     forwardRef(() => WorkflowExecutionsModule),
-    forwardRef(() => TwitterModule),
-    forwardRef(() => InstagramModule),
-    forwardRef(() => OpenRouterModule),
-    forwardRef(() => HeyGenModule),
-    forwardRef(() => ElevenLabsModule),
-    forwardRef(() => WhisperModule),
     WorkflowExecutorModule,
 
     BullModule.registerQueue({

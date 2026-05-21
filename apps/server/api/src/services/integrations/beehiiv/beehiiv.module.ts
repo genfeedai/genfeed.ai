@@ -1,17 +1,13 @@
 import { BrandsModule } from '@api/collections/brands/brands.module';
-import { CredentialsModule } from '@api/collections/credentials/credentials.module';
+import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { BeehiivController } from '@api/services/integrations/beehiiv/controllers/beehiiv.controller';
 import { BeehiivService } from '@api/services/integrations/beehiiv/services/beehiiv.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
 import { HttpModule } from '@nestjs/axios';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(BeehiivService, {
-  additionalImports: [
-    HttpModule,
-    forwardRef(() => BrandsModule),
-    forwardRef(() => CredentialsModule),
-  ],
+  additionalImports: [HttpModule, BrandsModule, CredentialsCoreModule],
 });
 
 @Module({

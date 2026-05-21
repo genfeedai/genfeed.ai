@@ -11,22 +11,22 @@ import { ConfigModule } from '@api/config/config.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [EvaluationsController],
   exports: [EvaluationsService, EvaluationsOperationsService],
   imports: [
-    forwardRef(() => ArticlesModule),
-    forwardRef(() => ConfigModule),
-    forwardRef(() => CreditsModule),
-    forwardRef(() => ImagesModule),
-    forwardRef(() => ModelsModule),
+    ArticlesModule,
+    ConfigModule,
+    CreditsModule,
+    ImagesModule,
+    ModelsModule,
     NotificationsPublisherModule,
-    forwardRef(() => PostsModule),
-    forwardRef(() => PromptBuilderModule),
-    forwardRef(() => ReplicateModule),
-    forwardRef(() => VideosModule),
+    PostsModule,
+    PromptBuilderModule,
+    ReplicateModule,
+    VideosModule,
   ],
   providers: [EvaluationsService, EvaluationsOperationsService],
 })

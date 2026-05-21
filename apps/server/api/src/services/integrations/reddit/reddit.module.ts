@@ -1,17 +1,13 @@
 import { BrandsModule } from '@api/collections/brands/brands.module';
-import { CredentialsModule } from '@api/collections/credentials/credentials.module';
+import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { RedditController } from '@api/services/integrations/reddit/controllers/reddit.controller';
 import { RedditService } from '@api/services/integrations/reddit/services/reddit.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
 import { HttpModule } from '@nestjs/axios';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(RedditService, {
-  additionalImports: [
-    HttpModule,
-    forwardRef(() => BrandsModule),
-    forwardRef(() => CredentialsModule),
-  ],
+  additionalImports: [HttpModule, BrandsModule, CredentialsCoreModule],
 });
 
 @Module({

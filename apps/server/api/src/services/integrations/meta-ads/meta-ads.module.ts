@@ -5,7 +5,7 @@ import { AdOptimizationConfigsModule } from '@api/collections/ad-optimization-co
 import { AdOptimizationRecommendationsModule } from '@api/collections/ad-optimization-recommendations/ad-optimization-recommendations.module';
 import { AdPerformanceModule } from '@api/collections/ad-performance/ad-performance.module';
 import { BrandsModule } from '@api/collections/brands/brands.module';
-import { CredentialsModule } from '@api/collections/credentials/credentials.module';
+import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { QueuesModule } from '@api/queues/core/queues.module';
 import { MetaAdsController } from '@api/services/integrations/meta-ads/controllers/meta-ads.controller';
 import { MetaAdsBulkController } from '@api/services/integrations/meta-ads/controllers/meta-ads-bulk.controller';
@@ -14,7 +14,7 @@ import { AdBulkUploadService } from '@api/services/integrations/meta-ads/service
 import { MetaAdsService } from '@api/services/integrations/meta-ads/services/meta-ads.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
 import { HttpModule } from '@nestjs/axios';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(MetaAdsService, {
   additionalImports: [HttpModule],
@@ -29,15 +29,15 @@ const BaseModule = createServiceModule(MetaAdsService, {
   exports: BaseModule.exports ?? [],
   imports: [
     ...(BaseModule.imports ?? []),
-    forwardRef(() => AdBulkUploadJobsModule),
-    forwardRef(() => BrandsModule),
-    forwardRef(() => CredentialsModule),
-    forwardRef(() => QueuesModule),
-    forwardRef(() => AdCreativeMappingsModule),
-    forwardRef(() => AdOptimizationConfigsModule),
-    forwardRef(() => AdOptimizationRecommendationsModule),
-    forwardRef(() => AdOptimizationAuditLogsModule),
-    forwardRef(() => AdPerformanceModule),
+    AdBulkUploadJobsModule,
+    BrandsModule,
+    CredentialsCoreModule,
+    QueuesModule,
+    AdCreativeMappingsModule,
+    AdOptimizationConfigsModule,
+    AdOptimizationRecommendationsModule,
+    AdOptimizationAuditLogsModule,
+    AdPerformanceModule,
   ],
   providers: [...(BaseModule.providers ?? []), AdBulkUploadService],
 })

@@ -5,7 +5,7 @@ and member access control.
  */
 import { ActivitiesModule } from '@api/collections/activities/activities.module';
 import { BrandsModule } from '@api/collections/brands/brands.module';
-import { CredentialsModule } from '@api/collections/credentials/credentials.module';
+import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
@@ -46,27 +46,27 @@ import { forwardRef, Module } from '@nestjs/common';
   exports: [OrganizationsService],
   imports: [
     // Core modules
-    forwardRef(() => ActivitiesModule),
-    forwardRef(() => BrandsModule),
+    ActivitiesModule,
+    BrandsModule,
     ByokModule,
     ClerkModule,
     CommonModule,
-    forwardRef(() => CredentialsModule),
-    forwardRef(() => CreditsModule),
+    CredentialsCoreModule,
+    CreditsModule,
     FleetModule,
     IngredientsModule,
     IntegrationsModule,
     LoggerModule,
     MembersModule,
-    forwardRef(() => ModelsModule),
+    ModelsModule,
     OrganizationSettingsModule,
-    forwardRef(() => PostsModule),
+    PostsModule,
     RolesModule,
     SettingsModule,
     forwardRef(() => SubscriptionsModule),
     TagsModule,
     forwardRef(() => UsersModule),
-    forwardRef(() => VideosModule),
+    VideosModule,
   ],
   providers: [
     OrganizationsService,

@@ -6,18 +6,18 @@ import { ConfigModule } from '@api/config/config.module';
 import { BatchGenerationController } from '@api/services/batch-generation/batch-generation.controller';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { LoggerModule } from '@libs/logger/logger.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [BatchGenerationController],
   exports: [BatchGenerationService],
   imports: [
-    forwardRef(() => BrandsModule),
+    BrandsModule,
     ConfigModule,
-    forwardRef(() => ContentIntelligenceModule),
+    ContentIntelligenceModule,
     HarnessProfilesModule,
     LoggerModule,
-    forwardRef(() => PostsModule),
+    PostsModule,
   ],
   providers: [BatchGenerationService],
 })

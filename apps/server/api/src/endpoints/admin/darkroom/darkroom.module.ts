@@ -1,6 +1,6 @@
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { ContentIntelligenceModule } from '@api/collections/content-intelligence/content-intelligence.module';
-import { CredentialsModule } from '@api/collections/credentials/credentials.module';
+import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { ModelsModule } from '@api/collections/models/models.module';
 import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
@@ -32,7 +32,7 @@ import { Module } from '@nestjs/common';
     ModelsModule,
     OrganizationSettingsModule,
     TrainingsModule,
-    CredentialsModule,
+    CredentialsCoreModule,
     FleetModule,
     FilesClientModule,
     ComfyUIModule,

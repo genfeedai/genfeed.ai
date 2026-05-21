@@ -19,19 +19,19 @@ import { FilesClientModule } from '@api/services/files-microservice/client/files
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [AssetsController, AssetsOperationsController],
   exports: [AssetsService],
   imports: [
-    forwardRef(() => BrandsModule),
+    BrandsModule,
     ByokModule,
-    forwardRef(() => CreditsModule),
-    forwardRef(() => FilesClientModule),
+    CreditsModule,
+    FilesClientModule,
     IngredientsModule,
     MetadataModule,
-    forwardRef(() => ModelsModule),
+    ModelsModule,
 
     NotificationsPublisherModule,
     PromptBuilderModule,
