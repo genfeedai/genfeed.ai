@@ -59,9 +59,9 @@ class AxiosErrorInterceptorSetup implements OnModuleInit {
     HttpModule,
     NotificationsPublisherModule,
 
-    forwardRef(() => IngredientsModule),
-    forwardRef(() => MembersModule),
-    forwardRef(() => MetadataModule),
+    IngredientsModule,
+    MembersModule,
+    MetadataModule,
     forwardRef(() => PromptsModule),
     forwardRef(() => UsersModule),
   ],

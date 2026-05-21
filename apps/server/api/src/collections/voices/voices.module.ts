@@ -25,8 +25,8 @@ import { forwardRef, Module } from '@nestjs/common';
   controllers: [VoicesController],
   exports: [VoicesService],
   imports: [
-    forwardRef(() => IngredientsModule),
-    forwardRef(() => MetadataModule),
+    IngredientsModule,
+    MetadataModule,
     forwardRef(() => CreditsModule),
     forwardRef(() => ModelsModule),
 

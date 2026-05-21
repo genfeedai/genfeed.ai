@@ -173,10 +173,7 @@ export class OutreachCampaignsService extends BaseService<OutreachCampaign> {
   }
 
   public static getInstance(token: string): OutreachCampaignsService {
-    return BaseService.getDataServiceInstance(
-      OutreachCampaignsService,
-      token,
-    ) as OutreachCampaignsService;
+    return BaseService.getDataServiceInstance(OutreachCampaignsService, token);
   }
 
   /**

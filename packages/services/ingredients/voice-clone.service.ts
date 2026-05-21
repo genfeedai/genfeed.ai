@@ -3,17 +3,12 @@ import { IngredientsService } from '@services/content/ingredients.service';
 import type { JsonApiResponseDocument } from '@services/core/base.service';
 
 export class VoiceCloneService extends IngredientsService<Voice> {
-  private static cloneInstances = new Map<string, VoiceCloneService>();
-
   constructor(token: string) {
     super('voices', token);
   }
 
   static getInstance(token: string): VoiceCloneService {
-    if (!VoiceCloneService.cloneInstances.has(token)) {
-      VoiceCloneService.cloneInstances.set(token, new VoiceCloneService(token));
-    }
-    return VoiceCloneService.cloneInstances.get(token)!;
+    return IngredientsService.getDataServiceInstance(VoiceCloneService, token);
   }
 
   async cloneVoice(formData: FormData): Promise<Voice> {

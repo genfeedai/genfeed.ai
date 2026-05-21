@@ -9,9 +9,6 @@ export class MembersService extends BaseService<Member> {
   }
 
   public static getInstance(token: string): MembersService {
-    return BaseService.getDataServiceInstance(
-      MembersService,
-      token,
-    ) as MembersService;
+    return BaseService.getDataServiceInstance(MembersService, token);
   }
 }

@@ -35,8 +35,8 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => ReplicateModule),
     forwardRef(() => PersonaContentModule),
     forwardRef(() => PersonasModule),
-    forwardRef(() => IngredientsModule),
-    forwardRef(() => MetadataModule),
+    IngredientsModule,
+    MetadataModule,
     forwardRef(() => FilesClientModule),
     forwardRef(() => SharedModule),
     BullModule.registerQueue({

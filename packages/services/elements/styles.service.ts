@@ -9,9 +9,6 @@ export class StylesService extends BaseService<ElementStyle> {
   }
 
   public static getInstance(token: string): StylesService {
-    return BaseService.getDataServiceInstance(
-      StylesService,
-      token,
-    ) as StylesService;
+    return BaseService.getDataServiceInstance(StylesService, token);
   }
 }

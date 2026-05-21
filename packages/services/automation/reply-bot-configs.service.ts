@@ -17,10 +17,7 @@ export class ReplyBotConfigsService extends BaseService<ReplyBotConfig> {
   }
 
   public static getInstance(token: string): ReplyBotConfigsService {
-    return BaseService.getDataServiceInstance(
-      ReplyBotConfigsService,
-      token,
-    ) as ReplyBotConfigsService;
+    return BaseService.getDataServiceInstance(ReplyBotConfigsService, token);
   }
 
   /**

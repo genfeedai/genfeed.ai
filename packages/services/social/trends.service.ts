@@ -28,10 +28,7 @@ export class TrendsService extends BaseService<Trend> {
   }
 
   public static getInstance(token: string): TrendsService {
-    return BaseService.getDataServiceInstance(
-      TrendsService,
-      token,
-    ) as TrendsService;
+    return BaseService.getDataServiceInstance(TrendsService, token);
   }
 
   async getPreferences(): Promise<ITrendPreferences | null> {

@@ -9,9 +9,6 @@ export class RolesService extends BaseService<Role> {
   }
 
   public static getInstance(token: string): RolesService {
-    return BaseService.getDataServiceInstance(
-      RolesService,
-      token,
-    ) as RolesService;
+    return BaseService.getDataServiceInstance(RolesService, token);
   }
 }

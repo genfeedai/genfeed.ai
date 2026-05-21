@@ -14,10 +14,7 @@ export class BotsService extends BaseService<Bot> {
   }
 
   public static getInstance(token: string): BotsService {
-    return BaseService.getDataServiceInstance(
-      BotsService,
-      token,
-    ) as BotsService;
+    return BaseService.getDataServiceInstance(BotsService, token);
   }
 
   async findAllByOrganization(organizationId: string): Promise<Bot[]> {

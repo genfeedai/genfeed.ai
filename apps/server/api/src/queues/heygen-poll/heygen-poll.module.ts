@@ -31,8 +31,8 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => AvatarVideoModule),
     forwardRef(() => WebhooksModule),
     forwardRef(() => TasksModule),
-    forwardRef(() => MetadataModule),
-    forwardRef(() => IngredientsModule),
+    MetadataModule,
+    IngredientsModule,
   ],
 })
 export class HeygenPollModule {}

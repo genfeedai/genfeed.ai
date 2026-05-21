@@ -50,10 +50,7 @@ export class OrganizationsService extends BaseService<Organization> {
   }
 
   public static getInstance(token: string): OrganizationsService {
-    return BaseService.getDataServiceInstance(
-      OrganizationsService,
-      token,
-    ) as OrganizationsService;
+    return BaseService.getDataServiceInstance(OrganizationsService, token);
   }
 
   public async findOrganizationBrands(

@@ -12,7 +12,7 @@ import { forwardRef, Module } from '@nestjs/common';
     ConfigModule,
     LoggerModule,
     OpenRouterModule,
-    forwardRef(() => IngredientsModule),
+    IngredientsModule,
     forwardRef(() => PostsModule),
   ],
   providers: [ContentQualityScorerService],

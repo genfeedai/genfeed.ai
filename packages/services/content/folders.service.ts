@@ -9,9 +9,6 @@ export class FoldersService extends BaseService<Folder> {
   }
 
   public static getInstance(token: string): FoldersService {
-    return BaseService.getDataServiceInstance(
-      FoldersService,
-      token,
-    ) as FoldersService;
+    return BaseService.getDataServiceInstance(FoldersService, token);
   }
 }

@@ -12,10 +12,7 @@ export class AssetsService extends BaseService<Asset> {
   }
 
   public static getInstance(token: string): AssetsService {
-    return BaseService.getDataServiceInstance(
-      AssetsService,
-      token,
-    ) as AssetsService;
+    return BaseService.getDataServiceInstance(AssetsService, token);
   }
 
   public async postUpload(

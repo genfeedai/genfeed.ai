@@ -39,17 +39,12 @@ export interface CreateManualReviewBatchRequest {
 }
 
 export class BatchesService extends HTTPBaseService {
-  private static instanceMap = new Map<string, BatchesService>();
-
   constructor(token: string) {
     super(`${EnvironmentService.apiEndpoint}${API_ENDPOINTS.BATCHES}`, token);
   }
 
   public static getInstance(token: string): BatchesService {
-    if (!BatchesService.instanceMap.has(token)) {
-      BatchesService.instanceMap.set(token, new BatchesService(token));
-    }
-    return BatchesService.instanceMap.get(token)!;
+    return HTTPBaseService.getBaseServiceInstance(BatchesService, token);
   }
 
   async getBatches(query?: BatchListQuery): Promise<IBatchSummary[]> {

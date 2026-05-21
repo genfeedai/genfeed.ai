@@ -22,7 +22,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => AgentOrchestratorModule),
     forwardRef(() => AgentRunsModule),
     AgentThreadsModule,
-    forwardRef(() => IngredientsModule),
+    IngredientsModule,
     NotificationsPublisherModule,
     SkillsModule,
     forwardRef(() => QueuesModule),

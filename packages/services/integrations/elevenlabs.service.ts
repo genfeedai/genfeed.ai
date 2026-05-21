@@ -19,17 +19,12 @@ export interface ElevenLabsVoicesResponse {
 }
 
 export class ElevenLabsService extends HTTPBaseService {
-  private static instances = new Map<string, ElevenLabsService>();
-
   constructor(token: string) {
     super(`${EnvironmentService.apiEndpoint}/avatars/elevenlabs`, token);
   }
 
   public static getInstance(token: string): ElevenLabsService {
-    if (!ElevenLabsService.instances.has(token)) {
-      ElevenLabsService.instances.set(token, new ElevenLabsService(token));
-    }
-    return ElevenLabsService.instances.get(token)!;
+    return HTTPBaseService.getBaseServiceInstance(ElevenLabsService, token);
   }
 
   /**

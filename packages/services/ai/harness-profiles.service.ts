@@ -19,10 +19,7 @@ export class HarnessProfilesService extends BaseService<HarnessProfile> {
   }
 
   public static getInstance(token: string): HarnessProfilesService {
-    return BaseService.getDataServiceInstance(
-      HarnessProfilesService,
-      token,
-    ) as HarnessProfilesService;
+    return BaseService.getDataServiceInstance(HarnessProfilesService, token);
   }
 
   public async findForBrand(brandId: string): Promise<HarnessProfile[]> {

@@ -22,10 +22,7 @@ export class UsersService extends BaseService<User> {
   }
 
   public static getInstance(token: string): UsersService {
-    return BaseService.getDataServiceInstance(
-      UsersService,
-      token,
-    ) as UsersService;
+    return BaseService.getDataServiceInstance(UsersService, token);
   }
 
   public async findMeBrands(params: IQueryParams) {

@@ -14,9 +14,6 @@ export class CameraMovementsService extends BaseService<ElementCameraMovement> {
   }
 
   public static getInstance(token: string): CameraMovementsService {
-    return BaseService.getDataServiceInstance(
-      CameraMovementsService,
-      token,
-    ) as CameraMovementsService;
+    return BaseService.getDataServiceInstance(CameraMovementsService, token);
   }
 }

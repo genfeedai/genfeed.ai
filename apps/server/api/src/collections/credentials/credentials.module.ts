@@ -35,7 +35,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => OrganizationsModule),
     forwardRef(() => PinterestModule),
     forwardRef(() => RedditModule),
-    forwardRef(() => TagsModule),
+    TagsModule,
     forwardRef(() => TiktokModule),
     forwardRef(() => TwitterModule),
     forwardRef(() => YoutubeModule),

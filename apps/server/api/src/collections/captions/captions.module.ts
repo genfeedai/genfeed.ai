@@ -13,10 +13,7 @@ import { forwardRef, Module } from '@nestjs/common';
 @Module({
   controllers: [CaptionsController],
   exports: [CaptionsService],
-  imports: [
-    forwardRef(() => IngredientsModule),
-    forwardRef(() => WhisperModule),
-  ],
+  imports: [IngredientsModule, forwardRef(() => WhisperModule)],
   providers: [CaptionsService],
 })
 export class CaptionsModule {}

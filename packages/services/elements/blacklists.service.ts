@@ -14,9 +14,6 @@ export class BlacklistsService extends BaseService<ElementBlacklist> {
   }
 
   public static getInstance(token: string): BlacklistsService {
-    return BaseService.getDataServiceInstance(
-      BlacklistsService,
-      token,
-    ) as BlacklistsService;
+    return BaseService.getDataServiceInstance(BlacklistsService, token);
   }
 }

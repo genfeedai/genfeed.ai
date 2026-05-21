@@ -26,10 +26,7 @@ export class TemplateService extends BaseService<IContentTemplate> {
   }
 
   public static getInstance(token: string): TemplateService {
-    return BaseService.getDataServiceInstance(
-      TemplateService,
-      token,
-    ) as TemplateService;
+    return BaseService.getDataServiceInstance(TemplateService, token);
   }
 
   /**

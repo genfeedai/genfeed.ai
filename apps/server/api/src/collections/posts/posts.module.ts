@@ -39,7 +39,7 @@ import { forwardRef, Module } from '@nestjs/common';
     ByokModule,
     forwardRef(() => CredentialsModule),
     forwardRef(() => CreditsModule),
-    forwardRef(() => IngredientsModule),
+    IngredientsModule,
     forwardRef(() => ModelsModule),
     forwardRef(() => NotificationsPublisherModule),
     forwardRef(() => OrganizationSettingsModule),

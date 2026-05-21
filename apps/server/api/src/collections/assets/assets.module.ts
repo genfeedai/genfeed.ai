@@ -29,8 +29,8 @@ import { forwardRef, Module } from '@nestjs/common';
     ByokModule,
     forwardRef(() => CreditsModule),
     forwardRef(() => FilesClientModule),
-    forwardRef(() => IngredientsModule),
-    forwardRef(() => MetadataModule),
+    IngredientsModule,
+    MetadataModule,
     forwardRef(() => ModelsModule),
 
     NotificationsPublisherModule,

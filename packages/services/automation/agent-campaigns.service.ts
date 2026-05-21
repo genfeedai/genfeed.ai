@@ -69,10 +69,7 @@ export class AgentCampaignsService extends BaseService<
   }
 
   public static getInstance(token: string): AgentCampaignsService {
-    return BaseService.getDataServiceInstance(
-      AgentCampaignsService,
-      token,
-    ) as AgentCampaignsService;
+    return BaseService.getDataServiceInstance(AgentCampaignsService, token);
   }
 
   async list(params?: { status?: string }): Promise<AgentCampaign[]> {

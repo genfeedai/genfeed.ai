@@ -13,8 +13,8 @@ import { forwardRef, Module } from '@nestjs/common';
   controllers: [EditorProjectsController],
   exports: [EditorProjectsService],
   imports: [
-    forwardRef(() => IngredientsModule),
-    forwardRef(() => MetadataModule),
+    IngredientsModule,
+    MetadataModule,
     forwardRef(() => FileQueueModule),
     forwardRef(() => FilesClientModule),
     forwardRef(() => NotificationsPublisherModule),

@@ -18,11 +18,11 @@ import { forwardRef, Module } from '@nestjs/common';
   imports: [
     forwardRef(() => BrandsModule),
     forwardRef(() => CreditsModule),
-    forwardRef(() => MembersModule),
+    MembersModule,
     forwardRef(() => OrganizationSettingsModule),
     forwardRef(() => OrganizationsModule),
-    forwardRef(() => RolesModule),
-    forwardRef(() => SettingsModule),
+    RolesModule,
+    SettingsModule,
   ],
   providers: [UserSetupService],
 })

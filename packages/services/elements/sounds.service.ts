@@ -9,9 +9,6 @@ export class SoundsService extends BaseService<Sound> {
   }
 
   public static getInstance(token: string): SoundsService {
-    return BaseService.getDataServiceInstance(
-      SoundsService,
-      token,
-    ) as SoundsService;
+    return BaseService.getDataServiceInstance(SoundsService, token);
   }
 }

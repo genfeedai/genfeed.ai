@@ -52,8 +52,8 @@ import { forwardRef, Module } from '@nestjs/common';
     // Service modules
     forwardRef(() => FilesClientModule),
     forwardRef(() => HeyGenModule),
-    forwardRef(() => IngredientsModule),
-    forwardRef(() => MetadataModule),
+    IngredientsModule,
+    MetadataModule,
     forwardRef(() => ModelsModule),
     forwardRef(() => NotificationsPublisherModule),
     forwardRef(() => PromptBuilderModule),

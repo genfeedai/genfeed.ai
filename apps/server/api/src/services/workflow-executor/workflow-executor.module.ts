@@ -28,7 +28,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => OrganizationsModule),
     PersonaContentModule,
     ReplicateModule,
-    forwardRef(() => SettingsModule),
+    SettingsModule,
     forwardRef(() => TrendsModule),
   ],
   providers: [

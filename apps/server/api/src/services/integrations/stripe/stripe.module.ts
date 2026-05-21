@@ -15,9 +15,9 @@ import { forwardRef, Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(StripeService, {
   additionalImports: [
-    forwardRef(() => ClerkModule),
+    ClerkModule,
     forwardRef(() => CreditsModule),
-    forwardRef(() => MembersModule),
+    MembersModule,
     forwardRef(() => OrganizationsModule),
     forwardRef(() => SubscriptionsModule),
     forwardRef(() => UserSubscriptionsModule),

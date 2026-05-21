@@ -18,7 +18,7 @@ import { forwardRef, Module } from '@nestjs/common';
   controllers: [SubscriptionsController],
   exports: [SubscriptionsService],
   imports: [
-    forwardRef(() => ClerkModule),
+    ClerkModule,
     forwardRef(() => CreditsModule),
     forwardRef(() => CustomersModule),
     forwardRef(() => OrganizationsModule),

@@ -83,10 +83,7 @@ export class SkillsService extends BaseService<
   }
 
   public static getInstance(token: string): SkillsService {
-    return BaseService.getDataServiceInstance(
-      SkillsService,
-      token,
-    ) as SkillsService;
+    return BaseService.getDataServiceInstance(SkillsService, token);
   }
 
   async listSkills(): Promise<Skill[]> {

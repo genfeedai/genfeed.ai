@@ -33,10 +33,7 @@ export class BrandsService extends BaseService<Brand> {
   }
 
   public static getInstance(token: string): BrandsService {
-    return BaseService.getDataServiceInstance(
-      BrandsService,
-      token,
-    ) as BrandsService;
+    return BaseService.getDataServiceInstance(BrandsService, token);
   }
 
   public async findOneBySlug(slug: string): Promise<Brand> {

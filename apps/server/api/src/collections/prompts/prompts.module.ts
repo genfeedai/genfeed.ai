@@ -36,7 +36,7 @@ import { forwardRef, Module } from '@nestjs/common';
 
     forwardRef(() => BrandsModule),
     forwardRef(() => CreditsModule),
-    forwardRef(() => IngredientsModule),
+    IngredientsModule,
     forwardRef(() => MarketplaceIntegrationModule),
     ModelsModule,
     forwardRef(() => TemplatesModule),

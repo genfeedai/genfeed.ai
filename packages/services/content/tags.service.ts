@@ -12,10 +12,7 @@ export class TagsService extends BaseService<Tag> {
   }
 
   public static getInstance(token: string): TagsService {
-    return BaseService.getDataServiceInstance(
-      TagsService,
-      token,
-    ) as TagsService;
+    return BaseService.getDataServiceInstance(TagsService, token);
   }
 
   /**

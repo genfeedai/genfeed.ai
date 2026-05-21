@@ -56,10 +56,7 @@ export class PostsService extends BaseService<Post> {
   }
 
   public static getInstance(token: string): PostsService {
-    return BaseService.getDataServiceInstance(
-      PostsService,
-      token,
-    ) as PostsService;
+    return BaseService.getDataServiceInstance(PostsService, token);
   }
 
   /**

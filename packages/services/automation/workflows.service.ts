@@ -13,10 +13,7 @@ export class WorkflowsService extends BaseService<Workflow> {
   }
 
   public static getInstance(token: string): WorkflowsService {
-    return BaseService.getDataServiceInstance(
-      WorkflowsService,
-      token,
-    ) as WorkflowsService;
+    return BaseService.getDataServiceInstance(WorkflowsService, token);
   }
 
   async setSchedule(
