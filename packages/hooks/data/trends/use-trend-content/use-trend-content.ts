@@ -1,6 +1,5 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
 import { useBrandId } from '@genfeedai/contexts/user/brand-context/brand-context';
 import type {
   TrendContentItem,
@@ -29,7 +28,6 @@ export interface UseTrendContentReturn {
 }
 
 export function useTrendContent(platform?: string): UseTrendContentReturn {
-  const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
   const brandId = useBrandId();
   const queryClient = useQueryClient();
 
@@ -37,29 +35,24 @@ export function useTrendContent(platform?: string): UseTrendContentReturn {
     TrendsService.getInstance(token),
   );
 
-  const queryKey = useMemo(
-    () => ['trend-content', brandId, platform],
-    [brandId, platform],
-  );
+  const queryKey = ['trend-content', brandId, platform];
 
   const {
-    data: response = {
-      items: [],
-      summary: EMPTY_SUMMARY,
-    } as TrendContentResponse,
+    data: response,
     error,
     isLoading,
     isFetching,
   } = useQuery<TrendContentResponse>({
-    enabled: isAuthLoaded && !!isSignedIn,
+    queryKey,
     queryFn: async () => {
       const service = await getTrendsService();
       return service.getTrendContent({ platform });
     },
-    queryKey,
+    initialData: {
+      items: [],
+      summary: EMPTY_SUMMARY,
+    },
   });
-
-  const isRefreshing = isFetching && !isLoading;
 
   const refreshTrendContent = useCallback(async () => {
     const service = await getTrendsService();
@@ -68,7 +61,7 @@ export function useTrendContent(platform?: string): UseTrendContentReturn {
       refresh: true,
     });
     queryClient.setQueryData(queryKey, refreshed);
-  }, [getTrendsService, queryClient, queryKey, platform]);
+  }, [getTrendsService, platform, queryClient, queryKey]);
 
   const items = useMemo(() => response.items || [], [response.items]);
   const summary = useMemo(
@@ -79,7 +72,7 @@ export function useTrendContent(platform?: string): UseTrendContentReturn {
   return {
     error,
     isLoading,
-    isRefreshing,
+    isRefreshing: isFetching && !isLoading,
     items,
     refreshTrendContent,
     summary,

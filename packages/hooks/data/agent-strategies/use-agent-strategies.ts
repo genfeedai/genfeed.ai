@@ -29,6 +29,7 @@ export function useAgentStrategies(
     isLoading,
     refetch,
   } = useQuery({
+    queryKey: ['agent-strategies', options.agentType, options.isActive],
     queryFn: async () => {
       const token = await resolveClerkToken(getToken);
       if (!token) return [];
@@ -39,16 +40,13 @@ export function useAgentStrategies(
         isActive: options.isActive,
       });
     },
-    queryKey: ['agent-strategies', options.agentType, options.isActive],
   });
-
-  const refresh = async () => {
-    await refetch();
-  };
 
   return {
     isLoading,
-    refresh,
+    refresh: async () => {
+      await refetch();
+    },
     strategies,
   };
 }

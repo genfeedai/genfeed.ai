@@ -46,26 +46,22 @@ export function useTrends(initialPlatform: string = 'all'): UseTrendsReturn {
     setSelectedPlatform(initialPlatform);
   }, [initialPlatform]);
 
-  const queryKey = useMemo(
-    () => ['trends', platformParam, brandId],
-    [platformParam, brandId],
-  );
+  const queryKey = ['trends-discovery', platformParam, brandId];
 
   const {
-    data: response = { summary: EMPTY_SUMMARY, trends: [] } as TrendsResponse,
+    data: response,
     isLoading,
     isFetching,
     error,
     refetch,
   } = useQuery<TrendsResponse>({
+    queryKey,
     queryFn: async () => {
       const service = await getTrendsService();
       return service.getTrendsDiscovery({ platform: platformParam });
     },
-    queryKey,
+    initialData: { summary: EMPTY_SUMMARY, trends: [] },
   });
-
-  const isRefreshing = isFetching && !isLoading;
 
   const trends = useMemo(() => response.trends || [], [response.trends]);
   const summary = useMemo(
@@ -73,9 +69,9 @@ export function useTrends(initialPlatform: string = 'all'): UseTrendsReturn {
     [response.summary],
   );
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     await refetch();
-  };
+  }, [refetch]);
 
   const refreshTrends = useCallback(async () => {
     const service = await getTrendsService();
@@ -89,7 +85,7 @@ export function useTrends(initialPlatform: string = 'all'): UseTrendsReturn {
   return {
     error,
     isLoading,
-    isRefreshing,
+    isRefreshing: isFetching && !isLoading,
     refresh,
     refreshTrends,
     selectedPlatform,

@@ -61,8 +61,12 @@ export class CronWorkflowsService {
   // Lock TTL: 10 minutes (should be longer than max expected execution time)
   private static readonly LOCK_TTL_SECONDS = 600;
 
-  /** Minimum credits required before executing any paid generation step. */
-  private static readonly MIN_CREDITS_FOR_GENERATION = 10;
+  private static readonly WORKFLOW_STEP_CREDIT_COST: Record<string, number> = {
+    [WorkflowStepCategory.GENERATE_ARTICLE]: 3,
+    [WorkflowStepCategory.GENERATE_IMAGE]: 5,
+    [WorkflowStepCategory.GENERATE_MUSIC]: 5,
+    [WorkflowStepCategory.GENERATE_VIDEO]: 10,
+  };
 
   constructor(
     private readonly prisma: PrismaService,
@@ -354,28 +358,6 @@ export class CronWorkflowsService {
       `Executing step: ${step.id} (${step.category})`,
       'CronWorkflowsService',
     );
-
-    // Credit guard: all generation step types invoke paid AI APIs.
-    const isPaidStep = [
-      WorkflowStepCategory.GENERATE_IMAGE,
-      WorkflowStepCategory.GENERATE_VIDEO,
-      WorkflowStepCategory.GENERATE_MUSIC,
-      WorkflowStepCategory.GENERATE_ARTICLE,
-    ].includes(step.category as WorkflowStepCategory);
-
-    if (isPaidStep) {
-      const hasCredits =
-        await this.creditsUtilsService.checkOrganizationCreditsAvailable(
-          organizationId,
-          CronWorkflowsService.MIN_CREDITS_FOR_GENERATION,
-        );
-
-      if (!hasCredits) {
-        throw new Error(
-          `Insufficient credits for organisation ${organizationId} to execute step "${step.category}"`,
-        );
-      }
-    }
 
     switch (step.category) {
       case WorkflowStepCategory.GENERATE_IMAGE:

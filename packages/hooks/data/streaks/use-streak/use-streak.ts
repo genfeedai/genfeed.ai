@@ -30,18 +30,8 @@ export function useStreak(options: UseStreakOptions = {}): UseStreakReturn {
     StreaksService.getInstance(token, organizationId),
   );
 
-  const initialData = initialStreak
-    ? { calendar: {} as IStreakCalendarResponse['days'], streak: initialStreak }
-    : undefined;
-
-  const {
-    data,
-    isLoading,
-    refetch: rqRefetch,
-  } = useQuery({
-    enabled: Boolean(organizationId),
-    initialData,
-    initialDataUpdatedAt: initialStreak ? 0 : undefined,
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ['streak', organizationId, includeCalendar],
     queryFn: async () => {
       if (!organizationId) {
         return null;
@@ -55,20 +45,21 @@ export function useStreak(options: UseStreakOptions = {}): UseStreakReturn {
 
       return { calendar: calendar.days, streak };
     },
-    queryKey: ['streak', organizationId, includeCalendar],
+    enabled: Boolean(organizationId),
     staleTime: STREAK_CACHE_TTL_MS,
+    initialData: initialStreak
+      ? { calendar: {}, streak: initialStreak }
+      : undefined,
   });
-
-  const refetch = async () => {
-    await rqRefetch();
-  };
 
   return useMemo(
     () => ({
       calendar: data?.calendar ?? {},
       isLoading,
       isVisible: Boolean(organizationId),
-      refetch,
+      refetch: async () => {
+        await refetch();
+      },
       streak: data?.streak ?? null,
     }),
     [data?.calendar, data?.streak, isLoading, organizationId, refetch],

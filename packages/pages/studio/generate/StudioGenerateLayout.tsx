@@ -16,7 +16,10 @@ import type {
   IModel,
   IQueryParams,
 } from '@genfeedai/interfaces';
-import type { AvatarVoiceData } from '@genfeedai/interfaces/studio/studio-generate.interface';
+import type {
+  AvatarVoiceData,
+  AvatarVoiceOption,
+} from '@genfeedai/interfaces/studio/studio-generate.interface';
 import { formatVideos } from '@helpers/data/data/data.helper';
 import { resolveIngredientAspectRatio } from '@helpers/formatting/aspect-ratio/aspect-ratio.util';
 import {

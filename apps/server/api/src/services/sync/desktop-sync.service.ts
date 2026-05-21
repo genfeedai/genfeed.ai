@@ -54,19 +54,13 @@ const ALLOWED_DESKTOP_MIME_TYPES = new Set([
   'video/mp4',
   'video/quicktime',
   'video/webm',
-  'video/avi',
-  'video/x-matroska',
   'audio/mpeg',
   'audio/mp3',
   'audio/wav',
   'audio/aac',
   'audio/flac',
   'audio/ogg',
-  'audio/webm',
   'application/pdf',
-  'text/plain',
-  'text/csv',
-  'application/json',
 ]);
 
 @Injectable()
@@ -508,21 +502,12 @@ export class DesktopSyncService {
       throw new NotFoundException('Desktop asset metadata was not found.');
     }
 
-    // Validate declared size before issuing a presigned URL.
-    if (
-      asset.sizeBytes !== null &&
-      asset.sizeBytes !== undefined &&
-      Number(asset.sizeBytes) > DesktopSyncService.MAX_UPLOAD_BYTES
-    ) {
+    const effectiveMime = dto.mimeType ?? asset.mimeType ?? '';
+    if (effectiveMime && !ALLOWED_DESKTOP_MIME_TYPES.has(effectiveMime)) {
       throw new BadRequestException(
-        `Asset size ${String(asset.sizeBytes)} bytes exceeds the maximum allowed size of ${DesktopSyncService.MAX_UPLOAD_BYTES} bytes`,
+        `MIME type "${effectiveMime}" is not allowed for desktop uploads`,
       );
     }
-
-    // Validate MIME type before issuing a presigned URL.
-    const mimeType =
-      dto.mimeType ?? asset.mimeType ?? 'application/octet-stream';
-    this.assertAllowedMimeType(mimeType);
 
     const logicalObjectKey = (
       asset.cloudObjectKey ??
@@ -596,46 +581,9 @@ export class DesktopSyncService {
     };
   }
 
-  /** Maximum decoded file size accepted via the base64 upload path (50 MB). */
-  private static readonly MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
-
-  /** Accepted MIME type prefix list for desktop asset uploads. */
-  private static readonly ALLOWED_MIME_PREFIXES = [
-    'image/',
-    'video/',
-    'audio/',
-    'application/pdf',
-    'application/zip',
-    'text/',
-  ];
-
-  private assertAllowedMimeType(mimeType: string): void {
-    const allowed = DesktopSyncService.ALLOWED_MIME_PREFIXES.some((prefix) =>
-      mimeType.startsWith(prefix),
-    );
-    if (!allowed) {
-      throw new BadRequestException(`Unsupported MIME type: "${mimeType}"`);
-    }
-  }
-
   @LogMethod()
   async uploadAsset(user: User, id: string, dto: UploadDesktopAssetDto) {
     const { organizationId, userId } = this.getCloudContext(user);
-
-    // Validate MIME type before decoding the payload.
-    const mimeType = dto.mimeType ?? 'application/octet-stream';
-    this.assertAllowedMimeType(mimeType);
-
-    // Validate decoded size.  base64 encodes ~4/3× the binary size, so decode
-    // length is always <= raw string length — checking the decoded buffer is
-    // the accurate bound.
-    const decoded = Buffer.from(dto.data, 'base64');
-    if (decoded.byteLength > DesktopSyncService.MAX_UPLOAD_BYTES) {
-      throw new BadRequestException(
-        `File size ${decoded.byteLength} bytes exceeds the maximum allowed size of ${DesktopSyncService.MAX_UPLOAD_BYTES} bytes`,
-      );
-    }
-
     const asset = await this.prisma.asset.findFirst({
       where: {
         id,
@@ -679,8 +627,8 @@ export class DesktopSyncService {
       logicalObjectKey,
       'desktop-assets',
       {
-        contentType: mimeType,
-        data: decoded,
+        contentType: uploadMime,
+        data: buffer,
         type: FileInputType.BUFFER,
       },
     );

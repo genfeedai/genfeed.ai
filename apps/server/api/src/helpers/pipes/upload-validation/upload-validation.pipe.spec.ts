@@ -1,6 +1,18 @@
 import { BadRequestException } from '@nestjs/common';
 import { UploadValidationPipe } from './upload-validation.pipe';
 
+function exceptionMessage(error: BadRequestException): string {
+  const response = error.getResponse();
+  if (typeof response === 'string') {
+    return response;
+  }
+  if (response && typeof response === 'object' && 'message' in response) {
+    const { message } = response as { message: string | string[] };
+    return Array.isArray(message) ? message.join('\n') : message;
+  }
+  return String(response);
+}
+
 function makeFile(
   overrides: Partial<Express.Multer.File> = {},
 ): Express.Multer.File {
@@ -160,10 +172,8 @@ describe('UploadValidationPipe', () => {
         fail('should have thrown');
       } catch (error: unknown) {
         expect(error).toBeInstanceOf(BadRequestException);
-        const response = (error as BadRequestException).getResponse() as {
-          message: string;
-        };
-        expect(response.message).toContain('MB');
+        const response = exceptionMessage(error as BadRequestException);
+        expect(response).toContain('MB');
       }
     });
 
@@ -177,10 +187,8 @@ describe('UploadValidationPipe', () => {
         fail('should have thrown');
       } catch (error: unknown) {
         expect(error).toBeInstanceOf(BadRequestException);
-        const response = (error as BadRequestException).getResponse() as {
-          message: string;
-        };
-        expect(response.message).toContain('image/gif');
+        const response = exceptionMessage(error as BadRequestException);
+        expect(response).toContain('image/gif');
       }
     });
   });

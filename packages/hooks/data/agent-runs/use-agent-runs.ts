@@ -10,7 +10,7 @@ import type {
 } from '@genfeedai/types';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
 import { useQuery } from '@tanstack/react-query';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 
 export interface UseAgentRunsOptions extends AgentRunListQueryParams {
   initialRuns?: IAgentRun[];
@@ -30,24 +30,36 @@ export interface UseAgentRunsReturn {
 export function useAgentRuns(
   options: UseAgentRunsOptions = {},
 ): UseAgentRunsReturn {
-  const { getToken, orgId, userId } = useAuth();
+  const { getToken } = useAuth();
+  const [stats, setStats] = useState<AgentRunStats | null>(
+    options.initialStats ?? null,
+  );
 
-  const hasInitialData =
-    options.initialRuns !== undefined || options.initialStats !== undefined;
+  const shouldRevalidateOnMount =
+    options.revalidateOnMount ?? options.initialRuns == null;
 
-  const { data, isLoading, refetch } = useQuery({
-    initialData: hasInitialData
-      ? {
-          runs: options.initialRuns ?? [],
-          stats: options.initialStats ?? null,
-        }
-      : undefined,
-    initialDataUpdatedAt: hasInitialData ? 0 : undefined,
+  const {
+    data: runs = [] as IAgentRun[],
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey: [
+      'agent-runs',
+      options.historyOnly,
+      options.model,
+      options.page,
+      options.q,
+      options.routingPolicy,
+      options.sortMode,
+      options.status,
+      options.strategy,
+      options.timeRange,
+      options.trigger,
+      options.webSearchEnabled,
+    ],
     queryFn: async () => {
       const token = await resolveClerkToken(getToken);
-      if (!token) {
-        return { runs: [] as IAgentRun[], stats: null };
-      }
+      if (!token) return [];
 
       const service = AgentRunsService.getInstance(token);
 
@@ -67,32 +79,12 @@ export function useAgentRuns(
         service.getStats({ timeRange: options.timeRange }),
       ]);
 
-      return {
-        runs: fetchedRuns,
-        stats: fetchedStats,
-      };
+      setStats(fetchedStats);
+      return fetchedRuns;
     },
-    queryKey: [
-      'agent-runs',
-      userId ?? 'anonymous',
-      orgId ?? 'no-org',
-      options.historyOnly,
-      options.model,
-      options.page,
-      options.q,
-      options.routingPolicy,
-      options.sortMode,
-      options.status,
-      options.strategy,
-      options.timeRange,
-      options.trigger,
-      options.webSearchEnabled,
-    ],
+    initialData: options.initialRuns ?? undefined,
+    staleTime: shouldRevalidateOnMount ? 0 : Number.POSITIVE_INFINITY,
   });
-
-  const refresh = async () => {
-    await refetch();
-  };
 
   const cancelRun = useCallback(
     async (id: string) => {
@@ -109,8 +101,10 @@ export function useAgentRuns(
   return {
     cancelRun,
     isLoading,
-    refresh,
-    runs: data?.runs ?? [],
-    stats: data?.stats ?? null,
+    refresh: async () => {
+      await refetch();
+    },
+    runs,
+    stats,
   };
 }
