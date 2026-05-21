@@ -1,7 +1,10 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { useAgentDraftContext } from '@genfeedai/agent';
+import {
+  type AgentDraftSuggestionPayload,
+  useAgentDraftContext,
+} from '@genfeedai/agent';
 import type {
   DesktopContentPlatform,
   DesktopContentType,
@@ -32,7 +35,7 @@ import {
 import { Textarea } from '@ui/primitives/textarea';
 import { track } from '@vercel/analytics';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useMemo, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   HiClipboardDocument,
   HiDocumentText,
@@ -95,6 +98,24 @@ function splitDraftSegments(content: string): string[] {
 
 function joinDraftSegments(segments: string[]): string {
   return segments.join(THREAD_DRAFT_SEPARATOR);
+}
+
+function applyDraftSuggestionToText(
+  currentContent: string,
+  payload: AgentDraftSuggestionPayload,
+): string {
+  const suggestion = payload.text.trim();
+  const selectedText = payload.selectedText?.trim();
+
+  if (selectedText && currentContent.includes(selectedText)) {
+    return currentContent.replace(selectedText, suggestion);
+  }
+
+  if (!currentContent.trim()) {
+    return suggestion;
+  }
+
+  return [currentContent.trimEnd(), suggestion].join(THREAD_DRAFT_SEPARATOR);
 }
 
 function getCharacterLimit(
@@ -556,11 +577,21 @@ function PostsWritePageContent() {
     });
   };
 
+  const handleApplyDraftSuggestion = useCallback(
+    (payload: AgentDraftSuggestionPayload) => {
+      setLocalContent((currentContent) =>
+        applyDraftSuggestionToText(currentContent, payload),
+      );
+    },
+    [],
+  );
+
   useAgentDraftContext({
     body: localContent,
     contentFormat: SOCIAL_FORMAT_LABELS[selectedFormat],
     draftType: selectedFormat === 'thread' ? 'thread' : 'post',
     instructions: prompt,
+    onApplySuggestion: handleApplyDraftSuggestion,
     selectionRootId: 'post-compose-workspace',
     title: workingTitle,
   });

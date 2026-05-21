@@ -36,10 +36,6 @@ import { VoiceCloneCard } from '@genfeedai/agent/components/VoiceCloneCard';
 import { WorkflowCreatedCard } from '@genfeedai/agent/components/WorkflowCreatedCard';
 import { WorkflowExecuteCard } from '@genfeedai/agent/components/WorkflowExecuteCard';
 import { WorkflowTriggerCard } from '@genfeedai/agent/components/WorkflowTriggerCard';
-import {
-  AGENT_DRAFT_SUGGESTION_EVENT,
-  type AgentDraftSuggestionPayload,
-} from '@genfeedai/agent/hooks/use-agent-draft-context';
 import { useAnimatedText } from '@genfeedai/agent/hooks/use-animated-text';
 import type {
   AgentChatMessage as AgentChatMessageType,
