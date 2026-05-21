@@ -5,6 +5,10 @@
 
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
+import { ServiceInstanceManager } from '@services/core/service-instance-manager';
+
+const subscriptionAttributionInstances =
+  new ServiceInstanceManager<SubscriptionAttributionServiceClass>();
 
 export interface ISubscriptionAttribution {
   id: string;
@@ -281,23 +285,31 @@ class SubscriptionAttributionServiceClass {
 }
 
 export class SubscriptionAttributionService {
-  private static instances: Map<string, SubscriptionAttributionServiceClass> =
-    new Map();
-
   static getInstance(token: string): SubscriptionAttributionServiceClass {
-    if (!SubscriptionAttributionService.instances.has(token)) {
-      SubscriptionAttributionService.instances.set(
-        token,
-        new SubscriptionAttributionServiceClass(
-          EnvironmentService.apiEndpoint,
-          token,
-        ),
-      );
+    const cached = subscriptionAttributionInstances.get(
+      SubscriptionAttributionService,
+      token,
+    );
+    if (cached) {
+      return cached;
     }
-    return SubscriptionAttributionService.instances.get(token)!;
+
+    const instance = new SubscriptionAttributionServiceClass(
+      EnvironmentService.apiEndpoint,
+      token,
+    );
+    subscriptionAttributionInstances.set(
+      SubscriptionAttributionService,
+      token,
+      instance,
+    );
+    return instance;
   }
 
   static clearInstance(token: string): void {
-    SubscriptionAttributionService.instances.delete(token);
+    subscriptionAttributionInstances.clear(
+      SubscriptionAttributionService,
+      token,
+    );
   }
 }

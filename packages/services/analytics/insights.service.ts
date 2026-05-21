@@ -18,6 +18,11 @@ import {
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
 import { logger } from '@services/core/logger.service';
+import { ServiceInstanceManager } from '@services/core/service-instance-manager';
+
+const insightInstances = new ServiceInstanceManager<InsightsServiceClass>();
+const predictiveAnalyticsInstances =
+  new ServiceInstanceManager<PredictiveAnalyticsService>();
 
 class InsightsServiceClass extends HTTPBaseService {
   constructor(token: string) {
@@ -88,23 +93,23 @@ class InsightsServiceClass extends HTTPBaseService {
 }
 
 export class InsightsService {
-  private static instances: Map<string, InsightsServiceClass> = new Map();
-
   static getInstance(token: string): InsightsServiceClass {
-    if (!InsightsService.instances.has(token)) {
-      InsightsService.instances.set(token, new InsightsServiceClass(token));
+    const cached = insightInstances.get(InsightsService, token);
+    if (cached) {
+      return cached;
     }
-    return InsightsService.instances.get(token)!;
+
+    const instance = new InsightsServiceClass(token);
+    insightInstances.set(InsightsService, token, instance);
+    return instance;
   }
 
   static clearInstance(token: string): void {
-    InsightsService.instances.delete(token);
+    insightInstances.clear(InsightsService, token);
   }
 }
 
 export class PredictiveAnalyticsService {
-  private static instances: Map<string, PredictiveAnalyticsService> = new Map();
-
   private constructor(private readonly token: string) {}
 
   private get baseUrl(): string {
@@ -112,18 +117,25 @@ export class PredictiveAnalyticsService {
   }
 
   static getInstance(token: string): PredictiveAnalyticsService {
-    if (!PredictiveAnalyticsService.instances.has(token)) {
-      PredictiveAnalyticsService.instances.set(
-        token,
-        new PredictiveAnalyticsService(token),
-      );
+    const cached = predictiveAnalyticsInstances.get(
+      PredictiveAnalyticsService,
+      token,
+    );
+    if (cached) {
+      return cached;
     }
 
-    return PredictiveAnalyticsService.instances.get(token)!;
+    const instance = new PredictiveAnalyticsService(token);
+    predictiveAnalyticsInstances.set(
+      PredictiveAnalyticsService,
+      token,
+      instance,
+    );
+    return instance;
   }
 
   static clearInstance(token: string): void {
-    PredictiveAnalyticsService.instances.delete(token);
+    predictiveAnalyticsInstances.clear(PredictiveAnalyticsService, token);
   }
 
   private buildUrl(

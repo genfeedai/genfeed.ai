@@ -17,9 +17,11 @@ import {
   deserializeResource,
 } from '@services/core/json-api';
 import { logger } from '@services/core/logger.service';
+import { ServiceInstanceManager } from '@services/core/service-instance-manager';
 
 type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE';
 type DeserializeMode = 'resource' | 'collection' | 'none';
+const profileInstances = new ServiceInstanceManager<ProfilesServiceClass>();
 
 class ProfilesServiceClass {
   private baseURL: string;
@@ -232,19 +234,21 @@ class ProfilesServiceClass {
 }
 
 export class ProfilesService {
-  private static instances: Map<string, ProfilesServiceClass> = new Map();
-
   static getInstance(token: string): ProfilesServiceClass {
-    if (!ProfilesService.instances.has(token)) {
-      ProfilesService.instances.set(
-        token,
-        new ProfilesServiceClass(EnvironmentService.apiEndpoint, token),
-      );
+    const cached = profileInstances.get(ProfilesService, token);
+    if (cached) {
+      return cached;
     }
-    return ProfilesService.instances.get(token)!;
+
+    const instance = new ProfilesServiceClass(
+      EnvironmentService.apiEndpoint,
+      token,
+    );
+    profileInstances.set(ProfilesService, token, instance);
+    return instance;
   }
 
   static clearInstance(token: string): void {
-    ProfilesService.instances.delete(token);
+    profileInstances.clear(ProfilesService, token);
   }
 }

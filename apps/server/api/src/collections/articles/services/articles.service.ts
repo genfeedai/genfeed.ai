@@ -16,8 +16,8 @@ import { ArticleAnalyticsService } from '@api/collections/articles/services/arti
 import type {
   ArticleCycleModelConfig,
   ArticleReviewRubric,
+  ArticlesContentService,
 } from '@api/collections/articles/services/articles-content.service';
-import { ArticlesContentService } from '@api/collections/articles/services/articles-content.service';
 import {
   buildViralityAnalysisResponse,
   normalizePerformanceMetrics,
@@ -60,7 +60,13 @@ import {
 import type { PopulateOption } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable, NotFoundException, Optional } from '@nestjs/common';
+import {
+  forwardRef,
+  Inject,
+  Injectable,
+  NotFoundException,
+  Optional,
+} from '@nestjs/common';
 
 @Injectable()
 export class ArticlesService extends BaseService<
@@ -85,6 +91,11 @@ export class ArticlesService extends BaseService<
     @Optional()
     private readonly promptsService?: PromptsService,
     @Optional()
+    @Inject(
+      forwardRef(
+        () => require('./articles-content.service').ArticlesContentService,
+      ),
+    )
     private readonly articlesContentService?: ArticlesContentService,
     @Optional() private readonly templatesService?: TemplatesService,
     @Optional() protected readonly cacheService?: CacheService,

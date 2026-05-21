@@ -1,6 +1,9 @@
 'use client';
 
-import { useAgentDraftContext } from '@genfeedai/agent';
+import {
+  type AgentDraftSuggestionPayload,
+  useAgentDraftContext,
+} from '@genfeedai/agent';
 import { ButtonVariant } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { NewslettersService } from '@services/content/newsletters.service';
@@ -13,7 +16,7 @@ import Textarea from '@ui/inputs/textarea/Textarea';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { useRouter } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   HiArrowPathRoundedSquare,
   HiClipboardDocument,
@@ -30,6 +33,37 @@ function stripHtml(value?: string): string {
     .replace(/<[^>]+>/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function applyDraftSuggestionToHtml(
+  currentContent: string,
+  payload: AgentDraftSuggestionPayload,
+): string {
+  const suggestion = payload.text.trim();
+  const selectedText = payload.selectedText?.trim();
+
+  if (selectedText && currentContent.includes(selectedText)) {
+    return currentContent.replace(selectedText, escapeHtml(suggestion));
+  }
+
+  const paragraph = `<p>${escapeHtml(suggestion)
+    .replace(/\n{2,}/g, '</p><p>')
+    .replace(/\n/g, '<br>')}</p>`;
+
+  if (!currentContent.trim()) {
+    return paragraph;
+  }
+
+  return `${currentContent}${paragraph}`;
 }
 
 export default function NewsletterComposerPanel() {
@@ -49,11 +83,20 @@ export default function NewsletterComposerPanel() {
   const getService = useAuthedService((token: string) =>
     NewslettersService.getInstance(token),
   );
+  const handleApplyDraftSuggestion = useCallback(
+    (payload: AgentDraftSuggestionPayload) => {
+      setContent((currentContent) =>
+        applyDraftSuggestionToHtml(currentContent, payload),
+      );
+    },
+    [],
+  );
 
   useAgentDraftContext({
     body: content,
     draftType: 'newsletter',
     instructions: [angle, instructions].filter(Boolean).join('\n\n'),
+    onApplySuggestion: handleApplyDraftSuggestion,
     selectionRootId: 'newsletter-compose-workspace',
     summary,
     title: label || topic,
