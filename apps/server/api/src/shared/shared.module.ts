@@ -1,21 +1,11 @@
-import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { MembersModule } from '@api/collections/members/members.module';
-import { MetadataModule } from '@api/collections/metadata/metadata.module';
-import { PromptsModule } from '@api/collections/prompts/prompts.module';
-import { UsersModule } from '@api/collections/users/users.module';
 import { ConfigModule } from '@api/config/config.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { TaskQueueClientService } from '@api/services/task-queue-client/task-queue-client.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpModule, HttpService } from '@nestjs/axios';
-import {
-  forwardRef,
-  Global,
-  Injectable,
-  Module,
-  type OnModuleInit,
-} from '@nestjs/common';
+import { Global, Injectable, Module, type OnModuleInit } from '@nestjs/common';
 import type { AxiosError } from 'axios';
 
 @Injectable()
@@ -57,13 +47,8 @@ class AxiosErrorInterceptorSetup implements OnModuleInit {
   imports: [
     ConfigModule,
     HttpModule,
-    NotificationsPublisherModule,
-
-    IngredientsModule,
     MembersModule,
-    MetadataModule,
-    forwardRef(() => PromptsModule),
-    forwardRef(() => UsersModule),
+    NotificationsPublisherModule,
   ],
   providers: [
     AxiosErrorInterceptorSetup,

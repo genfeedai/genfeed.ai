@@ -55,7 +55,7 @@ import { forwardRef, Module } from '@nestjs/common';
     IngredientsModule,
     MetadataModule,
     forwardRef(() => ModelsModule),
-    forwardRef(() => NotificationsPublisherModule),
+    NotificationsPublisherModule,
     forwardRef(() => PromptBuilderModule),
     forwardRef(() => PromptsModule),
     forwardRef(() => ReplicateModule),

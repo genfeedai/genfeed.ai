@@ -11,7 +11,7 @@ import { forwardRef, Module } from '@nestjs/common';
   imports: [
     ConfigModule,
     forwardRef(() => CreditsModule),
-    forwardRef(() => OrganizationSettingsModule),
+    OrganizationSettingsModule,
     forwardRef(() => StripeModule),
     forwardRef(() => SubscriptionsModule),
   ],

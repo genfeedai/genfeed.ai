@@ -8,7 +8,7 @@ import { forwardRef, Module } from '@nestjs/common';
   exports: [QuotaService],
   imports: [
     forwardRef(() => CredentialsModule),
-    forwardRef(() => OrganizationSettingsModule),
+    OrganizationSettingsModule,
     forwardRef(() => OrganizationsModule),
   ],
   providers: [QuotaService],

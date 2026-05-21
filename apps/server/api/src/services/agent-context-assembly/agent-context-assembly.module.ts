@@ -16,7 +16,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => ContextsModule),
     forwardRef(() => PatternMatcherModule),
     forwardRef(() => CredentialsModule),
-    forwardRef(() => OrganizationSettingsModule),
+    OrganizationSettingsModule,
     LoggerModule,
   ],
   providers: [AgentContextAssemblyService],

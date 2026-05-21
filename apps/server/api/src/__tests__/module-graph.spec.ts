@@ -142,7 +142,7 @@ describe('Module dependency graph', () => {
 
   it('should track forwardRef count (ratchet — decrease only)', () => {
     const count = countForwardRefs();
-    const MAX_ALLOWED_FORWARD_REFS = 480;
+    const MAX_ALLOWED_FORWARD_REFS = 460;
     console.log(`Total forwardRef() calls in module files: ${count}`);
     expect(count).toBeLessThanOrEqual(MAX_ALLOWED_FORWARD_REFS);
   });

@@ -43,7 +43,7 @@ import { forwardRef, Module } from '@nestjs/common';
     LlmDispatcherModule,
     forwardRef(() => ModelsModule),
     forwardRef(() => MusicsModule),
-    forwardRef(() => OrganizationSettingsModule),
+    OrganizationSettingsModule,
     forwardRef(() => PostsModule),
     forwardRef(() => VideosModule),
     forwardRef(() => WorkflowsModule),

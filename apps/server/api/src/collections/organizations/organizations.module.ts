@@ -59,7 +59,7 @@ import { forwardRef, Module } from '@nestjs/common';
     LoggerModule,
     MembersModule,
     forwardRef(() => ModelsModule),
-    forwardRef(() => OrganizationSettingsModule),
+    OrganizationSettingsModule,
     forwardRef(() => PostsModule),
     RolesModule,
     SettingsModule,

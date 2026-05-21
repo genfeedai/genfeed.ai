@@ -24,15 +24,18 @@ const toId = (value: unknown): string | undefined => {
 
 @Injectable()
 export class SharedService {
-  constructor(
-    private readonly moduleRef: ModuleRef,
+  constructor(private readonly moduleRef: ModuleRef) {}
 
-    private readonly ingredientsService: IngredientsService,
-    private readonly promptsService: PromptsService,
-  ) {}
+  private get ingredientsService(): IngredientsService {
+    return this.moduleRef.get(IngredientsService, { strict: false });
+  }
 
   private get metadataService(): MetadataService {
     return this.moduleRef.get(MetadataService, { strict: false });
+  }
+
+  private get promptsService(): PromptsService {
+    return this.moduleRef.get(PromptsService, { strict: false });
   }
 
   public async saveDocuments(user: User, body: Record<string, unknown>) {

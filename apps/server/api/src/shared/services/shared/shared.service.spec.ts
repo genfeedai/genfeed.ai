@@ -16,8 +16,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 
 describe('SharedService', () => {
   let service: SharedService;
-  let ingredientsService: IngredientsService;
-  let metadataService: MetadataService;
+  let ingredientsService: Partial<IngredientsService>;
+  let metadataService: Partial<MetadataService>;
+  let promptsService: Partial<PromptsService>;
   let moduleRef: ModuleRef;
 
   const mockUser = {
@@ -51,23 +52,24 @@ describe('SharedService', () => {
   };
 
   beforeEach(async () => {
+    ingredientsService = {
+      create: vi.fn(),
+      findOne: vi.fn(),
+      patch: vi.fn(),
+    };
+
+    metadataService = {
+      create: vi.fn(),
+      patch: vi.fn(),
+    };
+
+    promptsService = {
+      patch: vi.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         SharedService,
-        {
-          provide: IngredientsService,
-          useValue: {
-            create: vi.fn(),
-            findOne: vi.fn(),
-            patch: vi.fn(),
-          },
-        },
-        {
-          provide: PromptsService,
-          useValue: {
-            patch: vi.fn(),
-          },
-        },
         {
           provide: LoggerService,
           useValue: {
@@ -86,18 +88,12 @@ describe('SharedService', () => {
     }).compile();
 
     service = module.get<SharedService>(SharedService);
-    ingredientsService = module.get<IngredientsService>(IngredientsService);
     moduleRef = module.get<ModuleRef>(ModuleRef);
 
-    metadataService = {
-      create: vi.fn(),
-      patch: vi.fn(),
-    } as Partial<MetadataService> as MetadataService;
-
     (moduleRef.get as vi.Mock).mockImplementation((token) => {
-      if (token === MetadataService) {
-        return metadataService;
-      }
+      if (token === MetadataService) return metadataService;
+      if (token === IngredientsService) return ingredientsService;
+      if (token === PromptsService) return promptsService;
       return null;
     });
   });

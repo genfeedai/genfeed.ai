@@ -71,7 +71,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => MusicsModule),
     forwardRef(() => NewslettersModule),
     forwardRef(() => MarketplaceIntegrationModule),
-    forwardRef(() => NotificationsPublisherModule),
+    NotificationsPublisherModule,
     forwardRef(() => PostsModule),
     forwardRef(() => SharedModule),
     forwardRef(() => VideosModule),

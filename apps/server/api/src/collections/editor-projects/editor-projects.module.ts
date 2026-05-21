@@ -17,7 +17,7 @@ import { forwardRef, Module } from '@nestjs/common';
     MetadataModule,
     forwardRef(() => FileQueueModule),
     forwardRef(() => FilesClientModule),
-    forwardRef(() => NotificationsPublisherModule),
+    NotificationsPublisherModule,
     forwardRef(() => SharedModule),
   ],
   providers: [EditorProjectsService, EditorRenderService],

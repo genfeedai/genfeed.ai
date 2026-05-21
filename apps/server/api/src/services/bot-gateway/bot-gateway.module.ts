@@ -27,7 +27,7 @@ import { forwardRef, Module } from '@nestjs/common';
     HttpModule,
     IngredientsModule,
     MetadataModule,
-    forwardRef(() => OrganizationSettingsModule),
+    OrganizationSettingsModule,
     forwardRef(() => SharedModule),
   ],
   providers: [

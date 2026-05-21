@@ -19,7 +19,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => BrandsModule),
     forwardRef(() => CreditsModule),
     MembersModule,
-    forwardRef(() => OrganizationSettingsModule),
+    OrganizationSettingsModule,
     forwardRef(() => OrganizationsModule),
     RolesModule,
     SettingsModule,

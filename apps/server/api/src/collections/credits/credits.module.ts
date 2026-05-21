@@ -3,7 +3,6 @@
  * Usage credits system: track AI generation credits, manage credit packages,
 and enforce usage limits.
  */
-import { ActivitiesModule } from '@api/collections/activities/activities.module';
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CreditsController } from '@api/collections/credits/controllers/credits.controller';
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
@@ -35,15 +34,14 @@ import { forwardRef, Module } from '@nestjs/common';
     CreditsUtilsService,
   ],
   imports: [
-    forwardRef(() => ActivitiesModule),
     forwardRef(() => BrandsModule),
     forwardRef(() => ByokBillingModule),
     forwardRef(() => ByokModule),
     ClerkModule,
     CommonModule,
     forwardRef(() => CreditDeductionModule),
-    forwardRef(() => NotificationsPublisherModule),
-    forwardRef(() => OrganizationSettingsModule),
+    NotificationsPublisherModule,
+    OrganizationSettingsModule,
     forwardRef(() => OrganizationsModule),
     SettingsModule,
     forwardRef(() => StripeModule),
