@@ -97,8 +97,8 @@ function BrandContentContent() {
   const sectionRef = useGsapTimeline<HTMLDivElement>({ steps: TIMELINE_STEPS });
   const { getToken } = useAuth();
   const { push } = useRouter();
-  const searchParams = useSearchParams();
-  const isAutoRequested = searchParams.get('auto') === 'true';
+  const { get } = useSearchParams();
+  const isAutoRequested = get('auto') === 'true';
 
   const [brandName, setBrandName] = useState('');
   const [websiteUrl, setWebsiteUrl] = useState('');

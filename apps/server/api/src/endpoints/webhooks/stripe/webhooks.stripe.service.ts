@@ -1824,7 +1824,11 @@ export class StripeWebhookService {
       };
 
       // Find all active subscriptions for the organization
-      const data = await this.subscriptionsService.findAll(aggregate, options);
+      const data = await this.subscriptionsService.findAll(
+        aggregate,
+        options,
+        false,
+      );
 
       const subscriptions = data.docs;
 

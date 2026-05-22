@@ -44,8 +44,8 @@ function BlacklistsListContent({
 
   const { replace } = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const searchParamsString = searchParams.toString();
+  const { get, toString: stringifySearchParams } = useSearchParams();
+  const searchParamsString = stringifySearchParams();
   const parsedSearchParams = useMemo(
     () => new URLSearchParams(searchParamsString),
     [searchParamsString],
@@ -166,7 +166,7 @@ function BlacklistsListContent({
                 isError: true,
                 label: 'Delete Blacklist',
                 message: `Are you sure you want to delete "${blacklist.label}"? This action cannot be undone.`,
-                onConfirm: () => handleDelete(),
+                onConfirm: () => handleDelete(blacklist),
               });
             },
             tooltip: 'Delete',
@@ -175,7 +175,7 @@ function BlacklistsListContent({
       : [];
 
   // Extract page from URL to use as dependency (triggers re-fetch when page changes)
-  const currentPage = Number(searchParams.get('page')) || 1;
+  const currentPage = Number(get('page')) || 1;
 
   const findAllBlacklists = useCallback(
     async (isRefresh = false) => {
@@ -273,14 +273,10 @@ function BlacklistsListContent({
     }
   };
 
-  const handleDelete = async () => {
-    if (!selectedBlacklist) {
-      return;
-    }
-
+  const handleDelete = async (blacklist: ElementBlacklist) => {
     try {
       const service = await getBlacklistsService();
-      await service.delete(selectedBlacklist.id);
+      await service.delete(blacklist.id);
       notificationsService.success('Blacklist deleted');
       setSelectedBlacklist(null);
       findAllBlacklists(true);

@@ -1,9 +1,37 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock dependencies
-vi.mock('@genfeedai/helpers/data/json-api/json-api.helper', () => ({
+function normalizeRelationshipGraph<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value.map((item) => normalizeRelationshipGraph(item)) as T;
+  }
+
+  if (
+    typeof value !== 'object' ||
+    value === null ||
+    Object.getPrototypeOf(value) !== Object.prototype
+  ) {
+    return value;
+  }
+
+  const record = value as Record<string, unknown>;
+  if (typeof record.id === 'string' && Object.keys(record).length === 1) {
+    return record.id as T;
+  }
+
+  return Object.fromEntries(
+    Object.entries(record).map(([key, item]) => [
+      key,
+      normalizeRelationshipGraph(item),
+    ]),
+  ) as T;
+}
+
+vi.mock('@services/core/json-api', () => ({
   deserializeCollection: vi.fn((doc) => doc.data || []),
   deserializeResource: vi.fn((doc) => doc.data || {}),
+  extractCollection: vi.fn((doc) => normalizeRelationshipGraph(doc.data || [])),
+  extractResource: vi.fn((doc) => normalizeRelationshipGraph(doc.data || {})),
 }));
 
 vi.mock('@services/content/pages.service', () => ({

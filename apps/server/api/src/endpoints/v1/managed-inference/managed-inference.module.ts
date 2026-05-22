@@ -9,7 +9,7 @@ import { LeonardoAIModule } from '@api/services/integrations/leonardoai/leonardo
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { HttpModule } from '@nestjs/axios';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [ManagedInferenceController],
@@ -17,7 +17,7 @@ import { forwardRef, Module } from '@nestjs/common';
   imports: [
     ApiKeysModule,
     ConfigModule,
-    forwardRef(() => CreditsModule),
+    CreditsModule,
     FalModule,
     HttpModule,
     LeonardoAIModule,

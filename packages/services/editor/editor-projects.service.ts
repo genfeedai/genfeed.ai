@@ -1,9 +1,4 @@
 import { EditorProjectStatus, IngredientFormat } from '@genfeedai/enums';
-import {
-  deserializeCollection,
-  deserializeResource,
-  type JsonApiResponseDocument,
-} from '@genfeedai/helpers/data/json-api/json-api.helper';
 import type {
   ICreateEditorProjectDto,
   IEditorProject,
@@ -13,6 +8,11 @@ import type {
 import { getErrorStatus } from '@genfeedai/utils/error/error-handler.util';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
+import {
+  deserializeCollection,
+  deserializeResource,
+  type JsonApiResponseDocument,
+} from '@services/core/json-api';
 import { logger } from '@services/core/logger.service';
 
 const DEFAULT_FPS = 30;

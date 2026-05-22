@@ -31,7 +31,14 @@ function persistPanelPreference(isOpen: boolean): void {
 }
 
 interface AgentPageContext {
+  contentFormat?: string;
+  draftBody?: string;
+  draftInstructions?: string;
+  draftSummary?: string;
+  draftTitle?: string;
+  draftType?: string;
   route: string;
+  selectedText?: string;
   suggestedActions: SuggestedAction[];
   placeholder?: string;
 }

@@ -1,8 +1,9 @@
 {
-  "extends": "@genfeedai/tsconfig/base.json",
+  "extends": "../tsconfig/base.json",
   "compilerOptions": {
     "composite": false,
-    "noEmit": true
+    "noEmit": true,
+    "types": ["node"]
   },
   "include": ["src/**/*.ts", "prisma/**/*.prisma"]
 }

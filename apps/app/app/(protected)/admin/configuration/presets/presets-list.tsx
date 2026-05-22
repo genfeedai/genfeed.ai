@@ -49,8 +49,8 @@ function PresetsListContent({
 
   const { replace } = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const searchParamsString = searchParams.toString();
+  const { get, toString: stringifySearchParams } = useSearchParams();
+  const searchParamsString = stringifySearchParams();
   const parsedSearchParams = useMemo(
     () => new URLSearchParams(searchParamsString),
     [searchParamsString],
@@ -115,7 +115,7 @@ function PresetsListContent({
   });
 
   // Extract page from URL to use as dependency (triggers re-fetch when page changes)
-  const currentPage = Number(searchParams.get('page')) || 1;
+  const currentPage = Number(get('page')) || 1;
 
   const {
     data: presets = [] as Preset[],
@@ -285,7 +285,7 @@ function PresetsListContent({
                 isError: true,
                 label: 'Delete Preset',
                 message: `Are you sure you want to delete "${preset.label}"? This action cannot be undone.`,
-                onConfirm: () => handleDelete(),
+                onConfirm: () => handleDelete(preset),
               });
             },
             tooltip: 'Delete',
@@ -318,14 +318,10 @@ function PresetsListContent({
     }
   };
 
-  const handleDelete = async () => {
-    if (!selectedPreset) {
-      return;
-    }
-
+  const handleDelete = async (preset: Preset) => {
     try {
       const service = await getPresetsService();
-      await service.delete(selectedPreset.id);
+      await service.delete(preset.id);
       notificationsService.success('Preset deleted');
 
       setSelectedPreset(null);

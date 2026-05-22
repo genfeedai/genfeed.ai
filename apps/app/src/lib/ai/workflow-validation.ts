@@ -86,7 +86,7 @@ function getHandleType(
 // JSON PARSING (3-strategy extraction)
 // =============================================================================
 
-function _parseJSONFromResponse(text: string): GeneratedWorkflow | null {
+export function parseJSONFromResponse(text: string): GeneratedWorkflow | null {
   const trimmed = text.trim();
 
   // Strategy 1: Direct parse
@@ -125,7 +125,9 @@ function _parseJSONFromResponse(text: string): GeneratedWorkflow | null {
 // VALIDATION
 // =============================================================================
 
-function _validateWorkflowJSON(workflow: GeneratedWorkflow): ValidationResult {
+export function validateWorkflowJSON(
+  workflow: GeneratedWorkflow,
+): ValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
 

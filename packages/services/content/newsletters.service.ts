@@ -54,10 +54,7 @@ export class NewslettersService extends BaseService<Newsletter> {
   }
 
   public static getInstance(token: string): NewslettersService {
-    return BaseService.getDataServiceInstance(
-      NewslettersService,
-      token,
-    ) as NewslettersService;
+    return BaseService.getDataServiceInstance(NewslettersService, token);
   }
 
   public async generateTopicProposals(

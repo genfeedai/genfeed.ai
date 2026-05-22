@@ -8,6 +8,10 @@ import type {
 } from '@genfeedai/interfaces/utils/http-interceptor-error.interface';
 import { EnvironmentService } from '@services/core/environment.service';
 import { setErrorDebugInfo } from '@services/core/error-debug-store';
+import {
+  buildInstanceKey,
+  ServiceInstanceManager,
+} from '@services/core/service-instance-manager';
 import axios, {
   type AxiosError,
   type AxiosInstance,
@@ -25,140 +29,14 @@ function createInterceptorError(
   return error;
 }
 
-/**
- * Global singleton instance manager for HTTP services
- * Maps service class name + token to cached instances
- *
- * IMPORTANT: Call clearAll() on logout/sign-out to prevent stale token usage
- */
-class HTTPServiceInstanceManager {
-  private static instances = new Map<unknown, Map<string, HTTPBaseService>>();
-
-  private static getInstanceMap(
-    serviceKey: unknown,
-  ): Map<string, HTTPBaseService> {
-    let instanceMap = HTTPServiceInstanceManager.instances.get(serviceKey);
-    if (!instanceMap) {
-      instanceMap = new Map<string, HTTPBaseService>();
-      HTTPServiceInstanceManager.instances.set(serviceKey, instanceMap);
-    }
-
-    return instanceMap;
-  }
-
-  static get<T>(serviceKey: unknown, token: string): T | undefined {
-    return HTTPServiceInstanceManager.instances.get(serviceKey)?.get(token) as
-      | T
-      | undefined;
-  }
-
-  static set<T>(serviceKey: unknown, token: string, instance: T): void {
-    HTTPServiceInstanceManager.getInstanceMap(serviceKey).set(
-      token,
-      instance as HTTPBaseService,
-    );
-  }
-
-  static clear(serviceKey?: unknown, token?: string): void {
-    if (!serviceKey) {
-      HTTPServiceInstanceManager.instances.clear();
-      return;
-    }
-
-    const instancesForService =
-      HTTPServiceInstanceManager.instances.get(serviceKey);
-    if (!instancesForService) {
-      return;
-    }
-
-    if (token) {
-      instancesForService.delete(token);
-      if (instancesForService.size === 0) {
-        HTTPServiceInstanceManager.instances.delete(serviceKey);
-      }
-      return;
-    }
-
-    HTTPServiceInstanceManager.instances.delete(serviceKey);
-  }
-
-  static clearAll(): void {
-    HTTPServiceInstanceManager.instances.clear();
-  }
-
-  static clearByToken(serviceKey: unknown, token: string): void {
-    const instancesForService =
-      HTTPServiceInstanceManager.instances.get(serviceKey);
-    if (!instancesForService) {
-      return;
-    }
-
-    for (const key of [...instancesForService.keys()]) {
-      if (keyIncludesTokenPart(key, token)) {
-        HTTPServiceInstanceManager.clear(serviceKey, key);
-      }
-    }
-  }
-}
-
-const INSTANCE_KEY_SEPARATOR = '\u0001';
-
-function serializeInstanceKeyPart(part: unknown): string {
-  if (part === undefined) {
-    return 'undefined:';
-  }
-
-  if (part === null) {
-    return 'null:';
-  }
-
-  if (
-    typeof part === 'string' ||
-    typeof part === 'number' ||
-    typeof part === 'boolean' ||
-    typeof part === 'bigint'
-  ) {
-    return `${typeof part}:${String(part)}`;
-  }
-
-  if (part instanceof Date) {
-    return `date:${part.toISOString()}`;
-  }
-
-  if (typeof part === 'object') {
-    try {
-      return `json:${JSON.stringify(part)}`;
-    } catch {
-      return `object:${Object.prototype.toString.call(part)}`;
-    }
-  }
-
-  return `${typeof part}:${String(part)}`;
-}
-
-function buildInstanceKey(parts: unknown[]): string {
-  return parts.map(serializeInstanceKeyPart).join(INSTANCE_KEY_SEPARATOR);
-}
-
-function keyIncludesTokenPart(key: string, token: string): boolean {
-  const tokenKey = serializeInstanceKeyPart(token);
-
-  return (
-    key === tokenKey ||
-    key.startsWith(`${tokenKey}${INSTANCE_KEY_SEPARATOR}`) ||
-    key.endsWith(`${INSTANCE_KEY_SEPARATOR}${tokenKey}`) ||
-    key.includes(
-      `${INSTANCE_KEY_SEPARATOR}${tokenKey}${INSTANCE_KEY_SEPARATOR}`,
-    )
-  );
-}
+const httpServiceInstances = new ServiceInstanceManager<HTTPBaseService>();
 
 /**
  * Clear all cached HTTP service instances
  * Call this on logout/sign-out to prevent stale token usage
  */
 export function clearAllServiceInstances(): void {
-  HTTPServiceInstanceManager.clearAll();
+  httpServiceInstances.clearAll();
 }
 
 export abstract class HTTPBaseService {
@@ -209,7 +87,7 @@ export abstract class HTTPBaseService {
     const serviceKey = serviceConstructor;
 
     // Check if we have a cached instance for this service + token
-    const cached = HTTPServiceInstanceManager.get<any>(serviceKey, token);
+    const cached = httpServiceInstances.get<any>(serviceKey, token);
     if (
       cached &&
       Object.getPrototypeOf(cached) === serviceConstructor.prototype
@@ -218,7 +96,7 @@ export abstract class HTTPBaseService {
     }
 
     const instance = new serviceConstructor(token);
-    HTTPServiceInstanceManager.set(serviceKey, token, instance);
+    httpServiceInstances.set(serviceKey, token, instance);
 
     return instance;
   }
@@ -229,10 +107,7 @@ export abstract class HTTPBaseService {
   ): T {
     const instanceKey = buildInstanceKey(args);
 
-    const cached = HTTPServiceInstanceManager.get<T>(
-      serviceConstructor,
-      instanceKey,
-    );
+    const cached = httpServiceInstances.get<T>(serviceConstructor, instanceKey);
     if (
       cached &&
       Object.getPrototypeOf(cached) === serviceConstructor.prototype
@@ -241,7 +116,7 @@ export abstract class HTTPBaseService {
     }
 
     const instance = new serviceConstructor(...args);
-    HTTPServiceInstanceManager.set(serviceConstructor, instanceKey, instance);
+    httpServiceInstances.set(serviceConstructor, instanceKey, instance);
 
     return instance;
   }
@@ -262,18 +137,18 @@ export abstract class HTTPBaseService {
       : (firstArg as string | undefined);
 
     if (!token) {
-      HTTPServiceInstanceManager.clear(serviceConstructor);
+      httpServiceInstances.clear(serviceConstructor);
       return;
     }
 
-    HTTPServiceInstanceManager.clearByToken(serviceConstructor, token);
+    httpServiceInstances.clearByToken(serviceConstructor, token);
   }
 
   /**
    * Clear all singleton instances (useful for testing)
    */
   static clearAllInstances(): void {
-    HTTPServiceInstanceManager.clearAll();
+    httpServiceInstances.clearAll();
   }
 
   /**

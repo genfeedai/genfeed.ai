@@ -7,8 +7,8 @@ import { forwardRef, Module } from '@nestjs/common';
 @Module({
   exports: [PresignedUploadService],
   imports: [
-    forwardRef(() => IngredientsModule),
-    forwardRef(() => MetadataModule),
+    IngredientsModule,
+    MetadataModule,
 
     FilesClientModule,
   ],

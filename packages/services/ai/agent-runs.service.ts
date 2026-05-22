@@ -4,11 +4,6 @@
  * Backend: /runs API
  */
 
-import {
-  deserializeCollection,
-  deserializeResource,
-  type JsonApiResponseDocument,
-} from '@genfeedai/helpers/data/json-api/json-api.helper';
 import type { IAgentRun, IAgentRunContent } from '@genfeedai/interfaces';
 import type {
   AgentRunListQueryParams,
@@ -16,9 +11,16 @@ import type {
   AgentRunStatsQueryParams,
 } from '@genfeedai/types';
 import { EnvironmentService } from '@services/core/environment.service';
+import {
+  deserializeCollection,
+  deserializeResource,
+  type JsonApiResponseDocument,
+} from '@services/core/json-api';
 import { logger } from '@services/core/logger.service';
+import { ServiceInstanceManager } from '@services/core/service-instance-manager';
 
 type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE';
+const agentRunInstances = new ServiceInstanceManager<AgentRunsServiceClass>();
 
 class AgentRunsServiceClass {
   private baseURL: string;
@@ -186,19 +188,21 @@ class AgentRunsServiceClass {
 }
 
 export class AgentRunsService {
-  private static instances: Map<string, AgentRunsServiceClass> = new Map();
-
   static getInstance(token: string): AgentRunsServiceClass {
-    if (!AgentRunsService.instances.has(token)) {
-      AgentRunsService.instances.set(
-        token,
-        new AgentRunsServiceClass(EnvironmentService.apiEndpoint, token),
-      );
+    const cached = agentRunInstances.get(AgentRunsService, token);
+    if (cached) {
+      return cached;
     }
-    return AgentRunsService.instances.get(token)!;
+
+    const instance = new AgentRunsServiceClass(
+      EnvironmentService.apiEndpoint,
+      token,
+    );
+    agentRunInstances.set(AgentRunsService, token, instance);
+    return instance;
   }
 
   static clearInstance(token: string): void {
-    AgentRunsService.instances.delete(token);
+    agentRunInstances.clear(AgentRunsService, token);
   }
 }

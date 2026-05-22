@@ -7,7 +7,7 @@ import { TaskDecompositionService } from '@api/services/task-orchestration/task-
 import { TaskOrchestratorService } from '@api/services/task-orchestration/task-orchestrator.service';
 import { WorkspaceTaskQualityService } from '@api/services/task-orchestration/workspace-task-quality.service';
 import { LoggerModule } from '@libs/logger/logger.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   exports: [
@@ -19,10 +19,10 @@ import { forwardRef, Module } from '@nestjs/common';
   imports: [
     LoggerModule,
     LlmDispatcherModule,
-    forwardRef(() => AgentRunsModule),
-    forwardRef(() => TasksModule),
-    forwardRef(() => QueuesModule),
-    forwardRef(() => VideoGenerationModule),
+    AgentRunsModule,
+    TasksModule,
+    QueuesModule,
+    VideoGenerationModule,
   ],
   providers: [
     TaskDecompositionService,

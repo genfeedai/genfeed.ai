@@ -1,14 +1,14 @@
-import {
-  deserializeCollection,
-  deserializeResource,
-  type JsonApiResponseDocument,
-} from '@genfeedai/helpers/data/json-api/json-api.helper';
 import type {
   IAnnouncement,
   IAnnouncementBroadcastRequest,
 } from '@genfeedai/interfaces';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
+import {
+  deserializeCollection,
+  deserializeResource,
+  type JsonApiResponseDocument,
+} from '@services/core/json-api';
 
 export class AdminAnnouncementsService extends HTTPBaseService {
   constructor(token: string) {

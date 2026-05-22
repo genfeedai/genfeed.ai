@@ -7,12 +7,12 @@
 import { MembersModule } from '@api/collections/members/members.module';
 import { PresetsController } from '@api/collections/presets/controllers/presets.controller';
 import { PresetsService } from '@api/collections/presets/services/presets.service';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [PresetsController],
   exports: [PresetsService],
-  imports: [forwardRef(() => MembersModule)],
+  imports: [MembersModule],
   providers: [PresetsService],
 })
 export class PresetsModule {}

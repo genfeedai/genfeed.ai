@@ -13,14 +13,14 @@ import { AgentStrategyReportsService } from '@api/collections/agent-strategies/s
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { ContentDraftsModule } from '@api/collections/content-drafts/content-drafts.module';
 import { ContentPerformanceModule } from '@api/collections/content-performance/content-performance.module';
-import { CredentialsModule } from '@api/collections/credentials/credentials.module';
+import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { EvaluationsModule } from '@api/collections/evaluations/evaluations.module';
 import { OptimizersModule } from '@api/collections/optimizers/optimizers.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { TrendsModule } from '@api/collections/trends/trends.module';
 import { BatchGenerationModule } from '@api/services/batch-generation/batch-generation.module';
 import { ContentGatewayModule } from '@api/services/content-gateway/content-gateway.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [AgentStrategiesController],
@@ -32,12 +32,12 @@ import { forwardRef, Module } from '@nestjs/common';
   ],
   imports: [
     ActivitiesModule,
-    forwardRef(() => BrandsModule),
-    forwardRef(() => ContentDraftsModule),
+    BrandsModule,
+    ContentDraftsModule,
     ContentGatewayModule,
     BatchGenerationModule,
-    forwardRef(() => ContentPerformanceModule),
-    CredentialsModule,
+    ContentPerformanceModule,
+    CredentialsCoreModule,
     EvaluationsModule,
     OptimizersModule,
     PostsModule,

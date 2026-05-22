@@ -4,7 +4,7 @@ import { CameraSerializer } from '@genfeedai/serializers';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockConstructor = vi.hoisted(() => vi.fn());
-const mockGetInstance = vi.hoisted(() => vi.fn());
+const mockGetDataServiceInstance = vi.hoisted(() => vi.fn());
 
 vi.mock('@services/core/base.service', () => {
   class MockBaseService {
@@ -12,11 +12,8 @@ vi.mock('@services/core/base.service', () => {
       mockConstructor(...args);
     }
 
-    static getInstance(token: string) {
-      return mockGetInstance(token);
-    }
-
     static getDataServiceInstance(ServiceClass: any, ...args: any[]) {
+      mockGetDataServiceInstance(ServiceClass, ...args);
       return new ServiceClass(...args);
     }
   }
@@ -47,6 +44,9 @@ describe('CamerasService', () => {
   it('delegates getInstance to BaseService', () => {
     CamerasService.getInstance(token);
 
-    expect(mockGetInstance).toHaveBeenCalledWith(token);
+    expect(mockGetDataServiceInstance).toHaveBeenCalledWith(
+      CamerasService,
+      token,
+    );
   });
 });

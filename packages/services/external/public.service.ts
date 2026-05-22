@@ -1,8 +1,3 @@
-import {
-  deserializeCollection,
-  deserializeResource,
-  type JsonApiResponseDocument,
-} from '@genfeedai/helpers/data/json-api/json-api.helper';
 import type { IQueryParams } from '@genfeedai/interfaces';
 import { Article } from '@genfeedai/models/content/article.model';
 import { Ingredient } from '@genfeedai/models/content/ingredient.model';
@@ -14,6 +9,11 @@ import { Brand } from '@genfeedai/models/organization/brand.model';
 import { Link } from '@genfeedai/models/social/link.model';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
+import {
+  deserializeCollection,
+  deserializeResource,
+  type JsonApiResponseDocument,
+} from '@services/core/json-api';
 
 type ModelConstructor<T> = new (partial: Partial<T>) => T;
 

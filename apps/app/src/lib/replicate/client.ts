@@ -275,6 +275,15 @@ async function _cancelPrediction(predictionId: string): Promise<void> {
   await replicate.predictions.cancel(predictionId);
 }
 
+export const replicateApi = {
+  cancelPrediction: _cancelPrediction,
+  generateImage: _generateImage,
+  generateLipSync: _generateLipSync,
+  generateText: _generateText,
+  generateVideo: _generateVideo,
+  getPredictionStatus: _getPredictionStatus,
+};
+
 /**
  * Calculate cost estimate for a workflow
  */

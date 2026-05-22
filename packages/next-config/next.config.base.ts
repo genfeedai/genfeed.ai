@@ -38,9 +38,16 @@ export function createAppNextConfig(options: AppNextConfigOptions): NextConfig {
     distDir: process.env.NEXT_DIST_DIR || undefined,
     experimental: {
       optimizePackageImports: [
+        '@genfeedai/agent',
+        '@genfeedai/client',
         '@genfeedai/constants',
         '@genfeedai/enums',
         '@genfeedai/helpers',
+        '@genfeedai/interfaces',
+        '@genfeedai/serializers',
+        '@genfeedai/types',
+        '@genfeedai/ui',
+        '@genfeedai/workflow-saas',
         '@radix-ui/react-icons',
         'date-fns',
         'lucide-react',

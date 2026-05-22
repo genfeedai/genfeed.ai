@@ -6,9 +6,5 @@ import { HttpModule } from '@nestjs/axios';
 import { forwardRef } from '@nestjs/common';
 
 export const HiggsFieldModule = createServiceModule(HiggsFieldService, {
-  additionalImports: [
-    HttpModule,
-    forwardRef(() => ByokModule),
-    PollUntilModule,
-  ],
+  additionalImports: [HttpModule, ByokModule, PollUntilModule],
 });

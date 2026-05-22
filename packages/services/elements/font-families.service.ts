@@ -9,9 +9,6 @@ export class FontFamiliesService extends BaseService<FontFamily> {
   }
 
   public static getInstance(token: string): FontFamiliesService {
-    return BaseService.getDataServiceInstance(
-      FontFamiliesService,
-      token,
-    ) as FontFamiliesService;
+    return BaseService.getDataServiceInstance(FontFamiliesService, token);
   }
 }

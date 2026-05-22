@@ -1,5 +1,4 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
-import type { JsonApiResponseDocument } from '@genfeedai/helpers/data/json-api/json-api.helper';
 import type {
   ICreateHarnessProfilePayload,
   IHarnessProfile,
@@ -7,6 +6,7 @@ import type {
 import { HarnessProfile } from '@genfeedai/models/ai/harness-profile.model';
 import { HarnessProfileSerializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';
+import type { JsonApiResponseDocument } from '@services/core/json-api';
 
 export class HarnessProfilesService extends BaseService<HarnessProfile> {
   constructor(token: string) {
@@ -19,10 +19,7 @@ export class HarnessProfilesService extends BaseService<HarnessProfile> {
   }
 
   public static getInstance(token: string): HarnessProfilesService {
-    return BaseService.getDataServiceInstance(
-      HarnessProfilesService,
-      token,
-    ) as HarnessProfilesService;
+    return BaseService.getDataServiceInstance(HarnessProfilesService, token);
   }
 
   public async findForBrand(brandId: string): Promise<HarnessProfile[]> {

@@ -19,16 +19,16 @@ import { FleetModule } from '@api/services/integrations/fleet/fleet.module';
 import { HeyGenModule } from '@api/services/integrations/heygen/heygen.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { FailedGenerationModule } from '@api/shared/services/failed-generation/failed-generation.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [VoicesController],
   exports: [VoicesService],
   imports: [
-    forwardRef(() => IngredientsModule),
-    forwardRef(() => MetadataModule),
-    forwardRef(() => CreditsModule),
-    forwardRef(() => ModelsModule),
+    IngredientsModule,
+    MetadataModule,
+    CreditsModule,
+    ModelsModule,
 
     ByokModule,
     ElevenLabsModule,

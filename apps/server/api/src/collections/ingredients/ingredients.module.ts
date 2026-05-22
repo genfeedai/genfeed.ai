@@ -9,12 +9,12 @@ import { IngredientsRelationshipsController } from '@api/collections/ingredients
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { AssetAccessGuard } from '@api/guards/asset-access.guard';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [IngredientsController, IngredientsRelationshipsController],
   exports: [IngredientsService],
-  imports: [forwardRef(() => MetadataModule)],
+  imports: [MetadataModule],
   providers: [AssetAccessGuard, IngredientsService],
 })
 export class IngredientsModule {}

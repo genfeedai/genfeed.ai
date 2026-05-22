@@ -17,8 +17,8 @@
 
 import * as runtime from "@prisma/client/runtime/index-browser"
 
-export type * from '../models.js'
-export type * from './prismaNamespace.js'
+export type * from '../models'
+export type * from './prismaNamespace'
 
 export const Decimal = runtime.Decimal
 
@@ -51,23 +51,21 @@ export const AnyNull = runtime.AnyNull
 
 
 export const ModelName = {
+  User: 'User',
+  Organization: 'Organization',
+  Post: 'Post',
+  Ingredient: 'Ingredient',
+  Trend: 'Trend',
+  AgentStrategy: 'AgentStrategy',
+  Workflow: 'Workflow',
+  WorkflowExecution: 'WorkflowExecution',
   DesktopKv: 'DesktopKv',
   DesktopWorkspace: 'DesktopWorkspace',
+  DesktopBrand: 'DesktopBrand',
+  DesktopAsset: 'DesktopAsset',
   DesktopSyncOp: 'DesktopSyncOp',
   DesktopSyncJob: 'DesktopSyncJob',
-  DesktopRecentItem: 'DesktopRecentItem',
-  DesktopOrganization: 'DesktopOrganization',
-  DesktopBrand: 'DesktopBrand',
-  DesktopUser: 'DesktopUser',
-  DesktopProject: 'DesktopProject',
-  DesktopContentItem: 'DesktopContentItem',
-  DesktopAsset: 'DesktopAsset',
-  DesktopTrend: 'DesktopTrend',
-  DesktopIngredient: 'DesktopIngredient',
-  DesktopAgent: 'DesktopAgent',
-  DesktopAgentRun: 'DesktopAgentRun',
-  DesktopWorkflow: 'DesktopWorkflow',
-  DesktopWorkflowRun: 'DesktopWorkflowRun'
+  DesktopRecentItem: 'DesktopRecentItem'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -84,6 +82,127 @@ export const TransactionIsolationLevel = runtime.makeStrictEnum({
 } as const)
 
 export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof typeof TransactionIsolationLevel]
+
+
+export const UserScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  clerkId: 'clerkId',
+  email: 'email',
+  name: 'name',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
+
+
+export const OrganizationScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  slug: 'slug',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type OrganizationScalarFieldEnum = (typeof OrganizationScalarFieldEnum)[keyof typeof OrganizationScalarFieldEnum]
+
+
+export const PostScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  workspaceId: 'workspaceId',
+  platform: 'platform',
+  type: 'type',
+  prompt: 'prompt',
+  content: 'content',
+  status: 'status',
+  publishIntent: 'publishIntent',
+  sourceDraftId: 'sourceDraftId',
+  sourceTrendId: 'sourceTrendId',
+  sourceTrendTopic: 'sourceTrendTopic',
+  publishedAt: 'publishedAt',
+  views: 'views',
+  engagements: 'engagements',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type PostScalarFieldEnum = (typeof PostScalarFieldEnum)[keyof typeof PostScalarFieldEnum]
+
+
+export const IngredientScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  title: 'title',
+  content: 'content',
+  platform: 'platform',
+  totalVotes: 'totalVotes',
+  sourcePostId: 'sourcePostId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type IngredientScalarFieldEnum = (typeof IngredientScalarFieldEnum)[keyof typeof IngredientScalarFieldEnum]
+
+
+export const TrendScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  platform: 'platform',
+  topic: 'topic',
+  summary: 'summary',
+  viralityScore: 'viralityScore',
+  engagementScore: 'engagementScore',
+  createdAt: 'createdAt'
+} as const
+
+export type TrendScalarFieldEnum = (typeof TrendScalarFieldEnum)[keyof typeof TrendScalarFieldEnum]
+
+
+export const AgentStrategyScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  name: 'name',
+  avatar: 'avatar',
+  platformsJson: 'platformsJson',
+  status: 'status',
+  isActive: 'isActive',
+  lastRunAt: 'lastRunAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AgentStrategyScalarFieldEnum = (typeof AgentStrategyScalarFieldEnum)[keyof typeof AgentStrategyScalarFieldEnum]
+
+
+export const WorkflowScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  name: 'name',
+  description: 'description',
+  lifecycle: 'lifecycle',
+  nodeCount: 'nodeCount',
+  supportsBatch: 'supportsBatch',
+  lastExecutedAt: 'lastExecutedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type WorkflowScalarFieldEnum = (typeof WorkflowScalarFieldEnum)[keyof typeof WorkflowScalarFieldEnum]
+
+
+export const WorkflowExecutionScalarFieldEnum = {
+  id: 'id',
+  workflowId: 'workflowId',
+  agentStrategyId: 'agentStrategyId',
+  mode: 'mode',
+  status: 'status',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt'
+} as const
+
+export type WorkflowExecutionScalarFieldEnum = (typeof WorkflowExecutionScalarFieldEnum)[keyof typeof WorkflowExecutionScalarFieldEnum]
 
 
 export const DesktopKvScalarFieldEnum = {
@@ -111,6 +230,47 @@ export const DesktopWorkspaceScalarFieldEnum = {
 } as const
 
 export type DesktopWorkspaceScalarFieldEnum = (typeof DesktopWorkspaceScalarFieldEnum)[keyof typeof DesktopWorkspaceScalarFieldEnum]
+
+
+export const DesktopBrandScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  cloudId: 'cloudId',
+  name: 'name',
+  slug: 'slug',
+  syncPolicy: 'syncPolicy',
+  cloudVersion: 'cloudVersion',
+  lastPulledAt: 'lastPulledAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type DesktopBrandScalarFieldEnum = (typeof DesktopBrandScalarFieldEnum)[keyof typeof DesktopBrandScalarFieldEnum]
+
+
+export const DesktopAssetScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  brandId: 'brandId',
+  workspaceId: 'workspaceId',
+  cloudId: 'cloudId',
+  cloudObjectKey: 'cloudObjectKey',
+  localPath: 'localPath',
+  sha256: 'sha256',
+  sizeBytes: 'sizeBytes',
+  mimeType: 'mimeType',
+  kind: 'kind',
+  origin: 'origin',
+  residency: 'residency',
+  uploadPolicy: 'uploadPolicy',
+  originalFileName: 'originalFileName',
+  displayName: 'displayName',
+  deletedAt: 'deletedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type DesktopAssetScalarFieldEnum = (typeof DesktopAssetScalarFieldEnum)[keyof typeof DesktopAssetScalarFieldEnum]
 
 
 export const DesktopSyncOpScalarFieldEnum = {
@@ -156,193 +316,6 @@ export const DesktopRecentItemScalarFieldEnum = {
 } as const
 
 export type DesktopRecentItemScalarFieldEnum = (typeof DesktopRecentItemScalarFieldEnum)[keyof typeof DesktopRecentItemScalarFieldEnum]
-
-
-export const DesktopOrganizationScalarFieldEnum = {
-  id: 'id',
-  cloudId: 'cloudId',
-  name: 'name',
-  slug: 'slug',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type DesktopOrganizationScalarFieldEnum = (typeof DesktopOrganizationScalarFieldEnum)[keyof typeof DesktopOrganizationScalarFieldEnum]
-
-
-export const DesktopBrandScalarFieldEnum = {
-  id: 'id',
-  organizationId: 'organizationId',
-  cloudId: 'cloudId',
-  name: 'name',
-  slug: 'slug',
-  syncPolicy: 'syncPolicy',
-  cloudVersion: 'cloudVersion',
-  lastPulledAt: 'lastPulledAt',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type DesktopBrandScalarFieldEnum = (typeof DesktopBrandScalarFieldEnum)[keyof typeof DesktopBrandScalarFieldEnum]
-
-
-export const DesktopUserScalarFieldEnum = {
-  id: 'id',
-  organizationId: 'organizationId',
-  clerkId: 'clerkId',
-  email: 'email',
-  name: 'name',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type DesktopUserScalarFieldEnum = (typeof DesktopUserScalarFieldEnum)[keyof typeof DesktopUserScalarFieldEnum]
-
-
-export const DesktopProjectScalarFieldEnum = {
-  id: 'id',
-  organizationId: 'organizationId',
-  name: 'name',
-  status: 'status',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type DesktopProjectScalarFieldEnum = (typeof DesktopProjectScalarFieldEnum)[keyof typeof DesktopProjectScalarFieldEnum]
-
-
-export const DesktopContentItemScalarFieldEnum = {
-  id: 'id',
-  organizationId: 'organizationId',
-  brandId: 'brandId',
-  projectId: 'projectId',
-  platform: 'platform',
-  type: 'type',
-  prompt: 'prompt',
-  content: 'content',
-  status: 'status',
-  publishIntent: 'publishIntent',
-  sourceDraftId: 'sourceDraftId',
-  sourceTrendId: 'sourceTrendId',
-  sourceTrendTopic: 'sourceTrendTopic',
-  publishedAt: 'publishedAt',
-  views: 'views',
-  engagements: 'engagements',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type DesktopContentItemScalarFieldEnum = (typeof DesktopContentItemScalarFieldEnum)[keyof typeof DesktopContentItemScalarFieldEnum]
-
-
-export const DesktopAssetScalarFieldEnum = {
-  id: 'id',
-  organizationId: 'organizationId',
-  brandId: 'brandId',
-  workspaceId: 'workspaceId',
-  cloudId: 'cloudId',
-  cloudObjectKey: 'cloudObjectKey',
-  localPath: 'localPath',
-  sha256: 'sha256',
-  sizeBytes: 'sizeBytes',
-  mimeType: 'mimeType',
-  kind: 'kind',
-  origin: 'origin',
-  residency: 'residency',
-  uploadPolicy: 'uploadPolicy',
-  originalFileName: 'originalFileName',
-  displayName: 'displayName',
-  deletedAt: 'deletedAt',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type DesktopAssetScalarFieldEnum = (typeof DesktopAssetScalarFieldEnum)[keyof typeof DesktopAssetScalarFieldEnum]
-
-
-export const DesktopTrendScalarFieldEnum = {
-  id: 'id',
-  organizationId: 'organizationId',
-  platform: 'platform',
-  topic: 'topic',
-  summary: 'summary',
-  viralityScore: 'viralityScore',
-  engagementScore: 'engagementScore',
-  createdAt: 'createdAt'
-} as const
-
-export type DesktopTrendScalarFieldEnum = (typeof DesktopTrendScalarFieldEnum)[keyof typeof DesktopTrendScalarFieldEnum]
-
-
-export const DesktopIngredientScalarFieldEnum = {
-  id: 'id',
-  organizationId: 'organizationId',
-  brandId: 'brandId',
-  title: 'title',
-  content: 'content',
-  platform: 'platform',
-  totalVotes: 'totalVotes',
-  sourceContentItemId: 'sourceContentItemId',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type DesktopIngredientScalarFieldEnum = (typeof DesktopIngredientScalarFieldEnum)[keyof typeof DesktopIngredientScalarFieldEnum]
-
-
-export const DesktopAgentScalarFieldEnum = {
-  id: 'id',
-  organizationId: 'organizationId',
-  name: 'name',
-  avatar: 'avatar',
-  platformsJson: 'platformsJson',
-  status: 'status',
-  isActive: 'isActive',
-  lastRunAt: 'lastRunAt',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type DesktopAgentScalarFieldEnum = (typeof DesktopAgentScalarFieldEnum)[keyof typeof DesktopAgentScalarFieldEnum]
-
-
-export const DesktopAgentRunScalarFieldEnum = {
-  id: 'id',
-  agentId: 'agentId',
-  status: 'status',
-  startedAt: 'startedAt',
-  completedAt: 'completedAt'
-} as const
-
-export type DesktopAgentRunScalarFieldEnum = (typeof DesktopAgentRunScalarFieldEnum)[keyof typeof DesktopAgentRunScalarFieldEnum]
-
-
-export const DesktopWorkflowScalarFieldEnum = {
-  id: 'id',
-  organizationId: 'organizationId',
-  name: 'name',
-  description: 'description',
-  lifecycle: 'lifecycle',
-  nodeCount: 'nodeCount',
-  supportsBatch: 'supportsBatch',
-  lastExecutedAt: 'lastExecutedAt',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type DesktopWorkflowScalarFieldEnum = (typeof DesktopWorkflowScalarFieldEnum)[keyof typeof DesktopWorkflowScalarFieldEnum]
-
-
-export const DesktopWorkflowRunScalarFieldEnum = {
-  id: 'id',
-  workflowId: 'workflowId',
-  mode: 'mode',
-  status: 'status',
-  startedAt: 'startedAt',
-  completedAt: 'completedAt'
-} as const
-
-export type DesktopWorkflowRunScalarFieldEnum = (typeof DesktopWorkflowRunScalarFieldEnum)[keyof typeof DesktopWorkflowRunScalarFieldEnum]
 
 
 export const SortOrder = {

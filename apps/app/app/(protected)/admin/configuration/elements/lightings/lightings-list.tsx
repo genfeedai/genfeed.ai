@@ -38,8 +38,8 @@ function LightingsListContent({
   const { openConfirm } = useConfirmModal();
   const { replace } = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const searchParamsString = searchParams.toString();
+  const { toString: stringifySearchParams } = useSearchParams();
+  const searchParamsString = stringifySearchParams();
   const parsedSearchParams = useMemo(
     () => new URLSearchParams(searchParamsString),
     [searchParamsString],
@@ -161,7 +161,8 @@ function LightingsListContent({
     [
       currentPage,
       getLightingsService,
-      notificationsService,
+      notificationsService.error,
+      notificationsService.success,
       scope,
       adminOrg,
       adminBrand,
@@ -186,14 +187,16 @@ function LightingsListContent({
     openModal(modalId);
   }
 
-  async function handleDelete(): Promise<void> {
-    if (!selectedLighting) {
+  async function handleDelete(
+    lighting: IElementLighting | null,
+  ): Promise<void> {
+    if (!lighting) {
       return;
     }
 
     try {
       const service = await getLightingsService();
-      await service.delete(selectedLighting.id);
+      await service.delete(lighting.id);
       notificationsService.success('Lighting deleted');
       setSelectedLighting(null);
       findAllLightings(true);
@@ -211,7 +214,7 @@ function LightingsListContent({
       isError: true,
       label: 'Delete Lighting',
       message: `Are you sure you want to delete "${lighting.label}"? This action cannot be undone.`,
-      onConfirm: handleDelete,
+      onConfirm: () => handleDelete(lighting),
     });
   }
 

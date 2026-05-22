@@ -41,8 +41,8 @@ function FontFamiliesListContent({
 
   const { replace } = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const searchParamsString = searchParams.toString();
+  const { get, toString: stringifySearchParams } = useSearchParams();
+  const searchParamsString = stringifySearchParams();
   const parsedSearchParams = useMemo(
     () => new URLSearchParams(searchParamsString),
     [searchParamsString],
@@ -143,7 +143,7 @@ function FontFamiliesListContent({
                 isError: true,
                 label: 'Delete Font Family',
                 message: `Are you sure you want to delete "${fontFamily.label}"? This action cannot be undone.`,
-                onConfirm: () => handleDelete(),
+                onConfirm: () => handleDelete(fontFamily),
               });
             },
             tooltip: 'Delete',
@@ -152,7 +152,7 @@ function FontFamiliesListContent({
       : [];
 
   // Extract page from URL to use as dependency (triggers re-fetch when page changes)
-  const currentPage = Number(searchParams.get('page')) || 1;
+  const currentPage = Number(get('page')) || 1;
 
   const findAllFontFamilies = useCallback(
     async (isRefreshing = false) => {
@@ -235,14 +235,10 @@ function FontFamiliesListContent({
     openModal(modalId);
   };
 
-  const handleDelete = async () => {
-    if (!selectedFontFamily) {
-      return;
-    }
-
+  const handleDelete = async (fontFamily: IFontFamily) => {
     try {
       const service = await getFontFamiliesService();
-      await service.delete(selectedFontFamily.id);
+      await service.delete(fontFamily.id);
       notificationsService.success('Font family deleted');
       setSelectedFontFamily(null);
       findAllFontFamilies(true);

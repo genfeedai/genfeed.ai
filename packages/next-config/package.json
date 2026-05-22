@@ -29,7 +29,7 @@
   },
   "private": true,
   "scripts": {
-    "build": "tsc --build --force",
+    "build": "tsc --build",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "dev": "tsc --watch",
     "type-check": "tsc --noEmit"

@@ -9,7 +9,7 @@ import { BrandsController } from '@api/collections/brands/controllers/brands.con
 import { BrandsRelationshipsController } from '@api/collections/brands/controllers/relationships/brands-relationships.controller';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
-import { CredentialsModule } from '@api/collections/credentials/credentials.module';
+import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { ImagesModule } from '@api/collections/images/images.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
@@ -19,7 +19,6 @@ import { MusicsModule } from '@api/collections/musics/musics.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { VideosModule } from '@api/collections/videos/videos.module';
-import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { BrandCreditsGuard } from '@api/helpers/guards/brand-credits/brand-credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { BrandScraperModule } from '@api/services/brand-scraper/brand-scraper.module';
@@ -31,22 +30,21 @@ import { forwardRef, Module } from '@nestjs/common';
   controllers: [BrandsController, BrandsRelationshipsController],
   exports: [BrandsService],
   imports: [
-    forwardRef(() => ActivitiesModule),
+    ActivitiesModule,
     forwardRef(() => ArticlesModule),
     BrandScraperModule,
     ByokModule,
-    forwardRef(() => CredentialsModule),
-    forwardRef(() => CreditsModule),
+    CredentialsCoreModule,
+    CreditsModule,
     forwardRef(() => ImagesModule),
-    forwardRef(() => IngredientsModule),
-    forwardRef(() => LinksModule),
+    IngredientsModule,
+    LinksModule,
     LlmDispatcherModule,
-    forwardRef(() => ModelsModule),
+    ModelsModule,
     forwardRef(() => MusicsModule),
-    forwardRef(() => OrganizationSettingsModule),
-    forwardRef(() => PostsModule),
+    OrganizationSettingsModule,
+    PostsModule,
     forwardRef(() => VideosModule),
-    forwardRef(() => WorkflowsModule),
   ],
   providers: [
     BrandsService,

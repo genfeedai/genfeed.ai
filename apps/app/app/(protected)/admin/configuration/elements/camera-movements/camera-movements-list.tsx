@@ -40,8 +40,8 @@ function CameraMovementsListContent({
 
   const { replace } = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const searchParamsString = searchParams.toString();
+  const { get, toString: stringifySearchParams } = useSearchParams();
+  const searchParamsString = stringifySearchParams();
   const parsedSearchParams = useMemo(
     () => new URLSearchParams(searchParamsString),
     [searchParamsString],
@@ -147,7 +147,7 @@ function CameraMovementsListContent({
                 isError: true,
                 label: 'Delete Camera Movement',
                 message: `Are you sure you want to delete "${movement.label}"? This action cannot be undone.`,
-                onConfirm: () => handleDelete(),
+                onConfirm: () => handleDelete(movement),
               });
             },
             tooltip: 'Delete',
@@ -156,7 +156,7 @@ function CameraMovementsListContent({
       : [];
 
   // Extract page from URL to use as dependency (triggers re-fetch when page changes)
-  const currentPage = Number(searchParams.get('page')) || 1;
+  const currentPage = Number(get('page')) || 1;
 
   const findAllCameraMovements = useCallback(
     async (isRefresh = false) => {
@@ -228,14 +228,10 @@ function CameraMovementsListContent({
     openModal(modalId);
   };
 
-  const handleDelete = async () => {
-    if (!selectedCameraMovement) {
-      return;
-    }
-
+  const handleDelete = async (movement: IElementCameraMovement) => {
     try {
       const service = await getCameraMovementsService();
-      await service.delete(selectedCameraMovement.id);
+      await service.delete(movement.id);
       notificationsService.success('Camera movement deleted');
       setSelectedCameraMovement(null);
       findAllCameraMovements(true);

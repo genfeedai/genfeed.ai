@@ -1,15 +1,18 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant, GenerationType } from '@genfeedai/enums';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { TopbarProps } from '@props/navigation/topbar.props';
 import { Button } from '@ui/primitives/button';
+import MergedSwitcher from '@ui/shell/merged-switcher/MergedSwitcher';
+import TopbarBrandSwitcher from '@ui/topbars/brand-switcher/TopbarBrandSwitcher';
 import TopbarBreadcrumbs from '@ui/topbars/breadcrumbs/TopbarBreadcrumbs';
 import TopbarCreditsBar from '@ui/topbars/credits-bar/TopbarCreditsBar';
 import TopbarEnd from '@ui/topbars/end/TopbarEnd';
+import TopbarOrganizationSwitcher from '@ui/topbars/organization-switcher/TopbarOrganizationSwitcher';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
-import { Suspense } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useCallback, useMemo } from 'react';
 import {
   HiBars3,
   HiOutlineCog6Tooth,
@@ -20,6 +23,45 @@ import { PiSidebarSimple } from 'react-icons/pi';
 import CloudSyncIndicator from '@/components/cloud-sync-indicator/CloudSyncIndicator';
 import { appendSearchParamsToHref } from '@/lib/navigation/operator-shell';
 
+const GENERATION_TYPE_PATHS: Partial<Record<GenerationType, string>> = {
+  [GenerationType.CLIP]: '/studio/clips',
+  [GenerationType.IMAGE]: '/studio/image',
+  [GenerationType.PODCAST]: '/studio/music',
+  [GenerationType.VIDEO]: '/studio/video',
+};
+
+function resolveCurrentGenerationType(
+  pathname: string,
+): GenerationType | undefined {
+  if (pathname.startsWith('/studio/video')) {
+    return GenerationType.VIDEO;
+  }
+
+  if (pathname.startsWith('/studio/image') || pathname === '/studio') {
+    return GenerationType.IMAGE;
+  }
+
+  if (pathname.startsWith('/studio/clips')) {
+    return GenerationType.CLIP;
+  }
+
+  if (pathname.startsWith('/studio/music')) {
+    return GenerationType.PODCAST;
+  }
+
+  return undefined;
+}
+
+function stripProtectedScope(rawPathname: string): string {
+  const parts = rawPathname.split('/').filter(Boolean);
+
+  if (parts.length >= 3) {
+    return `/${parts.slice(2).join('/')}`;
+  }
+
+  return rawPathname;
+}
+
 function AppProtectedTopbarContent({
   isMenuOpen,
   onMenuToggle,
@@ -27,13 +69,34 @@ function AppProtectedTopbarContent({
   onSidebarToggle,
   isAgentCollapsed,
   onAgentToggle,
+  brandSlug,
+  currentApp = 'workspace',
+  orgSlug,
 }: TopbarProps = {}) {
-  const searchParams = useSearchParams();
-  const { href, orgHref } = useOrgUrl();
+  const { get, toString: stringifySearchParams } = useSearchParams();
+  const pathname = usePathname();
+  const { push } = useRouter();
+  const {
+    href,
+    orgHref,
+    orgSlug: resolvedOrgSlug,
+    brandSlug: resolvedBrandSlug,
+  } = useOrgUrl();
 
-  const taskId = searchParams.get('taskId');
-  const taskTitle = searchParams.get('taskTitle');
+  const taskId = get('taskId');
+  const taskTitle = get('taskTitle');
   const ToggleIcon = isMenuOpen ? HiXMark : HiBars3;
+  const scopedPathname = useMemo(
+    () => stripProtectedScope(pathname),
+    [pathname],
+  );
+  const currentGenerationType = useMemo(
+    () => resolveCurrentGenerationType(scopedPathname),
+    [scopedPathname],
+  );
+  const preservedSearch = stringifySearchParams();
+  const effectiveOrgSlug = orgSlug || resolvedOrgSlug;
+  const effectiveBrandSlug = brandSlug || resolvedBrandSlug;
   const backToTaskHref = taskId
     ? href(
         appendSearchParamsToHref(
@@ -42,6 +105,19 @@ function AppProtectedTopbarContent({
         ),
       )
     : null;
+  const handleGenerationTypeChange = useCallback(
+    (generationType: GenerationType) => {
+      const generationPath = GENERATION_TYPE_PATHS[generationType];
+      if (!generationPath) {
+        return;
+      }
+
+      const nextSearchParams = new URLSearchParams(preservedSearch);
+      nextSearchParams.delete('type');
+      push(href(appendSearchParamsToHref(generationPath, nextSearchParams)));
+    },
+    [href, preservedSearch, push],
+  );
 
   return (
     <header className="ship-ui h-full w-full bg-transparent">
@@ -79,6 +155,19 @@ function AppProtectedTopbarContent({
           <div className="min-w-0">
             <TopbarBreadcrumbs />
           </div>
+
+          {effectiveOrgSlug ? (
+            <div className="hidden shrink-0 md:block">
+              <MergedSwitcher
+                brandSlug={effectiveBrandSlug}
+                currentApp={currentApp}
+                currentGenerationType={currentGenerationType}
+                onGenerationTypeChange={handleGenerationTypeChange}
+                orgSlug={effectiveOrgSlug}
+                preservedSearch={preservedSearch}
+              />
+            </div>
+          ) : null}
         </div>
 
         <div className="flex min-w-0 items-center gap-2.5">
@@ -120,6 +209,11 @@ function AppProtectedTopbarContent({
           ) : null}
 
           <CloudSyncIndicator />
+
+          <div className="hidden min-w-0 items-center gap-1 lg:flex">
+            <TopbarOrganizationSwitcher />
+            <TopbarBrandSwitcher />
+          </div>
 
           <TopbarCreditsBar />
 

@@ -12,10 +12,7 @@ export class PromptsService extends BaseService<Prompt> {
   }
 
   public static getInstance(token: string): PromptsService {
-    return BaseService.getDataServiceInstance(
-      PromptsService,
-      token,
-    ) as PromptsService;
+    return BaseService.getDataServiceInstance(PromptsService, token);
   }
 
   public postRemix(id: string): Promise<Prompt> {

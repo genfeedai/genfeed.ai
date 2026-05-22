@@ -115,6 +115,7 @@ export class ReplyBotQueueService implements OnModuleInit {
       const orgsResult = await this.organizationsService.findAll(
         { where: { isDeleted: false } },
         { pagination: false },
+        false,
       );
       const organizations = orgsResult.docs || [];
 

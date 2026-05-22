@@ -211,10 +211,7 @@ export class AgentStrategiesService extends BaseService<
   }
 
   public static getInstance(token: string): AgentStrategiesService {
-    return BaseService.getDataServiceInstance(
-      AgentStrategiesService,
-      token,
-    ) as AgentStrategiesService;
+    return BaseService.getDataServiceInstance(AgentStrategiesService, token);
   }
 
   async list(params?: {

@@ -43,8 +43,8 @@ function SoundsListContent({
 
   const { replace } = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const searchParamsString = searchParams.toString();
+  const { get, toString: stringifySearchParams } = useSearchParams();
+  const searchParamsString = stringifySearchParams();
   const parsedSearchParams = useMemo(
     () => new URLSearchParams(searchParamsString),
     [searchParamsString],
@@ -178,7 +178,7 @@ function SoundsListContent({
                 isError: true,
                 label: 'Delete Sound',
                 message: `Are you sure you want to delete "${sound.label}"? This action cannot be undone.`,
-                onConfirm: () => handleDelete(),
+                onConfirm: () => handleDelete(sound),
               });
             },
             tooltip: 'Delete',
@@ -187,7 +187,7 @@ function SoundsListContent({
       : [];
 
   // Extract page from URL to use as dependency (triggers re-fetch when page changes)
-  const currentPage = Number(searchParams.get('page')) || 1;
+  const currentPage = Number(get('page')) || 1;
 
   const findAllSounds = useCallback(
     async (isRefresh = false) => {
@@ -293,14 +293,10 @@ function SoundsListContent({
     }
   };
 
-  const handleDelete = async () => {
-    if (!selectedSound) {
-      return;
-    }
-
+  const handleDelete = async (sound: Sound) => {
     try {
       const service = await getSoundsService();
-      await service.delete(selectedSound.id);
+      await service.delete(sound.id);
       notificationsService.success('Sound deleted');
       setSelectedSound(null);
       findAllSounds(true);

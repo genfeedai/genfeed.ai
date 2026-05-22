@@ -1,9 +1,4 @@
 import type { AnalyticsMetric } from '@genfeedai/enums';
-import {
-  deserializeCollection,
-  deserializeResource,
-  type JsonApiResponseDocument,
-} from '@genfeedai/helpers/data/json-api/json-api.helper';
 import type { IAnalytics, IQueryParams } from '@genfeedai/interfaces';
 import type {
   IViralHookAnalysis,
@@ -11,6 +6,11 @@ import type {
 } from '@genfeedai/interfaces/analytics/viral-hooks.interface';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
+import {
+  deserializeCollection,
+  deserializeResource,
+  type JsonApiResponseDocument,
+} from '@services/core/json-api';
 
 // Admin Analytics Types
 export interface IOrgLeaderboardItem {

@@ -1,16 +1,33 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+let mockPathname = '/acme/brand/workspace/overview';
+let mockSearchParams = new URLSearchParams();
+const pushSpy = vi.fn();
+let capturedGenerationType: string | undefined;
 
 vi.mock('@genfeedai/enums', () => ({
   ButtonSize: { ICON: 'icon' },
   ButtonVariant: { GHOST: 'ghost', UNSTYLED: 'unstyled' },
+  GenerationType: {
+    BLOG: 'blog',
+    CLIP: 'clip',
+    IMAGE: 'image',
+    NEWSLETTER: 'newsletter',
+    PODCAST: 'podcast',
+    POST: 'post',
+    THREAD: 'thread',
+    VIDEO: 'video',
+  },
 }));
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({
+    brandSlug: 'brand',
     href: (nextHref: string) => nextHref,
     orgHref: (nextHref: string) => `/acme/~${nextHref.replace(/^\//, '')}`,
+    orgSlug: 'acme',
   }),
 }));
 
@@ -37,8 +54,39 @@ vi.mock('@ui/primitives/button', () => ({
   ),
 }));
 
+vi.mock('@ui/shell/merged-switcher/MergedSwitcher', () => ({
+  default: ({
+    currentApp,
+    currentGenerationType,
+    onGenerationTypeChange,
+    orgSlug,
+    brandSlug,
+  }: {
+    currentApp?: string;
+    currentGenerationType?: string;
+    onGenerationTypeChange?: (generationType: string) => void;
+    orgSlug?: string;
+    brandSlug?: string;
+  }) => {
+    capturedGenerationType = currentGenerationType;
+
+    return (
+      <div data-testid="merged-switcher">
+        {currentApp}:{orgSlug}:{brandSlug}:{currentGenerationType ?? 'none'}
+        <button type="button" onClick={() => onGenerationTypeChange?.('image')}>
+          Switch to image
+        </button>
+      </div>
+    );
+  },
+}));
+
 vi.mock('@ui/topbars/breadcrumbs/TopbarBreadcrumbs', () => ({
   default: () => <div data-testid="breadcrumbs">Breadcrumbs</div>,
+}));
+
+vi.mock('@ui/topbars/brand-switcher/TopbarBrandSwitcher', () => ({
+  default: () => <div data-testid="brand-switcher" />,
 }));
 
 vi.mock('@ui/topbars/credits-bar/TopbarCreditsBar', () => ({
@@ -47,6 +95,10 @@ vi.mock('@ui/topbars/credits-bar/TopbarCreditsBar', () => ({
 
 vi.mock('@ui/topbars/end/TopbarEnd', () => ({
   default: () => <div data-testid="topbar-end">Topbar End</div>,
+}));
+
+vi.mock('@ui/topbars/organization-switcher/TopbarOrganizationSwitcher', () => ({
+  default: () => <div data-testid="organization-switcher" />,
 }));
 
 vi.mock('@/components/cloud-sync-indicator/CloudSyncIndicator', () => ({
@@ -70,12 +122,21 @@ vi.mock('next/link', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
-  useSearchParams: () => new URLSearchParams(),
+  usePathname: () => mockPathname,
+  useRouter: () => ({ push: pushSpy }),
+  useSearchParams: () => mockSearchParams,
 }));
 
 const { default: AppProtectedTopbar } = await import('./AppProtectedTopbar');
 
 describe('AppProtectedTopbar', () => {
+  beforeEach(() => {
+    mockPathname = '/acme/brand/workspace/overview';
+    mockSearchParams = new URLSearchParams();
+    pushSpy.mockReset();
+    capturedGenerationType = undefined;
+  });
+
   it('renders breadcrumbs before the right-side controls', () => {
     render(<AppProtectedTopbar currentApp="workspace" orgSlug="acme" />);
 
@@ -120,5 +181,113 @@ describe('AppProtectedTopbar', () => {
       credits.compareDocumentPosition(topbarEnd) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+  });
+
+  it('renders app, organization, and brand switchers in the protected chrome', () => {
+    render(
+      <AppProtectedTopbar
+        currentApp="workspace"
+        orgSlug="acme"
+        brandSlug="brand"
+      />,
+    );
+
+    expect(screen.getByTestId('merged-switcher')).toHaveTextContent(
+      'workspace:acme:brand:none',
+    );
+    expect(screen.getByTestId('organization-switcher')).toBeInTheDocument();
+    expect(screen.getByTestId('brand-switcher')).toBeInTheDocument();
+  });
+
+  it('derives the active generation type from the protected route', () => {
+    mockPathname = '/acme/brand/studio/video';
+
+    render(
+      <AppProtectedTopbar
+        currentApp="studio"
+        orgSlug="acme"
+        brandSlug="brand"
+      />,
+    );
+
+    expect(capturedGenerationType).toBe('video');
+  });
+
+  it.each([
+    ['/acme/brand/studio', 'image'],
+    ['/acme/brand/studio/image', 'image'],
+    ['/acme/brand/studio/clips', 'clip'],
+    ['/acme/brand/studio/music', 'podcast'],
+  ])('maps %s to generation type %s', (pathname, expectedType) => {
+    mockPathname = pathname;
+
+    render(<AppProtectedTopbar currentApp="studio" />);
+
+    expect(capturedGenerationType).toBe(expectedType);
+  });
+
+  it.each([
+    '/acme/brand/compose/newsletter',
+    '/acme/brand/compose/article',
+    '/acme/brand/compose/post',
+  ])('does not treat writing route %s as prompt generation', (pathname) => {
+    mockPathname = pathname;
+
+    render(<AppProtectedTopbar currentApp="compose" />);
+
+    expect(capturedGenerationType).toBeUndefined();
+  });
+
+  it('routes generation type changes through the brand scoped URL', () => {
+    mockSearchParams = new URLSearchParams([
+      ['taskId', 'task-1'],
+      ['type', 'legacy'],
+    ]);
+
+    render(
+      <AppProtectedTopbar
+        currentApp="studio"
+        orgSlug="acme"
+        brandSlug="brand"
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Switch to image' }));
+
+    expect(pushSpy).toHaveBeenCalledWith('/studio/image?taskId=task-1');
+  });
+
+  it('shows task context with a scoped return link', () => {
+    mockSearchParams = new URLSearchParams([
+      ['taskId', 'task-1'],
+      ['taskTitle', 'Launch plan'],
+    ]);
+
+    render(<AppProtectedTopbar currentApp="workspace" orgSlug="acme" />);
+
+    expect(screen.getByText('Task context')).toBeInTheDocument();
+    expect(screen.getByText('Launch plan')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Back to task' })).toHaveAttribute(
+      'href',
+      '/workspace/overview?taskId=task-1',
+    );
+  });
+
+  it('renders close and expand controls for open mobile menu and collapsed sidebar', () => {
+    render(
+      <AppProtectedTopbar
+        isMenuOpen
+        isSidebarCollapsed
+        onMenuToggle={vi.fn()}
+        onSidebarToggle={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'Close navigation menu' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Expand sidebar' }),
+    ).toBeInTheDocument();
   });
 });

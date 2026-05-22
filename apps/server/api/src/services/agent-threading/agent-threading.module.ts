@@ -30,7 +30,7 @@ import { forwardRef, Module } from '@nestjs/common';
     AgentMessagesModule,
     UsersModule,
     forwardRef(() => AgentOrchestratorModule),
-    forwardRef(() => LlmDispatcherModule),
+    LlmDispatcherModule,
     LoggerModule,
   ],
   providers: [

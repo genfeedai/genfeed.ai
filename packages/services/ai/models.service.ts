@@ -9,9 +9,6 @@ export class ModelsService extends BaseService<Model> {
   }
 
   public static getInstance(token: string): ModelsService {
-    return BaseService.getDataServiceInstance(
-      ModelsService,
-      token,
-    ) as ModelsService;
+    return BaseService.getDataServiceInstance(ModelsService, token);
   }
 }

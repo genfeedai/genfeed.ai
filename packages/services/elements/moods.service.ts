@@ -9,6 +9,6 @@ export class MoodsService extends BaseService<ElementMood> {
   }
 
   public static getInstance(token: string): MoodsService {
-    return BaseService.getInstance.call(MoodsService, token) as MoodsService;
+    return BaseService.getDataServiceInstance(MoodsService, token);
   }
 }

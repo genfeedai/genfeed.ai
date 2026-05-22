@@ -3,14 +3,17 @@ import type {
   GeneratePromptsRequest,
 } from '@genfeedai/props/studio/prompt-generator.props';
 import { EnvironmentService } from '@services/core/environment.service';
+import { ServiceInstanceManager } from '@services/core/service-instance-manager';
 import axios, { type AxiosInstance } from 'axios';
+
+const promptGeneratorInstances =
+  new ServiceInstanceManager<PromptGeneratorService>();
 
 /**
  * Service for generating creative prompts using AI
  * Calls POST /optimizers/prompts endpoint
  */
 export class PromptGeneratorService {
-  private static instances = new Map<string, PromptGeneratorService>();
   private instance: AxiosInstance;
 
   constructor(token: string) {
@@ -24,13 +27,14 @@ export class PromptGeneratorService {
   }
 
   static getInstance(token: string): PromptGeneratorService {
-    if (!PromptGeneratorService.instances.has(token)) {
-      PromptGeneratorService.instances.set(
-        token,
-        new PromptGeneratorService(token),
-      );
+    const cached = promptGeneratorInstances.get(PromptGeneratorService, token);
+    if (cached) {
+      return cached;
     }
-    return PromptGeneratorService.instances.get(token)!;
+
+    const instance = new PromptGeneratorService(token);
+    promptGeneratorInstances.set(PromptGeneratorService, token, instance);
+    return instance;
   }
 
   /**

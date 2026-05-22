@@ -17,8 +17,6 @@ interface FunnelResponse {
  * - Complete funnel (after Stripe payment)
  */
 export class OnboardingFunnelService extends HTTPBaseService {
-  private static instanceMap = new Map<string, OnboardingFunnelService>();
-
   constructor(token: string) {
     super(
       `${EnvironmentService.apiEndpoint}${API_ENDPOINTS.ONBOARDING}`,
@@ -27,13 +25,10 @@ export class OnboardingFunnelService extends HTTPBaseService {
   }
 
   public static getInstance(token: string): OnboardingFunnelService {
-    if (!OnboardingFunnelService.instanceMap.has(token)) {
-      OnboardingFunnelService.instanceMap.set(
-        token,
-        new OnboardingFunnelService(token),
-      );
-    }
-    return OnboardingFunnelService.instanceMap.get(token)!;
+    return HTTPBaseService.getBaseServiceInstance(
+      OnboardingFunnelService,
+      token,
+    );
   }
 
   /**

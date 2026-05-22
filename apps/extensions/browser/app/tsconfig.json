@@ -8,6 +8,7 @@
       "@genfeedai/agent/*": ["../../../packages/agent/src/*"],
       "@genfeedai/interfaces": ["../../../packages/interfaces/src/index.ts"],
       "@genfeedai/interfaces/*": ["../../../packages/interfaces/src/*"],
+      "@genfeedai/utils/*": ["../../../../packages/utils/*"],
       "@workflow-engine/*": ["../../../packages/workflow-engine/src/*"],
       "@workflow-saas/*": ["../../../packages/workflow-saas/src/*"],
       "@ui/*": ["../../../../packages/ui/src/*"],

@@ -6,7 +6,6 @@
   "dependencies": {
     "@electric-sql/pglite": "0.4.5",
     "@prisma/client": "7.8.0",
-    "@prisma/client-runtime-utils": "7.8.0",
     "@prisma/driver-adapter-utils": "7.8.0",
     "prisma-pglite": "2.1.0"
   },

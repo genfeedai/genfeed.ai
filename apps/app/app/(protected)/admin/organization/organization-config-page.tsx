@@ -11,8 +11,8 @@ import { Suspense } from 'react';
 import { HiOutlineCog6Tooth } from 'react-icons/hi2';
 
 function OrganizationConfigPageContent() {
-  const searchParams = useSearchParams();
-  const organizationId = searchParams.get('id');
+  const { get } = useSearchParams();
+  const organizationId = get('id');
 
   const { settings, isLoading, isRefreshing, error, refresh } =
     useOrganizationSettings(organizationId);

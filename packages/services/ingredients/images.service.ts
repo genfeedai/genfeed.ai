@@ -8,19 +8,24 @@ import type {
 import { ImageEditSerializer, ImageSerializer } from '@genfeedai/serializers';
 import { IngredientsService } from '@services/content/ingredients.service';
 import type { JsonApiResponseDocument } from '@services/core/base.service';
+import { ServiceInstanceManager } from '@services/core/service-instance-manager';
+
+const imageInstances = new ServiceInstanceManager<ImagesService>();
 
 export class ImagesService extends IngredientsService<Image> {
-  private static imageInstances = new Map<string, ImagesService>();
-
   constructor(token: string) {
     super('images', token);
   }
 
   static getInstance(token: string): ImagesService {
-    if (!ImagesService.imageInstances.has(token)) {
-      ImagesService.imageInstances.set(token, new ImagesService(token));
+    const cached = imageInstances.get(ImagesService, token);
+    if (cached) {
+      return cached;
     }
-    return ImagesService.imageInstances.get(token)!;
+
+    const instance = new ImagesService(token);
+    imageInstances.set(ImagesService, token, instance);
+    return instance;
   }
 
   public async post(body: Partial<IImage>) {

@@ -1,8 +1,8 @@
 {
   "dependencies": {
-    "@anthropic-ai/sdk": "0.96.0",
-    "@aws-sdk/client-cloudfront": "3.1048.0",
-    "@aws-sdk/client-ec2": "3.1048.0",
+    "@anthropic-ai/sdk": "0.98.0",
+    "@aws-sdk/client-cloudfront": "3.1052.0",
+    "@aws-sdk/client-ec2": "3.1052.0",
     "@genfeedai/config": "workspace:*",
     "@genfeedai/constants": "workspace:*",
     "@genfeedai/enums": "workspace:*",
@@ -14,6 +14,7 @@
     "@genfeedai/serializers": "workspace:*",
     "@genfeedai/tools": "workspace:*",
     "@genfeedai/types": "workspace:*",
+    "@genfeedai/utils": "workspace:*",
     "@genfeedai/workflow-engine": "workspace:*",
     "@genfeedai/workflow-saas": "workspace:*",
     "@genfeedai/workflows": "workspace:*",
@@ -28,13 +29,13 @@
     "jsonapi-serializer": "3.6.9",
     "jsonwebtoken": "9.0.3",
     "multer": "2.1.1",
-    "openai": "6.38.0",
+    "openai": "6.39.0",
     "rss": "1.2.2",
     "twitter-text": "3.1.0"
   },
   "description": "Genfeed API Service",
   "devDependencies": {
-    "@nestjs/testing": "11.1.21",
+    "@nestjs/testing": "11.1.23",
     "@types/archiver": "7.0.0",
     "@types/bcrypt": "6.0.0",
     "@types/compression": "1.8.1",
@@ -45,7 +46,7 @@
     "@types/rss": "0.0.32",
     "@types/twitter-text": "3.1.10",
     "unplugin-swc": "1.5.9",
-    "vitest": "4.1.6"
+    "vitest": "4.1.7"
   },
   "main": "../dist/apps/api/main.js",
   "name": "@genfeedai/api",

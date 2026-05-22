@@ -9,8 +9,8 @@ export default function ComposeLayout({ children }: LayoutProps) {
   return (
     <FeatureGate flagKey="compose">
       <Container
-        label="Compose"
-        description="Write, generate, and refine content for publishing."
+        label="Write"
+        description="Draft, refine, and prepare durable text content."
         icon={HiOutlinePencilSquare}
       >
         {children}

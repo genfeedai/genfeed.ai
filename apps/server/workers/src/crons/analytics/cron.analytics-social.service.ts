@@ -58,8 +58,6 @@ export class CronAnalyticsSocialService {
       );
       const posts = result as unknown as { docs: PostEntity[] };
 
-      const posts = result as unknown as { docs: PostEntity[] };
-
       if (!posts.docs || posts.docs.length === 0) {
         this.logger.log(`${url} no social media posts to track`);
         return;

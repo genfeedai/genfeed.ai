@@ -29,7 +29,7 @@ import { NotificationsPublisherModule } from '@api/services/notifications/publis
 import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder.module';
 import { RouterModule } from '@api/services/router/router.module';
 import { FailedGenerationModule } from '@api/shared/services/failed-generation/failed-generation.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [
@@ -43,25 +43,25 @@ import { forwardRef, Module } from '@nestjs/common';
   ],
   imports: [
     // Data modules
-    forwardRef(() => ActivitiesModule),
+    ActivitiesModule,
     // Utility modules
-    forwardRef(() => ByokModule),
-    forwardRef(() => CreditsModule),
+    ByokModule,
+    CreditsModule,
     FailedGenerationModule,
-    forwardRef(() => FileQueueModule),
+    FileQueueModule,
     // Service modules
-    forwardRef(() => FilesClientModule),
-    forwardRef(() => HeyGenModule),
-    forwardRef(() => IngredientsModule),
-    forwardRef(() => MetadataModule),
-    forwardRef(() => ModelsModule),
-    forwardRef(() => NotificationsPublisherModule),
-    forwardRef(() => PromptBuilderModule),
-    forwardRef(() => PromptsModule),
-    forwardRef(() => ReplicateModule),
-    forwardRef(() => RouterModule),
+    FilesClientModule,
+    HeyGenModule,
+    IngredientsModule,
+    MetadataModule,
+    ModelsModule,
+    NotificationsPublisherModule,
+    PromptBuilderModule,
+    PromptsModule,
+    ReplicateModule,
+    RouterModule,
     // Core video module for VideosService
-    forwardRef(() => VideosModule),
+    VideosModule,
   ],
   providers: [CreditsGuard, CreditsInterceptor, ModelsGuard],
 })

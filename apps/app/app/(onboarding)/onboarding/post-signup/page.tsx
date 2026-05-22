@@ -23,8 +23,8 @@ function PostSignupPageContent() {
   const { getToken } = useAuth();
   const { user: clerkUser } = useUser();
   const { currentUser, isLoading } = useCurrentUser();
-  const searchParams = useSearchParams();
-  const requestedCreditsParam = searchParams.get('credits');
+  const { get } = useSearchParams();
+  const requestedCreditsParam = get('credits');
   const calledRef = useRef(false);
   const [showFallback, setShowFallback] = useState(false);
   const [statusMessage, setStatusMessage] = useState(

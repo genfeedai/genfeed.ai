@@ -41,8 +41,8 @@ function CamerasListContent({
 
   const { replace } = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const searchParamsString = searchParams.toString();
+  const { get, toString: stringifySearchParams } = useSearchParams();
+  const searchParamsString = stringifySearchParams();
   const parsedSearchParams = useMemo(
     () => new URLSearchParams(searchParamsString),
     [searchParamsString],
@@ -113,7 +113,7 @@ function CamerasListContent({
   });
 
   // Extract page from URL to use as dependency (triggers re-fetch when page changes)
-  const currentPage = Number(searchParams.get('page')) || 1;
+  const currentPage = Number(get('page')) || 1;
 
   const {
     data: cameras = [] as ElementCamera[],
@@ -193,7 +193,7 @@ function CamerasListContent({
                 isError: true,
                 label: 'Delete Camera',
                 message: `Are you sure you want to delete "${camera.label}"? This action cannot be undone.`,
-                onConfirm: () => handleDelete(),
+                onConfirm: () => handleDelete(camera),
               });
             },
             tooltip: 'Delete',
@@ -213,14 +213,10 @@ function CamerasListContent({
     openModal(modalId);
   };
 
-  const handleDelete = async () => {
-    if (!selectedCamera) {
-      return;
-    }
-
+  const handleDelete = async (camera: IElementCamera) => {
     try {
       const service = await getCamerasService();
-      await service.delete(selectedCamera.id);
+      await service.delete(camera.id);
       notificationsService.success('Camera deleted');
       setSelectedCamera(null);
       refreshCameras();

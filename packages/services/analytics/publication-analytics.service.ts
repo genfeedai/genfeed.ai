@@ -1,7 +1,3 @@
-import {
-  deserializeResource,
-  type JsonApiResponseDocument,
-} from '@genfeedai/helpers/data/json-api/json-api.helper';
 import type {
   IAnalyticsRefreshResponse,
   IPostAnalytics,
@@ -10,6 +6,10 @@ import type {
 } from '@genfeedai/interfaces';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
+import {
+  deserializeResource,
+  type JsonApiResponseDocument,
+} from '@services/core/json-api';
 import type { AxiosResponse } from 'axios';
 
 export class PostAnalyticsService extends HTTPBaseService {

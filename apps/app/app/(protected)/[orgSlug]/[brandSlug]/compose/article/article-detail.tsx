@@ -1,6 +1,10 @@
 'use client';
 
 import {
+  type AgentDraftSuggestionPayload,
+  useAgentDraftContext,
+} from '@genfeedai/agent';
+import {
   ArticleCategory,
   ArticleStatus,
   ButtonSize,
@@ -45,6 +49,37 @@ import {
 } from 'react-icons/hi2';
 
 type TeaserFormat = 'post' | 'thread';
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function applyDraftSuggestionToHtml(
+  currentContent: string,
+  payload: AgentDraftSuggestionPayload,
+): string {
+  const suggestion = payload.text.trim();
+  const selectedText = payload.selectedText?.trim();
+
+  if (selectedText && currentContent.includes(selectedText)) {
+    return currentContent.replace(selectedText, escapeHtml(suggestion));
+  }
+
+  const paragraph = `<p>${escapeHtml(suggestion)
+    .replace(/\n{2,}/g, '</p><p>')
+    .replace(/\n/g, '<br>')}</p>`;
+
+  if (!currentContent.trim()) {
+    return paragraph;
+  }
+
+  return `${currentContent}${paragraph}`;
+}
 
 const ARTICLE_CATEGORY_OPTIONS = Object.values(ArticleCategory).map(
   (value) => ({
@@ -134,6 +169,26 @@ export default function ArticleDetail({
   const canArchive = !!article && isPublished;
   const plainTextContent = form.content.replace(/<[^>]*>/g, '').trim();
   const canGenerateTeaser = !!article && hasXArticleSections && !!credentialId;
+  const handleApplyDraftSuggestion = useCallback(
+    (payload: AgentDraftSuggestionPayload) => {
+      setFormField(
+        'content',
+        applyDraftSuggestionToHtml(form.content, payload),
+      );
+    },
+    [form.content, setFormField],
+  );
+
+  useAgentDraftContext({
+    body: form.content,
+    contentFormat: isXArticle ? 'X Article' : 'Article',
+    draftType: 'article',
+    onApplySuggestion: handleApplyDraftSuggestion,
+    selectionRootId: 'article-compose-workspace',
+    summary: form.summary,
+    title: form.label,
+  });
+
   const handleGenerateTeaser = useCallback(
     async (format: TeaserFormat) => {
       if (!article || !credentialId || generatingTeaserFormat) {
@@ -220,7 +275,7 @@ export default function ArticleDetail({
   }
 
   return (
-    <div className="container mx-auto p-6">
+    <div id="article-compose-workspace" className="container mx-auto p-6">
       {/* Header */}
       <Breadcrumb
         segments={[

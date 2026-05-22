@@ -1,16 +1,13 @@
-import { ActivitiesService as ActivitiesServiceToken } from '@api/collections/activities/services/activities.service';
-import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
-import { SubscriptionsService } from '@api/collections/subscriptions/services/subscriptions.service';
-import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { BusinessLogicException } from '@api/helpers/exceptions/business/business-logic.exception';
 import { TransactionUtil } from '@api/helpers/utils/transaction/transaction.util';
 import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { EventBusService } from '@api/shared/services/event-bus/event-bus.service';
 import {
   ActivityKey,
   ActivitySource,
@@ -19,13 +16,7 @@ import {
 import type { ICreditsUtilsService } from '@genfeedai/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { forwardRef, Inject, Injectable, Optional } from '@nestjs/common';
-
-type ActivitiesServiceContract = {
-  create: (
-    payload: Parameters<ActivitiesServiceToken['create']>[0],
-  ) => ReturnType<ActivitiesServiceToken['create']>;
-};
+import { Injectable, Optional } from '@nestjs/common';
 
 /**
  * Enterprise credits utility service. The full implementation lives in OSS
@@ -40,15 +31,11 @@ export class CreditsUtilsService implements ICreditsUtilsService {
 
   constructor(
     private readonly loggerService: LoggerService,
-    @Inject(forwardRef(() => ActivitiesServiceToken))
-    private readonly activitiesService: ActivitiesServiceContract,
-    private readonly brandsService: BrandsService,
+    private readonly eventBusService: EventBusService,
+    private readonly prisma: PrismaService,
     private readonly creditBalanceService: CreditBalanceService,
     private readonly creditTransactionsService: CreditTransactionsService,
     private readonly organizationSettingsService: OrganizationSettingsService,
-    private readonly organizationsService: OrganizationsService,
-    private readonly subscriptionsService: SubscriptionsService,
-    private readonly usersService: UsersService,
     private readonly clerkService: ClerkService,
     private readonly websocketService: NotificationsPublisherService,
     private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
@@ -96,8 +83,8 @@ export class CreditsUtilsService implements ICreditsUtilsService {
       });
 
       // Get organization to verify it exists
-      const organization = await this.organizationsService.findOne({
-        id: organizationId,
+      const organization = await this.prisma.organization.findFirst({
+        where: { id: organizationId, isDeleted: false },
       });
 
       if (!organization) {
@@ -144,8 +131,9 @@ export class CreditsUtilsService implements ICreditsUtilsService {
         : await deductCore();
 
       // Side effects outside transaction (idempotent, non-critical)
-      const dbUser = await this.usersService.findOne({
-        id: userId,
+      const dbUser = await this.prisma.user.findFirst({
+        select: { clerkId: true },
+        where: { id: userId, isDeleted: false },
       });
       if (dbUser?.clerkId) {
         await this.clerkService.updateUserPublicMetadata(dbUser.clerkId, {
@@ -153,17 +141,13 @@ export class CreditsUtilsService implements ICreditsUtilsService {
         });
       }
 
-      const defaultBrand = await this.brandsService.findOne({
-        isDeleted: false,
-        organizationId: organizationId,
+      const defaultBrand = await this.prisma.brand.findFirst({
+        select: { id: true },
+        where: { isDeleted: false, organizationId },
       });
 
-      await this.activitiesService.create({
-        brandId: String(
-          (defaultBrand as Record<string, unknown>)?.id ??
-            defaultBrand?._id ??
-            organizationId,
-        ),
+      this.eventBusService.emit('credits.activity', {
+        brandId: String(defaultBrand?.id ?? organizationId),
         key: ActivityKey.CREDITS_REMOVE,
         organizationId: organizationId,
         source,
@@ -231,8 +215,8 @@ export class CreditsUtilsService implements ICreditsUtilsService {
       });
 
       // Get organization to verify it exists
-      const organization = await this.organizationsService.findOne({
-        id: organizationId,
+      const organization = await this.prisma.organization.findFirst({
+        where: { id: organizationId, isDeleted: false },
       });
 
       if (!organization) {
@@ -274,11 +258,14 @@ export class CreditsUtilsService implements ICreditsUtilsService {
       }
 
       // Side effects outside transaction (idempotent, non-critical)
-      const subscription =
-        await this.subscriptionsService.findByOrganizationId(organizationId);
-      if (subscription?.user) {
-        const dbUser = await this.usersService.findOne({
-          _id: subscription.user,
+      const subscription = await this.prisma.subscription.findFirst({
+        select: { id: true, userId: true },
+        where: { isDeleted: false, organizationId },
+      });
+      if (subscription?.userId) {
+        const dbUser = await this.prisma.user.findFirst({
+          select: { clerkId: true },
+          where: { id: subscription.userId, isDeleted: false },
         });
         if (dbUser?.clerkId) {
           await this.clerkService.updateUserPublicMetadata(dbUser.clerkId, {
@@ -333,8 +320,8 @@ export class CreditsUtilsService implements ICreditsUtilsService {
       });
 
       // Get organization to verify it exists
-      const organization = await this.organizationsService.findOne({
-        id: organizationId,
+      const organization = await this.prisma.organization.findFirst({
+        where: { id: organizationId, isDeleted: false },
       });
 
       if (!organization) {
@@ -372,11 +359,14 @@ export class CreditsUtilsService implements ICreditsUtilsService {
         : await refundCore();
 
       // Side effects outside transaction (idempotent, non-critical)
-      const subscription =
-        await this.subscriptionsService.findByOrganizationId(organizationId);
-      if (subscription?.user) {
-        const dbUser = await this.usersService.findOne({
-          _id: subscription.user,
+      const subscription = await this.prisma.subscription.findFirst({
+        select: { id: true, userId: true },
+        where: { isDeleted: false, organizationId },
+      });
+      if (subscription?.userId) {
+        const dbUser = await this.prisma.user.findFirst({
+          select: { clerkId: true },
+          where: { id: subscription.userId, isDeleted: false },
         });
         if (dbUser?.clerkId) {
           await this.clerkService.updateUserPublicMetadata(dbUser.clerkId, {
@@ -530,8 +520,8 @@ export class CreditsUtilsService implements ICreditsUtilsService {
       });
 
       // Get organization to verify it exists
-      const organization = await this.organizationsService.findOne({
-        id: organizationId,
+      const organization = await this.prisma.organization.findFirst({
+        where: { id: organizationId, isDeleted: false },
       });
 
       if (!organization) {
@@ -570,11 +560,14 @@ export class CreditsUtilsService implements ICreditsUtilsService {
       }
 
       // Side effects outside transaction (idempotent, non-critical)
-      const subscription =
-        await this.subscriptionsService.findByOrganizationId(organizationId);
-      if (subscription?.user) {
-        const dbUser = await this.usersService.findOne({
-          _id: subscription.user,
+      const subscription = await this.prisma.subscription.findFirst({
+        select: { id: true, userId: true },
+        where: { isDeleted: false, organizationId },
+      });
+      if (subscription?.userId) {
+        const dbUser = await this.prisma.user.findFirst({
+          select: { clerkId: true },
+          where: { id: subscription.userId, isDeleted: false },
         });
         if (dbUser?.clerkId) {
           await this.clerkService.updateUserPublicMetadata(dbUser.clerkId, {
@@ -624,8 +617,8 @@ export class CreditsUtilsService implements ICreditsUtilsService {
       });
 
       // Get organization to verify it exists
-      const organization = await this.organizationsService.findOne({
-        id: organizationId,
+      const organization = await this.prisma.organization.findFirst({
+        where: { id: organizationId, isDeleted: false },
       });
 
       if (!organization) {
@@ -657,11 +650,14 @@ export class CreditsUtilsService implements ICreditsUtilsService {
         : await removeAllCore();
 
       // Side effects outside transaction (idempotent, non-critical)
-      const subscription =
-        await this.subscriptionsService.findByOrganizationId(organizationId);
-      if (subscription?.user) {
-        const dbUser = await this.usersService.findOne({
-          _id: subscription.user,
+      const subscription = await this.prisma.subscription.findFirst({
+        select: { id: true, userId: true },
+        where: { isDeleted: false, organizationId },
+      });
+      if (subscription?.userId) {
+        const dbUser = await this.prisma.user.findFirst({
+          select: { clerkId: true },
+          where: { id: subscription.userId, isDeleted: false },
         });
         if (dbUser?.clerkId) {
           await this.clerkService.updateUserPublicMetadata(dbUser.clerkId, {
@@ -670,25 +666,18 @@ export class CreditsUtilsService implements ICreditsUtilsService {
         }
       }
 
-      if (subscription?.user) {
-        const defaultBrand = await this.brandsService.findOne({
-          isDeleted: false,
-          organizationId: organizationId,
+      if (subscription?.userId) {
+        const defaultBrand = await this.prisma.brand.findFirst({
+          select: { id: true },
+          where: { isDeleted: false, organizationId },
         });
 
-        await this.activitiesService.create({
-          brandId: String(
-            (defaultBrand as Record<string, unknown>)?.id ??
-              defaultBrand?._id ??
-              organizationId,
-          ),
+        this.eventBusService.emit('credits.activity', {
+          brandId: String(defaultBrand?.id ?? organizationId),
           key: ActivityKey.CREDITS_REMOVE_ALL,
           organizationId: organizationId,
           source,
-          userId: String(
-            (subscription as Record<string, unknown>).userId ??
-              subscription.user,
-          ),
+          userId: subscription.userId,
           value: String(currentBalance),
         });
       }

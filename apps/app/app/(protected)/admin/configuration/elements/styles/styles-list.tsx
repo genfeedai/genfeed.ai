@@ -43,8 +43,8 @@ function StylesListContent({
 
   const { replace } = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const searchParamsString = searchParams.toString();
+  const { get, toString: stringifySearchParams } = useSearchParams();
+  const searchParamsString = stringifySearchParams();
   const parsedSearchParams = useMemo(
     () => new URLSearchParams(searchParamsString),
     [searchParamsString],
@@ -158,7 +158,7 @@ function StylesListContent({
       : [];
 
   // Extract page from URL to use as dependency (triggers re-fetch when page changes)
-  const currentPage = Number(searchParams.get('page')) || 1;
+  const currentPage = Number(get('page')) || 1;
 
   const findAllStyles = useCallback(
     async (isRefresh = false) => {
@@ -235,21 +235,17 @@ function StylesListContent({
         isError: true,
         label: 'Delete Style',
         message: `Are you sure you want to delete "${style.label}"? This action cannot be undone.`,
-        onConfirm: handleDelete,
+        onConfirm: () => handleDelete(style),
       });
     }
 
     openModal(modalId);
   };
 
-  const handleDelete = async () => {
-    if (!selectedStyle) {
-      return;
-    }
-
+  const handleDelete = async (style: IElementStyle) => {
     try {
       const service = await getStylesService();
-      await service.delete(selectedStyle.id);
+      await service.delete(style.id);
       notificationsService.success('Style deleted');
       setSelectedStyle(null);
       findAllStyles(true);

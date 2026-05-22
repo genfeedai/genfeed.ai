@@ -8,9 +8,6 @@ export class TranscriptsService extends BaseService<Transcript> {
   }
 
   public static getInstance(token: string): TranscriptsService {
-    return BaseService.getDataServiceInstance(
-      TranscriptsService,
-      token,
-    ) as TranscriptsService;
+    return BaseService.getDataServiceInstance(TranscriptsService, token);
   }
 }

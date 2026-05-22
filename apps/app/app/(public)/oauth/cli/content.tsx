@@ -184,7 +184,7 @@ function generateStateToken(): string {
 }
 
 function CliAuthPageContent() {
-  const searchParams = useSearchParams();
+  const { get } = useSearchParams();
   const { isSignedIn, isLoaded, getToken } = useAuth();
   const { user } = useUser();
   const [flowState, setFlowState] = useState<FlowState>({
@@ -198,12 +198,12 @@ function CliAuthPageContent() {
   // from this page and not from a racing process on the same machine.
   const stateTokenRef = useRef<string>(generateStateToken());
 
-  const portParam = searchParams.get('port');
-  const isDesktopMode = searchParams.get('desktop') === '1';
-  const desktopReturnTo = searchParams.get('return_to');
-  const desktopState = searchParams.get('state');
-  const codeChallenge = searchParams.get('code_challenge');
-  const codeChallengeMethod = searchParams.get('code_challenge_method');
+  const portParam = get('port');
+  const isDesktopMode = get('desktop') === '1';
+  const desktopReturnTo = get('return_to');
+  const desktopState = get('state');
+  const codeChallenge = get('code_challenge');
+  const codeChallengeMethod = get('code_challenge_method');
   const hasPkce = Boolean(codeChallenge && codeChallengeMethod);
   const hasValidDesktopReturnTarget =
     isDesktopCallbackTargetValid(desktopReturnTo);

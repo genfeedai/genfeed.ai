@@ -1,4 +1,4 @@
-import { CredentialsModule } from '@api/collections/credentials/credentials.module';
+import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { PersonasModule } from '@api/collections/personas/personas.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { ElevenLabsModule } from '@api/services/integrations/elevenlabs/elevenlabs.module';
@@ -16,12 +16,12 @@ import { forwardRef, Module } from '@nestjs/common';
     PersonaPublisherService,
   ],
   imports: [
-    forwardRef(() => CredentialsModule),
-    forwardRef(() => ElevenLabsModule),
-    forwardRef(() => HedraModule),
-    forwardRef(() => HeyGenModule),
+    CredentialsCoreModule,
+    ElevenLabsModule,
+    HedraModule,
+    HeyGenModule,
     forwardRef(() => PersonasModule),
-    forwardRef(() => PostsModule),
+    PostsModule,
   ],
   providers: [
     PersonaContentPlanService,

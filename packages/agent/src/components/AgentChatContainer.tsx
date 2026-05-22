@@ -15,6 +15,10 @@ import { TimelineStreamingRow } from '@genfeedai/agent/components/TimelineStream
 import { TimelineWorkGroup } from '@genfeedai/agent/components/TimelineWorkGroup';
 import { useAgentChat } from '@genfeedai/agent/hooks/use-agent-chat';
 import { useAgentChatStream } from '@genfeedai/agent/hooks/use-agent-chat-stream';
+import {
+  AGENT_DRAFT_SUGGESTION_EVENT,
+  type AgentDraftSuggestionPayload,
+} from '@genfeedai/agent/hooks/use-agent-draft-context';
 import type {
   AgentChatMessage as AgentChatMessageType,
   AgentWorkEvent,
@@ -636,6 +640,47 @@ export function AgentChatContainer({
 
         followLatestTurn('smooth');
         void sendMessage(prompt);
+        return;
+      }
+
+      if (action === 'apply_to_draft') {
+        const text = typeof payload?.text === 'string' ? payload.text : '';
+
+        if (!text.trim()) {
+          setError('No generated text is available for this action.');
+          return;
+        }
+
+        if (typeof window === 'undefined') {
+          setError('Draft updates are only available in the browser.');
+          return;
+        }
+
+        const pageContext = useAgentChatStore.getState().pageContext;
+        const event = new CustomEvent<AgentDraftSuggestionPayload>(
+          AGENT_DRAFT_SUGGESTION_EVENT,
+          {
+            cancelable: true,
+            detail: {
+              mode: pageContext?.selectedText ? 'replace-selection' : 'append',
+              selectedText: pageContext?.selectedText,
+              sourceAction:
+                typeof payload?.sourceAction === 'string'
+                  ? payload.sourceAction
+                  : undefined,
+              text,
+            },
+          },
+        );
+
+        const wasHandled = !window.dispatchEvent(event);
+
+        if (!wasHandled) {
+          setError('Open a writing surface before applying text to a draft.');
+          return;
+        }
+
+        setError(null);
         return;
       }
 

@@ -1,5 +1,5 @@
 import { BrandsModule } from '@api/collections/brands/brands.module';
-import { CredentialsModule } from '@api/collections/credentials/credentials.module';
+import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
@@ -14,21 +14,21 @@ import { BotGenerationService } from '@api/services/bot-gateway/services/bot-gen
 import { BotUserResolverService } from '@api/services/bot-gateway/services/bot-user-resolver.service';
 import { SharedModule } from '@api/shared/shared.module';
 import { HttpModule } from '@nestjs/axios';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [BotGatewayController],
   exports: [BotGatewayService, BotGenerationService],
   imports: [
     ConfigModule,
-    forwardRef(() => BrandsModule),
-    forwardRef(() => CredentialsModule),
-    forwardRef(() => CreditsModule),
+    BrandsModule,
+    CredentialsCoreModule,
+    CreditsModule,
     HttpModule,
-    forwardRef(() => IngredientsModule),
-    forwardRef(() => MetadataModule),
-    forwardRef(() => OrganizationSettingsModule),
-    forwardRef(() => SharedModule),
+    IngredientsModule,
+    MetadataModule,
+    OrganizationSettingsModule,
+    SharedModule,
   ],
   providers: [
     BotGatewayService,

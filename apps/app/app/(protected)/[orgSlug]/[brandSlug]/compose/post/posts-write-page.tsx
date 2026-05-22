@@ -1,6 +1,10 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import {
+  type AgentDraftSuggestionPayload,
+  useAgentDraftContext,
+} from '@genfeedai/agent';
 import type {
   DesktopContentPlatform,
   DesktopContentType,
@@ -31,11 +35,13 @@ import {
 import { Textarea } from '@ui/primitives/textarea';
 import { track } from '@vercel/analytics';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useMemo, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   HiClipboardDocument,
   HiDocumentText,
+  HiPlus,
   HiSparkles,
+  HiTrash,
 } from 'react-icons/hi2';
 import { getDesktopBridge, isDesktopShell } from '@/lib/desktop/runtime';
 
@@ -81,6 +87,62 @@ const SOCIAL_FORMAT_LABELS: Record<GenerationFormat, string> = {
   thread: 'Thread',
   'x-article': 'X Article',
 };
+
+const THREAD_DRAFT_SEPARATOR = '\n\n';
+
+function splitDraftSegments(content: string): string[] {
+  const segments = content.split(/\n{2,}/).map((segment) => segment.trim());
+
+  return segments.length ? segments : [''];
+}
+
+function joinDraftSegments(segments: string[]): string {
+  return segments.join(THREAD_DRAFT_SEPARATOR);
+}
+
+function applyDraftSuggestionToText(
+  currentContent: string,
+  payload: AgentDraftSuggestionPayload,
+): string {
+  const suggestion = payload.text.trim();
+  const selectedText = payload.selectedText?.trim();
+
+  if (selectedText && currentContent.includes(selectedText)) {
+    return currentContent.replace(selectedText, suggestion);
+  }
+
+  if (!currentContent.trim()) {
+    return suggestion;
+  }
+
+  return [currentContent.trimEnd(), suggestion].join(THREAD_DRAFT_SEPARATOR);
+}
+
+function getCharacterLimit(
+  credential: ICredential | undefined,
+  platform: DesktopContentPlatform,
+): number | null {
+  const activePlatform = credential?.platform
+    ? String(credential.platform).toLowerCase()
+    : platform;
+
+  if (
+    activePlatform === CredentialPlatform.TWITTER ||
+    activePlatform === 'twitter'
+  ) {
+    return 280;
+  }
+
+  if (activePlatform === CredentialPlatform.LINKEDIN) {
+    return 3000;
+  }
+
+  if (activePlatform === CredentialPlatform.INSTAGRAM) {
+    return 2200;
+  }
+
+  return null;
+}
 
 function toDesktopPlatform(
   platform?: CredentialPlatform | string,
@@ -217,12 +279,11 @@ function getCredentialLabel(credential: ICredential): string {
 function PostsWritePageContent() {
   const { push } = useRouter();
   const { href } = useOrgUrl();
-  const searchParams = useSearchParams();
+  const { get } = useSearchParams();
   const { credentials = [] } = useBrand();
-  const preselectedIngredientId =
-    searchParams.get('ingredientId')?.trim() || '';
-  const prefilledDescription = searchParams.get('description')?.trim() || '';
-  const prefilledTitle = searchParams.get('title')?.trim() || '';
+  const preselectedIngredientId = get('ingredientId')?.trim() || '';
+  const prefilledDescription = get('description')?.trim() || '';
+  const prefilledTitle = get('title')?.trim() || '';
   const [selectedCredentialId, setSelectedCredentialId] = useState('');
   const [workingTitle, setWorkingTitle] = useState(prefilledTitle);
   const [prompt, setPrompt] = useState('');
@@ -480,14 +541,65 @@ function PostsWritePageContent() {
 
   const hasConnectedCredentials = connectedCredentials.length > 0;
   const hasPrefilledIngredient = preselectedIngredientId.length > 0;
+  const characterLimit = getCharacterLimit(selectedCredential, desktopPlatform);
+  const draftSegments = useMemo(
+    () => splitDraftSegments(localContent),
+    [localContent],
+  );
   const canGenerate = Boolean(
     prompt.trim() && !isSubmitting && (selectedCredential || desktop),
   );
   const generatePostLabel =
     desktop && !selectedCredential ? 'Generate' : 'Generate in Genfeed';
 
+  const updateDraftSegment = (index: number, value: string) => {
+    setLocalContent((currentContent) => {
+      const nextSegments = splitDraftSegments(currentContent);
+      nextSegments[index] = value;
+
+      return joinDraftSegments(nextSegments);
+    });
+  };
+
+  const addDraftSegment = () => {
+    setLocalContent((currentContent) =>
+      joinDraftSegments([...splitDraftSegments(currentContent), '']),
+    );
+  };
+
+  const removeDraftSegment = (index: number) => {
+    setLocalContent((currentContent) => {
+      const nextSegments = splitDraftSegments(currentContent);
+      nextSegments.splice(index, 1);
+
+      return joinDraftSegments(nextSegments.length ? nextSegments : ['']);
+    });
+  };
+
+  const handleApplyDraftSuggestion = useCallback(
+    (payload: AgentDraftSuggestionPayload) => {
+      setLocalContent((currentContent) =>
+        applyDraftSuggestionToText(currentContent, payload),
+      );
+    },
+    [],
+  );
+
+  useAgentDraftContext({
+    body: localContent,
+    contentFormat: SOCIAL_FORMAT_LABELS[selectedFormat],
+    draftType: selectedFormat === 'thread' ? 'thread' : 'post',
+    instructions: prompt,
+    onApplySuggestion: handleApplyDraftSuggestion,
+    selectionRootId: 'post-compose-workspace',
+    title: workingTitle,
+  });
+
   return (
-    <section className="grid gap-6 lg:grid-cols-[1.25fr_0.75fr]">
+    <section
+      id="post-compose-workspace"
+      className="grid gap-6 lg:grid-cols-[1.25fr_0.75fr]"
+    >
       <Card
         bodyClassName="gap-0 p-6"
         className="border-white/10 bg-white/[0.03]"
@@ -612,19 +724,89 @@ function PostsWritePageContent() {
             />
           </label>
 
-          <label
-            className="grid gap-2 text-sm text-foreground/75"
-            htmlFor="post-compose-draft-content"
-          >
-            <span>Draft content</span>
-            <Textarea
-              id="post-compose-draft-content"
-              value={localContent}
-              onChange={(event) => setLocalContent(event.target.value)}
-              placeholder="Write the post here if you just want a clean composer and a copy button."
-              className="min-h-44 rounded-xl border border-white/10 bg-black/20 p-3 text-sm text-foreground outline-none transition focus:border-white/20"
-            />
-          </label>
+          {selectedFormat === 'thread' ? (
+            <div className="grid gap-3 text-sm text-foreground/75">
+              <div className="flex items-center justify-between gap-3">
+                <span>Thread draft</span>
+                <Button
+                  type="button"
+                  variant={ButtonVariant.UNSTYLED}
+                  onClick={addDraftSegment}
+                  className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-white/[0.05]"
+                >
+                  <HiPlus className="size-3.5" />
+                  Add post
+                </Button>
+              </div>
+              <div className="grid gap-3">
+                {draftSegments.map((segment, index) => {
+                  const count = segment.length;
+                  const isOverLimit =
+                    characterLimit !== null && count > characterLimit;
+
+                  return (
+                    <div
+                      key={`thread-segment-${index.toString()}`}
+                      className="rounded-xl border border-white/10 bg-black/20 p-3"
+                    >
+                      <div className="mb-2 flex items-center justify-between gap-3">
+                        <span className="text-xs font-medium text-foreground">
+                          Post {index + 1}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={
+                              isOverLimit
+                                ? 'text-xs text-red-400'
+                                : 'text-xs text-foreground/45'
+                            }
+                          >
+                            {characterLimit
+                              ? `${count}/${characterLimit}`
+                              : `${count} chars`}
+                          </span>
+                          {draftSegments.length > 1 ? (
+                            <Button
+                              type="button"
+                              variant={ButtonVariant.UNSTYLED}
+                              aria-label={`Remove post ${index + 1}`}
+                              onClick={() => removeDraftSegment(index)}
+                              className="inline-flex size-7 items-center justify-center rounded-lg text-foreground/45 transition hover:bg-white/[0.06] hover:text-foreground"
+                            >
+                              <HiTrash className="size-3.5" />
+                            </Button>
+                          ) : null}
+                        </div>
+                      </div>
+                      <Textarea
+                        aria-label={`Thread post ${index + 1}`}
+                        value={segment}
+                        onChange={(event) =>
+                          updateDraftSegment(index, event.target.value)
+                        }
+                        placeholder="Write this part of the thread..."
+                        className="min-h-28 border-0 bg-transparent p-0 text-sm text-foreground outline-none placeholder:text-foreground/35 focus-visible:ring-0"
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <label
+              className="grid gap-2 text-sm text-foreground/75"
+              htmlFor="post-compose-draft-content"
+            >
+              <span>Draft content</span>
+              <Textarea
+                id="post-compose-draft-content"
+                value={localContent}
+                onChange={(event) => setLocalContent(event.target.value)}
+                placeholder="Write the post here if you just want a clean composer and a copy button."
+                className="min-h-44 rounded-xl border border-white/10 bg-black/20 p-3 text-sm text-foreground outline-none transition focus:border-white/20"
+              />
+            </label>
+          )}
 
           <div className="grid gap-2 text-sm text-foreground/75">
             <span>Tone</span>
@@ -695,31 +877,69 @@ function PostsWritePageContent() {
         bodyClassName="gap-0 p-6"
         className="border-white/10 bg-white/[0.03]"
       >
-        <h2 className="text-lg font-medium">How post mode works</h2>
-        <div className="mt-4 space-y-4 text-sm text-foreground/65">
+        <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="font-medium text-foreground">1. Write first</p>
-            <p className="mt-1">
-              Draft directly in the composer and copy it anywhere, even if you
-              are not publishing through Genfeed.
+            <h2 className="text-lg font-medium">Preview</h2>
+            <p className="mt-1 text-sm text-foreground/55">
+              {SOCIAL_FORMAT_LABELS[selectedFormat]} for{' '}
+              {selectedCredential
+                ? getCredentialLabel(selectedCredential)
+                : DESKTOP_PLATFORM_OPTIONS.find(
+                    (option) => option.value === desktopPlatform,
+                  )?.label}
             </p>
           </div>
-          <div>
-            <p className="font-medium text-foreground">
-              2. Connect only if needed
-            </p>
-            <p className="mt-1">
-              Account selection is only required when you want Genfeed to save
-              or generate a real social post record.
-            </p>
-          </div>
-          <div>
-            <p className="font-medium text-foreground">3. Refine in editor</p>
-            <p className="mt-1">
-              Saved or generated posts still land in the existing post editor
-              for richer editing, media, and scheduling.
-            </p>
-          </div>
+          <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-foreground/55">
+            {draftSegments.length}{' '}
+            {draftSegments.length === 1 ? 'post' : 'posts'}
+          </span>
+        </div>
+
+        <div className="mt-5 grid gap-3">
+          {draftSegments.map((segment, index) => {
+            const count = segment.length;
+            const isOverLimit =
+              characterLimit !== null && count > characterLimit;
+
+            return (
+              <div
+                key={`preview-segment-${index.toString()}`}
+                className="rounded-xl border border-white/10 bg-black/20 p-4"
+              >
+                <div className="mb-3 flex items-center justify-between gap-3 text-xs">
+                  <span className="font-medium text-foreground/70">
+                    {selectedFormat === 'thread'
+                      ? `Post ${index + 1}`
+                      : SOCIAL_FORMAT_LABELS[selectedFormat]}
+                  </span>
+                  <span
+                    className={
+                      isOverLimit ? 'text-red-400' : 'text-foreground/40'
+                    }
+                  >
+                    {characterLimit ? `${count}/${characterLimit}` : count}
+                  </span>
+                </div>
+                {segment.trim() ? (
+                  <p className="whitespace-pre-wrap text-sm leading-6 text-foreground/85">
+                    {segment}
+                  </p>
+                ) : (
+                  <p className="text-sm text-foreground/35">
+                    Draft preview appears here.
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="mt-5 rounded-xl border border-white/10 bg-black/10 p-4 text-sm text-foreground/60">
+          <p className="font-medium text-foreground">Agent context</p>
+          <p className="mt-1">
+            The co-pilot sees the current draft, selected text, format, account,
+            and prompt instructions while you write.
+          </p>
         </div>
       </Card>
     </section>

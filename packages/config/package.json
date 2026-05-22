@@ -4,7 +4,7 @@
     "joi": "18.2.1"
   },
   "devDependencies": {
-    "@types/node": "25.8.0",
+    "@types/node": "25.9.1",
     "typescript": "6.0.2"
   },
   "exports": {
@@ -37,7 +37,7 @@
   "name": "@genfeedai/config",
   "private": true,
   "scripts": {
-    "build": "tsc --build --force && if [ -d dist/src ]; then mv dist/src/* dist/ 2>/dev/null && rm -rf dist/src; fi",
+    "build": "tsc --build && if [ -d dist/src ]; then mv dist/src/* dist/ 2>/dev/null && rm -rf dist/src; fi",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "dev": "tsc --watch",
     "test": "vitest run --config vitest.config.ts",

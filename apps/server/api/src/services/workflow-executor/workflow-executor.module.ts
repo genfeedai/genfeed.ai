@@ -11,7 +11,7 @@ import { PersonaPhotoProcessor } from '@api/services/workflow-executor/processor
 import { PersonaVideoProcessor } from '@api/services/workflow-executor/processors/persona-video.processor';
 import { SoundOverlayProcessor } from '@api/services/workflow-executor/processors/sound-overlay.processor';
 import { TrendInspirationProcessor } from '@api/services/workflow-executor/processors/trend-inspiration.processor';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   exports: [
@@ -22,14 +22,14 @@ import { forwardRef, Module } from '@nestjs/common';
   ],
   imports: [
     FilesClientModule,
-    forwardRef(() => CreditsModule),
+    CreditsModule,
     ModelsModule,
     NotificationsModule,
-    forwardRef(() => OrganizationsModule),
+    OrganizationsModule,
     PersonaContentModule,
     ReplicateModule,
-    forwardRef(() => SettingsModule),
-    forwardRef(() => TrendsModule),
+    SettingsModule,
+    TrendsModule,
   ],
   providers: [
     PersonaPhotoProcessor,

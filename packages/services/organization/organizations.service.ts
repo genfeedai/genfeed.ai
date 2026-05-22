@@ -1,6 +1,5 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import { type AnalyticsMetric, IngredientCategory } from '@genfeedai/enums';
-import { deserializeCollection } from '@genfeedai/helpers/data/json-api/json-api.helper';
 import type {
   IActivity,
   IAnalytics,
@@ -38,6 +37,7 @@ import {
   BaseService,
   type JsonApiResponseDocument,
 } from '@services/core/base.service';
+import { deserializeCollection } from '@services/core/json-api';
 
 export class OrganizationsService extends BaseService<Organization> {
   constructor(token: string) {
@@ -50,10 +50,7 @@ export class OrganizationsService extends BaseService<Organization> {
   }
 
   public static getInstance(token: string): OrganizationsService {
-    return BaseService.getDataServiceInstance(
-      OrganizationsService,
-      token,
-    ) as OrganizationsService;
+    return BaseService.getDataServiceInstance(OrganizationsService, token);
   }
 
   public async findOrganizationBrands(

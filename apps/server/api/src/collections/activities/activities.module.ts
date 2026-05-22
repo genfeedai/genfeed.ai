@@ -7,12 +7,12 @@ import { ActivitiesController } from '@api/collections/activities/controllers/ac
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { MembersModule } from '@api/collections/members/members.module';
 import { StreaksModule } from '@api/collections/streaks/streaks.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [ActivitiesController],
   exports: [ActivitiesService],
-  imports: [MembersModule, forwardRef(() => StreaksModule)],
+  imports: [MembersModule, StreaksModule],
   providers: [ActivitiesService],
 })
 export class ActivitiesModule {}

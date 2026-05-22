@@ -489,7 +489,7 @@ export abstract class BaseService<
   async findAll(
     input: unknown,
     options: AggregationOptions,
-    enableCache: boolean = false,
+    enableCache: boolean = true,
   ): Promise<AggregatePaginateResult<T>> {
     try {
       const page = options.page ?? 1;

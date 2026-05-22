@@ -41,8 +41,8 @@ function LensesListContent({
 
   const { replace } = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const searchParamsString = searchParams.toString();
+  const { get, toString: stringifySearchParams } = useSearchParams();
+  const searchParamsString = stringifySearchParams();
   const parsedSearchParams = useMemo(
     () => new URLSearchParams(searchParamsString),
     [searchParamsString],
@@ -111,7 +111,7 @@ function LensesListContent({
   });
 
   // Extract page from URL to use as dependency (triggers re-fetch when page changes)
-  const currentPage = Number(searchParams.get('page')) || 1;
+  const currentPage = Number(get('page')) || 1;
 
   const {
     data: lenses = [] as ElementLens[],
@@ -190,7 +190,7 @@ function LensesListContent({
                 isError: true,
                 label: 'Delete Lens',
                 message: `Are you sure you want to delete "${lens.label}"? This action cannot be undone.`,
-                onConfirm: () => handleDelete(),
+                onConfirm: () => handleDelete(lens),
               });
             },
             tooltip: 'Delete',
@@ -210,14 +210,10 @@ function LensesListContent({
     openModal(modalId);
   };
 
-  const handleDelete = async () => {
-    if (!selectedLens) {
-      return;
-    }
-
+  const handleDelete = async (lens: IElementLens) => {
     try {
       const service = await getLensesService();
-      await service.delete(selectedLens.id);
+      await service.delete(lens.id);
       notificationsService.success('Lens deleted');
       setSelectedLens(null);
       refreshLenses();

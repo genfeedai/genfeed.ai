@@ -158,25 +158,12 @@ module.exports = function createWebpackConfig({
         },
         // Handle .ts files (but not .d.ts)
         // Include @genfeedai/* workspace packages for direct TS transpilation (enables HMR)
+        // swc-loader auto-discovers .swcrc from each service dir (decoratorMetadata: true)
         {
-          exclude: [
-            // Exclude node_modules EXCEPT @genfeedai/* packages
-            /node_modules\/(?!@genfeedai\/)/,
-            /\.d\.ts$/,
-          ],
+          exclude: [/node_modules\/(?!@genfeedai\/)/, /\.d\.ts$/],
           test: /\.ts$/,
           use: {
-            loader: 'ts-loader',
-            options: {
-              compilerOptions: {
-                // Ensure decorator metadata is emitted (required for NestJS)
-                emitDecoratorMetadata: true,
-                experimentalDecorators: true,
-              },
-              configFile: tsConfigPath,
-              experimentalWatchApi: true,
-              transpileOnly: true, // Type checking done by turbo, not webpack
-            },
+            loader: 'swc-loader',
           },
         },
       ],
@@ -257,7 +244,20 @@ module.exports = function createWebpackConfig({
         '**/dist/**',
         '**/.git/**',
         // Ignore all apps except current one to prevent watching everything
-        ...['api', 'mcp', 'files', 'notifications', 'workers']
+        ...[
+          'api',
+          'clips',
+          'discord',
+          'files',
+          'images',
+          'mcp',
+          'notifications',
+          'slack',
+          'telegram',
+          'videos',
+          'voices',
+          'workers',
+        ]
           .filter((app) => app !== appName)
           .map((app) => `**/apps/server/${app}/**`),
         // Frontend output directories

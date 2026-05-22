@@ -9,7 +9,7 @@ import { ContentReviewService } from '@api/services/content-engine/content-revie
 import { ContentOrchestrationModule } from '@api/services/content-orchestration/content-orchestration.module';
 import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
 import { SkillExecutorModule } from '@api/services/skill-executor/skill-executor.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [ContentEngineController],
@@ -22,10 +22,10 @@ import { forwardRef, Module } from '@nestjs/common';
     ContentPlansModule,
     ContentPlanItemsModule,
     ContentDraftsModule,
-    forwardRef(() => BrandsModule),
-    forwardRef(() => LlmDispatcherModule),
-    forwardRef(() => SkillExecutorModule),
-    forwardRef(() => ContentOrchestrationModule),
+    BrandsModule,
+    LlmDispatcherModule,
+    SkillExecutorModule,
+    ContentOrchestrationModule,
   ],
   providers: [
     ContentPlannerService,

@@ -22,7 +22,7 @@ import { ContentHarnessModule } from '@api/services/harness/harness.module';
 import { ApifyModule } from '@api/services/integrations/apify/apify.module';
 import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
 import { HttpModule } from '@nestjs/axios';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [
@@ -40,14 +40,14 @@ import { forwardRef, Module } from '@nestjs/common';
     PlaybookBuilderService,
   ],
   imports: [
-    forwardRef(() => AgentContextAssemblyModule),
-    forwardRef(() => BrandsModule),
+    AgentContextAssemblyModule,
+    BrandsModule,
     ApifyModule,
     ContentHarnessModule,
     HarnessProfilesModule,
     HttpModule,
     OpenRouterModule,
-    forwardRef(() => PersonasModule),
+    PersonasModule,
   ],
   providers: [
     ContentGeneratorService,

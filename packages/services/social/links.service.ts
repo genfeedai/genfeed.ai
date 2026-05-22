@@ -9,9 +9,6 @@ export class LinksService extends BaseService<Link> {
   }
 
   public static getInstance(token: string): LinksService {
-    return BaseService.getDataServiceInstance(
-      LinksService,
-      token,
-    ) as LinksService;
+    return BaseService.getDataServiceInstance(LinksService, token);
   }
 }

@@ -9,9 +9,6 @@ export class CaptionsService extends BaseService<Caption> {
   }
 
   public static getInstance(token: string): CaptionsService {
-    return BaseService.getDataServiceInstance(
-      CaptionsService,
-      token,
-    ) as CaptionsService;
+    return BaseService.getDataServiceInstance(CaptionsService, token);
   }
 }

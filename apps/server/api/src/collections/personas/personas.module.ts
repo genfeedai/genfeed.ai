@@ -8,10 +8,7 @@ import { forwardRef, Module } from '@nestjs/common';
 @Module({
   controllers: [PersonasController, PersonasContentController],
   exports: [PersonasService],
-  imports: [
-    forwardRef(() => PersonaContentModule),
-    forwardRef(() => PostsModule),
-  ],
+  imports: [forwardRef(() => PersonaContentModule), PostsModule],
   providers: [PersonasService],
 })
 export class PersonasModule {}

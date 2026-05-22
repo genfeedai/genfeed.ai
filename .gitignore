@@ -4,13 +4,16 @@ packages/prisma/generated/
 .next/
 .turbo/
 *.tsbuildinfo
-# Compiled output never belongs in src/ — catch any misconfigured tsc emitting inline
+# Compiled output never belongs in src/ or app/ — catch misconfigured tsc/swc emitting inline
 **/src/**/*.js
 **/src/**/*.js.map
 **/src/**/*.d.ts.map
 **/src/**/*.d.ts
-# Source resolver bridge for package-style .js exports while developing from src.
-!packages/client/src/models/social/link.model.js
+# Next.js App Router source dirs — no compiled .js alongside .tsx
+apps/app/app/**/*.js
+apps/app/app/**/*.js.map
+apps/app/packages/**/*.js
+apps/app/packages/**/*.js.map
 # Hand-authored ambient module declarations / generated API types — keep tracked
 !apps/app/src/types/*.d.ts
 !apps/desktop/app/src/shared/*.d.ts
@@ -24,6 +27,7 @@ packages/prisma/generated/
 .env.*.local
 .DS_Store
 coverage/
+apps/*/.vitest-reports/
 .vercel
 out/
 *.log

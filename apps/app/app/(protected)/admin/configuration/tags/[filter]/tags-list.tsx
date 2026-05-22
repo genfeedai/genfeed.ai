@@ -62,8 +62,8 @@ function TagsListContent({
 
   const { replace } = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const searchParamsString = searchParams.toString();
+  const { toString: stringifySearchParams } = useSearchParams();
+  const searchParamsString = stringifySearchParams();
   const parsedSearchParams = useMemo(
     () => new URLSearchParams(searchParamsString),
     [searchParamsString],
@@ -414,28 +414,27 @@ function TagsListContent({
     openModal(modalId);
   }, []);
 
-  const handleDeleteTag = useCallback(async () => {
-    const url = `DELETE /tags/${selectedTag?.id}`;
-    if (!selectedTag) {
-      return;
-    }
+  const handleDeleteTag = useCallback(
+    async (tag: ITag) => {
+      const url = `DELETE /tags/${tag.id}`;
+      try {
+        const service = await getTagsService();
+        const data = await service.delete(tag.id);
+        logger.info(`${url} success`, data);
 
-    try {
-      const service = await getTagsService();
-      const data = await service.delete(selectedTag.id);
-      logger.info(`${url} success`, data);
+        notificationsService.success('Tag deleted successfully');
 
-      notificationsService.success('Tag deleted successfully');
+        setSelectedTag(null);
+        await refresh();
+      } catch (error) {
+        logger.error('Failed to delete tag', error);
 
-      setSelectedTag(null);
-      await refresh();
-    } catch (error) {
-      logger.error('Failed to delete tag', error);
-
-      notificationsService.error('Failed to delete tag');
-      setSelectedTag(null);
-    }
-  }, [selectedTag, getTagsService, notificationsService, refresh]);
+        notificationsService.error('Failed to delete tag');
+        setSelectedTag(null);
+      }
+    },
+    [getTagsService, notificationsService, refresh],
+  );
 
   const actions = useMemo(
     () =>
@@ -455,7 +454,7 @@ function TagsListContent({
                   isError: true,
                   label: 'Delete Tag',
                   message: `Are you sure you want to delete the tag "${tag.label}"? This action cannot be undone.`,
-                  onConfirm: handleDeleteTag,
+                  onConfirm: () => handleDeleteTag(tag),
                 });
               },
               tooltip: 'Delete',

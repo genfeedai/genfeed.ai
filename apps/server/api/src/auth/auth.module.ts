@@ -9,7 +9,7 @@ import { AuthIdentityResolverService } from '@api/auth/services/auth-identity-re
 import { AgentRunsModule } from '@api/collections/agent-runs/agent-runs.module';
 import { ApiKeysModule } from '@api/collections/api-keys/api-keys.module';
 import { BrandsModule } from '@api/collections/brands/brands.module';
-import { CredentialsModule } from '@api/collections/credentials/credentials.module';
+import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { MembersModule } from '@api/collections/members/members.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
@@ -43,7 +43,7 @@ import { PassportModule } from '@nestjs/passport';
     BrandsModule,
     CommonModule,
     ConfigModule,
-    CredentialsModule,
+    CredentialsCoreModule,
     CreditsModule,
     FleetModule,
     MembersModule,

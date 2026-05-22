@@ -22,6 +22,14 @@ export default defineConfig({
         replacement: CLIENT_SERIALIZERS_MOCK,
       },
       {
+        find: /^@genfeedai\/client\/schemas$/,
+        replacement: path.resolve(__dirname, '../client/src/schemas/index.ts'),
+      },
+      {
+        find: /^@genfeedai\/client\/schemas\/(.*)$/,
+        replacement: path.resolve(__dirname, '../client/src/schemas/$1'),
+      },
+      {
         find: '@agent-tests',
         replacement: path.resolve(__dirname, './tests'),
       },
@@ -110,6 +118,14 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../serializers/src/$1'),
       },
       {
+        find: /^@genfeedai\/ui$/,
+        replacement: path.resolve(__dirname, '../ui/src/index.ts'),
+      },
+      {
+        find: /^@genfeedai\/ui\/(.*)$/,
+        replacement: path.resolve(__dirname, '../ui/src/$1'),
+      },
+      {
         find: /^@genfeedai\/utils$/,
         replacement: path.resolve(__dirname, '../utils'),
       },
@@ -158,6 +174,18 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../ui/src/components/constants'),
       },
       {
+        find: /^@ui\/core\/(.*)$/,
+        replacement: path.resolve(__dirname, '../ui/src/core/$1'),
+      },
+      {
+        find: /^@ui\/generators\/(.*)$/,
+        replacement: path.resolve(__dirname, '../ui/src/generators/$1'),
+      },
+      {
+        find: /^@ui\/semantic\/(.*)$/,
+        replacement: path.resolve(__dirname, '../ui/src/semantic/$1'),
+      },
+      {
         find: '@ui/primitives',
         replacement: path.resolve(__dirname, '../ui/src/primitives'),
       },
@@ -179,6 +207,10 @@ export default defineConfig({
       {
         find: '@ui/menus',
         replacement: path.resolve(__dirname, '../ui/src/components/menus'),
+      },
+      {
+        find: /^@ui\/(.*)$/,
+        replacement: path.resolve(__dirname, '../ui/src/components/$1'),
       },
       {
         find: '@ui',

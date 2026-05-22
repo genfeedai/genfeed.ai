@@ -30,39 +30,39 @@ import { ReplicateModule } from '@api/services/integrations/replicate/replicate.
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder.module';
 import { FailedGenerationModule } from '@api/shared/services/failed-generation/failed-generation.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [AvatarVideoController, BatchInterpolationController],
   exports: [AvatarVideoGenerationService],
   imports: [
     // Core video module for VideosService
-    forwardRef(() => VideosModule),
+    VideosModule,
 
     // Data modules
-    forwardRef(() => ActivitiesModule),
-    forwardRef(() => AssetsModule),
-    forwardRef(() => BrandsModule),
-    forwardRef(() => ConfigModule),
-    forwardRef(() => CreditsModule),
-    forwardRef(() => IngredientsModule),
-    forwardRef(() => MetadataModule),
-    forwardRef(() => ModelsModule),
-    forwardRef(() => PromptsModule),
+    ActivitiesModule,
+    AssetsModule,
+    BrandsModule,
+    ConfigModule,
+    CreditsModule,
+    IngredientsModule,
+    MetadataModule,
+    ModelsModule,
+    PromptsModule,
 
     // Service modules
-    forwardRef(() => ElevenLabsModule),
-    forwardRef(() => FileQueueModule),
-    forwardRef(() => FleetModule),
-    forwardRef(() => HeyGenModule),
-    forwardRef(() => NotificationsPublisherModule),
-    forwardRef(() => OrganizationSettingsModule),
-    forwardRef(() => PromptBuilderModule),
-    forwardRef(() => ReplicateModule),
-    forwardRef(() => VoicesModule),
+    ElevenLabsModule,
+    FileQueueModule,
+    FleetModule,
+    HeyGenModule,
+    NotificationsPublisherModule,
+    OrganizationSettingsModule,
+    PromptBuilderModule,
+    ReplicateModule,
+    VoicesModule,
 
     // Utility modules
-    forwardRef(() => ByokModule),
+    ByokModule,
     FailedGenerationModule,
   ],
   providers: [

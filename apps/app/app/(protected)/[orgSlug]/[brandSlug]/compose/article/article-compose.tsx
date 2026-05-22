@@ -8,11 +8,11 @@ import { Suspense, useState } from 'react';
 import ArticleDetail from './article-detail';
 
 function ArticleComposeContent() {
-  const searchParams = useSearchParams();
-  const articleId = searchParams.get('id') || '';
-  const credentialId = searchParams.get('credentialId') || '';
-  const initialPrompt = searchParams.get('prompt') || '';
-  const requestedType = searchParams.get('type') || '';
+  const { get } = useSearchParams();
+  const articleId = get('id') || '';
+  const credentialId = get('credentialId') || '';
+  const initialPrompt = get('prompt') || '';
+  const requestedType = get('type') || '';
 
   const [composeMode, setComposeMode] = useState<
     'select' | 'quick' | 'x-article'

@@ -6,7 +6,7 @@ const mockPost = vi.fn();
 const mockPatch = vi.fn();
 const mockDelete = vi.fn();
 
-vi.mock('@genfeedai/helpers/data/json-api/json-api.helper', () => ({
+vi.mock('@services/core/json-api', () => ({
   deserializeCollection: vi.fn(
     (document: { data: unknown[] }) => document.data,
   ),

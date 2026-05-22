@@ -5,9 +5,15 @@ import type { ActivityDocument } from '@api/collections/activities/schemas/activ
 import { StreaksService as StreaksServiceToken } from '@api/collections/streaks/services/streaks.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { EventBusService } from '@api/shared/services/event-bus/event-bus.service';
 import { ActivityEntityModel } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import {
+  forwardRef,
+  Inject,
+  Injectable,
+  type OnModuleInit,
+} from '@nestjs/common';
 
 type StreaksServiceContract = Pick<
   StreaksServiceToken,
@@ -24,18 +30,33 @@ type ActivityMutationInput = Partial<CreateActivityDto> &
   };
 
 @Injectable()
-export class ActivitiesService extends BaseService<
-  ActivityDocument,
-  CreateActivityDto,
-  UpdateActivityDto
-> {
+export class ActivitiesService
+  extends BaseService<ActivityDocument, CreateActivityDto, UpdateActivityDto>
+  implements OnModuleInit
+{
   constructor(
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
     @Inject(forwardRef(() => StreaksServiceToken))
     private readonly streaksService: StreaksServiceContract,
+    private readonly eventBusService: EventBusService,
   ) {
     super(prisma, 'activity', logger);
+  }
+
+  onModuleInit() {
+    this.eventBusService.subscribe(
+      'credits.activity',
+      async (data: Record<string, unknown>) => {
+        try {
+          await this.create(data);
+        } catch (error) {
+          this.logger.warn('Failed to create activity from credits event', {
+            error,
+          });
+        }
+      },
+    );
   }
 
   private isRecordObject(value: unknown): value is Record<string, unknown> {

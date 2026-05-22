@@ -10,7 +10,7 @@ import { ArticlesService } from '@api/collections/articles/services/articles.ser
 import { ArticlesAnalyticsService } from '@api/collections/articles/services/articles-analytics.service';
 import { ArticlesContentService } from '@api/collections/articles/services/articles-content.service';
 import { BrandsModule } from '@api/collections/brands/brands.module';
-import { CredentialsModule } from '@api/collections/credentials/credentials.module';
+import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { HarnessProfilesModule } from '@api/collections/harness-profiles/harness-profiles.module';
 import { ModelsModule } from '@api/collections/models/models.module';
@@ -40,24 +40,24 @@ import { forwardRef, Module } from '@nestjs/common';
     ArticlesService,
   ],
   imports: [
-    forwardRef(() => ActivitiesModule),
+    ActivitiesModule,
     forwardRef(() => BrandsModule),
     ByokModule,
-    forwardRef(() => ConfigModule),
-    forwardRef(() => CreditsModule),
-    forwardRef(() => CredentialsModule),
-    forwardRef(() => ModelsModule),
+    ConfigModule,
+    CreditsModule,
+    CredentialsCoreModule,
+    ModelsModule,
     HarnessProfilesModule,
-    forwardRef(() => NotificationsModule),
-    forwardRef(() => OrganizationSettingsModule),
-    forwardRef(() => OrganizationsModule),
-    forwardRef(() => PersonasModule),
-    forwardRef(() => PromptBuilderModule),
-    forwardRef(() => PromptsModule),
-    forwardRef(() => ReplicateModule),
-    forwardRef(() => RouterModule),
-    forwardRef(() => TemplatesModule),
-    forwardRef(() => UsersModule),
+    NotificationsModule,
+    OrganizationSettingsModule,
+    OrganizationsModule,
+    PersonasModule,
+    PromptBuilderModule,
+    PromptsModule,
+    ReplicateModule,
+    RouterModule,
+    TemplatesModule,
+    UsersModule,
     ContentHarnessModule,
   ],
   providers: [

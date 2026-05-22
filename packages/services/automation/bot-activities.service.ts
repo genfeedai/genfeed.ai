@@ -30,10 +30,7 @@ export class BotActivitiesService extends BaseService<BotActivity> {
   }
 
   public static getInstance(token: string): BotActivitiesService {
-    return BaseService.getDataServiceInstance(
-      BotActivitiesService,
-      token,
-    ) as BotActivitiesService;
+    return BaseService.getDataServiceInstance(BotActivitiesService, token);
   }
 
   /**

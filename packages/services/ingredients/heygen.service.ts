@@ -19,10 +19,7 @@ export class HeyGenService extends BaseService<IHeyGen> {
   }
 
   public static getInstance(token: string): HeyGenService {
-    return BaseService.getDataServiceInstance(
-      HeyGenService,
-      token,
-    ) as HeyGenService;
+    return BaseService.getDataServiceInstance(HeyGenService, token);
   }
 
   /**
