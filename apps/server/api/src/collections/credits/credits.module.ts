@@ -10,37 +10,42 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { TopbarBalancesService } from '@api/collections/credits/services/topbar-balances.service';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { CommonModule } from '@api/common/common.module';
+import { OssCreditsUtilsService } from '@api/common/credits/oss-credits-utils.service';
 import { TransactionModule } from '@api/helpers/utils/transaction/transaction.module';
 import { CreditDeductionModule } from '@api/queues/credit-deduction/credit-deduction.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { ClerkModule } from '@api/services/integrations/clerk/clerk.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
+import { isEEEnabled } from '@genfeedai/config';
 import { HttpModule } from '@nestjs/axios';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   controllers: [CreditsController],
   exports: [
     CreditBalanceService,
-    CreditDeductionModule,
+    forwardRef(() => CreditDeductionModule),
     CreditTransactionsService,
     CreditsUtilsService,
   ],
   imports: [
-    ByokModule,
-    ClerkModule,
-    CommonModule,
-    CreditDeductionModule,
-    NotificationsPublisherModule,
-    OrganizationSettingsModule,
-    HttpModule,
+    forwardRef(() => ByokModule),
+    forwardRef(() => ClerkModule),
+    forwardRef(() => CommonModule),
+    forwardRef(() => CreditDeductionModule),
+    forwardRef(() => NotificationsPublisherModule),
+    forwardRef(() => OrganizationSettingsModule),
+    forwardRef(() => HttpModule),
 
-    TransactionModule,
+    forwardRef(() => TransactionModule),
   ],
   providers: [
     CreditBalanceService,
     CreditTransactionsService,
-    CreditsUtilsService,
+    {
+      provide: CreditsUtilsService,
+      useClass: isEEEnabled() ? CreditsUtilsService : OssCreditsUtilsService,
+    },
     TopbarBalancesService,
   ],
 })

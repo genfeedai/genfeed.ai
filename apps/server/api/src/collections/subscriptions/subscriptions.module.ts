@@ -10,21 +10,28 @@ import { OrganizationsModule } from '@api/collections/organizations/organization
 import { SubscriptionsController } from '@api/collections/subscriptions/controllers/subscriptions.controller';
 import { SubscriptionsService } from '@api/collections/subscriptions/services/subscriptions.service';
 import { UsersModule } from '@api/collections/users/users.module';
+import { OssSubscriptionsService } from '@api/common/subscriptions/oss-subscriptions.service';
 import { ClerkModule } from '@api/services/integrations/clerk/clerk.module';
 import { StripeModule } from '@api/services/integrations/stripe/stripe.module';
+import { isEEEnabled } from '@genfeedai/config';
 import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   controllers: [SubscriptionsController],
   exports: [SubscriptionsService],
   imports: [
-    ClerkModule,
-    CreditsModule,
-    CustomersModule,
+    forwardRef(() => ClerkModule),
+    forwardRef(() => CreditsModule),
+    forwardRef(() => CustomersModule),
     forwardRef(() => OrganizationsModule),
-    StripeModule,
+    forwardRef(() => StripeModule),
     forwardRef(() => UsersModule),
   ],
-  providers: [SubscriptionsService],
+  providers: [
+    {
+      provide: SubscriptionsService,
+      useClass: isEEEnabled() ? SubscriptionsService : OssSubscriptionsService,
+    },
+  ],
 })
 export class SubscriptionsModule {}
