@@ -4,11 +4,11 @@ import { OpenAiLlmService } from '@api/services/integrations/openai-llm/services
 import { OpenAiOAuthService } from '@api/services/integrations/openai-llm/services/openai-oauth.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
 import { HttpModule } from '@nestjs/axios';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(OpenAiLlmService, {
   additionalExports: [OpenAiOAuthService],
-  additionalImports: [HttpModule, ByokModule],
+  additionalImports: [HttpModule, forwardRef(() => ByokModule)],
   additionalProviders: [OpenAiOAuthService],
 });
 

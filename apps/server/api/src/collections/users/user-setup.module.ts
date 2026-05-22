@@ -11,18 +11,18 @@ import { OrganizationsModule } from '@api/collections/organizations/organization
 import { RolesModule } from '@api/collections/roles/roles.module';
 import { SettingsModule } from '@api/collections/settings/settings.module';
 import { UserSetupService } from '@api/collections/users/services/user-setup.service';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   exports: [UserSetupService],
   imports: [
-    BrandsModule,
-    CreditsModule,
-    MembersModule,
-    OrganizationSettingsModule,
-    OrganizationsModule,
-    RolesModule,
-    SettingsModule,
+    forwardRef(() => BrandsModule),
+    forwardRef(() => CreditsModule),
+    forwardRef(() => MembersModule),
+    forwardRef(() => OrganizationSettingsModule),
+    forwardRef(() => OrganizationsModule),
+    forwardRef(() => RolesModule),
+    forwardRef(() => SettingsModule),
   ],
   providers: [UserSetupService],
 })

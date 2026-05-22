@@ -2,11 +2,15 @@ import { IngredientsModule } from '@api/collections/ingredients/ingredients.modu
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { VideoCompletionService } from '@api/services/video-completion/video-completion.service';
 import { RedisModule } from '@libs/redis/redis.module';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   exports: [VideoCompletionService],
-  imports: [RedisModule, IngredientsModule, MetadataModule],
+  imports: [
+    RedisModule,
+    forwardRef(() => IngredientsModule),
+    forwardRef(() => MetadataModule),
+  ],
   providers: [VideoCompletionService],
 })
 export class VideoCompletionModule {}

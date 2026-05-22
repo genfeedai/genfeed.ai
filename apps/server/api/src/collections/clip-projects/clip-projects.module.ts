@@ -3,16 +3,16 @@ import { ClipProjectsCoreModule } from '@api/collections/clip-projects/clip-proj
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { ClipAnalyzeModule } from '@api/queues/clip-analyze/clip-analyze.module';
 import { ClipFactoryModule } from '@api/queues/clip-factory/clip-factory.module';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   controllers: [ClipProjectsController],
   exports: [ClipProjectsCoreModule],
   imports: [
-    ClipProjectsCoreModule,
-    CreditsModule,
-    ClipAnalyzeModule,
-    ClipFactoryModule,
+    forwardRef(() => ClipProjectsCoreModule),
+    forwardRef(() => CreditsModule),
+    forwardRef(() => ClipAnalyzeModule),
+    forwardRef(() => ClipFactoryModule),
   ],
 })
 export class ClipProjectsModule {}

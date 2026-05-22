@@ -12,11 +12,11 @@ import { forwardRef, Module } from '@nestjs/common';
   controllers: [MarketplaceInstallController],
   exports: [MarketplaceApiClient, MarketplaceInstallService],
   imports: [
-    ConfigModule,
-    LoggerModule,
+    forwardRef(() => ConfigModule),
+    forwardRef(() => LoggerModule),
     forwardRef(() => PromptsModule),
     forwardRef(() => WorkflowsModule),
-    SkillsModule,
+    forwardRef(() => SkillsModule),
   ],
   providers: [MarketplaceApiClient, MarketplaceInstallService],
 })

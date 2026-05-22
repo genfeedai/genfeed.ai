@@ -7,18 +7,18 @@ import { FilesClientModule } from '@api/services/files-microservice/client/files
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { SharedModule } from '@api/shared/shared.module';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   controllers: [EditorProjectsController],
   exports: [EditorProjectsService],
   imports: [
-    IngredientsModule,
-    MetadataModule,
-    FileQueueModule,
-    FilesClientModule,
-    NotificationsPublisherModule,
-    SharedModule,
+    forwardRef(() => IngredientsModule),
+    forwardRef(() => MetadataModule),
+    forwardRef(() => FileQueueModule),
+    forwardRef(() => FilesClientModule),
+    forwardRef(() => NotificationsPublisherModule),
+    forwardRef(() => SharedModule),
   ],
   providers: [EditorProjectsService, EditorRenderService],
 })

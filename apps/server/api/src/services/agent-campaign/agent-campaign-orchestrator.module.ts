@@ -19,7 +19,7 @@ import { TriggerEvaluatorService } from '@api/services/agent-campaign/trigger-ev
 import { TriggerEvaluatorQueueService } from '@api/services/agent-campaign/trigger-evaluator-queue.service';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { BullModule } from '@nestjs/bullmq';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   exports: [
@@ -30,16 +30,16 @@ import { Module } from '@nestjs/common';
     TriggerEvaluatorService,
   ],
   imports: [
-    LoggerModule,
-    AgentCampaignsModule,
-    BrandsModule,
-    AgentStrategiesModule,
-    AgentGoalsModule,
-    AgentRunsModule,
-    AgentMemoriesModule,
-    AnalyticsModule,
-    TrendsModule,
-    QueuesModule,
+    forwardRef(() => LoggerModule),
+    forwardRef(() => AgentCampaignsModule),
+    forwardRef(() => BrandsModule),
+    forwardRef(() => AgentStrategiesModule),
+    forwardRef(() => AgentGoalsModule),
+    forwardRef(() => AgentRunsModule),
+    forwardRef(() => AgentMemoriesModule),
+    forwardRef(() => AnalyticsModule),
+    forwardRef(() => TrendsModule),
+    forwardRef(() => QueuesModule),
     BullModule.registerQueue({
       defaultJobOptions: {
         attempts: 3,

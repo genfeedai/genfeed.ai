@@ -5,18 +5,18 @@ import { ConfigModule } from '@api/config/config.module';
 import { MediumController } from '@api/services/integrations/medium/controllers/medium.controller';
 import { MediumService } from '@api/services/integrations/medium/services/medium.service';
 import { HttpModule } from '@nestjs/axios';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   controllers: [MediumController],
   exports: [MediumService],
   imports: [
-    ConfigModule,
-    HttpModule,
+    forwardRef(() => ConfigModule),
+    forwardRef(() => HttpModule),
 
-    ArticlesModule,
-    BrandsModule,
-    CredentialsCoreModule,
+    forwardRef(() => ArticlesModule),
+    forwardRef(() => BrandsModule),
+    forwardRef(() => CredentialsCoreModule),
   ],
   providers: [MediumService],
 })

@@ -16,12 +16,12 @@ import { forwardRef, Module } from '@nestjs/common';
     PersonaPublisherService,
   ],
   imports: [
-    CredentialsCoreModule,
-    ElevenLabsModule,
-    HedraModule,
-    HeyGenModule,
+    forwardRef(() => CredentialsCoreModule),
+    forwardRef(() => ElevenLabsModule),
+    forwardRef(() => HedraModule),
+    forwardRef(() => HeyGenModule),
     forwardRef(() => PersonasModule),
-    PostsModule,
+    forwardRef(() => PostsModule),
   ],
   providers: [
     PersonaContentPlanService,

@@ -5,17 +5,17 @@ import { SlackController } from '@api/services/integrations/slack/controllers/sl
 import { SlackService } from '@api/services/integrations/slack/services/slack.service';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { HttpModule } from '@nestjs/axios';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   controllers: [SlackController],
   exports: [SlackService],
   imports: [
-    BrandsModule,
-    ConfigModule,
-    CredentialsCoreModule,
-    HttpModule,
-    LoggerModule,
+    forwardRef(() => BrandsModule),
+    forwardRef(() => ConfigModule),
+    forwardRef(() => CredentialsCoreModule),
+    forwardRef(() => HttpModule),
+    forwardRef(() => LoggerModule),
   ],
   providers: [SlackService],
 })

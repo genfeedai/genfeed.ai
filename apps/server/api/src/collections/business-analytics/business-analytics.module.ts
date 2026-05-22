@@ -8,12 +8,16 @@ import { BusinessAnalyticsService } from '@api/collections/business-analytics/se
 import { CommonModule } from '@api/common/common.module';
 import { CacheModule } from '@api/services/cache/cache.module';
 import { StripeModule } from '@api/services/integrations/stripe/stripe.module';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   controllers: [BusinessAnalyticsController],
   exports: [BusinessAnalyticsService],
-  imports: [CacheModule, CommonModule, StripeModule],
+  imports: [
+    forwardRef(() => CacheModule),
+    CommonModule,
+    forwardRef(() => StripeModule),
+  ],
   providers: [BusinessAnalyticsService],
 })
 export class BusinessAnalyticsModule {}

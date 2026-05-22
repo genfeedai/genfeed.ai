@@ -10,14 +10,14 @@ import { YoutubeUploadService } from '@api/services/integrations/youtube/service
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
 import { TagResolutionModule } from '@api/shared/services/tag-resolution/tag-resolution.module';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(YoutubeService, {
   additionalImports: [
-    FileQueueModule,
-    TagResolutionModule,
-    BrandsModule,
-    CredentialsCoreModule,
+    forwardRef(() => FileQueueModule),
+    forwardRef(() => TagResolutionModule),
+    forwardRef(() => BrandsModule),
+    forwardRef(() => CredentialsCoreModule),
   ],
   additionalProviders: [
     YoutubeAuthService,

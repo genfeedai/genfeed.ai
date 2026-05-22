@@ -9,18 +9,18 @@ import { GoogleAdsModule } from '@api/services/integrations/google-ads/google-ad
 import { MetaAdsModule } from '@api/services/integrations/meta-ads/meta-ads.module';
 import { TikTokAdsModule } from '@api/services/integrations/tiktok-ads/tiktok-ads.module';
 import { LoggerModule } from '@libs/logger/logger.module';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   controllers: [AdsGatewayController],
   exports: [AdsGatewayService],
   imports: [
-    CredentialsCoreModule,
-    MetaAdsModule,
-    GoogleAdsModule,
-    TikTokAdsModule,
-    ConfigModule,
-    LoggerModule,
+    forwardRef(() => CredentialsCoreModule),
+    forwardRef(() => MetaAdsModule),
+    forwardRef(() => GoogleAdsModule),
+    forwardRef(() => TikTokAdsModule),
+    forwardRef(() => ConfigModule),
+    forwardRef(() => LoggerModule),
   ],
   providers: [
     AdsGatewayService,

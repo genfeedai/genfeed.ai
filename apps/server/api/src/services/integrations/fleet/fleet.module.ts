@@ -2,7 +2,8 @@ import { CustomerInstancesModule } from '@api/collections/customer-instances/cus
 import { FleetService } from '@api/services/integrations/fleet/fleet.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
 import { HttpModule } from '@nestjs/axios';
+import { forwardRef } from '@nestjs/common';
 
 export const FleetModule = createServiceModule(FleetService, {
-  additionalImports: [CustomerInstancesModule, HttpModule],
+  additionalImports: [forwardRef(() => CustomerInstancesModule), HttpModule],
 });

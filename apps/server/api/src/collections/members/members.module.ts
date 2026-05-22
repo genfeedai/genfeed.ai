@@ -8,12 +8,12 @@ import { MembersController } from '@api/collections/members/controllers/members.
 import { MembersService } from '@api/collections/members/services/members.service';
 import { RolesModule } from '@api/collections/roles/roles.module';
 import { ClerkModule } from '@api/services/integrations/clerk/clerk.module';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   controllers: [MembersController],
   exports: [MembersService],
-  imports: [ClerkModule, RolesModule],
+  imports: [forwardRef(() => ClerkModule), forwardRef(() => RolesModule)],
   providers: [MembersService],
 })
 export class MembersModule {}

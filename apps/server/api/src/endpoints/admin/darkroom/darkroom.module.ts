@@ -19,28 +19,28 @@ import { FleetModule } from '@api/services/integrations/fleet/fleet.module';
 import { HeyGenModule } from '@api/services/integrations/heygen/heygen.module';
 import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';
 import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   controllers: [DarkroomController],
   exports: [DarkroomService],
   imports: [
-    BrandsModule,
-    ContentIntelligenceModule,
-    PersonasModule,
-    IngredientsModule,
-    ModelsModule,
-    OrganizationSettingsModule,
-    TrainingsModule,
-    CredentialsCoreModule,
-    FleetModule,
-    FilesClientModule,
-    ComfyUIModule,
-    ElevenLabsModule,
-    HeyGenModule,
-    InstagramModule,
-    TwitterModule,
-    FacebookModule,
+    forwardRef(() => BrandsModule),
+    forwardRef(() => ContentIntelligenceModule),
+    forwardRef(() => PersonasModule),
+    forwardRef(() => IngredientsModule),
+    forwardRef(() => ModelsModule),
+    forwardRef(() => OrganizationSettingsModule),
+    forwardRef(() => TrainingsModule),
+    forwardRef(() => CredentialsCoreModule),
+    forwardRef(() => FleetModule),
+    forwardRef(() => FilesClientModule),
+    forwardRef(() => ComfyUIModule),
+    forwardRef(() => ElevenLabsModule),
+    forwardRef(() => HeyGenModule),
+    forwardRef(() => InstagramModule),
+    forwardRef(() => TwitterModule),
+    forwardRef(() => FacebookModule),
   ],
   providers: [
     DarkroomService,

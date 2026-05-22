@@ -10,9 +10,9 @@ import { forwardRef, Module } from '@nestjs/common';
   controllers: [DistributionsController],
   exports: [DistributionsService],
   imports: [
-    ConfigModule,
-    LoggerModule,
-    CredentialsCoreModule,
+    forwardRef(() => ConfigModule),
+    forwardRef(() => LoggerModule),
+    forwardRef(() => CredentialsCoreModule),
     forwardRef(() => TelegramDistributionModule),
   ],
   providers: [DistributionsService],

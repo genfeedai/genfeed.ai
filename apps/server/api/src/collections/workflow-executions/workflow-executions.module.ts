@@ -17,7 +17,7 @@ import { forwardRef, Module } from '@nestjs/common';
     InternalWorkflowExecutionsController,
   ],
   exports: [WorkflowExecutionsService],
-  imports: [forwardRef(() => WorkflowsModule), UsersModule],
+  imports: [forwardRef(() => WorkflowsModule), forwardRef(() => UsersModule)],
   providers: [AdminApiKeyGuard, WorkflowExecutionsService],
 })
 export class WorkflowExecutionsModule {}

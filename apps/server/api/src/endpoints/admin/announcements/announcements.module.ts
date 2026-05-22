@@ -3,11 +3,14 @@ import { CredentialsCoreModule } from '@api/collections/credentials/credentials-
 import { AnnouncementsController } from '@api/endpoints/admin/announcements/announcements.controller';
 import { AdminAnnouncementsService } from '@api/endpoints/admin/announcements/announcements.service';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   controllers: [AnnouncementsController],
-  imports: [AnnouncementsCollectionModule, CredentialsCoreModule],
+  imports: [
+    forwardRef(() => AnnouncementsCollectionModule),
+    forwardRef(() => CredentialsCoreModule),
+  ],
   providers: [AdminAnnouncementsService, IpWhitelistGuard],
 })
 export class AdminAnnouncementsModule {}
