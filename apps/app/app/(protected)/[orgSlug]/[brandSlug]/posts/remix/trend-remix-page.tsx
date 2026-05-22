@@ -48,7 +48,7 @@ async function generateDesktopRemix(params: {
 function TrendRemixPageContent() {
   const { push, replace } = useRouter();
   const { href, orgHref } = useOrgUrl();
-  const searchParams = useSearchParams();
+  const { get } = useSearchParams();
   const { credentials, isReady } = useBrand();
   const hasStartedRef = useRef(false);
   const notificationsService = useMemo(
@@ -62,13 +62,13 @@ function TrendRemixPageContent() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(true);
 
-  const mode = searchParams.get('mode') === 'thread' ? 'thread' : 'tweet';
-  const topic = searchParams.get('topic')?.trim() || '';
-  const trendId = searchParams.get('trendId')?.trim() || '';
-  const sourceReferenceId = searchParams.get('sourceReferenceId')?.trim() || '';
-  const sourceText = searchParams.get('sourceText')?.trim() || '';
-  const sourceAuthor = searchParams.get('sourceAuthor')?.trim() || '';
-  const sourceUrl = searchParams.get('sourceUrl')?.trim() || '';
+  const mode = get('mode') === 'thread' ? 'thread' : 'tweet';
+  const topic = get('topic')?.trim() || '';
+  const trendId = get('trendId')?.trim() || '';
+  const sourceReferenceId = get('sourceReferenceId')?.trim() || '';
+  const sourceText = get('sourceText')?.trim() || '';
+  const sourceAuthor = get('sourceAuthor')?.trim() || '';
+  const sourceUrl = get('sourceUrl')?.trim() || '';
 
   const twitterCredential = useMemo(
     () =>

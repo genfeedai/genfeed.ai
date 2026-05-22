@@ -73,7 +73,7 @@ function AppProtectedTopbarContent({
   currentApp = 'workspace',
   orgSlug,
 }: TopbarProps = {}) {
-  const searchParams = useSearchParams();
+  const { get, toString: stringifySearchParams } = useSearchParams();
   const pathname = usePathname();
   const { push } = useRouter();
   const {
@@ -83,8 +83,8 @@ function AppProtectedTopbarContent({
     brandSlug: resolvedBrandSlug,
   } = useOrgUrl();
 
-  const taskId = searchParams.get('taskId');
-  const taskTitle = searchParams.get('taskTitle');
+  const taskId = get('taskId');
+  const taskTitle = get('taskTitle');
   const ToggleIcon = isMenuOpen ? HiXMark : HiBars3;
   const scopedPathname = useMemo(
     () => stripProtectedScope(pathname),
@@ -94,7 +94,7 @@ function AppProtectedTopbarContent({
     () => resolveCurrentGenerationType(scopedPathname),
     [scopedPathname],
   );
-  const preservedSearch = searchParams.toString();
+  const preservedSearch = stringifySearchParams();
   const effectiveOrgSlug = orgSlug || resolvedOrgSlug;
   const effectiveBrandSlug = brandSlug || resolvedBrandSlug;
   const backToTaskHref = taskId

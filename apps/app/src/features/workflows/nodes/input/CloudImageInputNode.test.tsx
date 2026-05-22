@@ -37,8 +37,9 @@ vi.mock('@genfeedai/workflow-ui/stores', () => ({
 
 vi.mock('next/image', () => ({
   default: (props: React.ImgHTMLAttributes<HTMLImageElement>) => (
-    // biome-ignore lint/a11y/useAltText: the component under test supplies alt text.
-    <img {...props} />
+    <picture>
+      <img alt={props.alt ?? ''} {...props} />
+    </picture>
   ),
 }));
 

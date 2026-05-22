@@ -279,12 +279,11 @@ function getCredentialLabel(credential: ICredential): string {
 function PostsWritePageContent() {
   const { push } = useRouter();
   const { href } = useOrgUrl();
-  const searchParams = useSearchParams();
+  const { get } = useSearchParams();
   const { credentials = [] } = useBrand();
-  const preselectedIngredientId =
-    searchParams.get('ingredientId')?.trim() || '';
-  const prefilledDescription = searchParams.get('description')?.trim() || '';
-  const prefilledTitle = searchParams.get('title')?.trim() || '';
+  const preselectedIngredientId = get('ingredientId')?.trim() || '';
+  const prefilledDescription = get('description')?.trim() || '';
+  const prefilledTitle = get('title')?.trim() || '';
   const [selectedCredentialId, setSelectedCredentialId] = useState('');
   const [workingTitle, setWorkingTitle] = useState(prefilledTitle);
   const [prompt, setPrompt] = useState('');

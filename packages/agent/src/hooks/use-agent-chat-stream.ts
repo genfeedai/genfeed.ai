@@ -988,7 +988,7 @@ export function useAgentChatStream(
               attachments: sendOptions?.attachments,
               content,
               model: resolvedModel,
-              pageContext,
+              pageContext: pageContext ?? undefined,
               planModeEnabled: sendOptions?.planModeEnabled,
               source: sendOptions?.source,
               threadId: currentActiveThreadId ?? undefined,

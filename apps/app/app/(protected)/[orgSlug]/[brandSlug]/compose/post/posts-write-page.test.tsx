@@ -43,6 +43,7 @@ vi.mock('@services/core/clipboard.service', () => ({
 
 vi.mock('next/navigation', () => ({
   useParams: () => ({ brandSlug: 'moonrise-studio', orgSlug: 'moonrise-org' }),
+  usePathname: () => '/moonrise-org/moonrise-studio/compose/post',
   useRouter: () => ({
     push: pushMock,
     replace: replaceMock,

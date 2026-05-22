@@ -80,7 +80,7 @@ export function useAgentChat(options: UseAgentChatOptions): UseAgentChatReturn {
               attachments: sendOptions?.attachments,
               content,
               model: resolvedModel,
-              pageContext,
+              pageContext: pageContext ?? undefined,
               planModeEnabled: sendOptions?.planModeEnabled,
               source: sendOptions?.source,
               threadId: activeThreadId ?? undefined,

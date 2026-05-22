@@ -96,8 +96,8 @@ function isEditorDirty(
 function NewslettersPageContent() {
   const { push } = useRouter();
   const { href } = useOrgUrl();
-  const searchParams = useSearchParams();
-  const requestedNewsletterId = searchParams.get('id');
+  const { get } = useSearchParams();
+  const requestedNewsletterId = get('id');
   const notificationsService = NotificationsService.getInstance();
   const { brandId, isReady, organizationId, selectedBrand } = useBrand();
   const [instructions, setInstructions] = useState('');

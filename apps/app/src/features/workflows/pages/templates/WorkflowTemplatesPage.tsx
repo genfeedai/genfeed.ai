@@ -38,8 +38,8 @@ function WorkflowTemplatesPageContent() {
   const mountedRef = useRef(true);
   const getService = useAuthedService(createWorkflowApiService);
   const { replace } = useRouter();
-  const searchParams = useSearchParams();
-  const templateId = searchParams.get('template');
+  const { get } = useSearchParams();
+  const templateId = get('template');
 
   const loadTemplates = useCallback(async () => {
     setIsLoading(true);

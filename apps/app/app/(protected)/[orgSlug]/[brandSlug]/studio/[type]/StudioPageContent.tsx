@@ -15,8 +15,8 @@ import GenerationFeatureGuard from './GenerationFeatureGuard';
 function StudioPageContentInner() {
   const { replace } = useRouter();
   const params = useParams<{ type?: string }>();
-  const searchParams = useSearchParams();
-  const requestedType = searchParams.get('type');
+  const { get } = useSearchParams();
+  const requestedType = get('type');
   const { isEnabled, defaultCategory, isLoading } = useEnabledCategories();
   const hasRedirectedRef = useRef(false);
 

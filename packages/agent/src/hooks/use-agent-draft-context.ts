@@ -154,6 +154,10 @@ export function useAgentDraftContext({
     }
 
     function handleDraftSuggestion(event: Event) {
+      if (!onApplySuggestion) {
+        return;
+      }
+
       const customEvent = event as CustomEvent<AgentDraftSuggestionPayload>;
       const text = customEvent.detail?.text?.trim();
 

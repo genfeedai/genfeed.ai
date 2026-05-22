@@ -49,20 +49,18 @@ function parseTimeRange(value: string | null): AgentRunTimeRange {
 function MissionControlContent() {
   const pathname = usePathname();
   const { replace } = useRouter();
-  const searchParams = useSearchParams();
-  const searchParamsString = searchParams.toString();
+  const { get, toString: stringifySearchParams } = useSearchParams();
+  const searchParamsString = stringifySearchParams();
 
-  const [searchQuery, setSearchQuery] = useState(
-    () => searchParams.get('q') ?? '',
-  );
+  const [searchQuery, setSearchQuery] = useState(() => get('q') ?? '');
   const [selectedModel, setSelectedModel] = useState(
-    () => searchParams.get('model') ?? 'all',
+    () => get('model') ?? 'all',
   );
   const [sortMode, setSortMode] = useState<AgentRunSortMode>(() =>
-    parseSortMode(searchParams.get('sort')),
+    parseSortMode(get('sort')),
   );
   const [timeRange, setTimeRange] = useState<AgentRunTimeRange>(() =>
-    parseTimeRange(searchParams.get('range')),
+    parseTimeRange(get('range')),
   );
 
   const { runs, stats, isLoading, refresh, cancelRun } = useAgentRuns({

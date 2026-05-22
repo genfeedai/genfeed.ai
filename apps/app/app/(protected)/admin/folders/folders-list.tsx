@@ -38,8 +38,8 @@ function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
 
   const { replace } = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const searchParamsString = searchParams.toString();
+  const { get, toString: stringifySearchParams } = useSearchParams();
+  const searchParamsString = stringifySearchParams();
   const parsedSearchParams = useMemo(
     () => new URLSearchParams(searchParamsString),
     [searchParamsString],
@@ -110,7 +110,7 @@ function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
   });
 
   // Extract page from URL to use as dependency (triggers re-fetch when page changes)
-  const currentPage = Number(searchParams.get('page')) || 1;
+  const currentPage = Number(get('page')) || 1;
 
   const {
     data: folders = [] as Folder[],
