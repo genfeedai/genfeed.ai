@@ -84,16 +84,14 @@ export class RedisCacheInterceptor implements NestInterceptor {
 
       this.logger.debug(`Cache miss for key: ${cacheKey}`);
 
-      const result = await this.cacheService.getOrSetWithLock(
-        cacheKey,
-        async () => {
-          const handlerResult = await firstValueFrom(next.handle());
-          return this.shouldCacheResult(handlerResult, cacheOptions)
-            ? handlerResult
-            : undefined;
-        },
-        { tags: cacheOptions.tags, ttl: cacheOptions.ttl },
-      );
+      const result = await firstValueFrom(next.handle());
+
+      if (this.shouldCacheResult(result, cacheOptions)) {
+        await this.cacheService.set(cacheKey, result, {
+          tags: cacheOptions.tags,
+          ttl: cacheOptions.ttl,
+        });
+      }
 
       return of(result);
     } catch (error: unknown) {
