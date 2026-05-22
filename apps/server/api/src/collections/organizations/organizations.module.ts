@@ -47,7 +47,7 @@ import { forwardRef, Module } from '@nestjs/common';
   imports: [
     // Core modules
     ActivitiesModule,
-    BrandsModule,
+    forwardRef(() => BrandsModule),
     ByokModule,
     ClerkModule,
     CommonModule,
@@ -60,7 +60,7 @@ import { forwardRef, Module } from '@nestjs/common';
     MembersModule,
     ModelsModule,
     OrganizationSettingsModule,
-    PostsModule,
+    forwardRef(() => PostsModule),
     RolesModule,
     SettingsModule,
     forwardRef(() => SubscriptionsModule),

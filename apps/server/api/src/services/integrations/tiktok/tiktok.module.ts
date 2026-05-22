@@ -4,10 +4,14 @@ import { TiktokController } from '@api/services/integrations/tiktok/controllers/
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
 import { HttpModule } from '@nestjs/axios';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(TiktokService, {
-  additionalImports: [HttpModule, BrandsModule, CredentialsCoreModule],
+  additionalImports: [
+    HttpModule,
+    forwardRef(() => BrandsModule),
+    CredentialsCoreModule,
+  ],
 });
 
 @Module({

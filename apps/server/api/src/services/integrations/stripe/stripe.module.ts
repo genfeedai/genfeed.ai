@@ -18,10 +18,10 @@ const BaseModule = createServiceModule(StripeService, {
     ClerkModule,
     CreditsModule,
     MembersModule,
-    OrganizationsModule,
+    forwardRef(() => OrganizationsModule),
     forwardRef(() => SubscriptionsModule),
     UserSubscriptionsModule,
-    UsersModule,
+    forwardRef(() => UsersModule),
   ],
 });
 

@@ -50,7 +50,7 @@ import { forwardRef, Module } from '@nestjs/common';
     HarnessProfilesModule,
     NotificationsModule,
     OrganizationSettingsModule,
-    OrganizationsModule,
+    forwardRef(() => OrganizationsModule),
     PersonasModule,
     PromptBuilderModule,
     PromptsModule,

@@ -5,13 +5,13 @@ import { LinkedInController } from '@api/services/integrations/linkedin/controll
 import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
 import { HttpModule } from '@nestjs/axios';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(LinkedInService, {
   additionalImports: [
     HttpModule,
     BrandScraperModule,
-    BrandsModule,
+    forwardRef(() => BrandsModule),
     CredentialsCoreModule,
   ],
 });

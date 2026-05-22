@@ -13,13 +13,32 @@ const pinoLogger: PinoLogger = pino({
   name: 'genfeed.ai',
 });
 
+function serializeForConsole(obj: unknown): unknown {
+  if (obj == null || typeof obj !== 'object') {
+    return obj;
+  }
+
+  if (obj instanceof Error) {
+    return { message: obj.message, stack: obj.stack, name: obj.name };
+  }
+
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+    result[key] =
+      value instanceof Error
+        ? { message: value.message, stack: value.stack, name: value.name }
+        : value;
+  }
+  return result;
+}
+
 function logToConsole(
   level: 'debug' | 'info' | 'warn' | 'error',
   message: string,
   obj?: unknown,
 ): void {
   if (obj !== undefined) {
-    console[level](message, obj);
+    console[level](message, serializeForConsole(obj));
   } else {
     console[level](message);
   }

@@ -25,7 +25,7 @@ import { ReplicateModule } from '@api/services/integrations/replicate/replicate.
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder.module';
 import { QuotaModule } from '@api/services/quota/quota.module';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   controllers: [
@@ -47,7 +47,7 @@ import { Module } from '@nestjs/common';
     QuotaModule,
     ReplicateModule,
     TemplatesModule,
-    TrendsModule,
+    forwardRef(() => TrendsModule),
   ],
   providers: [
     AnalyticsAggregationService,

@@ -24,7 +24,7 @@ import { ReplicateModule } from '@api/services/integrations/replicate/replicate.
 import { TiktokModule } from '@api/services/integrations/tiktok/tiktok.module';
 import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
 import { XaiModule } from '@api/services/integrations/xai/xai.module';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   controllers: [TrendsController],
@@ -35,7 +35,7 @@ import { Module } from '@nestjs/common';
   ],
   imports: [
     ApifyModule,
-    BrandsModule,
+    forwardRef(() => BrandsModule),
     ByokModule,
     CacheModule,
     ConfigModule,

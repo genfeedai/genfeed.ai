@@ -4,10 +4,14 @@ import { InstagramController } from '@api/services/integrations/instagram/contro
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
 import { HttpModule } from '@nestjs/axios';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(InstagramService, {
-  additionalImports: [HttpModule, BrandsModule, CredentialsCoreModule],
+  additionalImports: [
+    HttpModule,
+    forwardRef(() => BrandsModule),
+    CredentialsCoreModule,
+  ],
 });
 
 @Module({

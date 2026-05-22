@@ -5,12 +5,12 @@ import { TwitterController } from '@api/services/integrations/twitter/controller
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
 import { HttpModule } from '@nestjs/axios';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(TwitterService, {
   additionalImports: [
     HttpModule,
-    BrandsModule,
+    forwardRef(() => BrandsModule),
     CredentialsCoreModule,
     ActivitiesModule,
   ],

@@ -4862,7 +4862,11 @@ export class AgentToolExecutorService {
       user: ctx.userId,
     };
 
-    const campaign = await this.campaignsService.create(createDto);
+    const campaign = await this.campaignsService.createScoped(createDto, {
+      brandId: ctx.brandId,
+      organizationId: ctx.organizationId,
+      userId: ctx.userId,
+    });
     const campaignId = String(campaign._id);
 
     return {
