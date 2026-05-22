@@ -7,7 +7,6 @@ import { ActivitiesModule } from '@api/collections/activities/activities.module'
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { MembersModule } from '@api/collections/members/members.module';
 import { ModelsModule } from '@api/collections/models/models.module';
@@ -46,33 +45,28 @@ import { forwardRef, Module } from '@nestjs/common';
   exports: [OrganizationsService],
   imports: [
     // Core modules
-    ActivitiesModule,
+    forwardRef(() => ActivitiesModule),
     forwardRef(() => BrandsModule),
-    ByokModule,
-    ClerkModule,
-    CommonModule,
-    CredentialsCoreModule,
-    CreditsModule,
-    FleetModule,
-    IngredientsModule,
-    IntegrationsModule,
-    LoggerModule,
-    MembersModule,
-    ModelsModule,
-    OrganizationSettingsModule,
+    forwardRef(() => ByokModule),
+    forwardRef(() => ClerkModule),
+    forwardRef(() => CommonModule),
+    forwardRef(() => CredentialsCoreModule),
+    forwardRef(() => CreditsModule),
+    forwardRef(() => FleetModule),
+    forwardRef(() => IngredientsModule),
+    forwardRef(() => IntegrationsModule),
+    forwardRef(() => LoggerModule),
+    forwardRef(() => MembersModule),
+    forwardRef(() => ModelsModule),
+    forwardRef(() => OrganizationSettingsModule),
     forwardRef(() => PostsModule),
-    RolesModule,
-    SettingsModule,
+    forwardRef(() => RolesModule),
+    forwardRef(() => SettingsModule),
     forwardRef(() => SubscriptionsModule),
-    TagsModule,
+    forwardRef(() => TagsModule),
     forwardRef(() => UsersModule),
-    VideosModule,
+    forwardRef(() => VideosModule),
   ],
-  providers: [
-    OrganizationsService,
-    MemberCreditsGuard,
-    CreditsInterceptor,
-    CreditsUtilsService,
-  ],
+  providers: [OrganizationsService, MemberCreditsGuard, CreditsInterceptor],
 })
 export class OrganizationsModule {}
