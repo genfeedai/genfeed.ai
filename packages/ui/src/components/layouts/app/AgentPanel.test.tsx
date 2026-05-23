@@ -83,7 +83,19 @@ vi.mock('@genfeedai/agent/components/AgentOutputsPanel', () => ({
 }));
 
 vi.mock('@genfeedai/agent/components/AgentCliTerminal', () => ({
-  AgentCliTerminal: () => <div data-testid="agent-cli-terminal" />,
+  AgentCliTerminalBody: () => <div data-testid="agent-cli-terminal" />,
+  AgentCliTerminalControls: () => (
+    <div data-testid="agent-cli-terminal-controls" />
+  ),
+  useAgentCliTerminal: () => ({
+    activeKind: 'shell',
+    containerRef: { current: null },
+    cwdInput: '',
+    setCwdInput: () => undefined,
+    startSession: () => undefined,
+    status: '',
+    submitCwd: () => undefined,
+  }),
 }));
 
 describe('AgentPanel', () => {

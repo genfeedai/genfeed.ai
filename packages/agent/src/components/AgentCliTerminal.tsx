@@ -14,6 +14,7 @@ import type {
 import {
   type FormEvent,
   type ReactElement,
+  type RefObject,
   useCallback,
   useEffect,
   useRef,
@@ -50,10 +51,6 @@ interface TerminalExitPayload {
   signal?: number;
 }
 
-interface AgentCliTerminalProps {
-  apiService: AgentApiService;
-}
-
 const TERMINAL_COLS = 120;
 const TERMINAL_ROWS = 32;
 const TERMINAL_CWD_STORAGE_KEY = 'genfeed:terminal:cwd';
@@ -67,6 +64,16 @@ const TERMINAL_PRESETS: Array<{
   { kind: 'claude', label: 'Claude' },
   { kind: 'codex', label: 'Codex' },
 ];
+
+export interface AgentCliTerminalController {
+  activeKind: TerminalSessionKind;
+  containerRef: RefObject<HTMLDivElement | null>;
+  cwdInput: string;
+  setCwdInput: (value: string) => void;
+  startSession: (kind: TerminalSessionKind) => void;
+  status: string;
+  submitCwd: () => void;
+}
 
 function isHostedCloud(): boolean {
   return process.env.NEXT_PUBLIC_GENFEED_CLOUD === 'true';
@@ -191,11 +198,11 @@ function attachTerminalSocketHandlers({
   };
 }
 
-export function AgentCliTerminal({
-  apiService,
-}: AgentCliTerminalProps): ReactElement {
+export function useAgentCliTerminal(
+  apiService: AgentApiService,
+): AgentCliTerminalController {
   const [activeKind, setActiveKind] = useState<TerminalSessionKind>('shell');
-  const [cwdInput, setCwdInput] = useState(readPersistedTerminalCwd);
+  const [cwdInput, setCwdInputState] = useState(readPersistedTerminalCwd);
   const [status, setStatus] = useState('connecting to local terminal...');
   const cwdRef = useRef(cwdInput);
   const dataDisposableRef = useRef<XtermDisposable | null>(null);
@@ -203,8 +210,13 @@ export function AgentCliTerminal({
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const sessionRef = useRef<TerminalSession | null>(null);
   const socketRef = useRef<Socket | null>(null);
-  const terminalContainerRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const terminalRef = useRef<XtermTerminal | null>(null);
+
+  const setCwdInput = useCallback((value: string) => {
+    setCwdInputState(value);
+    cwdRef.current = value;
+  }, []);
 
   const fitAndSyncSize = useCallback(() => {
     const terminal = terminalRef.current;
@@ -264,16 +276,13 @@ export function AgentCliTerminal({
     [fitAndSyncSize],
   );
 
-  const handleCwdSubmit = useCallback(
-    (event: FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
-      const nextCwd = cwdInput.trim();
-      cwdRef.current = nextCwd;
-      persistTerminalCwd(nextCwd);
-      startSession(activeKind);
-    },
-    [activeKind, cwdInput, startSession],
-  );
+  const submitCwd = useCallback(() => {
+    const nextCwd = cwdRef.current.trim();
+    cwdRef.current = nextCwd;
+    setCwdInputState(nextCwd);
+    persistTerminalCwd(nextCwd);
+    startSession(activeKind);
+  }, [activeKind, startSession]);
 
   useEffect(() => {
     if (isHostedCloud()) {
@@ -290,7 +299,7 @@ export function AgentCliTerminal({
         import('@xterm/addon-fit'),
       ]);
 
-      if (disposed || !terminalContainerRef.current) {
+      if (disposed || !containerRef.current) {
         return;
       }
 
@@ -331,7 +340,7 @@ export function AgentCliTerminal({
       const fitAddon = new FitAddon();
 
       terminal.loadAddon(fitAddon);
-      terminal.open(terminalContainerRef.current);
+      terminal.open(containerRef.current);
       terminalRef.current = terminal;
       fitAddonRef.current = fitAddon;
       dataDisposableRef.current = terminal.onData((data) => {
@@ -355,7 +364,7 @@ export function AgentCliTerminal({
 
       if (typeof ResizeObserver !== 'undefined') {
         const resizeObserver = new ResizeObserver(() => fitAndSyncSize());
-        resizeObserver.observe(terminalContainerRef.current);
+        resizeObserver.observe(containerRef.current);
         resizeObserverRef.current = resizeObserver;
       }
 
@@ -414,77 +423,106 @@ export function AgentCliTerminal({
     };
   }, [apiService, fitAndSyncSize, startSession]);
 
+  return {
+    activeKind,
+    containerRef,
+    cwdInput,
+    setCwdInput,
+    startSession,
+    status,
+    submitCwd,
+  };
+}
+
+interface AgentCliTerminalBodyProps {
+  containerRef: RefObject<HTMLDivElement | null>;
+}
+
+export function AgentCliTerminalBody({
+  containerRef,
+}: AgentCliTerminalBodyProps): ReactElement {
   return (
     <div
       className="flex h-full flex-col font-mono text-[13px] leading-relaxed"
       data-testid="agent-cli-terminal"
-      onClick={() => terminalRef.current?.focus()}
+      onClick={() => containerRef.current?.querySelector('textarea')?.focus()}
       role="presentation"
     >
-      <div className="flex items-center gap-2 border-b border-border/50 px-4 py-2">
-        <span className="shrink-0 font-semibold text-emerald-400">
-          genfeed terminal
-        </span>
-        <span className="min-w-0 flex-1 truncate text-[11px] text-foreground/42">
-          {status}
-        </span>
-        <form
-          className="hidden min-w-[9rem] max-w-[18rem] flex-1 items-center gap-1 md:flex"
-          onSubmit={handleCwdSubmit}
-        >
-          <Input
-            aria-label="Terminal working directory"
-            className="h-6 min-w-0 flex-1 rounded border border-border/50 bg-background/30 px-2 text-[11px] text-foreground/70 outline-none transition-colors placeholder:text-foreground/28 focus:border-emerald-300/50"
-            onChange={(event) => {
-              setCwdInput(event.target.value);
-              cwdRef.current = event.target.value;
-            }}
-            onBlur={() => {
-              const nextCwd = cwdInput.trim();
-              cwdRef.current = nextCwd;
-              persistTerminalCwd(nextCwd);
-            }}
-            placeholder="$HOME or /path/to/project"
-            spellCheck={false}
-            value={cwdInput}
-          />
-          <Button
-            className="h-6 rounded border border-border/60 px-2 text-[11px] text-foreground/55 transition-colors hover:border-emerald-300/50 hover:text-emerald-200"
-            label="cwd"
-            type="submit"
-            variant={ButtonVariant.UNSTYLED}
-            withWrapper={false}
-          />
-        </form>
-        <div className="flex shrink-0 items-center gap-1">
-          {TERMINAL_PRESETS.map((preset) => (
-            <Button
-              key={preset.kind}
-              className={cn(
-                'h-6 rounded border border-border/60 px-2 text-[11px] text-foreground/55 transition-colors hover:border-emerald-300/50 hover:text-emerald-200',
-                activeKind === preset.kind &&
-                  'border-emerald-300/50 text-emerald-200',
-              )}
-              onClick={(event) => {
-                event.stopPropagation();
-                startSession(preset.kind);
-              }}
-              label={preset.label}
-              type="button"
-              variant={ButtonVariant.UNSTYLED}
-              withWrapper={false}
-            />
-          ))}
-        </div>
-      </div>
-
       <div
-        ref={terminalContainerRef}
+        ref={containerRef}
         aria-label="Genfeed terminal"
         className="min-h-0 flex-1 overflow-hidden bg-[#050806] px-3 py-2 text-[13px] text-foreground/78 outline-none focus-visible:ring-1 focus-visible:ring-emerald-300/35 [&_.xterm-screen]:outline-none [&_.xterm-viewport]:overflow-y-auto"
         role="textbox"
         tabIndex={0}
       />
+    </div>
+  );
+}
+
+interface AgentCliTerminalControlsProps {
+  controller: AgentCliTerminalController;
+}
+
+export function AgentCliTerminalControls({
+  controller,
+}: AgentCliTerminalControlsProps): ReactElement {
+  const { activeKind, cwdInput, setCwdInput, startSession, status, submitCwd } =
+    controller;
+
+  const handleSubmit = useCallback(
+    (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      submitCwd();
+    },
+    [submitCwd],
+  );
+
+  return (
+    <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
+      <span className="min-w-0 flex-1 truncate text-[11px] text-foreground/42">
+        {status}
+      </span>
+      <form
+        className="hidden min-w-[9rem] max-w-[18rem] flex-1 items-center gap-1 md:flex"
+        onSubmit={handleSubmit}
+      >
+        <Input
+          aria-label="Terminal working directory"
+          className="h-6 min-w-0 flex-1 rounded border border-border/50 bg-background/30 px-2 text-[11px] text-foreground/70 outline-none transition-colors placeholder:text-foreground/28 focus:border-emerald-300/50"
+          onChange={(event) => setCwdInput(event.target.value)}
+          onBlur={() => submitCwd()}
+          placeholder="$HOME or /path/to/project"
+          spellCheck={false}
+          value={cwdInput}
+        />
+        <Button
+          className="h-6 rounded border border-border/60 px-2 text-[11px] text-foreground/55 transition-colors hover:border-emerald-300/50 hover:text-emerald-200"
+          label="cwd"
+          type="submit"
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
+        />
+      </form>
+      <div className="flex shrink-0 items-center gap-1">
+        {TERMINAL_PRESETS.map((preset) => (
+          <Button
+            key={preset.kind}
+            className={cn(
+              'h-6 rounded border border-border/60 px-2 text-[11px] text-foreground/55 transition-colors hover:border-emerald-300/50 hover:text-emerald-200',
+              activeKind === preset.kind &&
+                'border-emerald-300/50 text-emerald-200',
+            )}
+            onClick={(event) => {
+              event.stopPropagation();
+              startSession(preset.kind);
+            }}
+            label={preset.label}
+            type="button"
+            variant={ButtonVariant.UNSTYLED}
+            withWrapper={false}
+          />
+        ))}
+      </div>
     </div>
   );
 }

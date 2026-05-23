@@ -288,10 +288,11 @@ export class StripeWebhookService {
       );
 
       // Invalidate request context cache so updated subscription info is reflected immediately
-      if (user.clerkId) {
+      const userId = user._id?.toString();
+      if (userId) {
         await Promise.all([
-          this.requestContextCacheService.invalidateForUser(user.clerkId),
-          this.accessBootstrapCacheService.invalidateForUser(user.clerkId),
+          this.requestContextCacheService.invalidateForUser(userId),
+          this.accessBootstrapCacheService.invalidateForUser(userId),
         ]);
       }
 
@@ -388,10 +389,11 @@ export class StripeWebhookService {
       );
 
       // Invalidate request context cache so canceled subscription is reflected immediately
-      if (user.clerkId) {
+      const userId = user._id?.toString();
+      if (userId) {
         await Promise.all([
-          this.requestContextCacheService.invalidateForUser(user.clerkId),
-          this.accessBootstrapCacheService.invalidateForUser(user.clerkId),
+          this.requestContextCacheService.invalidateForUser(userId),
+          this.accessBootstrapCacheService.invalidateForUser(userId),
         ]);
       }
 
@@ -538,8 +540,10 @@ export class StripeWebhookService {
             balance: newBalance,
             isOnboardingCompleted: true,
           });
+        }
+        if (dbUser?._id) {
           await this.accessBootstrapCacheService.invalidateForUser(
-            dbUser.clerkId,
+            dbUser._id.toString(),
           );
         }
 
@@ -847,7 +851,9 @@ export class StripeWebhookService {
       user: String(dbUser._id),
     });
 
-    await this.accessBootstrapCacheService.invalidateForUser(clerkUser.id);
+    await this.accessBootstrapCacheService.invalidateForUser(
+      String(dbUser._id),
+    );
 
     await this.activitiesService.create({
       brand: String(brand._id),
@@ -1276,8 +1282,10 @@ export class StripeWebhookService {
         isOnboardingCompleted: true,
         ...extraClerkMetadata,
       });
-      await this.accessBootstrapCacheService.invalidateForUser(dbUser.clerkId);
     }
+    await this.accessBootstrapCacheService.invalidateForUser(
+      String(dbUser._id),
+    );
 
     if (!dbUser.isOnboardingCompleted) {
       await this.usersService.patch(dbUser._id, {
@@ -1594,10 +1602,10 @@ export class StripeWebhookService {
                   dbUser.clerkId,
                   { isOnboardingCompleted: true },
                 );
-                await this.accessBootstrapCacheService.invalidateForUser(
-                  dbUser.clerkId,
-                );
               }
+              await this.accessBootstrapCacheService.invalidateForUser(
+                String(dbUser._id),
+              );
 
               this.loggerService.log(
                 `${url} onboarding marked complete via invoice.paid`,
