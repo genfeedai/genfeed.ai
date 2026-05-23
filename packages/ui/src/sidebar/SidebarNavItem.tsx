@@ -1,4 +1,5 @@
 import type { ComponentType, MouseEvent, ReactNode } from 'react';
+import { cn } from '../lib/utils';
 
 interface SidebarNavItemProps {
   href: string;
@@ -20,10 +21,6 @@ interface SidebarNavItemProps {
     onClick?: (e: MouseEvent) => void;
     children: ReactNode;
   }>;
-}
-
-function cn(...classes: (string | false | undefined | null)[]): string {
-  return classes.filter(Boolean).join(' ');
 }
 
 export function SidebarNavItem({
