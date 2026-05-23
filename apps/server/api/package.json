@@ -1,8 +1,8 @@
 {
   "dependencies": {
     "@anthropic-ai/sdk": "0.98.0",
-    "@aws-sdk/client-cloudfront": "3.1052.0",
-    "@aws-sdk/client-ec2": "3.1052.0",
+    "@aws-sdk/client-cloudfront": "3.1053.0",
+    "@aws-sdk/client-ec2": "3.1053.0",
     "@genfeedai/config": "workspace:*",
     "@genfeedai/constants": "workspace:*",
     "@genfeedai/enums": "workspace:*",
