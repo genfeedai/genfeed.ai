@@ -14,7 +14,7 @@ import { AdBulkUploadService } from '@api/services/integrations/meta-ads/service
 import { MetaAdsService } from '@api/services/integrations/meta-ads/services/meta-ads.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
 import { HttpModule } from '@nestjs/axios';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(MetaAdsService, {
   additionalImports: [HttpModule],
@@ -29,15 +29,15 @@ const BaseModule = createServiceModule(MetaAdsService, {
   exports: BaseModule.exports ?? [],
   imports: [
     ...(BaseModule.imports ?? []),
-    AdBulkUploadJobsModule,
-    BrandsModule,
-    CredentialsCoreModule,
-    QueuesModule,
-    AdCreativeMappingsModule,
-    AdOptimizationConfigsModule,
-    AdOptimizationRecommendationsModule,
-    AdOptimizationAuditLogsModule,
-    AdPerformanceModule,
+    forwardRef(() => AdBulkUploadJobsModule),
+    forwardRef(() => BrandsModule),
+    forwardRef(() => CredentialsCoreModule),
+    forwardRef(() => QueuesModule),
+    forwardRef(() => AdCreativeMappingsModule),
+    forwardRef(() => AdOptimizationConfigsModule),
+    forwardRef(() => AdOptimizationRecommendationsModule),
+    forwardRef(() => AdOptimizationAuditLogsModule),
+    forwardRef(() => AdPerformanceModule),
   ],
   providers: [...(BaseModule.providers ?? []), AdBulkUploadService],
 })

@@ -18,26 +18,26 @@ import { TiktokModule } from '@api/services/integrations/tiktok/tiktok.module';
 import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
 import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module';
 import { QuotaModule } from '@api/services/quota/quota.module';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   controllers: [CredentialsController],
   exports: [CredentialsCoreModule],
   imports: [
-    BrandsModule,
-    CredentialsCoreModule,
-    FacebookModule,
-    GoogleAdsModule,
-    InstagramModule,
-    LinkedInModule,
-    OrganizationsModule,
-    PinterestModule,
-    QuotaModule,
-    RedditModule,
-    TagsModule,
-    TiktokModule,
-    TwitterModule,
-    YoutubeModule,
+    forwardRef(() => BrandsModule),
+    forwardRef(() => CredentialsCoreModule),
+    forwardRef(() => FacebookModule),
+    forwardRef(() => GoogleAdsModule),
+    forwardRef(() => InstagramModule),
+    forwardRef(() => LinkedInModule),
+    forwardRef(() => OrganizationsModule),
+    forwardRef(() => PinterestModule),
+    forwardRef(() => QuotaModule),
+    forwardRef(() => RedditModule),
+    forwardRef(() => TagsModule),
+    forwardRef(() => TiktokModule),
+    forwardRef(() => TwitterModule),
+    forwardRef(() => YoutubeModule),
   ],
 })
 export class CredentialsModule {}

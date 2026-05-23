@@ -30,40 +30,40 @@ import { ReplicateModule } from '@api/services/integrations/replicate/replicate.
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder.module';
 import { FailedGenerationModule } from '@api/shared/services/failed-generation/failed-generation.module';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   controllers: [AvatarVideoController, BatchInterpolationController],
   exports: [AvatarVideoGenerationService],
   imports: [
     // Core video module for VideosService
-    VideosModule,
+    forwardRef(() => VideosModule),
 
     // Data modules
-    ActivitiesModule,
-    AssetsModule,
-    BrandsModule,
-    ConfigModule,
-    CreditsModule,
-    IngredientsModule,
-    MetadataModule,
-    ModelsModule,
-    PromptsModule,
+    forwardRef(() => ActivitiesModule),
+    forwardRef(() => AssetsModule),
+    forwardRef(() => BrandsModule),
+    forwardRef(() => ConfigModule),
+    forwardRef(() => CreditsModule),
+    forwardRef(() => IngredientsModule),
+    forwardRef(() => MetadataModule),
+    forwardRef(() => ModelsModule),
+    forwardRef(() => PromptsModule),
 
     // Service modules
-    ElevenLabsModule,
-    FileQueueModule,
-    FleetModule,
-    HeyGenModule,
-    NotificationsPublisherModule,
-    OrganizationSettingsModule,
-    PromptBuilderModule,
-    ReplicateModule,
-    VoicesModule,
+    forwardRef(() => ElevenLabsModule),
+    forwardRef(() => FileQueueModule),
+    forwardRef(() => FleetModule),
+    forwardRef(() => HeyGenModule),
+    forwardRef(() => NotificationsPublisherModule),
+    forwardRef(() => OrganizationSettingsModule),
+    forwardRef(() => PromptBuilderModule),
+    forwardRef(() => ReplicateModule),
+    forwardRef(() => VoicesModule),
 
     // Utility modules
-    ByokModule,
-    FailedGenerationModule,
+    forwardRef(() => ByokModule),
+    forwardRef(() => FailedGenerationModule),
   ],
   providers: [
     AvatarVideoGenerationService,

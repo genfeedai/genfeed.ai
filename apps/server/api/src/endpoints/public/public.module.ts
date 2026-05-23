@@ -15,7 +15,7 @@ import { PublicRSSController } from '@api/endpoints/public/controllers/rss/rss.c
 import { PublicVideosController } from '@api/endpoints/public/controllers/videos/public.videos.controller';
 import { RssService } from '@api/endpoints/public/services/rss.service';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   controllers: [
@@ -29,15 +29,15 @@ import { Module } from '@nestjs/common';
   ],
   exports: [],
   imports: [
-    ArticlesModule,
-    BrandsModule,
-    FilesClientModule,
-    ImagesModule,
-    IngredientsModule,
-    LinksModule,
-    MusicsModule,
-    PostsModule,
-    VideosModule,
+    forwardRef(() => ArticlesModule),
+    forwardRef(() => BrandsModule),
+    forwardRef(() => FilesClientModule),
+    forwardRef(() => ImagesModule),
+    forwardRef(() => IngredientsModule),
+    forwardRef(() => LinksModule),
+    forwardRef(() => MusicsModule),
+    forwardRef(() => PostsModule),
+    forwardRef(() => VideosModule),
   ],
   providers: [RssService],
 })

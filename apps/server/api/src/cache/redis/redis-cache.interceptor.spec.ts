@@ -300,7 +300,8 @@ describe('RedisCacheInterceptor', () => {
       );
 
       await new Promise<void>((resolve) => {
-        result$.subscribe(() => {
+        result$.subscribe((value) => {
+          expect(value).toBeNull();
           setTimeout(() => {
             expect(cacheService.set).not.toHaveBeenCalled();
             resolve();
@@ -382,7 +383,8 @@ describe('RedisCacheInterceptor', () => {
       );
 
       await new Promise<void>((resolve) => {
-        result$.subscribe(() => {
+        result$.subscribe((value) => {
+          expect(value).toEqual(resultWithoutCache);
           setTimeout(() => {
             expect(cacheService.set).not.toHaveBeenCalled();
             resolve();

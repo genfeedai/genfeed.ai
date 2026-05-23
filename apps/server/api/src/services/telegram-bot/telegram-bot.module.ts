@@ -12,18 +12,18 @@ import { ReplicateModule } from '@api/services/integrations/replicate/replicate.
 import { TelegramBotController } from '@api/services/telegram-bot/telegram-bot.controller';
 import { TelegramBotService } from '@api/services/telegram-bot/telegram-bot.service';
 import { LoggerModule } from '@libs/logger/logger.module';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   controllers: [TelegramBotController],
   exports: [TelegramBotService],
   imports: [
-    ApiKeysModule,
-    ConfigModule,
-    FalModule,
-    LoggerModule,
-    ReplicateModule,
-    RunsModule,
+    forwardRef(() => ApiKeysModule),
+    forwardRef(() => ConfigModule),
+    forwardRef(() => FalModule),
+    forwardRef(() => LoggerModule),
+    forwardRef(() => ReplicateModule),
+    forwardRef(() => RunsModule),
   ],
   providers: [TelegramBotService],
 })

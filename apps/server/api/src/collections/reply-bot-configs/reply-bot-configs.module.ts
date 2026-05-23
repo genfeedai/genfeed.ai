@@ -15,7 +15,11 @@ import { forwardRef, Module } from '@nestjs/common';
 @Module({
   controllers: [ReplyBotConfigsController],
   exports: [ReplyBotConfigsService],
-  imports: [FeatureFlagModule, QueuesModule, forwardRef(() => ReplyBotModule)],
+  imports: [
+    forwardRef(() => FeatureFlagModule),
+    forwardRef(() => QueuesModule),
+    forwardRef(() => ReplyBotModule),
+  ],
   providers: [ReplyBotConfigsService],
 })
 export class ReplyBotConfigsModule {}

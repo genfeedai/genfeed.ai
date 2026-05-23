@@ -12,24 +12,24 @@ import { QueuesModule } from '@api/queues/core/queues.module';
 import { AgentOrchestratorModule } from '@api/services/agent-orchestrator/agent-orchestrator.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { LoggerModule } from '@libs/logger/logger.module';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   controllers: [TasksController],
   exports: [TasksService],
   imports: [
-    AgentMessagesModule,
-    AgentOrchestratorModule,
-    AgentRunsModule,
-    AgentThreadsModule,
-    IngredientsModule,
-    NotificationsPublisherModule,
-    SkillsModule,
-    QueuesModule,
-    TaskCommentsModule,
-    TaskCountersModule,
-    OrganizationsModule,
-    LoggerModule,
+    forwardRef(() => AgentMessagesModule),
+    forwardRef(() => AgentOrchestratorModule),
+    forwardRef(() => AgentRunsModule),
+    forwardRef(() => AgentThreadsModule),
+    forwardRef(() => IngredientsModule),
+    forwardRef(() => NotificationsPublisherModule),
+    forwardRef(() => SkillsModule),
+    forwardRef(() => QueuesModule),
+    forwardRef(() => TaskCommentsModule),
+    forwardRef(() => TaskCountersModule),
+    forwardRef(() => OrganizationsModule),
+    forwardRef(() => LoggerModule),
   ],
   providers: [TasksService],
 })

@@ -3,18 +3,18 @@ import { ConfigModule } from '@api/config/config.module';
 import { HookRemixController } from '@api/endpoints/v1/hook-remix/hook-remix.controller';
 import { HookRemixService } from '@api/endpoints/v1/hook-remix/hook-remix.service';
 import { HttpModule } from '@nestjs/axios';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   controllers: [HookRemixController],
   exports: [HookRemixService],
   imports: [
-    ConfigModule,
+    forwardRef(() => ConfigModule),
     HttpModule.register({
       maxRedirects: 5,
       timeout: 30000,
     }),
-    IngredientsModule,
+    forwardRef(() => IngredientsModule),
   ],
   providers: [HookRemixService],
 })

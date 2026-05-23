@@ -19,12 +19,12 @@ const REDIRECT_DELAY_MS = 3000;
 const DEFAULT_RETURN_PATH = '/settings/api-keys';
 
 function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
-  const { get } = useSearchParams();
-  const code = get('code');
-  const oauthToken = get('oauth_token');
-  const oauthVerifier = get('oauth_verifier');
-  const returnTo = get('return_to');
-  const state = get('state');
+  const searchParams = useSearchParams();
+  const code = searchParams.get('code');
+  const oauthToken = searchParams.get('oauth_token');
+  const oauthVerifier = searchParams.get('oauth_verifier');
+  const returnTo = searchParams.get('return_to');
+  const state = searchParams.get('state');
   const { push } = useRouter();
   const [status, setStatus] = useState<VerifyStatus>('loading');
   const [errorMessage, setErrorMessage] = useState<string>('');

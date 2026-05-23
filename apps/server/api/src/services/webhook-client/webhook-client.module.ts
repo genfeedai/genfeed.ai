@@ -3,13 +3,13 @@ import { WebhookClientProcessor } from '@api/services/webhook-client/webhook-cli
 import { WebhookClientService } from '@api/services/webhook-client/webhook-client.service';
 import { HttpModule } from '@nestjs/axios';
 import { BullModule } from '@nestjs/bullmq';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   exports: [WebhookClientService],
   imports: [
-    HttpModule,
-    OrganizationSettingsModule,
+    forwardRef(() => HttpModule),
+    forwardRef(() => OrganizationSettingsModule),
     BullModule.registerQueue({
       defaultJobOptions: {
         attempts: 5,

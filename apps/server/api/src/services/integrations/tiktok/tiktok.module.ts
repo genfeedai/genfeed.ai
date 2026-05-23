@@ -8,9 +8,9 @@ import { forwardRef, Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(TiktokService, {
   additionalImports: [
-    HttpModule,
+    forwardRef(() => HttpModule),
     forwardRef(() => BrandsModule),
-    CredentialsCoreModule,
+    forwardRef(() => CredentialsCoreModule),
   ],
 });
 

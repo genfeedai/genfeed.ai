@@ -18,23 +18,23 @@ import { FilesClientModule } from '@api/services/files-microservice/client/files
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   controllers: [TrainingsController, TrainingsOperationsController],
   exports: [TrainingsService],
   imports: [
-    ByokModule,
-    CreditsModule,
-    FileQueueModule,
-    IngredientsModule,
-    MetadataModule,
-    ModelsModule,
+    forwardRef(() => ByokModule),
+    forwardRef(() => CreditsModule),
+    forwardRef(() => FileQueueModule),
+    forwardRef(() => IngredientsModule),
+    forwardRef(() => MetadataModule),
+    forwardRef(() => ModelsModule),
 
-    FilesClientModule,
-    MemoryModule,
-    NotificationsPublisherModule,
-    ReplicateModule,
+    forwardRef(() => FilesClientModule),
+    forwardRef(() => MemoryModule),
+    forwardRef(() => NotificationsPublisherModule),
+    forwardRef(() => ReplicateModule),
   ],
   providers: [TrainingsService, CreditsGuard, CreditsInterceptor],
 })

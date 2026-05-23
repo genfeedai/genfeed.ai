@@ -2,10 +2,10 @@ import { CredentialsCoreModule } from '@api/collections/credentials/credentials-
 import { TelegramController } from '@api/services/integrations/telegram/controllers/telegram.controller';
 import { TelegramService } from '@api/services/integrations/telegram/services/telegram.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(TelegramService, {
-  additionalImports: [CredentialsCoreModule],
+  additionalImports: [forwardRef(() => CredentialsCoreModule)],
 });
 
 @Module({

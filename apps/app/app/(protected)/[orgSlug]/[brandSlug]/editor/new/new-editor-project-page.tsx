@@ -8,8 +8,8 @@ import { Suspense, useEffect, useRef } from 'react';
 
 function NewEditorProjectPageContent() {
   const { replace } = useRouter();
-  const { get } = useSearchParams();
-  const videoId = get('video') || get('videoId');
+  const searchParams = useSearchParams();
+  const videoId = searchParams.get('video') || searchParams.get('videoId');
   const creating = useRef(false);
 
   const getEditorService = useAuthedService((token: string) =>

@@ -8,16 +8,16 @@ import { ByokModule } from '@api/services/byok/byok.module';
 import { HeyGenModule } from '@api/services/integrations/heygen/heygen.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { HttpModule } from '@nestjs/axios';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   exports: [AvatarVideoService, HeygenAvatarProvider],
   imports: [
-    HeyGenModule,
-    ByokModule,
-    HttpModule,
-    LoggerModule,
-    ApiKeyHelperModule,
+    forwardRef(() => HeyGenModule),
+    forwardRef(() => ByokModule),
+    forwardRef(() => HttpModule),
+    forwardRef(() => LoggerModule),
+    forwardRef(() => ApiKeyHelperModule),
   ],
   providers: [
     AvatarVideoService,

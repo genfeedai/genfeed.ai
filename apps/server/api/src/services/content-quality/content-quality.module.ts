@@ -4,16 +4,16 @@ import { ConfigModule } from '@api/config/config.module';
 import { ContentQualityScorerService } from '@api/services/content-quality/content-quality-scorer.service';
 import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
 import { LoggerModule } from '@libs/logger/logger.module';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   exports: [ContentQualityScorerService],
   imports: [
-    ConfigModule,
-    LoggerModule,
-    OpenRouterModule,
-    IngredientsModule,
-    PostsModule,
+    forwardRef(() => ConfigModule),
+    forwardRef(() => LoggerModule),
+    forwardRef(() => OpenRouterModule),
+    forwardRef(() => IngredientsModule),
+    forwardRef(() => PostsModule),
   ],
   providers: [ContentQualityScorerService],
 })

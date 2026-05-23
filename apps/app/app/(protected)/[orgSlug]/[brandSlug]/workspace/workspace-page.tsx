@@ -1437,9 +1437,9 @@ function WorkspacePageContentContent({
   const { organizationId } = useBrand();
   const pathname = usePathname();
   const { push, replace } = useRouter();
-  const { get, toString: stringifySearchParams } = useSearchParams();
-  const searchParamsString = stringifySearchParams();
-  const requestedTaskId = get('taskId');
+  const searchParams = useSearchParams();
+  const searchParamsString = searchParams.toString();
+  const requestedTaskId = searchParams.get('taskId');
   const [isTaskComposerOpen, setTaskComposerOpen] = useState(false);
   const [workspaceActionError, setWorkspaceActionError] = useState<
     string | null

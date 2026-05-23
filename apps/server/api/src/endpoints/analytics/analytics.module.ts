@@ -22,33 +22,33 @@ import { PinterestModule } from '@api/services/integrations/pinterest/pinterest.
 import { TiktokModule } from '@api/services/integrations/tiktok/tiktok.module';
 import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
 import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   controllers: [AnalyticsController],
   exports: [AnalyticsService],
   imports: [
     // Core modules
-    CacheModule,
+    forwardRef(() => CacheModule),
 
     // Data modules (needed for controller and service)
-    BotsModule,
-    BrandsModule,
-    CreditsModule,
-    IngredientsModule,
-    ModelsModule,
-    OrganizationsModule,
-    PostsModule,
-    SubscriptionsModule,
-    UsersModule,
-    WorkflowsModule,
+    forwardRef(() => BotsModule),
+    forwardRef(() => BrandsModule),
+    forwardRef(() => CreditsModule),
+    forwardRef(() => IngredientsModule),
+    forwardRef(() => ModelsModule),
+    forwardRef(() => OrganizationsModule),
+    forwardRef(() => PostsModule),
+    forwardRef(() => SubscriptionsModule),
+    forwardRef(() => UsersModule),
+    forwardRef(() => WorkflowsModule),
 
     // Platform integration modules (needed for external API analytics)
-    InstagramModule,
-    PinterestModule,
-    TiktokModule,
-    TwitterModule,
-    YoutubeModule,
+    forwardRef(() => InstagramModule),
+    forwardRef(() => PinterestModule),
+    forwardRef(() => TiktokModule),
+    forwardRef(() => TwitterModule),
+    forwardRef(() => YoutubeModule),
   ],
   providers: [AnalyticsService, BusinessAnalyticsService],
 })

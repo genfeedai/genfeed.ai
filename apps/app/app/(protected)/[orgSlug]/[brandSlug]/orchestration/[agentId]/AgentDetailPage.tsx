@@ -120,8 +120,8 @@ function getRunModelLabel(run: AgentRunRowProps['run']): string {
 
 function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
   const notificationsService = NotificationsService.getInstance();
-  const { get } = useSearchParams();
-  const requestedOpportunityId = get('opportunity');
+  const searchParams = useSearchParams();
+  const requestedOpportunityId = searchParams.get('opportunity');
   const {
     strategy,
     isLoading: isStrategyLoading,

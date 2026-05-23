@@ -12,17 +12,17 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   controllers: [ContextsController],
   exports: [ContextsService],
   imports: [
-    ByokModule,
-    ConfigModule,
-    CreditsModule,
-    ModelsModule,
-    ReplicateModule,
+    forwardRef(() => ByokModule),
+    forwardRef(() => ConfigModule),
+    forwardRef(() => CreditsModule),
+    forwardRef(() => ModelsModule),
+    forwardRef(() => ReplicateModule),
   ],
   providers: [ContextsService, CreditsGuard, CreditsInterceptor],
 })

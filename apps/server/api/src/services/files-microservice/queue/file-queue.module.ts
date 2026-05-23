@@ -2,11 +2,11 @@ import { CredentialsCoreModule } from '@api/collections/credentials/credentials-
 import { ConfigModule } from '@api/config/config.module';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { HttpModule } from '@nestjs/axios';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   exports: [FileQueueService],
-  imports: [HttpModule, ConfigModule, CredentialsCoreModule],
+  imports: [HttpModule, ConfigModule, forwardRef(() => CredentialsCoreModule)],
   providers: [FileQueueService],
 })
 export class FileQueueModule {}

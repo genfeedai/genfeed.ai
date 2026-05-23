@@ -22,6 +22,25 @@ function buildWorkspaceSourceAliases(cloudPackagesRoot) {
   return aliases;
 }
 
+function buildServerSourceAliases(serverAppsRoot) {
+  const aliases = {};
+  for (const entry of fs.readdirSync(serverAppsRoot, {
+    withFileTypes: true,
+  })) {
+    if (!entry.isDirectory()) continue;
+    const appSrc = path.resolve(serverAppsRoot, entry.name, 'src');
+    if (!fs.existsSync(appSrc)) continue;
+    aliases[`@${entry.name}`] = appSrc;
+  }
+
+  const apiRoot = path.resolve(serverAppsRoot, 'api');
+  aliases['@api-root'] = apiRoot;
+  aliases['@api-scripts'] = path.resolve(apiRoot, 'scripts');
+  aliases['@api-test'] = path.resolve(apiRoot, 'test');
+
+  return aliases;
+}
+
 /**
  * Base webpack configuration for NestJS monorepo apps
  * @param {Object} options
@@ -43,10 +62,30 @@ module.exports = function createWebpackConfig({
   const tsConfigPath = path.resolve(appDir, 'tsconfig.app.json');
   const workspaceRoot = path.resolve(nodeModulesDir, '..');
   const cloudPackagesRoot = path.resolve(workspaceRoot, 'packages');
+  const enterprisePackagesRoot = path.resolve(workspaceRoot, 'ee/packages');
+  const serverAppsRoot = path.resolve(workspaceRoot, 'apps/server');
+  const eeBillingSrc = path.resolve(enterprisePackagesRoot, 'billing/src');
   const workspaceSourceAliases = {
+    ...buildServerSourceAliases(serverAppsRoot),
     ...buildWorkspaceSourceAliases(cloudPackagesRoot),
+    '@config': path.resolve(cloudPackagesRoot, 'config/src'),
+    '@genfeedai/ee-billing': eeBillingSrc,
+    '@genfeedai/ee-billing/subscription-attributions': path.resolve(
+      eeBillingSrc,
+      'subscription-attributions',
+    ),
+    '@genfeedai/ee-billing/subscriptions': path.resolve(
+      eeBillingSrc,
+      'subscriptions',
+    ),
+    '@genfeedai/ee-billing/user-subscriptions': path.resolve(
+      eeBillingSrc,
+      'user-subscriptions',
+    ),
+    '@genfeedai-types': path.resolve(cloudPackagesRoot, 'types/src'),
     '@helpers': path.resolve(cloudPackagesRoot, 'helpers/src'),
     '@integrations': path.resolve(cloudPackagesRoot, 'integrations/src'),
+    '@libs': path.resolve(cloudPackagesRoot, 'libs'),
     '@serializers': path.resolve(cloudPackagesRoot, 'serializers/src'),
     '@workflow-engine': path.resolve(cloudPackagesRoot, 'workflow-engine/src'),
     '@workflow-saas': path.resolve(cloudPackagesRoot, 'workflow-saas/src'),
@@ -96,7 +135,6 @@ module.exports = function createWebpackConfig({
           /^@notifications\//,
           /^@mcp\//,
           /^@discord\//,
-          /^@slack\//,
           /^@telegram\//,
           /^@images\//,
           /^@videos\//,
@@ -148,13 +186,12 @@ module.exports = function createWebpackConfig({
         {
           include: /node_modules/,
           test: /\.js\.map$/,
-          type: 'javascript/auto',
-          use: 'null-loader',
+          type: 'asset/source',
         },
         // Handle .d.ts files - ignore them (type definitions only, no runtime code)
         {
           test: /\.d\.ts$/,
-          use: 'null-loader',
+          type: 'asset/source',
         },
         // Handle .ts files (but not .d.ts)
         // Include @genfeedai/* workspace packages for direct TS transpilation (enables HMR)

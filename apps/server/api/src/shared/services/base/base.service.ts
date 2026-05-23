@@ -506,7 +506,7 @@ export abstract class BaseService<
         enableCache && this.cacheService
           ? AggregationCacheUtil.generateCacheKey(
               this.collectionName,
-              [],
+              [{ include: include ?? null, orderBy, where }],
               options,
             )
           : null;

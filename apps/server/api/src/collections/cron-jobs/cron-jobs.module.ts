@@ -7,20 +7,20 @@ import { QueuesModule } from '@api/queues/core/queues.module';
 import { CacheModule } from '@api/services/cache/cache.module';
 import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
 import { SubstackModule } from '@api/services/integrations/substack/substack.module';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   controllers: [CronJobsController],
   exports: [CronJobsService],
   imports: [
-    CreditsModule,
-    WorkflowsModule,
-    AgentRunsModule,
-    QueuesModule,
-    CreditsModule,
-    CacheModule,
-    OpenRouterModule,
-    SubstackModule,
+    forwardRef(() => CreditsModule),
+    forwardRef(() => WorkflowsModule),
+    forwardRef(() => AgentRunsModule),
+    forwardRef(() => QueuesModule),
+    forwardRef(() => CreditsModule),
+    forwardRef(() => CacheModule),
+    forwardRef(() => OpenRouterModule),
+    forwardRef(() => SubstackModule),
   ],
   providers: [CronJobsService],
 })

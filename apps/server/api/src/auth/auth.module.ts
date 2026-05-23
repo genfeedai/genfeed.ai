@@ -24,7 +24,7 @@ import { ClerkClientProvider } from '@api/providers/clerk.provider';
 import { BatchGenerationModule } from '@api/services/batch-generation/batch-generation.module';
 import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { FleetModule } from '@api/services/integrations/fleet/fleet.module';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 
 @Module({
@@ -36,23 +36,23 @@ import { PassportModule } from '@nestjs/passport';
   ],
   exports: [PassportModule],
   imports: [
-    PassportModule,
-    AgentRunsModule,
-    ApiKeysModule,
-    BatchGenerationModule,
-    BrandsModule,
-    CommonModule,
-    ConfigModule,
-    CredentialsCoreModule,
-    CreditsModule,
-    FleetModule,
-    MembersModule,
-    OrganizationsModule,
-    OrganizationSettingsModule,
-    PostsModule,
-    StreaksModule,
-    SubscriptionsModule,
-    UsersModule,
+    forwardRef(() => PassportModule),
+    forwardRef(() => AgentRunsModule),
+    forwardRef(() => ApiKeysModule),
+    forwardRef(() => BatchGenerationModule),
+    forwardRef(() => BrandsModule),
+    forwardRef(() => CommonModule),
+    forwardRef(() => ConfigModule),
+    forwardRef(() => CredentialsCoreModule),
+    forwardRef(() => CreditsModule),
+    forwardRef(() => FleetModule),
+    forwardRef(() => MembersModule),
+    forwardRef(() => OrganizationsModule),
+    forwardRef(() => OrganizationSettingsModule),
+    forwardRef(() => PostsModule),
+    forwardRef(() => StreaksModule),
+    forwardRef(() => SubscriptionsModule),
+    forwardRef(() => UsersModule),
   ],
   providers: [
     AuthBootstrapService,

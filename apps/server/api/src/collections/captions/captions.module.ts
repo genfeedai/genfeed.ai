@@ -8,12 +8,15 @@ import { CaptionsController } from '@api/collections/captions/controllers/captio
 import { CaptionsService } from '@api/collections/captions/services/captions.service';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { WhisperModule } from '@api/services/whisper/whisper.module';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   controllers: [CaptionsController],
   exports: [CaptionsService],
-  imports: [IngredientsModule, WhisperModule],
+  imports: [
+    forwardRef(() => IngredientsModule),
+    forwardRef(() => WhisperModule),
+  ],
   providers: [CaptionsService],
 })
 export class CaptionsModule {}

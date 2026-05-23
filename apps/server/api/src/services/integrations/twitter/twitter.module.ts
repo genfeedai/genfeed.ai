@@ -9,10 +9,10 @@ import { forwardRef, Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(TwitterService, {
   additionalImports: [
-    HttpModule,
+    forwardRef(() => HttpModule),
     forwardRef(() => BrandsModule),
-    CredentialsCoreModule,
-    ActivitiesModule,
+    forwardRef(() => CredentialsCoreModule),
+    forwardRef(() => ActivitiesModule),
   ],
 });
 

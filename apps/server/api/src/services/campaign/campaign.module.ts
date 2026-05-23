@@ -21,10 +21,10 @@ import { forwardRef, Module } from '@nestjs/common';
     DmCampaignExecutorService,
   ],
   imports: [
-    CampaignTargetsModule,
+    forwardRef(() => CampaignTargetsModule),
     forwardRef(() => OutreachCampaignsModule),
-    CredentialsCoreModule,
-    ReplyBotModule,
+    forwardRef(() => CredentialsCoreModule),
+    forwardRef(() => ReplyBotModule),
   ],
   providers: [
     CampaignDiscoveryService,

@@ -4,16 +4,16 @@ import { AgentContextAssemblyModule } from '@api/services/agent-context-assembly
 import { ByokModule } from '@api/services/byok/byok.module';
 import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
 import { LoggerModule } from '@libs/logger/logger.module';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   controllers: [AiActionsController],
   exports: [AiActionsService],
   imports: [
-    AgentContextAssemblyModule,
-    ByokModule,
-    LoggerModule,
-    OpenRouterModule,
+    forwardRef(() => AgentContextAssemblyModule),
+    forwardRef(() => ByokModule),
+    forwardRef(() => LoggerModule),
+    forwardRef(() => OpenRouterModule),
   ],
   providers: [AiActionsService],
 })

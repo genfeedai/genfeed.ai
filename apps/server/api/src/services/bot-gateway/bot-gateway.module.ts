@@ -14,21 +14,21 @@ import { BotGenerationService } from '@api/services/bot-gateway/services/bot-gen
 import { BotUserResolverService } from '@api/services/bot-gateway/services/bot-user-resolver.service';
 import { SharedModule } from '@api/shared/shared.module';
 import { HttpModule } from '@nestjs/axios';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   controllers: [BotGatewayController],
   exports: [BotGatewayService, BotGenerationService],
   imports: [
-    ConfigModule,
-    BrandsModule,
-    CredentialsCoreModule,
-    CreditsModule,
-    HttpModule,
-    IngredientsModule,
-    MetadataModule,
-    OrganizationSettingsModule,
-    SharedModule,
+    forwardRef(() => ConfigModule),
+    forwardRef(() => BrandsModule),
+    forwardRef(() => CredentialsCoreModule),
+    forwardRef(() => CreditsModule),
+    forwardRef(() => HttpModule),
+    forwardRef(() => IngredientsModule),
+    forwardRef(() => MetadataModule),
+    forwardRef(() => OrganizationSettingsModule),
+    forwardRef(() => SharedModule),
   ],
   providers: [
     BotGatewayService,

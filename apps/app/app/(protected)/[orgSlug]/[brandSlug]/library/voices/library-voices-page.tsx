@@ -57,8 +57,8 @@ function LibraryVoicesContent() {
   const { filters, onRefresh, query } = useIngredientsContext();
   const pathname = usePathname();
   const { replace } = useRouter();
-  const { get, toString: stringifySearchParams } = useSearchParams();
-  const searchParamsString = stringifySearchParams();
+  const searchParams = useSearchParams();
+  const searchParamsString = searchParams.toString();
   const { closeUpload, openUpload } = useUploadModal();
   const { brandId, organizationId, refreshBrands, selectedBrand } = useBrand();
   const selectedBrandState = selectedBrand as SelectedBrandState | undefined;
@@ -67,7 +67,7 @@ function LibraryVoicesContent() {
     | DefaultVoiceRef
     | null
     | undefined;
-  const currentPage = Number(get('page')) || 1;
+  const currentPage = Number(searchParams.get('page')) || 1;
 
   const getVoiceCloneService = useAuthedService((token: string) =>
     VoiceCloneService.getInstance(token),

@@ -6,16 +6,16 @@ import { NotificationsPublisherModule } from '@api/services/notifications/publis
 import { SkillExecutorModule } from '@api/services/skill-executor/skill-executor.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { BullModule } from '@nestjs/bullmq';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   controllers: [BatchContentController],
   exports: [BatchContentQueueService, BatchContentService],
   imports: [
-    BrandsModule,
-    LoggerModule,
-    NotificationsPublisherModule,
-    SkillExecutorModule,
+    forwardRef(() => BrandsModule),
+    forwardRef(() => LoggerModule),
+    forwardRef(() => NotificationsPublisherModule),
+    forwardRef(() => SkillExecutorModule),
     BullModule.registerQueue({
       defaultJobOptions: {
         attempts: 3,

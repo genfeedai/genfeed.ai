@@ -17,6 +17,11 @@ describe('BaseService', () => {
   let prisma: PrismaService;
   let delegate: Record<string, ReturnType<typeof vi.fn>>;
   let logger: LoggerService;
+  let cacheService: {
+    get: ReturnType<typeof vi.fn>;
+    set: ReturnType<typeof vi.fn>;
+    invalidateByTags: ReturnType<typeof vi.fn>;
+  };
   let setModelFields: (...fields: string[]) => void;
 
   beforeEach(() => {
@@ -26,6 +31,11 @@ describe('BaseService', () => {
       log: vi.fn(),
       warn: vi.fn(),
     } as Partial<LoggerService> as LoggerService;
+    cacheService = {
+      get: vi.fn().mockResolvedValue(null),
+      invalidateByTags: vi.fn(),
+      set: vi.fn(),
+    };
 
     delegate = {
       findMany: vi.fn(),
@@ -50,7 +60,13 @@ describe('BaseService', () => {
       testModel: delegate,
     } as unknown as PrismaService;
 
-    service = new TestService(prisma, 'testModel', logger);
+    service = new TestService(
+      prisma,
+      'testModel',
+      logger,
+      undefined,
+      cacheService as never,
+    );
     setModelFields = (...fields: string[]) => {
       (
         prisma as PrismaService & {
@@ -190,6 +206,26 @@ describe('BaseService', () => {
       expect(result.hasPrevPage).toBe(true);
       expect(result.nextPage).toBe(3);
       expect(result.prevPage).toBe(1);
+    });
+
+    it('uses resolved filters in cache keys', async () => {
+      delegate.findMany.mockResolvedValue([{ id: '1' }]);
+      delegate.count.mockResolvedValue(1);
+      cacheService.get.mockResolvedValue(null);
+
+      await service.findAll(
+        { where: { organization: 'org-1' } },
+        { page: 1, limit: 10 },
+      );
+      await service.findAll(
+        { where: { organization: 'org-2' } },
+        { page: 1, limit: 10 },
+      );
+
+      expect(cacheService.get).toHaveBeenCalledTimes(2);
+      const [firstKey] = cacheService.get.mock.calls[0];
+      const [secondKey] = cacheService.get.mock.calls[1];
+      expect(firstKey).not.toBe(secondKey);
     });
 
     it('applies explicit Prisma where, orderBy, and include options', async () => {

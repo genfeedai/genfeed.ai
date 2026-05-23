@@ -4,10 +4,14 @@ import { WhatsappController } from '@api/services/integrations/whatsapp/controll
 import { WhatsappService } from '@api/services/integrations/whatsapp/services/whatsapp.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
 import { HttpModule } from '@nestjs/axios';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(WhatsappService, {
-  additionalImports: [HttpModule, BrandsModule, CredentialsCoreModule],
+  additionalImports: [
+    HttpModule,
+    forwardRef(() => BrandsModule),
+    CredentialsCoreModule,
+  ],
 });
 
 @Module({

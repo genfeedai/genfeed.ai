@@ -2,11 +2,11 @@ import { OrganizationSettingsModule } from '@api/collections/organization-settin
 import { ByokService } from '@api/services/byok/byok.service';
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
 import { HttpModule } from '@nestjs/axios';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   exports: [ByokProviderFactoryService, ByokService],
-  imports: [HttpModule, OrganizationSettingsModule],
+  imports: [HttpModule, forwardRef(() => OrganizationSettingsModule)],
   providers: [ByokProviderFactoryService, ByokService],
 })
 export class ByokModule {}

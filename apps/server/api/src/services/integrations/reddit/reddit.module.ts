@@ -4,10 +4,14 @@ import { RedditController } from '@api/services/integrations/reddit/controllers/
 import { RedditService } from '@api/services/integrations/reddit/services/reddit.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
 import { HttpModule } from '@nestjs/axios';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(RedditService, {
-  additionalImports: [HttpModule, BrandsModule, CredentialsCoreModule],
+  additionalImports: [
+    HttpModule,
+    forwardRef(() => BrandsModule),
+    forwardRef(() => CredentialsCoreModule),
+  ],
 });
 
 @Module({

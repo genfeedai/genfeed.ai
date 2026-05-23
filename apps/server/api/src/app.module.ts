@@ -309,7 +309,6 @@ import { SentryModule } from '@sentry/nestjs/setup';
     SettingsModule,
     SpeechModule,
     StreaksModule,
-    SubscriptionAttributionsModule,
     SubscriptionsModule,
     TagsModule,
     TemplatesModule,
@@ -448,7 +447,11 @@ import { SentryModule } from '@sentry/nestjs/setup';
 
     // EE-only modules (require GENFEED_LICENSE_KEY)
     ...(isEEEnabled()
-      ? [UserSubscriptionsModule, BusinessAnalyticsModule]
+      ? [
+          UserSubscriptionsModule,
+          BusinessAnalyticsModule,
+          SubscriptionAttributionsModule,
+        ]
       : []),
   ],
   providers: [

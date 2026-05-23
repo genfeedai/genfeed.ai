@@ -9,7 +9,7 @@ import { FilesClientModule } from '@api/services/files-microservice/client/files
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { RedisModule } from '@libs/redis/redis.module';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 
 @Module({
@@ -24,10 +24,10 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
   ],
   imports: [
     EventEmitterModule.forRoot(),
-    FilesClientModule,
-    FileQueueModule,
-    ReplicateModule,
-    RedisModule,
+    forwardRef(() => FilesClientModule),
+    forwardRef(() => FileQueueModule),
+    forwardRef(() => ReplicateModule),
+    forwardRef(() => RedisModule),
   ],
   providers: [
     ClipOrchestratorService,
