@@ -1,6 +1,4 @@
-function cn(...classes: (string | false | undefined | null)[]): string {
-  return classes.filter(Boolean).join(' ');
-}
+import { cn } from '../lib/utils';
 
 type IdentitySize = 'xs' | 'sm' | 'default' | 'lg';
 
