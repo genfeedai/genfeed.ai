@@ -518,6 +518,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@genfeedai/config": "workspace:*",
+        "@genfeedai/interfaces": "workspace:*",
         "@genfeedai/tools": "workspace:*",
       },
       "devDependencies": {

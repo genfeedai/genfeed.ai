@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "@genfeedai/config": "workspace:*",
+    "@genfeedai/interfaces": "workspace:*",
     "@genfeedai/tools": "workspace:*"
   },
   "description": "Genfeed MCP Server",

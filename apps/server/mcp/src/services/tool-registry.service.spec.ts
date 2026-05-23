@@ -3,24 +3,53 @@ import { ClientService } from '@mcp/services/client.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
+const MOCK_TOOLS = [
+  { name: 'generate_video', requiredRole: undefined, surfaces: { mcp: true } },
+  {
+    name: 'get_video_status',
+    requiredRole: undefined,
+    surfaces: { mcp: true },
+  },
+  { name: 'list_videos', requiredRole: undefined, surfaces: { mcp: true } },
+  { name: 'list_images', requiredRole: undefined, surfaces: { mcp: true } },
+  {
+    name: 'get_credits_balance',
+    requiredRole: undefined,
+    surfaces: { mcp: true },
+  },
+  { name: 'get_trends', requiredRole: undefined, surfaces: { mcp: true } },
+  { name: 'create_post', requiredRole: undefined, surfaces: { mcp: true } },
+  { name: 'list_posts', requiredRole: undefined, surfaces: { mcp: true } },
+  { name: 'create_article', requiredRole: undefined, surfaces: { mcp: true } },
+  { name: 'create_workflow', requiredRole: undefined, surfaces: { mcp: true } },
+  {
+    name: 'execute_workflow',
+    requiredRole: undefined,
+    surfaces: { mcp: true },
+  },
+  { name: 'list_workflows', requiredRole: undefined, surfaces: { mcp: true } },
+  {
+    name: 'get_workflow_status',
+    requiredRole: undefined,
+    surfaces: { mcp: true },
+  },
+  {
+    name: 'get_content_analytics',
+    requiredRole: undefined,
+    surfaces: { mcp: true },
+  },
+  {
+    name: 'get_ad_performance_insights',
+    requiredRole: 'admin',
+    surfaces: { mcp: true },
+  },
+];
+
+const TOOLS_BY_NAME = new Map(MOCK_TOOLS.map((t) => [t.name, t]));
+
 vi.mock('@genfeedai/tools', () => ({
-  getToolsForSurface: vi.fn(() => [
-    { name: 'generate_video', requiredRole: undefined },
-    { name: 'get_video_status', requiredRole: undefined },
-    { name: 'list_videos', requiredRole: undefined },
-    { name: 'list_images', requiredRole: undefined },
-    { name: 'get_credits_balance', requiredRole: undefined },
-    { name: 'get_trends', requiredRole: undefined },
-    { name: 'create_post', requiredRole: undefined },
-    { name: 'list_posts', requiredRole: undefined },
-    { name: 'create_article', requiredRole: undefined },
-    { name: 'create_workflow', requiredRole: undefined },
-    { name: 'execute_workflow', requiredRole: undefined },
-    { name: 'list_workflows', requiredRole: undefined },
-    { name: 'get_workflow_status', requiredRole: undefined },
-    { name: 'get_content_analytics', requiredRole: undefined },
-    { name: 'get_ad_performance_insights', requiredRole: 'admin' },
-  ]),
+  getToolByName: vi.fn((name: string) => TOOLS_BY_NAME.get(name)),
+  getToolsForSurface: vi.fn(() => MOCK_TOOLS),
   toMcpTools: vi.fn((tools) => tools),
 }));
 
@@ -33,19 +62,12 @@ vi.mock('@mcp/guards/mcp-auth.guard', () => ({
 describe('ToolRegistryService', () => {
   let service: ToolRegistryService;
   let clientService: {
-    createVideo: ReturnType<typeof vi.fn>;
+    executeAgentTool: ReturnType<typeof vi.fn>;
     getVideoStatus: ReturnType<typeof vi.fn>;
     listVideos: ReturnType<typeof vi.fn>;
     getVideoAnalytics: ReturnType<typeof vi.fn>;
     listImages: ReturnType<typeof vi.fn>;
-    getCredits: ReturnType<typeof vi.fn>;
-    getTrendingTopics: ReturnType<typeof vi.fn>;
-    publishContent: ReturnType<typeof vi.fn>;
-    listPosts: ReturnType<typeof vi.fn>;
     createArticle: ReturnType<typeof vi.fn>;
-    createWorkflow: ReturnType<typeof vi.fn>;
-    executeWorkflow: ReturnType<typeof vi.fn>;
-    listWorkflows: ReturnType<typeof vi.fn>;
     getWorkflowStatus: ReturnType<typeof vi.fn>;
     getOrganizationAnalytics: ReturnType<typeof vi.fn>;
     setBearerToken: ReturnType<typeof vi.fn>;
@@ -68,40 +90,16 @@ describe('ToolRegistryService', () => {
               title: 'AI News',
               wordCount: 500,
             }),
-            createVideo: vi.fn().mockResolvedValue({
-              estimatedCompletion: '5m',
-              id: 'vid-1',
-              status: 'queued',
-            }),
-            createWorkflow: vi.fn().mockResolvedValue({
-              description: '',
-              id: 'wf-1',
-              name: 'My Flow',
-              status: 'active',
-              steps: [],
-            }),
-            executeWorkflow: vi.fn().mockResolvedValue({
-              executionId: 'exec-1',
-              startedAt: '2026-01-01',
-              status: 'running',
-              workflowId: 'wf-1',
-            }),
-            getCredits: vi.fn().mockResolvedValue({
-              available: 500,
-              breakdown: {
-                articles: 20,
-                avatars: 5,
-                images: 15,
-                music: 10,
-                videos: 50,
-              },
-              total: 600,
-              used: 100,
-            }),
+            executeAgentTool: vi.fn().mockImplementation((name: string) =>
+              Promise.resolve({
+                creditsUsed: 1,
+                data: { name, result: 'ok' },
+                success: true,
+              }),
+            ),
             getOrganizationAnalytics: vi
               .fn()
               .mockResolvedValue({ totalViews: 9999 }),
-            getTrendingTopics: vi.fn().mockResolvedValue([{ topic: 'AI' }]),
             getVideoAnalytics: vi.fn().mockResolvedValue({ views: 1000 }),
             getVideoStatus: vi
               .fn()
@@ -114,16 +112,9 @@ describe('ToolRegistryService', () => {
               steps: [],
             }),
             listImages: vi.fn().mockResolvedValue([]),
-            listPosts: vi.fn().mockResolvedValue([]),
             listVideos: vi
               .fn()
               .mockResolvedValue([{ id: 'vid-1', title: 'Test' }]),
-            listWorkflows: vi
-              .fn()
-              .mockResolvedValue([
-                { id: 'wf-1', name: 'My Flow', status: 'active' },
-              ]),
-            publishContent: vi.fn().mockResolvedValue([{ id: 'post-1' }]),
             setBearerToken: vi.fn(),
           },
         },
@@ -161,19 +152,22 @@ describe('ToolRegistryService', () => {
     expect(resources[1].uri).toBe('genfeed://analytics/organization');
   });
 
-  it('handleToolCall generate_video calls clientService.createVideo', async () => {
+  it('handleToolCall generate_video proxies through executeAgentTool', async () => {
     const result = await service.handleToolCall({
       arguments: { description: 'AI surfing', title: 'Epic Reel' },
       name: 'generate_video',
     });
 
-    expect(clientService.createVideo).toHaveBeenCalled();
+    expect(clientService.executeAgentTool).toHaveBeenCalledWith(
+      'generate_video',
+      { description: 'AI surfing', title: 'Epic Reel' },
+    );
     expect(
       (result as { content: { text: string }[] }).content[0].text,
-    ).toContain('vid-1');
+    ).toContain('generate_video');
   });
 
-  it('handleToolCall get_video_status returns status info', async () => {
+  it('handleToolCall get_video_status returns status info via legacy handler', async () => {
     const result = await service.handleToolCall({
       arguments: { videoId: 'vid-1' },
       name: 'get_video_status',
@@ -197,7 +191,7 @@ describe('ToolRegistryService', () => {
     ).toContain('videoId required');
   });
 
-  it('handleToolCall list_videos returns video list', async () => {
+  it('handleToolCall list_videos returns video list via legacy handler', async () => {
     const result = await service.handleToolCall({
       arguments: { limit: 5 },
       name: 'list_videos',
@@ -209,16 +203,19 @@ describe('ToolRegistryService', () => {
     ).toContain('vid-1');
   });
 
-  it('handleToolCall get_credits_balance returns credits summary', async () => {
+  it('handleToolCall get_credits_balance proxies through executeAgentTool', async () => {
     const result = await service.handleToolCall({
       arguments: {},
       name: 'get_credits_balance',
     });
 
-    expect(clientService.getCredits).toHaveBeenCalled();
+    expect(clientService.executeAgentTool).toHaveBeenCalledWith(
+      'get_credits_balance',
+      {},
+    );
     expect(
       (result as { content: { text: string }[] }).content[0].text,
-    ).toContain('500');
+    ).toContain('get_credits_balance');
   });
 
   it('handleToolCall throws for unknown tool and returns error', async () => {
@@ -272,8 +269,8 @@ describe('ToolRegistryService', () => {
     expect(clientService.setBearerToken).toHaveBeenCalledWith('new-token-123');
   });
 
-  it('logs error when tool handler throws', async () => {
-    clientService.getCredits.mockRejectedValueOnce(new Error('Stripe down'));
+  it('logs error when proxy executor throws', async () => {
+    clientService.executeAgentTool.mockRejectedValueOnce(new Error('API down'));
 
     await service.handleToolCall({
       arguments: {},
