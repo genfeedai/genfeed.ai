@@ -1,0 +1,30 @@
+### Track Subscription Attribution
+POST http://localhost:3000/analytics/subscription-attribution
+Content-Type: application/json
+
+{
+  "stripeSubscriptionId": "sub_test123",
+  "stripeCustomerId": "cus_test123",
+  "userId": "user_test123",
+  "email": "test@example.com",
+  "plan": "pro",
+  "amount": 2900,
+  "currency": "usd",
+  "sourceContentId": "{{testVideoId}}",
+  "sourceContentType": "video",
+  "sourcePlatform": "instagram",
+  "sourceLinkId": "link_test123",
+  "sessionId": "session_test123",
+  "utm": {
+    "source": "instagram",
+    "medium": "social",
+    "campaign": "launch_campaign"
+  }
+}
+
+### Get Content Subscription Stats
+GET http://localhost:3000/analytics/content/{{testVideoId}}/subscription-stats
+
+### Get Top Content by Subscriptions
+GET http://localhost:3000/analytics/top-content-by-subscriptions?limit=10&period=30d
+

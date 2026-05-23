@@ -14,8 +14,8 @@ import { HiOutlineNewspaper } from 'react-icons/hi2';
 function PostsLayoutContent({ children }: { children: ReactNode }) {
   const { push, refresh } = useRouter();
   const pathname = usePathname();
-  const { toString: stringifySearchParams } = useSearchParams();
-  const searchParamsString = stringifySearchParams() ?? '';
+  const searchParams = useSearchParams();
+  const searchParamsString = searchParams.toString() ?? '';
   const parsedSearchParams = useMemo(
     () => new URLSearchParams(searchParamsString),
     [searchParamsString],

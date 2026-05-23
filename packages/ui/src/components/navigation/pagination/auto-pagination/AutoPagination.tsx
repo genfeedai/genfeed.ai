@@ -47,10 +47,11 @@ function AutoPaginationContent({
 }: AutoPaginationProps) {
   const { replace } = useRouter();
   const pathname = usePathname();
-  const { get, toString: stringifySearchParams } = useSearchParams();
+  const searchParams = useSearchParams();
+  const searchParamsString = searchParams.toString();
 
   // Read from URL (defaults to page 1)
-  const currentPage = Number(get('page')) || 1;
+  const currentPage = Number(searchParams.get('page')) || 1;
 
   // Read from PagesService (set by BaseService.findAll)
   const totalPages = PagesService.getTotalPages();
@@ -59,7 +60,7 @@ function AutoPaginationContent({
   // Handle page change while preserving all query parameters
   const handlePageChange = useCallback(
     (page: number) => {
-      const params = new URLSearchParams(stringifySearchParams());
+      const params = new URLSearchParams(searchParamsString);
 
       if (page === 1) {
         // Remove page param if going to page 1
@@ -74,7 +75,7 @@ function AutoPaginationContent({
 
       replace(newUrl, { scroll: false });
     },
-    [pathname, replace, stringifySearchParams],
+    [pathname, replace, searchParamsString],
   );
 
   // Don't render if there's only 1 page

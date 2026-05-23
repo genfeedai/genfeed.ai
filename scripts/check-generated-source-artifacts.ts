@@ -52,6 +52,9 @@ function isSourceArtifactPath(filePath: string): boolean {
     /^apps\/app\/app\/.+\.js(?:\.map)?$/u.test(filePath) ||
     /^apps\/app\/packages\/.+\.js(?:\.map)?$/u.test(filePath) ||
     /^apps\/app\/src\/.+\.(?:js|js\.map|d\.ts|d\.ts\.map)$/u.test(filePath) ||
+    /^apps\/server\/[^/]+\/src\/.+\.(?:js|js\.map|d\.ts|d\.ts\.map)$/u.test(
+      filePath,
+    ) ||
     /^packages\/[^/]+\/src\/.+\.(?:js|js\.map|d\.ts|d\.ts\.map)$/u.test(
       filePath,
     ) ||
@@ -68,7 +71,7 @@ const trackedFiles = git(['ls-files'])
 
 const ignoredFiles = git(['status', '--ignored', '--short'])
   .split('\n')
-  .filter((line) => line.startsWith('!! '))
+  .filter((line) => line.startsWith('!! ') || line.startsWith('?? '))
   .map((line) => line.slice(3))
   .filter(isSourceArtifactPath);
 

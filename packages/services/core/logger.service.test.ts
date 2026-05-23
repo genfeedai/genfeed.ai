@@ -37,10 +37,13 @@ import { logger } from '@services/core/logger.service';
 describe('logger.service', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllGlobals();
   });
 
   afterEach(() => {
     vi.clearAllMocks();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   describe('debug', () => {
@@ -296,6 +299,46 @@ describe('logger.service', () => {
       logger.info('Complex data', complexObj);
 
       expect(mockPinoInfo).toHaveBeenCalledWith(complexObj, 'Complex data');
+    });
+  });
+
+  describe('browser console formatting', () => {
+    it('logs a concise error summary and moves context to debug', () => {
+      const consoleError = vi.fn();
+      const consoleDebug = vi.fn();
+      vi.stubGlobal('window', {});
+      vi.spyOn(console, 'error').mockImplementation(consoleError);
+      vi.spyOn(console, 'debug').mockImplementation(consoleDebug);
+
+      const error = new TypeError('Illegal invocation');
+      error.stack =
+        'TypeError: Illegal invocation\n    at WorkspacePageContentContent (workspace-page.tsx:1440:32)';
+
+      logger.error('ErrorBoundary caught an error', {
+        componentStack:
+          '\n    at WorkspacePageContentContent\n    at Suspense\n    at WorkspacePageContent',
+        error,
+        retryCount: 0,
+        tags: { errorBoundary: 'true' },
+        url: 'http://local.genfeed.ai/default/default/workspace/overview',
+      });
+
+      expect(consoleError).toHaveBeenCalledWith(
+        'ErrorBoundary caught an error\nTypeError: Illegal invocation\nat WorkspacePageContentContent (workspace-page.tsx:1440:32)',
+      );
+      expect(consoleDebug).toHaveBeenCalledWith(
+        'ErrorBoundary caught an error context',
+        expect.objectContaining({
+          componentStack: [
+            'at WorkspacePageContentContent',
+            'at Suspense',
+            'at WorkspacePageContent',
+          ],
+          retryCount: 0,
+          tags: { errorBoundary: 'true' },
+          url: 'http://local.genfeed.ai/default/default/workspace/overview',
+        }),
+      );
     });
   });
 });

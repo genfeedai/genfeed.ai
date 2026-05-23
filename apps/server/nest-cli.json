@@ -3,7 +3,7 @@
   "collection": "@nestjs/schematics",
   "compilerOptions": {
     "builder": "swc",
-    "deleteOutDir": true,
+    "deleteOutDir": false,
     "typeCheck": false
   },
   "monorepo": true,
@@ -23,6 +23,12 @@
             "watchAssets": true
           }
         ],
+        "builder": {
+          "options": {
+            "configPath": "api/webpack.config.js"
+          },
+          "type": "webpack"
+        },
         "tsConfigPath": "api/tsconfig.app.json"
       },
       "entryFile": "main",
@@ -32,6 +38,12 @@
     },
     "clips": {
       "compilerOptions": {
+        "builder": {
+          "options": {
+            "configPath": "clips/webpack.config.js"
+          },
+          "type": "webpack"
+        },
         "tsConfigPath": "clips/tsconfig.app.json"
       },
       "entryFile": "main",
@@ -41,6 +53,12 @@
     },
     "discord": {
       "compilerOptions": {
+        "builder": {
+          "options": {
+            "configPath": "discord/webpack.config.js"
+          },
+          "type": "webpack"
+        },
         "tsConfigPath": "discord/tsconfig.app.json"
       },
       "entryFile": "main",
@@ -48,17 +66,14 @@
       "sourceRoot": "discord/src",
       "type": "application"
     },
-    "fanvue": {
-      "compilerOptions": {
-        "tsConfigPath": "fanvue/tsconfig.app.json"
-      },
-      "entryFile": "main",
-      "root": "fanvue",
-      "sourceRoot": "fanvue/src",
-      "type": "application"
-    },
     "files": {
       "compilerOptions": {
+        "builder": {
+          "options": {
+            "configPath": "files/webpack.config.js"
+          },
+          "type": "webpack"
+        },
         "tsConfigPath": "files/tsconfig.app.json"
       },
       "entryFile": "main",
@@ -68,20 +83,17 @@
     },
     "images": {
       "compilerOptions": {
+        "builder": {
+          "options": {
+            "configPath": "images/webpack.config.js"
+          },
+          "type": "webpack"
+        },
         "tsConfigPath": "images/tsconfig.app.json"
       },
       "entryFile": "main",
       "root": "images",
       "sourceRoot": "images/src",
-      "type": "application"
-    },
-    "llm": {
-      "compilerOptions": {
-        "tsConfigPath": "llm/tsconfig.app.json"
-      },
-      "entryFile": "main",
-      "root": "llm",
-      "sourceRoot": "llm/src",
       "type": "application"
     },
     "mcp": {
@@ -94,6 +106,12 @@
             "watchAssets": true
           }
         ],
+        "builder": {
+          "options": {
+            "configPath": "mcp/webpack.config.js"
+          },
+          "type": "webpack"
+        },
         "tsConfigPath": "mcp/tsconfig.app.json"
       },
       "entryFile": "main",
@@ -103,6 +121,12 @@
     },
     "notifications": {
       "compilerOptions": {
+        "builder": {
+          "options": {
+            "configPath": "notifications/webpack.config.js"
+          },
+          "type": "webpack"
+        },
         "tsConfigPath": "notifications/tsconfig.app.json"
       },
       "entryFile": "main",
@@ -112,6 +136,12 @@
     },
     "slack": {
       "compilerOptions": {
+        "builder": {
+          "options": {
+            "configPath": "slack/webpack.config.js"
+          },
+          "type": "webpack"
+        },
         "tsConfigPath": "slack/tsconfig.app.json"
       },
       "entryFile": "main",
@@ -121,6 +151,12 @@
     },
     "telegram": {
       "compilerOptions": {
+        "builder": {
+          "options": {
+            "configPath": "telegram/webpack.config.js"
+          },
+          "type": "webpack"
+        },
         "tsConfigPath": "telegram/tsconfig.app.json"
       },
       "entryFile": "main",
@@ -128,17 +164,14 @@
       "sourceRoot": "telegram/src",
       "type": "application"
     },
-    "twitch": {
-      "compilerOptions": {
-        "tsConfigPath": "twitch/tsconfig.app.json"
-      },
-      "entryFile": "main",
-      "root": "twitch",
-      "sourceRoot": "twitch/src",
-      "type": "application"
-    },
     "videos": {
       "compilerOptions": {
+        "builder": {
+          "options": {
+            "configPath": "videos/webpack.config.js"
+          },
+          "type": "webpack"
+        },
         "tsConfigPath": "videos/tsconfig.app.json"
       },
       "entryFile": "main",
@@ -148,6 +181,12 @@
     },
     "voices": {
       "compilerOptions": {
+        "builder": {
+          "options": {
+            "configPath": "voices/webpack.config.js"
+          },
+          "type": "webpack"
+        },
         "tsConfigPath": "voices/tsconfig.app.json"
       },
       "entryFile": "main",
@@ -157,6 +196,12 @@
     },
     "workers": {
       "compilerOptions": {
+        "builder": {
+          "options": {
+            "configPath": "workers/webpack.config.js"
+          },
+          "type": "webpack"
+        },
         "tsConfigPath": "workers/tsconfig.app.json"
       },
       "entryFile": "main",

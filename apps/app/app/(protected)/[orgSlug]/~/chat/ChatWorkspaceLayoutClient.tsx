@@ -43,7 +43,7 @@ function ChatWorkspaceLayoutClientContent({
   );
   const params = useParams<{ id?: string; threadId?: string }>();
   const { replace } = useRouter();
-  const { get } = useSearchParams();
+  const searchParams = useSearchParams();
   const { getToken, isLoaded } = useAuth();
   const { session } = useSession();
   const playwrightAuth = getPlaywrightAuthState();
@@ -61,7 +61,7 @@ function ChatWorkspaceLayoutClientContent({
   const conversationBasePath = '/chat';
   const isStandardNewRoute = pathname === '/chat' || pathname === '/chat/new';
   const isUnthreadedRoute = isOnboardingEntryRoute || isStandardNewRoute;
-  const prefillPrompt = get('prompt')?.trim() || '';
+  const prefillPrompt = searchParams.get('prompt')?.trim() || '';
   const effectiveIsLoaded = isLoaded || playwrightAuth?.isLoaded === true;
   const threadId =
     typeof params.threadId === 'string' && params.threadId.length > 0

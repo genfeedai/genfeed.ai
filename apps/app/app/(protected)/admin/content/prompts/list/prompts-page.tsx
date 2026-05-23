@@ -29,8 +29,8 @@ const PROMPT_SKELETON_KEYS = [
 ] as const;
 
 function PromptsPageContent() {
-  const { toString: stringifySearchParams } = useSearchParams();
-  const searchParamsString = stringifySearchParams() ?? '';
+  const searchParams = useSearchParams();
+  const searchParamsString = searchParams.toString() ?? '';
   const parsedSearchParams = useMemo(
     () => new URLSearchParams(searchParamsString),
     [searchParamsString],

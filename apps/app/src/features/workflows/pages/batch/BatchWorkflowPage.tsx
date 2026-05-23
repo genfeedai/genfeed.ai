@@ -191,9 +191,9 @@ function getWorkflowLabel(
 function BatchWorkflowPageContent() {
   const { push, replace } = useRouter();
   const pathname = usePathname();
-  const { get, toString: stringifySearchParams } = useSearchParams();
-  const searchParamsString = stringifySearchParams();
-  const requestedJobId = get('job') ?? null;
+  const searchParams = useSearchParams();
+  const searchParamsString = searchParams.toString();
+  const requestedJobId = searchParams.get('job') ?? null;
 
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [workflows, setWorkflows] = useState<WorkflowSummary[]>([]);

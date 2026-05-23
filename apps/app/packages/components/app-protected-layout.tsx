@@ -233,8 +233,8 @@ function AppLayoutWithDynamicMenu({
 }: AppLayoutWithDynamicMenuProps) {
   const shellChromeVariant = 'default' as const;
   const rawPathname = usePathname();
-  const { toString: stringifySearchParams } = useSearchParams();
-  const searchParamsString = stringifySearchParams();
+  const searchParams = useSearchParams();
+  const searchParamsString = searchParams.toString();
   // Strip org/brand prefix from pathname for route detection.
   // Pathname may be /orgSlug/brandSlug/studio or /orgSlug/~/settings.
   const pathname = useMemo(
