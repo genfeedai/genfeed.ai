@@ -102,7 +102,7 @@ import { Inject, Injectable, Optional } from '@nestjs/common';
 import { Effect } from 'effect';
 import { firstValueFrom } from 'rxjs';
 
-interface ToolExecutionContext {
+export interface ToolExecutionContext {
   /** URLs of user-attached images from the chat message */
   attachmentUrls?: string[];
   userId: string;

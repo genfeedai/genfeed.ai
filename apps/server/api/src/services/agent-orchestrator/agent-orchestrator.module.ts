@@ -33,6 +33,7 @@ import { AgentContextAssemblyModule } from '@api/services/agent-context-assembly
 import { AgentOrchestratorController } from '@api/services/agent-orchestrator/agent-orchestrator.controller';
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { AgentStreamPublisherModule } from '@api/services/agent-orchestrator/agent-stream-publisher.module';
+import { AgentToolsController } from '@api/services/agent-orchestrator/agent-tools.controller';
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentSpawnModule } from '@api/services/agent-spawn/agent-spawn.module';
 import { AgentThreadingModule } from '@api/services/agent-threading/agent-threading.module';
@@ -46,7 +47,7 @@ import { HttpModule } from '@nestjs/axios';
 import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
-  controllers: [AgentOrchestratorController],
+  controllers: [AgentOrchestratorController, AgentToolsController],
   exports: [AgentOrchestratorService],
   imports: [
     forwardRef(() => AgentCampaignsModule),
