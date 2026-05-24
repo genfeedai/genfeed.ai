@@ -92,7 +92,8 @@ function getModelSummary(run: IAgentRun): {
 }
 
 export default function AgentRunCard({ run, onCancel }: AgentRunCardProps) {
-  const statusConfig = STATUS_CONFIG[run.status] ?? STATUS_CONFIG.pending;
+  const statusConfig =
+    STATUS_CONFIG[run.status] ?? STATUS_CONFIG[AgentExecutionStatus.PENDING];
   const isActive =
     run.status === AgentExecutionStatus.RUNNING ||
     run.status === AgentExecutionStatus.PENDING;
