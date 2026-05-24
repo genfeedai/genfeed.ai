@@ -11,6 +11,7 @@ import {
 import type { Socket } from 'socket.io';
 import { TerminalService } from './terminal.service';
 import type {
+  TerminalAttachPayload,
   TerminalCreatePayload,
   TerminalKillPayload,
   TerminalResizePayload,
@@ -25,6 +26,11 @@ const LOCAL_ORIGIN_HOSTS = new Set([
 ]);
 const PORTLESS_LOCALHOST_SUFFIX = '.genfeed.localhost';
 
+/** Slim auth record stored per connected socket after successful handshake. */
+interface SocketAuthRecord {
+  userId: string;
+}
+
 @WebSocketGateway({
   namespace: '/terminal',
 })
@@ -32,7 +38,8 @@ export class TerminalGateway
   implements OnGatewayConnection, OnGatewayDisconnect
 {
   private readonly logger = new Logger(TerminalGateway.name);
-  private readonly authenticatedSockets = new Set<string>();
+  /** Maps socketId → auth record for all authenticated connections. */
+  private readonly authenticatedSockets = new Map<string, SocketAuthRecord>();
 
   constructor(private readonly terminalService: TerminalService) {}
 
@@ -50,7 +57,8 @@ export class TerminalGateway
       return;
     }
 
-    if (!(await this.isAuthenticatedLocalClient(client))) {
+    const userId = await this.resolveAuthenticatedUserId(client);
+    if (!userId) {
       this.logger.warn('Rejected unauthenticated terminal socket connection', {
         address: client.handshake.address,
         origin: client.handshake.headers.origin,
@@ -71,7 +79,7 @@ export class TerminalGateway
       return;
     }
 
-    this.authenticatedSockets.add(client.id);
+    this.authenticatedSockets.set(client.id, { userId });
     client.emit('terminal:ready', { socketId: client.id });
   }
 
@@ -85,15 +93,21 @@ export class TerminalGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() payload?: TerminalCreatePayload,
   ): void {
-    if (!this.ensureAuthenticated(client)) {
+    const auth = this.requireAuthenticated(client);
+    if (!auth) {
       return;
     }
 
     try {
-      const session = this.terminalService.createSession(client.id, payload, {
-        onData: (data) => client.emit('terminal:data', data),
-        onExit: (exit) => client.emit('terminal:exit', exit),
-      });
+      const session = this.terminalService.createSession(
+        client.id,
+        auth.userId,
+        payload,
+        {
+          onData: (data) => client.emit('terminal:data', data),
+          onExit: (exit) => client.emit('terminal:exit', exit),
+        },
+      );
       client.emit('terminal:created', session);
     } catch (error) {
       client.emit('terminal:error', {
@@ -105,16 +119,63 @@ export class TerminalGateway
     }
   }
 
+  @SubscribeMessage('terminal:list')
+  handleList(@ConnectedSocket() client: Socket): void {
+    const auth = this.requireAuthenticated(client);
+    if (!auth) {
+      return;
+    }
+
+    const sessions = this.terminalService.listForOwner(auth.userId);
+    client.emit('terminal:sessions', sessions);
+  }
+
+  @SubscribeMessage('terminal:attach')
+  handleAttach(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: TerminalAttachPayload,
+  ): void {
+    const auth = this.requireAuthenticated(client);
+    if (!auth) {
+      return;
+    }
+
+    if (!payload?.sessionId) {
+      client.emit('terminal:error', { message: 'sessionId is required.' });
+      return;
+    }
+
+    const session = this.terminalService.attach(
+      client.id,
+      auth.userId,
+      payload.sessionId,
+      {
+        onData: (data) => client.emit('terminal:data', data),
+        onExit: (exit) => client.emit('terminal:exit', exit),
+      },
+    );
+
+    if (!session) {
+      client.emit('terminal:error', {
+        message: `Session ${payload.sessionId} not found or access denied.`,
+      });
+      return;
+    }
+
+    client.emit('terminal:attached', session);
+  }
+
   @SubscribeMessage('terminal:kill')
   handleKill(
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: TerminalKillPayload,
   ): void {
-    if (!this.ensureAuthenticated(client)) {
+    const auth = this.requireAuthenticated(client);
+    if (!auth) {
       return;
     }
 
-    this.terminalService.killSession(client.id, payload.sessionId);
+    this.terminalService.killSession(client.id, auth.userId, payload.sessionId);
   }
 
   @SubscribeMessage('terminal:resize')
@@ -122,12 +183,14 @@ export class TerminalGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: TerminalResizePayload,
   ): void {
-    if (!this.ensureAuthenticated(client)) {
+    const auth = this.requireAuthenticated(client);
+    if (!auth) {
       return;
     }
 
     this.terminalService.resizeSession(
       client.id,
+      auth.userId,
       payload.sessionId,
       payload.cols,
       payload.rows,
@@ -139,12 +202,14 @@ export class TerminalGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: TerminalWritePayload,
   ): void {
-    if (!this.ensureAuthenticated(client)) {
+    const auth = this.requireAuthenticated(client);
+    if (!auth) {
       return;
     }
 
     this.terminalService.writeSession(
       client.id,
+      auth.userId,
       payload.sessionId,
       payload.data,
     );
@@ -169,10 +234,16 @@ export class TerminalGateway
     }
   }
 
-  private async isAuthenticatedLocalClient(client: Socket): Promise<boolean> {
+  /**
+   * Verifies the socket's Clerk token and returns the Clerk user id (`sub`).
+   * Returns null when verification fails.
+   */
+  private async resolveAuthenticatedUserId(
+    client: Socket,
+  ): Promise<string | null> {
     const token = this.extractToken(client);
     if (!token) {
-      return false;
+      return null;
     }
 
     const clerkSecret = this.terminalService.getClerkSecretKey();
@@ -180,18 +251,20 @@ export class TerminalGateway
       this.logger.warn(
         'CLERK_SECRET_KEY is required before local terminal sockets can authenticate.',
       );
-      return false;
+      return null;
     }
 
     try {
       const payload = await verifyToken(token, { secretKey: clerkSecret });
-      return typeof payload.sub === 'string' && payload.sub.length > 0;
+      return typeof payload.sub === 'string' && payload.sub.length > 0
+        ? payload.sub
+        : null;
     } catch (error: unknown) {
       this.logger.warn('Failed to verify local terminal socket token', {
         error: error instanceof Error ? error.message : String(error),
         socketId: client.id,
       });
-      return false;
+      return null;
     }
   }
 
@@ -209,15 +282,20 @@ export class TerminalGateway
     return undefined;
   }
 
-  private ensureAuthenticated(client: Socket): boolean {
-    if (this.authenticatedSockets.has(client.id)) {
-      return true;
+  /**
+   * Returns the auth record for the socket if authenticated, or emits
+   * `terminal:error` and disconnects if not.
+   */
+  private requireAuthenticated(client: Socket): SocketAuthRecord | null {
+    const auth = this.authenticatedSockets.get(client.id);
+    if (auth) {
+      return auth;
     }
 
     client.emit('terminal:error', {
       message: 'Local terminal requires an authenticated session.',
     });
     client.disconnect(true);
-    return false;
+    return null;
   }
 }

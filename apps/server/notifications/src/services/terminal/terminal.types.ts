@@ -5,6 +5,8 @@ export interface TerminalCreatePayload {
   cwd?: string;
   kind?: TerminalSessionKind;
   rows?: number;
+  /** Optional thread identifier to associate this session with a specific agent thread. */
+  threadId?: string;
 }
 
 export interface TerminalSessionDto {
@@ -14,6 +16,8 @@ export interface TerminalSessionDto {
   id: string;
   kind: TerminalSessionKind;
   pid: number;
+  /** Thread identifier this session is bound to, if any. */
+  threadId?: string;
 }
 
 export interface TerminalDataPayload {
@@ -39,5 +43,9 @@ export interface TerminalResizePayload {
 }
 
 export interface TerminalKillPayload {
+  sessionId: string;
+}
+
+export interface TerminalAttachPayload {
   sessionId: string;
 }
