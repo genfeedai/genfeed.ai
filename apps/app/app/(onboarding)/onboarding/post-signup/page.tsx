@@ -8,6 +8,7 @@ import { useAuth, useUser } from '@clerk/nextjs';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { getResumeStep, ONBOARDING_STEPS } from '@genfeedai/constants';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
+import { ManagedCreditsService } from '@services/billing/managed-credits.service';
 import { StripeService } from '@services/billing/stripe.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
@@ -30,6 +31,8 @@ function PostSignupPageContent() {
   const [statusMessage, setStatusMessage] = useState(
     'Setting up your workspace...',
   );
+  const checkoutEmail =
+    currentUser?.email || clerkUser?.primaryEmailAddress?.emailAddress || '';
 
   const resolveOnboardingHref = useCallback(async (): Promise<string> => {
     if (clerkUser?.publicMetadata?.proactiveLeadId) {
@@ -152,6 +155,39 @@ function PostSignupPageContent() {
       if (credits) {
         localStorage.removeItem(ONBOARDING_STORAGE_KEYS.selectedCredits);
 
+        if (isSelfHosted()) {
+          if (!checkoutEmail) {
+            window.location.href = await resolveOnboardingHref();
+            return;
+          }
+
+          setStatusMessage('Preparing your managed credits checkout...');
+
+          try {
+            const result = await ManagedCreditsService.createCheckoutSession({
+              cancelUrl: `${window.location.origin}/onboarding/providers`,
+              email: checkoutEmail,
+              firstName: currentUser?.firstName || undefined,
+              lastName: currentUser?.lastName || undefined,
+              quantity: credits,
+              successUrl: `${window.location.origin}/managed-credits/success?session_id={CHECKOUT_SESSION_ID}`,
+            });
+
+            if (result?.url) {
+              window.location.href = result.url;
+              return;
+            }
+          } catch (error) {
+            logger.error(
+              'Failed to create managed credits checkout from post-signup',
+              error,
+            );
+          }
+
+          window.location.href = await resolveOnboardingHref();
+          return;
+        }
+
         if (!isEEEnabled()) {
           window.location.href = await resolveOnboardingHref();
           return;
@@ -209,6 +245,7 @@ function PostSignupPageContent() {
       window.clearTimeout(fallbackTimeout);
     };
   }, [
+    checkoutEmail,
     clerkUser,
     currentUser,
     getToken,

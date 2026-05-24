@@ -13,13 +13,17 @@ const {
   getMyOrganizationsMock,
   isEEEnabledMock,
   isSelfHostedMock,
+  managedCreateCheckoutSessionMock,
   resolveClerkTokenMock,
   searchParamsState,
 } = vi.hoisted(() => ({
   createCheckoutSessionMock: vi.fn(),
   currentUserState: {
     currentUser: {
+      email: 'local@example.com',
+      firstName: 'Local',
       id: 'user-123',
+      lastName: 'User',
       onboardingStepsCompleted: [] as string[],
     },
     isLoading: false,
@@ -27,6 +31,7 @@ const {
   getMyOrganizationsMock: vi.fn(),
   isEEEnabledMock: vi.fn(),
   isSelfHostedMock: vi.fn(),
+  managedCreateCheckoutSessionMock: vi.fn(),
   resolveClerkTokenMock: vi.fn(),
   searchParamsState: {
     value: new URLSearchParams(),
@@ -61,6 +66,12 @@ vi.mock('@services/billing/stripe.service', () => ({
     getInstance: vi.fn(() => ({
       createCheckoutSession: createCheckoutSessionMock,
     })),
+  },
+}));
+
+vi.mock('@services/billing/managed-credits.service', () => ({
+  ManagedCreditsService: {
+    createCheckoutSession: managedCreateCheckoutSessionMock,
   },
 }));
 
@@ -136,6 +147,7 @@ describe('PostSignupPage behavior', () => {
 
   beforeEach(() => {
     createCheckoutSessionMock.mockReset();
+    managedCreateCheckoutSessionMock.mockReset();
     getMyOrganizationsMock.mockReset();
     isEEEnabledMock.mockReset();
     isSelfHostedMock.mockReset();
@@ -143,7 +155,10 @@ describe('PostSignupPage behavior', () => {
     localStorageMock.clear();
 
     currentUserState.currentUser = {
+      email: 'local@example.com',
+      firstName: 'Local',
       id: 'user-123',
+      lastName: 'User',
       onboardingStepsCompleted: [],
     };
     currentUserState.isLoading = false;
@@ -153,6 +168,9 @@ describe('PostSignupPage behavior', () => {
     getMyOrganizationsMock.mockResolvedValue([]);
     createCheckoutSessionMock.mockResolvedValue({
       url: 'https://checkout.stripe.test/session',
+    });
+    managedCreateCheckoutSessionMock.mockResolvedValue({
+      url: 'https://checkout.stripe.test/managed-session',
     });
     searchParamsState.value = new URLSearchParams();
 
@@ -230,5 +248,29 @@ describe('PostSignupPage behavior', () => {
     expect(
       localStorage.getItem(ONBOARDING_STORAGE_KEYS.selectedPlan),
     ).toBeNull();
+  });
+
+  it('starts a managed cloud credits checkout for self-hosted credit handoff', async () => {
+    isEEEnabledMock.mockReturnValue(false);
+    isSelfHostedMock.mockReturnValue(true);
+    searchParamsState.value = new URLSearchParams('credits=1000');
+
+    render(<PostSignupPage />);
+
+    await waitFor(() => {
+      expect(managedCreateCheckoutSessionMock).toHaveBeenCalledWith({
+        cancelUrl: 'http://localhost/onboarding/providers',
+        email: 'local@example.com',
+        firstName: 'Local',
+        lastName: 'User',
+        quantity: 1000,
+        successUrl:
+          'http://localhost/managed-credits/success?session_id={CHECKOUT_SESSION_ID}',
+      });
+    });
+    expect(createCheckoutSessionMock).not.toHaveBeenCalled();
+    expect(locationState.href).toBe(
+      'https://checkout.stripe.test/managed-session',
+    );
   });
 });

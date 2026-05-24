@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   getByokAllProviders: vi.fn(),
   getOrganizationsService: vi.fn(),
   isReady: true,
+  isSelfHosted: false,
   loggerError: vi.fn(),
   notificationsError: vi.fn(),
   notificationsSuccess: vi.fn(),
@@ -108,6 +109,10 @@ vi.mock('@/lib/desktop/runtime', () => ({
   isDesktopShell: () => mocks.desktop,
 }));
 
+vi.mock('@/lib/config/edition', () => ({
+  isSelfHosted: () => mocks.isSelfHosted,
+}));
+
 function providerStatuses() {
   return [
     {
@@ -137,6 +142,7 @@ describe('SettingsApiKeysPage', () => {
     vi.clearAllMocks();
     mocks.desktop = false;
     mocks.isReady = true;
+    mocks.isSelfHosted = false;
     mocks.organizationId = 'org-1';
     mocks.getByokAllProviders.mockResolvedValue(providerStatuses());
     mocks.getOrganizationsService.mockResolvedValue({
