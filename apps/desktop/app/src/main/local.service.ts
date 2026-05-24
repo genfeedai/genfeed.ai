@@ -15,10 +15,10 @@ import type {
   IDesktopWorkflowRunResult,
 } from '@genfeedai/desktop-contracts';
 import type { PrismaClient } from '@genfeedai/desktop-prisma';
+import { toIso } from './time.util';
 
 const LOCAL_ORGANIZATION_ID = 'local-org';
 const OFFLINE_MESSAGE = 'Queued for sync - will complete when you sign in';
-const toIso = (): string => new Date().toISOString();
 
 function parsePlatforms(value: string): string[] {
   try {

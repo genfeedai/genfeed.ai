@@ -15,6 +15,7 @@ import {
   DEFAULT_WORKFLOW_GENERATION_NODE_TYPES,
   parseWorkflowGenerationResponse,
 } from '@genfeedai/workflows';
+import { toIso } from './time.util';
 
 export interface GenerationSyncJobRow {
   createdAt: string;
@@ -104,8 +105,6 @@ type AssetGenerationJobPayload = {
   providerMetadata?: Record<string, unknown>;
   request: IDesktopAssetGenerationRequest;
 };
-
-const toIso = (): string => new Date().toISOString();
 
 const sleep = (durationMs: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, durationMs));

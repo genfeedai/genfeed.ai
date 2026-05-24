@@ -1,11 +1,10 @@
 import type { PGlite } from '@electric-sql/pglite';
 import type { PrismaClient } from '@genfeedai/desktop-prisma';
 import { createDesktopPrismaClient } from '@genfeedai/desktop-prisma';
+import { toIso } from './time.util';
 
 const LOCAL_ORGANIZATION_ID = 'local-org';
 const LOCAL_USER_ID = 'local-user';
-
-const toIso = (): string => new Date().toISOString();
 
 export class DesktopPrismaService {
   private client: PrismaClient | null = null;

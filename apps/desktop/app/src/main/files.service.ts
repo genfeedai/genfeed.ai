@@ -10,6 +10,7 @@ import type {
 import { buildWorkspaceAssetsDir } from '@genfeedai/desktop-core';
 import type { PrismaClient } from '@genfeedai/desktop-prisma';
 import { dialog, shell } from 'electron';
+import { toIso } from './time.util';
 import type { DesktopWorkspaceService } from './workspace.service';
 
 const LOCAL_ORGANIZATION_ID = 'local-org';
@@ -36,8 +37,6 @@ const ASSET_EXTENSION_BY_MIME: Record<string, string> = {
   'image/svg+xml': '.svg',
   'image/webp': '.webp',
 };
-
-const toIso = (): string => new Date().toISOString();
 
 const inferMimeType = (filePath: string): string =>
   MIME_BY_EXTENSION[path.extname(filePath).toLowerCase()] ??

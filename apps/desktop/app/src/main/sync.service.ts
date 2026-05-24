@@ -14,8 +14,8 @@ import type {
   IDesktopSyncState,
 } from '@genfeedai/desktop-contracts';
 import type { PrismaClient } from '@genfeedai/desktop-prisma';
+import { toIso } from './time.util';
 
-const toIso = (): string => new Date().toISOString();
 const LOCAL_ORGANIZATION_ID = 'local-org';
 
 const ASSET_KINDS = ['audio', 'document', 'image', 'video'] as const;

@@ -13,8 +13,8 @@ import {
 } from '@genfeedai/desktop-core';
 import type { PrismaClient } from '@genfeedai/desktop-prisma';
 import { dialog, shell } from 'electron';
+import { toIso } from './time.util';
 
-const toIso = (): string => new Date().toISOString();
 const SKIPPED_INDEX_DIRECTORIES = new Set([
   '.cache',
   '.git',
