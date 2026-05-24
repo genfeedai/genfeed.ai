@@ -23,6 +23,8 @@ import { Card, CardContent } from '@/components/ui/card';
 
 type CopyTarget = 'api-key' | 'env';
 
+const CHECKOUT_RESULT_POLL_DELAYS_MS = [1000, 2000, 3000, 5000, 8000];
+
 interface SuccessState {
   error: string | null;
   isLoading: boolean;
@@ -34,6 +36,32 @@ function buildEnvSnippet(apiKey: string): string {
     `GENFEED_API_KEY=${apiKey}`,
     `GENFEED_MANAGED_INFERENCE_URL=${ManagedCreditsService.apiEndpoint}/managed-inference`,
   ].join('\n');
+}
+
+function readProvisioningError(error: unknown): string {
+  return error instanceof Error
+    ? error.message
+    : 'Managed credits checkout result is not ready yet.';
+}
+
+function waitForPollDelay(delayMs: number, signal: AbortSignal): Promise<void> {
+  return new Promise((resolve) => {
+    if (signal.aborted) {
+      resolve();
+      return;
+    }
+
+    const timeoutId = window.setTimeout(resolve, delayMs);
+
+    signal.addEventListener(
+      'abort',
+      () => {
+        window.clearTimeout(timeoutId);
+        resolve();
+      },
+      { once: true },
+    );
+  });
 }
 
 function ManagedCreditsSuccessContentInner() {
@@ -56,29 +84,60 @@ function ManagedCreditsSuccessContentInner() {
       return;
     }
 
-    let isMounted = true;
+    const abortController = new AbortController();
+    const { signal } = abortController;
+    const checkoutSessionId = sessionId;
 
-    ManagedCreditsService.getCheckoutResult(sessionId)
-      .then((result) => {
-        if (isMounted) {
-          setState({ error: null, isLoading: false, result });
+    setState({ error: null, isLoading: true, result: null });
+
+    async function loadCheckoutResult() {
+      let lastError: unknown = null;
+
+      for (
+        let attempt = 0;
+        attempt <= CHECKOUT_RESULT_POLL_DELAYS_MS.length;
+        attempt += 1
+      ) {
+        try {
+          const result = await ManagedCreditsService.getCheckoutResult(
+            checkoutSessionId,
+            signal,
+          );
+
+          if (!signal.aborted) {
+            setState({ error: null, isLoading: false, result });
+          }
+
+          return;
+        } catch (error) {
+          if (signal.aborted) {
+            return;
+          }
+
+          lastError = error;
+
+          const nextDelay = CHECKOUT_RESULT_POLL_DELAYS_MS[attempt];
+          if (nextDelay === undefined) {
+            break;
+          }
+
+          await waitForPollDelay(nextDelay, signal);
         }
-      })
-      .catch((error: unknown) => {
-        if (isMounted) {
-          setState({
-            error:
-              error instanceof Error
-                ? error.message
-                : 'Managed credits checkout result is not ready yet.',
-            isLoading: false,
-            result: null,
-          });
-        }
-      });
+      }
+
+      if (!signal.aborted) {
+        setState({
+          error: readProvisioningError(lastError),
+          isLoading: false,
+          result: null,
+        });
+      }
+    }
+
+    void loadCheckoutResult();
 
     return () => {
-      isMounted = false;
+      abortController.abort();
     };
   }, [sessionId]);
 
