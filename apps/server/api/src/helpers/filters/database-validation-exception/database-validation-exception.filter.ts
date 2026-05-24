@@ -12,7 +12,7 @@ export class DatabaseValidationExceptionFilter extends AllExceptionFilter {
       !exception.name.includes('ValidationError') &&
       !exception.constructor.name.includes('PrismaClientValidationError')
     ) {
-      throw exception;
+      return super.catch(exception, host);
     }
     const ctx = host.switchToHttp();
     const res = ctx.getResponse();

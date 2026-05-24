@@ -19,6 +19,7 @@ import { SubscriptionAttributionsModule } from '@api/collections/subscription-at
 import { SubscriptionsModule } from '@api/collections/subscriptions/subscriptions.module';
 import { TrainingsModule } from '@api/collections/trainings/trainings.module';
 import { UserSubscriptionsModule } from '@api/collections/user-subscriptions/user-subscriptions.module';
+import { UserSetupModule } from '@api/collections/users/user-setup.module';
 import { UsersModule } from '@api/collections/users/users.module';
 import { CommonModule } from '@api/common/common.module';
 import { ChromaticWebhookController } from '@api/endpoints/webhooks/chromatic/webhooks.chromatic.controller';
@@ -103,6 +104,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => TrainingsModule),
     forwardRef(() => TransactionModule),
     forwardRef(() => UserSubscriptionsModule),
+    forwardRef(() => UserSetupModule),
     forwardRef(() => UsersModule),
   ],
   providers: [

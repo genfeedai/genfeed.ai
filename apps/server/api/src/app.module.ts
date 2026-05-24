@@ -4,7 +4,6 @@
  * authentication, queues, cron jobs, and shared services. Entry point for the NestJS app.
  */
 
-import { join } from 'node:path';
 import process from 'node:process';
 import { AuthModule } from '@api/auth/auth.module';
 import { ActivitiesModule } from '@api/collections/activities/activities.module';
@@ -195,7 +194,6 @@ import { RedisModule } from '@libs/redis/redis.module';
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
-import { ServeStaticModule } from '@nestjs/serve-static';
 import { SentryModule } from '@sentry/nestjs/setup';
 
 @Module({
@@ -217,12 +215,6 @@ import { SentryModule } from '@sentry/nestjs/setup';
     ScheduleModule.forRoot(),
     FeatureFlagModule,
     SystemModule,
-    ServeStaticModule.forRoot({
-      exclude: ['/v1/{*path}', '/openapi.json'],
-      rootPath: join(__dirname, '..', 'public'),
-      serveRoot: '/',
-    }),
-
     // Docs (OpenAPI, GPT Actions)
     DocsModule,
 

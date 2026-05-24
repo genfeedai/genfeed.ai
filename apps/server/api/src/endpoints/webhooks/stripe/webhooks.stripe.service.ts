@@ -7,6 +7,7 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { SubscriptionEntity } from '@api/collections/subscriptions/entities/subscription.entity';
 import type { SubscriptionDocument } from '@api/collections/subscriptions/schemas/subscription.schema';
 import { UserEntity } from '@api/collections/users/entities/user.entity';
+import { UserSetupService } from '@api/collections/users/services/user-setup.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
@@ -78,6 +79,7 @@ export class StripeWebhookService {
     private readonly prisma: PrismaService,
     private readonly requestContextCacheService: RequestContextCacheService,
     private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
+    private readonly userSetupService: UserSetupService,
   ) {}
 
   async handleWebhookEvent(event: StripeEvent, url: string) {
@@ -719,18 +721,48 @@ export class StripeWebhookService {
       );
     }
 
-    const organization = await this.organizationsService.findOne({
+    let organization = await this.organizationsService.findOne({
       isDeleted: false,
       user: String(dbUser._id),
     });
 
-    if (!organization) {
-      throw new Error(
-        `Organization not found for managed checkout user ${dbUser._id}`,
+    let brand = organization
+      ? await this.brandsService.findOne(
+          {
+            isDeleted: false,
+            organizationId: String(organization._id),
+          },
+          [],
+        )
+      : null;
+
+    if (!organization || !brand) {
+      const setupResult = await this.userSetupService.initializeUserResources(
+        String(dbUser._id),
+        OrganizationCategory.BUSINESS,
       );
+
+      organization = setupResult.organization;
+      brand = setupResult.brand;
     }
 
-    const brand = await this.brandsService.findOne(
+    let orgSetting = await this.organizationSettingsService.findOne({
+      isDeleted: false,
+      organization: String(organization._id),
+    });
+
+    if (!orgSetting) {
+      await this.userSetupService.initializeUserResources(
+        String(dbUser._id),
+        OrganizationCategory.BUSINESS,
+      );
+      orgSetting = await this.organizationSettingsService.findOne({
+        isDeleted: false,
+        organization: String(organization._id),
+      });
+    }
+
+    brand = await this.brandsService.findOne(
       {
         isDeleted: false,
         organizationId: String(organization._id),
@@ -827,11 +859,6 @@ export class StripeWebhookService {
     }
 
     await this.usersService.patch(String(dbUser._id), userPatch);
-
-    const orgSetting = await this.organizationSettingsService.findOne({
-      isDeleted: false,
-      organization: String(organization._id),
-    });
 
     if (orgSetting) {
       await this.organizationSettingsService.patch(String(orgSetting._id), {

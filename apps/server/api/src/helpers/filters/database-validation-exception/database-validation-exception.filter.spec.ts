@@ -168,4 +168,26 @@ describe('DatabaseValidationExceptionFilter', () => {
       }),
     );
   });
+
+  it('should delegate non-validation errors to the base JSON API filter', () => {
+    const exception = new Error('Unexpected failure');
+
+    filter.catch(exception, mockArgumentsHost);
+
+    expect(mockResponse.status).toHaveBeenCalledWith(
+      HttpStatus.INTERNAL_SERVER_ERROR,
+    );
+    expect(mockResponse.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        errors: expect.arrayContaining([
+          expect.objectContaining({
+            code: String(HttpStatus.INTERNAL_SERVER_ERROR),
+            detail: 'Unexpected failure',
+            source: { pointer: '/test' },
+            title: 'Error',
+          }),
+        ]),
+      }),
+    );
+  });
 });

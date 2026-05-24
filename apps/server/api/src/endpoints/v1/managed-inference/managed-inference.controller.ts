@@ -10,7 +10,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 @ApiTags('Managed Inference')
 @ApiBearerAuth()
-@Controller('v1/managed-inference')
+@Controller('managed-inference')
 export class ManagedInferenceController {
   constructor(
     private readonly managedInferenceService: ManagedInferenceService,
