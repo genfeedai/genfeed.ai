@@ -118,13 +118,13 @@ RUN set -e; \
     bun --filter @genfeedai/constants build; \
     bun --filter @genfeedai/interfaces build; \
     bun --filter @genfeedai/client build; \
-    bun --filter @genfeedai/cloud-types build & pid1=$!; \
+    bun --filter @genfeedai/types build & pid1=$!; \
     bun --filter @genfeedai/config build & pid2=$!; \
     bun --filter @genfeedai/workflow-engine build & pid3=$!; \
     wait $pid1 $pid2 $pid3; \
     bun --filter @genfeedai/helpers build; \
     bun --filter @genfeedai/integrations build; \
-    bun --filter @genfeedai/cloud-serializers build; \
+    bun --filter @genfeedai/serializers build; \
     bun --filter @genfeedai/workflow-saas build
 
 # --- Layer 2: Service source code (changes most frequently) ---
