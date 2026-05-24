@@ -4,7 +4,6 @@ import path from 'node:path';
 import process from 'node:process';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { IPtyAdapter, IPtyHandle } from './pty/pty-adapter.interface';
-import { PTY_ADAPTER } from './pty/pty-adapter.interface';
 import { TerminalService } from './terminal.service';
 
 function createMockPty(): IPtyHandle {
