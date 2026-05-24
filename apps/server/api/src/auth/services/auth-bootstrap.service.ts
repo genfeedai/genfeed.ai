@@ -257,11 +257,9 @@ export class AuthBootstrapService {
       requestContext?.subscriptionTier ??
       (user ? getSubscriptionTier(user, request) : '');
 
-    const clerkUserId = user?.id ?? '';
-
-    if (clerkUserId && organizationId) {
+    if (userId && organizationId) {
       const cached = await this.accessBootstrapCacheService.get(
-        clerkUserId,
+        userId,
         organizationId,
       );
       if (cached) {
@@ -377,11 +375,9 @@ export class AuthBootstrapService {
       streak,
     };
 
-    const clerkUserId = request.user?.id ?? '';
-
-    if (clerkUserId && organizationId) {
+    if (userId && organizationId) {
       await this.accessBootstrapCacheService.set(
-        clerkUserId,
+        userId,
         organizationId,
         payload,
       );

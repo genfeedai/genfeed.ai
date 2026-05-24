@@ -1,1 +1,1 @@
-export * from './link.model.js';
+export * from './link.model';
