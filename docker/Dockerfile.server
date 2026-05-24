@@ -111,10 +111,13 @@ COPY apps/server/tsconfig.json apps/server/tsconfig.json
 
 # Build shared workspace packages in dependency order (must run before service builds)
 # This layer is cached when only apps/server/* source changes
-# Only workspace packages can be targeted with `bun --filter` here.
-# Published/dist-only @genfeedai packages like enums/constants/interfaces/client
-# are already installed via node_modules during `bun install`.
+# Some workspace packages export dist paths, so build those before packages that
+# compile against their package exports.
 RUN set -e && \
+    bun --filter @genfeedai/enums build && \
+    bun --filter @genfeedai/constants build && \
+    bun --filter @genfeedai/interfaces build && \
+    bun --filter @genfeedai/client build && \
     bun --filter @genfeedai/cloud-types build & pid1=$! && \
     bun --filter @genfeedai/config build & pid2=$! && \
     bun --filter @genfeedai/workflow-engine build & pid3=$! && \
