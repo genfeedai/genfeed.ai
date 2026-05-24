@@ -44,6 +44,14 @@ export const EnvironmentService = {
     );
   },
 
+  get managedCreditsApiEndpoint(): string {
+    return (
+      process.env.NEXT_PUBLIC_GENFEED_MANAGED_CREDITS_API_ENDPOINT ||
+      process.env.NEXT_PUBLIC_GENFEED_MANAGED_API_ENDPOINT ||
+      'https://api.genfeed.ai/v1'
+    );
+  },
+
   apps: {
     admin:
       process.env.NEXT_PUBLIC_APPS_ADMIN_ENDPOINT || 'https://admin.genfeed.ai',
