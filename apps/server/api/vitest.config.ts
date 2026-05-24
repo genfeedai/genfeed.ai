@@ -254,6 +254,20 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../../../packages/libs'),
       },
       {
+        find: /^@genfeedai\/ee-billing\/(.*)$/,
+        replacement: path.resolve(
+          __dirname,
+          '../../../ee/packages/billing/src/$1',
+        ),
+      },
+      {
+        find: '@genfeedai/ee-billing',
+        replacement: path.resolve(
+          __dirname,
+          '../../../ee/packages/billing/src',
+        ),
+      },
+      {
         find: '@test',
         replacement: path.resolve(__dirname, './test'),
       },
