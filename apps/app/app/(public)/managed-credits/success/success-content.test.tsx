@@ -1,9 +1,15 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ManagedCreditsSuccessContent from './success-content';
 
 const { getCheckoutResultMock, searchParamsState } = vi.hoisted(() => ({
@@ -56,6 +62,10 @@ vi.mock('@/components/ui/card', () => ({
 }));
 
 describe('ManagedCreditsSuccessContent', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   beforeEach(() => {
     getCheckoutResultMock.mockReset();
     searchParamsState.value = new URLSearchParams('session_id=cs_test_123');
@@ -116,5 +126,37 @@ describe('ManagedCreditsSuccessContent', () => {
     });
 
     expect(screen.getByText(/secret cannot be shown again/)).toBeVisible();
+  });
+
+  it('polls while checkout provisioning is not ready yet', async () => {
+    vi.useFakeTimers();
+
+    getCheckoutResultMock
+      .mockRejectedValueOnce(
+        new Error('Managed credits checkout result not found'),
+      )
+      .mockResolvedValue({
+        apiKey: 'gf_managed_secret',
+        apiKeyAlreadyExists: false,
+        brandId: 'brand-1',
+        email: 'buyer@example.com',
+        organizationId: 'org-1',
+        userId: 'user-1',
+      });
+
+    render(<ManagedCreditsSuccessContent />);
+
+    expect(getCheckoutResultMock).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+
+    expect(getCheckoutResultMock).toHaveBeenCalledTimes(2);
+    expect(screen.getByText('gf_managed_secret')).toBeVisible();
+    expect(getCheckoutResultMock).toHaveBeenCalledWith(
+      'cs_test_123',
+      expect.any(AbortSignal),
+    );
   });
 });

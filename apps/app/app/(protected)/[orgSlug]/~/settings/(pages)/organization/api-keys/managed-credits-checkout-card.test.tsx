@@ -131,4 +131,23 @@ describe('ManagedCreditsCheckoutCard', () => {
       'Add a valid email and credit quantity before checkout.',
     );
   });
+
+  it('rejects partial and non-whole credit quantities', () => {
+    render(<ManagedCreditsCheckoutCard />);
+
+    const creditsInput = screen.getByDisplayValue('1000');
+
+    fireEvent.change(creditsInput, {
+      target: { value: '1e3' },
+    });
+    fireEvent.click(screen.getByText('Get Credits'));
+
+    fireEvent.change(creditsInput, {
+      target: { value: '1.9' },
+    });
+    fireEvent.click(screen.getByText('Get Credits'));
+
+    expect(createCheckoutSessionMock).not.toHaveBeenCalled();
+    expect(notificationErrorMock).toHaveBeenCalledTimes(2);
+  });
 });

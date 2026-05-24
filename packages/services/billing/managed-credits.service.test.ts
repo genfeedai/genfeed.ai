@@ -61,13 +61,14 @@ describe('ManagedCreditsService', () => {
         new Response(JSON.stringify(payload), { status: 200 }),
       );
     vi.stubGlobal('fetch', fetchMock);
+    const controller = new AbortController();
 
     await expect(
-      ManagedCreditsService.getCheckoutResult('cs_test_123'),
+      ManagedCreditsService.getCheckoutResult('cs_test_123', controller.signal),
     ).resolves.toEqual(payload);
     expect(fetchMock).toHaveBeenCalledWith(
       'https://api.test/v1/services/stripe/managed/sessions/cs_test_123',
-      expect.objectContaining({ method: 'GET' }),
+      expect.objectContaining({ method: 'GET', signal: controller.signal }),
     );
   });
 });

@@ -97,6 +97,7 @@ export const ManagedCreditsService = {
 
   async getCheckoutResult(
     sessionId: string,
+    signal?: AbortSignal,
   ): Promise<ManagedCreditsProvisioningResult> {
     const response = await fetch(
       joinEndpoint(
@@ -108,6 +109,7 @@ export const ManagedCreditsService = {
           Accept: 'application/json',
         },
         method: 'GET',
+        signal,
       },
     );
 

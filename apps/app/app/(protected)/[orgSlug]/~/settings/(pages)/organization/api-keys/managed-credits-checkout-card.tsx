@@ -14,13 +14,13 @@ import { HiOutlineCreditCard, HiOutlineKey } from 'react-icons/hi2';
 const DEFAULT_CREDIT_PACK = 1000;
 
 function parseCredits(value: string): number | null {
-  const parsed = Number.parseInt(value.trim(), 10);
-
-  if (!Number.isInteger(parsed) || parsed <= 0) {
+  const normalized = value.trim();
+  if (!/^[1-9]\d*$/.test(normalized)) {
     return null;
   }
 
-  return parsed;
+  const parsed = Number(normalized);
+  return Number.isSafeInteger(parsed) ? parsed : null;
 }
 
 export default function ManagedCreditsCheckoutCard() {
