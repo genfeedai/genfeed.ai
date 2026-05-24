@@ -195,12 +195,41 @@ module.exports = function createWebpackConfig({
         },
         // Handle .ts files (but not .d.ts)
         // Include @genfeedai/* workspace packages for direct TS transpilation (enables HMR)
-        // swc-loader auto-discovers .swcrc from each service dir (decoratorMetadata: true)
+        // Pass decorator options explicitly so shared Nest-bearing files outside
+        // each service directory, such as packages/libs, compile the same way.
         {
           exclude: [/node_modules\/(?!@genfeedai\/)/, /\.d\.ts$/],
           test: /\.ts$/,
           use: {
             loader: 'swc-loader',
+            options: {
+              inlineSourcesContent: true,
+              jsc: {
+                externalHelpers: false,
+                keepClassNames: true,
+                loose: false,
+                parser: {
+                  decorators: true,
+                  dynamicImport: true,
+                  syntax: 'typescript',
+                  tsx: false,
+                },
+                target: 'es2022',
+                transform: {
+                  decoratorMetadata: true,
+                  legacyDecorator: true,
+                },
+              },
+              minify: false,
+              module: {
+                lazy: false,
+                noInterop: false,
+                strict: false,
+                strictMode: true,
+                type: 'commonjs',
+              },
+              sourceMaps: true,
+            },
           },
         },
       ],
