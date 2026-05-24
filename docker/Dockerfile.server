@@ -86,6 +86,11 @@ RUN --mount=type=bind,source=.,target=/ctx \
       mkdir -p "$dir" && cp "$f" "$dir/package.json"; \
     done
 
+# @genfeedai/prisma runs `prisma generate` during install, so its schema must
+# exist in the manifest-only dependency layer.
+COPY packages/prisma/prisma.config.mjs ./packages/prisma/prisma.config.mjs
+COPY packages/prisma/prisma/ ./packages/prisma/prisma/
+
 # Install dependencies (mount cache for bun's global cache to speed up repeat builds)
 RUN --mount=type=cache,id=bun-cache,target=/root/.bun/install/cache \
     HUSKY=0 bun install
