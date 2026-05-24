@@ -220,6 +220,7 @@ export default defineConfig({
   },
   root: __dirname,
   test: {
+    attachmentsDir: 'dist/vitest/attachments',
     env: {
       NODE_ENV: 'test',
     },

@@ -226,7 +226,9 @@ export default defineConfig({
       headless: true,
       instances: [{ browser: 'chromium' }],
       provider: playwright(),
+      screenshotDirectory: 'dist/vitest/screenshots',
     },
+    attachmentsDir: 'dist/vitest/attachments',
     env: {
       NODE_ENV: 'test',
     },
