@@ -1,14 +1,14 @@
 import { Command } from 'commander';
 import ora from 'ora';
-import { type Article, generateArticle, getArticle } from '@/api/articles.js';
-import { requireAuth } from '@/api/client.js';
-import { handleError } from '@/utils/errors.js';
+import { type Article, generateArticle, getArticle } from '@/api/articles';
+import { requireAuth } from '@/api/client';
+import { handleError } from '@/utils/errors';
 import {
   printGeneratedResult,
   printGenerationStarted,
   requireGenerationBrand,
   waitForGenerated,
-} from './helpers.js';
+} from './helpers';
 
 export const articleCommand = new Command('article')
   .description('Generate an AI article')

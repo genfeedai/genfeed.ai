@@ -1,10 +1,10 @@
 import { Command } from 'commander';
-import type { AgentChatAttachment } from '@/api/threads.js';
-import { getActiveProfile } from '@/config/store.js';
-import { runAgentTurn } from '@/shell/agent-run.js';
-import { runAgentShell } from '@/shell/agent-shell.js';
-import { formatHeader, print, printJson } from '@/ui/theme.js';
-import { handleError } from '@/utils/errors.js';
+import type { AgentChatAttachment } from '@/api/threads';
+import { getActiveProfile } from '@/config/store';
+import { runAgentTurn } from '@/shell/agent-run';
+import { runAgentShell } from '@/shell/agent-shell';
+import { formatHeader, print, printJson } from '@/ui/theme';
+import { handleError } from '@/utils/errors';
 
 async function readPromptFromStdin(): Promise<string> {
   const chunks: Buffer[] = [];

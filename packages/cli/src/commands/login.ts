@@ -4,11 +4,11 @@ import { password, select } from '@inquirer/prompts';
 import chalk from 'chalk';
 import { Command } from 'commander';
 import ora from 'ora';
-import { validateApiKey } from '@/api/auth.js';
-import { listBrands } from '@/api/brands.js';
-import { setActiveBrand, setApiKey, setOrganizationId, setRole } from '@/config/store.js';
-import { formatHeader, formatLabel, formatSuccess, formatWarning, print } from '@/ui/theme.js';
-import { GenfeedError, handleError } from '@/utils/errors.js';
+import { validateApiKey } from '@/api/auth';
+import { listBrands } from '@/api/brands';
+import { setActiveBrand, setApiKey, setOrganizationId, setRole } from '@/config/store';
+import { formatHeader, formatLabel, formatSuccess, formatWarning, print } from '@/ui/theme';
+import { GenfeedError, handleError } from '@/utils/errors';
 
 const AUTH_URL = 'https://app.genfeed.ai/oauth/cli';
 const API_BASE_URL = 'https://api.genfeed.ai/v1';

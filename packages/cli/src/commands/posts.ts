@@ -1,10 +1,10 @@
 import chalk from 'chalk';
 import { Command } from 'commander';
 import ora from 'ora';
-import { requireAuth } from '@/api/client.js';
-import { listPosts } from '@/api/posts.js';
-import { formatHeader, print, printJson } from '@/ui/theme.js';
-import { handleError } from '@/utils/errors.js';
+import { requireAuth } from '@/api/client';
+import { listPosts } from '@/api/posts';
+import { formatHeader, print, printJson } from '@/ui/theme';
+import { handleError } from '@/utils/errors';
 
 export const postsCommand = new Command('posts').description(
   'Manage published and scheduled posts'

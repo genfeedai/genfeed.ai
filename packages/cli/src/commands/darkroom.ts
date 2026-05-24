@@ -11,8 +11,8 @@ import {
   startContentGenerate,
   startFaceTest,
   startPulid,
-} from '@/api/darkroom-api.js';
-import { requireAdmin } from '@/middleware/auth-guard.js';
+} from '@/api/darkroom-api';
+import { requireAdmin } from '@/middleware/auth-guard';
 import {
   formatError,
   formatHeader,
@@ -21,14 +21,14 @@ import {
   formatWarning,
   print,
   printJson,
-} from '@/ui/theme.js';
-import { handleError } from '@/utils/errors.js';
+} from '@/ui/theme';
+import { handleError } from '@/utils/errors';
 import {
   formatProgress,
   hasExceededTimeout,
   POLL_TIMEOUT_GENERATION,
   sleep,
-} from '@/utils/helpers.js';
+} from '@/utils/helpers';
 
 export const darkroomCommand = new Command('darkroom')
   .description('Darkroom infrastructure management [admin]')

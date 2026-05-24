@@ -1,5 +1,5 @@
-import { get } from './client.js';
-import { flattenCollection, type JsonApiCollectionResponse } from './json-api.js';
+import { get } from './client';
+import { flattenCollection, type JsonApiCollectionResponse } from './json-api';
 
 export interface Post {
   id: string;

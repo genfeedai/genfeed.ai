@@ -1,11 +1,11 @@
 import chalk from 'chalk';
 import { Command } from 'commander';
-import { requireAuth } from '@/api/client.js';
-import { listThreads } from '@/api/threads.js';
-import { answerPendingInput } from '@/shell/agent-run.js';
-import { archiveThreadAndPrint, runAgentShell, showThreadSummary } from '@/shell/agent-shell.js';
-import { formatHeader, formatLabel, print, printJson } from '@/ui/theme.js';
-import { handleError } from '@/utils/errors.js';
+import { requireAuth } from '@/api/client';
+import { listThreads } from '@/api/threads';
+import { answerPendingInput } from '@/shell/agent-run';
+import { archiveThreadAndPrint, runAgentShell, showThreadSummary } from '@/shell/agent-shell';
+import { formatHeader, formatLabel, print, printJson } from '@/ui/theme';
+import { handleError } from '@/utils/errors';
 
 async function readAnswerFromStdin(): Promise<string> {
   const chunks: Buffer[] = [];

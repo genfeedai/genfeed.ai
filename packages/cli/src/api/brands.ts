@@ -1,10 +1,10 @@
-import { get } from './client.js';
+import { get } from './client';
 import {
   flattenCollection,
   flattenSingle,
   type JsonApiCollectionResponse,
   type JsonApiSingleResponse,
-} from './json-api.js';
+} from './json-api';
 
 export interface Brand {
   id: string;

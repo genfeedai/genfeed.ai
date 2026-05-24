@@ -1,16 +1,11 @@
 import chalk from 'chalk';
 import { Command } from 'commander';
 import ora from 'ora';
-import { getDataset, getTrainingStatus, startTraining } from '@/api/darkroom-api.js';
-import { requireAdmin } from '@/middleware/auth-guard.js';
-import { formatError, formatLabel, print, printJson } from '@/ui/theme.js';
-import { handleError } from '@/utils/errors.js';
-import {
-  formatProgress,
-  hasExceededTimeout,
-  POLL_TIMEOUT_TRAINING,
-  sleep,
-} from '@/utils/helpers.js';
+import { getDataset, getTrainingStatus, startTraining } from '@/api/darkroom-api';
+import { requireAdmin } from '@/middleware/auth-guard';
+import { formatError, formatLabel, print, printJson } from '@/ui/theme';
+import { handleError } from '@/utils/errors';
+import { formatProgress, hasExceededTimeout, POLL_TIMEOUT_TRAINING, sleep } from '@/utils/helpers';
 
 export const trainCommand = new Command('train')
   .description('LoRA training management [admin]')

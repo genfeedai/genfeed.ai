@@ -2,9 +2,9 @@ import { select } from '@inquirer/prompts';
 import chalk from 'chalk';
 import { Command } from 'commander';
 import ora from 'ora';
-import { getBrand, listBrands } from '@/api/brands.js';
-import { requireAuth } from '@/api/client.js';
-import { getActiveBrand, getOrganizationId, setActiveBrand } from '@/config/store.js';
+import { getBrand, listBrands } from '@/api/brands';
+import { requireAuth } from '@/api/client';
+import { getActiveBrand, getOrganizationId, setActiveBrand } from '@/config/store';
 import {
   formatHeader,
   formatLabel,
@@ -12,8 +12,8 @@ import {
   formatWarning,
   print,
   printJson,
-} from '@/ui/theme.js';
-import { GenfeedError, handleError } from '@/utils/errors.js';
+} from '@/ui/theme';
+import { GenfeedError, handleError } from '@/utils/errors';
 
 export const brandsCommand = new Command('brands')
   .description('Manage brands')

@@ -6,8 +6,8 @@ import {
   getThreadSnapshot,
   respondToInputRequest,
   startAgentChatStream,
-} from '@/api/threads.js';
-import { extractString, isRecord } from '@/utils/extract.js';
+} from '@/api/threads';
+import { extractString, isRecord } from '@/utils/extract';
 
 type AgentRunStatus = 'completed' | 'failed' | 'timeout' | 'waiting-input';
 

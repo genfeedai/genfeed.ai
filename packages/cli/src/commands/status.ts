@@ -1,12 +1,12 @@
 import chalk from 'chalk';
 import { Command } from 'commander';
 import ora from 'ora';
-import { getArticle } from '@/api/articles.js';
-import { requireAuth } from '@/api/client.js';
-import { getImage } from '@/api/images.js';
-import { getVideo } from '@/api/videos.js';
-import { formatError, formatLabel, print, printJson } from '@/ui/theme.js';
-import { ApiError, handleError } from '@/utils/errors.js';
+import { getArticle } from '@/api/articles';
+import { requireAuth } from '@/api/client';
+import { getImage } from '@/api/images';
+import { getVideo } from '@/api/videos';
+import { formatError, formatLabel, print, printJson } from '@/ui/theme';
+import { ApiError, handleError } from '@/utils/errors';
 
 type ContentType = 'article' | 'image' | 'video';
 type Status = 'pending' | 'processing' | 'completed' | 'failed';

@@ -1,14 +1,14 @@
 import { Command } from 'commander';
 import ora from 'ora';
-import { type Article, generateXArticle, getArticle } from '@/api/articles.js';
-import { requireAuth } from '@/api/client.js';
-import { handleError } from '@/utils/errors.js';
+import { type Article, generateXArticle, getArticle } from '@/api/articles';
+import { requireAuth } from '@/api/client';
+import { handleError } from '@/utils/errors';
 import {
   printGeneratedResult,
   printGenerationStarted,
   requireGenerationBrand,
   waitForGenerated,
-} from './helpers.js';
+} from './helpers';
 
 export const articleXCommand = new Command('article-x')
   .description('Generate a long-form X (Twitter) article')

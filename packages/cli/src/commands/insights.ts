@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import { Command } from 'commander';
 import ora from 'ora';
-import { requireAuth } from '@/api/client.js';
+import { requireAuth } from '@/api/client';
 import {
   getContentGaps,
   getForecast,
@@ -9,9 +9,9 @@ import {
   getInsights,
   getPostingTimes,
   getViralAnalysis,
-} from '@/api/insights.js';
-import { formatHeader, formatLabel, print, printJson } from '@/ui/theme.js';
-import { handleError } from '@/utils/errors.js';
+} from '@/api/insights';
+import { formatHeader, formatLabel, print, printJson } from '@/ui/theme';
+import { handleError } from '@/utils/errors';
 
 export const insightsCommand = new Command('insights')
   .description('AI-powered content insights')

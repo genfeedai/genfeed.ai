@@ -1,16 +1,16 @@
 import { Command } from 'commander';
 import ora from 'ora';
-import { requireAuth } from '@/api/client.js';
-import { createImage, getImage, type Image } from '@/api/images.js';
-import { getActiveProfile } from '@/config/store.js';
-import { handleError } from '@/utils/errors.js';
+import { requireAuth } from '@/api/client';
+import { createImage, getImage, type Image } from '@/api/images';
+import { getActiveProfile } from '@/config/store';
+import { handleError } from '@/utils/errors';
 import {
   downloadGeneratedFile,
   printGeneratedResult,
   printGenerationStarted,
   requireGenerationBrand,
   waitForGenerated,
-} from './helpers.js';
+} from './helpers';
 
 export const imageCommand = new Command('image')
   .description('Generate an AI image')

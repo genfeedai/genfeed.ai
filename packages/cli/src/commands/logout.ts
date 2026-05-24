@@ -1,7 +1,7 @@
 import { Command } from 'commander';
-import { clearActiveBrand, clearApiKey, getApiKey } from '@/config/store.js';
-import { formatSuccess, formatWarning, print } from '@/ui/theme.js';
-import { handleError } from '@/utils/errors.js';
+import { clearActiveBrand, clearApiKey, getApiKey } from '@/config/store';
+import { formatSuccess, formatWarning, print } from '@/ui/theme';
+import { handleError } from '@/utils/errors';
 
 export const logoutCommand = new Command('logout')
   .description('Remove stored credentials')

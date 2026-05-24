@@ -1,4 +1,4 @@
-import { get } from './client.js';
+import { get } from './client';
 
 export interface User {
   id: string;

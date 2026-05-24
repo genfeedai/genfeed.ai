@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createTestClient, hasCredentials, testConfig } from './setup.js';
+import { createTestClient, hasCredentials, testConfig } from './setup';
 
 describe.skipIf(!hasCredentials)('integration/auth', () => {
   const client = hasCredentials ? createTestClient() : undefined!;

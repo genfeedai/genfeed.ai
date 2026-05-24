@@ -2,9 +2,9 @@ import { select } from '@inquirer/prompts';
 import chalk from 'chalk';
 import { Command } from 'commander';
 import ora from 'ora';
-import { requireAuth } from '@/api/client.js';
-import { listMyOrganizations, switchOrganization } from '@/api/organizations.js';
-import { setActiveBrand, setOrganizationId } from '@/config/store.js';
+import { requireAuth } from '@/api/client';
+import { listMyOrganizations, switchOrganization } from '@/api/organizations';
+import { setActiveBrand, setOrganizationId } from '@/config/store';
 import {
   formatHeader,
   formatLabel,
@@ -12,8 +12,8 @@ import {
   formatWarning,
   print,
   printJson,
-} from '@/ui/theme.js';
-import { GenfeedError, handleError } from '@/utils/errors.js';
+} from '@/ui/theme';
+import { GenfeedError, handleError } from '@/utils/errors';
 
 export const organizationsCommand = new Command('organizations')
   .description('Manage organizations')

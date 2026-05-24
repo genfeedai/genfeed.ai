@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { whoamiCommand } from '../../src/commands/whoami.js';
-import { ApiError } from '../../src/utils/errors.js';
+import { whoamiCommand } from '../../src/commands/whoami';
+import { ApiError } from '../../src/utils/errors';
 
 const {
   mockGetActiveBrand,
@@ -20,31 +20,31 @@ const {
   mockWhoami: vi.fn(),
 }));
 
-vi.mock('../../src/api/auth.js', () => ({
+vi.mock('../../src/api/auth', () => ({
   whoami: () => mockWhoami(),
 }));
 
-vi.mock('../../src/api/brands.js', () => ({
+vi.mock('../../src/api/brands', () => ({
   getBrand: (id: string) => mockGetBrand(id),
 }));
 
-vi.mock('../../src/api/client.js', () => ({
+vi.mock('../../src/api/client', () => ({
   requireAuth: () => mockRequireAuth(),
 }));
 
-vi.mock('../../src/config/store.js', () => ({
+vi.mock('../../src/config/store', () => ({
   getActiveBrand: () => mockGetActiveBrand(),
 }));
 
-vi.mock('../../src/ui/theme.js', () => ({
+vi.mock('../../src/ui/theme', () => ({
   formatLabel: (label: string, value: string) => `${label}: ${value}`,
   formatSuccess: (value: string) => value,
   print: vi.fn(),
   printJson: (value: unknown) => mockPrintJson(value),
 }));
 
-vi.mock('../../src/utils/errors.js', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../src/utils/errors.js')>();
+vi.mock('../../src/utils/errors', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/utils/errors')>();
   return {
     ...actual,
     handleError: (error: unknown) => mockHandleError(error),

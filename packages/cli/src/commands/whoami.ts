@@ -1,12 +1,12 @@
 import chalk from 'chalk';
 import { Command } from 'commander';
 import ora from 'ora';
-import { whoami } from '@/api/auth.js';
-import { getBrand } from '@/api/brands.js';
-import { requireAuth } from '@/api/client.js';
-import { getActiveBrand } from '@/config/store.js';
-import { formatLabel, formatSuccess, print, printJson } from '@/ui/theme.js';
-import { ApiError, handleError } from '@/utils/errors.js';
+import { whoami } from '@/api/auth';
+import { getBrand } from '@/api/brands';
+import { requireAuth } from '@/api/client';
+import { getActiveBrand } from '@/config/store';
+import { formatLabel, formatSuccess, print, printJson } from '@/ui/theme';
+import { ApiError, handleError } from '@/utils/errors';
 
 export const whoamiCommand = new Command('whoami')
   .description('Show current user and organization')

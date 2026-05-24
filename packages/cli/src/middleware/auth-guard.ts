@@ -1,6 +1,6 @@
-import { requireAuth } from '@/api/client.js';
-import { getRole } from '@/config/store.js';
-import { AdminRequiredError } from '@/utils/errors.js';
+import { requireAuth } from '@/api/client';
+import { getRole } from '@/config/store';
+import { AdminRequiredError } from '@/utils/errors';
 
 /**
  * Wraps a Commander action handler to require admin role.

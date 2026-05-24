@@ -1,6 +1,6 @@
 import { createInterface } from 'node:readline/promises';
 import chalk from 'chalk';
-import { requireAuth } from '@/api/client.js';
+import { requireAuth } from '@/api/client';
 import {
   type AgentPendingInputRequest,
   type AgentThreadEvent,
@@ -11,13 +11,13 @@ import {
   listThreads,
   respondToInputRequest,
   startAgentChatStream,
-} from '@/api/threads.js';
+} from '@/api/threads';
 import {
   clearLastAgentThreadId,
   getLastAgentThreadId,
   getOrganizationId,
   setLastAgentThreadId,
-} from '@/config/store.js';
+} from '@/config/store';
 import {
   formatError,
   formatHeader,
@@ -26,9 +26,9 @@ import {
   formatSuccess,
   formatWarning,
   print,
-} from '@/ui/theme.js';
-import { setReplMode } from '@/utils/errors.js';
-import { extractString, isRecord } from '@/utils/extract.js';
+} from '@/ui/theme';
+import { setReplMode } from '@/utils/errors';
+import { extractString, isRecord } from '@/utils/extract';
 
 interface AgentShellOptions {
   initialThreadId?: string;

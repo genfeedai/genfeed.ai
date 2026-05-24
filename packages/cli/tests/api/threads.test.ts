@@ -6,13 +6,13 @@ const mockPost = vi.fn();
 const mockFlattenCollection = vi.fn();
 const mockFlattenSingle = vi.fn();
 
-vi.mock('../../src/api/client.js', () => ({
+vi.mock('../../src/api/client', () => ({
   get: (...args: unknown[]) => mockGet(...args),
   patch: (...args: unknown[]) => mockPatch(...args),
   post: (...args: unknown[]) => mockPost(...args),
 }));
 
-vi.mock('../../src/api/json-api.js', () => ({
+vi.mock('../../src/api/json-api', () => ({
   flattenCollection: (...args: unknown[]) => mockFlattenCollection(...args),
   flattenSingle: (...args: unknown[]) => mockFlattenSingle(...args),
 }));
@@ -29,7 +29,7 @@ describe('api/threads', () => {
       threadId: 'thread-1',
     });
 
-    const { startAgentChatStream } = await import('../../src/api/threads.js');
+    const { startAgentChatStream } = await import('../../src/api/threads');
     await startAgentChatStream({
       attachments: [{ kind: 'image', url: 'https://cdn.genfeed.ai/example.png' }],
       content: 'hello',
@@ -50,7 +50,7 @@ describe('api/threads', () => {
     mockPatch.mockResolvedValue({ data: { id: 'thread-1' } });
     mockFlattenSingle.mockReturnValue({ id: 'thread-1', status: 'archived' });
 
-    const { archiveThread } = await import('../../src/api/threads.js');
+    const { archiveThread } = await import('../../src/api/threads');
     const result = await archiveThread('thread-1');
 
     expect(mockPatch).toHaveBeenCalledWith('/threads/thread-1', {

@@ -1,10 +1,10 @@
 import { writeFile } from 'node:fs/promises';
 import chalk from 'chalk';
 import ora, { type Ora } from 'ora';
-import { getActiveBrand } from '@/config/store.js';
-import { formatLabel, print, printJson } from '@/ui/theme.js';
-import { NoBrandError } from '@/utils/errors.js';
-import { waitForCompletion } from '@/utils/websocket.js';
+import { getActiveBrand } from '@/config/store';
+import { formatLabel, print, printJson } from '@/ui/theme';
+import { NoBrandError } from '@/utils/errors';
+import { waitForCompletion } from '@/utils/websocket';
 
 type OutputLabel = readonly [string, string] | false | undefined;
 

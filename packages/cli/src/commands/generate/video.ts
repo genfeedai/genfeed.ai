@@ -1,16 +1,16 @@
 import { Command } from 'commander';
 import ora from 'ora';
-import { requireAuth } from '@/api/client.js';
-import { createVideo, getVideo, type Video } from '@/api/videos.js';
-import { getActiveProfile } from '@/config/store.js';
-import { handleError } from '@/utils/errors.js';
+import { requireAuth } from '@/api/client';
+import { createVideo, getVideo, type Video } from '@/api/videos';
+import { getActiveProfile } from '@/config/store';
+import { handleError } from '@/utils/errors';
 import {
   downloadGeneratedFile,
   printGeneratedResult,
   printGenerationStarted,
   requireGenerationBrand,
   waitForGenerated,
-} from './helpers.js';
+} from './helpers';
 
 export const videoCommand = new Command('video')
   .description('Generate an AI video')

@@ -34,7 +34,7 @@ function makeConfigJson(profileOverrides: Record<string, unknown> = {}) {
 describe('config/store', () => {
   beforeEach(async () => {
     mockFileSystem.content = null;
-    const { clearConfigCache } = await import('../../src/config/store.js');
+    const { clearConfigCache } = await import('../../src/config/store');
     clearConfigCache();
     delete process.env.GENFEED_API_KEY;
     delete process.env.GENFEED_API_URL;
@@ -48,20 +48,20 @@ describe('config/store', () => {
 
   describe('getApiKey', () => {
     it('returns undefined when no API key is set', async () => {
-      const { getApiKey } = await import('../../src/config/store.js');
+      const { getApiKey } = await import('../../src/config/store');
       expect(await getApiKey()).toBeUndefined();
     });
 
     it('returns API key when set', async () => {
       mockFileSystem.content = makeConfigJson({ apiKey: 'test-api-key' });
-      const { getApiKey } = await import('../../src/config/store.js');
+      const { getApiKey } = await import('../../src/config/store');
       expect(await getApiKey()).toBe('test-api-key');
     });
   });
 
   describe('setApiKey', () => {
     it('stores the API key', async () => {
-      const { setApiKey, getApiKey } = await import('../../src/config/store.js');
+      const { setApiKey, getApiKey } = await import('../../src/config/store');
       await setApiKey('new-api-key');
       expect(await getApiKey()).toBe('new-api-key');
     });
@@ -70,7 +70,7 @@ describe('config/store', () => {
   describe('clearApiKey', () => {
     it('removes the API key', async () => {
       mockFileSystem.content = makeConfigJson({ apiKey: 'test-api-key' });
-      const { clearApiKey, getApiKey } = await import('../../src/config/store.js');
+      const { clearApiKey, getApiKey } = await import('../../src/config/store');
       await clearApiKey();
       expect(await getApiKey()).toBeUndefined();
     });
@@ -78,20 +78,20 @@ describe('config/store', () => {
 
   describe('getApiUrl', () => {
     it('returns default API URL when not set', async () => {
-      const { getApiUrl } = await import('../../src/config/store.js');
+      const { getApiUrl } = await import('../../src/config/store');
       expect(await getApiUrl()).toBe('https://api.genfeed.ai/v1');
     });
 
     it('returns custom API URL when set', async () => {
       mockFileSystem.content = makeConfigJson({ apiUrl: 'https://custom.api.com/v1' });
-      const { getApiUrl } = await import('../../src/config/store.js');
+      const { getApiUrl } = await import('../../src/config/store');
       expect(await getApiUrl()).toBe('https://custom.api.com/v1');
     });
   });
 
   describe('setProfileField', () => {
     it('stores the API URL', async () => {
-      const { setProfileField, getApiUrl } = await import('../../src/config/store.js');
+      const { setProfileField, getApiUrl } = await import('../../src/config/store');
       await setProfileField('apiUrl', 'https://new.api.com/v1');
       expect(await getApiUrl()).toBe('https://new.api.com/v1');
     });
@@ -99,20 +99,20 @@ describe('config/store', () => {
 
   describe('getActiveBrand', () => {
     it('returns undefined when no brand is set', async () => {
-      const { getActiveBrand } = await import('../../src/config/store.js');
+      const { getActiveBrand } = await import('../../src/config/store');
       expect(await getActiveBrand()).toBeUndefined();
     });
 
     it('returns brand ID when set', async () => {
       mockFileSystem.content = makeConfigJson({ activeBrand: 'brand-123' });
-      const { getActiveBrand } = await import('../../src/config/store.js');
+      const { getActiveBrand } = await import('../../src/config/store');
       expect(await getActiveBrand()).toBe('brand-123');
     });
   });
 
   describe('setActiveBrand', () => {
     it('stores the active brand', async () => {
-      const { setActiveBrand, getActiveBrand } = await import('../../src/config/store.js');
+      const { setActiveBrand, getActiveBrand } = await import('../../src/config/store');
       await setActiveBrand('brand-456');
       expect(await getActiveBrand()).toBe('brand-456');
     });
@@ -121,7 +121,7 @@ describe('config/store', () => {
   describe('clearActiveBrand', () => {
     it('removes the active brand', async () => {
       mockFileSystem.content = makeConfigJson({ activeBrand: 'brand-123' });
-      const { clearActiveBrand, getActiveBrand } = await import('../../src/config/store.js');
+      const { clearActiveBrand, getActiveBrand } = await import('../../src/config/store');
       await clearActiveBrand();
       expect(await getActiveBrand()).toBeUndefined();
     });
@@ -129,13 +129,13 @@ describe('config/store', () => {
 
   describe('getActiveProfile defaults', () => {
     it('returns default agent model as undefined', async () => {
-      const { getActiveProfile } = await import('../../src/config/store.js');
+      const { getActiveProfile } = await import('../../src/config/store');
       const { profile } = await getActiveProfile();
       expect(profile.agent.model).toBeUndefined();
     });
 
     it('returns default image model', async () => {
-      const { getActiveProfile } = await import('../../src/config/store.js');
+      const { getActiveProfile } = await import('../../src/config/store');
       const { profile } = await getActiveProfile();
       expect(profile.defaults.imageModel).toBe('imagen-4');
     });
@@ -144,13 +144,13 @@ describe('config/store', () => {
       mockFileSystem.content = makeConfigJson({
         defaults: { imageModel: 'custom-model', videoModel: 'google-veo-3' },
       });
-      const { getActiveProfile } = await import('../../src/config/store.js');
+      const { getActiveProfile } = await import('../../src/config/store');
       const { profile } = await getActiveProfile();
       expect(profile.defaults.imageModel).toBe('custom-model');
     });
 
     it('returns default video model', async () => {
-      const { getActiveProfile } = await import('../../src/config/store.js');
+      const { getActiveProfile } = await import('../../src/config/store');
       const { profile } = await getActiveProfile();
       expect(profile.defaults.videoModel).toBe('google-veo-3');
     });
@@ -159,7 +159,7 @@ describe('config/store', () => {
       mockFileSystem.content = makeConfigJson({
         defaults: { imageModel: 'imagen-4', videoModel: 'custom-video' },
       });
-      const { getActiveProfile } = await import('../../src/config/store.js');
+      const { getActiveProfile } = await import('../../src/config/store');
       const { profile } = await getActiveProfile();
       expect(profile.defaults.videoModel).toBe('custom-video');
     });
@@ -167,7 +167,7 @@ describe('config/store', () => {
 
   describe('clearConfigCache', () => {
     it('forces reload from file on next access', async () => {
-      const { getApiKey, clearConfigCache } = await import('../../src/config/store.js');
+      const { getApiKey, clearConfigCache } = await import('../../src/config/store');
       // First load uses default (no file)
       expect(await getApiKey()).toBeUndefined();
       // Write a config file
@@ -179,7 +179,7 @@ describe('config/store', () => {
 
   describe('getConfigPath', () => {
     it('returns config file path', async () => {
-      const { getConfigPath } = await import('../../src/config/store.js');
+      const { getConfigPath } = await import('../../src/config/store');
       expect(getConfigPath()).toContain('.gf');
       expect(getConfigPath()).toContain('config.json');
     });
@@ -188,7 +188,7 @@ describe('config/store', () => {
   describe('loadConfig', () => {
     it('returns full config object', async () => {
       mockFileSystem.content = makeConfigJson({ activeBrand: 'brand-123', apiKey: 'test-key' });
-      const { loadConfig } = await import('../../src/config/store.js');
+      const { loadConfig } = await import('../../src/config/store');
       const config = await loadConfig();
       expect(config.activeProfile).toBe('default');
       expect(config.profiles.default.apiKey).toBe('test-key');
@@ -201,13 +201,13 @@ describe('config/store', () => {
     it('env var overrides config API key', async () => {
       mockFileSystem.content = makeConfigJson({ apiKey: 'from-file' });
       process.env.GENFEED_API_KEY = 'from-env';
-      const { getApiKey } = await import('../../src/config/store.js');
+      const { getApiKey } = await import('../../src/config/store');
       expect(await getApiKey()).toBe('from-env');
     });
 
     it('env var overrides config API URL', async () => {
       process.env.GENFEED_API_URL = 'https://env.api.com/v1';
-      const { getApiUrl } = await import('../../src/config/store.js');
+      const { getApiUrl } = await import('../../src/config/store');
       expect(await getApiUrl()).toBe('https://env.api.com/v1');
     });
 
@@ -216,7 +216,7 @@ describe('config/store', () => {
         agent: { lastThreadIdByOrganization: {}, model: 'gpt-5' },
       });
       process.env.GENFEED_AGENT_MODEL = 'claude-3-7-sonnet';
-      const { getActiveProfile } = await import('../../src/config/store.js');
+      const { getActiveProfile } = await import('../../src/config/store');
       const { profile } = await getActiveProfile();
       expect(profile.agent.model).toBe('claude-3-7-sonnet');
     });
@@ -230,7 +230,7 @@ describe('config/store', () => {
         },
         organizationId: 'org-123',
       });
-      const { getActiveProfile, setAgentModel } = await import('../../src/config/store.js');
+      const { getActiveProfile, setAgentModel } = await import('../../src/config/store');
 
       await setAgentModel('gpt-5');
 
@@ -243,9 +243,7 @@ describe('config/store', () => {
   describe('agent thread persistence', () => {
     it('stores and retrieves the last thread for an organization', async () => {
       mockFileSystem.content = makeConfigJson({ organizationId: 'org-123' });
-      const { getLastAgentThreadId, setLastAgentThreadId } = await import(
-        '../../src/config/store.js'
-      );
+      const { getLastAgentThreadId, setLastAgentThreadId } = await import('../../src/config/store');
 
       await setLastAgentThreadId('thread-123');
 
@@ -259,7 +257,7 @@ describe('config/store', () => {
         organizationId: 'org-123',
       });
       const { clearLastAgentThreadId, getLastAgentThreadId } = await import(
-        '../../src/config/store.js'
+        '../../src/config/store'
       );
 
       await clearLastAgentThreadId();

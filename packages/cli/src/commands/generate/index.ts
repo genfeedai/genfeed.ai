@@ -1,8 +1,8 @@
 import { Command } from 'commander';
-import { articleCommand } from './article.js';
-import { articleXCommand } from './article-x.js';
-import { imageCommand } from './image.js';
-import { videoCommand } from './video.js';
+import { articleCommand } from './article';
+import { articleXCommand } from './article-x';
+import { imageCommand } from './image';
+import { videoCommand } from './video';
 
 export const generateCommand = new Command('generate')
   .description('Generate AI content')

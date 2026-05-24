@@ -1,10 +1,10 @@
 import chalk from 'chalk';
 import { Command } from 'commander';
 import ora from 'ora';
-import { runCaption } from '@/api/darkroom-api.js';
-import { requireAdmin } from '@/middleware/auth-guard.js';
-import { print, printJson } from '@/ui/theme.js';
-import { handleError } from '@/utils/errors.js';
+import { runCaption } from '@/api/darkroom-api';
+import { requireAdmin } from '@/middleware/auth-guard';
+import { print, printJson } from '@/ui/theme';
+import { handleError } from '@/utils/errors';
 
 export const captionCommand = new Command('caption')
   .description('Run Florence-2 auto-captioning on training dataset [admin]')

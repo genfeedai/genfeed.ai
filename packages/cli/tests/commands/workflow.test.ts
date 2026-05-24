@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { workflowCommand } from '../../src/commands/workflow.js';
-import { GenfeedError } from '../../src/utils/errors.js';
+import { workflowCommand } from '../../src/commands/workflow';
+import { GenfeedError } from '../../src/utils/errors';
 
 const { mockHandleError, mockPost, mockPrintJson, mockRequireAuth } = vi.hoisted(() => ({
   mockHandleError: vi.fn((error: unknown) => {
@@ -11,21 +11,21 @@ const { mockHandleError, mockPost, mockPrintJson, mockRequireAuth } = vi.hoisted
   mockRequireAuth: vi.fn(),
 }));
 
-vi.mock('../../src/api/client.js', () => ({
+vi.mock('../../src/api/client', () => ({
   get: vi.fn(),
   post: (...args: unknown[]) => mockPost(...args),
   requireAuth: () => mockRequireAuth(),
 }));
 
-vi.mock('../../src/ui/theme.js', () => ({
+vi.mock('../../src/ui/theme', () => ({
   formatHeader: (value: string) => value,
   formatLabel: (label: string, value: string) => `${label}: ${value}`,
   print: vi.fn(),
   printJson: (value: unknown) => mockPrintJson(value),
 }));
 
-vi.mock('../../src/utils/errors.js', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../src/utils/errors.js')>();
+vi.mock('../../src/utils/errors', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/utils/errors')>();
   return {
     ...actual,
     handleError: (error: unknown) => mockHandleError(error),

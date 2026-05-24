@@ -2,7 +2,7 @@ import { confirm } from '@inquirer/prompts';
 import chalk from 'chalk';
 import { Command } from 'commander';
 import ora from 'ora';
-import { requireAuth } from '@/api/client.js';
+import { requireAuth } from '@/api/client';
 import {
   createTemplate,
   deleteTemplate,
@@ -11,9 +11,9 @@ import {
   listTemplates,
   suggestTemplates,
   useTemplate,
-} from '@/api/templates.js';
-import { formatHeader, formatLabel, formatSuccess, print, printJson } from '@/ui/theme.js';
-import { handleError } from '@/utils/errors.js';
+} from '@/api/templates';
+import { formatHeader, formatLabel, formatSuccess, print, printJson } from '@/ui/theme';
+import { handleError } from '@/utils/errors';
 
 export const templateCommand = new Command('template').description('Manage content templates');
 

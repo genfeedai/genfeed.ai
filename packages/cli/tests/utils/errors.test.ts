@@ -7,7 +7,7 @@ import {
   GenfeedError,
   handleError,
   NoBrandError,
-} from '../../src/utils/errors.js';
+} from '../../src/utils/errors';
 
 // Mock chalk to return plain strings
 vi.mock('chalk', () => ({
